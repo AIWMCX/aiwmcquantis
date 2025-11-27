@@ -10,19 +10,19 @@ interface AnalysisRequest {
   location: string;
 }
 
-// Minimal tool schema - everything as JSON strings to avoid complexity limits
+// Minimal tool schema
 const analysisToolSchema = {
   type: "function",
   function: {
     name: "submit_analysis",
-    description: "Submit business analysis",
+    description: "Submit business analysis with realistic industry benchmarks",
     parameters: {
       type: "object",
       properties: {
-        financial_json: { type: "string", description: "JSON with: mrr, arr, base_profit, startup_investment, payback_months, roi_year_1, cac, ltv, ltv_cac_ratio, breakeven_units, pessimistic_profit, optimistic_profit, rent, salaries, marketing, calculations_summary" },
-        business_json: { type: "string", description: "JSON with: executive_summary, product_description, target_audience, competitive_advantages, operations, launch_steps (array), risks (array)" },
-        marketing_json: { type: "string", description: "JSON with: positioning, pricing_strategy, channels (array), cac, ltv, first_3_months_plan" },
-        market_json: { type: "string", description: "JSON with: tam, sam, som, trends (array), competitors (array), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities" },
+        financial_json: { type: "string", description: "JSON object with realistic financial metrics" },
+        business_json: { type: "string", description: "JSON with business plan sections" },
+        marketing_json: { type: "string", description: "JSON with marketing plan" },
+        market_json: { type: "string", description: "JSON with market analysis" },
         confidence: { type: "number" },
         sources: { type: "string" },
         limitations: { type: "string" }
@@ -37,9 +37,8 @@ function safeParseJSON(str: string, fallback: any): any {
   try {
     return JSON.parse(str);
   } catch {
-    // Try to fix common JSON issues
     try {
-      return JSON.parse(str.replace(/'/g, '"').replace(/(\w+):/g, '"$1":'));
+      return JSON.parse(str.replace(/'/g, '"'));
     } catch {
       return fallback;
     }
@@ -51,100 +50,106 @@ function transformResponse(raw: any) {
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
-  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Открытые источники"];
+  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Открытые источники", "Отраслевые исследования"];
   const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Оценочные данные"];
 
   const mrr = fa.mrr || 0;
   const baseProfit = fa.base_profit || 0;
   const startup = fa.startup_investment || 0;
+  const cac = fa.cac || 500;
+  const ltv = fa.ltv || 5000;
+  
+  // Calculate realistic margins
+  const grossMarginPct = fa.gross_margin || 40;
+  const netMarginPct = fa.net_margin || 12;
   
   return {
     financial_analysis: {
       inputs: {
-        price_per_unit: fa.price_per_unit || mrr / 100,
-        units_sold_monthly: fa.units_monthly || 100,
-        purchase_frequency: 1,
-        upsell_per_customer: 0,
-        cogs_per_unit: fa.cogs || 0,
-        fixed_opex: fa.fixed_opex || 0,
+        price_per_unit: fa.price_per_unit || fa.average_check || 500,
+        units_sold_monthly: fa.orders_monthly || fa.units_monthly || Math.round(mrr / (fa.average_check || 500)),
+        purchase_frequency: fa.purchase_frequency || 2,
+        upsell_per_customer: fa.upsell || 0,
+        cogs_per_unit: fa.cogs_per_unit || (fa.average_check || 500) * 0.35,
+        fixed_opex: fa.fixed_opex || fa.total_expenses * 0.6 || 0,
         marketing_budget: fa.marketing || 0,
-        cac: fa.cac || 0,
+        cac: cac,
         startup_investment: startup,
-        capex: 0,
-        ltv: fa.ltv || 0,
-        churn_rate: fa.churn || 0.05
+        capex: fa.equipment || 0,
+        ltv: ltv,
+        churn_rate: fa.churn_rate || 0.08
       },
       mrr: mrr,
       arr: fa.arr || mrr * 12,
       scenarios: {
         pessimistic: {
-          revenue: mrr * 0.8,
-          variable_costs: 0,
+          revenue: fa.pessimistic_revenue || mrr * 0.75,
+          variable_costs: fa.pessimistic_variable_costs || mrr * 0.75 * 0.4,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: mrr * 0.8,
-          net_profit: fa.pessimistic_profit || baseProfit * 0.5,
-          gross_margin: 30,
-          net_margin: 15
+          gross_profit: fa.pessimistic_gross_profit || mrr * 0.75 * (grossMarginPct / 100),
+          net_profit: fa.pessimistic_profit || baseProfit * 0.3,
+          gross_margin: grossMarginPct - 10,
+          net_margin: Math.max(netMarginPct - 8, 0)
         },
         base: {
           revenue: mrr,
-          variable_costs: 0,
+          variable_costs: fa.variable_costs || mrr * 0.35,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: mrr,
+          gross_profit: fa.gross_profit || mrr * (grossMarginPct / 100),
           net_profit: baseProfit,
-          gross_margin: 40,
-          net_margin: 20
+          gross_margin: grossMarginPct,
+          net_margin: netMarginPct
         },
         optimistic: {
-          revenue: mrr * 1.3,
-          variable_costs: 0,
+          revenue: fa.optimistic_revenue || mrr * 1.3,
+          variable_costs: fa.optimistic_variable_costs || mrr * 1.3 * 0.32,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: mrr * 1.3,
-          net_profit: fa.optimistic_profit || baseProfit * 1.5,
-          gross_margin: 50,
-          net_margin: 30
+          gross_profit: fa.optimistic_gross_profit || mrr * 1.3 * (grossMarginPct / 100 + 0.05),
+          net_profit: fa.optimistic_profit || baseProfit * 1.8,
+          gross_margin: grossMarginPct + 5,
+          net_margin: netMarginPct + 5
         }
       },
       unit_economics: {
-        contribution_margin: fa.contribution_margin || (fa.price_per_unit || 0) - (fa.cogs || 0),
-        contribution_margin_ratio: 0.6,
-        cac: fa.cac || 0,
-        cac_payback_months: fa.cac_payback || 3,
-        ltv: fa.ltv || 0,
-        ltv_cac_ratio: fa.ltv_cac_ratio || 3
+        contribution_margin: fa.contribution_margin || (fa.average_check || 500) - (fa.cogs_per_unit || 175),
+        contribution_margin_ratio: fa.contribution_margin_ratio || 0.65,
+        cac: cac,
+        cac_payback_months: fa.cac_payback_months || Math.ceil(cac / ((fa.average_check || 500) * (netMarginPct / 100) * (fa.purchase_frequency || 2))),
+        ltv: ltv,
+        ltv_cac_ratio: fa.ltv_cac_ratio || Math.round(ltv / cac * 10) / 10
       },
       breakeven: {
         breakeven_units: fa.breakeven_units || 0,
         breakeven_revenue: fa.breakeven_revenue || 0,
-        breakeven_months: fa.breakeven_months || 6
+        breakeven_months: fa.breakeven_months || 0
       },
       returns: {
-        payback_period_months: fa.payback_months || 12,
-        roi_year_1: fa.roi_year_1 || 0,
-        roi_year_3: (fa.roi_year_1 || 0) * 2,
-        npv_3_years: baseProfit * 36 - startup
+        payback_period_months: fa.payback_months || (startup > 0 && baseProfit > 0 ? Math.ceil(startup / baseProfit) : 0),
+        roi_year_1: fa.roi_year_1 || (startup > 0 && baseProfit > 0 ? Math.round((baseProfit * 12 / startup) * 100) : 0),
+        roi_year_3: fa.roi_year_3 || (startup > 0 && baseProfit > 0 ? Math.round((baseProfit * 36 / startup) * 100) : 0),
+        npv_3_years: fa.npv_3_years || (baseProfit * 36 - startup)
       },
       startup_investment: {
         total: startup,
         breakdown: {
-          rent_deposit: fa.rent || startup * 0.15,
-          equipment: fa.equipment || startup * 0.3,
-          inventory: fa.inventory || startup * 0.2,
+          rent_deposit: fa.rent_deposit || Math.round(startup * 0.1),
+          equipment: fa.equipment || Math.round(startup * 0.4),
+          inventory: fa.inventory_initial || Math.round(startup * 0.15),
           legal: fa.legal || 50000,
-          marketing_initial: fa.marketing || startup * 0.15,
-          working_capital: fa.working_capital || startup * 0.2
+          marketing_initial: fa.marketing_initial || Math.round(startup * 0.1),
+          working_capital: fa.working_capital || Math.round(startup * 0.25)
         },
-        reasoning: fa.calculations_summary || ""
+        reasoning: fa.investment_reasoning || fa.calculations_summary || ""
       },
       monthly_expenses: {
-        total: (fa.rent || 0) + (fa.salaries || 0) + (fa.marketing || 0) + (fa.utilities || 0) + (fa.other || 0),
+        total: fa.total_expenses || 0,
         variable_costs: fa.variable_costs || 0,
         fixed_costs: fa.fixed_costs || 0,
         breakdown: {
           rent: fa.rent || 0,
           utilities: fa.utilities || 0,
           salaries: fa.salaries || 0,
-          inventory_replenishment: fa.inventory_monthly || 0,
+          inventory_replenishment: fa.inventory_monthly || fa.cogs_monthly || 0,
           marketing: fa.marketing || 0,
           other: fa.other || 0
         }
@@ -152,34 +157,34 @@ function transformResponse(raw: any) {
       risk_analysis: {
         revenue_drop_20: {
           scenario: "Падение выручки на 20%",
-          description: "Снижение спроса",
+          description: "Снижение спроса, сезонность, конкуренция",
           impact_on_revenue: -20,
           impact_on_costs: 0,
-          resulting_profit: baseProfit * 0.6,
+          resulting_profit: fa.profit_revenue_drop_20 || Math.round(baseProfit * 0.4),
           probability: "средняя" as const
         },
         costs_rise_15: {
           scenario: "Рост затрат на 15%",
-          description: "Инфляция",
+          description: "Инфляция, рост цен на сырьё и аренду",
           impact_on_revenue: 0,
           impact_on_costs: 15,
-          resulting_profit: baseProfit * 0.85,
-          probability: "средняя" as const
+          resulting_profit: fa.profit_costs_rise_15 || Math.round(baseProfit * 0.7),
+          probability: "высокая" as const
         },
         cac_doubles: {
           scenario: "Удвоение CAC",
-          description: "Рост конкуренции",
+          description: "Рост конкуренции в рекламе",
           impact_on_revenue: 0,
           impact_on_costs: 0,
-          resulting_profit: baseProfit * 0.7,
-          probability: "низкая" as const
+          resulting_profit: fa.profit_cac_doubles || Math.round(baseProfit * 0.6),
+          probability: "средняя" as const
         },
         churn_increase: {
-          scenario: "Рост оттока",
-          description: "Конкуренция",
-          impact_on_revenue: -10,
+          scenario: "Рост оттока на 50%",
+          description: "Снижение качества, конкуренция",
+          impact_on_revenue: -15,
           impact_on_costs: 0,
-          resulting_profit: baseProfit * 0.9,
+          resulting_profit: fa.profit_churn_increase || Math.round(baseProfit * 0.5),
           probability: "средняя" as const
         }
       },
@@ -198,8 +203,8 @@ function transformResponse(raw: any) {
       positioning: mp.positioning || "",
       pricing_strategy: mp.pricing_strategy || "",
       channels: Array.isArray(mp.channels) ? mp.channels : [],
-      cac: mp.cac || fa.cac || 0,
-      ltv: mp.ltv || fa.ltv || 0,
+      cac: mp.cac || cac,
+      ltv: mp.ltv || ltv,
       first_3_months_plan: mp.first_3_months_plan || ""
     },
     market_analysis: {
@@ -255,18 +260,95 @@ serve(async (req) => {
 
     console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location}`);
 
-    const prompt = `Проанализируй бизнес-идею и вызови функцию submit_analysis.
+    // Enhanced prompt with realistic industry benchmarks
+    const prompt = `Ты — опытный финансовый аналитик. Проанализируй бизнес-идею с РЕАЛИСТИЧНЫМИ отраслевыми показателями.
 
-ИДЕЯ: ${idea.trim()}
-ЛОКАЦИЯ: ${location.trim()}
+## БИЗНЕС-ИДЕЯ
+${idea.trim()}
 
-Рассчитай по формулам:
-- MRR = цена × клиенты
-- ROI = (прибыль × 12) / инвестиции × 100%
-- LTV:CAC должно быть > 3
-- Точка безубыточности = расходы / маржа
+## ЛОКАЦИЯ
+${location.trim()}
 
-Верни JSON строки для каждого раздела. Все суммы в рублях.`;
+## КРИТИЧЕСКИЕ ТРЕБОВАНИЯ К РЕАЛИСТИЧНОСТИ
+
+### Маржинальность по отраслям (чистая прибыль / выручка):
+- Пекарня, кондитерская: 8-15%
+- Доставка еды: 5-12%
+- Ресторан: 10-20%
+- Розничная торговля: 3-10%
+- Услуги (салон, фитнес): 15-25%
+- IT/SaaS: 20-40%
+- Производство: 10-20%
+- Консалтинг: 25-40%
+
+### CAC (стоимость привлечения клиента) - РЕАЛЬНЫЕ ЦИФРЫ:
+- Instagram/Facebook Ads: 200-500₽
+- VK Ads: 150-400₽
+- Яндекс.Директ: 300-800₽
+- SEO/контент: 100-300₽
+- Delivery platforms: 200-500₽
+- B2B продажи: 5000-50000₽
+
+### LTV (пожизненная ценность клиента):
+- Домашние заказы еды: 5000-15000₽
+- Офисные заказы: 15000-50000₽
+- Розница (постоянный клиент): 10000-30000₽
+- SaaS подписки: 20000-100000₽
+- Услуги (салон): 15000-40000₽
+
+### ОБЯЗАТЕЛЬНЫЕ СООТНОШЕНИЯ:
+- LTV:CAC ДОЛЖНО быть 3-5x (НЕ БОЛЬШЕ 10x!)
+- Payback = Инвестиции / Чистая прибыль
+- ROI = (Чистая прибыль × 12) / Инвестиции × 100%
+- Gross Margin = (Выручка - Себестоимость) / Выручка
+- Net Margin = Чистая прибыль / Выручка
+
+### СТРУКТУРА РАСХОДОВ (типичная):
+- Сырьё/товар: 30-45% выручки
+- Зарплаты: 20-35% выручки
+- Аренда: 8-15% выручки
+- Маркетинг: 5-15% выручки
+- Коммуналка: 3-5% выручки
+- Прочее: 5-10% выручки
+
+## ФОРМАТ ОТВЕТА (JSON строки)
+
+financial_json должен содержать:
+{
+  "mrr": число (ежемесячная выручка),
+  "arr": число (годовая выручка),
+  "average_check": число (средний чек),
+  "orders_monthly": число (заказов в месяц),
+  "cogs_per_unit": число (себестоимость единицы),
+  "gross_margin": число (валовая маржа %),
+  "net_margin": число (чистая маржа % - РЕАЛИСТИЧНАЯ по отрасли!),
+  "base_profit": число (чистая прибыль в месяц = MRR × net_margin),
+  "pessimistic_profit": число (прибыль в пессимистичном сценарии),
+  "optimistic_profit": число (прибыль в оптимистичном сценарии),
+  "startup_investment": число (стартовые инвестиции),
+  "payback_months": число (Инвестиции / Прибыль),
+  "roi_year_1": число (ROI % за год),
+  "cac": число (РЕАЛИСТИЧНЫЙ CAC 200-800₽),
+  "ltv": число (РЕАЛИСТИЧНЫЙ LTV),
+  "ltv_cac_ratio": число (ДОЛЖЕН быть 3-5, максимум 7),
+  "breakeven_units": число,
+  "breakeven_months": число,
+  "total_expenses": число (общие расходы в месяц),
+  "variable_costs": число,
+  "fixed_costs": число,
+  "rent": число,
+  "salaries": число,
+  "marketing": число,
+  "utilities": число,
+  "cogs_monthly": число,
+  "other": число,
+  "equipment": число (для стартовых инвестиций),
+  "inventory_initial": число,
+  "working_capital": число,
+  "calculations_summary": "Подробное объяснение расчётов с формулами"
+}
+
+Вызови функцию submit_analysis с реалистичными данными.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -312,7 +394,7 @@ serve(async (req) => {
 
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) {
-      console.error("No tool call in response");
+      console.error("No tool call");
       return new Response(
         JSON.stringify({ error: "AI не вернул анализ. Попробуйте снова.", code: "NO_TOOL_CALL" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -325,13 +407,25 @@ serve(async (req) => {
     } catch (e) {
       console.error("Parse error:", e);
       return new Response(
-        JSON.stringify({ error: "Ошибка парсинга ответа", code: "PARSE_ERROR" }),
+        JSON.stringify({ error: "Ошибка парсинга", code: "PARSE_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const result = transformResponse(rawResult);
-    console.log(`Done. Confidence: ${result.confidence_score}`);
+    
+    // Validate realistic values
+    const fa = result.financial_analysis;
+    const warnings: string[] = [];
+    
+    if (fa.unit_economics.ltv_cac_ratio > 10) {
+      warnings.push(`LTV:CAC=${fa.unit_economics.ltv_cac_ratio} нереалистично высокий`);
+    }
+    if (fa.scenarios.base.net_margin > 40) {
+      warnings.push(`Net margin ${fa.scenarios.base.net_margin}% слишком высокая`);
+    }
+    
+    console.log(`Done. Confidence: ${result.confidence_score}. Warnings: ${warnings.join(', ') || 'none'}`);
 
     return new Response(
       JSON.stringify({
@@ -343,7 +437,7 @@ serve(async (req) => {
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.2",
+            version: "3.3-realistic",
           },
         },
       }),
