@@ -414,30 +414,160 @@ financial_json должен содержать:
 
     const result = transformResponse(rawResult);
     
-    // Validate realistic values
+    // Comprehensive validation with industry benchmarks
     const fa = result.financial_analysis;
-    const warnings: string[] = [];
-    
-    if (fa.unit_economics.ltv_cac_ratio > 10) {
-      warnings.push(`LTV:CAC=${fa.unit_economics.ltv_cac_ratio} нереалистично высокий`);
+    const validationIssues: Array<{
+      field: string;
+      value: number | string;
+      expected: string;
+      severity: 'warning' | 'error';
+      message: string;
+    }> = [];
+
+    // Validate net margin by industry norms
+    const netMargin = fa.scenarios.base.net_margin;
+    if (netMargin > 40) {
+      validationIssues.push({
+        field: 'net_margin',
+        value: netMargin,
+        expected: '3-40%',
+        severity: 'error',
+        message: `Чистая маржа ${netMargin}% нереалистична. Для большинства отраслей норма 5-25%`
+      });
+    } else if (netMargin > 30) {
+      validationIssues.push({
+        field: 'net_margin',
+        value: netMargin,
+        expected: '3-25%',
+        severity: 'warning',
+        message: `Чистая маржа ${netMargin}% возможна только для IT/консалтинга`
+      });
     }
-    if (fa.scenarios.base.net_margin > 40) {
-      warnings.push(`Net margin ${fa.scenarios.base.net_margin}% слишком высокая`);
+
+    // Validate CAC
+    const cac = fa.unit_economics.cac;
+    if (cac < 50) {
+      validationIssues.push({
+        field: 'cac',
+        value: cac,
+        expected: '100-800₽',
+        severity: 'error',
+        message: `CAC ${cac}₽ нереалистично низкий. Минимум для digital-каналов 100-200₽`
+      });
+    } else if (cac < 100) {
+      validationIssues.push({
+        field: 'cac',
+        value: cac,
+        expected: '150-500₽',
+        severity: 'warning',
+        message: `CAC ${cac}₽ возможен только при органическом трафике`
+      });
     }
+
+    // Validate LTV:CAC ratio
+    const ltvCacRatio = fa.unit_economics.ltv_cac_ratio;
+    if (ltvCacRatio > 10) {
+      validationIssues.push({
+        field: 'ltv_cac_ratio',
+        value: ltvCacRatio,
+        expected: '3-7x',
+        severity: 'error',
+        message: `LTV:CAC ${ltvCacRatio}x нереалистично высокий. Норма 3-5x`
+      });
+    } else if (ltvCacRatio > 7) {
+      validationIssues.push({
+        field: 'ltv_cac_ratio',
+        value: ltvCacRatio,
+        expected: '3-5x',
+        severity: 'warning',
+        message: `LTV:CAC ${ltvCacRatio}x выше среднего, проверьте CAC и LTV`
+      });
+    } else if (ltvCacRatio < 2) {
+      validationIssues.push({
+        field: 'ltv_cac_ratio',
+        value: ltvCacRatio,
+        expected: '3-5x',
+        severity: 'warning',
+        message: `LTV:CAC ${ltvCacRatio}x низкий — бизнес может быть нерентабельным`
+      });
+    }
+
+    // Validate ROI
+    const roiYear1 = fa.returns.roi_year_1;
+    if (roiYear1 > 200) {
+      validationIssues.push({
+        field: 'roi_year_1',
+        value: roiYear1,
+        expected: '20-100%',
+        severity: 'error',
+        message: `ROI ${roiYear1}% за первый год нереалистичен`
+      });
+    } else if (roiYear1 > 100) {
+      validationIssues.push({
+        field: 'roi_year_1',
+        value: roiYear1,
+        expected: '20-80%',
+        severity: 'warning',
+        message: `ROI ${roiYear1}% возможен, но требует проверки`
+      });
+    }
+
+    // Validate payback period
+    const payback = fa.returns.payback_period_months;
+    if (payback > 0 && payback < 3) {
+      validationIssues.push({
+        field: 'payback_period',
+        value: payback,
+        expected: '6-24 месяцев',
+        severity: 'warning',
+        message: `Окупаемость ${payback} мес. очень быстрая, проверьте расчёты`
+      });
+    }
+
+    // Validate gross margin
+    const grossMargin = fa.scenarios.base.gross_margin;
+    if (grossMargin > 80) {
+      validationIssues.push({
+        field: 'gross_margin',
+        value: grossMargin,
+        expected: '30-70%',
+        severity: 'error',
+        message: `Валовая маржа ${grossMargin}% возможна только для digital-продуктов`
+      });
+    }
+
+    // Calculate overall reliability score
+    const errorCount = validationIssues.filter(i => i.severity === 'error').length;
+    const warningCount = validationIssues.filter(i => i.severity === 'warning').length;
     
-    console.log(`Done. Confidence: ${result.confidence_score}. Warnings: ${warnings.join(', ') || 'none'}`);
+    let reliabilityScore = 100;
+    reliabilityScore -= errorCount * 20;
+    reliabilityScore -= warningCount * 10;
+    reliabilityScore = Math.max(0, Math.min(100, reliabilityScore));
+
+    const isRealistic = errorCount === 0;
+    
+    console.log(`Done. Confidence: ${result.confidence_score}. Reliability: ${reliabilityScore}%. Issues: ${validationIssues.length}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           ...result,
+          validation: {
+            is_realistic: isRealistic,
+            reliability_score: reliabilityScore,
+            issues: validationIssues,
+            summary: isRealistic 
+              ? "Показатели в пределах отраслевых норм"
+              : `Обнаружено ${errorCount} критических и ${warningCount} предупреждающих отклонений от норм`
+          },
           metadata: {
             idea: idea.trim(),
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.3-realistic",
+            version: "3.4-validated",
           },
         },
       }),
