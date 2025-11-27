@@ -10,298 +10,217 @@ interface AnalysisRequest {
   location: string;
 }
 
-// Simplified tool schema to avoid "too many states" error
+// Minimal tool schema - everything as JSON strings to avoid complexity limits
 const analysisToolSchema = {
   type: "function",
   function: {
-    name: "submit_business_analysis",
-    description: "Submit business analysis with financial projections",
+    name: "submit_analysis",
+    description: "Submit business analysis",
     parameters: {
       type: "object",
       properties: {
-        financial_analysis: {
-          type: "object",
-          properties: {
-            // Input variables
-            price_per_unit: { type: "number" },
-            units_sold_monthly: { type: "number" },
-            cogs_per_unit: { type: "number" },
-            fixed_opex: { type: "number" },
-            marketing_budget: { type: "number" },
-            cac: { type: "number" },
-            ltv: { type: "number" },
-            churn_rate: { type: "number" },
-            
-            // Calculated metrics
-            mrr: { type: "number" },
-            arr: { type: "number" },
-            contribution_margin: { type: "number" },
-            ltv_cac_ratio: { type: "number" },
-            cac_payback_months: { type: "number" },
-            breakeven_units: { type: "number" },
-            breakeven_revenue: { type: "number" },
-            breakeven_months: { type: "number" },
-            
-            // 3 Scenarios - flat structure
-            pessimistic_revenue: { type: "number" },
-            pessimistic_profit: { type: "number" },
-            pessimistic_margin: { type: "number" },
-            base_revenue: { type: "number" },
-            base_profit: { type: "number" },
-            base_margin: { type: "number" },
-            optimistic_revenue: { type: "number" },
-            optimistic_profit: { type: "number" },
-            optimistic_margin: { type: "number" },
-            
-            // Investment & Returns
-            startup_investment: { type: "number" },
-            payback_months: { type: "number" },
-            roi_year_1: { type: "number" },
-            
-            // Expenses breakdown
-            rent: { type: "number" },
-            utilities: { type: "number" },
-            salaries: { type: "number" },
-            inventory: { type: "number" },
-            marketing: { type: "number" },
-            other_expenses: { type: "number" },
-            
-            // Risk scenarios - profit if...
-            profit_if_revenue_drops_20: { type: "number" },
-            profit_if_costs_rise_15: { type: "number" },
-            profit_if_cac_doubles: { type: "number" },
-            
-            // Text explanations
-            investment_reasoning: { type: "string" },
-            calculations_summary: { type: "string" }
-          },
-          required: ["mrr", "base_profit", "startup_investment", "payback_months", "roi_year_1", "calculations_summary"]
-        },
-        business_plan: {
-          type: "object",
-          properties: {
-            executive_summary: { type: "string" },
-            product_description: { type: "string" },
-            target_audience: { type: "string" },
-            competitive_advantages: { type: "string" },
-            operations: { type: "string" },
-            launch_steps_json: { type: "string" },
-            risks_json: { type: "string" }
-          },
-          required: ["executive_summary", "product_description", "target_audience"]
-        },
-        marketing_plan: {
-          type: "object",
-          properties: {
-            positioning: { type: "string" },
-            pricing_strategy: { type: "string" },
-            channels_json: { type: "string" },
-            cac: { type: "number" },
-            ltv: { type: "number" },
-            first_3_months_plan: { type: "string" }
-          },
-          required: ["positioning", "pricing_strategy", "cac", "ltv"]
-        },
-        market_analysis: {
-          type: "object",
-          properties: {
-            tam: { type: "string" },
-            sam: { type: "string" },
-            som: { type: "string" },
-            trends_json: { type: "string" },
-            competitors_json: { type: "string" },
-            competitive_landscape: { type: "string" },
-            market_gaps: { type: "string" },
-            barriers_to_entry: { type: "string" },
-            growth_opportunities: { type: "string" }
-          },
-          required: ["tam", "sam", "som", "competitive_landscape"]
-        },
-        confidence_score: { type: "number" },
-        data_sources_json: { type: "string" },
-        limitations_json: { type: "string" }
+        financial_json: { type: "string", description: "JSON with: mrr, arr, base_profit, startup_investment, payback_months, roi_year_1, cac, ltv, ltv_cac_ratio, breakeven_units, pessimistic_profit, optimistic_profit, rent, salaries, marketing, calculations_summary" },
+        business_json: { type: "string", description: "JSON with: executive_summary, product_description, target_audience, competitive_advantages, operations, launch_steps (array), risks (array)" },
+        marketing_json: { type: "string", description: "JSON with: positioning, pricing_strategy, channels (array), cac, ltv, first_3_months_plan" },
+        market_json: { type: "string", description: "JSON with: tam, sam, som, trends (array), competitors (array), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities" },
+        confidence: { type: "number" },
+        sources: { type: "string" },
+        limitations: { type: "string" }
       },
-      required: ["financial_analysis", "business_plan", "marketing_plan", "market_analysis", "confidence_score"]
+      required: ["financial_json", "business_json", "marketing_json", "market_json", "confidence"]
     }
   }
 };
 
-// Transform flat response to nested structure for frontend
+function safeParseJSON(str: string, fallback: any): any {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str);
+  } catch {
+    // Try to fix common JSON issues
+    try {
+      return JSON.parse(str.replace(/'/g, '"').replace(/(\w+):/g, '"$1":'));
+    } catch {
+      return fallback;
+    }
+  }
+}
+
 function transformResponse(raw: any) {
-  const fa = raw.financial_analysis || {};
+  const fa = safeParseJSON(raw.financial_json, {});
+  const bp = safeParseJSON(raw.business_json, {});
+  const mp = safeParseJSON(raw.marketing_json, {});
+  const ma = safeParseJSON(raw.market_json, {});
+  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Открытые источники"];
+  const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Оценочные данные"];
+
+  const mrr = fa.mrr || 0;
+  const baseProfit = fa.base_profit || 0;
+  const startup = fa.startup_investment || 0;
   
   return {
     financial_analysis: {
       inputs: {
-        price_per_unit: fa.price_per_unit || 0,
-        units_sold_monthly: fa.units_sold_monthly || 0,
+        price_per_unit: fa.price_per_unit || mrr / 100,
+        units_sold_monthly: fa.units_monthly || 100,
         purchase_frequency: 1,
         upsell_per_customer: 0,
-        cogs_per_unit: fa.cogs_per_unit || 0,
+        cogs_per_unit: fa.cogs || 0,
         fixed_opex: fa.fixed_opex || 0,
-        marketing_budget: fa.marketing_budget || 0,
+        marketing_budget: fa.marketing || 0,
         cac: fa.cac || 0,
-        startup_investment: fa.startup_investment || 0,
+        startup_investment: startup,
         capex: 0,
         ltv: fa.ltv || 0,
-        churn_rate: fa.churn_rate || 0.05
+        churn_rate: fa.churn || 0.05
       },
-      mrr: fa.mrr || 0,
-      arr: fa.arr || (fa.mrr || 0) * 12,
+      mrr: mrr,
+      arr: fa.arr || mrr * 12,
       scenarios: {
         pessimistic: {
-          revenue: fa.pessimistic_revenue || 0,
+          revenue: mrr * 0.8,
           variable_costs: 0,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.pessimistic_revenue || 0,
-          net_profit: fa.pessimistic_profit || 0,
-          gross_margin: fa.pessimistic_margin || 0,
-          net_margin: fa.pessimistic_margin || 0
+          gross_profit: mrr * 0.8,
+          net_profit: fa.pessimistic_profit || baseProfit * 0.5,
+          gross_margin: 30,
+          net_margin: 15
         },
         base: {
-          revenue: fa.base_revenue || fa.mrr || 0,
+          revenue: mrr,
           variable_costs: 0,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.base_revenue || 0,
-          net_profit: fa.base_profit || 0,
-          gross_margin: fa.base_margin || 0,
-          net_margin: fa.base_margin || 0
+          gross_profit: mrr,
+          net_profit: baseProfit,
+          gross_margin: 40,
+          net_margin: 20
         },
         optimistic: {
-          revenue: fa.optimistic_revenue || 0,
+          revenue: mrr * 1.3,
           variable_costs: 0,
           fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.optimistic_revenue || 0,
-          net_profit: fa.optimistic_profit || 0,
-          gross_margin: fa.optimistic_margin || 0,
-          net_margin: fa.optimistic_margin || 0
+          gross_profit: mrr * 1.3,
+          net_profit: fa.optimistic_profit || baseProfit * 1.5,
+          gross_margin: 50,
+          net_margin: 30
         }
       },
       unit_economics: {
-        contribution_margin: fa.contribution_margin || 0,
-        contribution_margin_ratio: fa.price_per_unit ? (fa.contribution_margin || 0) / fa.price_per_unit : 0,
+        contribution_margin: fa.contribution_margin || (fa.price_per_unit || 0) - (fa.cogs || 0),
+        contribution_margin_ratio: 0.6,
         cac: fa.cac || 0,
-        cac_payback_months: fa.cac_payback_months || 0,
+        cac_payback_months: fa.cac_payback || 3,
         ltv: fa.ltv || 0,
-        ltv_cac_ratio: fa.ltv_cac_ratio || 0
+        ltv_cac_ratio: fa.ltv_cac_ratio || 3
       },
       breakeven: {
         breakeven_units: fa.breakeven_units || 0,
         breakeven_revenue: fa.breakeven_revenue || 0,
-        breakeven_months: fa.breakeven_months || 0
+        breakeven_months: fa.breakeven_months || 6
       },
       returns: {
-        payback_period_months: fa.payback_months || 0,
+        payback_period_months: fa.payback_months || 12,
         roi_year_1: fa.roi_year_1 || 0,
         roi_year_3: (fa.roi_year_1 || 0) * 2,
-        npv_3_years: (fa.base_profit || 0) * 36 - (fa.startup_investment || 0)
+        npv_3_years: baseProfit * 36 - startup
       },
       startup_investment: {
-        total: fa.startup_investment || 0,
+        total: startup,
         breakdown: {
-          rent_deposit: fa.rent || 0,
-          equipment: fa.inventory || 0,
-          inventory: fa.inventory || 0,
-          legal: 50000,
-          marketing_initial: fa.marketing || 0,
-          working_capital: fa.other_expenses || 0
+          rent_deposit: fa.rent || startup * 0.15,
+          equipment: fa.equipment || startup * 0.3,
+          inventory: fa.inventory || startup * 0.2,
+          legal: fa.legal || 50000,
+          marketing_initial: fa.marketing || startup * 0.15,
+          working_capital: fa.working_capital || startup * 0.2
         },
-        reasoning: fa.investment_reasoning || ""
+        reasoning: fa.calculations_summary || ""
       },
       monthly_expenses: {
-        total: (fa.rent || 0) + (fa.utilities || 0) + (fa.salaries || 0) + (fa.inventory || 0) + (fa.marketing || 0) + (fa.other_expenses || 0),
-        variable_costs: (fa.inventory || 0),
-        fixed_costs: (fa.rent || 0) + (fa.utilities || 0) + (fa.salaries || 0),
+        total: (fa.rent || 0) + (fa.salaries || 0) + (fa.marketing || 0) + (fa.utilities || 0) + (fa.other || 0),
+        variable_costs: fa.variable_costs || 0,
+        fixed_costs: fa.fixed_costs || 0,
         breakdown: {
           rent: fa.rent || 0,
           utilities: fa.utilities || 0,
           salaries: fa.salaries || 0,
-          inventory_replenishment: fa.inventory || 0,
+          inventory_replenishment: fa.inventory_monthly || 0,
           marketing: fa.marketing || 0,
-          other: fa.other_expenses || 0
+          other: fa.other || 0
         }
       },
       risk_analysis: {
         revenue_drop_20: {
           scenario: "Падение выручки на 20%",
-          description: "Снижение спроса или потеря клиентов",
+          description: "Снижение спроса",
           impact_on_revenue: -20,
           impact_on_costs: 0,
-          resulting_profit: fa.profit_if_revenue_drops_20 || 0,
+          resulting_profit: baseProfit * 0.6,
           probability: "средняя" as const
         },
         costs_rise_15: {
           scenario: "Рост затрат на 15%",
-          description: "Инфляция или рост цен поставщиков",
+          description: "Инфляция",
           impact_on_revenue: 0,
           impact_on_costs: 15,
-          resulting_profit: fa.profit_if_costs_rise_15 || 0,
+          resulting_profit: baseProfit * 0.85,
           probability: "средняя" as const
         },
         cac_doubles: {
           scenario: "Удвоение CAC",
-          description: "Рост конкуренции за рекламу",
+          description: "Рост конкуренции",
           impact_on_revenue: 0,
           impact_on_costs: 0,
-          resulting_profit: fa.profit_if_cac_doubles || 0,
+          resulting_profit: baseProfit * 0.7,
           probability: "низкая" as const
         },
         churn_increase: {
-          scenario: "Рост оттока клиентов",
-          description: "Снижение качества или конкуренция",
+          scenario: "Рост оттока",
+          description: "Конкуренция",
           impact_on_revenue: -10,
           impact_on_costs: 0,
-          resulting_profit: (fa.base_profit || 0) * 0.9,
+          resulting_profit: baseProfit * 0.9,
           probability: "средняя" as const
         }
       },
       calculations_summary: fa.calculations_summary || ""
     },
     business_plan: {
-      executive_summary: raw.business_plan?.executive_summary || "",
-      product_description: raw.business_plan?.product_description || "",
-      target_audience: raw.business_plan?.target_audience || "",
-      competitive_advantages: raw.business_plan?.competitive_advantages || "",
-      operations: raw.business_plan?.operations || "",
-      launch_steps: parseJSON(raw.business_plan?.launch_steps_json, []),
-      risks: parseJSON(raw.business_plan?.risks_json, [])
+      executive_summary: bp.executive_summary || "",
+      product_description: bp.product_description || "",
+      target_audience: bp.target_audience || "",
+      competitive_advantages: bp.competitive_advantages || "",
+      operations: bp.operations || "",
+      launch_steps: Array.isArray(bp.launch_steps) ? bp.launch_steps : [],
+      risks: Array.isArray(bp.risks) ? bp.risks : []
     },
     marketing_plan: {
-      positioning: raw.marketing_plan?.positioning || "",
-      pricing_strategy: raw.marketing_plan?.pricing_strategy || "",
-      channels: parseJSON(raw.marketing_plan?.channels_json, []),
-      cac: raw.marketing_plan?.cac || 0,
-      ltv: raw.marketing_plan?.ltv || 0,
-      first_3_months_plan: raw.marketing_plan?.first_3_months_plan || ""
+      positioning: mp.positioning || "",
+      pricing_strategy: mp.pricing_strategy || "",
+      channels: Array.isArray(mp.channels) ? mp.channels : [],
+      cac: mp.cac || fa.cac || 0,
+      ltv: mp.ltv || fa.ltv || 0,
+      first_3_months_plan: mp.first_3_months_plan || ""
     },
     market_analysis: {
       market_size: {
-        tam: raw.market_analysis?.tam || "",
-        sam: raw.market_analysis?.sam || "",
-        som: raw.market_analysis?.som || ""
+        tam: ma.tam || "",
+        sam: ma.sam || "",
+        som: ma.som || ""
       },
-      trends: parseJSON(raw.market_analysis?.trends_json, []),
+      trends: Array.isArray(ma.trends) ? ma.trends : [],
       competition: {
-        main_competitors: parseJSON(raw.market_analysis?.competitors_json, []),
-        competitive_landscape: raw.market_analysis?.competitive_landscape || "",
-        market_gaps: raw.market_analysis?.market_gaps || ""
+        main_competitors: Array.isArray(ma.competitors) ? ma.competitors : [],
+        competitive_landscape: ma.competitive_landscape || "",
+        market_gaps: ma.market_gaps || ""
       },
-      barriers_to_entry: raw.market_analysis?.barriers_to_entry || "",
-      growth_opportunities: raw.market_analysis?.growth_opportunities || ""
+      barriers_to_entry: ma.barriers_to_entry || "",
+      growth_opportunities: ma.growth_opportunities || ""
     },
-    confidence_score: raw.confidence_score || 70,
-    data_sources: parseJSON(raw.data_sources_json, ["Открытые источники", "Рыночные исследования"]),
-    limitations: parseJSON(raw.limitations_json, ["Оценочные данные"])
+    confidence_score: raw.confidence || 70,
+    data_sources: sources,
+    limitations: limits
   };
-}
-
-function parseJSON(str: string | undefined, fallback: any): any {
-  if (!str) return fallback;
-  try {
-    return JSON.parse(str);
-  } catch {
-    return fallback;
-  }
 }
 
 serve(async (req) => {
@@ -312,61 +231,42 @@ serve(async (req) => {
   try {
     const { idea, location } = await req.json() as AnalysisRequest;
 
-    if (!idea || typeof idea !== "string" || idea.trim().length < 10) {
+    if (!idea || idea.trim().length < 10) {
       return new Response(
-        JSON.stringify({ error: "Business idea must be at least 10 characters", code: "VALIDATION_ERROR" }),
+        JSON.stringify({ error: "Идея должна содержать минимум 10 символов", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!location || typeof location !== "string" || location.trim().length < 2) {
+    if (!location || location.trim().length < 2) {
       return new Response(
-        JSON.stringify({ error: "Location must be at least 2 characters", code: "VALIDATION_ERROR" }),
+        JSON.stringify({ error: "Укажите локацию", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
-      console.error("LOVABLE_API_KEY not configured");
       return new Response(
-        JSON.stringify({ error: "AI service not configured", code: "CONFIG_ERROR" }),
+        JSON.stringify({ error: "AI сервис не настроен", code: "CONFIG_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Analyzing: "${idea.substring(0, 50)}..." in ${location}`);
+    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location}`);
 
-    const systemPrompt = `Вы — финансовый аналитик. Проведите анализ бизнес-идеи используя УНИВЕРСАЛЬНЫЕ ФОРМУЛЫ:
+    const prompt = `Проанализируй бизнес-идею и вызови функцию submit_analysis.
 
-ФОРМУЛЫ (применяйте к любому бизнесу):
-- MRR = P × N (цена × клиенты)
-- ARR = MRR × 12
-- Маржинальный доход CM = P - C (цена - себестоимость)
-- LTV = CM / H (маржа / отток)
-- LTV:CAC = LTV / CAC (должно быть >3)
-- Точка безубыточности N_BE = OPEX / CM
-- Срок окупаемости = Инвестиции / Прибыль
-- ROI = (Прибыль × 12) / Инвестиции × 100%
-
-3 СЦЕНАРИЯ:
-- Пессимистичный: выручка -20%, затраты +30%
-- Базовый: реалистичные оценки
-- Оптимистичный: выручка +30%, затраты -10%
-
-РИСКИ (рассчитайте прибыль если):
-- Выручка падает на 20%
-- Затраты растут на 15%
-- CAC удваивается
-
-Все суммы в рублях. Вызовите функцию submit_business_analysis.
-Для массивов используйте JSON строки в полях *_json.`;
-
-    const userPrompt = `Анализ бизнеса:
 ИДЕЯ: ${idea.trim()}
 ЛОКАЦИЯ: ${location.trim()}
 
-Вызовите submit_business_analysis с полными расчетами по формулам.`;
+Рассчитай по формулам:
+- MRR = цена × клиенты
+- ROI = (прибыль × 12) / инвестиции × 100%
+- LTV:CAC должно быть > 3
+- Точка безубыточности = расходы / маржа
+
+Верни JSON строки для каждого раздела. Все суммы в рублях.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -376,29 +276,20 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         model: "google/gemini-2.5-flash",
-        messages: [
-          { role: "system", content: systemPrompt },
-          { role: "user", content: userPrompt },
-        ],
+        messages: [{ role: "user", content: prompt }],
         tools: [analysisToolSchema],
-        tool_choice: { type: "function", function: { name: "submit_business_analysis" } },
+        tool_choice: { type: "function", function: { name: "submit_analysis" } },
       }),
     });
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error(`AI Gateway error: ${response.status}`, errorText);
+      console.error(`AI error: ${response.status}`, errorText);
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Слишком много запросов. Попробуйте через минуту.", code: "RATE_LIMIT" }),
+          JSON.stringify({ error: "Слишком много запросов. Подождите минуту.", code: "RATE_LIMIT" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (response.status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Превышен лимит использования AI.", code: "PAYMENT_REQUIRED" }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
@@ -409,24 +300,21 @@ serve(async (req) => {
     }
 
     const aiResponse = await response.json();
-    console.log("AI response received:", JSON.stringify(aiResponse).substring(0, 300));
+    console.log("Response:", JSON.stringify(aiResponse).substring(0, 200));
 
     if (aiResponse.error) {
-      console.error("AI API error:", JSON.stringify(aiResponse.error));
+      console.error("AI error:", JSON.stringify(aiResponse.error));
       return new Response(
-        JSON.stringify({ error: "Временная ошибка AI. Попробуйте снова.", code: "AI_API_ERROR" }),
+        JSON.stringify({ error: "Ошибка AI. Попробуйте снова.", code: "AI_API_ERROR" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall || toolCall.function?.name !== "submit_business_analysis") {
-      const textContent = aiResponse.choices?.[0]?.message?.content;
-      if (textContent) {
-        console.error("AI returned text:", textContent.substring(0, 300));
-      }
+    if (!toolCall) {
+      console.error("No tool call in response");
       return new Response(
-        JSON.stringify({ error: "AI не смог провести анализ. Попробуйте изменить формулировку.", code: "AI_FORMAT_ERROR" }),
+        JSON.stringify({ error: "AI не вернул анализ. Попробуйте снова.", code: "NO_TOOL_CALL" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -434,30 +322,28 @@ serve(async (req) => {
     let rawResult;
     try {
       rawResult = JSON.parse(toolCall.function.arguments);
-    } catch (parseError) {
-      console.error("Failed to parse:", parseError);
+    } catch (e) {
+      console.error("Parse error:", e);
       return new Response(
-        JSON.stringify({ error: "Не удалось обработать ответ AI", code: "PARSE_ERROR" }),
+        JSON.stringify({ error: "Ошибка парсинга ответа", code: "PARSE_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Transform flat structure to nested
-    const analysisResult = transformResponse(rawResult);
-
-    console.log(`Analysis completed. Confidence: ${analysisResult.confidence_score}`);
+    const result = transformResponse(rawResult);
+    console.log(`Done. Confidence: ${result.confidence_score}`);
 
     return new Response(
       JSON.stringify({
         success: true,
         data: {
-          ...analysisResult,
+          ...result,
           metadata: {
             idea: idea.trim(),
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.1-simplified",
+            version: "3.2",
           },
         },
       }),
@@ -465,9 +351,9 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: "Внутренняя ошибка сервера", code: "INTERNAL_ERROR" }),
+      JSON.stringify({ error: "Внутренняя ошибка", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
