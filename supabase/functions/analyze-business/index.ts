@@ -414,7 +414,204 @@ financial_json должен содержать:
 
     const result = transformResponse(rawResult);
     
-    // Comprehensive validation with industry benchmarks
+    // Auto-correction function for realistic metrics
+    function autoCorrectFinancials(fa: any): { corrected: any; corrections: Array<{ field: string; original: number; corrected: number; reason: string }> } {
+      const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
+      const corrected = JSON.parse(JSON.stringify(fa)); // Deep clone
+      
+      // Industry benchmark ranges
+      const benchmarks = {
+        netMargin: { min: 3, max: 25, typical: 12 },
+        grossMargin: { min: 25, max: 65, typical: 40 },
+        cac: { min: 150, max: 800, typical: 350 },
+        ltv: { min: 3000, max: 50000, typical: 12000 },
+        ltvCacRatio: { min: 2.5, max: 6, typical: 4 },
+        roiYear1: { min: 10, max: 80, typical: 35 },
+        paybackMin: 6
+      };
+      
+      const mrr = corrected.mrr || 0;
+      
+      // 1. Correct net margin
+      let netMargin = corrected.scenarios.base.net_margin;
+      if (netMargin > benchmarks.netMargin.max) {
+        const originalNetMargin = netMargin;
+        netMargin = benchmarks.netMargin.typical;
+        corrections.push({
+          field: 'net_margin',
+          original: originalNetMargin,
+          corrected: netMargin,
+          reason: `Маржа ${originalNetMargin}% нереалистична, скорректировано до ${netMargin}%`
+        });
+        
+        // Update all scenario margins
+        corrected.scenarios.base.net_margin = netMargin;
+        corrected.scenarios.pessimistic.net_margin = Math.max(netMargin - 8, 0);
+        corrected.scenarios.optimistic.net_margin = netMargin + 5;
+      }
+      
+      // 2. Correct gross margin
+      let grossMargin = corrected.scenarios.base.gross_margin;
+      if (grossMargin > benchmarks.grossMargin.max) {
+        const originalGrossMargin = grossMargin;
+        grossMargin = benchmarks.grossMargin.typical;
+        corrections.push({
+          field: 'gross_margin',
+          original: originalGrossMargin,
+          corrected: grossMargin,
+          reason: `Валовая маржа ${originalGrossMargin}% нереалистична, скорректировано до ${grossMargin}%`
+        });
+        
+        corrected.scenarios.base.gross_margin = grossMargin;
+        corrected.scenarios.pessimistic.gross_margin = grossMargin - 10;
+        corrected.scenarios.optimistic.gross_margin = grossMargin + 5;
+      }
+      
+      // 3. Recalculate profits based on corrected margins
+      if (mrr > 0) {
+        const newBaseProfit = Math.round(mrr * (netMargin / 100));
+        if (Math.abs(newBaseProfit - corrected.scenarios.base.net_profit) > 1000) {
+          corrections.push({
+            field: 'net_profit',
+            original: corrected.scenarios.base.net_profit,
+            corrected: newBaseProfit,
+            reason: `Прибыль пересчитана по формуле MRR × Net Margin`
+          });
+        }
+        corrected.scenarios.base.net_profit = newBaseProfit;
+        corrected.scenarios.pessimistic.net_profit = Math.round(newBaseProfit * 0.4);
+        corrected.scenarios.optimistic.net_profit = Math.round(newBaseProfit * 1.6);
+        
+        corrected.scenarios.base.gross_profit = Math.round(mrr * (grossMargin / 100));
+        corrected.scenarios.pessimistic.gross_profit = Math.round(mrr * 0.75 * (grossMargin / 100));
+        corrected.scenarios.optimistic.gross_profit = Math.round(mrr * 1.3 * ((grossMargin + 5) / 100));
+      }
+      
+      // 4. Correct CAC
+      let cac = corrected.unit_economics.cac;
+      if (cac < benchmarks.cac.min) {
+        corrections.push({
+          field: 'cac',
+          original: cac,
+          corrected: benchmarks.cac.typical,
+          reason: `CAC ${cac}₽ нереалистично низкий (минимум ${benchmarks.cac.min}₽)`
+        });
+        cac = benchmarks.cac.typical;
+        corrected.unit_economics.cac = cac;
+        corrected.inputs.cac = cac;
+      }
+      
+      // 5. Correct LTV and LTV:CAC ratio
+      let ltv = corrected.unit_economics.ltv;
+      let ltvCacRatio = ltv / cac;
+      
+      if (ltvCacRatio > benchmarks.ltvCacRatio.max) {
+        // LTV:CAC too high, likely LTV is inflated or CAC is too low
+        const targetLtv = Math.round(cac * benchmarks.ltvCacRatio.typical);
+        if (ltv > targetLtv * 2) {
+          corrections.push({
+            field: 'ltv',
+            original: ltv,
+            corrected: targetLtv,
+            reason: `LTV ${ltv}₽ нереалистичен при CAC ${cac}₽, скорректировано до ${targetLtv}₽ (ratio ~${benchmarks.ltvCacRatio.typical}x)`
+          });
+          ltv = targetLtv;
+          corrected.unit_economics.ltv = ltv;
+          corrected.inputs.ltv = ltv;
+        }
+      } else if (ltvCacRatio < benchmarks.ltvCacRatio.min) {
+        // LTV:CAC too low - adjust LTV up
+        const targetLtv = Math.round(cac * benchmarks.ltvCacRatio.min);
+        corrections.push({
+          field: 'ltv',
+          original: ltv,
+          corrected: targetLtv,
+          reason: `LTV ${ltv}₽ слишком низкий для прибыльного бизнеса, скорректировано до ${targetLtv}₽`
+        });
+        ltv = targetLtv;
+        corrected.unit_economics.ltv = ltv;
+        corrected.inputs.ltv = ltv;
+      }
+      
+      // Update LTV:CAC ratio
+      const newLtvCacRatio = Math.round((ltv / cac) * 10) / 10;
+      if (corrected.unit_economics.ltv_cac_ratio !== newLtvCacRatio) {
+        corrected.unit_economics.ltv_cac_ratio = newLtvCacRatio;
+      }
+      
+      // 6. Recalculate CAC payback months
+      const avgCheck = corrected.inputs.price_per_unit || 500;
+      const purchaseFreq = corrected.inputs.purchase_frequency || 2;
+      const cacPaybackMonths = Math.ceil(cac / (avgCheck * (netMargin / 100) * purchaseFreq));
+      if (cacPaybackMonths !== corrected.unit_economics.cac_payback_months && cacPaybackMonths > 0) {
+        corrected.unit_economics.cac_payback_months = cacPaybackMonths;
+      }
+      
+      // 7. Recalculate payback period and ROI
+      const investment = corrected.startup_investment.total;
+      const monthlyProfit = corrected.scenarios.base.net_profit;
+      
+      if (investment > 0 && monthlyProfit > 0) {
+        const newPayback = Math.ceil(investment / monthlyProfit);
+        if (newPayback !== corrected.returns.payback_period_months) {
+          corrections.push({
+            field: 'payback_period_months',
+            original: corrected.returns.payback_period_months,
+            corrected: newPayback,
+            reason: `Окупаемость пересчитана: ${investment}₽ / ${monthlyProfit}₽ = ${newPayback} мес.`
+          });
+          corrected.returns.payback_period_months = newPayback;
+        }
+        
+        const newRoiYear1 = Math.round((monthlyProfit * 12 / investment) * 100);
+        if (Math.abs(newRoiYear1 - corrected.returns.roi_year_1) > 5) {
+          corrections.push({
+            field: 'roi_year_1',
+            original: corrected.returns.roi_year_1,
+            corrected: newRoiYear1,
+            reason: `ROI пересчитан: (${monthlyProfit}₽ × 12) / ${investment}₽ × 100 = ${newRoiYear1}%`
+          });
+          corrected.returns.roi_year_1 = newRoiYear1;
+        }
+        
+        corrected.returns.roi_year_3 = Math.round((monthlyProfit * 36 / investment) * 100);
+        corrected.returns.npv_3_years = Math.round(monthlyProfit * 36 - investment);
+      }
+      
+      // 8. Validate and correct expense structure
+      if (mrr > 0) {
+        const totalExpenses = corrected.monthly_expenses.total;
+        const expenseRatio = totalExpenses / mrr;
+        
+        // Expenses should be 75-95% of revenue for most businesses
+        if (expenseRatio < 0.6 || expenseRatio > 1.1) {
+          const targetExpenses = Math.round(mrr * (1 - netMargin / 100));
+          corrections.push({
+            field: 'total_expenses',
+            original: totalExpenses,
+            corrected: targetExpenses,
+            reason: `Расходы скорректированы для соответствия марже ${netMargin}%`
+          });
+          corrected.monthly_expenses.total = targetExpenses;
+          
+          // Redistribute expenses proportionally
+          const ratio = targetExpenses / (totalExpenses || 1);
+          corrected.monthly_expenses.breakdown.rent = Math.round((corrected.monthly_expenses.breakdown.rent || 0) * ratio);
+          corrected.monthly_expenses.breakdown.salaries = Math.round((corrected.monthly_expenses.breakdown.salaries || 0) * ratio);
+          corrected.monthly_expenses.breakdown.marketing = Math.round((corrected.monthly_expenses.breakdown.marketing || 0) * ratio);
+          corrected.monthly_expenses.breakdown.utilities = Math.round((corrected.monthly_expenses.breakdown.utilities || 0) * ratio);
+          corrected.monthly_expenses.breakdown.inventory_replenishment = Math.round((corrected.monthly_expenses.breakdown.inventory_replenishment || 0) * ratio);
+        }
+      }
+      
+      return { corrected, corrections };
+    }
+    
+    // Apply auto-correction
+    const { corrected: correctedFa, corrections } = autoCorrectFinancials(result.financial_analysis);
+    result.financial_analysis = correctedFa;
+    
+    // Validation after correction (for remaining warnings)
     const fa = result.financial_analysis;
     const validationIssues: Array<{
       field: string;
@@ -424,130 +621,48 @@ financial_json должен содержать:
       message: string;
     }> = [];
 
-    // Validate net margin by industry norms
+    // Check if any values are still outside bounds after correction
     const netMargin = fa.scenarios.base.net_margin;
-    if (netMargin > 40) {
-      validationIssues.push({
-        field: 'net_margin',
-        value: netMargin,
-        expected: '3-40%',
-        severity: 'error',
-        message: `Чистая маржа ${netMargin}% нереалистична. Для большинства отраслей норма 5-25%`
-      });
-    } else if (netMargin > 30) {
+    if (netMargin > 30) {
       validationIssues.push({
         field: 'net_margin',
         value: netMargin,
         expected: '3-25%',
         severity: 'warning',
-        message: `Чистая маржа ${netMargin}% возможна только для IT/консалтинга`
+        message: `Чистая маржа ${netMargin}% высокая, типично для IT/консалтинга`
       });
     }
 
-    // Validate CAC
-    const cac = fa.unit_economics.cac;
-    if (cac < 50) {
-      validationIssues.push({
-        field: 'cac',
-        value: cac,
-        expected: '100-800₽',
-        severity: 'error',
-        message: `CAC ${cac}₽ нереалистично низкий. Минимум для digital-каналов 100-200₽`
-      });
-    } else if (cac < 100) {
-      validationIssues.push({
-        field: 'cac',
-        value: cac,
-        expected: '150-500₽',
-        severity: 'warning',
-        message: `CAC ${cac}₽ возможен только при органическом трафике`
-      });
-    }
-
-    // Validate LTV:CAC ratio
     const ltvCacRatio = fa.unit_economics.ltv_cac_ratio;
-    if (ltvCacRatio > 10) {
-      validationIssues.push({
-        field: 'ltv_cac_ratio',
-        value: ltvCacRatio,
-        expected: '3-7x',
-        severity: 'error',
-        message: `LTV:CAC ${ltvCacRatio}x нереалистично высокий. Норма 3-5x`
-      });
-    } else if (ltvCacRatio > 7) {
+    if (ltvCacRatio < 2.5) {
       validationIssues.push({
         field: 'ltv_cac_ratio',
         value: ltvCacRatio,
         expected: '3-5x',
         severity: 'warning',
-        message: `LTV:CAC ${ltvCacRatio}x выше среднего, проверьте CAC и LTV`
-      });
-    } else if (ltvCacRatio < 2) {
-      validationIssues.push({
-        field: 'ltv_cac_ratio',
-        value: ltvCacRatio,
-        expected: '3-5x',
-        severity: 'warning',
-        message: `LTV:CAC ${ltvCacRatio}x низкий — бизнес может быть нерентабельным`
+        message: `LTV:CAC ${ltvCacRatio}x ниже нормы — бизнес на грани рентабельности`
       });
     }
 
-    // Validate ROI
-    const roiYear1 = fa.returns.roi_year_1;
-    if (roiYear1 > 200) {
-      validationIssues.push({
-        field: 'roi_year_1',
-        value: roiYear1,
-        expected: '20-100%',
-        severity: 'error',
-        message: `ROI ${roiYear1}% за первый год нереалистичен`
-      });
-    } else if (roiYear1 > 100) {
-      validationIssues.push({
-        field: 'roi_year_1',
-        value: roiYear1,
-        expected: '20-80%',
-        severity: 'warning',
-        message: `ROI ${roiYear1}% возможен, но требует проверки`
-      });
-    }
-
-    // Validate payback period
     const payback = fa.returns.payback_period_months;
-    if (payback > 0 && payback < 3) {
+    if (payback > 36) {
       validationIssues.push({
         field: 'payback_period',
         value: payback,
         expected: '6-24 месяцев',
         severity: 'warning',
-        message: `Окупаемость ${payback} мес. очень быстрая, проверьте расчёты`
+        message: `Окупаемость ${payback} мес. — длительный срок возврата инвестиций`
       });
     }
 
-    // Validate gross margin
-    const grossMargin = fa.scenarios.base.gross_margin;
-    if (grossMargin > 80) {
-      validationIssues.push({
-        field: 'gross_margin',
-        value: grossMargin,
-        expected: '30-70%',
-        severity: 'error',
-        message: `Валовая маржа ${grossMargin}% возможна только для digital-продуктов`
-      });
-    }
-
-    // Calculate overall reliability score
-    const errorCount = validationIssues.filter(i => i.severity === 'error').length;
-    const warningCount = validationIssues.filter(i => i.severity === 'warning').length;
+    // Calculate reliability score (higher if fewer corrections needed)
+    const correctionPenalty = Math.min(corrections.length * 8, 40);
+    const warningPenalty = validationIssues.length * 5;
+    const reliabilityScore = Math.max(0, Math.min(100, 100 - correctionPenalty - warningPenalty));
     
-    let reliabilityScore = 100;
-    reliabilityScore -= errorCount * 20;
-    reliabilityScore -= warningCount * 10;
-    reliabilityScore = Math.max(0, Math.min(100, reliabilityScore));
-
-    const isRealistic = errorCount === 0;
+    const wasAutoCorrected = corrections.length > 0;
     
-    console.log(`Done. Confidence: ${result.confidence_score}. Reliability: ${reliabilityScore}%. Issues: ${validationIssues.length}`);
+    console.log(`Done. Corrections: ${corrections.length}. Reliability: ${reliabilityScore}%`);
 
     return new Response(
       JSON.stringify({
@@ -555,19 +670,23 @@ financial_json должен содержать:
         data: {
           ...result,
           validation: {
-            is_realistic: isRealistic,
+            is_realistic: !wasAutoCorrected && validationIssues.length === 0,
+            was_auto_corrected: wasAutoCorrected,
             reliability_score: reliabilityScore,
-            issues: validationIssues,
-            summary: isRealistic 
-              ? "Показатели в пределах отраслевых норм"
-              : `Обнаружено ${errorCount} критических и ${warningCount} предупреждающих отклонений от норм`
+            corrections: corrections,
+            warnings: validationIssues,
+            summary: wasAutoCorrected 
+              ? `Скорректировано ${corrections.length} показателей до отраслевых норм`
+              : validationIssues.length > 0
+                ? `${validationIssues.length} предупреждений`
+                : "Все показатели в пределах отраслевых норм"
           },
           metadata: {
             idea: idea.trim(),
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.4-validated",
+            version: "3.5-autocorrect",
           },
         },
       }),
