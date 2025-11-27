@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { BusinessAnalysisResult, AnalysisHistoryEntry } from '@/types/analysis';
+import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 
 const STORAGE_KEY = 'business_analysis_history';
 
@@ -18,8 +19,8 @@ export async function saveAnalysis(
       result: result as unknown as Record<string, unknown>,
       confidence_score: result.confidence_score,
       startup_investment: result.financial_analysis.startup_investment.total,
-      monthly_profit: result.financial_analysis.monthly_profit,
-      payback_months: result.financial_analysis.payback_period_months,
+      monthly_profit: getMonthlyProfit(result.financial_analysis),
+      payback_months: getPaybackMonths(result.financial_analysis),
     } as any)
     .select('id')
     .single();
@@ -87,8 +88,8 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
           result: entry.result as unknown as Record<string, unknown>,
           confidence_score: entry.result.confidence_score,
           startup_investment: entry.result.financial_analysis.startup_investment.total,
-          monthly_profit: entry.result.financial_analysis.monthly_profit,
-          payback_months: entry.result.financial_analysis.payback_period_months,
+          monthly_profit: getMonthlyProfit(entry.result.financial_analysis),
+          payback_months: getPaybackMonths(entry.result.financial_analysis),
           created_at: entry.created_at,
         } as any);
 
