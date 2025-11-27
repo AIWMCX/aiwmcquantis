@@ -219,15 +219,20 @@ serve(async (req) => {
 1. Все суммы в российских рублях (₽)
 2. Каждую цифру обоснуйте конкретными расчетами
 3. Будьте консервативны в оценках
-4. Используйте реальные рыночные данные для указанной локации
-5. Предоставьте 5-7 шагов запуска и 3-5 рисков`;
+4. Используйте реальные рыночные данные для указанной локации (если данных нет - используйте средние по России)
+5. Предоставьте 5-7 шагов запуска и 3-5 рисков
 
-    const userPrompt = `Проанализируйте бизнес-идею и вызовите функцию submit_business_analysis с результатами:
+ВАЖНО: Вы ОБЯЗАНЫ вызвать функцию submit_business_analysis для ЛЮБОГО города и любой идеи. 
+Даже если у вас нет точных данных по конкретному городу, используйте данные по ближайшему крупному городу или средние по региону.
+НЕ отказывайтесь от анализа. НЕ предлагайте другой город. Просто сделайте анализ с доступными данными.`;
+
+    const userPrompt = `ОБЯЗАТЕЛЬНО вызовите функцию submit_business_analysis с полным анализом:
 
 ИДЕЯ: ${idea.trim()}
 ЛОКАЦИЯ: ${location.trim()}
 
-Проведите анализ финансов, бизнес-плана, маркетинга и рынка. Все суммы в рублях.`;
+Если точных данных по локации нет - используйте средние данные по России или ближайшему региону.
+Вы ДОЛЖНЫ вызвать функцию, отказ недопустим.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -272,12 +277,32 @@ serve(async (req) => {
     const aiResponse = await response.json();
     console.log("AI response received:", JSON.stringify(aiResponse).substring(0, 200));
 
+    // Check for API errors in response
+    if (aiResponse.error) {
+      console.error("AI API error:", JSON.stringify(aiResponse.error));
+      const errorMsg = aiResponse.error.code === 502 
+        ? "Временная ошибка AI сервиса. Попробуйте снова."
+        : "Ошибка AI сервиса";
+      return new Response(
+        JSON.stringify({ error: errorMsg, code: "AI_API_ERROR" }),
+        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Extract tool call arguments
     const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall || toolCall.function?.name !== "submit_business_analysis") {
-      console.error("No tool call in response:", JSON.stringify(aiResponse));
+      // Check if AI returned text content instead of tool call
+      const textContent = aiResponse.choices?.[0]?.message?.content;
+      if (textContent) {
+        console.error("AI returned text instead of tool call:", textContent.substring(0, 200));
+      }
+      console.error("No tool call in response:", JSON.stringify(aiResponse).substring(0, 500));
       return new Response(
-        JSON.stringify({ error: "Неожиданный формат ответа AI", code: "AI_FORMAT_ERROR" }),
+        JSON.stringify({ 
+          error: "AI не смог провести анализ. Попробуйте изменить формулировку идеи или локацию.", 
+          code: "AI_FORMAT_ERROR" 
+        }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
