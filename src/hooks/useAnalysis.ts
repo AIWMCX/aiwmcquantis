@@ -2,7 +2,9 @@ import { useState, useCallback } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateAnalysis, validateIdea, validateLocation } from '@/services/analysisApi';
+import { saveAnalysis } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
+import { useAuth } from './useAuth';
 import type { AnalysisRequest, BusinessAnalysisResult } from '@/types/analysis';
 
 interface FormErrors {
@@ -17,6 +19,7 @@ export function useAnalysis() {
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
   
   const { addEntry } = useAnalysisHistory();
+  const { user, isAuthenticated } = useAuth();
 
   const validate = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -37,18 +40,35 @@ export function useAnalysis() {
 
   const mutation = useMutation({
     mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
-    onSuccess: (data) => {
+    onSuccess: async (data) => {
       setResult(data);
       toast.success('Анализ готов!');
       
-      // Save to history
-      addEntry({
-        id: crypto.randomUUID(),
-        idea: idea.trim(),
-        location: location.trim(),
-        result: data,
-        created_at: new Date().toISOString(),
-      });
+      const trimmedIdea = idea.trim();
+      const trimmedLocation = location.trim();
+      
+      if (isAuthenticated && user) {
+        // Save to database for authenticated users
+        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data);
+        if (saved) {
+          addEntry({
+            id: saved.id,
+            idea: trimmedIdea,
+            location: trimmedLocation,
+            result: data,
+            created_at: new Date().toISOString(),
+          });
+        }
+      } else {
+        // Save to localStorage for guests
+        addEntry({
+          id: crypto.randomUUID(),
+          idea: trimmedIdea,
+          location: trimmedLocation,
+          result: data,
+          created_at: new Date().toISOString(),
+        });
+      }
     },
     onError: (error: Error) => {
       console.error('Analysis error:', error);
