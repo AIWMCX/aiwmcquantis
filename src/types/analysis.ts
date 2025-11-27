@@ -1,43 +1,178 @@
-// Financial Analysis Types
-export interface FinancialBreakdown {
-  rent_deposit: number;
-  equipment: number;
-  inventory: number;
-  legal: number;
-  marketing_initial: number;
-  working_capital: number;
+// ============================================
+// UNIVERSAL BUSINESS FINANCIAL ANALYSIS SYSTEM
+// ============================================
+
+// Input Variables (12 Universal Variables)
+export interface BusinessInputVariables {
+  // Revenue Variables
+  price_per_unit: number;        // P - Price per unit
+  units_sold_monthly: number;    // N - Number of units/customers per month
+  purchase_frequency: number;    // F - Average purchase frequency
+  upsell_per_customer: number;   // U - Upsell or extras per customer
+
+  // Cost Variables
+  cogs_per_unit: number;         // C - COGS per unit
+  fixed_opex: number;            // O - Fixed operating expenses
+  marketing_budget: number;      // M - Marketing budget per month
+  cac: number;                   // A - Customer acquisition cost
+
+  // Investment Variables
+  startup_investment: number;    // I - Initial investment
+  capex: number;                 // K - Capital expenditures
+
+  // Retention Variables
+  ltv: number;                   // L - Lifetime value
+  churn_rate: number;            // H - Monthly churn rate (decimal)
 }
 
-export interface ExpenseBreakdown {
-  rent: number;
-  utilities: number;
-  salaries: number;
-  inventory_replenishment: number;
-  marketing: number;
-  other: number;
+// Scenario Analysis
+export interface ScenarioMetrics {
+  revenue: number;
+  variable_costs: number;
+  fixed_costs: number;
+  gross_profit: number;
+  net_profit: number;
+  gross_margin: number;
+  net_margin: number;
 }
 
+export interface ScenarioAnalysis {
+  pessimistic: ScenarioMetrics;
+  base: ScenarioMetrics;
+  optimistic: ScenarioMetrics;
+}
+
+// Unit Economics
+export interface UnitEconomics {
+  contribution_margin: number;      // CM = P - C
+  contribution_margin_ratio: number; // CMR = (P - C) / P
+  cac: number;                       // A - Customer Acquisition Cost
+  cac_payback_months: number;        // PP = A / CM
+  ltv: number;                       // L = (P - C) / H
+  ltv_cac_ratio: number;            // LTV:CAC ratio
+}
+
+// Breakeven Analysis
+export interface BreakevenAnalysis {
+  breakeven_units: number;          // N_BE = OPEX / (P - C)
+  breakeven_revenue: number;        // R_BE = N_BE * P
+  breakeven_months: number;         // Time to reach breakeven
+}
+
+// Investment Returns
+export interface InvestmentReturns {
+  payback_period_months: number;    // T = I / NP
+  roi_year_1: number;               // ROI = (NP * 12) / I
+  roi_year_3: number;
+  npv_3_years: number;
+}
+
+// Risk Scenario Analysis
+export interface RiskScenario {
+  scenario: string;
+  description: string;
+  impact_on_revenue: number;        // % change
+  impact_on_costs: number;          // % change
+  resulting_profit: number;
+  probability: 'низкая' | 'средняя' | 'высокая';
+}
+
+export interface RiskAnalysis {
+  revenue_drop_20: RiskScenario;
+  costs_rise_15: RiskScenario;
+  cac_doubles: RiskScenario;
+  churn_increase: RiskScenario;
+}
+
+// Financial Analysis (Universal with backward compatibility)
 export interface FinancialAnalysis {
+  // Input variables used
+  inputs?: BusinessInputVariables;
+  
+  // Revenue calculations
+  mrr?: number;
+  arr?: number;
+  
+  // 3 Scenario Analysis
+  scenarios?: ScenarioAnalysis;
+  
+  // Unit Economics
+  unit_economics?: UnitEconomics;
+  
+  // Breakeven
+  breakeven?: BreakevenAnalysis;
+  
+  // Investment Returns
+  returns?: InvestmentReturns;
+  
+  // Startup Investment Breakdown
   startup_investment: {
     total: number;
-    breakdown: FinancialBreakdown;
+    breakdown: {
+      rent_deposit: number;
+      equipment: number;
+      inventory: number;
+      legal: number;
+      marketing_initial: number;
+      working_capital: number;
+    };
     reasoning: string;
   };
-  monthly_revenue: {
+  
+  // Monthly Expenses Breakdown
+  monthly_expenses: {
+    total: number;
+    variable_costs?: number;
+    fixed_costs?: number;
+    breakdown: {
+      rent: number;
+      utilities: number;
+      salaries: number;
+      inventory_replenishment: number;
+      marketing: number;
+      other: number;
+    };
+  };
+  
+  // Risk Analysis
+  risk_analysis?: RiskAnalysis;
+  
+  // Summary calculations
+  calculations_summary?: string;
+
+  // BACKWARD COMPATIBILITY - old fields (deprecated)
+  monthly_revenue?: {
     conservative: number;
     realistic: number;
     optimistic: number;
     reasoning: string;
   };
-  monthly_expenses: {
-    total: number;
-    breakdown: ExpenseBreakdown;
-    reasoning: string;
-  };
-  monthly_profit: number;
-  payback_period_months: number;
-  break_even_months: number;
-  roi_year_1: number;
+  monthly_profit?: number;
+  payback_period_months?: number;
+  break_even_months?: number;
+  roi_year_1?: number;
+}
+
+// Helper functions for backward compatibility
+export function getMonthlyProfit(financial: FinancialAnalysis): number {
+  if (financial.scenarios?.base?.net_profit !== undefined) {
+    return financial.scenarios.base.net_profit;
+  }
+  return financial.monthly_profit ?? 0;
+}
+
+export function getPaybackMonths(financial: FinancialAnalysis): number {
+  if (financial.returns?.payback_period_months !== undefined) {
+    return financial.returns.payback_period_months;
+  }
+  return financial.payback_period_months ?? 0;
+}
+
+export function getMonthlyRevenue(financial: FinancialAnalysis): number {
+  if (financial.mrr !== undefined) {
+    return financial.mrr;
+  }
+  return financial.monthly_revenue?.realistic ?? 0;
 }
 
 // Business Plan Types
@@ -139,4 +274,19 @@ export interface AnalysisHistoryEntry {
 export interface AnalysisRequest {
   idea: string;
   location: string;
+}
+
+// 10 Key Outputs that every analysis must show
+export interface AnalysisKeyOutputs {
+  mrr: number;
+  arr: number;
+  gross_margin: number;
+  net_margin: number;
+  unit_economics_summary: string;
+  cac_payback_months: number;
+  ltv_cac_ratio: number;
+  breakeven_units: number;
+  monthly_profit: number;
+  annual_roi: number;
+  payback_months: number;
 }

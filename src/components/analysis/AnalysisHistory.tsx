@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import type { AnalysisHistoryEntry, BusinessAnalysisResult } from '@/types/analysis';
+import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 
 interface AnalysisHistoryProps {
   onSelect: (result: BusinessAnalysisResult) => void;
@@ -131,13 +132,13 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Окупаемость: <span className="font-medium text-foreground">
-                        {entry.result.financial_analysis.payback_period_months} мес.
+                        {getPaybackMonths(entry.result.financial_analysis)} мес.
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <TrendingUp className="w-3 h-3 text-emerald-500" />
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(entry.result.financial_analysis.monthly_profit)}/мес
+                        {formatCurrency(getMonthlyProfit(entry.result.financial_analysis))}/мес
                       </span>
                     </span>
                   </div>

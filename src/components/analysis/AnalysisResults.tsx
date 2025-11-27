@@ -9,6 +9,7 @@ import { MarketingSection } from './MarketingSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
 
 interface AnalysisResultsProps {
   result: BusinessAnalysisResult;
@@ -57,16 +58,16 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
             <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.financial_analysis.startup_investment.total)}</div>
           </div>
           <div class="metric">
-            <div>Ежемесячная выручка (реалистичная)</div>
-            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.financial_analysis.monthly_revenue.realistic)}</div>
+            <div>Ежемесячная выручка (MRR)</div>
+            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(getMonthlyRevenue(result.financial_analysis))}</div>
           </div>
           <div class="metric">
             <div>Ежемесячная прибыль</div>
-            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.financial_analysis.monthly_profit)}</div>
+            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(getMonthlyProfit(result.financial_analysis))}</div>
           </div>
           <div class="metric">
             <div>Срок окупаемости</div>
-            <div class="metric-value">${result.financial_analysis.payback_period_months} месяцев</div>
+            <div class="metric-value">${getPaybackMonths(result.financial_analysis)} месяцев</div>
           </div>
           
           <h2>📋 Бизнес-план</h2>
