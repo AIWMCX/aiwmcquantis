@@ -1,6 +1,9 @@
 import React from 'react';
-import { Brain, Moon, Sun, Github } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { Brain, Moon, Sun, LogOut, User } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { useAuth } from '@/hooks/useAuth';
+import { toast } from 'sonner';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -8,10 +11,21 @@ interface HeaderProps {
 }
 
 export function Header({ darkMode, onToggleTheme }: HeaderProps) {
+  const { user, isAuthenticated, signOut, isLoading } = useAuth();
+
+  const handleSignOut = async () => {
+    const { error } = await signOut();
+    if (error) {
+      toast.error('Ошибка при выходе');
+    } else {
+      toast.success('Вы вышли из аккаунта');
+    }
+  };
+
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <div className="flex items-center gap-3">
+        <Link to="/" className="flex items-center gap-3">
           <div className="p-2 rounded-lg bg-primary/10">
             <Brain className="w-6 h-6 text-primary" />
           </div>
@@ -19,7 +33,7 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             <h1 className="text-lg font-bold text-foreground">AI Business Analyzer</h1>
             <p className="text-xs text-muted-foreground hidden sm:block">Профессиональный анализ бизнес-идей</p>
           </div>
-        </div>
+        </Link>
 
         <div className="flex items-center gap-2">
           <Button
@@ -35,6 +49,34 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             )}
             <span className="sr-only">Переключить тему</span>
           </Button>
+
+          {!isLoading && (
+            <>
+              {isAuthenticated ? (
+                <div className="flex items-center gap-2">
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
+                    <User className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm text-foreground truncate max-w-[150px]">
+                      {user?.email}
+                    </span>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={handleSignOut}
+                    className="h-9 w-9"
+                    title="Выйти"
+                  >
+                    <LogOut className="h-4 w-4" />
+                  </Button>
+                </div>
+              ) : (
+                <Button asChild variant="default" size="sm">
+                  <Link to="/auth">Войти</Link>
+                </Button>
+              )}
+            </>
+          )}
         </div>
       </div>
     </header>
