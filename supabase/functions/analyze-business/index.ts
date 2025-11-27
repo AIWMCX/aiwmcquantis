@@ -10,215 +10,72 @@ interface AnalysisRequest {
   location: string;
 }
 
-// Universal Financial Analysis Tool Schema
+// Simplified tool schema to avoid "too many states" error
 const analysisToolSchema = {
   type: "function",
   function: {
     name: "submit_business_analysis",
-    description: "Submit a comprehensive business analysis using universal financial formulas with 3 scenarios",
+    description: "Submit business analysis with financial projections",
     parameters: {
       type: "object",
       properties: {
         financial_analysis: {
           type: "object",
-          description: "Complete financial analysis using universal formulas",
           properties: {
-            inputs: {
-              type: "object",
-              description: "12 Universal Input Variables",
-              properties: {
-                price_per_unit: { type: "number", description: "P - Price per unit in RUB" },
-                units_sold_monthly: { type: "number", description: "N - Number of units/customers per month" },
-                purchase_frequency: { type: "number", description: "F - Average purchase frequency per month" },
-                upsell_per_customer: { type: "number", description: "U - Upsell/extras per customer in RUB" },
-                cogs_per_unit: { type: "number", description: "C - Cost of goods sold per unit in RUB" },
-                fixed_opex: { type: "number", description: "O - Fixed operating expenses per month in RUB" },
-                marketing_budget: { type: "number", description: "M - Marketing budget per month in RUB" },
-                cac: { type: "number", description: "A - Customer acquisition cost in RUB" },
-                startup_investment: { type: "number", description: "I - Initial startup investment in RUB" },
-                capex: { type: "number", description: "K - Capital expenditures in RUB" },
-                ltv: { type: "number", description: "L - Customer lifetime value in RUB" },
-                churn_rate: { type: "number", description: "H - Monthly churn rate as decimal (0.05 = 5%)" }
-              },
-              required: ["price_per_unit", "units_sold_monthly", "purchase_frequency", "upsell_per_customer", "cogs_per_unit", "fixed_opex", "marketing_budget", "cac", "startup_investment", "capex", "ltv", "churn_rate"]
-            },
-            mrr: { type: "number", description: "Monthly Recurring Revenue = P * N" },
-            arr: { type: "number", description: "Annual Recurring Revenue = P * N * 12" },
-            scenarios: {
-              type: "object",
-              description: "3 scenario analysis: pessimistic, base, optimistic",
-              properties: {
-                pessimistic: {
-                  type: "object",
-                  properties: {
-                    revenue: { type: "number" },
-                    variable_costs: { type: "number" },
-                    fixed_costs: { type: "number" },
-                    gross_profit: { type: "number" },
-                    net_profit: { type: "number" },
-                    gross_margin: { type: "number", description: "As percentage" },
-                    net_margin: { type: "number", description: "As percentage" }
-                  },
-                  required: ["revenue", "variable_costs", "fixed_costs", "gross_profit", "net_profit", "gross_margin", "net_margin"]
-                },
-                base: {
-                  type: "object",
-                  properties: {
-                    revenue: { type: "number" },
-                    variable_costs: { type: "number" },
-                    fixed_costs: { type: "number" },
-                    gross_profit: { type: "number" },
-                    net_profit: { type: "number" },
-                    gross_margin: { type: "number" },
-                    net_margin: { type: "number" }
-                  },
-                  required: ["revenue", "variable_costs", "fixed_costs", "gross_profit", "net_profit", "gross_margin", "net_margin"]
-                },
-                optimistic: {
-                  type: "object",
-                  properties: {
-                    revenue: { type: "number" },
-                    variable_costs: { type: "number" },
-                    fixed_costs: { type: "number" },
-                    gross_profit: { type: "number" },
-                    net_profit: { type: "number" },
-                    gross_margin: { type: "number" },
-                    net_margin: { type: "number" }
-                  },
-                  required: ["revenue", "variable_costs", "fixed_costs", "gross_profit", "net_profit", "gross_margin", "net_margin"]
-                }
-              },
-              required: ["pessimistic", "base", "optimistic"]
-            },
-            unit_economics: {
-              type: "object",
-              properties: {
-                contribution_margin: { type: "number", description: "CM = P - C" },
-                contribution_margin_ratio: { type: "number", description: "CMR = (P - C) / P as decimal" },
-                cac: { type: "number", description: "Customer Acquisition Cost" },
-                cac_payback_months: { type: "number", description: "PP = A / CM" },
-                ltv: { type: "number", description: "L = (P - C) / H" },
-                ltv_cac_ratio: { type: "number", description: "LTV:CAC ratio" }
-              },
-              required: ["contribution_margin", "contribution_margin_ratio", "cac", "cac_payback_months", "ltv", "ltv_cac_ratio"]
-            },
-            breakeven: {
-              type: "object",
-              properties: {
-                breakeven_units: { type: "number", description: "N_BE = OPEX / (P - C)" },
-                breakeven_revenue: { type: "number", description: "R_BE = N_BE * P" },
-                breakeven_months: { type: "number", description: "Months to reach breakeven" }
-              },
-              required: ["breakeven_units", "breakeven_revenue", "breakeven_months"]
-            },
-            returns: {
-              type: "object",
-              properties: {
-                payback_period_months: { type: "number", description: "T = I / NP" },
-                roi_year_1: { type: "number", description: "ROI = (NP * 12) / I as percentage" },
-                roi_year_3: { type: "number", description: "3-year ROI as percentage" },
-                npv_3_years: { type: "number", description: "Net Present Value over 3 years" }
-              },
-              required: ["payback_period_months", "roi_year_1", "roi_year_3", "npv_3_years"]
-            },
-            startup_investment: {
-              type: "object",
-              properties: {
-                total: { type: "number" },
-                breakdown: {
-                  type: "object",
-                  properties: {
-                    rent_deposit: { type: "number" },
-                    equipment: { type: "number" },
-                    inventory: { type: "number" },
-                    legal: { type: "number" },
-                    marketing_initial: { type: "number" },
-                    working_capital: { type: "number" }
-                  },
-                  required: ["rent_deposit", "equipment", "inventory", "legal", "marketing_initial", "working_capital"]
-                },
-                reasoning: { type: "string" }
-              },
-              required: ["total", "breakdown", "reasoning"]
-            },
-            monthly_expenses: {
-              type: "object",
-              properties: {
-                total: { type: "number" },
-                variable_costs: { type: "number" },
-                fixed_costs: { type: "number" },
-                breakdown: {
-                  type: "object",
-                  properties: {
-                    rent: { type: "number" },
-                    utilities: { type: "number" },
-                    salaries: { type: "number" },
-                    inventory_replenishment: { type: "number" },
-                    marketing: { type: "number" },
-                    other: { type: "number" }
-                  },
-                  required: ["rent", "utilities", "salaries", "inventory_replenishment", "marketing", "other"]
-                }
-              },
-              required: ["total", "variable_costs", "fixed_costs", "breakdown"]
-            },
-            risk_analysis: {
-              type: "object",
-              properties: {
-                revenue_drop_20: {
-                  type: "object",
-                  properties: {
-                    scenario: { type: "string" },
-                    description: { type: "string" },
-                    impact_on_revenue: { type: "number" },
-                    impact_on_costs: { type: "number" },
-                    resulting_profit: { type: "number" },
-                    probability: { type: "string", enum: ["низкая", "средняя", "высокая"] }
-                  },
-                  required: ["scenario", "description", "impact_on_revenue", "impact_on_costs", "resulting_profit", "probability"]
-                },
-                costs_rise_15: {
-                  type: "object",
-                  properties: {
-                    scenario: { type: "string" },
-                    description: { type: "string" },
-                    impact_on_revenue: { type: "number" },
-                    impact_on_costs: { type: "number" },
-                    resulting_profit: { type: "number" },
-                    probability: { type: "string", enum: ["низкая", "средняя", "высокая"] }
-                  },
-                  required: ["scenario", "description", "impact_on_revenue", "impact_on_costs", "resulting_profit", "probability"]
-                },
-                cac_doubles: {
-                  type: "object",
-                  properties: {
-                    scenario: { type: "string" },
-                    description: { type: "string" },
-                    impact_on_revenue: { type: "number" },
-                    impact_on_costs: { type: "number" },
-                    resulting_profit: { type: "number" },
-                    probability: { type: "string", enum: ["низкая", "средняя", "высокая"] }
-                  },
-                  required: ["scenario", "description", "impact_on_revenue", "impact_on_costs", "resulting_profit", "probability"]
-                },
-                churn_increase: {
-                  type: "object",
-                  properties: {
-                    scenario: { type: "string" },
-                    description: { type: "string" },
-                    impact_on_revenue: { type: "number" },
-                    impact_on_costs: { type: "number" },
-                    resulting_profit: { type: "number" },
-                    probability: { type: "string", enum: ["низкая", "средняя", "высокая"] }
-                  },
-                  required: ["scenario", "description", "impact_on_revenue", "impact_on_costs", "resulting_profit", "probability"]
-                }
-              },
-              required: ["revenue_drop_20", "costs_rise_15", "cac_doubles", "churn_increase"]
-            },
-            calculations_summary: { type: "string", description: "Detailed explanation of all calculations with formulas used" }
+            // Input variables
+            price_per_unit: { type: "number" },
+            units_sold_monthly: { type: "number" },
+            cogs_per_unit: { type: "number" },
+            fixed_opex: { type: "number" },
+            marketing_budget: { type: "number" },
+            cac: { type: "number" },
+            ltv: { type: "number" },
+            churn_rate: { type: "number" },
+            
+            // Calculated metrics
+            mrr: { type: "number" },
+            arr: { type: "number" },
+            contribution_margin: { type: "number" },
+            ltv_cac_ratio: { type: "number" },
+            cac_payback_months: { type: "number" },
+            breakeven_units: { type: "number" },
+            breakeven_revenue: { type: "number" },
+            breakeven_months: { type: "number" },
+            
+            // 3 Scenarios - flat structure
+            pessimistic_revenue: { type: "number" },
+            pessimistic_profit: { type: "number" },
+            pessimistic_margin: { type: "number" },
+            base_revenue: { type: "number" },
+            base_profit: { type: "number" },
+            base_margin: { type: "number" },
+            optimistic_revenue: { type: "number" },
+            optimistic_profit: { type: "number" },
+            optimistic_margin: { type: "number" },
+            
+            // Investment & Returns
+            startup_investment: { type: "number" },
+            payback_months: { type: "number" },
+            roi_year_1: { type: "number" },
+            
+            // Expenses breakdown
+            rent: { type: "number" },
+            utilities: { type: "number" },
+            salaries: { type: "number" },
+            inventory: { type: "number" },
+            marketing: { type: "number" },
+            other_expenses: { type: "number" },
+            
+            // Risk scenarios - profit if...
+            profit_if_revenue_drops_20: { type: "number" },
+            profit_if_costs_rise_15: { type: "number" },
+            profit_if_cac_doubles: { type: "number" },
+            
+            // Text explanations
+            investment_reasoning: { type: "string" },
+            calculations_summary: { type: "string" }
           },
-          required: ["inputs", "mrr", "arr", "scenarios", "unit_economics", "breakeven", "returns", "startup_investment", "monthly_expenses", "risk_analysis", "calculations_summary"]
+          required: ["mrr", "base_profit", "startup_investment", "payback_months", "roi_year_1", "calculations_summary"]
         },
         business_plan: {
           type: "object",
@@ -228,96 +85,224 @@ const analysisToolSchema = {
             target_audience: { type: "string" },
             competitive_advantages: { type: "string" },
             operations: { type: "string" },
-            launch_steps: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  step: { type: "number" },
-                  title: { type: "string" },
-                  description: { type: "string" },
-                  duration: { type: "string" },
-                  cost: { type: "number" }
-                },
-                required: ["step", "title", "description", "duration", "cost"]
-              }
-            },
-            risks: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  risk: { type: "string" },
-                  probability: { type: "string", enum: ["низкая", "средняя", "высокая"] },
-                  impact: { type: "string", enum: ["низкий", "средний", "высокий"] },
-                  mitigation: { type: "string" }
-                },
-                required: ["risk", "probability", "impact", "mitigation"]
-              }
-            }
+            launch_steps_json: { type: "string" },
+            risks_json: { type: "string" }
           },
-          required: ["executive_summary", "product_description", "target_audience", "competitive_advantages", "operations", "launch_steps", "risks"]
+          required: ["executive_summary", "product_description", "target_audience"]
         },
         marketing_plan: {
           type: "object",
           properties: {
             positioning: { type: "string" },
             pricing_strategy: { type: "string" },
-            channels: {
-              type: "array",
-              items: {
-                type: "object",
-                properties: {
-                  channel: { type: "string" },
-                  description: { type: "string" },
-                  budget_monthly: { type: "number" },
-                  expected_roi: { type: "string" }
-                },
-                required: ["channel", "description", "budget_monthly", "expected_roi"]
-              }
-            },
+            channels_json: { type: "string" },
             cac: { type: "number" },
             ltv: { type: "number" },
             first_3_months_plan: { type: "string" }
           },
-          required: ["positioning", "pricing_strategy", "channels", "cac", "ltv", "first_3_months_plan"]
+          required: ["positioning", "pricing_strategy", "cac", "ltv"]
         },
         market_analysis: {
           type: "object",
           properties: {
-            market_size: {
-              type: "object",
-              properties: {
-                tam: { type: "string" },
-                sam: { type: "string" },
-                som: { type: "string" }
-              },
-              required: ["tam", "sam", "som"]
-            },
-            trends: { type: "array", items: { type: "string" } },
-            competition: {
-              type: "object",
-              properties: {
-                main_competitors: { type: "array", items: { type: "string" } },
-                competitive_landscape: { type: "string" },
-                market_gaps: { type: "string" }
-              },
-              required: ["main_competitors", "competitive_landscape", "market_gaps"]
-            },
+            tam: { type: "string" },
+            sam: { type: "string" },
+            som: { type: "string" },
+            trends_json: { type: "string" },
+            competitors_json: { type: "string" },
+            competitive_landscape: { type: "string" },
+            market_gaps: { type: "string" },
             barriers_to_entry: { type: "string" },
             growth_opportunities: { type: "string" }
           },
-          required: ["market_size", "trends", "competition", "barriers_to_entry", "growth_opportunities"]
+          required: ["tam", "sam", "som", "competitive_landscape"]
         },
         confidence_score: { type: "number" },
-        data_sources: { type: "array", items: { type: "string" } },
-        limitations: { type: "array", items: { type: "string" } }
+        data_sources_json: { type: "string" },
+        limitations_json: { type: "string" }
       },
-      required: ["financial_analysis", "business_plan", "marketing_plan", "market_analysis", "confidence_score", "data_sources", "limitations"],
-      additionalProperties: false
+      required: ["financial_analysis", "business_plan", "marketing_plan", "market_analysis", "confidence_score"]
     }
   }
 };
+
+// Transform flat response to nested structure for frontend
+function transformResponse(raw: any) {
+  const fa = raw.financial_analysis || {};
+  
+  return {
+    financial_analysis: {
+      inputs: {
+        price_per_unit: fa.price_per_unit || 0,
+        units_sold_monthly: fa.units_sold_monthly || 0,
+        purchase_frequency: 1,
+        upsell_per_customer: 0,
+        cogs_per_unit: fa.cogs_per_unit || 0,
+        fixed_opex: fa.fixed_opex || 0,
+        marketing_budget: fa.marketing_budget || 0,
+        cac: fa.cac || 0,
+        startup_investment: fa.startup_investment || 0,
+        capex: 0,
+        ltv: fa.ltv || 0,
+        churn_rate: fa.churn_rate || 0.05
+      },
+      mrr: fa.mrr || 0,
+      arr: fa.arr || (fa.mrr || 0) * 12,
+      scenarios: {
+        pessimistic: {
+          revenue: fa.pessimistic_revenue || 0,
+          variable_costs: 0,
+          fixed_costs: fa.fixed_opex || 0,
+          gross_profit: fa.pessimistic_revenue || 0,
+          net_profit: fa.pessimistic_profit || 0,
+          gross_margin: fa.pessimistic_margin || 0,
+          net_margin: fa.pessimistic_margin || 0
+        },
+        base: {
+          revenue: fa.base_revenue || fa.mrr || 0,
+          variable_costs: 0,
+          fixed_costs: fa.fixed_opex || 0,
+          gross_profit: fa.base_revenue || 0,
+          net_profit: fa.base_profit || 0,
+          gross_margin: fa.base_margin || 0,
+          net_margin: fa.base_margin || 0
+        },
+        optimistic: {
+          revenue: fa.optimistic_revenue || 0,
+          variable_costs: 0,
+          fixed_costs: fa.fixed_opex || 0,
+          gross_profit: fa.optimistic_revenue || 0,
+          net_profit: fa.optimistic_profit || 0,
+          gross_margin: fa.optimistic_margin || 0,
+          net_margin: fa.optimistic_margin || 0
+        }
+      },
+      unit_economics: {
+        contribution_margin: fa.contribution_margin || 0,
+        contribution_margin_ratio: fa.price_per_unit ? (fa.contribution_margin || 0) / fa.price_per_unit : 0,
+        cac: fa.cac || 0,
+        cac_payback_months: fa.cac_payback_months || 0,
+        ltv: fa.ltv || 0,
+        ltv_cac_ratio: fa.ltv_cac_ratio || 0
+      },
+      breakeven: {
+        breakeven_units: fa.breakeven_units || 0,
+        breakeven_revenue: fa.breakeven_revenue || 0,
+        breakeven_months: fa.breakeven_months || 0
+      },
+      returns: {
+        payback_period_months: fa.payback_months || 0,
+        roi_year_1: fa.roi_year_1 || 0,
+        roi_year_3: (fa.roi_year_1 || 0) * 2,
+        npv_3_years: (fa.base_profit || 0) * 36 - (fa.startup_investment || 0)
+      },
+      startup_investment: {
+        total: fa.startup_investment || 0,
+        breakdown: {
+          rent_deposit: fa.rent || 0,
+          equipment: fa.inventory || 0,
+          inventory: fa.inventory || 0,
+          legal: 50000,
+          marketing_initial: fa.marketing || 0,
+          working_capital: fa.other_expenses || 0
+        },
+        reasoning: fa.investment_reasoning || ""
+      },
+      monthly_expenses: {
+        total: (fa.rent || 0) + (fa.utilities || 0) + (fa.salaries || 0) + (fa.inventory || 0) + (fa.marketing || 0) + (fa.other_expenses || 0),
+        variable_costs: (fa.inventory || 0),
+        fixed_costs: (fa.rent || 0) + (fa.utilities || 0) + (fa.salaries || 0),
+        breakdown: {
+          rent: fa.rent || 0,
+          utilities: fa.utilities || 0,
+          salaries: fa.salaries || 0,
+          inventory_replenishment: fa.inventory || 0,
+          marketing: fa.marketing || 0,
+          other: fa.other_expenses || 0
+        }
+      },
+      risk_analysis: {
+        revenue_drop_20: {
+          scenario: "Падение выручки на 20%",
+          description: "Снижение спроса или потеря клиентов",
+          impact_on_revenue: -20,
+          impact_on_costs: 0,
+          resulting_profit: fa.profit_if_revenue_drops_20 || 0,
+          probability: "средняя" as const
+        },
+        costs_rise_15: {
+          scenario: "Рост затрат на 15%",
+          description: "Инфляция или рост цен поставщиков",
+          impact_on_revenue: 0,
+          impact_on_costs: 15,
+          resulting_profit: fa.profit_if_costs_rise_15 || 0,
+          probability: "средняя" as const
+        },
+        cac_doubles: {
+          scenario: "Удвоение CAC",
+          description: "Рост конкуренции за рекламу",
+          impact_on_revenue: 0,
+          impact_on_costs: 0,
+          resulting_profit: fa.profit_if_cac_doubles || 0,
+          probability: "низкая" as const
+        },
+        churn_increase: {
+          scenario: "Рост оттока клиентов",
+          description: "Снижение качества или конкуренция",
+          impact_on_revenue: -10,
+          impact_on_costs: 0,
+          resulting_profit: (fa.base_profit || 0) * 0.9,
+          probability: "средняя" as const
+        }
+      },
+      calculations_summary: fa.calculations_summary || ""
+    },
+    business_plan: {
+      executive_summary: raw.business_plan?.executive_summary || "",
+      product_description: raw.business_plan?.product_description || "",
+      target_audience: raw.business_plan?.target_audience || "",
+      competitive_advantages: raw.business_plan?.competitive_advantages || "",
+      operations: raw.business_plan?.operations || "",
+      launch_steps: parseJSON(raw.business_plan?.launch_steps_json, []),
+      risks: parseJSON(raw.business_plan?.risks_json, [])
+    },
+    marketing_plan: {
+      positioning: raw.marketing_plan?.positioning || "",
+      pricing_strategy: raw.marketing_plan?.pricing_strategy || "",
+      channels: parseJSON(raw.marketing_plan?.channels_json, []),
+      cac: raw.marketing_plan?.cac || 0,
+      ltv: raw.marketing_plan?.ltv || 0,
+      first_3_months_plan: raw.marketing_plan?.first_3_months_plan || ""
+    },
+    market_analysis: {
+      market_size: {
+        tam: raw.market_analysis?.tam || "",
+        sam: raw.market_analysis?.sam || "",
+        som: raw.market_analysis?.som || ""
+      },
+      trends: parseJSON(raw.market_analysis?.trends_json, []),
+      competition: {
+        main_competitors: parseJSON(raw.market_analysis?.competitors_json, []),
+        competitive_landscape: raw.market_analysis?.competitive_landscape || "",
+        market_gaps: raw.market_analysis?.market_gaps || ""
+      },
+      barriers_to_entry: raw.market_analysis?.barriers_to_entry || "",
+      growth_opportunities: raw.market_analysis?.growth_opportunities || ""
+    },
+    confidence_score: raw.confidence_score || 70,
+    data_sources: parseJSON(raw.data_sources_json, ["Открытые источники", "Рыночные исследования"]),
+    limitations: parseJSON(raw.limitations_json, ["Оценочные данные"])
+  };
+}
+
+function parseJSON(str: string | undefined, fallback: any): any {
+  if (!str) return fallback;
+  try {
+    return JSON.parse(str);
+  } catch {
+    return fallback;
+  }
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -352,75 +337,36 @@ serve(async (req) => {
 
     console.log(`Analyzing: "${idea.substring(0, 50)}..." in ${location}`);
 
-    const systemPrompt = `Вы — финансовый аналитик с опытом McKinsey/BCG. Используйте УНИВЕРСАЛЬНУЮ СИСТЕМУ ФИНАНСОВОГО АНАЛИЗА.
+    const systemPrompt = `Вы — финансовый аналитик. Проведите анализ бизнес-идеи используя УНИВЕРСАЛЬНЫЕ ФОРМУЛЫ:
 
-## ОБЯЗАТЕЛЬНЫЕ ФОРМУЛЫ (применяйте к любому бизнесу):
-
-### ВХОДНЫЕ ПЕРЕМЕННЫЕ (определите для бизнеса):
-- P (Price) — цена за единицу/услугу
-- N (Units) — количество продаж/клиентов в месяц  
-- F (Frequency) — частота покупок
-- U (Upsell) — допродажи на клиента
-- C (COGS) — себестоимость единицы
-- O (OpEx) — фиксированные операционные расходы
-- M (Marketing) — маркетинговый бюджет
-- A (CAC) — стоимость привлечения клиента
-- I (Investment) — стартовые инвестиции
-- H (Churn) — отток клиентов (доля)
-
-### ФОРМУЛЫ ВЫРУЧКИ:
-- R = P × N × F (базовая выручка)
-- R_total = (P + U) × N × F (с допродажами)
-- MRR = P × N (ежемесячная повторяющаяся выручка)
+ФОРМУЛЫ (применяйте к любому бизнесу):
+- MRR = P × N (цена × клиенты)
 - ARR = MRR × 12
+- Маржинальный доход CM = P - C (цена - себестоимость)
+- LTV = CM / H (маржа / отток)
+- LTV:CAC = LTV / CAC (должно быть >3)
+- Точка безубыточности N_BE = OPEX / CM
+- Срок окупаемости = Инвестиции / Прибыль
+- ROI = (Прибыль × 12) / Инвестиции × 100%
 
-### ФОРМУЛЫ ЗАТРАТ:
-- VC = C × N (переменные затраты)
-- OPEX = O + M (операционные расходы)
-- TC = VC + OPEX (общие затраты)
+3 СЦЕНАРИЯ:
+- Пессимистичный: выручка -20%, затраты +30%
+- Базовый: реалистичные оценки
+- Оптимистичный: выручка +30%, затраты -10%
 
-### ФОРМУЛЫ ПРИБЫЛИ:
-- GP = R - VC (валовая прибыль)
-- GM = GP / R × 100% (валовая маржа)
-- NP = R - TC (чистая прибыль)
-- NM = NP / R × 100% (чистая маржа)
+РИСКИ (рассчитайте прибыль если):
+- Выручка падает на 20%
+- Затраты растут на 15%
+- CAC удваивается
 
-### UNIT ECONOMICS:
-- CM = P - C (маржинальный доход)
-- CMR = (P - C) / P (коэффициент маржинального дохода)
-- CAC Payback = A / CM (окупаемость CAC в месяцах)
-- LTV = (P - C) / H (пожизненная ценность клиента)
+Все суммы в рублях. Вызовите функцию submit_business_analysis.
+Для массивов используйте JSON строки в полях *_json.`;
 
-### ТОЧКА БЕЗУБЫТОЧНОСТИ:
-- N_BE = OPEX / (P - C) (в единицах)
-- R_BE = N_BE × P (в деньгах)
-
-### ОКУПАЕМОСТЬ ИНВЕСТИЦИЙ:
-- Payback = I / NP (срок окупаемости в месяцах)
-- ROI = (NP × 12) / I × 100% (годовой ROI)
-
-## 3 СЦЕНАРИЯ (обязательно):
-1. ПЕССИМИСТИЧНЫЙ: N -20%, CAC +30%, маркетинг +50%
-2. БАЗОВЫЙ: реалистичные оценки
-3. ОПТИМИСТИЧНЫЙ: N +30%, CAC -20%, допродажи +20%
-
-## РИСК-АНАЛИЗ (обязательно с цифрами):
-- Что если выручка падает на 20%?
-- Что если затраты растут на 15%?
-- Что если CAC удваивается?
-- Что если отток растет?
-
-Все суммы в рублях (₽). Каждую цифру обосновывайте формулами.
-Вы ОБЯЗАНЫ вызвать функцию submit_business_analysis.`;
-
-    const userPrompt = `ВЫЗОВИТЕ функцию submit_business_analysis с ПОЛНЫМ анализом:
-
+    const userPrompt = `Анализ бизнеса:
 ИДЕЯ: ${idea.trim()}
 ЛОКАЦИЯ: ${location.trim()}
 
-Примените все формулы. Рассчитайте 3 сценария. Проведите риск-анализ с конкретными цифрами.
-Если точных данных по локации нет — используйте средние по России.
-ОТКАЗ НЕДОПУСТИМ. Функция ДОЛЖНА быть вызвана.`;
+Вызовите submit_business_analysis с полными расчетами по формулам.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -477,38 +423,29 @@ serve(async (req) => {
     if (!toolCall || toolCall.function?.name !== "submit_business_analysis") {
       const textContent = aiResponse.choices?.[0]?.message?.content;
       if (textContent) {
-        console.error("AI returned text instead of tool call:", textContent.substring(0, 300));
+        console.error("AI returned text:", textContent.substring(0, 300));
       }
-      console.error("No tool call:", JSON.stringify(aiResponse).substring(0, 500));
       return new Response(
-        JSON.stringify({ 
-          error: "AI не смог провести анализ. Попробуйте изменить формулировку.", 
-          code: "AI_FORMAT_ERROR" 
-        }),
+        JSON.stringify({ error: "AI не смог провести анализ. Попробуйте изменить формулировку.", code: "AI_FORMAT_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    let analysisResult;
+    let rawResult;
     try {
-      analysisResult = JSON.parse(toolCall.function.arguments);
+      rawResult = JSON.parse(toolCall.function.arguments);
     } catch (parseError) {
-      console.error("Failed to parse:", parseError, toolCall.function.arguments?.substring(0, 500));
+      console.error("Failed to parse:", parseError);
       return new Response(
         JSON.stringify({ error: "Не удалось обработать ответ AI", code: "PARSE_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (!analysisResult.financial_analysis || !analysisResult.business_plan) {
-      console.error("Invalid structure:", Object.keys(analysisResult));
-      return new Response(
-        JSON.stringify({ error: "Неполный анализ от AI", code: "INCOMPLETE_RESPONSE" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // Transform flat structure to nested
+    const analysisResult = transformResponse(rawResult);
 
-    console.log(`Analysis completed. Confidence: ${analysisResult.confidence_score || 'N/A'}`);
+    console.log(`Analysis completed. Confidence: ${analysisResult.confidence_score}`);
 
     return new Response(
       JSON.stringify({
@@ -520,7 +457,7 @@ serve(async (req) => {
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.0-universal",
+            version: "3.1-simplified",
           },
         },
       }),
