@@ -10,8 +10,175 @@ interface AnalysisRequest {
   location: string;
 }
 
+// Tool schema for structured output
+const analysisToolSchema = {
+  type: "function",
+  function: {
+    name: "submit_business_analysis",
+    description: "Submit a comprehensive business analysis with financial projections and strategic recommendations",
+    parameters: {
+      type: "object",
+      properties: {
+        financial_analysis: {
+          type: "object",
+          properties: {
+            startup_investment: {
+              type: "object",
+              properties: {
+                total: { type: "number", description: "Total startup investment in RUB" },
+                breakdown: {
+                  type: "object",
+                  properties: {
+                    rent_deposit: { type: "number" },
+                    equipment: { type: "number" },
+                    inventory: { type: "number" },
+                    legal: { type: "number" },
+                    marketing_initial: { type: "number" },
+                    working_capital: { type: "number" }
+                  },
+                  required: ["rent_deposit", "equipment", "inventory", "legal", "marketing_initial", "working_capital"]
+                },
+                reasoning: { type: "string", description: "Detailed reasoning for investment breakdown" }
+              },
+              required: ["total", "breakdown", "reasoning"]
+            },
+            monthly_revenue: {
+              type: "object",
+              properties: {
+                conservative: { type: "number" },
+                realistic: { type: "number" },
+                optimistic: { type: "number" },
+                reasoning: { type: "string" }
+              },
+              required: ["conservative", "realistic", "optimistic", "reasoning"]
+            },
+            monthly_expenses: {
+              type: "object",
+              properties: {
+                total: { type: "number" },
+                breakdown: {
+                  type: "object",
+                  properties: {
+                    rent: { type: "number" },
+                    utilities: { type: "number" },
+                    salaries: { type: "number" },
+                    inventory_replenishment: { type: "number" },
+                    marketing: { type: "number" },
+                    other: { type: "number" }
+                  },
+                  required: ["rent", "utilities", "salaries", "inventory_replenishment", "marketing", "other"]
+                },
+                reasoning: { type: "string" }
+              },
+              required: ["total", "breakdown", "reasoning"]
+            },
+            monthly_profit: { type: "number" },
+            payback_period_months: { type: "number" },
+            break_even_months: { type: "number" },
+            roi_year_1: { type: "number", description: "ROI percentage for first year" }
+          },
+          required: ["startup_investment", "monthly_revenue", "monthly_expenses", "monthly_profit", "payback_period_months", "break_even_months", "roi_year_1"]
+        },
+        business_plan: {
+          type: "object",
+          properties: {
+            executive_summary: { type: "string" },
+            product_description: { type: "string" },
+            target_audience: { type: "string" },
+            competitive_advantages: { type: "string" },
+            operations: { type: "string" },
+            launch_steps: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  step: { type: "number" },
+                  title: { type: "string" },
+                  description: { type: "string" },
+                  duration: { type: "string" },
+                  cost: { type: "number" }
+                },
+                required: ["step", "title", "description", "duration", "cost"]
+              }
+            },
+            risks: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  risk: { type: "string" },
+                  probability: { type: "string", enum: ["низкая", "средняя", "высокая"] },
+                  impact: { type: "string", enum: ["низкий", "средний", "высокий"] },
+                  mitigation: { type: "string" }
+                },
+                required: ["risk", "probability", "impact", "mitigation"]
+              }
+            }
+          },
+          required: ["executive_summary", "product_description", "target_audience", "competitive_advantages", "operations", "launch_steps", "risks"]
+        },
+        marketing_plan: {
+          type: "object",
+          properties: {
+            positioning: { type: "string" },
+            pricing_strategy: { type: "string" },
+            channels: {
+              type: "array",
+              items: {
+                type: "object",
+                properties: {
+                  channel: { type: "string" },
+                  description: { type: "string" },
+                  budget_monthly: { type: "number" },
+                  expected_roi: { type: "string" }
+                },
+                required: ["channel", "description", "budget_monthly", "expected_roi"]
+              }
+            },
+            cac: { type: "number", description: "Customer Acquisition Cost in RUB" },
+            ltv: { type: "number", description: "Lifetime Value in RUB" },
+            first_3_months_plan: { type: "string" }
+          },
+          required: ["positioning", "pricing_strategy", "channels", "cac", "ltv", "first_3_months_plan"]
+        },
+        market_analysis: {
+          type: "object",
+          properties: {
+            market_size: {
+              type: "object",
+              properties: {
+                tam: { type: "string" },
+                sam: { type: "string" },
+                som: { type: "string" }
+              },
+              required: ["tam", "sam", "som"]
+            },
+            trends: { type: "array", items: { type: "string" } },
+            competition: {
+              type: "object",
+              properties: {
+                main_competitors: { type: "array", items: { type: "string" } },
+                competitive_landscape: { type: "string" },
+                market_gaps: { type: "string" }
+              },
+              required: ["main_competitors", "competitive_landscape", "market_gaps"]
+            },
+            barriers_to_entry: { type: "string" },
+            growth_opportunities: { type: "string" }
+          },
+          required: ["market_size", "trends", "competition", "barriers_to_entry", "growth_opportunities"]
+        },
+        confidence_score: { type: "number", description: "Confidence score from 0-100" },
+        data_sources: { type: "array", items: { type: "string" } },
+        limitations: { type: "array", items: { type: "string" } }
+      },
+      required: ["financial_analysis", "business_plan", "marketing_plan", "market_analysis", "confidence_score", "data_sources", "limitations"],
+      additionalProperties: false
+    }
+  }
+};
+
 serve(async (req) => {
-  // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
@@ -46,101 +213,21 @@ serve(async (req) => {
     console.log(`Analyzing business idea: "${idea.substring(0, 50)}..." in ${location}`);
 
     const systemPrompt = `Вы — профессиональный бизнес-аналитик с 20+ летним опытом в консалтинге McKinsey и BCG. 
-Ваша задача — провести глубокий, реалистичный анализ бизнес-идеи с конкретными цифрами и обоснованиями.
+Ваша задача — провести глубокий, реалистичный анализ бизнес-идеи с конкретными цифрами в российских рублях.
 
 КРИТИЧЕСКИЕ ТРЕБОВАНИЯ:
 1. Все суммы в российских рублях (₽)
 2. Каждую цифру обоснуйте конкретными расчетами
-3. Будьте консервативны в оценках — лучше занизить, чем завысить
+3. Будьте консервативны в оценках
 4. Используйте реальные рыночные данные для указанной локации
-5. Формат ответа — СТРОГО JSON без markdown`;
+5. Предоставьте 5-7 шагов запуска и 3-5 рисков`;
 
-    const userPrompt = `Проанализируйте бизнес-идею:
+    const userPrompt = `Проанализируйте бизнес-идею и вызовите функцию submit_business_analysis с результатами:
 
 ИДЕЯ: ${idea.trim()}
 ЛОКАЦИЯ: ${location.trim()}
 
-Верните ТОЛЬКО валидный JSON (без markdown) в следующем формате:
-{
-  "financial_analysis": {
-    "startup_investment": {
-      "total": число,
-      "breakdown": {
-        "rent_deposit": число,
-        "equipment": число,
-        "inventory": число,
-        "legal": число,
-        "marketing_initial": число,
-        "working_capital": число
-      },
-      "reasoning": "детальное обоснование каждой статьи расходов"
-    },
-    "monthly_revenue": {
-      "conservative": число,
-      "realistic": число,
-      "optimistic": число,
-      "reasoning": "расчет: количество клиентов × средний чек × частота покупок"
-    },
-    "monthly_expenses": {
-      "total": число,
-      "breakdown": {
-        "rent": число,
-        "utilities": число,
-        "salaries": число,
-        "inventory_replenishment": число,
-        "marketing": число,
-        "other": число
-      },
-      "reasoning": "обоснование каждой статьи"
-    },
-    "monthly_profit": число,
-    "payback_period_months": число,
-    "break_even_months": число,
-    "roi_year_1": число
-  },
-  "business_plan": {
-    "executive_summary": "краткое описание бизнеса в 2-3 абзацах",
-    "product_description": "что именно продаем/предоставляем",
-    "target_audience": "кто клиент, их характеристики, объем аудитории",
-    "competitive_advantages": "почему клиенты выберут нас",
-    "operations": "как работает бизнес день за днем",
-    "launch_steps": [
-      {"step": 1, "title": "название", "description": "что делать", "duration": "сроки", "cost": число},
-      {"step": 2, "title": "название", "description": "что делать", "duration": "сроки", "cost": число}
-    ],
-    "risks": [
-      {"risk": "описание", "probability": "низкая|средняя|высокая", "impact": "низкий|средний|высокий", "mitigation": "как минимизировать"}
-    ]
-  },
-  "marketing_plan": {
-    "positioning": "как позиционируем продукт",
-    "pricing_strategy": "стратегия ценообразования с обоснованием",
-    "channels": [
-      {"channel": "название", "description": "как использовать", "budget_monthly": число, "expected_roi": "описание"}
-    ],
-    "cac": число,
-    "ltv": число,
-    "first_3_months_plan": "конкретный план действий по месяцам"
-  },
-  "market_analysis": {
-    "market_size": {
-      "tam": "общий объем рынка",
-      "sam": "доступный рынок",
-      "som": "захватываемый рынок в первый год"
-    },
-    "trends": ["тренд 1", "тренд 2", "тренд 3"],
-    "competition": {
-      "main_competitors": ["конкурент 1", "конкурент 2"],
-      "competitive_landscape": "анализ конкуренции",
-      "market_gaps": "незанятые ниши"
-    },
-    "barriers_to_entry": "барьеры входа на рынок",
-    "growth_opportunities": "возможности масштабирования"
-  },
-  "confidence_score": число от 0 до 100,
-  "data_sources": ["источник 1", "источник 2"],
-  "limitations": ["ограничение 1", "ограничение 2"]
-}`;
+Проведите анализ финансов, бизнес-плана, маркетинга и рынка. Все суммы в рублях.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -154,8 +241,8 @@ serve(async (req) => {
           { role: "system", content: systemPrompt },
           { role: "user", content: userPrompt },
         ],
-        temperature: 0.7,
-        max_tokens: 8000,
+        tools: [analysisToolSchema],
+        tool_choice: { type: "function", function: { name: "submit_business_analysis" } },
       }),
     });
 
@@ -183,26 +270,23 @@ serve(async (req) => {
     }
 
     const aiResponse = await response.json();
-    const content = aiResponse.choices?.[0]?.message?.content;
+    console.log("AI response received:", JSON.stringify(aiResponse).substring(0, 200));
 
-    if (!content) {
-      console.error("Empty AI response");
+    // Extract tool call arguments
+    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+    if (!toolCall || toolCall.function?.name !== "submit_business_analysis") {
+      console.error("No tool call in response:", JSON.stringify(aiResponse));
       return new Response(
-        JSON.stringify({ error: "Пустой ответ от AI", code: "AI_EMPTY_RESPONSE" }),
+        JSON.stringify({ error: "Неожиданный формат ответа AI", code: "AI_FORMAT_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Parse JSON from AI response (handle potential markdown wrapping)
     let analysisResult;
     try {
-      const cleanedContent = content
-        .replace(/```json\n?/g, "")
-        .replace(/```\n?/g, "")
-        .trim();
-      analysisResult = JSON.parse(cleanedContent);
+      analysisResult = JSON.parse(toolCall.function.arguments);
     } catch (parseError) {
-      console.error("Failed to parse AI response:", parseError, content);
+      console.error("Failed to parse tool arguments:", parseError, toolCall.function.arguments);
       return new Response(
         JSON.stringify({ error: "Не удалось обработать ответ AI", code: "PARSE_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -211,7 +295,7 @@ serve(async (req) => {
 
     // Validate required fields
     if (!analysisResult.financial_analysis || !analysisResult.business_plan) {
-      console.error("Invalid AI response structure");
+      console.error("Invalid AI response structure:", Object.keys(analysisResult));
       return new Response(
         JSON.stringify({ error: "Неполный анализ от AI", code: "INCOMPLETE_RESPONSE" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -230,7 +314,7 @@ serve(async (req) => {
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "2.0",
+            version: "2.1",
           },
         },
       }),
