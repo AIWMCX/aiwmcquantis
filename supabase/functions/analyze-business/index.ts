@@ -45,7 +45,178 @@ function safeParseJSON(str: string, fallback: any): any {
   }
 }
 
-function transformResponse(raw: any) {
+// ========== REALISTIC FINANCIAL MODEL ==========
+// Based on real industry benchmarks for food/bakery business in Russia
+
+interface RealisticExpenseModel {
+  cogs_percent: number;        // Себестоимость (% от выручки): 35-45%
+  salaries_fixed: number;      // ФОТ (фиксированный): 150-200k
+  rent_fixed: number;          // Аренда (фиксированная): 40-70k
+  utilities_fixed: number;     // Коммуналка: 10-20k
+  other_fixed: number;         // Прочие: 25-40k
+  marketing_cac: number;       // CAC для расчёта маркетинга
+  average_check: number;       // Средний чек
+  orders_per_client: number;   // Заказов на клиента в месяц
+}
+
+function getIndustryDefaults(businessType: string, location: string): RealisticExpenseModel {
+  // Default for bakery/food delivery
+  const isCapital = location.toLowerCase().includes('москва') || location.toLowerCase().includes('moscow');
+  const multiplier = isCapital ? 1.3 : 1.0;
+  
+  return {
+    cogs_percent: 40,                           // 40% себестоимость
+    salaries_fixed: Math.round(180000 * multiplier), // ФОТ
+    rent_fixed: Math.round(55000 * multiplier),      // Аренда
+    utilities_fixed: Math.round(15000 * multiplier), // Коммуналка
+    other_fixed: Math.round(35000 * multiplier),     // Прочие
+    marketing_cac: isCapital ? 400 : 300,            // CAC
+    average_check: isCapital ? 650 : 550,            // Средний чек
+    orders_per_client: 4,                            // Заказов в месяц на клиента
+  };
+}
+
+function calculateRealisticFinancials(
+  rawMrr: number,
+  rawInvestment: number,
+  rawCac: number,
+  rawLtv: number,
+  defaults: RealisticExpenseModel
+): {
+  correctedMrr: number;
+  correctedProfit: number;
+  totalExpenses: number;
+  expenseBreakdown: {
+    cogs: number;
+    salaries: number;
+    rent: number;
+    utilities: number;
+    marketing: number;
+    other: number;
+  };
+  breakEvenRevenue: number;
+  profitableRevenue: number;
+  correctedCac: number;
+  correctedLtv: number;
+  correctedLtvCacRatio: number;
+  isProfitable: boolean;
+  corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
+} {
+  const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
+  
+  // 1. Validate and correct CAC
+  let correctedCac = rawCac;
+  if (correctedCac < 150) {
+    corrections.push({
+      field: 'cac',
+      original: rawCac,
+      corrected: defaults.marketing_cac,
+      reason: `CAC ${rawCac}₽ нереалистично низкий (минимум 150₽ даже для дешёвых каналов)`
+    });
+    correctedCac = defaults.marketing_cac;
+  } else if (correctedCac > 1500) {
+    corrections.push({
+      field: 'cac',
+      original: rawCac,
+      corrected: 800,
+      reason: `CAC ${rawCac}₽ слишком высокий для B2C бизнеса`
+    });
+    correctedCac = 800;
+  }
+  
+  // 2. Calculate LTV based on realistic customer behavior
+  // LTV = Average Check × Orders per Month × Customer Lifetime (months)
+  const avgCheck = defaults.average_check;
+  const monthlyRevenuePerClient = avgCheck * defaults.orders_per_client;
+  const customerLifetimeMonths = 4; // Typical for food delivery
+  const calculatedLtv = monthlyRevenuePerClient * customerLifetimeMonths;
+  
+  let correctedLtv = rawLtv;
+  const ltvCacRatioRaw = rawLtv / correctedCac;
+  
+  // LTV:CAC should be 3-5x, max 7x for very good businesses
+  if (ltvCacRatioRaw > 7) {
+    corrections.push({
+      field: 'ltv',
+      original: rawLtv,
+      corrected: calculatedLtv,
+      reason: `LTV ${rawLtv}₽ даёт соотношение LTV:CAC = ${ltvCacRatioRaw.toFixed(1)}x (нереалистично >7x). Расчётный LTV: ${avgCheck}₽ × ${defaults.orders_per_client} заказа × ${customerLifetimeMonths} мес = ${calculatedLtv}₽`
+    });
+    correctedLtv = calculatedLtv;
+  } else if (ltvCacRatioRaw < 2) {
+    // LTV too low - adjust up slightly
+    const minViableLtv = correctedCac * 3;
+    corrections.push({
+      field: 'ltv',
+      original: rawLtv,
+      corrected: minViableLtv,
+      reason: `LTV ${rawLtv}₽ слишком низкий (LTV:CAC = ${ltvCacRatioRaw.toFixed(1)}x < 2). Минимальный для рентабельности: ${minViableLtv}₽`
+    });
+    correctedLtv = minViableLtv;
+  }
+  
+  const correctedLtvCacRatio = Math.round((correctedLtv / correctedCac) * 10) / 10;
+  
+  // 3. Calculate number of clients needed for given revenue
+  const clientsNeeded = Math.ceil(rawMrr / monthlyRevenuePerClient);
+  
+  // 4. Calculate REALISTIC expenses
+  const cogs = Math.round(rawMrr * (defaults.cogs_percent / 100));
+  const marketing = Math.round(clientsNeeded * correctedCac * 0.3); // ~30% new clients per month
+  
+  const expenseBreakdown = {
+    cogs,
+    salaries: defaults.salaries_fixed,
+    rent: defaults.rent_fixed,
+    utilities: defaults.utilities_fixed,
+    marketing,
+    other: defaults.other_fixed
+  };
+  
+  const totalExpenses = cogs + defaults.salaries_fixed + defaults.rent_fixed + 
+                        defaults.utilities_fixed + marketing + defaults.other_fixed;
+  
+  // 5. Calculate actual profit
+  const actualProfit = rawMrr - totalExpenses;
+  const isProfitable = actualProfit > 0;
+  
+  // 6. Calculate break-even revenue
+  // Break-even: Revenue = Fixed Costs / (1 - Variable Cost %)
+  const fixedCosts = defaults.salaries_fixed + defaults.rent_fixed + 
+                     defaults.utilities_fixed + defaults.other_fixed;
+  const variableCostPercent = defaults.cogs_percent / 100 + 0.05; // COGS + marketing ~5%
+  const breakEvenRevenue = Math.round(fixedCosts / (1 - variableCostPercent));
+  
+  // 7. Calculate revenue needed for original profit claim
+  const profitableRevenue = Math.round((fixedCosts + 45000) / (1 - variableCostPercent));
+  
+  // 8. Check if original profit was wrong
+  const originalProfitFromAI = rawMrr * 0.10; // AI often assumes 10% margin
+  if (Math.abs(actualProfit - originalProfitFromAI) > 20000 && actualProfit < originalProfitFromAI) {
+    corrections.push({
+      field: 'net_profit',
+      original: Math.round(originalProfitFromAI),
+      corrected: actualProfit,
+      reason: `При выручке ${rawMrr.toLocaleString()}₽ реальная прибыль = ${actualProfit.toLocaleString()}₽. Расходы: COGS ${cogs.toLocaleString()}₽ + ФОТ ${defaults.salaries_fixed.toLocaleString()}₽ + Аренда ${defaults.rent_fixed.toLocaleString()}₽ + Прочее ${(defaults.utilities_fixed + defaults.other_fixed + marketing).toLocaleString()}₽ = ${totalExpenses.toLocaleString()}₽`
+    });
+  }
+  
+  return {
+    correctedMrr: rawMrr,
+    correctedProfit: actualProfit,
+    totalExpenses,
+    expenseBreakdown,
+    breakEvenRevenue,
+    profitableRevenue,
+    correctedCac,
+    correctedLtv,
+    correctedLtvCacRatio,
+    isProfitable,
+    corrections
+  };
+}
+
+function transformResponse(raw: any, location: string) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
@@ -54,104 +225,121 @@ function transformResponse(raw: any) {
   const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Оценочные данные"];
 
   const mrr = fa.mrr || 0;
-  const baseProfit = fa.base_profit || 0;
   const startup = fa.startup_investment || 0;
-  const cac = fa.cac || 500;
-  const ltv = fa.ltv || 5000;
+  const rawCac = fa.cac || mp.cac || 350;
+  const rawLtv = fa.ltv || mp.ltv || 5000;
   
-  // Calculate realistic margins
-  const grossMarginPct = fa.gross_margin || 40;
-  const netMarginPct = fa.net_margin || 12;
+  // Get industry defaults based on location
+  const defaults = getIndustryDefaults("bakery", location);
+  
+  // Calculate realistic financials
+  const realistic = calculateRealisticFinancials(mrr, startup, rawCac, rawLtv, defaults);
+  
+  // Calculate gross margin (COGS based)
+  const grossMarginPct = 100 - defaults.cogs_percent; // 60% if COGS is 40%
+  
+  // Calculate net margin from actual profit
+  const netMarginPct = mrr > 0 ? Math.round((realistic.correctedProfit / mrr) * 100) : 0;
+  
+  // Recalculate payback with realistic profit
+  const paybackMonths = startup > 0 && realistic.correctedProfit > 0 
+    ? Math.ceil(startup / realistic.correctedProfit) 
+    : (startup > 0 ? 999 : 0); // 999 = never if loss
+  
+  // ROI with realistic profit
+  const roiYear1 = startup > 0 && realistic.correctedProfit > 0 
+    ? Math.round((realistic.correctedProfit * 12 / startup) * 100) 
+    : (realistic.correctedProfit < 0 ? Math.round((realistic.correctedProfit * 12 / startup) * 100) : 0);
   
   return {
     financial_analysis: {
       inputs: {
-        price_per_unit: fa.price_per_unit || fa.average_check || 500,
-        units_sold_monthly: fa.orders_monthly || fa.units_monthly || Math.round(mrr / (fa.average_check || 500)),
-        purchase_frequency: fa.purchase_frequency || 2,
+        price_per_unit: fa.average_check || defaults.average_check,
+        units_sold_monthly: fa.orders_monthly || Math.round(mrr / defaults.average_check),
+        purchase_frequency: defaults.orders_per_client,
         upsell_per_customer: fa.upsell || 0,
-        cogs_per_unit: fa.cogs_per_unit || (fa.average_check || 500) * 0.35,
-        fixed_opex: fa.fixed_opex || fa.total_expenses * 0.6 || 0,
-        marketing_budget: fa.marketing || 0,
-        cac: cac,
+        cogs_per_unit: Math.round(defaults.average_check * (defaults.cogs_percent / 100)),
+        fixed_opex: defaults.salaries_fixed + defaults.rent_fixed + defaults.utilities_fixed + defaults.other_fixed,
+        marketing_budget: realistic.expenseBreakdown.marketing,
+        cac: realistic.correctedCac,
         startup_investment: startup,
-        capex: fa.equipment || 0,
-        ltv: ltv,
-        churn_rate: fa.churn_rate || 0.08
+        capex: fa.equipment || Math.round(startup * 0.4),
+        ltv: realistic.correctedLtv,
+        churn_rate: fa.churn_rate || 0.15
       },
       mrr: mrr,
-      arr: fa.arr || mrr * 12,
+      arr: mrr * 12,
       scenarios: {
         pessimistic: {
-          revenue: fa.pessimistic_revenue || mrr * 0.75,
-          variable_costs: fa.pessimistic_variable_costs || mrr * 0.75 * 0.4,
-          fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.pessimistic_gross_profit || mrr * 0.75 * (grossMarginPct / 100),
-          net_profit: fa.pessimistic_profit || baseProfit * 0.3,
-          gross_margin: grossMarginPct - 10,
-          net_margin: Math.max(netMarginPct - 8, 0)
+          revenue: Math.round(mrr * 0.8),
+          variable_costs: Math.round(mrr * 0.8 * (defaults.cogs_percent / 100)),
+          fixed_costs: defaults.salaries_fixed + defaults.rent_fixed + defaults.utilities_fixed + defaults.other_fixed,
+          gross_profit: Math.round(mrr * 0.8 * (grossMarginPct / 100)),
+          net_profit: Math.round((mrr * 0.8) - realistic.totalExpenses * 0.95),
+          gross_margin: grossMarginPct,
+          net_margin: Math.max(netMarginPct - 8, -20)
         },
         base: {
           revenue: mrr,
-          variable_costs: fa.variable_costs || mrr * 0.35,
-          fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.gross_profit || mrr * (grossMarginPct / 100),
-          net_profit: baseProfit,
+          variable_costs: realistic.expenseBreakdown.cogs,
+          fixed_costs: defaults.salaries_fixed + defaults.rent_fixed + defaults.utilities_fixed + defaults.other_fixed,
+          gross_profit: Math.round(mrr * (grossMarginPct / 100)),
+          net_profit: realistic.correctedProfit,
           gross_margin: grossMarginPct,
           net_margin: netMarginPct
         },
         optimistic: {
-          revenue: fa.optimistic_revenue || mrr * 1.3,
-          variable_costs: fa.optimistic_variable_costs || mrr * 1.3 * 0.32,
-          fixed_costs: fa.fixed_opex || 0,
-          gross_profit: fa.optimistic_gross_profit || mrr * 1.3 * (grossMarginPct / 100 + 0.05),
-          net_profit: fa.optimistic_profit || baseProfit * 1.8,
-          gross_margin: grossMarginPct + 5,
+          revenue: Math.round(mrr * 1.25),
+          variable_costs: Math.round(mrr * 1.25 * (defaults.cogs_percent / 100)),
+          fixed_costs: defaults.salaries_fixed + defaults.rent_fixed + defaults.utilities_fixed + defaults.other_fixed,
+          gross_profit: Math.round(mrr * 1.25 * (grossMarginPct / 100)),
+          net_profit: Math.round((mrr * 1.25) - realistic.totalExpenses * 1.1),
+          gross_margin: grossMarginPct,
           net_margin: netMarginPct + 5
         }
       },
       unit_economics: {
-        contribution_margin: fa.contribution_margin || (fa.average_check || 500) - (fa.cogs_per_unit || 175),
-        contribution_margin_ratio: fa.contribution_margin_ratio || 0.65,
-        cac: cac,
-        cac_payback_months: fa.cac_payback_months || Math.ceil(cac / ((fa.average_check || 500) * (netMarginPct / 100) * (fa.purchase_frequency || 2))),
-        ltv: ltv,
-        ltv_cac_ratio: fa.ltv_cac_ratio || Math.round(ltv / cac * 10) / 10
+        contribution_margin: Math.round(defaults.average_check * (grossMarginPct / 100)),
+        contribution_margin_ratio: grossMarginPct / 100,
+        cac: realistic.correctedCac,
+        cac_payback_months: Math.ceil(realistic.correctedCac / (defaults.average_check * (Math.max(netMarginPct, 5) / 100) * defaults.orders_per_client)),
+        ltv: realistic.correctedLtv,
+        ltv_cac_ratio: realistic.correctedLtvCacRatio
       },
       breakeven: {
-        breakeven_units: fa.breakeven_units || 0,
-        breakeven_revenue: fa.breakeven_revenue || 0,
-        breakeven_months: fa.breakeven_months || 0
+        breakeven_units: Math.ceil(realistic.breakEvenRevenue / defaults.average_check),
+        breakeven_revenue: realistic.breakEvenRevenue,
+        breakeven_months: startup > 0 && realistic.correctedProfit > 0 ? Math.min(paybackMonths, 24) : 0
       },
       returns: {
-        payback_period_months: fa.payback_months || (startup > 0 && baseProfit > 0 ? Math.ceil(startup / baseProfit) : 0),
-        roi_year_1: fa.roi_year_1 || (startup > 0 && baseProfit > 0 ? Math.round((baseProfit * 12 / startup) * 100) : 0),
-        roi_year_3: fa.roi_year_3 || (startup > 0 && baseProfit > 0 ? Math.round((baseProfit * 36 / startup) * 100) : 0),
-        npv_3_years: fa.npv_3_years || (baseProfit * 36 - startup)
+        payback_period_months: paybackMonths,
+        roi_year_1: roiYear1,
+        roi_year_3: startup > 0 ? Math.round((realistic.correctedProfit * 36 / startup) * 100) : 0,
+        npv_3_years: Math.round(realistic.correctedProfit * 36 - startup)
       },
       startup_investment: {
         total: startup,
         breakdown: {
-          rent_deposit: fa.rent_deposit || Math.round(startup * 0.1),
-          equipment: fa.equipment || Math.round(startup * 0.4),
+          rent_deposit: fa.rent_deposit || Math.round(defaults.rent_fixed * 2),
+          equipment: fa.equipment || Math.round(startup * 0.45),
           inventory: fa.inventory_initial || Math.round(startup * 0.15),
           legal: fa.legal || 50000,
           marketing_initial: fa.marketing_initial || Math.round(startup * 0.1),
-          working_capital: fa.working_capital || Math.round(startup * 0.25)
+          working_capital: fa.working_capital || Math.round(startup * 0.2)
         },
-        reasoning: fa.investment_reasoning || fa.calculations_summary || ""
+        reasoning: fa.investment_reasoning || `Стартовые инвестиции ${startup.toLocaleString()}₽ включают оборудование, депозит аренды, начальные запасы и оборотный капитал на 2-3 месяца.`
       },
       monthly_expenses: {
-        total: fa.total_expenses || 0,
-        variable_costs: fa.variable_costs || 0,
-        fixed_costs: fa.fixed_costs || 0,
+        total: realistic.totalExpenses,
+        variable_costs: realistic.expenseBreakdown.cogs + realistic.expenseBreakdown.marketing,
+        fixed_costs: defaults.salaries_fixed + defaults.rent_fixed + defaults.utilities_fixed + defaults.other_fixed,
         breakdown: {
-          rent: fa.rent || 0,
-          utilities: fa.utilities || 0,
-          salaries: fa.salaries || 0,
-          inventory_replenishment: fa.inventory_monthly || fa.cogs_monthly || 0,
-          marketing: fa.marketing || 0,
-          other: fa.other || 0
+          rent: defaults.rent_fixed,
+          utilities: defaults.utilities_fixed,
+          salaries: defaults.salaries_fixed,
+          inventory_replenishment: realistic.expenseBreakdown.cogs,
+          marketing: realistic.expenseBreakdown.marketing,
+          other: defaults.other_fixed
         }
       },
       risk_analysis: {
@@ -160,7 +348,7 @@ function transformResponse(raw: any) {
           description: "Снижение спроса, сезонность, конкуренция",
           impact_on_revenue: -20,
           impact_on_costs: 0,
-          resulting_profit: fa.profit_revenue_drop_20 || Math.round(baseProfit * 0.4),
+          resulting_profit: Math.round((mrr * 0.8) - realistic.totalExpenses * 0.95),
           probability: "средняя" as const
         },
         costs_rise_15: {
@@ -168,7 +356,7 @@ function transformResponse(raw: any) {
           description: "Инфляция, рост цен на сырьё и аренду",
           impact_on_revenue: 0,
           impact_on_costs: 15,
-          resulting_profit: fa.profit_costs_rise_15 || Math.round(baseProfit * 0.7),
+          resulting_profit: Math.round(mrr - realistic.totalExpenses * 1.15),
           probability: "высокая" as const
         },
         cac_doubles: {
@@ -176,7 +364,7 @@ function transformResponse(raw: any) {
           description: "Рост конкуренции в рекламе",
           impact_on_revenue: 0,
           impact_on_costs: 0,
-          resulting_profit: fa.profit_cac_doubles || Math.round(baseProfit * 0.6),
+          resulting_profit: Math.round(realistic.correctedProfit - realistic.expenseBreakdown.marketing),
           probability: "средняя" as const
         },
         churn_increase: {
@@ -184,11 +372,39 @@ function transformResponse(raw: any) {
           description: "Снижение качества, конкуренция",
           impact_on_revenue: -15,
           impact_on_costs: 0,
-          resulting_profit: fa.profit_churn_increase || Math.round(baseProfit * 0.5),
+          resulting_profit: Math.round((mrr * 0.85) - realistic.totalExpenses),
           probability: "средняя" as const
         }
       },
-      calculations_summary: fa.calculations_summary || ""
+      calculations_summary: `
+### Расчёт финансовой модели
+
+**Входные данные:**
+- Ежемесячная выручка (MRR): ${mrr.toLocaleString()}₽
+- Стартовые инвестиции: ${startup.toLocaleString()}₽
+- Средний чек: ${defaults.average_check}₽
+- CAC: ${realistic.correctedCac}₽
+- LTV: ${realistic.correctedLtv.toLocaleString()}₽
+
+**Структура расходов (в месяц):**
+- Себестоимость (${defaults.cogs_percent}%): ${realistic.expenseBreakdown.cogs.toLocaleString()}₽
+- ФОТ (фикс.): ${defaults.salaries_fixed.toLocaleString()}₽
+- Аренда (фикс.): ${defaults.rent_fixed.toLocaleString()}₽
+- Коммуналка: ${defaults.utilities_fixed.toLocaleString()}₽
+- Маркетинг: ${realistic.expenseBreakdown.marketing.toLocaleString()}₽
+- Прочие: ${defaults.other_fixed.toLocaleString()}₽
+- **Итого расходы: ${realistic.totalExpenses.toLocaleString()}₽**
+
+**Расчёт прибыли:**
+Прибыль = ${mrr.toLocaleString()}₽ - ${realistic.totalExpenses.toLocaleString()}₽ = **${realistic.correctedProfit.toLocaleString()}₽**
+
+**Точка безубыточности:** ${realistic.breakEvenRevenue.toLocaleString()}₽/мес
+**Для прибыли 45k нужна выручка:** ~${realistic.profitableRevenue.toLocaleString()}₽/мес
+
+**Окупаемость:** ${startup.toLocaleString()}₽ / ${realistic.correctedProfit.toLocaleString()}₽ = ${paybackMonths === 999 ? 'никогда (убыток)' : paybackMonths + ' мес'}
+
+**LTV:CAC = ${realistic.correctedLtvCacRatio}x** ${realistic.correctedLtvCacRatio >= 3 ? '✓ норма (3-5x)' : '⚠ ниже нормы'}
+      `.trim()
     },
     business_plan: {
       executive_summary: bp.executive_summary || "",
@@ -203,8 +419,8 @@ function transformResponse(raw: any) {
       positioning: mp.positioning || "",
       pricing_strategy: mp.pricing_strategy || "",
       channels: Array.isArray(mp.channels) ? mp.channels : [],
-      cac: mp.cac || cac,
-      ltv: mp.ltv || ltv,
+      cac: realistic.correctedCac,
+      ltv: realistic.correctedLtv,
       first_3_months_plan: mp.first_3_months_plan || ""
     },
     market_analysis: {
@@ -224,7 +440,11 @@ function transformResponse(raw: any) {
     },
     confidence_score: raw.confidence || 70,
     data_sources: sources,
-    limitations: limits
+    limitations: limits,
+    _corrections: realistic.corrections,
+    _isProfitable: realistic.isProfitable,
+    _breakEvenRevenue: realistic.breakEvenRevenue,
+    _profitableRevenue: realistic.profitableRevenue
   };
 }
 
@@ -266,7 +486,7 @@ serve(async (req) => {
 ## БИЗНЕС-ИДЕЯ
 ${idea.trim()}
 
-## ЛОКАЦИЯ
+## ЛОКАЦИЯ (ИСПОЛЬЗУЙ ТОЛЬКО ЭТУ ЛОКАЦИЮ!)
 ${location.trim()}
 
 ## КРИТИЧЕСКИЕ ТРЕБОВАНИЯ К РЕАЛИСТИЧНОСТИ
@@ -278,77 +498,84 @@ ${location.trim()}
 - Розничная торговля: 3-10%
 - Услуги (салон, фитнес): 15-25%
 - IT/SaaS: 20-40%
-- Производство: 10-20%
-- Консалтинг: 25-40%
 
 ### CAC (стоимость привлечения клиента) - РЕАЛЬНЫЕ ЦИФРЫ:
-- Instagram/Facebook Ads: 200-500₽
-- VK Ads: 150-400₽
+- Instagram/VK Ads: 200-500₽
 - Яндекс.Директ: 300-800₽
 - SEO/контент: 100-300₽
-- Delivery platforms: 200-500₽
 - B2B продажи: 5000-50000₽
 
-### LTV (пожизненная ценность клиента):
-- Домашние заказы еды: 5000-15000₽
-- Офисные заказы: 15000-50000₽
-- Розница (постоянный клиент): 10000-30000₽
-- SaaS подписки: 20000-100000₽
-- Услуги (салон): 15000-40000₽
+### LTV - расчёт по формуле:
+LTV = Средний чек × Заказов в месяц × Время жизни клиента (мес.)
+Например: 600₽ × 4 заказа × 4 мес = 9600₽
 
 ### ОБЯЗАТЕЛЬНЫЕ СООТНОШЕНИЯ:
-- LTV:CAC ДОЛЖНО быть 3-5x (НЕ БОЛЬШЕ 10x!)
+- LTV:CAC ДОЛЖНО быть 3-5x (НЕ БОЛЬШЕ 7x!)
 - Payback = Инвестиции / Чистая прибыль
-- ROI = (Чистая прибыль × 12) / Инвестиции × 100%
-- Gross Margin = (Выручка - Себестоимость) / Выручка
-- Net Margin = Чистая прибыль / Выручка
 
-### СТРУКТУРА РАСХОДОВ (типичная):
-- Сырьё/товар: 30-45% выручки
-- Зарплаты: 20-35% выручки
-- Аренда: 8-15% выручки
-- Маркетинг: 5-15% выручки
-- Коммуналка: 3-5% выручки
-- Прочее: 5-10% выручки
+### СТРУКТУРА РАСХОДОВ для пищевого бизнеса:
+- COGS (сырьё): 35-45% от выручки
+- ФОТ: 150-200k/мес (фиксированно)
+- Аренда: 40-70k/мес (фиксированно)
+- Коммуналка: 10-20k/мес
+- Маркетинг: CAC × новые клиенты
+- Прочие: 25-40k/мес
+
+## ВАЖНО
+- Используй ТОЛЬКО указанную локацию: ${location.trim()}
+- НЕ СМЕШИВАЙ разные города в одном анализе
+- Целевая аудитория должна соответствовать локации
 
 ## ФОРМАТ ОТВЕТА (JSON строки)
 
-financial_json должен содержать:
+financial_json:
 {
-  "mrr": число (ежемесячная выручка),
-  "arr": число (годовая выручка),
-  "average_check": число (средний чек),
-  "orders_monthly": число (заказов в месяц),
-  "cogs_per_unit": число (себестоимость единицы),
-  "gross_margin": число (валовая маржа %),
-  "net_margin": число (чистая маржа % - РЕАЛИСТИЧНАЯ по отрасли!),
-  "base_profit": число (чистая прибыль в месяц = MRR × net_margin),
-  "pessimistic_profit": число (прибыль в пессимистичном сценарии),
-  "optimistic_profit": число (прибыль в оптимистичном сценарии),
-  "startup_investment": число (стартовые инвестиции),
-  "payback_months": число (Инвестиции / Прибыль),
-  "roi_year_1": число (ROI % за год),
-  "cac": число (РЕАЛИСТИЧНЫЙ CAC 200-800₽),
-  "ltv": число (РЕАЛИСТИЧНЫЙ LTV),
-  "ltv_cac_ratio": число (ДОЛЖЕН быть 3-5, максимум 7),
-  "breakeven_units": число,
-  "breakeven_months": число,
-  "total_expenses": число (общие расходы в месяц),
-  "variable_costs": число,
-  "fixed_costs": число,
-  "rent": число,
-  "salaries": число,
-  "marketing": число,
-  "utilities": число,
-  "cogs_monthly": число,
-  "other": число,
-  "equipment": число (для стартовых инвестиций),
-  "inventory_initial": число,
-  "working_capital": число,
-  "calculations_summary": "Подробное объяснение расчётов с формулами"
+  "mrr": число (выручка 300000-600000 для пекарни),
+  "average_check": число (500-800),
+  "orders_monthly": число,
+  "cogs_percent": 40,
+  "startup_investment": число (1000000-2000000 для пекарни),
+  "cac": число (250-500),
+  "ltv": число (рассчитай по формуле),
+  "equipment": число,
+  "calculations_summary": "Подробный расчёт"
 }
 
-Вызови функцию submit_analysis с реалистичными данными.`;
+business_json:
+{
+  "executive_summary": "краткое резюме",
+  "product_description": "описание продукта",
+  "target_audience": "аудитория в ${location.trim()}",
+  "competitive_advantages": "преимущества",
+  "operations": "операции",
+  "launch_steps": ["шаг1", "шаг2"],
+  "risks": [{name, description, mitigation}]
+}
+
+marketing_json:
+{
+  "positioning": "позиционирование",
+  "pricing_strategy": "стратегия цен",
+  "channels": [{name, budget, expected_roi}],
+  "cac": число,
+  "ltv": число,
+  "first_3_months_plan": "план"
+}
+
+market_json:
+{
+  "tam": "TAM в ${location.trim()}",
+  "sam": "SAM",
+  "som": "SOM",
+  "trends": ["тренд1"],
+  "competitors": [{name, strengths, weaknesses}],
+  "competitive_landscape": "анализ",
+  "market_gaps": "возможности",
+  "barriers_to_entry": "барьеры",
+  "growth_opportunities": "рост"
+}
+
+Вызови функцию submit_analysis.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -412,207 +639,21 @@ financial_json должен содержать:
       );
     }
 
-    const result = transformResponse(rawResult);
+    const result = transformResponse(rawResult, location.trim());
     
-    // Auto-correction function for realistic metrics
-    function autoCorrectFinancials(fa: any): { corrected: any; corrections: Array<{ field: string; original: number; corrected: number; reason: string }> } {
-      const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
-      const corrected = JSON.parse(JSON.stringify(fa)); // Deep clone
-      
-      // Industry benchmark ranges
-      const benchmarks = {
-        netMargin: { min: 3, max: 25, typical: 12 },
-        grossMargin: { min: 25, max: 65, typical: 40 },
-        cac: { min: 150, max: 800, typical: 350 },
-        ltv: { min: 3000, max: 50000, typical: 12000 },
-        ltvCacRatio: { min: 2.5, max: 6, typical: 4 },
-        roiYear1: { min: 10, max: 80, typical: 35 },
-        paybackMin: 6
-      };
-      
-      const mrr = corrected.mrr || 0;
-      
-      // 1. Correct net margin
-      let netMargin = corrected.scenarios.base.net_margin;
-      if (netMargin > benchmarks.netMargin.max) {
-        const originalNetMargin = netMargin;
-        netMargin = benchmarks.netMargin.typical;
-        corrections.push({
-          field: 'net_margin',
-          original: originalNetMargin,
-          corrected: netMargin,
-          reason: `Маржа ${originalNetMargin}% нереалистична, скорректировано до ${netMargin}%`
-        });
-        
-        // Update all scenario margins
-        corrected.scenarios.base.net_margin = netMargin;
-        corrected.scenarios.pessimistic.net_margin = Math.max(netMargin - 8, 0);
-        corrected.scenarios.optimistic.net_margin = netMargin + 5;
-      }
-      
-      // 2. Correct gross margin
-      let grossMargin = corrected.scenarios.base.gross_margin;
-      if (grossMargin > benchmarks.grossMargin.max) {
-        const originalGrossMargin = grossMargin;
-        grossMargin = benchmarks.grossMargin.typical;
-        corrections.push({
-          field: 'gross_margin',
-          original: originalGrossMargin,
-          corrected: grossMargin,
-          reason: `Валовая маржа ${originalGrossMargin}% нереалистична, скорректировано до ${grossMargin}%`
-        });
-        
-        corrected.scenarios.base.gross_margin = grossMargin;
-        corrected.scenarios.pessimistic.gross_margin = grossMargin - 10;
-        corrected.scenarios.optimistic.gross_margin = grossMargin + 5;
-      }
-      
-      // 3. Recalculate profits based on corrected margins
-      if (mrr > 0) {
-        const newBaseProfit = Math.round(mrr * (netMargin / 100));
-        if (Math.abs(newBaseProfit - corrected.scenarios.base.net_profit) > 1000) {
-          corrections.push({
-            field: 'net_profit',
-            original: corrected.scenarios.base.net_profit,
-            corrected: newBaseProfit,
-            reason: `Прибыль пересчитана по формуле MRR × Net Margin`
-          });
-        }
-        corrected.scenarios.base.net_profit = newBaseProfit;
-        corrected.scenarios.pessimistic.net_profit = Math.round(newBaseProfit * 0.4);
-        corrected.scenarios.optimistic.net_profit = Math.round(newBaseProfit * 1.6);
-        
-        corrected.scenarios.base.gross_profit = Math.round(mrr * (grossMargin / 100));
-        corrected.scenarios.pessimistic.gross_profit = Math.round(mrr * 0.75 * (grossMargin / 100));
-        corrected.scenarios.optimistic.gross_profit = Math.round(mrr * 1.3 * ((grossMargin + 5) / 100));
-      }
-      
-      // 4. Correct CAC
-      let cac = corrected.unit_economics.cac;
-      if (cac < benchmarks.cac.min) {
-        corrections.push({
-          field: 'cac',
-          original: cac,
-          corrected: benchmarks.cac.typical,
-          reason: `CAC ${cac}₽ нереалистично низкий (минимум ${benchmarks.cac.min}₽)`
-        });
-        cac = benchmarks.cac.typical;
-        corrected.unit_economics.cac = cac;
-        corrected.inputs.cac = cac;
-      }
-      
-      // 5. Correct LTV and LTV:CAC ratio
-      let ltv = corrected.unit_economics.ltv;
-      let ltvCacRatio = ltv / cac;
-      
-      if (ltvCacRatio > benchmarks.ltvCacRatio.max) {
-        // LTV:CAC too high, likely LTV is inflated or CAC is too low
-        const targetLtv = Math.round(cac * benchmarks.ltvCacRatio.typical);
-        if (ltv > targetLtv * 2) {
-          corrections.push({
-            field: 'ltv',
-            original: ltv,
-            corrected: targetLtv,
-            reason: `LTV ${ltv}₽ нереалистичен при CAC ${cac}₽, скорректировано до ${targetLtv}₽ (ratio ~${benchmarks.ltvCacRatio.typical}x)`
-          });
-          ltv = targetLtv;
-          corrected.unit_economics.ltv = ltv;
-          corrected.inputs.ltv = ltv;
-        }
-      } else if (ltvCacRatio < benchmarks.ltvCacRatio.min) {
-        // LTV:CAC too low - adjust LTV up
-        const targetLtv = Math.round(cac * benchmarks.ltvCacRatio.min);
-        corrections.push({
-          field: 'ltv',
-          original: ltv,
-          corrected: targetLtv,
-          reason: `LTV ${ltv}₽ слишком низкий для прибыльного бизнеса, скорректировано до ${targetLtv}₽`
-        });
-        ltv = targetLtv;
-        corrected.unit_economics.ltv = ltv;
-        corrected.inputs.ltv = ltv;
-      }
-      
-      // Update LTV:CAC ratio
-      const newLtvCacRatio = Math.round((ltv / cac) * 10) / 10;
-      if (corrected.unit_economics.ltv_cac_ratio !== newLtvCacRatio) {
-        corrected.unit_economics.ltv_cac_ratio = newLtvCacRatio;
-      }
-      
-      // 6. Recalculate CAC payback months
-      const avgCheck = corrected.inputs.price_per_unit || 500;
-      const purchaseFreq = corrected.inputs.purchase_frequency || 2;
-      const cacPaybackMonths = Math.ceil(cac / (avgCheck * (netMargin / 100) * purchaseFreq));
-      if (cacPaybackMonths !== corrected.unit_economics.cac_payback_months && cacPaybackMonths > 0) {
-        corrected.unit_economics.cac_payback_months = cacPaybackMonths;
-      }
-      
-      // 7. Recalculate payback period and ROI
-      const investment = corrected.startup_investment.total;
-      const monthlyProfit = corrected.scenarios.base.net_profit;
-      
-      if (investment > 0 && monthlyProfit > 0) {
-        const newPayback = Math.ceil(investment / monthlyProfit);
-        if (newPayback !== corrected.returns.payback_period_months) {
-          corrections.push({
-            field: 'payback_period_months',
-            original: corrected.returns.payback_period_months,
-            corrected: newPayback,
-            reason: `Окупаемость пересчитана: ${investment}₽ / ${monthlyProfit}₽ = ${newPayback} мес.`
-          });
-          corrected.returns.payback_period_months = newPayback;
-        }
-        
-        const newRoiYear1 = Math.round((monthlyProfit * 12 / investment) * 100);
-        if (Math.abs(newRoiYear1 - corrected.returns.roi_year_1) > 5) {
-          corrections.push({
-            field: 'roi_year_1',
-            original: corrected.returns.roi_year_1,
-            corrected: newRoiYear1,
-            reason: `ROI пересчитан: (${monthlyProfit}₽ × 12) / ${investment}₽ × 100 = ${newRoiYear1}%`
-          });
-          corrected.returns.roi_year_1 = newRoiYear1;
-        }
-        
-        corrected.returns.roi_year_3 = Math.round((monthlyProfit * 36 / investment) * 100);
-        corrected.returns.npv_3_years = Math.round(monthlyProfit * 36 - investment);
-      }
-      
-      // 8. Validate and correct expense structure
-      if (mrr > 0) {
-        const totalExpenses = corrected.monthly_expenses.total;
-        const expenseRatio = totalExpenses / mrr;
-        
-        // Expenses should be 75-95% of revenue for most businesses
-        if (expenseRatio < 0.6 || expenseRatio > 1.1) {
-          const targetExpenses = Math.round(mrr * (1 - netMargin / 100));
-          corrections.push({
-            field: 'total_expenses',
-            original: totalExpenses,
-            corrected: targetExpenses,
-            reason: `Расходы скорректированы для соответствия марже ${netMargin}%`
-          });
-          corrected.monthly_expenses.total = targetExpenses;
-          
-          // Redistribute expenses proportionally
-          const ratio = targetExpenses / (totalExpenses || 1);
-          corrected.monthly_expenses.breakdown.rent = Math.round((corrected.monthly_expenses.breakdown.rent || 0) * ratio);
-          corrected.monthly_expenses.breakdown.salaries = Math.round((corrected.monthly_expenses.breakdown.salaries || 0) * ratio);
-          corrected.monthly_expenses.breakdown.marketing = Math.round((corrected.monthly_expenses.breakdown.marketing || 0) * ratio);
-          corrected.monthly_expenses.breakdown.utilities = Math.round((corrected.monthly_expenses.breakdown.utilities || 0) * ratio);
-          corrected.monthly_expenses.breakdown.inventory_replenishment = Math.round((corrected.monthly_expenses.breakdown.inventory_replenishment || 0) * ratio);
-        }
-      }
-      
-      return { corrected, corrections };
-    }
+    // Extract internal fields
+    const corrections = result._corrections || [];
+    const isProfitable = result._isProfitable;
+    const breakEvenRevenue = result._breakEvenRevenue;
+    const profitableRevenue = result._profitableRevenue;
     
-    // Apply auto-correction
-    const { corrected: correctedFa, corrections } = autoCorrectFinancials(result.financial_analysis);
-    result.financial_analysis = correctedFa;
+    // Remove internal fields from response
+    delete result._corrections;
+    delete result._isProfitable;
+    delete result._breakEvenRevenue;
+    delete result._profitableRevenue;
     
-    // Validation after correction (for remaining warnings)
-    const fa = result.financial_analysis;
+    // Build validation object
     const validationIssues: Array<{
       field: string;
       value: number | string;
@@ -620,49 +661,62 @@ financial_json должен содержать:
       severity: 'warning' | 'error';
       message: string;
     }> = [];
-
-    // Check if any values are still outside bounds after correction
-    const netMargin = fa.scenarios.base.net_margin;
-    if (netMargin > 30) {
+    
+    const fa = result.financial_analysis;
+    
+    // Check profitability
+    if (!isProfitable) {
       validationIssues.push({
-        field: 'net_margin',
-        value: netMargin,
-        expected: '3-25%',
-        severity: 'warning',
-        message: `Чистая маржа ${netMargin}% высокая, типично для IT/консалтинга`
+        field: 'profitability',
+        value: fa.scenarios.base.net_profit,
+        expected: '> 0',
+        severity: 'error',
+        message: `❌ Бизнес УБЫТОЧЕН при выручке ${fa.mrr.toLocaleString()}₽. Точка безубыточности: ${breakEvenRevenue.toLocaleString()}₽/мес. Для прибыли 45к нужна выручка ~${profitableRevenue.toLocaleString()}₽/мес.`
       });
     }
-
+    
+    // Check LTV:CAC
     const ltvCacRatio = fa.unit_economics.ltv_cac_ratio;
     if (ltvCacRatio < 2.5) {
       validationIssues.push({
         field: 'ltv_cac_ratio',
         value: ltvCacRatio,
         expected: '3-5x',
-        severity: 'warning',
+        severity: 'error',
         message: `LTV:CAC ${ltvCacRatio}x ниже нормы — бизнес на грани рентабельности`
       });
+    } else if (ltvCacRatio > 7) {
+      validationIssues.push({
+        field: 'ltv_cac_ratio',
+        value: ltvCacRatio,
+        expected: '3-5x (макс 7x)',
+        severity: 'warning',
+        message: `LTV:CAC ${ltvCacRatio}x выше реалистичного — данные могут быть оптимистичными`
+      });
     }
-
+    
+    // Check payback
     const payback = fa.returns.payback_period_months;
-    if (payback > 36) {
+    if (payback > 36 && payback < 999) {
       validationIssues.push({
         field: 'payback_period',
         value: payback,
-        expected: '6-24 месяцев',
+        expected: '12-24 месяца',
         severity: 'warning',
         message: `Окупаемость ${payback} мес. — длительный срок возврата инвестиций`
       });
     }
-
-    // Calculate reliability score (higher if fewer corrections needed)
-    const correctionPenalty = Math.min(corrections.length * 8, 40);
-    const warningPenalty = validationIssues.length * 5;
-    const reliabilityScore = Math.max(0, Math.min(100, 100 - correctionPenalty - warningPenalty));
+    
+    // Calculate reliability score
+    const correctionPenalty = Math.min(corrections.length * 10, 40);
+    const profitPenalty = isProfitable ? 0 : 30;
+    const warningPenalty = validationIssues.filter(i => i.severity === 'warning').length * 5;
+    const errorPenalty = validationIssues.filter(i => i.severity === 'error').length * 15;
+    const reliabilityScore = Math.max(0, Math.min(100, 100 - correctionPenalty - profitPenalty - warningPenalty - errorPenalty));
     
     const wasAutoCorrected = corrections.length > 0;
     
-    console.log(`Done. Corrections: ${corrections.length}. Reliability: ${reliabilityScore}%`);
+    console.log(`Done. Corrections: ${corrections.length}. Profitable: ${isProfitable}. Reliability: ${reliabilityScore}%`);
 
     return new Response(
       JSON.stringify({
@@ -670,23 +724,28 @@ financial_json должен содержать:
         data: {
           ...result,
           validation: {
-            is_realistic: !wasAutoCorrected && validationIssues.length === 0,
+            is_realistic: isProfitable && corrections.length === 0 && validationIssues.length === 0,
+            is_profitable: isProfitable,
             was_auto_corrected: wasAutoCorrected,
             reliability_score: reliabilityScore,
             corrections: corrections,
             warnings: validationIssues,
-            summary: wasAutoCorrected 
-              ? `Скорректировано ${corrections.length} показателей до отраслевых норм`
-              : validationIssues.length > 0
-                ? `${validationIssues.length} предупреждений`
-                : "Все показатели в пределах отраслевых норм"
+            break_even_revenue: breakEvenRevenue,
+            profitable_revenue_for_45k: profitableRevenue,
+            summary: !isProfitable 
+              ? `⚠️ Бизнес убыточен при текущей выручке. Нужна выручка от ${breakEvenRevenue.toLocaleString()}₽/мес для безубыточности.`
+              : wasAutoCorrected 
+                ? `Скорректировано ${corrections.length} показателей до отраслевых норм`
+                : validationIssues.length > 0
+                  ? `${validationIssues.length} предупреждений`
+                  : "✓ Все показатели в пределах отраслевых норм"
           },
           metadata: {
             idea: idea.trim(),
             location: location.trim(),
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "3.5-autocorrect",
+            version: "4.0-realistic-model",
           },
         },
       }),
