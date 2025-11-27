@@ -219,6 +219,12 @@ export interface MarketingPlan {
 }
 
 // Market Analysis Types
+export interface Competitor {
+  name: string;
+  strengths: string;
+  weaknesses: string;
+}
+
 export interface MarketAnalysis {
   market_size: {
     tam: string;
@@ -227,7 +233,7 @@ export interface MarketAnalysis {
   };
   trends: string[];
   competition: {
-    main_competitors: string[];
+    main_competitors: (string | Competitor)[];
     competitive_landscape: string;
     market_gaps: string;
   };

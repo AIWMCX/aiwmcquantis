@@ -65,12 +65,33 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
           <div className="space-y-3">
             <div>
               <p className="text-xs text-muted-foreground mb-2">Основные конкуренты</p>
-              <div className="flex flex-wrap gap-2">
-                {market.competition.main_competitors.map((competitor, index) => (
-                  <Badge key={index} variant="outline" className="text-xs">
-                    {competitor}
-                  </Badge>
-                ))}
+              <div className="space-y-2">
+                {market.competition.main_competitors.map((competitor, index) => {
+                  // Handle both string and object formats
+                  if (typeof competitor === 'string') {
+                    return (
+                      <Badge key={index} variant="outline" className="text-xs">
+                        {competitor}
+                      </Badge>
+                    );
+                  }
+                  // Object format with name, strengths, weaknesses
+                  return (
+                    <div key={index} className="p-2 rounded-lg bg-muted/20 border border-border/50">
+                      <p className="text-sm font-medium text-foreground">{competitor.name}</p>
+                      {competitor.strengths && (
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-emerald-600 dark:text-emerald-400">+</span> {competitor.strengths}
+                        </p>
+                      )}
+                      {competitor.weaknesses && (
+                        <p className="text-xs text-muted-foreground">
+                          <span className="text-red-600 dark:text-red-400">−</span> {competitor.weaknesses}
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
               </div>
             </div>
             
