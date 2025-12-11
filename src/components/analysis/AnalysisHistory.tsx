@@ -12,16 +12,16 @@ interface AnalysisHistoryProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'RUB',
+    currency: 'USD',
     maximumFractionDigits: 0,
     notation: 'compact',
   }).format(value);
 }
 
 function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('ru-RU', {
+  return new Date(dateStr).toLocaleDateString('en-US', {
     day: 'numeric',
     month: 'short',
     hour: '2-digit',
@@ -48,13 +48,13 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
         <div className="flex items-center justify-between">
           <CardTitle className="flex items-center gap-2 text-lg">
             <History className="w-5 h-5 text-primary" />
-            История анализов ({history.length})
+            Analysis History ({history.length})
             {isSyncing ? (
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             ) : isAuthenticated ? (
-              <span title="Синхронизировано с облаком"><Cloud className="w-4 h-4 text-primary" /></span>
+              <span title="Synced to cloud"><Cloud className="w-4 h-4 text-primary" /></span>
             ) : (
-              <span title="Только локально"><CloudOff className="w-4 h-4 text-muted-foreground" /></span>
+              <span title="Local only"><CloudOff className="w-4 h-4 text-muted-foreground" /></span>
             )}
           </CardTitle>
           {hasHistory && (
@@ -62,14 +62,14 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
               variant="ghost"
               size="sm"
               onClick={() => {
-                if (window.confirm('Очистить всю историю?')) {
+                if (window.confirm('Clear all history?')) {
                   clearHistory();
                 }
               }}
               className="text-destructive hover:text-destructive hover:bg-destructive/10"
             >
               <Trash2 className="w-4 h-4 mr-1" />
-              Очистить
+              Clear
             </Button>
           )}
         </div>
@@ -81,13 +81,13 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
               <LogIn className="w-5 h-5 text-primary mt-0.5" />
               <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
-                  Войдите для синхронизации
+                  Sign in to sync
                 </p>
                 <p className="text-xs text-muted-foreground mt-1">
-                  Ваши анализы сохраняются локально. Войдите, чтобы сохранять их в облаке.
+                  Your analyses are saved locally. Sign in to save them to the cloud.
                 </p>
                 <Button asChild variant="link" size="sm" className="px-0 mt-2 h-auto">
-                  <Link to="/auth">Войти или зарегистрироваться</Link>
+                  <Link to="/auth">Sign in or register</Link>
                 </Button>
               </div>
             </div>
@@ -97,9 +97,9 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
         {!hasHistory ? (
           <div className="py-8 text-center">
             <History className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
-            <h3 className="text-lg font-medium text-foreground mb-2">История пуста</h3>
+            <h3 className="text-lg font-medium text-foreground mb-2">History is empty</h3>
             <p className="text-sm text-muted-foreground">
-              Ваши анализы будут сохраняться здесь автоматически
+              Your analyses will be saved here automatically
             </p>
           </div>
         ) : (
@@ -126,19 +126,19 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
                   </div>
                   <div className="flex items-center gap-4 mt-2">
                     <span className="text-xs text-muted-foreground">
-                      Инвестиции: <span className="font-medium text-foreground">
+                      Investment: <span className="font-medium text-foreground">
                         {formatCurrency(entry.result.financial_analysis.startup_investment.total)}
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground">
-                      Окупаемость: <span className="font-medium text-foreground">
-                        {getPaybackMonths(entry.result.financial_analysis)} мес.
+                      Payback: <span className="font-medium text-foreground">
+                        {getPaybackMonths(entry.result.financial_analysis)} mo.
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
                       <TrendingUp className="w-3 h-3 text-emerald-500" />
                       <span className="font-medium text-emerald-600 dark:text-emerald-400">
-                        {formatCurrency(getMonthlyProfit(entry.result.financial_analysis))}/мес
+                        {formatCurrency(getMonthlyProfit(entry.result.financial_analysis))}/mo
                       </span>
                     </span>
                   </div>

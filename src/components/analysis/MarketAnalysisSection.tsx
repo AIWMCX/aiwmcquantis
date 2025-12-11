@@ -14,7 +14,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <PieChart className="w-5 h-5 text-primary" />
-          Анализ рынка
+          Market Analysis
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -22,7 +22,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
             <PieChart className="w-4 h-4 text-muted-foreground" />
-            Размер рынка
+            Market Size
           </h4>
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-center">
@@ -44,7 +44,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-muted-foreground" />
-            Тренды рынка
+            Market Trends
           </h4>
           <div className="flex flex-wrap gap-2">
             {market.trends.map((trend, index) => (
@@ -59,12 +59,12 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
         <div className="space-y-3">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
             <Users className="w-4 h-4 text-muted-foreground" />
-            Конкуренция
+            Competition
           </h4>
           
           <div className="space-y-3">
             <div>
-              <p className="text-xs text-muted-foreground mb-2">Основные конкуренты</p>
+              <p className="text-xs text-muted-foreground mb-2">Main Competitors</p>
               <div className="space-y-2">
                 {market.competition.main_competitors.map((competitor, index) => {
                   // Handle both string and object formats
@@ -100,7 +100,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
             </div>
             
             <div className="p-3 rounded-lg bg-emerald-500/10 border border-emerald-500/20">
-              <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 font-medium">Незанятые ниши</p>
+              <p className="text-xs text-emerald-700 dark:text-emerald-400 mb-1 font-medium">Market Gaps</p>
               <p className="text-sm text-foreground">{market.competition.market_gaps}</p>
             </div>
           </div>
@@ -110,7 +110,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
             <Shield className="w-4 h-4 text-muted-foreground" />
-            Барьеры входа
+            Barriers to Entry
           </h4>
           <p className="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30">
             {market.barriers_to_entry}
@@ -121,7 +121,7 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
         <div className="space-y-2">
           <h4 className="text-sm font-medium text-foreground flex items-center gap-2">
             <Rocket className="w-4 h-4 text-muted-foreground" />
-            Возможности роста
+            Growth Opportunities
           </h4>
           <p className="text-sm text-muted-foreground p-3 rounded-lg bg-primary/5 border border-primary/20">
             {market.growth_opportunities}

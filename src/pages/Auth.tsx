@@ -10,8 +10,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-const emailSchema = z.string().email('Введите корректный email');
-const passwordSchema = z.string().min(6, 'Минимум 6 символов');
+const emailSchema = z.string().email('Please enter a valid email');
+const passwordSchema = z.string().min(6, 'Minimum 6 characters');
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -76,12 +76,12 @@ export default function Auth() {
 
     if (error) {
       if (error.message.includes('Invalid login credentials')) {
-        toast.error('Неверный email или пароль');
+        toast.error('Invalid email or password');
       } else {
         toast.error(error.message);
       }
     } else {
-      toast.success('Вы вошли в аккаунт');
+      toast.success('You have signed in');
       navigate('/');
     }
   };
@@ -96,12 +96,12 @@ export default function Auth() {
 
     if (error) {
       if (error.message.includes('already registered')) {
-        toast.error('Этот email уже зарегистрирован');
+        toast.error('This email is already registered');
       } else {
         toast.error(error.message);
       }
     } else {
-      toast.success('Аккаунт создан! Вы вошли в систему.');
+      toast.success('Account created! You are now signed in.');
       navigate('/');
     }
   };
@@ -123,7 +123,7 @@ export default function Auth() {
           className="self-start mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
-          На главную
+          Back to Home
         </Button>
 
         <div className="flex items-center gap-3 mb-8">
@@ -137,16 +137,16 @@ export default function Auth() {
           <Tabs defaultValue="login">
             <CardHeader>
               <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="login">Вход</TabsTrigger>
-                <TabsTrigger value="signup">Регистрация</TabsTrigger>
+                <TabsTrigger value="login">Sign In</TabsTrigger>
+                <TabsTrigger value="signup">Sign Up</TabsTrigger>
               </TabsList>
             </CardHeader>
 
             <CardContent>
               <TabsContent value="login">
-                <CardTitle className="mb-2">Войти в аккаунт</CardTitle>
+                <CardTitle className="mb-2">Sign in to your account</CardTitle>
                 <CardDescription className="mb-6">
-                  Войдите, чтобы сохранять анализы и синхронизировать между устройствами
+                  Sign in to save analyses and sync across devices
                 </CardDescription>
 
                 <form onSubmit={handleLogin} className="space-y-4">
@@ -170,7 +170,7 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">Пароль</Label>
+                    <Label htmlFor="login-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
@@ -192,30 +192,30 @@ export default function Auth() {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Вход...
+                        Signing in...
                       </>
                     ) : (
-                      'Войти'
+                      'Sign In'
                     )}
                   </Button>
                 </form>
               </TabsContent>
 
               <TabsContent value="signup">
-                <CardTitle className="mb-2">Создать аккаунт</CardTitle>
+                <CardTitle className="mb-2">Create an account</CardTitle>
                 <CardDescription className="mb-6">
-                  Зарегистрируйтесь для постоянного хранения ваших анализов
+                  Sign up to permanently store your analyses
                 </CardDescription>
 
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Имя (необязательно)</Label>
+                    <Label htmlFor="signup-name">Name (optional)</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Ваше имя"
+                        placeholder="Your name"
                         className="pl-10"
                         value={signupData.fullName}
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
@@ -244,13 +244,13 @@ export default function Auth() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="signup-password">Пароль</Label>
+                    <Label htmlFor="signup-password">Password</Label>
                     <div className="relative">
                       <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Минимум 6 символов"
+                        placeholder="Minimum 6 characters"
                         className="pl-10"
                         value={signupData.password}
                         onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
@@ -266,10 +266,10 @@ export default function Auth() {
                     {isLoading ? (
                       <>
                         <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                        Регистрация...
+                        Creating account...
                       </>
                     ) : (
-                      'Зарегистрироваться'
+                      'Sign Up'
                     )}
                   </Button>
                 </form>

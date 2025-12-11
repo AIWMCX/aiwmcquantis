@@ -9,9 +9,9 @@ interface MarketingSectionProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'RUB',
+    currency: 'USD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -25,7 +25,7 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <Megaphone className="w-5 h-5 text-primary" />
-          Маркетинговая стратегия
+          Marketing Strategy
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
@@ -58,7 +58,7 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
 
         {/* Positioning */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-foreground">Позиционирование</h4>
+          <h4 className="text-sm font-medium text-foreground">Positioning</h4>
           <p className="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30">
             {marketing.positioning}
           </p>
@@ -66,7 +66,7 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
 
         {/* Pricing Strategy */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-foreground">Ценообразование</h4>
+          <h4 className="text-sm font-medium text-foreground">Pricing Strategy</h4>
           <p className="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30">
             {marketing.pricing_strategy}
           </p>
@@ -74,7 +74,7 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
 
         {/* Marketing Channels */}
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-foreground">Каналы продвижения</h4>
+          <h4 className="text-sm font-medium text-foreground">Marketing Channels</h4>
           <div className="space-y-2">
             {marketing.channels.map((channel, index) => (
               <div
@@ -84,12 +84,12 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
                 <div className="flex items-start justify-between gap-2 mb-2">
                   <span className="font-medium text-foreground text-sm">{channel.channel}</span>
                   <Badge variant="secondary" className="text-xs">
-                    {formatCurrency(channel.budget_monthly)}/мес
+                    {formatCurrency(channel.budget_monthly)}/mo
                   </Badge>
                 </div>
                 <p className="text-sm text-muted-foreground mb-2">{channel.description}</p>
                 <p className="text-xs text-primary">
-                  Ожидаемый ROI: {channel.expected_roi}
+                  Expected ROI: {channel.expected_roi}
                 </p>
               </div>
             ))}
@@ -98,7 +98,7 @@ export function MarketingSection({ marketing }: MarketingSectionProps) {
 
         {/* First 3 Months Plan */}
         <div className="space-y-2">
-          <h4 className="text-sm font-medium text-foreground">План на первые 3 месяца</h4>
+          <h4 className="text-sm font-medium text-foreground">First 3 Months Plan</h4>
           <p className="text-sm text-muted-foreground p-3 rounded-lg bg-muted/30 whitespace-pre-line">
             {marketing.first_3_months_plan}
           </p>

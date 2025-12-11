@@ -30,7 +30,7 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
       <!DOCTYPE html>
       <html>
         <head>
-          <title>Бизнес-анализ: ${result.metadata.idea}</title>
+          <title>Business Analysis: ${result.metadata.idea}</title>
           <style>
             body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; }
             h1 { color: #1a1a1a; border-bottom: 2px solid #3b82f6; padding-bottom: 10px; }
@@ -46,52 +46,52 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           </style>
         </head>
         <body>
-          <h1>🧠 Бизнес-анализ</h1>
-          <p><strong>Идея:</strong> ${result.metadata.idea}</p>
-          <p><strong>Локация:</strong> ${result.metadata.location}</p>
-          <p><strong>Дата:</strong> ${new Date(result.metadata.generated_at).toLocaleDateString('ru-RU')}</p>
-          <p><strong>Уровень уверенности:</strong> ${result.confidence_score}%</p>
+          <h1>🧠 Business Analysis</h1>
+          <p><strong>Idea:</strong> ${result.metadata.idea}</p>
+          <p><strong>Location:</strong> ${result.metadata.location}</p>
+          <p><strong>Date:</strong> ${new Date(result.metadata.generated_at).toLocaleDateString('en-US')}</p>
+          <p><strong>Confidence Level:</strong> ${result.confidence_score}%</p>
           
-          <h2>📊 Финансовый анализ</h2>
+          <h2>📊 Financial Analysis</h2>
           <div class="metric">
-            <div>Стартовые инвестиции</div>
-            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.financial_analysis.startup_investment.total)}</div>
+            <div>Startup Investment</div>
+            <div class="metric-value">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(result.financial_analysis.startup_investment.total)}</div>
           </div>
           <div class="metric">
-            <div>Ежемесячная выручка (MRR)</div>
-            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(getMonthlyRevenue(result.financial_analysis))}</div>
+            <div>Monthly Revenue (MRR)</div>
+            <div class="metric-value">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(getMonthlyRevenue(result.financial_analysis))}</div>
           </div>
           <div class="metric">
-            <div>Ежемесячная прибыль</div>
-            <div class="metric-value">${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(getMonthlyProfit(result.financial_analysis))}</div>
+            <div>Monthly Profit</div>
+            <div class="metric-value">${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(getMonthlyProfit(result.financial_analysis))}</div>
           </div>
           <div class="metric">
-            <div>Срок окупаемости</div>
-            <div class="metric-value">${getPaybackMonths(result.financial_analysis)} месяцев</div>
+            <div>Payback Period</div>
+            <div class="metric-value">${getPaybackMonths(result.financial_analysis)} months</div>
           </div>
           
-          <h2>📋 Бизнес-план</h2>
+          <h2>📋 Business Plan</h2>
           <div class="section">
-            <h3>Резюме</h3>
+            <h3>Summary</h3>
             <p>${result.business_plan.executive_summary}</p>
             
-            <h3>Продукт</h3>
+            <h3>Product</h3>
             <p>${result.business_plan.product_description}</p>
             
-            <h3>Целевая аудитория</h3>
+            <h3>Target Audience</h3>
             <p>${result.business_plan.target_audience}</p>
           </div>
           
-          <h2>📈 Маркетинг</h2>
+          <h2>📈 Marketing</h2>
           <div class="section">
-            <p><strong>CAC:</strong> ${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.marketing_plan.cac)}</p>
-            <p><strong>LTV:</strong> ${new Intl.NumberFormat('ru-RU', { style: 'currency', currency: 'RUB', maximumFractionDigits: 0 }).format(result.marketing_plan.ltv)}</p>
+            <p><strong>CAC:</strong> ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(result.marketing_plan.cac)}</p>
+            <p><strong>LTV:</strong> ${new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 }).format(result.marketing_plan.ltv)}</p>
             <p>${result.marketing_plan.positioning}</p>
           </div>
           
           <div class="footer">
-            <p>Сгенерировано AI Business Analyzer • ${new Date().toLocaleString('ru-RU')}</p>
-            <p>Ограничения: ${result.limitations.join(', ')}</p>
+            <p>Generated by AI Business Analyzer • ${new Date().toLocaleString('en-US')}</p>
+            <p>Limitations: ${result.limitations.join(', ')}</p>
           </div>
         </body>
       </html>
@@ -126,7 +126,7 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           <div className="flex items-center gap-2">
             <Badge className={cn("px-3 py-1.5 border", getConfidenceColor(result.confidence_score))}>
               <ConfidenceIcon className="w-4 h-4 mr-1.5" />
-              Уверенность: {result.confidence_score}%
+              Confidence: {result.confidence_score}%
             </Badge>
           </div>
         </div>
@@ -134,12 +134,12 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
         <div className="flex gap-2 mt-4">
           <Button onClick={handleExportPDF} variant="outline" className="gap-2">
             <FileDown className="w-4 h-4" />
-            Экспорт PDF
+            Export PDF
           </Button>
           {onReset && (
             <Button onClick={onReset} variant="ghost" className="gap-2">
               <RefreshCw className="w-4 h-4" />
-              Новый анализ
+              New Analysis
             </Button>
           )}
         </div>
@@ -148,10 +148,10 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
       {/* Tabs for different sections */}
       <Tabs defaultValue="financial" className="w-full">
         <TabsList className="w-full grid grid-cols-4 mb-4">
-          <TabsTrigger value="financial">Финансы</TabsTrigger>
-          <TabsTrigger value="business">Бизнес-план</TabsTrigger>
-          <TabsTrigger value="marketing">Маркетинг</TabsTrigger>
-          <TabsTrigger value="market">Рынок</TabsTrigger>
+          <TabsTrigger value="financial">Financial</TabsTrigger>
+          <TabsTrigger value="business">Business Plan</TabsTrigger>
+          <TabsTrigger value="marketing">Marketing</TabsTrigger>
+          <TabsTrigger value="market">Market</TabsTrigger>
         </TabsList>
         
         <TabsContent value="financial">
@@ -174,7 +174,7 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
       {/* Limitations & Sources */}
       <div className="section-card space-y-4">
         <div>
-          <h4 className="text-sm font-medium text-foreground mb-2">Источники данных</h4>
+          <h4 className="text-sm font-medium text-foreground mb-2">Data Sources</h4>
           <div className="flex flex-wrap gap-2">
             {result.data_sources.map((source, i) => (
               <Badge key={i} variant="outline" className="text-xs">{source}</Badge>
@@ -182,7 +182,7 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           </div>
         </div>
         <div>
-          <h4 className="text-sm font-medium text-foreground mb-2">Ограничения анализа</h4>
+          <h4 className="text-sm font-medium text-foreground mb-2">Analysis Limitations</h4>
           <ul className="text-sm text-muted-foreground space-y-1">
             {result.limitations.map((limitation, i) => (
               <li key={i} className="flex items-start gap-2">
@@ -193,8 +193,8 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           </ul>
         </div>
         <p className="text-xs text-muted-foreground pt-2 border-t border-border">
-          Сгенерировано: {new Date(result.metadata.generated_at).toLocaleString('ru-RU')} • 
-          Модель: {result.metadata.model} • Версия: {result.metadata.version}
+          Generated: {new Date(result.metadata.generated_at).toLocaleString('en-US')} • 
+          Model: {result.metadata.model} • Version: {result.metadata.version}
         </p>
       </div>
     </div>

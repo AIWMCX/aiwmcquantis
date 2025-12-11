@@ -16,9 +16,9 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
   const handleSignOut = async () => {
     const { error } = await signOut();
     if (error) {
-      toast.error('Ошибка при выходе');
+      toast.error('Error signing out');
     } else {
-      toast.success('Вы вышли из аккаунта');
+      toast.success('You have signed out');
     }
   };
 
@@ -31,7 +31,7 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
           </div>
           <div>
             <h1 className="text-lg font-bold text-foreground">AI Business Analyzer</h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">Профессиональный анализ бизнес-идей</p>
+            <p className="text-xs text-muted-foreground hidden sm:block">Professional business idea analysis</p>
           </div>
         </Link>
 
@@ -47,7 +47,7 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             ) : (
               <Moon className="h-4 w-4" />
             )}
-            <span className="sr-only">Переключить тему</span>
+            <span className="sr-only">Toggle theme</span>
           </Button>
 
           {!isLoading && (
@@ -65,14 +65,14 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
                     size="icon"
                     onClick={handleSignOut}
                     className="h-9 w-9"
-                    title="Выйти"
+                    title="Sign out"
                   >
                     <LogOut className="h-4 w-4" />
                   </Button>
                 </div>
               ) : (
                 <Button asChild variant="default" size="sm">
-                  <Link to="/auth">Войти</Link>
+                  <Link to="/auth">Sign In</Link>
                 </Button>
               )}
             </>
