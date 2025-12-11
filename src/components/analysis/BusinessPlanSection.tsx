@@ -11,9 +11,9 @@ interface BusinessPlanSectionProps {
 }
 
 function formatCurrency(value: number): string {
-  return new Intl.NumberFormat('ru-RU', {
+  return new Intl.NumberFormat('en-US', {
     style: 'currency',
-    currency: 'RUB',
+    currency: 'USD',
     maximumFractionDigits: 0,
   }).format(value);
 }
@@ -21,8 +21,11 @@ function formatCurrency(value: number): string {
 export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
   const getProbabilityColor = (prob: string) => {
     switch (prob) {
+      case 'low':
       case 'низкая': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+      case 'medium':
       case 'средняя': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+      case 'high':
       case 'высокая': return 'bg-destructive/10 text-destructive';
       default: return 'bg-muted text-muted-foreground';
     }
@@ -30,8 +33,11 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
 
   const getImpactColor = (impact: string) => {
     switch (impact) {
+      case 'low':
       case 'низкий': return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400';
+      case 'medium':
       case 'средний': return 'bg-amber-500/10 text-amber-700 dark:text-amber-400';
+      case 'high':
       case 'высокий': return 'bg-destructive/10 text-destructive';
       default: return 'bg-muted text-muted-foreground';
     }
@@ -42,7 +48,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
       <CardHeader className="pb-4">
         <CardTitle className="flex items-center gap-2 text-lg">
           <FileText className="w-5 h-5 text-primary" />
-          Бизнес-план
+          Business Plan
         </CardTitle>
       </CardHeader>
       <CardContent>
@@ -52,7 +58,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <FileText className="w-4 h-4 text-muted-foreground" />
-                <span>Резюме проекта</span>
+                <span>Executive Summary</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground whitespace-pre-line pb-4">
@@ -65,20 +71,20 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <Users className="w-4 h-4 text-muted-foreground" />
-                <span>Продукт и аудитория</span>
+                <span>Product & Audience</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="space-y-4 pb-4">
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-1">Описание продукта</h4>
+                <h4 className="text-sm font-medium text-foreground mb-1">Product Description</h4>
                 <p className="text-sm text-muted-foreground">{plan.product_description}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-1">Целевая аудитория</h4>
+                <h4 className="text-sm font-medium text-foreground mb-1">Target Audience</h4>
                 <p className="text-sm text-muted-foreground">{plan.target_audience}</p>
               </div>
               <div>
-                <h4 className="text-sm font-medium text-foreground mb-1">Конкурентные преимущества</h4>
+                <h4 className="text-sm font-medium text-foreground mb-1">Competitive Advantages</h4>
                 <p className="text-sm text-muted-foreground">{plan.competitive_advantages}</p>
               </div>
             </AccordionContent>
@@ -89,7 +95,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <Zap className="w-4 h-4 text-muted-foreground" />
-                <span>Операционная модель</span>
+                <span>Operations Model</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="text-sm text-muted-foreground whitespace-pre-line pb-4">
@@ -102,7 +108,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-muted-foreground" />
-                <span>План запуска ({plan.launch_steps.length} этапов)</span>
+                <span>Launch Plan ({plan.launch_steps.length} steps)</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pb-4">
@@ -143,7 +149,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4 text-muted-foreground" />
-                <span>Риски ({plan.risks.length})</span>
+                <span>Risks ({plan.risks.length})</span>
               </div>
             </AccordionTrigger>
             <AccordionContent className="pb-4">
@@ -162,7 +168,7 @@ export function BusinessPlanSection({ plan }: BusinessPlanSectionProps) {
                       </div>
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      <strong>Митигация:</strong> {risk.mitigation}
+                      <strong>Mitigation:</strong> {risk.mitigation}
                     </p>
                   </div>
                 ))}

@@ -45,20 +45,20 @@ export function AnalysisForm({
         <div className="p-2 rounded-lg bg-primary/10">
           <Sparkles className="w-5 h-5 text-primary" />
         </div>
-        <h2 className="text-xl font-semibold text-foreground">Анализ бизнес-идеи</h2>
+        <h2 className="text-xl font-semibold text-foreground">Business Idea Analysis</h2>
       </div>
 
       {/* Business Idea */}
       <div className="space-y-2">
         <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-foreground">
           <Brain className="w-4 h-4 text-muted-foreground" />
-          Ваша бизнес-идея
+          Your Business Idea
         </Label>
         <Textarea
           id="idea"
           value={idea}
           onChange={(e) => handleIdeaChange(e.target.value)}
-          placeholder="Опишите вашу идею подробно: что планируете делать, какую проблему решаете, кто ваш клиент..."
+          placeholder="Describe your idea in detail: what you plan to do, what problem you solve, who your customer is..."
           rows={4}
           disabled={isLoading}
           className={cn(
@@ -70,7 +70,7 @@ export function AnalysisForm({
           {errors.idea ? (
             <p className="text-sm text-destructive">{errors.idea}</p>
           ) : (
-            <span className="text-xs text-muted-foreground">Минимум 10 символов</span>
+            <span className="text-xs text-muted-foreground">Minimum 10 characters</span>
           )}
           <span className={cn(
             "text-xs",
@@ -85,13 +85,13 @@ export function AnalysisForm({
       <div className="space-y-2">
         <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-foreground">
           <MapPin className="w-4 h-4 text-muted-foreground" />
-          Страна или город
+          Country or City
         </Label>
         <Input
           id="location"
           value={location}
           onChange={(e) => handleLocationChange(e.target.value)}
-          placeholder="Москва, Россия"
+          placeholder="New York, USA"
           disabled={isLoading}
           className={cn(
             "transition-colors",
@@ -112,11 +112,11 @@ export function AnalysisForm({
         {isLoading ? (
           <>
             <Loader2 className="w-5 h-5 animate-spin" />
-            Анализируем...
+            Analyzing...
           </>
         ) : (
           <>
-            Рассчитать
+            Calculate
             <Send className="w-4 h-4" />
           </>
         )}
@@ -128,12 +128,12 @@ export function AnalysisForm({
           <div className="flex items-center gap-3">
             <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
             <div className="space-y-1 text-sm">
-              <p className="font-medium text-foreground">Выполняется AI-анализ...</p>
-              <p className="text-muted-foreground text-xs">Обычно занимает 15-30 секунд</p>
+              <p className="font-medium text-foreground">Running AI analysis...</p>
+              <p className="text-muted-foreground text-xs">Usually takes 15-30 seconds</p>
             </div>
           </div>
           <div className="mt-3 space-y-1.5">
-            {['Сбор рыночных данных', 'Финансовые расчёты', 'Анализ конкурентов', 'Формирование плана'].map((step, i) => (
+            {['Gathering market data', 'Financial calculations', 'Competitor analysis', 'Building plan'].map((step, i) => (
               <div key={step} className="flex items-center gap-2 text-xs text-muted-foreground">
                 <div 
                   className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" 
@@ -149,8 +149,8 @@ export function AnalysisForm({
       {/* Tip */}
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">💡 Совет:</strong> Чем подробнее описание идеи, тем точнее будет анализ. 
-          Укажите целевую аудиторию и формат бизнеса.
+          <strong className="text-foreground">💡 Tip:</strong> The more detailed your description, the more accurate the analysis. 
+          Specify your target audience and business format.
         </p>
       </div>
     </form>

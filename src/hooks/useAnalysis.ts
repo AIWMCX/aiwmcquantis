@@ -42,7 +42,7 @@ export function useAnalysis() {
     mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
     onSuccess: async (data) => {
       setResult(data);
-      toast.success('Анализ готов!');
+      toast.success('Analysis complete!');
       
       const trimmedIdea = idea.trim();
       const trimmedLocation = location.trim();
@@ -74,10 +74,10 @@ export function useAnalysis() {
       console.error('Analysis error:', error);
       
       const message = error.message.includes('429') || error.message.includes('RATE_LIMIT')
-        ? 'Слишком много запросов. Подождите минуту.'
+        ? 'Too many requests. Please wait a minute.'
         : error.message.includes('402') || error.message.includes('PAYMENT')
-        ? 'Превышен лимит использования.'
-        : error.message || 'Произошла ошибка при анализе';
+        ? 'Usage limit exceeded.'
+        : error.message || 'An error occurred during analysis';
         
       toast.error(message);
     },

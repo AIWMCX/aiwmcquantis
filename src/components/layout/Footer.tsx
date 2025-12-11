@@ -12,11 +12,11 @@ export function Footer() {
           </div>
           
           <p className="text-sm text-muted-foreground text-center">
-            Анализ бизнес-идей с использованием искусственного интеллекта
+            Business idea analysis powered by artificial intelligence
           </p>
           
           <p className="text-xs text-muted-foreground flex items-center gap-1">
-            © {new Date().getFullYear()} • Сделано с <Heart className="w-3 h-3 text-destructive" /> 
+            © {new Date().getFullYear()} • Made with <Heart className="w-3 h-3 text-destructive" /> 
           </p>
         </div>
       </div>
