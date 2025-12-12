@@ -50,33 +50,33 @@ export default function Index() {
   const features = [
     {
       icon: BarChart3,
-      title: 'Финансовый анализ',
-      description: 'Расчёт инвестиций, выручки, расходов и срока окупаемости',
+      title: 'Financial Analysis',
+      description: 'Investment, revenue, expenses and payback period calculation',
     },
     {
       icon: FileText,
-      title: 'Бизнес-план',
-      description: 'Пошаговый план запуска с конкретными действиями',
+      title: 'Business Plan',
+      description: 'Step-by-step launch plan with specific actions',
     },
     {
       icon: TrendingUp,
-      title: 'Маркетинг-стратегия',
-      description: 'Каналы привлечения клиентов и расчёт CAC/LTV',
+      title: 'Marketing Strategy',
+      description: 'Customer acquisition channels and CAC/LTV calculation',
     },
     {
       icon: Target,
-      title: 'Анализ рынка',
-      description: 'Оценка конкуренции, трендов и возможностей',
+      title: 'Market Analysis',
+      description: 'Competition, trends and opportunities assessment',
     },
     {
       icon: Download,
-      title: 'Экспорт в PDF',
-      description: 'Сохраните результаты для презентации инвесторам',
+      title: 'PDF Export',
+      description: 'Save results for investor presentations',
     },
     {
       icon: Zap,
-      title: 'Реальные данные',
-      description: 'Актуальные рыночные данные по локации',
+      title: 'Real Data',
+      description: 'Current market data by location',
     },
   ];
 
@@ -89,15 +89,15 @@ export default function Index() {
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
             <Sparkles className="w-4 h-4" />
-            AI-анализ бизнес-идей
+            AI Business Analysis
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
-            Профессиональный анализ
-            <span className="text-primary"> за секунды</span>
+            Professional Analysis
+            <span className="text-primary"> in Seconds</span>
           </h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
-            Получите детальный финансовый прогноз, бизнес-план, маркетинговую стратегию 
-            и анализ рынка для вашей бизнес-идеи.
+            Get detailed financial projections, business plan, marketing strategy 
+            and market analysis for your business idea.
           </p>
         </div>
 
@@ -124,7 +124,7 @@ export default function Index() {
                 className="w-full p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
               >
                 <History className="w-4 h-4" />
-                История анализов
+                Analysis History
               </button>
             </div>
           </div>
@@ -135,11 +135,11 @@ export default function Index() {
               <TabsList className="mb-6 grid w-full grid-cols-2">
                 <TabsTrigger value="analyze" className="gap-2">
                   <Sparkles className="w-4 h-4" />
-                  Результаты
+                  Results
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-2">
                   <History className="w-4 h-4" />
-                  История
+                  History
                 </TabsTrigger>
               </TabsList>
 
@@ -166,7 +166,7 @@ export default function Index() {
         {/* Features Section */}
         <div className="border-t border-border pt-16">
           <h2 className="text-2xl font-bold text-center text-foreground mb-12">
-            Что вы получите
+            What You Get
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map((feature) => (
