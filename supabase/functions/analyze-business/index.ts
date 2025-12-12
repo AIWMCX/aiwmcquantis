@@ -670,7 +670,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       barriers_to_entry: ma.barriers_to_entry || "",
       growth_opportunities: ma.growth_opportunities || ""
     },
-    confidence_score: raw.confidence || 70,
+    confidence_score: 0, // Will be calculated after validation
     data_sources: sources,
     limitations: limits,
     _calc: calc
@@ -884,11 +884,52 @@ market_json:
       });
     }
     
-    // Reliability score
+    // ========== INTELLIGENT RELIABILITY SCORE ==========
+    // Base score starts at 100
+    let reliabilityScore = 100;
+    
+    // 1. Penalty for AI data corrections (max -40)
     const correctionPenalty = Math.min(calc.corrections.length * 10, 40);
-    const profitPenalty = calc.isProfitable ? 0 : 25;
-    const warningPenalty = warnings.length * 8;
-    const reliabilityScore = Math.max(0, Math.min(100, 100 - correctionPenalty - profitPenalty - warningPenalty));
+    reliabilityScore -= correctionPenalty;
+    
+    // 2. Penalty for unprofitability (-25)
+    if (!calc.isProfitable) {
+      reliabilityScore -= 25;
+    }
+    
+    // 3. Penalty for each warning (-8)
+    reliabilityScore -= warnings.length * 8;
+    
+    // 4. Penalty for unrealistic LTV:CAC (too high >8x or too low <2x) (-10)
+    if (calc.ltvCacRatio > 8 || calc.ltvCacRatio < 2) {
+      reliabilityScore -= 10;
+    }
+    
+    // 5. Penalty for very long payback (>36 months) (-15)
+    if (calc.paybackMonths > 36 && calc.paybackMonths < 999) {
+      reliabilityScore -= 15;
+    }
+    
+    // 6. Bonus for having detailed AI data (+5 each, max +15)
+    const bp = safeParseJSON(rawResult.business_json, {});
+    const mp = safeParseJSON(rawResult.marketing_json, {});
+    const ma = safeParseJSON(rawResult.market_json, {});
+    
+    if (Array.isArray(bp.launch_steps) && bp.launch_steps.length >= 3) {
+      reliabilityScore += 5;
+    }
+    if (Array.isArray(mp.channels) && mp.channels.length >= 2) {
+      reliabilityScore += 5;
+    }
+    if (Array.isArray(ma.competitors) && ma.competitors.length >= 2) {
+      reliabilityScore += 5;
+    }
+    
+    // Clamp to 0-100
+    reliabilityScore = Math.max(0, Math.min(100, reliabilityScore));
+    
+    // Update confidence_score in result
+    result.confidence_score = reliabilityScore;
     
     console.log(`Done. Profit: ${calc.netProfit}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
