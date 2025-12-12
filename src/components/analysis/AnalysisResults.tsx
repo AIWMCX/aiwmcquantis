@@ -7,6 +7,7 @@ import { FinancialSummary } from './FinancialSummary';
 import { BusinessPlanSection } from './BusinessPlanSection';
 import { MarketingSection } from './MarketingSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
+import { ValidationSection } from './ValidationSection';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
@@ -144,6 +145,11 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           )}
         </div>
       </div>
+
+      {/* Validation Section - Show data quality */}
+      {result.validation && (
+        <ValidationSection validation={result.validation} />
+      )}
 
       {/* Tabs for different sections */}
       <Tabs defaultValue="financial" className="w-full">

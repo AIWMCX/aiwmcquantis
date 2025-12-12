@@ -2,6 +2,43 @@
 // UNIVERSAL BUSINESS FINANCIAL ANALYSIS SYSTEM
 // ============================================
 
+// Validation Result Interface
+export interface ValidationCorrection {
+  field: string;
+  original: number;
+  corrected: number;
+  reason: string;
+}
+
+export interface ValidationWarning {
+  field: string;
+  value: number | string;
+  expected: string;
+  severity: 'warning' | 'error';
+  message: string;
+}
+
+export interface CalculationAuditEntry {
+  formula: string;
+  inputs: Record<string, number>;
+  result: number;
+  isValid: boolean;
+  notes?: string;
+}
+
+export interface ValidationResult {
+  is_realistic: boolean;
+  is_profitable: boolean;
+  was_auto_corrected: boolean;
+  reliability_score: number;
+  corrections: ValidationCorrection[];
+  warnings: ValidationWarning[];
+  calculation_audit: CalculationAuditEntry[];
+  break_even_revenue: number;
+  revenue_for_45k_profit: number;
+  summary: string;
+}
+
 // Input Variables (12 Universal Variables)
 export interface BusinessInputVariables {
   // Revenue Variables
@@ -250,6 +287,7 @@ export interface BusinessAnalysisResult {
   confidence_score: number;
   data_sources: string[];
   limitations: string[];
+  validation?: ValidationResult;
   metadata: {
     idea: string;
     location: string;
