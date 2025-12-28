@@ -22,6 +22,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
+          ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
         },
       });
 

@@ -25,6 +25,8 @@ export default function Index() {
     setIdea,
     location,
     setLocation,
+    financialInputs,
+    setFinancialInputs,
     errors,
     clearError,
     result,
@@ -109,11 +111,13 @@ export default function Index() {
               <AnalysisForm
                 idea={idea}
                 location={location}
+                financialInputs={financialInputs}
                 errors={errors}
                 isLoading={isLoading}
                 isFormValid={isFormValid}
                 onIdeaChange={setIdea}
                 onLocationChange={setLocation}
+                onFinancialInputsChange={setFinancialInputs}
                 onClearError={clearError}
                 onSubmit={handleSubmit}
               />

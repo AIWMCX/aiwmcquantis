@@ -5,16 +5,19 @@ import { generateAnalysis, validateIdea, validateLocation } from '@/services/ana
 import { saveAnalysis } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
-import type { AnalysisRequest, BusinessAnalysisResult } from '@/types/analysis';
+import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
 
 interface FormErrors {
   idea?: string;
   location?: string;
 }
 
+const EMPTY_FINANCIAL_INPUTS: OptionalFinancialInputs = {};
+
 export function useAnalysis() {
   const [idea, setIdea] = useState('');
   const [location, setLocation] = useState('');
+  const [financialInputs, setFinancialInputs] = useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
   
@@ -88,8 +91,19 @@ export function useAnalysis() {
     
     if (!validate()) return;
     
-    mutation.mutate({ idea: idea.trim(), location: location.trim() });
-  }, [idea, location, validate, mutation]);
+    // Only include financial inputs that have values
+    const cleanedFinancialInputs = Object.fromEntries(
+      Object.entries(financialInputs).filter(([_, v]) => v !== undefined && v !== null && v > 0)
+    ) as OptionalFinancialInputs;
+    
+    const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
+    
+    mutation.mutate({ 
+      idea: idea.trim(), 
+      location: location.trim(),
+      ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs })
+    });
+  }, [idea, location, financialInputs, validate, mutation]);
 
   const clearError = useCallback((field: keyof FormErrors) => {
     setErrors(prev => {
@@ -102,6 +116,7 @@ export function useAnalysis() {
   const reset = useCallback(() => {
     setIdea('');
     setLocation('');
+    setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
     setErrors({});
     setResult(null);
     mutation.reset();
@@ -115,6 +130,8 @@ export function useAnalysis() {
     setIdea,
     location,
     setLocation,
+    financialInputs,
+    setFinancialInputs,
     errors,
     clearError,
     

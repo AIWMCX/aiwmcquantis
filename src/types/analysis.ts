@@ -329,10 +329,22 @@ export interface AnalysisHistoryEntry {
   created_at: string;
 }
 
+// Optional Financial Inputs for higher confidence
+export interface OptionalFinancialInputs {
+  startup_investment?: number;      // Initial investment amount
+  monthly_revenue?: number;         // Expected monthly revenue
+  average_price?: number;           // Price per product/service
+  expected_customers?: number;      // Monthly customer count
+  monthly_costs?: number;           // Expected operating costs
+  cac?: number;                     // Customer acquisition cost
+  churn_rate?: number;              // Monthly churn (%)
+}
+
 // Request types
 export interface AnalysisRequest {
   idea: string;
   location: string;
+  financial_inputs?: OptionalFinancialInputs;
 }
 
 // 10 Key Outputs that every analysis must show
