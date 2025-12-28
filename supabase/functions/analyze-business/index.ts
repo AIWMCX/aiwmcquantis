@@ -19,6 +19,7 @@ interface AnalysisRequest {
   idea: string;
   location: string;
   financial_inputs?: OptionalFinancialInputs;
+  selected_industry?: string;  // User-selected industry (overrides auto-detection)
 }
 
 // ========== MULTI-INDUSTRY BENCHMARK SYSTEM ==========
@@ -1388,7 +1389,7 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, location, financial_inputs } = await req.json() as AnalysisRequest;
+    const { idea, location, financial_inputs, selected_industry } = await req.json() as AnalysisRequest;
 
     if (!idea || idea.trim().length < 10) {
       return new Response(
@@ -1412,11 +1413,30 @@ serve(async (req) => {
       );
     }
 
-    // Detect industry from business idea
-    const detectedIndustry = detectIndustry(idea);
+    // Detect industry from business idea OR use user-selected industry
+    let detectedIndustry: IndustryBenchmarks;
+    let industryWasManuallySelected = false;
+    
+    if (selected_industry && selected_industry !== 'auto') {
+      // User explicitly selected an industry - use it
+      const userSelectedIndustry = INDUSTRY_BENCHMARKS.find(i => i.id === selected_industry);
+      if (userSelectedIndustry) {
+        detectedIndustry = userSelectedIndustry;
+        industryWasManuallySelected = true;
+        console.log(`Using user-selected industry: ${detectedIndustry.name}`);
+      } else {
+        // Invalid industry ID, fall back to auto-detection
+        detectedIndustry = detectIndustry(idea);
+        console.log(`Invalid industry ID "${selected_industry}", auto-detected: ${detectedIndustry.name}`);
+      }
+    } else {
+      // Auto-detect from business idea
+      detectedIndustry = detectIndustry(idea);
+    }
+    
     const locationMultiplier = getLocationMultiplier(location);
     
-    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location} | Industry: ${detectedIndustry.name} | Location multiplier: ${locationMultiplier}`);
+    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location} | Industry: ${detectedIndustry.name} (${industryWasManuallySelected ? 'user-selected' : 'auto-detected'}) | Location multiplier: ${locationMultiplier}`);
 
     const prompt = `You are a financial analyst. Analyze this business idea.
 
@@ -1742,6 +1762,12 @@ Call submit_analysis with all sections in English.`;
       confidenceBreakdown.details.push('Using general benchmarks - provide industry-specific keywords for better accuracy');
     }
     
+    // BONUS for user-selected industry (+10%)
+    if (industryWasManuallySelected) {
+      relevanceScore += 25; // Extra confidence for manual selection
+      confidenceBreakdown.details.push(`Industry manually selected: ${detectedIndustry.name}`);
+    }
+    
     // Check location data quality
     if (locationMultiplier !== 1.0) {
       relevanceScore += 25; // Known location with cost adjustments
@@ -1775,8 +1801,8 @@ Call submit_analysis with all sections in English.`;
     if (userProvidedCount < 3) {
       improvementSuggestions.push('Expand "Advanced Financial Details" to add investment, revenue, and cost estimates');
     }
-    if (detectedIndustry.id === 'general') {
-      improvementSuggestions.push('Add industry keywords (e.g., "SaaS", "restaurant", "e-commerce") for better benchmarks');
+    if (detectedIndustry.id === 'general' && !industryWasManuallySelected) {
+      improvementSuggestions.push('Select your industry from the dropdown for more accurate benchmarks');
     }
     if (locationMultiplier === 1.0) {
       improvementSuggestions.push('Specify a major city for location-adjusted cost estimates');

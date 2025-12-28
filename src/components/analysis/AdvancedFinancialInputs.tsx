@@ -13,8 +13,11 @@ interface AdvancedFinancialInputsProps {
   disabled?: boolean;
 }
 
+// Numeric-only keys from OptionalFinancialInputs (excluding selected_industry)
+type NumericFinancialKeys = Exclude<keyof OptionalFinancialInputs, 'selected_industry'>;
+
 interface FieldConfig {
-  key: keyof OptionalFinancialInputs;
+  key: NumericFinancialKeys;
   label: string;
   placeholder: string;
   tooltip: string;
@@ -82,7 +85,12 @@ const FIELD_CONFIGS: FieldConfig[] = [
 ];
 
 function countFilledFields(inputs: OptionalFinancialInputs): number {
-  return Object.values(inputs).filter(v => v !== undefined && v !== null && v > 0).length;
+  // Only count numeric fields, not selected_industry
+  const numericKeys: NumericFinancialKeys[] = ['startup_investment', 'monthly_revenue', 'average_price', 'expected_customers', 'monthly_costs', 'cac', 'churn_rate'];
+  return numericKeys.filter(key => {
+    const v = inputs[key];
+    return v !== undefined && v !== null && v > 0;
+  }).length;
 }
 
 function formatNumber(value: string): string {
@@ -102,7 +110,7 @@ export function AdvancedFinancialInputs({
   const totalFields = FIELD_CONFIGS.length;
   const confidenceBoost = Math.round((filledCount / totalFields) * 40);
 
-  const handleChange = (key: keyof OptionalFinancialInputs, value: string) => {
+  const handleChange = (key: NumericFinancialKeys, value: string) => {
     const formatted = formatNumber(value);
     const numValue = formatted ? parseFloat(formatted) : undefined;
     onChange({

@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
+import { IndustrySelector } from './IndustrySelector';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
 interface AnalysisFormProps {
@@ -108,6 +109,16 @@ export function AnalysisForm({
           <p className="text-sm text-destructive">{errors.location}</p>
         )}
       </div>
+
+      {/* Industry Selector */}
+      <IndustrySelector
+        value={financialInputs.selected_industry || 'auto'}
+        onChange={(value) => onFinancialInputsChange({ 
+          ...financialInputs, 
+          selected_industry: value === 'auto' ? undefined : value 
+        })}
+        disabled={isLoading}
+      />
 
       {/* Advanced Financial Inputs */}
       <AdvancedFinancialInputs
