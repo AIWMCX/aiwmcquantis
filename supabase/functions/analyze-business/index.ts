@@ -1775,10 +1775,10 @@ Call submit_analysis with all sections in English.`;
       confidenceBreakdown.details.push('Using default location costs - specify major city for accurate estimates');
     }
     
-    // Check if AI provided good qualitative data
-    if (Array.isArray(bp.launch_steps) && bp.launch_steps.length >= 3) relevanceScore += 5;
-    if (Array.isArray(mp.channels) && mp.channels.length >= 2) relevanceScore += 5;
-    if (Array.isArray(ma.competitors) && ma.competitors.length >= 2) relevanceScore += 5;
+    // Check if AI provided good qualitative data (access via result object)
+    if (Array.isArray(result.business_plan?.launch_steps) && result.business_plan.launch_steps.length >= 3) relevanceScore += 5;
+    if (Array.isArray(result.marketing_plan?.channels) && result.marketing_plan.channels.length >= 2) relevanceScore += 5;
+    if (Array.isArray(result.market_analysis?.competition?.main_competitors) && result.market_analysis.competition.main_competitors.length >= 2) relevanceScore += 5;
     
     confidenceBreakdown.industry_relevance = Math.min(100, relevanceScore);
     
