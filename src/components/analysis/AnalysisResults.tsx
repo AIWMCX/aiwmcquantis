@@ -8,6 +8,7 @@ import { BusinessPlanSection } from './BusinessPlanSection';
 import { MarketingSection } from './MarketingSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { ValidationSection } from './ValidationSection';
+import { ActionableInsights } from './ActionableInsights';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
@@ -149,6 +150,11 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
       {/* Validation Section - Show data quality */}
       {result.validation && (
         <ValidationSection validation={result.validation} />
+      )}
+
+      {/* Actionable Insights - Priority action plan */}
+      {result.actionable_insights && result.actionable_insights.insights.length > 0 && (
+        <ActionableInsights insights={result.actionable_insights} />
       )}
 
       {/* Tabs for different sections */}
