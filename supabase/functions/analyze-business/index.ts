@@ -704,6 +704,447 @@ function calculateStrictFinancials(
   };
 }
 
+// ========== ACTIONABLE INSIGHTS ENGINE ==========
+
+interface ActionableTactic {
+  action: string;
+  expected_impact: string;
+  effort: 'low' | 'medium' | 'high';
+  timeframe: string;
+  cost_estimate?: string;
+}
+
+interface ActionableInsight {
+  id: string;
+  metric_name: string;
+  current_value: number | string;
+  target_value: number | string;
+  gap: number | string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  status: 'danger' | 'warning' | 'healthy' | 'excellent';
+  headline: string;
+  explanation: string;
+  why_it_matters: string;
+  action_plan: {
+    strategy: string;
+    tactics: ActionableTactic[];
+    expected_outcome: string;
+    time_to_result: string;
+  };
+}
+
+interface InsightsSummary {
+  total_insights: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  overall_health: 'critical' | 'needs_work' | 'healthy' | 'excellent';
+  top_priority: string;
+  quick_wins: string[];
+}
+
+interface ActionableInsightsAnalysis {
+  summary: InsightsSummary;
+  insights: ActionableInsight[];
+  generated_at: string;
+}
+
+function generateActionableInsights(
+  calc: StrictFinancialResult,
+  benchmarks: IndustryBenchmarks
+): ActionableInsightsAnalysis {
+  const insights: ActionableInsight[] = [];
+  const quickWins: string[] = [];
+
+  // ===== 1. PROFITABILITY ANALYSIS =====
+  if (!calc.isProfitable) {
+    const lossAmount = Math.abs(calc.netProfit);
+    const revenueGap = calc.breakEvenRevenue - calc.mrr;
+    const percentIncrease = Math.round((revenueGap / calc.mrr) * 100);
+    
+    insights.push({
+      id: 'profitability_loss',
+      metric_name: 'Profitability',
+      current_value: `-$${lossAmount.toLocaleString()}/mo`,
+      target_value: `+$${Math.round(calc.mrr * 0.1).toLocaleString()}/mo`,
+      gap: `$${(lossAmount + Math.round(calc.mrr * 0.1)).toLocaleString()}/mo`,
+      priority: 'critical',
+      status: 'danger',
+      headline: 'Business is Currently Unprofitable',
+      explanation: `You're losing $${lossAmount.toLocaleString()} every month. At this rate, you'll deplete $${(lossAmount * 12).toLocaleString()} in the first year.`,
+      why_it_matters: `Without profitability, the business cannot sustain itself. You need to reach at least $${calc.breakEvenRevenue.toLocaleString()}/mo revenue (${percentIncrease}% increase) just to break even.`,
+      action_plan: {
+        strategy: 'Increase revenue while reducing unnecessary costs to reach profitability',
+        tactics: [
+          {
+            action: `Increase prices by 15-20% across your product line`,
+            expected_impact: `+$${Math.round(calc.mrr * 0.15).toLocaleString()}/mo revenue`,
+            effort: 'low',
+            timeframe: 'Immediate',
+            cost_estimate: '$0'
+          },
+          {
+            action: `Reduce marketing spend temporarily until profitable`,
+            expected_impact: `-$${Math.round(calc.expenses.marketing * 0.3).toLocaleString()}/mo costs`,
+            effort: 'low',
+            timeframe: '1-2 weeks',
+            cost_estimate: '$0'
+          },
+          {
+            action: `Negotiate 10-15% reduction with suppliers or landlord`,
+            expected_impact: `-$${Math.round((calc.expenses.rent + calc.expenses.cogs) * 0.1).toLocaleString()}/mo costs`,
+            effort: 'medium',
+            timeframe: '2-4 weeks',
+            cost_estimate: '$0'
+          }
+        ],
+        expected_outcome: `Reach break-even at $${calc.breakEvenRevenue.toLocaleString()}/mo within 2-3 months`,
+        time_to_result: '6-10 weeks'
+      }
+    });
+  } else if (calc.netMarginPercent < benchmarks.net_margin_min) {
+    // Profitable but below industry margin
+    const marginGap = benchmarks.net_margin_min - calc.netMarginPercent;
+    
+    insights.push({
+      id: 'low_margin',
+      metric_name: 'Net Margin',
+      current_value: `${calc.netMarginPercent}%`,
+      target_value: `${benchmarks.net_margin_min}%+`,
+      gap: `${marginGap}%`,
+      priority: 'high',
+      status: 'warning',
+      headline: 'Net Margin Below Industry Standard',
+      explanation: `Your ${calc.netMarginPercent}% net margin is below the ${benchmarks.net_margin_min}% minimum typical for ${benchmarks.name}.`,
+      why_it_matters: `Low margins leave little buffer for unexpected expenses, market downturns, or growth investments. Industry leaders typically achieve ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}% margins.`,
+      action_plan: {
+        strategy: 'Optimize cost structure and pricing to improve margins',
+        tactics: [
+          {
+            action: 'Review and eliminate non-essential operating expenses',
+            expected_impact: `+${Math.round(marginGap * 0.4)}% margin improvement`,
+            effort: 'low',
+            timeframe: '1-2 weeks',
+            cost_estimate: '$0'
+          },
+          {
+            action: `Increase average transaction value through upsells`,
+            expected_impact: `+$${Math.round(calc.averageCheck * 0.15)}/transaction`,
+            effort: 'medium',
+            timeframe: '3-4 weeks',
+            cost_estimate: '$200-500'
+          }
+        ],
+        expected_outcome: `Improve net margin from ${calc.netMarginPercent}% to ${benchmarks.net_margin_min}%+`,
+        time_to_result: '4-8 weeks'
+      }
+    });
+    
+    quickWins.push('Review expenses');
+  }
+
+  // ===== 2. LTV:CAC RATIO ANALYSIS =====
+  if (calc.ltvCacRatio < 3) {
+    const targetRatio = 3;
+    const gapRatio = Math.round((targetRatio - calc.ltvCacRatio) * 10) / 10;
+    const targetCac = Math.round(calc.ltv / targetRatio);
+    const cacReduction = calc.cac - targetCac;
+    
+    insights.push({
+      id: 'ltv_cac_low',
+      metric_name: 'LTV:CAC Ratio',
+      current_value: `${calc.ltvCacRatio}x`,
+      target_value: `${targetRatio}x+`,
+      gap: `${gapRatio}x`,
+      priority: calc.ltvCacRatio < 2 ? 'critical' : 'high',
+      status: calc.ltvCacRatio < 2 ? 'danger' : 'warning',
+      headline: 'Customer Acquisition is Too Expensive',
+      explanation: `You're spending $${calc.cac} to acquire customers worth $${calc.ltv}. For every $1 in marketing, you only get $${calc.ltvCacRatio.toFixed(1)} back.`,
+      why_it_matters: `Healthy businesses maintain 3-6x LTV:CAC. Below 3x means growth is unprofitable — you're essentially paying customers to use your service.`,
+      action_plan: {
+        strategy: 'Reduce CAC through organic channels while increasing customer lifetime value',
+        tactics: [
+          {
+            action: 'Launch customer referral program with 15-20% discount incentive',
+            expected_impact: `Reduce CAC by 25-30% (save $${Math.round(calc.cac * 0.25)}/customer)`,
+            effort: 'medium',
+            timeframe: '4-8 weeks to see results',
+            cost_estimate: '$500 setup + referral discounts'
+          },
+          {
+            action: 'Optimize ad targeting to highest-converting customer segments',
+            expected_impact: 'Reduce CAC by 15-20%',
+            effort: 'low',
+            timeframe: '2-3 weeks',
+            cost_estimate: '$0'
+          },
+          {
+            action: 'Implement retention program to increase customer lifetime',
+            expected_impact: `Increase LTV by $${Math.round(calc.ltv * 0.2)}`,
+            effort: 'medium',
+            timeframe: '2-4 months',
+            cost_estimate: '$200-1000/month'
+          }
+        ],
+        expected_outcome: `Improve LTV:CAC from ${calc.ltvCacRatio}x to ${targetRatio}x within 3 months`,
+        time_to_result: '2-4 months'
+      }
+    });
+    
+    quickWins.push('Optimize ad targeting');
+  } else if (calc.ltvCacRatio > 8) {
+    insights.push({
+      id: 'ltv_cac_high',
+      metric_name: 'LTV:CAC Ratio',
+      current_value: `${calc.ltvCacRatio}x`,
+      target_value: '3-6x',
+      gap: 'Underinvesting in growth',
+      priority: 'medium',
+      status: 'warning',
+      headline: 'Potentially Underinvesting in Customer Acquisition',
+      explanation: `Your ${calc.ltvCacRatio}x LTV:CAC is unusually high, which may indicate you're not investing enough in growth.`,
+      why_it_matters: `While high LTV:CAC seems good, ratios above 6-8x often mean missed growth opportunities. Competitors spending more on acquisition may capture market share.`,
+      action_plan: {
+        strategy: 'Increase marketing investment to capture more market share',
+        tactics: [
+          {
+            action: 'Increase marketing budget by 30-50%',
+            expected_impact: `Acquire ${Math.round(calc.newClientsNeeded * 0.5)}+ additional customers/month`,
+            effort: 'low',
+            timeframe: 'Immediate',
+            cost_estimate: `$${Math.round(calc.expenses.marketing * 0.4)}/month`
+          },
+          {
+            action: 'Test new marketing channels (influencers, partnerships)',
+            expected_impact: 'Diversify customer acquisition sources',
+            effort: 'medium',
+            timeframe: '4-8 weeks',
+            cost_estimate: '$1000-5000'
+          }
+        ],
+        expected_outcome: 'Accelerate growth while maintaining healthy unit economics',
+        time_to_result: '1-3 months'
+      }
+    });
+  }
+
+  // ===== 3. PAYBACK PERIOD ANALYSIS =====
+  if (calc.paybackMonths > 24 && calc.paybackMonths < 999) {
+    insights.push({
+      id: 'payback_long',
+      metric_name: 'Payback Period',
+      current_value: `${calc.paybackMonths} months`,
+      target_value: '12-18 months',
+      gap: `${calc.paybackMonths - 18} months`,
+      priority: calc.paybackMonths > 36 ? 'critical' : 'high',
+      status: calc.paybackMonths > 36 ? 'danger' : 'warning',
+      headline: 'Investment Recovery Takes Too Long',
+      explanation: `At current profit of $${calc.netProfit.toLocaleString()}/mo, it will take ${calc.paybackMonths} months to recover your $${calc.startupInvestment.toLocaleString()} investment.`,
+      why_it_matters: `Long payback periods increase risk significantly. Market conditions, competition, and technology can change dramatically over ${Math.round(calc.paybackMonths / 12)} years.`,
+      action_plan: {
+        strategy: 'Accelerate profitability to reduce payback period',
+        tactics: [
+          {
+            action: 'Increase monthly profit by 25% through pricing optimization',
+            expected_impact: `Reduce payback by ${Math.round(calc.paybackMonths * 0.2)} months`,
+            effort: 'medium',
+            timeframe: '1-2 months',
+            cost_estimate: '$0'
+          },
+          {
+            action: 'Focus on highest-margin products/services',
+            expected_impact: '+5-10% net margin improvement',
+            effort: 'medium',
+            timeframe: '2-4 weeks',
+            cost_estimate: '$0'
+          }
+        ],
+        expected_outcome: `Reduce payback from ${calc.paybackMonths} to under 18 months`,
+        time_to_result: '3-6 months'
+      }
+    });
+  } else if (calc.paybackMonths > 12 && calc.paybackMonths <= 24) {
+    insights.push({
+      id: 'payback_moderate',
+      metric_name: 'Payback Period',
+      current_value: `${calc.paybackMonths} months`,
+      target_value: '<12 months',
+      gap: `${calc.paybackMonths - 12} months`,
+      priority: 'medium',
+      status: 'warning',
+      headline: 'Room to Improve Investment Recovery',
+      explanation: `Your ${calc.paybackMonths}-month payback is acceptable but could be optimized to under 12 months.`,
+      why_it_matters: `Faster payback means quicker access to profits for reinvestment, reducing overall business risk.`,
+      action_plan: {
+        strategy: 'Optimize operations for faster profitability',
+        tactics: [
+          {
+            action: 'Streamline operations to reduce overhead by 10%',
+            expected_impact: `+$${Math.round(calc.totalExpenses * 0.1).toLocaleString()}/mo profit`,
+            effort: 'medium',
+            timeframe: '4-6 weeks',
+            cost_estimate: '$0'
+          }
+        ],
+        expected_outcome: `Reduce payback from ${calc.paybackMonths} to under 12 months`,
+        time_to_result: '3-6 months'
+      }
+    });
+  }
+
+  // ===== 4. CAC EFFICIENCY ANALYSIS =====
+  if (calc.cac > benchmarks.cac_max) {
+    const overspend = calc.cac - benchmarks.cac_max;
+    const monthlyWaste = overspend * calc.newClientsNeeded;
+    
+    insights.push({
+      id: 'cac_high',
+      metric_name: 'Customer Acquisition Cost',
+      current_value: `$${calc.cac}`,
+      target_value: `$${benchmarks.cac_typical}`,
+      gap: `$${overspend} above max`,
+      priority: 'high',
+      status: 'warning',
+      headline: 'Customer Acquisition Cost Exceeds Industry Maximum',
+      explanation: `Your CAC of $${calc.cac} is above the ${benchmarks.name} industry maximum of $${benchmarks.cac_max}.`,
+      why_it_matters: `You're potentially wasting $${monthlyWaste.toLocaleString()}/month on inefficient customer acquisition. This directly impacts profitability.`,
+      action_plan: {
+        strategy: 'Optimize marketing spend to reach industry-standard CAC',
+        tactics: [
+          {
+            action: 'Audit marketing channels and cut lowest-performing 20%',
+            expected_impact: `-$${Math.round(overspend * 0.4)}/customer`,
+            effort: 'low',
+            timeframe: '1-2 weeks',
+            cost_estimate: '$0'
+          },
+          {
+            action: 'Improve website/landing page conversion rate',
+            expected_impact: 'Reduce CAC by 20-30%',
+            effort: 'medium',
+            timeframe: '3-4 weeks',
+            cost_estimate: '$500-2000'
+          }
+        ],
+        expected_outcome: `Reduce CAC from $${calc.cac} to $${benchmarks.cac_typical}`,
+        time_to_result: '4-8 weeks'
+      }
+    });
+    
+    quickWins.push('Audit marketing channels');
+  }
+
+  // ===== 5. BREAK-EVEN GAP ANALYSIS =====
+  if (calc.mrr < calc.breakEvenRevenue && calc.isProfitable === false) {
+    // Already covered in profitability, add specific break-even guidance
+  } else if (calc.mrr > calc.breakEvenRevenue && calc.mrr < calc.revenueFor45kProfit) {
+    const gapTo45k = calc.revenueFor45kProfit - calc.mrr;
+    
+    insights.push({
+      id: 'scale_opportunity',
+      metric_name: 'Revenue Growth',
+      current_value: `$${calc.mrr.toLocaleString()}/mo`,
+      target_value: `$${calc.revenueFor45kProfit.toLocaleString()}/mo`,
+      gap: `$${gapTo45k.toLocaleString()}/mo`,
+      priority: 'medium',
+      status: 'healthy',
+      headline: 'Opportunity to Scale to Strong Profitability',
+      explanation: `You're above break-even. Increasing revenue by $${gapTo45k.toLocaleString()}/mo would bring you to $45k annual profit.`,
+      why_it_matters: `This represents a ${Math.round((gapTo45k / calc.mrr) * 100)}% revenue increase needed for strong profitability and growth reinvestment capability.`,
+      action_plan: {
+        strategy: 'Systematic revenue growth through multiple channels',
+        tactics: [
+          {
+            action: 'Increase customer frequency with loyalty program',
+            expected_impact: `+$${Math.round(gapTo45k * 0.3).toLocaleString()}/mo`,
+            effort: 'medium',
+            timeframe: '4-6 weeks',
+            cost_estimate: '$300-800'
+          },
+          {
+            action: 'Launch upselling strategy for existing customers',
+            expected_impact: '+15-25% average transaction value',
+            effort: 'low',
+            timeframe: '1-2 weeks',
+            cost_estimate: '$0'
+          }
+        ],
+        expected_outcome: `Reach $${calc.revenueFor45kProfit.toLocaleString()}/mo for $45k annual profit`,
+        time_to_result: '4-8 months'
+      }
+    });
+  }
+
+  // ===== 6. ROI ANALYSIS =====
+  if (calc.roiYear1Percent < 20 && calc.isProfitable) {
+    insights.push({
+      id: 'low_roi',
+      metric_name: 'Year 1 ROI',
+      current_value: `${calc.roiYear1Percent}%`,
+      target_value: '25%+',
+      gap: `${25 - calc.roiYear1Percent}%`,
+      priority: 'medium',
+      status: 'warning',
+      headline: 'Return on Investment Below Target',
+      explanation: `Your ${calc.roiYear1Percent}% first-year ROI may not justify the risk compared to alternative investments.`,
+      why_it_matters: `A business should typically return 25%+ annually to compensate for the risk and effort involved compared to passive investments.`,
+      action_plan: {
+        strategy: 'Improve profitability to increase ROI',
+        tactics: [
+          {
+            action: 'Review all expenses for 10-15% reduction opportunities',
+            expected_impact: `+${Math.round((calc.totalExpenses * 0.1 * 12 / calc.startupInvestment) * 100)}% ROI`,
+            effort: 'medium',
+            timeframe: '2-4 weeks',
+            cost_estimate: '$0'
+          }
+        ],
+        expected_outcome: `Improve Year 1 ROI from ${calc.roiYear1Percent}% to 25%+`,
+        time_to_result: '3-6 months'
+      }
+    });
+  }
+
+  // ===== BUILD SUMMARY =====
+  const criticalCount = insights.filter(i => i.priority === 'critical').length;
+  const highCount = insights.filter(i => i.priority === 'high').length;
+  const mediumCount = insights.filter(i => i.priority === 'medium').length;
+  const lowCount = insights.filter(i => i.priority === 'low').length;
+  
+  let overallHealth: 'critical' | 'needs_work' | 'healthy' | 'excellent';
+  if (criticalCount > 0) {
+    overallHealth = 'critical';
+  } else if (highCount > 0) {
+    overallHealth = 'needs_work';
+  } else if (mediumCount > 0) {
+    overallHealth = 'healthy';
+  } else {
+    overallHealth = 'excellent';
+  }
+  
+  const topPriority = insights.length > 0 ? insights[0].headline : 'Business fundamentals look healthy';
+  
+  // Sort insights by priority
+  const priorityOrder = { critical: 0, high: 1, medium: 2, low: 3 };
+  insights.sort((a, b) => priorityOrder[a.priority] - priorityOrder[b.priority]);
+
+  return {
+    summary: {
+      total_insights: insights.length,
+      critical_count: criticalCount,
+      high_count: highCount,
+      medium_count: mediumCount,
+      low_count: lowCount,
+      overall_health: overallHealth,
+      top_priority: topPriority,
+      quick_wins: quickWins.slice(0, 3)
+    },
+    insights,
+    generated_at: new Date().toISOString()
+  };
+}
+
 function transformResponse(raw: any, location: string, benchmarks: IndustryBenchmarks, locationMultiplier: number) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
@@ -1103,6 +1544,9 @@ Call submit_analysis with all sections in English.`;
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
+    // Generate actionable insights
+    const actionableInsights = generateActionableInsights(calc, detectedIndustry);
+    
     // Build validation warnings
     const warnings: Array<{
       field: string;
@@ -1193,6 +1637,7 @@ Call submit_analysis with all sections in English.`;
         success: true,
         data: {
           ...result,
+          actionable_insights: actionableInsights,
           validation: {
             is_realistic: calc.isProfitable && calc.corrections.length === 0 && warnings.length === 0,
             is_profitable: calc.isProfitable,
@@ -1217,7 +1662,7 @@ Call submit_analysis with all sections in English.`;
             location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "6.0-multi-industry-usd",
+            version: "7.0-actionable-insights",
           },
         },
       }),

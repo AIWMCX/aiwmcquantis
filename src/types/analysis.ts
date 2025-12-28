@@ -284,6 +284,7 @@ export interface BusinessAnalysisResult {
   business_plan: BusinessPlan;
   marketing_plan: MarketingPlan;
   market_analysis: MarketAnalysis;
+  actionable_insights?: ActionableInsightsAnalysis;
   confidence_score: number;
   data_sources: string[];
   limitations: string[];
@@ -333,4 +334,52 @@ export interface AnalysisKeyOutputs {
   monthly_profit: number;
   annual_roi: number;
   payback_months: number;
+}
+
+// ============================================
+// ACTIONABLE INSIGHTS ENGINE TYPES
+// ============================================
+
+export interface ActionableTactic {
+  action: string;
+  expected_impact: string;
+  effort: 'low' | 'medium' | 'high';
+  timeframe: string;
+  cost_estimate?: string;
+}
+
+export interface ActionableInsight {
+  id: string;
+  metric_name: string;
+  current_value: number | string;
+  target_value: number | string;
+  gap: number | string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  status: 'danger' | 'warning' | 'healthy' | 'excellent';
+  headline: string;
+  explanation: string;
+  why_it_matters: string;
+  action_plan: {
+    strategy: string;
+    tactics: ActionableTactic[];
+    expected_outcome: string;
+    time_to_result: string;
+  };
+}
+
+export interface InsightsSummary {
+  total_insights: number;
+  critical_count: number;
+  high_count: number;
+  medium_count: number;
+  low_count: number;
+  overall_health: 'critical' | 'needs_work' | 'healthy' | 'excellent';
+  top_priority: string;
+  quick_wins: string[];
+}
+
+export interface ActionableInsightsAnalysis {
+  summary: InsightsSummary;
+  insights: ActionableInsight[];
+  generated_at: string;
 }
