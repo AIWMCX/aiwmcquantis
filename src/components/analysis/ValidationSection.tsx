@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertTriangle, CheckCircle2, XCircle, Info, Calculator } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, XCircle, Info, Calculator, TrendingUp, Building2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 import { cn } from '@/lib/utils';
@@ -22,25 +22,36 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
     return <CheckCircle2 className="w-5 h-5 text-emerald-500" />;
   };
 
+  // Calculate improvement potential
+  const canImprove = validation.improvement_suggestions && validation.improvement_suggestions.length > 0;
+
   return (
     <div className={cn("section-card border", getStatusColor())}>
       <div className="flex items-start gap-3 mb-4">
         {getStatusIcon()}
         <div className="flex-1">
-          <h3 className="font-semibold text-foreground mb-1">Data Quality & Validation</h3>
+          <h3 className="font-semibold text-foreground mb-1">Data Quality & Calculation Audit</h3>
           <p className="text-sm text-muted-foreground">{validation.summary}</p>
         </div>
-        <Badge 
-          variant="outline" 
-          className={cn(
-            "text-sm font-semibold",
-            validation.reliability_score >= 80 ? "border-emerald-500/50 text-emerald-600" :
-            validation.reliability_score >= 50 ? "border-amber-500/50 text-amber-600" :
-            "border-destructive/50 text-destructive"
+        <div className="flex flex-col items-end gap-2">
+          <Badge 
+            variant="outline" 
+            className={cn(
+              "text-sm font-semibold",
+              validation.reliability_score >= 80 ? "border-emerald-500/50 text-emerald-600" :
+              validation.reliability_score >= 50 ? "border-amber-500/50 text-amber-600" :
+              "border-destructive/50 text-destructive"
+            )}
+          >
+            Reliability: {validation.reliability_score}%
+          </Badge>
+          {validation.industry_detected && (
+            <Badge variant="outline" className="text-xs flex items-center gap-1">
+              <Building2 className="w-3 h-3" />
+              {validation.industry_detected}
+            </Badge>
           )}
-        >
-          Reliability: {validation.reliability_score}%
-        </Badge>
+        </div>
       </div>
 
       {/* Key Metrics */}

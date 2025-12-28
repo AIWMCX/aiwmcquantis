@@ -26,6 +26,15 @@ export interface CalculationAuditEntry {
   notes?: string;
 }
 
+// Confidence Breakdown for transparent scoring
+export interface ConfidenceBreakdown {
+  input_completeness: number;    // 0-100 score
+  data_quality: number;          // 0-100 score
+  validation_score: number;      // 0-100 score
+  industry_relevance: number;    // 0-100 score
+  details: string[];             // Explanation of score factors
+}
+
 export interface ValidationResult {
   is_realistic: boolean;
   is_profitable: boolean;
@@ -36,6 +45,9 @@ export interface ValidationResult {
   calculation_audit: CalculationAuditEntry[];
   break_even_revenue: number;
   revenue_for_45k_profit: number;
+  industry_detected?: string;
+  confidence_breakdown?: ConfidenceBreakdown;
+  improvement_suggestions?: string[];
   summary: string;
 }
 
@@ -292,6 +304,8 @@ export interface BusinessAnalysisResult {
   metadata: {
     idea: string;
     location: string;
+    industry_detected?: string;
+    location_cost_multiplier?: number;
     generated_at: string;
     model: string;
     version: string;
