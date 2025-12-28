@@ -329,6 +329,31 @@ export interface AnalysisHistoryEntry {
   created_at: string;
 }
 
+// Industry Option for selector
+export interface IndustryOption {
+  id: string;
+  name: string;
+  icon: string;
+  description: string;
+}
+
+// Available industries (must match backend INDUSTRY_BENCHMARKS)
+export const INDUSTRY_OPTIONS: IndustryOption[] = [
+  { id: 'auto', name: 'Auto-detect', icon: '🔍', description: 'Let AI detect from your description' },
+  { id: 'saas', name: 'SaaS / Software', icon: '💻', description: 'Software, apps, platforms, subscriptions' },
+  { id: 'ecommerce', name: 'E-commerce / Retail', icon: '🛒', description: 'Online stores, marketplaces, dropshipping' },
+  { id: 'food_service', name: 'Food & Beverage', icon: '🍽️', description: 'Restaurants, cafes, food delivery' },
+  { id: 'consulting', name: 'Consulting / Professional', icon: '💼', description: 'Agencies, coaching, B2B services' },
+  { id: 'fitness', name: 'Fitness / Wellness', icon: '💪', description: 'Gyms, yoga, personal training, spas' },
+  { id: 'education', name: 'Education / Courses', icon: '📚', description: 'Online courses, tutoring, bootcamps' },
+  { id: 'healthcare', name: 'Healthcare / Medical', icon: '🏥', description: 'Clinics, telehealth, wellness' },
+  { id: 'fintech', name: 'Fintech / Financial', icon: '💳', description: 'Payments, investing, crypto, banking' },
+  { id: 'media', name: 'Media / Content', icon: '📺', description: 'Streaming, podcasts, newsletters' },
+  { id: 'real_estate', name: 'Real Estate / Property', icon: '🏠', description: 'Rentals, property management' },
+  { id: 'logistics', name: 'Logistics / Delivery', icon: '🚚', description: 'Shipping, courier, fulfillment' },
+  { id: 'general', name: 'General Business', icon: '📦', description: 'Other business types' },
+];
+
 // Optional Financial Inputs for higher confidence
 export interface OptionalFinancialInputs {
   startup_investment?: number;      // Initial investment amount
@@ -338,6 +363,7 @@ export interface OptionalFinancialInputs {
   monthly_costs?: number;           // Expected operating costs
   cac?: number;                     // Customer acquisition cost
   churn_rate?: number;              // Monthly churn (%)
+  selected_industry?: string;       // User-selected industry (overrides auto-detection)
 }
 
 // Request types

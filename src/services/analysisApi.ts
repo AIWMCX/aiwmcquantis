@@ -23,6 +23,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
           idea: request.idea.trim(),
           location: request.location.trim(),
           ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
+          ...(request.financial_inputs?.selected_industry && { selected_industry: request.financial_inputs.selected_industry }),
         },
       });
 
