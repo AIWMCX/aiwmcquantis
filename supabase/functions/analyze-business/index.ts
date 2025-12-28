@@ -5,9 +5,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+interface OptionalFinancialInputs {
+  startup_investment?: number;
+  monthly_revenue?: number;
+  average_price?: number;
+  expected_customers?: number;
+  monthly_costs?: number;
+  cac?: number;
+  churn_rate?: number;
+}
+
 interface AnalysisRequest {
   idea: string;
   location: string;
+  financial_inputs?: OptionalFinancialInputs;
 }
 
 // ========== MULTI-INDUSTRY BENCHMARK SYSTEM ==========
@@ -1377,7 +1388,7 @@ serve(async (req) => {
   }
 
   try {
-    const { idea, location } = await req.json() as AnalysisRequest;
+    const { idea, location, financial_inputs } = await req.json() as AnalysisRequest;
 
     if (!idea || idea.trim().length < 10) {
       return new Response(
@@ -1598,7 +1609,7 @@ Call submit_analysis with all sections in English.`;
     };
     
     // 1. INPUT COMPLETENESS (40% weight)
-    // How much actual data vs assumptions
+    // How much actual data vs assumptions - now includes user-provided financial_inputs
     const requiredFields = ['mrr', 'startup_investment', 'cac', 'ltv'];
     const optionalFields = ['average_check', 'orders_monthly', 'equipment'];
     
@@ -1606,13 +1617,45 @@ Call submit_analysis with all sections in English.`;
     let providedRequired = 0;
     let providedOptional = 0;
     
-    // Check what was actually provided vs defaults
-    if (fa.mrr && fa.mrr !== 50000) providedRequired++;
-    if (fa.startup_investment && fa.startup_investment !== 100000) providedRequired++;
-    if (fa.cac && fa.cac !== detectedIndustry.cac_typical) providedRequired++;
-    if (fa.ltv && fa.ltv !== 500) providedRequired++;
+    // Count user-provided financial inputs (these are HIGH VALUE for confidence)
+    const userProvidedCount = financial_inputs ? Object.values(financial_inputs).filter(v => v !== undefined && v !== null && v > 0).length : 0;
+    const userProvidedFields: string[] = [];
     
-    if (fa.average_check) providedOptional++;
+    if (financial_inputs?.startup_investment) {
+      providedRequired++;
+      userProvidedFields.push('investment');
+    }
+    if (financial_inputs?.monthly_revenue) {
+      providedRequired++;
+      userProvidedFields.push('revenue');
+    }
+    if (financial_inputs?.cac) {
+      providedRequired++;
+      userProvidedFields.push('CAC');
+    }
+    if (financial_inputs?.average_price) {
+      providedOptional++;
+      userProvidedFields.push('pricing');
+    }
+    if (financial_inputs?.expected_customers) {
+      providedOptional++;
+      userProvidedFields.push('customers');
+    }
+    if (financial_inputs?.monthly_costs) {
+      providedOptional++;
+      userProvidedFields.push('costs');
+    }
+    if (financial_inputs?.churn_rate) {
+      providedOptional++;
+      userProvidedFields.push('churn');
+    }
+    
+    // Also count AI-estimated fields that look non-default
+    if (!financial_inputs?.monthly_revenue && fa.mrr && fa.mrr !== 50000) providedRequired++;
+    if (!financial_inputs?.startup_investment && fa.startup_investment && fa.startup_investment !== 100000) providedRequired++;
+    if (!financial_inputs?.cac && fa.cac && fa.cac !== detectedIndustry.cac_typical) providedRequired++;
+    if (fa.ltv && fa.ltv !== 500) providedRequired++;
+    if (!financial_inputs?.average_price && fa.average_check) providedOptional++;
     if (fa.orders_monthly) providedOptional++;
     if (fa.equipment) providedOptional++;
     
@@ -1621,14 +1664,21 @@ Call submit_analysis with all sections in English.`;
     const optionalScore = (providedOptional / optionalFields.length) * 0.30;
     confidenceBreakdown.input_completeness = Math.round((requiredScore + optionalScore) * 100);
     
+    // BONUS for user-provided data (up to +15%)
+    if (userProvidedCount > 0) {
+      const userDataBonus = Math.min(15, userProvidedCount * 3);
+      confidenceBreakdown.input_completeness = Math.min(100, confidenceBreakdown.input_completeness + userDataBonus);
+      confidenceBreakdown.details.push(`User provided ${userProvidedCount} financial inputs (${userProvidedFields.join(', ')})`);
+    }
+    
     // Minimum input quality penalty - just 2 inputs (idea + location) = 25% max
     const ideaLength = idea.trim().length;
     const locationLength = location.trim().length;
-    if (ideaLength < 30) {
+    if (ideaLength < 30 && userProvidedCount === 0) {
       confidenceBreakdown.input_completeness = Math.min(confidenceBreakdown.input_completeness, 35);
       confidenceBreakdown.details.push('Business idea description is brief - provide more detail for accurate analysis');
     }
-    if (ideaLength < 50 && providedRequired === 0) {
+    if (ideaLength < 50 && providedRequired === 0 && userProvidedCount === 0) {
       confidenceBreakdown.input_completeness = Math.min(confidenceBreakdown.input_completeness, 25);
     }
     
@@ -1636,20 +1686,23 @@ Call submit_analysis with all sections in English.`;
     // How reliable are our sources
     let dataQualityScore = 0;
     
-    // User-provided data quality (30%)
-    dataQualityScore += Math.min(providedRequired * 10, 30);
+    // User-provided data quality (40%) - BOOSTED when user provides financial_inputs
+    const userDataQuality = userProvidedCount > 0 ? Math.min(40, userProvidedCount * 8) : Math.min(providedRequired * 10, 30);
+    dataQualityScore += userDataQuality;
     
-    // Industry benchmark quality (40%) - we always have this
-    dataQualityScore += 40;
+    // Industry benchmark quality (35%) - we always have this
+    dataQualityScore += 35;
     
-    // Real-time/external data (20%) - not implemented yet
+    // Real-time/external data (15%) - not implemented yet
     dataQualityScore += 0;
-    confidenceBreakdown.details.push('Analysis uses industry benchmarks (no real-time market data)');
+    if (userProvidedCount === 0) {
+      confidenceBreakdown.details.push('Analysis uses industry benchmarks (no real-time market data)');
+    }
     
     // Calculation certainty (10%) - our formulas are validated
     dataQualityScore += 10;
     
-    confidenceBreakdown.data_quality = dataQualityScore;
+    confidenceBreakdown.data_quality = Math.min(100, dataQualityScore);
     
     // 3. VALIDATION PASS RATE (20% weight)
     let validationScore = 100;
@@ -1719,8 +1772,8 @@ Call submit_analysis with all sections in English.`;
     if (ideaLength < 50) {
       improvementSuggestions.push('Provide a more detailed business description (target market, pricing, unique value)');
     }
-    if (providedRequired < 2) {
-      improvementSuggestions.push('Include specific financial estimates (expected revenue, investment amount)');
+    if (userProvidedCount < 3) {
+      improvementSuggestions.push('Expand "Advanced Financial Details" to add investment, revenue, and cost estimates');
     }
     if (detectedIndustry.id === 'general') {
       improvementSuggestions.push('Add industry keywords (e.g., "SaaS", "restaurant", "e-commerce") for better benchmarks');
@@ -1728,8 +1781,8 @@ Call submit_analysis with all sections in English.`;
     if (locationMultiplier === 1.0) {
       improvementSuggestions.push('Specify a major city for location-adjusted cost estimates');
     }
-    if (calc.corrections.length > 0) {
-      improvementSuggestions.push('Review auto-corrected values - your inputs may have been unrealistic');
+    if (calc.corrections.length > 0 && userProvidedCount === 0) {
+      improvementSuggestions.push('Provide your own financial data to avoid auto-corrections');
     }
     
     result.confidence_score = reliabilityScore;

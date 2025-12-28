@@ -5,15 +5,19 @@ import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
+import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
+import type { OptionalFinancialInputs } from '@/types/analysis';
 
 interface AnalysisFormProps {
   idea: string;
   location: string;
+  financialInputs: OptionalFinancialInputs;
   errors: { idea?: string; location?: string };
   isLoading: boolean;
   isFormValid: boolean;
   onIdeaChange: (value: string) => void;
   onLocationChange: (value: string) => void;
+  onFinancialInputsChange: (inputs: OptionalFinancialInputs) => void;
   onClearError: (field: 'idea' | 'location') => void;
   onSubmit: (e: React.FormEvent) => void;
 }
@@ -21,11 +25,13 @@ interface AnalysisFormProps {
 export function AnalysisForm({
   idea,
   location,
+  financialInputs,
   errors,
   isLoading,
   isFormValid,
   onIdeaChange,
   onLocationChange,
+  onFinancialInputsChange,
   onClearError,
   onSubmit,
 }: AnalysisFormProps) {
@@ -103,6 +109,13 @@ export function AnalysisForm({
         )}
       </div>
 
+      {/* Advanced Financial Inputs */}
+      <AdvancedFinancialInputs
+        financialInputs={financialInputs}
+        onChange={onFinancialInputsChange}
+        disabled={isLoading}
+      />
+
       {/* Submit Button */}
       <Button
         type="submit"
@@ -150,7 +163,7 @@ export function AnalysisForm({
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
           <strong className="text-foreground">💡 Tip:</strong> The more detailed your description, the more accurate the analysis. 
-          Specify your target audience and business format.
+          Expand "Advanced Financial Details" to boost confidence by up to 40%.
         </p>
       </div>
     </form>
