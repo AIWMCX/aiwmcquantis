@@ -9,6 +9,7 @@ import { MarketingSection } from './MarketingSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { ValidationSection } from './ValidationSection';
 import { ActionableInsights } from './ActionableInsights';
+import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
@@ -124,12 +125,11 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">{result.metadata.idea}</h2>
             <p className="text-muted-foreground">📍 {result.metadata.location}</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <Badge className={cn("px-3 py-1.5 border", getConfidenceColor(result.confidence_score))}>
-              <ConfidenceIcon className="w-4 h-4 mr-1.5" />
-              Confidence: {result.confidence_score}%
-            </Badge>
+            {result.metadata.industry_detected && (
+              <Badge variant="outline" className="text-xs">
+                Industry: {result.metadata.industry_detected}
+              </Badge>
+            )}
           </div>
         </div>
         
@@ -146,6 +146,13 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           )}
         </div>
       </div>
+
+      {/* Confidence Indicator - Always visible at top */}
+      <ConfidenceIndicator 
+        score={result.confidence_score} 
+        breakdown={result.validation?.confidence_breakdown}
+        suggestions={result.validation?.improvement_suggestions}
+      />
 
       {/* Validation Section - Show data quality */}
       {result.validation && (
