@@ -428,7 +428,10 @@ function calculateStrictFinancials(
   rawLtv: number,
   rawAvgCheck: number,
   benchmarks: IndustryBenchmarks,
-  locationMultiplier: number
+  locationMultiplier: number,
+  userProvidedCosts?: number,
+  userProvidedChurnRate?: number,
+  userProvidedCustomers?: number
 ): StrictFinancialResult {
   const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
   const audit: CalculationAudit[] = [];
@@ -557,7 +560,11 @@ function calculateStrictFinancials(
   
   // 2.3 Marketing cost
   const revenuePerClient = avgCheck * benchmarks.orders_per_client;
-  const clientsActive = Math.ceil(mrr / revenuePerClient);
+  
+  // Use user-provided customers if available
+  const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
+    ? userProvidedCustomers 
+    : Math.ceil(mrr / revenuePerClient);
   const newClientsNeeded = Math.ceil(clientsActive * 0.25);
   const marketing = newClientsNeeded * cac;
   
@@ -570,26 +577,44 @@ function calculateStrictFinancials(
     },
     result: marketing,
     isValid: true,
-    notes: `${newClientsNeeded} × $${cac} = $${marketing}`
+    notes: `${newClientsNeeded} × $${cac} = $${marketing}${userProvidedCustomers ? ' (user-provided customer count)' : ''}`
   });
   
-  // 2.4 Total expenses
-  const totalExpenses = cogs + fixedCosts + marketing;
+  // 2.4 Total expenses - CRITICAL: Use user-provided costs if available
+  let totalExpenses: number;
+  let expenseSource: 'user' | 'calculated' = 'calculated';
   
-  audit.push({
-    formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
-    inputs: { 
-      'COGS': cogs, 
-      'Salaries': salaries,
-      'Rent': rent,
-      'Utilities': utilities,
-      'Other': other,
-      'Marketing': marketing 
-    },
-    result: totalExpenses,
-    isValid: true,
-    notes: `$${cogs} + $${salaries} + $${rent} + $${utilities} + $${other} + $${marketing} = $${totalExpenses}`
-  });
+  if (userProvidedCosts && userProvidedCosts > 0) {
+    // User provided their own monthly costs - use them directly
+    totalExpenses = userProvidedCosts;
+    expenseSource = 'user';
+    
+    audit.push({
+      formula: 'Total_Expenses = User_Provided_Costs',
+      inputs: { 'User Monthly Costs': userProvidedCosts },
+      result: totalExpenses,
+      isValid: true,
+      notes: `Using user-provided monthly costs: $${userProvidedCosts.toLocaleString()}`
+    });
+  } else {
+    // Calculate from industry benchmarks
+    totalExpenses = cogs + fixedCosts + marketing;
+    
+    audit.push({
+      formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
+      inputs: { 
+        'COGS': cogs, 
+        'Salaries': salaries,
+        'Rent': rent,
+        'Utilities': utilities,
+        'Other': other,
+        'Marketing': marketing 
+      },
+      result: totalExpenses,
+      isValid: true,
+      notes: `$${cogs} + $${salaries} + $${rent} + $${utilities} + $${other} + $${marketing} = $${totalExpenses}`
+    });
+  }
   
   // ===== STEP 3: Calculate profit metrics =====
   
@@ -1157,7 +1182,13 @@ function generateActionableInsights(
   };
 }
 
-function transformResponse(raw: any, location: string, benchmarks: IndustryBenchmarks, locationMultiplier: number) {
+function transformResponse(
+  raw: any, 
+  location: string, 
+  benchmarks: IndustryBenchmarks, 
+  locationMultiplier: number,
+  userInputs?: OptionalFinancialInputs
+) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
@@ -1165,15 +1196,49 @@ function transformResponse(raw: any, location: string, benchmarks: IndustryBench
   const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Public sources", "Industry data"];
   const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Estimates based on industry benchmarks"];
 
-  // Extract raw values from AI
-  const rawMrr = fa.mrr || 50000;
-  const rawInvestment = fa.startup_investment || 100000;
-  const rawCac = fa.cac || mp.cac || benchmarks.cac_typical;
+  // CRITICAL FIX: PRIORITIZE USER-PROVIDED VALUES over AI-generated values
+  // This ensures user inputs like monthly_revenue=$15,000 are used, not AI's $150,000
+  const rawMrr = userInputs?.monthly_revenue || fa.mrr || 50000;
+  const rawInvestment = userInputs?.startup_investment || fa.startup_investment || 100000;
+  const rawCac = userInputs?.cac || fa.cac || mp.cac || benchmarks.cac_typical;
   const rawLtv = fa.ltv || mp.ltv || 500;
-  const rawAvgCheck = fa.average_check || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  const rawAvgCheck = userInputs?.average_price || fa.average_check || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   
-  // Calculate with strict validation
-  const calc = calculateStrictFinancials(rawMrr, rawInvestment, rawCac, rawLtv, rawAvgCheck, benchmarks, locationMultiplier);
+  // User-provided operational data
+  const userProvidedCosts = userInputs?.monthly_costs;
+  const userProvidedChurnRate = userInputs?.churn_rate;
+  const userProvidedCustomers = userInputs?.expected_customers;
+  
+  // Log input source for debugging
+  console.log(`Input sources: MRR=${userInputs?.monthly_revenue ? 'USER' : 'AI'}($${rawMrr}), Investment=${userInputs?.startup_investment ? 'USER' : 'AI'}($${rawInvestment}), CAC=${userInputs?.cac ? 'USER' : 'AI'}($${rawCac})`);
+  
+  // Validation: warn if AI values significantly differ from user inputs
+  if (userInputs?.monthly_revenue && fa.mrr) {
+    const diff = Math.abs(fa.mrr - userInputs.monthly_revenue) / userInputs.monthly_revenue;
+    if (diff > 0.2) {
+      console.warn(`⚠️ AI estimated revenue $${fa.mrr} differs ${Math.round(diff * 100)}% from user input $${userInputs.monthly_revenue}`);
+    }
+  }
+  if (userInputs?.startup_investment && fa.startup_investment) {
+    const diff = Math.abs(fa.startup_investment - userInputs.startup_investment) / userInputs.startup_investment;
+    if (diff > 0.2) {
+      console.warn(`⚠️ AI estimated investment $${fa.startup_investment} differs ${Math.round(diff * 100)}% from user input $${userInputs.startup_investment}`);
+    }
+  }
+  
+  // Calculate with strict validation, passing user-provided costs/churn
+  const calc = calculateStrictFinancials(
+    rawMrr, 
+    rawInvestment, 
+    rawCac, 
+    rawLtv, 
+    rawAvgCheck, 
+    benchmarks, 
+    locationMultiplier,
+    userProvidedCosts,
+    userProvidedChurnRate,
+    userProvidedCustomers
+  );
   
   // Build calculation summary in English
   const calculationsSummary = `
@@ -1438,6 +1503,20 @@ serve(async (req) => {
     
     console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location} | Industry: ${detectedIndustry.name} (${industryWasManuallySelected ? 'user-selected' : 'auto-detected'}) | Location multiplier: ${locationMultiplier}`);
 
+    // Build user financial context for AI prompt
+    const userFinancialContext = financial_inputs ? `
+## USER-PROVIDED FINANCIAL DATA (IMPORTANT - USE THESE VALUES IN YOUR ANALYSIS!)
+${financial_inputs.monthly_revenue ? `- Monthly Revenue: $${financial_inputs.monthly_revenue.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${financial_inputs.startup_investment ? `- Initial Investment: $${financial_inputs.startup_investment.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${financial_inputs.monthly_costs ? `- Monthly Operating Costs: $${financial_inputs.monthly_costs.toLocaleString()} (USE THIS EXACT VALUE)` : ''}
+${financial_inputs.average_price ? `- Average Price/Transaction: $${financial_inputs.average_price}` : ''}
+${financial_inputs.expected_customers ? `- Expected Monthly Customers: ${financial_inputs.expected_customers}` : ''}
+${financial_inputs.cac ? `- Customer Acquisition Cost: $${financial_inputs.cac}` : ''}
+${financial_inputs.churn_rate ? `- Monthly Churn Rate: ${financial_inputs.churn_rate}%` : ''}
+
+Note: The user has provided specific financial data. Base your qualitative analysis (business plan, marketing, market analysis) on these realistic numbers.
+` : '';
+
     const prompt = `You are a financial analyst. Analyze this business idea.
 
 ## BUSINESS IDEA
@@ -1447,7 +1526,7 @@ ${idea.trim()}
 ${location.trim()}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
-
+${userFinancialContext}
 ## REQUIREMENTS
 
 ### Use these industry-specific ranges for ${detectedIndustry.name}:
@@ -1571,7 +1650,7 @@ Call submit_analysis with all sections in English.`;
       );
     }
 
-    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier);
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier, financial_inputs);
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
