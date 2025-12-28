@@ -10,6 +10,327 @@ interface AnalysisRequest {
   location: string;
 }
 
+// ========== MULTI-INDUSTRY BENCHMARK SYSTEM ==========
+
+interface IndustryBenchmarks {
+  id: string;
+  name: string;
+  cogs_percent: number;
+  salaries_fixed: number;
+  rent_fixed: number;
+  utilities_fixed: number;
+  other_fixed: number;
+  cac_min: number;
+  cac_max: number;
+  cac_typical: number;
+  average_check_min: number;
+  average_check_max: number;
+  orders_per_client: number;
+  client_lifetime_months: number;
+  ltv_cac_min: number;
+  ltv_cac_max: number;
+  net_margin_min: number;
+  net_margin_max: number;
+  keywords: string[];
+}
+
+const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
+  {
+    id: 'saas',
+    name: 'SaaS / Software',
+    cogs_percent: 20,
+    salaries_fixed: 8000,
+    rent_fixed: 500,
+    utilities_fixed: 200,
+    other_fixed: 1000,
+    cac_min: 50,
+    cac_max: 500,
+    cac_typical: 150,
+    average_check_min: 20,
+    average_check_max: 500,
+    orders_per_client: 1,
+    client_lifetime_months: 24,
+    ltv_cac_min: 3,
+    ltv_cac_max: 8,
+    net_margin_min: 15,
+    net_margin_max: 40,
+    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard']
+  },
+  {
+    id: 'ecommerce',
+    name: 'E-commerce / Retail',
+    cogs_percent: 55,
+    salaries_fixed: 4000,
+    rent_fixed: 1500,
+    utilities_fixed: 300,
+    other_fixed: 800,
+    cac_min: 15,
+    cac_max: 80,
+    cac_typical: 35,
+    average_check_min: 30,
+    average_check_max: 200,
+    orders_per_client: 3,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 5,
+    net_margin_max: 15,
+    keywords: ['store', 'shop', 'ecommerce', 'e-commerce', 'retail', 'marketplace', 'online store', 'dropshipping', 'products', 'selling', 'merch', 'merchandise']
+  },
+  {
+    id: 'food_service',
+    name: 'Food & Beverage',
+    cogs_percent: 38,
+    salaries_fixed: 6000,
+    rent_fixed: 2000,
+    utilities_fixed: 500,
+    other_fixed: 1200,
+    cac_min: 8,
+    cac_max: 30,
+    cac_typical: 15,
+    average_check_min: 8,
+    average_check_max: 40,
+    orders_per_client: 4,
+    client_lifetime_months: 6,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 5,
+    net_margin_max: 15,
+    keywords: ['restaurant', 'cafe', 'bakery', 'food', 'delivery', 'catering', 'coffee', 'bar', 'kitchen', 'meal', 'pizza', 'burger', 'sushi', 'dessert', 'cake', 'pastry', 'пекарня', 'ресторан', 'кафе', 'доставка еды']
+  },
+  {
+    id: 'consulting',
+    name: 'Consulting / Professional Services',
+    cogs_percent: 15,
+    salaries_fixed: 10000,
+    rent_fixed: 1000,
+    utilities_fixed: 200,
+    other_fixed: 500,
+    cac_min: 100,
+    cac_max: 1000,
+    cac_typical: 300,
+    average_check_min: 500,
+    average_check_max: 5000,
+    orders_per_client: 1,
+    client_lifetime_months: 18,
+    ltv_cac_min: 3,
+    ltv_cac_max: 10,
+    net_margin_min: 20,
+    net_margin_max: 50,
+    keywords: ['consulting', 'consultant', 'agency', 'services', 'professional', 'advisor', 'coach', 'coaching', 'training', 'b2b', 'enterprise']
+  },
+  {
+    id: 'fitness',
+    name: 'Fitness / Wellness',
+    cogs_percent: 25,
+    salaries_fixed: 5000,
+    rent_fixed: 3000,
+    utilities_fixed: 500,
+    other_fixed: 800,
+    cac_min: 20,
+    cac_max: 100,
+    cac_typical: 50,
+    average_check_min: 50,
+    average_check_max: 200,
+    orders_per_client: 1,
+    client_lifetime_months: 8,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 15,
+    net_margin_max: 35,
+    keywords: ['gym', 'fitness', 'yoga', 'pilates', 'wellness', 'health', 'workout', 'training', 'sport', 'crossfit', 'personal trainer', 'spa', 'massage']
+  },
+  {
+    id: 'education',
+    name: 'Education / Online Courses',
+    cogs_percent: 20,
+    salaries_fixed: 4000,
+    rent_fixed: 500,
+    utilities_fixed: 100,
+    other_fixed: 500,
+    cac_min: 30,
+    cac_max: 200,
+    cac_typical: 80,
+    average_check_min: 50,
+    average_check_max: 500,
+    orders_per_client: 2,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 8,
+    net_margin_min: 25,
+    net_margin_max: 60,
+    keywords: ['course', 'education', 'learning', 'online course', 'tutorial', 'training', 'school', 'academy', 'bootcamp', 'teaching', 'edtech', 'e-learning']
+  },
+  {
+    id: 'healthcare',
+    name: 'Healthcare / Medical',
+    cogs_percent: 30,
+    salaries_fixed: 12000,
+    rent_fixed: 3000,
+    utilities_fixed: 500,
+    other_fixed: 2000,
+    cac_min: 50,
+    cac_max: 300,
+    cac_typical: 120,
+    average_check_min: 100,
+    average_check_max: 1000,
+    orders_per_client: 3,
+    client_lifetime_months: 24,
+    ltv_cac_min: 3,
+    ltv_cac_max: 8,
+    net_margin_min: 10,
+    net_margin_max: 30,
+    keywords: ['health', 'medical', 'clinic', 'doctor', 'dental', 'therapy', 'telehealth', 'pharmacy', 'healthcare', 'hospital', 'patient']
+  },
+  {
+    id: 'fintech',
+    name: 'Fintech / Financial Services',
+    cogs_percent: 15,
+    salaries_fixed: 15000,
+    rent_fixed: 2000,
+    utilities_fixed: 300,
+    other_fixed: 3000,
+    cac_min: 30,
+    cac_max: 200,
+    cac_typical: 80,
+    average_check_min: 10,
+    average_check_max: 100,
+    orders_per_client: 12,
+    client_lifetime_months: 36,
+    ltv_cac_min: 3,
+    ltv_cac_max: 10,
+    net_margin_min: 20,
+    net_margin_max: 50,
+    keywords: ['fintech', 'finance', 'banking', 'payment', 'invest', 'trading', 'crypto', 'wallet', 'money', 'insurance', 'lending', 'credit']
+  },
+  {
+    id: 'media',
+    name: 'Media / Content / Entertainment',
+    cogs_percent: 25,
+    salaries_fixed: 5000,
+    rent_fixed: 1000,
+    utilities_fixed: 200,
+    other_fixed: 800,
+    cac_min: 5,
+    cac_max: 50,
+    cac_typical: 20,
+    average_check_min: 5,
+    average_check_max: 30,
+    orders_per_client: 1,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 8,
+    net_margin_min: 15,
+    net_margin_max: 40,
+    keywords: ['media', 'content', 'streaming', 'video', 'podcast', 'entertainment', 'news', 'blog', 'publishing', 'newsletter', 'creator', 'influencer']
+  },
+  {
+    id: 'real_estate',
+    name: 'Real Estate / Property',
+    cogs_percent: 10,
+    salaries_fixed: 8000,
+    rent_fixed: 2000,
+    utilities_fixed: 300,
+    other_fixed: 1500,
+    cac_min: 200,
+    cac_max: 2000,
+    cac_typical: 500,
+    average_check_min: 1000,
+    average_check_max: 20000,
+    orders_per_client: 1,
+    client_lifetime_months: 60,
+    ltv_cac_min: 3,
+    ltv_cac_max: 10,
+    net_margin_min: 10,
+    net_margin_max: 30,
+    keywords: ['real estate', 'property', 'rental', 'housing', 'apartment', 'home', 'realty', 'broker', 'agent', 'landlord', 'lease']
+  },
+  {
+    id: 'logistics',
+    name: 'Logistics / Delivery',
+    cogs_percent: 45,
+    salaries_fixed: 6000,
+    rent_fixed: 3000,
+    utilities_fixed: 800,
+    other_fixed: 2000,
+    cac_min: 20,
+    cac_max: 100,
+    cac_typical: 40,
+    average_check_min: 10,
+    average_check_max: 100,
+    orders_per_client: 8,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 5,
+    net_margin_max: 15,
+    keywords: ['logistics', 'delivery', 'shipping', 'courier', 'freight', 'transport', 'warehouse', 'fulfillment', 'supply chain']
+  },
+  {
+    id: 'general',
+    name: 'General Business',
+    cogs_percent: 35,
+    salaries_fixed: 5000,
+    rent_fixed: 1500,
+    utilities_fixed: 300,
+    other_fixed: 1000,
+    cac_min: 30,
+    cac_max: 150,
+    cac_typical: 60,
+    average_check_min: 30,
+    average_check_max: 300,
+    orders_per_client: 2,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 10,
+    net_margin_max: 25,
+    keywords: []
+  }
+];
+
+function detectIndustry(businessIdea: string): IndustryBenchmarks {
+  const ideaLower = businessIdea.toLowerCase();
+  
+  let bestMatch: IndustryBenchmarks | null = null;
+  let bestScore = 0;
+  
+  for (const industry of INDUSTRY_BENCHMARKS) {
+    if (industry.id === 'general') continue;
+    
+    let score = 0;
+    for (const keyword of industry.keywords) {
+      if (ideaLower.includes(keyword.toLowerCase())) {
+        score += keyword.length;
+      }
+    }
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = industry;
+    }
+  }
+  
+  return bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
+}
+
+function getLocationMultiplier(location: string): number {
+  const loc = location.toLowerCase();
+  const highCostCities = [
+    'new york', 'nyc', 'san francisco', 'sf', 'los angeles', 'la', 'london', 
+    'tokyo', 'singapore', 'hong kong', 'zurich', 'geneva', 'paris', 'sydney',
+    'москва', 'moscow', 'санкт-петербург', 'спб', 'st petersburg'
+  ];
+  const mediumCostCities = [
+    'chicago', 'boston', 'seattle', 'miami', 'denver', 'austin', 'toronto',
+    'berlin', 'amsterdam', 'dubai', 'melbourne', 'dublin'
+  ];
+  
+  if (highCostCities.some(city => loc.includes(city))) return 1.4;
+  if (mediumCostCities.some(city => loc.includes(city))) return 1.15;
+  return 1.0;
+}
+
 // Tool schema for AI
 const analysisToolSchema = {
   type: "function",
@@ -46,54 +367,6 @@ function safeParseJSON(str: string, fallback: any): any {
 }
 
 // ========== STRICT FINANCIAL CALCULATOR ==========
-// All formulas are validated and cross-checked
-
-interface IndustryBenchmarks {
-  cogs_percent: number;           // Себестоимость %
-  salaries_fixed: number;         // ФОТ фикс
-  rent_fixed: number;             // Аренда фикс
-  utilities_fixed: number;        // Коммуналка
-  other_fixed: number;            // Прочие фикс
-  cac_min: number;                // CAC минимум
-  cac_max: number;                // CAC максимум
-  cac_typical: number;            // CAC типичный
-  average_check_min: number;      // Средний чек мин
-  average_check_max: number;      // Средний чек макс
-  orders_per_client: number;      // Заказов на клиента/мес
-  client_lifetime_months: number; // Время жизни клиента (мес)
-  ltv_cac_min: number;            // LTV:CAC минимум
-  ltv_cac_max: number;            // LTV:CAC максимум
-  net_margin_min: number;         // Чистая маржа мин %
-  net_margin_max: number;         // Чистая маржа макс %
-}
-
-function getIndustryBenchmarks(businessType: string, location: string): IndustryBenchmarks {
-  const isCapital = location.toLowerCase().includes('москва') || 
-                    location.toLowerCase().includes('moscow') ||
-                    location.toLowerCase().includes('санкт-петербург') ||
-                    location.toLowerCase().includes('спб');
-  const m = isCapital ? 1.3 : 1.0; // Multiplier for capital cities
-  
-  // Default benchmarks for bakery/food delivery
-  return {
-    cogs_percent: 40,                              // 40% себестоимость - стандарт для пищевки
-    salaries_fixed: Math.round(180000 * m),        // ФОТ: пекарь 70k + помощник 50k + курьер 40k + часть админа 20k
-    rent_fixed: Math.round(55000 * m),             // Аренда 20-30м² производство
-    utilities_fixed: Math.round(15000 * m),        // Коммуналка, вода, электричество
-    other_fixed: Math.round(35000 * m),            // Упаковка, топливо, потери, прочее
-    cac_min: 200,                                  // CAC минимум (органика + сарафан)
-    cac_max: 800,                                  // CAC максимум (платная реклама)
-    cac_typical: isCapital ? 400 : 300,            // Типичный CAC
-    average_check_min: 400,                        // Мин чек
-    average_check_max: 900,                        // Макс чек
-    orders_per_client: 4,                          // Заказов в месяц от постоянного клиента
-    client_lifetime_months: 4,                     // Среднее время жизни клиента
-    ltv_cac_min: 3,                                // Минимальное здоровое LTV:CAC
-    ltv_cac_max: 6,                                // Максимальное реалистичное LTV:CAC
-    net_margin_min: 5,                             // Мин чистая маржа для пищевки
-    net_margin_max: 15,                            // Макс чистая маржа для пищевки
-  };
-}
 
 interface CalculationAudit {
   formula: string;
@@ -104,15 +377,12 @@ interface CalculationAudit {
 }
 
 interface StrictFinancialResult {
-  // Core metrics
   mrr: number;
   totalExpenses: number;
   netProfit: number;
   netMarginPercent: number;
   grossProfit: number;
   grossMarginPercent: number;
-  
-  // Expense breakdown
   expenses: {
     cogs: number;
     salaries: number;
@@ -121,8 +391,6 @@ interface StrictFinancialResult {
     marketing: number;
     other: number;
   };
-  
-  // Unit economics
   cac: number;
   ltv: number;
   ltvCacRatio: number;
@@ -130,18 +398,15 @@ interface StrictFinancialResult {
   ordersMonthly: number;
   clientsActive: number;
   newClientsNeeded: number;
-  
-  // Investment metrics
   startupInvestment: number;
   paybackMonths: number;
   roiYear1Percent: number;
   breakEvenRevenue: number;
   revenueFor45kProfit: number;
-  
-  // Validation
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
   audit: CalculationAudit[];
+  industryDetected: string;
 }
 
 function calculateStrictFinancials(
@@ -150,10 +415,17 @@ function calculateStrictFinancials(
   rawCac: number,
   rawLtv: number,
   rawAvgCheck: number,
-  benchmarks: IndustryBenchmarks
+  benchmarks: IndustryBenchmarks,
+  locationMultiplier: number
 ): StrictFinancialResult {
   const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
   const audit: CalculationAudit[] = [];
+  
+  // Apply location multiplier to fixed costs
+  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultiplier);
+  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultiplier);
+  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultiplier);
+  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultiplier);
   
   // ===== STEP 1: Validate and correct input values =====
   
@@ -166,14 +438,14 @@ function calculateStrictFinancials(
         field: 'average_check',
         original: avgCheck,
         corrected,
-        reason: `Средний чек ${avgCheck}₽ ниже рыночного минимума ${benchmarks.average_check_min}₽`
+        reason: `Average check $${avgCheck} is below market minimum $${benchmarks.average_check_min} for ${benchmarks.name}`
       });
     } else {
       corrections.push({
         field: 'average_check',
         original: avgCheck,
         corrected,
-        reason: `Средний чек ${avgCheck}₽ выше рыночного максимума ${benchmarks.average_check_max}₽`
+        reason: `Average check $${avgCheck} exceeds market maximum $${benchmarks.average_check_max} for ${benchmarks.name}`
       });
     }
     avgCheck = corrected;
@@ -186,7 +458,7 @@ function calculateStrictFinancials(
       field: 'cac',
       original: cac,
       corrected: benchmarks.cac_typical,
-      reason: `CAC ${cac}₽ нереалистично низкий. Минимум ${benchmarks.cac_min}₽ даже для органических каналов.`
+      reason: `CAC $${cac} is unrealistically low. Minimum is $${benchmarks.cac_min} even for organic channels in ${benchmarks.name}.`
     });
     cac = benchmarks.cac_typical;
   } else if (cac > benchmarks.cac_max) {
@@ -194,36 +466,35 @@ function calculateStrictFinancials(
       field: 'cac',
       original: cac,
       corrected: benchmarks.cac_max,
-      reason: `CAC ${cac}₽ слишком высокий для B2C. Скорректировано до ${benchmarks.cac_max}₽`
+      reason: `CAC $${cac} is too high for ${benchmarks.name}. Adjusted to maximum $${benchmarks.cac_max}`
     });
     cac = benchmarks.cac_max;
   }
   
-  // 1.3 LTV - calculate from formula, not AI guess
+  // 1.3 LTV - calculate from formula
   // FORMULA: LTV = Avg_Check × Orders_per_Month × Lifetime_Months
   const calculatedLtv = avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months;
   
   audit.push({
-    formula: 'LTV = Средний_чек × Заказов_в_месяц × Время_жизни_клиента',
+    formula: 'LTV = Avg_Check × Orders_per_Month × Client_Lifetime',
     inputs: {
-      'Средний чек': avgCheck,
-      'Заказов/мес': benchmarks.orders_per_client,
-      'Время жизни (мес)': benchmarks.client_lifetime_months
+      'Average Check': avgCheck,
+      'Orders/Month': benchmarks.orders_per_client,
+      'Lifetime (months)': benchmarks.client_lifetime_months
     },
     result: calculatedLtv,
     isValid: true,
-    notes: `${avgCheck} × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = ${calculatedLtv}₽`
+    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${calculatedLtv}`
   });
   
   let ltv = calculatedLtv;
   
-  // Check if raw LTV was significantly different
   if (Math.abs(rawLtv - calculatedLtv) > calculatedLtv * 0.5) {
     corrections.push({
       field: 'ltv',
       original: rawLtv,
       corrected: calculatedLtv,
-      reason: `LTV пересчитан по формуле: ${avgCheck}₽ × ${benchmarks.orders_per_client} заказа × ${benchmarks.client_lifetime_months} мес = ${calculatedLtv}₽`
+      reason: `LTV recalculated: $${avgCheck} × ${benchmarks.orders_per_client} orders × ${benchmarks.client_lifetime_months} months = $${calculatedLtv}`
     });
   }
   
@@ -235,17 +506,16 @@ function calculateStrictFinancials(
     inputs: { LTV: ltv, CAC: cac },
     result: ltvCacRatio,
     isValid: ltvCacRatio >= benchmarks.ltv_cac_min && ltvCacRatio <= benchmarks.ltv_cac_max,
-    notes: `${ltv} / ${cac} = ${ltvCacRatio}x (норма: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`
+    notes: `$${ltv} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`
   });
   
   if (ltvCacRatio > benchmarks.ltv_cac_max) {
-    // LTV:CAC too high - need to adjust
     const targetLtv = cac * benchmarks.ltv_cac_max;
     corrections.push({
       field: 'ltv_cac_ratio',
       original: ltvCacRatio,
       corrected: benchmarks.ltv_cac_max,
-      reason: `LTV:CAC ${ltvCacRatio}x нереалистично высокий (максимум ${benchmarks.ltv_cac_max}x). LTV скорректирован до ${targetLtv}₽`
+      reason: `LTV:CAC ${ltvCacRatio}x is unrealistically high (max ${benchmarks.ltv_cac_max}x). LTV adjusted to $${targetLtv}`
     });
     ltv = targetLtv;
     ltvCacRatio = benchmarks.ltv_cac_max;
@@ -256,91 +526,82 @@ function calculateStrictFinancials(
   const mrr = rawMrr;
   
   // 2.1 COGS (variable cost)
-  // FORMULA: COGS = MRR × COGS_Percent
   const cogs = Math.round(mrr * (benchmarks.cogs_percent / 100));
   
   audit.push({
-    formula: 'Себестоимость = Выручка × COGS%',
-    inputs: { 'Выручка': mrr, 'COGS%': benchmarks.cogs_percent },
+    formula: 'COGS = Revenue × COGS%',
+    inputs: { 'Revenue': mrr, 'COGS%': benchmarks.cogs_percent },
     result: cogs,
     isValid: true,
-    notes: `${mrr} × ${benchmarks.cogs_percent}% = ${cogs}₽`
+    notes: `$${mrr} × ${benchmarks.cogs_percent}% = $${cogs}`
   });
   
   // 2.2 Fixed costs
-  const salaries = benchmarks.salaries_fixed;
-  const rent = benchmarks.rent_fixed;
-  const utilities = benchmarks.utilities_fixed;
-  const other = benchmarks.other_fixed;
+  const salaries = adjustedSalaries;
+  const rent = adjustedRent;
+  const utilities = adjustedUtilities;
+  const other = adjustedOther;
   const fixedCosts = salaries + rent + utilities + other;
   
   // 2.3 Marketing cost
-  // FORMULA: Marketing = New_Clients × CAC
-  // New clients needed = ~30% of active clients (churn replacement + growth)
   const revenuePerClient = avgCheck * benchmarks.orders_per_client;
   const clientsActive = Math.ceil(mrr / revenuePerClient);
-  const newClientsNeeded = Math.ceil(clientsActive * 0.25); // 25% new clients per month
+  const newClientsNeeded = Math.ceil(clientsActive * 0.25);
   const marketing = newClientsNeeded * cac;
   
   audit.push({
-    formula: 'Маркетинг = Новые_клиенты × CAC',
+    formula: 'Marketing = New_Clients × CAC',
     inputs: { 
-      'Активные клиенты': clientsActive,
-      'Новых клиентов (25%)': newClientsNeeded,
+      'Active Clients': clientsActive,
+      'New Clients (25%)': newClientsNeeded,
       'CAC': cac 
     },
     result: marketing,
     isValid: true,
-    notes: `${newClientsNeeded} × ${cac}₽ = ${marketing}₽`
+    notes: `${newClientsNeeded} × $${cac} = $${marketing}`
   });
   
   // 2.4 Total expenses
-  // FORMULA: Total_Expenses = COGS + Fixed_Costs + Marketing
   const totalExpenses = cogs + fixedCosts + marketing;
   
   audit.push({
-    formula: 'Расходы = COGS + Фикс_затраты + Маркетинг',
+    formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
     inputs: { 
       'COGS': cogs, 
-      'ФОТ': salaries,
-      'Аренда': rent,
-      'Коммуналка': utilities,
-      'Прочие': other,
-      'Маркетинг': marketing 
+      'Salaries': salaries,
+      'Rent': rent,
+      'Utilities': utilities,
+      'Other': other,
+      'Marketing': marketing 
     },
     result: totalExpenses,
     isValid: true,
-    notes: `${cogs} + ${salaries} + ${rent} + ${utilities} + ${other} + ${marketing} = ${totalExpenses}₽`
+    notes: `$${cogs} + $${salaries} + $${rent} + $${utilities} + $${other} + $${marketing} = $${totalExpenses}`
   });
   
   // ===== STEP 3: Calculate profit metrics =====
   
-  // 3.1 Net Profit
-  // FORMULA: Net_Profit = MRR - Total_Expenses
   const netProfit = mrr - totalExpenses;
   const isProfitable = netProfit > 0;
   
   audit.push({
-    formula: 'Чистая_прибыль = Выручка - Расходы',
-    inputs: { 'Выручка': mrr, 'Расходы': totalExpenses },
+    formula: 'Net_Profit = Revenue - Expenses',
+    inputs: { 'Revenue': mrr, 'Expenses': totalExpenses },
     result: netProfit,
     isValid: isProfitable,
-    notes: `${mrr} - ${totalExpenses} = ${netProfit}₽ ${isProfitable ? '✓' : '❌ УБЫТОК'}`
+    notes: `$${mrr} - $${totalExpenses} = $${netProfit} ${isProfitable ? '✓' : '❌ LOSS'}`
   });
   
-  // 3.2 Net Margin
-  // FORMULA: Net_Margin = (Net_Profit / MRR) × 100
   const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
   
   audit.push({
-    formula: 'Чистая_маржа = (Прибыль / Выручка) × 100%',
-    inputs: { 'Прибыль': netProfit, 'Выручка': mrr },
+    formula: 'Net_Margin = (Profit / Revenue) × 100%',
+    inputs: { 'Profit': netProfit, 'Revenue': mrr },
     result: netMarginPercent,
     isValid: netMarginPercent >= benchmarks.net_margin_min && netMarginPercent <= benchmarks.net_margin_max,
-    notes: `(${netProfit} / ${mrr}) × 100 = ${netMarginPercent}% (норма: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%)`
+    notes: `($${netProfit} / $${mrr}) × 100 = ${netMarginPercent}% (healthy: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%)`
   });
   
-  // 3.3 Gross Profit & Margin
   const grossProfit = mrr - cogs;
   const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
   
@@ -348,73 +609,65 @@ function calculateStrictFinancials(
   
   const startupInvestment = rawInvestment;
   
-  // 4.1 Payback Period
-  // FORMULA: Payback = Investment / Monthly_Profit
   let paybackMonths = 0;
   if (startupInvestment > 0) {
     if (netProfit > 0) {
       paybackMonths = Math.ceil(startupInvestment / netProfit);
     } else {
-      paybackMonths = 999; // Never pays back if loss
+      paybackMonths = 999;
     }
   }
   
   audit.push({
-    formula: 'Окупаемость = Инвестиции / Месячная_прибыль',
-    inputs: { 'Инвестиции': startupInvestment, 'Прибыль/мес': netProfit },
+    formula: 'Payback = Investment / Monthly_Profit',
+    inputs: { 'Investment': startupInvestment, 'Profit/mo': netProfit },
     result: paybackMonths,
     isValid: paybackMonths < 36 && paybackMonths > 0,
     notes: paybackMonths === 999 
-      ? 'Бизнес убыточен - окупаемость невозможна' 
-      : `${startupInvestment} / ${netProfit} = ${paybackMonths} мес`
+      ? 'Business is unprofitable - payback impossible' 
+      : `$${startupInvestment} / $${netProfit} = ${paybackMonths} months`
   });
   
-  // 4.2 ROI Year 1
-  // FORMULA: ROI = (Profit × 12 / Investment) × 100
   let roiYear1Percent = 0;
   if (startupInvestment > 0) {
     roiYear1Percent = Math.round((netProfit * 12 / startupInvestment) * 100);
   }
   
   audit.push({
-    formula: 'ROI = (Прибыль × 12 / Инвестиции) × 100%',
-    inputs: { 'Прибыль/мес': netProfit, 'Инвестиции': startupInvestment },
+    formula: 'ROI = (Profit × 12 / Investment) × 100%',
+    inputs: { 'Profit/mo': netProfit, 'Investment': startupInvestment },
     result: roiYear1Percent,
     isValid: roiYear1Percent > 0,
-    notes: `(${netProfit} × 12 / ${startupInvestment}) × 100 = ${roiYear1Percent}%`
+    notes: `($${netProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`
   });
   
-  // 4.3 Break-even Revenue
-  // FORMULA: Break_Even = Fixed_Costs / (1 - Variable_Cost_Ratio)
-  const variableCostRatio = (benchmarks.cogs_percent / 100) + (marketing / mrr); // COGS + marketing as % of revenue
+  const variableCostRatio = (benchmarks.cogs_percent / 100) + (marketing / mrr);
   const breakEvenRevenue = Math.round(fixedCosts / (1 - variableCostRatio));
   
   audit.push({
-    formula: 'Точка_безубыточности = Фикс_затраты / (1 - Перем_затраты%)',
+    formula: 'Break_Even = Fixed_Costs / (1 - Variable_Cost_Ratio)',
     inputs: { 
-      'Фикс затраты': fixedCosts, 
-      'Перем затраты%': Math.round(variableCostRatio * 100) 
+      'Fixed Costs': fixedCosts, 
+      'Variable Cost %': Math.round(variableCostRatio * 100) 
     },
     result: breakEvenRevenue,
     isValid: true,
-    notes: `${fixedCosts} / (1 - ${Math.round(variableCostRatio * 100)}%) = ${breakEvenRevenue}₽/мес`
+    notes: `$${fixedCosts} / (1 - ${Math.round(variableCostRatio * 100)}%) = $${breakEvenRevenue}/mo`
   });
   
-  // 4.4 Revenue needed for 45k profit
-  // FORMULA: Revenue_Target = (Fixed_Costs + Target_Profit) / (1 - Variable_Cost_Ratio)
   const targetProfit = 45000;
   const revenueFor45kProfit = Math.round((fixedCosts + targetProfit) / (1 - variableCostRatio));
   
   audit.push({
-    formula: 'Выручка_для_45к = (Фикс_затраты + 45000) / (1 - Перем_затраты%)',
+    formula: 'Revenue_for_$45k = (Fixed_Costs + $45000) / (1 - Variable%)',
     inputs: { 
-      'Фикс затраты': fixedCosts, 
-      'Целевая прибыль': targetProfit,
-      'Перем затраты%': Math.round(variableCostRatio * 100) 
+      'Fixed Costs': fixedCosts, 
+      'Target Profit': targetProfit,
+      'Variable Cost %': Math.round(variableCostRatio * 100) 
     },
     result: revenueFor45kProfit,
     isValid: true,
-    notes: `(${fixedCosts} + ${targetProfit}) / (1 - ${Math.round(variableCostRatio * 100)}%) = ${revenueFor45kProfit}₽/мес`
+    notes: `($${fixedCosts} + $${targetProfit}) / (1 - ${Math.round(variableCostRatio * 100)}%) = $${revenueFor45kProfit}/mo`
   });
   
   return {
@@ -446,68 +699,67 @@ function calculateStrictFinancials(
     revenueFor45kProfit,
     isProfitable,
     corrections,
-    audit
+    audit,
+    industryDetected: benchmarks.name
   };
 }
 
-function transformResponse(raw: any, location: string) {
+function transformResponse(raw: any, location: string, benchmarks: IndustryBenchmarks, locationMultiplier: number) {
   const fa = safeParseJSON(raw.financial_json, {});
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
-  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Открытые источники", "Отраслевые данные"];
-  const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Оценочные расчёты"];
+  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Public sources", "Industry data"];
+  const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Estimates based on industry benchmarks"];
 
-  // Get benchmarks for this business/location
-  const benchmarks = getIndustryBenchmarks("bakery", location);
-  
   // Extract raw values from AI
-  const rawMrr = fa.mrr || 450000;
-  const rawInvestment = fa.startup_investment || 1500000;
+  const rawMrr = fa.mrr || 50000;
+  const rawInvestment = fa.startup_investment || 100000;
   const rawCac = fa.cac || mp.cac || benchmarks.cac_typical;
-  const rawLtv = fa.ltv || mp.ltv || 5000;
-  const rawAvgCheck = fa.average_check || 600;
+  const rawLtv = fa.ltv || mp.ltv || 500;
+  const rawAvgCheck = fa.average_check || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   
   // Calculate with strict validation
-  const calc = calculateStrictFinancials(rawMrr, rawInvestment, rawCac, rawLtv, rawAvgCheck, benchmarks);
+  const calc = calculateStrictFinancials(rawMrr, rawInvestment, rawCac, rawLtv, rawAvgCheck, benchmarks, locationMultiplier);
   
-  // Build calculation summary
+  // Build calculation summary in English
   const calculationsSummary = `
-## Аудит финансовых расчётов
+## Financial Calculations Audit
 
-### Входные данные
-- Выручка (MRR): ${calc.mrr.toLocaleString()}₽
-- Инвестиции: ${calc.startupInvestment.toLocaleString()}₽
-- Средний чек: ${calc.averageCheck}₽
-- CAC: ${calc.cac}₽
-- LTV: ${calc.ltv.toLocaleString()}₽
+### Input Data
+- Revenue (MRR): $${calc.mrr.toLocaleString()}
+- Investment: $${calc.startupInvestment.toLocaleString()}
+- Average Check: $${calc.averageCheck}
+- CAC: $${calc.cac}
+- LTV: $${calc.ltv.toLocaleString()}
+- Industry: ${calc.industryDetected}
 
-### Структура расходов
-| Статья | Сумма | % от выручки |
-|--------|-------|--------------|
-| Себестоимость (COGS) | ${calc.expenses.cogs.toLocaleString()}₽ | ${Math.round(calc.expenses.cogs / calc.mrr * 100)}% |
-| ФОТ | ${calc.expenses.salaries.toLocaleString()}₽ | ${Math.round(calc.expenses.salaries / calc.mrr * 100)}% |
-| Аренда | ${calc.expenses.rent.toLocaleString()}₽ | ${Math.round(calc.expenses.rent / calc.mrr * 100)}% |
-| Коммуналка | ${calc.expenses.utilities.toLocaleString()}₽ | ${Math.round(calc.expenses.utilities / calc.mrr * 100)}% |
-| Маркетинг | ${calc.expenses.marketing.toLocaleString()}₽ | ${Math.round(calc.expenses.marketing / calc.mrr * 100)}% |
-| Прочие | ${calc.expenses.other.toLocaleString()}₽ | ${Math.round(calc.expenses.other / calc.mrr * 100)}% |
-| **ИТОГО** | **${calc.totalExpenses.toLocaleString()}₽** | **${Math.round(calc.totalExpenses / calc.mrr * 100)}%** |
+### Expense Structure
+| Category | Amount | % of Revenue |
+|----------|--------|--------------|
+| COGS | $${calc.expenses.cogs.toLocaleString()} | ${Math.round(calc.expenses.cogs / calc.mrr * 100)}% |
+| Salaries | $${calc.expenses.salaries.toLocaleString()} | ${Math.round(calc.expenses.salaries / calc.mrr * 100)}% |
+| Rent | $${calc.expenses.rent.toLocaleString()} | ${Math.round(calc.expenses.rent / calc.mrr * 100)}% |
+| Utilities | $${calc.expenses.utilities.toLocaleString()} | ${Math.round(calc.expenses.utilities / calc.mrr * 100)}% |
+| Marketing | $${calc.expenses.marketing.toLocaleString()} | ${Math.round(calc.expenses.marketing / calc.mrr * 100)}% |
+| Other | $${calc.expenses.other.toLocaleString()} | ${Math.round(calc.expenses.other / calc.mrr * 100)}% |
+| **TOTAL** | **$${calc.totalExpenses.toLocaleString()}** | **${Math.round(calc.totalExpenses / calc.mrr * 100)}%** |
 
-### Расчёт прибыли
-**Прибыль = Выручка - Расходы**
-${calc.mrr.toLocaleString()}₽ - ${calc.totalExpenses.toLocaleString()}₽ = **${calc.netProfit.toLocaleString()}₽** ${calc.isProfitable ? '✓' : '❌ УБЫТОК'}
+### Profit Calculation
+**Profit = Revenue - Expenses**
+$${calc.mrr.toLocaleString()} - $${calc.totalExpenses.toLocaleString()} = **$${calc.netProfit.toLocaleString()}** ${calc.isProfitable ? '✓' : '❌ LOSS'}
 
-### Ключевые метрики
-- **Чистая маржа:** ${calc.netMarginPercent}% ${calc.netMarginPercent >= benchmarks.net_margin_min ? '✓' : '⚠'}
+### Key Metrics
+- **Net Margin:** ${calc.netMarginPercent}% ${calc.netMarginPercent >= benchmarks.net_margin_min ? '✓' : '⚠'}
 - **LTV:CAC:** ${calc.ltvCacRatio}x ${calc.ltvCacRatio >= benchmarks.ltv_cac_min ? '✓' : '⚠'}
-- **Окупаемость:** ${calc.paybackMonths === 999 ? 'никогда' : calc.paybackMonths + ' мес'}
-- **ROI за год:** ${calc.roiYear1Percent}%
+- **Payback:** ${calc.paybackMonths === 999 ? 'never' : calc.paybackMonths + ' months'}
+- **Year 1 ROI:** ${calc.roiYear1Percent}%
 
-### Точки безубыточности
-- **Для нулевой прибыли:** ${calc.breakEvenRevenue.toLocaleString()}₽/мес
-- **Для прибыли 45k:** ${calc.revenueFor45kProfit.toLocaleString()}₽/мес
+### Break-even Points
+- **For zero profit:** $${calc.breakEvenRevenue.toLocaleString()}/mo
+- **For $45k profit:** $${calc.revenueFor45kProfit.toLocaleString()}/mo
 
-### Формулы расчётов
+### Formula Audit
 ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 `.trim();
 
@@ -525,7 +777,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         startup_investment: calc.startupInvestment,
         capex: Math.round(calc.startupInvestment * 0.45),
         ltv: calc.ltv,
-        churn_rate: 0.15
+        churn_rate: Math.round(100 / benchmarks.client_lifetime_months) / 100
       },
       mrr: calc.mrr,
       arr: calc.mrr * 12,
@@ -583,11 +835,11 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
           rent_deposit: Math.round(calc.expenses.rent * 2),
           equipment: Math.round(calc.startupInvestment * 0.45),
           inventory: Math.round(calc.startupInvestment * 0.15),
-          legal: 50000,
+          legal: 2000,
           marketing_initial: Math.round(calc.startupInvestment * 0.1),
           working_capital: Math.round(calc.startupInvestment * 0.2)
         },
-        reasoning: `Инвестиции ${calc.startupInvestment.toLocaleString()}₽: оборудование 45%, запасы 15%, оборотный капитал 20%, маркетинг 10%, депозит и регистрация 10%`
+        reasoning: `Investment $${calc.startupInvestment.toLocaleString()}: equipment 45%, inventory 15%, working capital 20%, marketing 10%, deposit & legal 10%`
       },
       monthly_expenses: {
         total: calc.totalExpenses,
@@ -604,39 +856,40 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       },
       risk_analysis: {
         revenue_drop_20: {
-          scenario: "Падение выручки на 20%",
-          description: "Снижение спроса, сезонность, конкуренция",
+          scenario: "Revenue drops 20%",
+          description: "Demand decline, seasonality, or competition",
           impact_on_revenue: -20,
           impact_on_costs: 0,
           resulting_profit: Math.round((calc.mrr * 0.8) - calc.totalExpenses * 0.95),
-          probability: "средняя" as const
+          probability: "medium" as const
         },
         costs_rise_15: {
-          scenario: "Рост затрат на 15%",
-          description: "Инфляция, рост цен на сырьё и аренду",
+          scenario: "Costs increase 15%",
+          description: "Inflation, supplier price increases, rent hikes",
           impact_on_revenue: 0,
           impact_on_costs: 15,
           resulting_profit: Math.round(calc.mrr - calc.totalExpenses * 1.15),
-          probability: "высокая" as const
+          probability: "high" as const
         },
         cac_doubles: {
-          scenario: "Удвоение CAC",
-          description: "Рост конкуренции в рекламе",
+          scenario: "CAC doubles",
+          description: "Increased ad competition, market saturation",
           impact_on_revenue: 0,
           impact_on_costs: 0,
           resulting_profit: Math.round(calc.netProfit - calc.expenses.marketing),
-          probability: "средняя" as const
+          probability: "medium" as const
         },
         churn_increase: {
-          scenario: "Рост оттока на 50%",
-          description: "Снижение качества, конкуренция",
+          scenario: "Churn increases 50%",
+          description: "Quality issues, competitor offers, market shift",
           impact_on_revenue: -15,
           impact_on_costs: 0,
           resulting_profit: Math.round((calc.mrr * 0.85) - calc.totalExpenses),
-          probability: "средняя" as const
+          probability: "medium" as const
         }
       },
-      calculations_summary: calculationsSummary
+      calculations_summary: calculationsSummary,
+      industry_detected: calc.industryDetected
     },
     business_plan: {
       executive_summary: bp.executive_summary || "",
@@ -670,7 +923,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       barriers_to_entry: ma.barriers_to_entry || "",
       growth_opportunities: ma.growth_opportunities || ""
     },
-    confidence_score: 0, // Will be calculated after validation
+    confidence_score: 0,
     data_sources: sources,
     limitations: limits,
     _calc: calc
@@ -687,14 +940,14 @@ serve(async (req) => {
 
     if (!idea || idea.trim().length < 10) {
       return new Response(
-        JSON.stringify({ error: "Идея должна содержать минимум 10 символов", code: "VALIDATION_ERROR" }),
+        JSON.stringify({ error: "Business idea must be at least 10 characters", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     if (!location || location.trim().length < 2) {
       return new Response(
-        JSON.stringify({ error: "Укажите локацию", code: "VALIDATION_ERROR" }),
+        JSON.stringify({ error: "Please specify a location", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -702,82 +955,87 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
-        JSON.stringify({ error: "AI сервис не настроен", code: "CONFIG_ERROR" }),
+        JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location}`);
+    // Detect industry from business idea
+    const detectedIndustry = detectIndustry(idea);
+    const locationMultiplier = getLocationMultiplier(location);
+    
+    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location} | Industry: ${detectedIndustry.name} | Location multiplier: ${locationMultiplier}`);
 
-    const prompt = `Ты — финансовый аналитик. Проанализируй бизнес-идею.
+    const prompt = `You are a financial analyst. Analyze this business idea.
 
-## БИЗНЕС-ИДЕЯ
+## BUSINESS IDEA
 ${idea.trim()}
 
-## ЛОКАЦИЯ (ИСПОЛЬЗУЙ ТОЛЬКО ЭТУ!)
+## LOCATION (USE THIS LOCATION ONLY!)
 ${location.trim()}
 
-## ТРЕБОВАНИЯ
+## DETECTED INDUSTRY: ${detectedIndustry.name}
 
-### Для пекарни/доставки еды используй эти диапазоны:
-- Выручка: 300,000 - 600,000₽/мес
-- Средний чек: 400 - 800₽
-- CAC: 250 - 500₽
-- Стартовые инвестиции: 1,000,000 - 2,000,000₽
-- Оборудование: 500,000 - 900,000₽
+## REQUIREMENTS
 
-### Формулы (ВАЖНО!):
-- LTV = Средний_чек × 4_заказа × 4_месяца
-- Пример: 600₽ × 4 × 4 = 9,600₽
+### Use these industry-specific ranges for ${detectedIndustry.name}:
+- Monthly Revenue: $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 100)} - $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 500)}
+- Average Check: $${detectedIndustry.average_check_min} - $${detectedIndustry.average_check_max}
+- CAC: $${detectedIndustry.cac_min} - $${detectedIndustry.cac_max}
+- Startup Investment: $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 10)} - $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 25)}
 
-## ФОРМАТ ОТВЕТА
+### Formulas (IMPORTANT!):
+- LTV = Average_Check × ${detectedIndustry.orders_per_client}_orders_per_month × ${detectedIndustry.client_lifetime_months}_months_lifetime
+- Example: $${detectedIndustry.average_check_max} × ${detectedIndustry.orders_per_client} × ${detectedIndustry.client_lifetime_months} = $${detectedIndustry.average_check_max * detectedIndustry.orders_per_client * detectedIndustry.client_lifetime_months}
+
+## RESPONSE FORMAT (ALL IN ENGLISH!)
 
 financial_json:
 {
-  "mrr": число (300000-600000),
-  "average_check": число (400-800),
-  "orders_monthly": число,
-  "startup_investment": число (1000000-2000000),
-  "cac": число (250-500),
-  "ltv": число (рассчитай по формуле!),
-  "equipment": число
+  "mrr": number (monthly revenue in USD),
+  "average_check": number (in USD),
+  "orders_monthly": number,
+  "startup_investment": number (in USD),
+  "cac": number (in USD),
+  "ltv": number (calculate using formula!),
+  "equipment": number (in USD)
 }
 
 business_json:
 {
-  "executive_summary": "краткое резюме",
-  "product_description": "описание",
-  "target_audience": "аудитория в ${location.trim()}",
-  "competitive_advantages": "преимущества",
-  "operations": "операции",
-  "launch_steps": ["шаг1", "шаг2", "шаг3"],
-  "risks": [{"name": "риск", "description": "описание", "mitigation": "как снизить"}]
+  "executive_summary": "brief summary",
+  "product_description": "description",
+  "target_audience": "audience in ${location.trim()}",
+  "competitive_advantages": "advantages",
+  "operations": "operations plan",
+  "launch_steps": ["step1", "step2", "step3"],
+  "risks": [{"name": "risk name", "description": "description", "mitigation": "how to mitigate"}]
 }
 
 marketing_json:
 {
-  "positioning": "позиционирование",
-  "pricing_strategy": "стратегия",
-  "channels": [{"name": "канал", "budget": число, "expected_roi": число}],
-  "cac": число,
-  "ltv": число,
-  "first_3_months_plan": "план первых 3 месяцев"
+  "positioning": "market positioning",
+  "pricing_strategy": "pricing strategy",
+  "channels": [{"name": "channel name", "budget": number, "expected_roi": number}],
+  "cac": number,
+  "ltv": number,
+  "first_3_months_plan": "first 3 months marketing plan"
 }
 
 market_json:
 {
-  "tam": "TAM",
-  "sam": "SAM",
-  "som": "SOM",
-  "trends": ["тренд1", "тренд2"],
-  "competitors": [{"name": "конкурент", "strengths": "сильные стороны", "weaknesses": "слабые стороны"}],
-  "competitive_landscape": "анализ",
-  "market_gaps": "возможности",
-  "barriers_to_entry": "барьеры",
-  "growth_opportunities": "рост"
+  "tam": "Total Addressable Market",
+  "sam": "Serviceable Available Market",
+  "som": "Serviceable Obtainable Market",
+  "trends": ["trend1", "trend2"],
+  "competitors": [{"name": "competitor", "strengths": "strengths", "weaknesses": "weaknesses"}],
+  "competitive_landscape": "analysis",
+  "market_gaps": "opportunities",
+  "barriers_to_entry": "barriers",
+  "growth_opportunities": "growth potential"
 }
 
-Вызови submit_analysis.`;
+Call submit_analysis with all sections in English.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -799,13 +1057,13 @@ market_json:
       
       if (response.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Слишком много запросов. Подождите минуту.", code: "RATE_LIMIT" }),
+          JSON.stringify({ error: "Too many requests. Please wait a minute.", code: "RATE_LIMIT" }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
       return new Response(
-        JSON.stringify({ error: "Ошибка AI сервиса", code: "AI_ERROR" }),
+        JSON.stringify({ error: "AI service error", code: "AI_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -816,7 +1074,7 @@ market_json:
     if (aiResponse.error) {
       console.error("AI error:", JSON.stringify(aiResponse.error));
       return new Response(
-        JSON.stringify({ error: "Ошибка AI. Попробуйте снова.", code: "AI_API_ERROR" }),
+        JSON.stringify({ error: "AI error. Please try again.", code: "AI_API_ERROR" }),
         { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -825,7 +1083,7 @@ market_json:
     if (!toolCall) {
       console.error("No tool call in response");
       return new Response(
-        JSON.stringify({ error: "AI не вернул анализ. Попробуйте снова.", code: "NO_TOOL_CALL" }),
+        JSON.stringify({ error: "AI did not return analysis. Please try again.", code: "NO_TOOL_CALL" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -836,12 +1094,12 @@ market_json:
     } catch (e) {
       console.error("Parse error:", e);
       return new Response(
-        JSON.stringify({ error: "Ошибка парсинга", code: "PARSE_ERROR" }),
+        JSON.stringify({ error: "Parse error", code: "PARSE_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const result = transformResponse(rawResult, location.trim());
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier);
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
@@ -860,7 +1118,7 @@ market_json:
         value: calc.netProfit,
         expected: '> 0',
         severity: 'error',
-        message: `❌ УБЫТОК ${Math.abs(calc.netProfit).toLocaleString()}₽/мес при выручке ${calc.mrr.toLocaleString()}₽. Безубыточность: ${calc.breakEvenRevenue.toLocaleString()}₽/мес. Для прибыли 45k: ${calc.revenueFor45kProfit.toLocaleString()}₽/мес.`
+        message: `❌ LOSS of $${Math.abs(calc.netProfit).toLocaleString()}/mo at revenue $${calc.mrr.toLocaleString()}. Break-even: $${calc.breakEvenRevenue.toLocaleString()}/mo. For $45k profit: $${calc.revenueFor45kProfit.toLocaleString()}/mo.`
       });
     }
     
@@ -870,7 +1128,7 @@ market_json:
         value: calc.ltvCacRatio,
         expected: '3-6x',
         severity: 'warning',
-        message: `LTV:CAC ${calc.ltvCacRatio}x ниже нормы 3x — маркетинг слишком дорогой`
+        message: `LTV:CAC ${calc.ltvCacRatio}x is below healthy threshold of 3x — marketing is too expensive`
       });
     }
     
@@ -878,14 +1136,13 @@ market_json:
       warnings.push({
         field: 'payback',
         value: calc.paybackMonths,
-        expected: '12-24 мес',
+        expected: '12-24 months',
         severity: 'warning',
-        message: `Окупаемость ${calc.paybackMonths} мес — длинный срок возврата инвестиций`
+        message: `Payback period of ${calc.paybackMonths} months — long investment recovery time`
       });
     }
     
     // ========== INTELLIGENT RELIABILITY SCORE ==========
-    // Base score starts at 100
     let reliabilityScore = 100;
     
     // 1. Penalty for AI data corrections (max -40)
@@ -900,12 +1157,12 @@ market_json:
     // 3. Penalty for each warning (-8)
     reliabilityScore -= warnings.length * 8;
     
-    // 4. Penalty for unrealistic LTV:CAC (too high >8x or too low <2x) (-10)
+    // 4. Penalty for unrealistic LTV:CAC (-10)
     if (calc.ltvCacRatio > 8 || calc.ltvCacRatio < 2) {
       reliabilityScore -= 10;
     }
     
-    // 5. Penalty for very long payback (>36 months) (-15)
+    // 5. Penalty for very long payback (-15)
     if (calc.paybackMonths > 36 && calc.paybackMonths < 999) {
       reliabilityScore -= 15;
     }
@@ -925,13 +1182,11 @@ market_json:
       reliabilityScore += 5;
     }
     
-    // Clamp to 0-100
     reliabilityScore = Math.max(0, Math.min(100, reliabilityScore));
     
-    // Update confidence_score in result
     result.confidence_score = reliabilityScore;
     
-    console.log(`Done. Profit: ${calc.netProfit}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
+    console.log(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
     return new Response(
       JSON.stringify({
@@ -948,18 +1203,21 @@ market_json:
             calculation_audit: calc.audit,
             break_even_revenue: calc.breakEvenRevenue,
             revenue_for_45k_profit: calc.revenueFor45kProfit,
+            industry_detected: calc.industryDetected,
             summary: !calc.isProfitable 
-              ? `❌ Бизнес убыточен. Нужна выручка от ${calc.breakEvenRevenue.toLocaleString()}₽/мес`
+              ? `❌ Business is unprofitable. Need revenue from $${calc.breakEvenRevenue.toLocaleString()}/mo`
               : calc.corrections.length > 0 
-                ? `⚠ Скорректировано ${calc.corrections.length} показателей`
-                : `✓ Расчёты корректны. Прибыль ${calc.netProfit.toLocaleString()}₽/мес`
+                ? `⚠ Corrected ${calc.corrections.length} metrics for accuracy`
+                : `✓ Calculations verified. Profit $${calc.netProfit.toLocaleString()}/mo`
           },
           metadata: {
             idea: idea.trim(),
             location: location.trim(),
+            industry_detected: calc.industryDetected,
+            location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "5.0-strict-audit",
+            version: "6.0-multi-industry-usd",
           },
         },
       }),
@@ -969,7 +1227,7 @@ market_json:
   } catch (error) {
     console.error("Error:", error);
     return new Response(
-      JSON.stringify({ error: "Внутренняя ошибка", code: "INTERNAL_ERROR" }),
+      JSON.stringify({ error: "Internal error", code: "INTERNAL_ERROR" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
