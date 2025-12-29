@@ -19,12 +19,12 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription } from '@/hooks/useSubscription';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { createCheckout } = useSubscription();
+  const { initiateCheckout, isLoading: checkoutLoading } = useStripeCheckout();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   
   const [darkMode, setDarkMode] = useState(() => {
@@ -56,13 +56,13 @@ export default function Landing() {
     setLoadingPlan(planName);
     
     if (user) {
-      // User is logged in - go straight to Stripe
-      await createCheckout(plan);
-      // If we get here, redirect failed
-      setTimeout(() => setLoadingPlan(null), 3000);
+      // User is logged in - go straight to Stripe with bulletproof redirect
+      await initiateCheckout(plan);
+      // If we get here, redirect failed - the hook handles the overlay
     } else {
-      // Not logged in - redirect to auth with plan info
-      navigate(`/auth?redirect=checkout&plan=${plan}`);
+      // Not logged in - save plan and redirect to auth
+      localStorage.setItem('pending_checkout_plan', plan);
+      navigate('/auth');
     }
   };
 
@@ -174,18 +174,7 @@ export default function Landing() {
     { value: '4.9/5', label: 'User Rating' },
   ];
 
-  // Full-screen loading overlay when checkout is processing
-  if (loadingPlan) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
-          <p className="text-lg font-medium text-foreground">Redirecting to payment...</p>
-          <p className="text-sm text-muted-foreground">Please wait</p>
-        </div>
-      </div>
-    );
-  }
+  // The useStripeCheckout hook handles the overlay, so we don't need one here
 
   return (
     <div className="min-h-screen bg-background text-foreground">

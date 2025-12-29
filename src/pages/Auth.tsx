@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { useSubscription } from '@/hooks/useSubscription';
+import { createStripeCheckout } from '@/hooks/useStripeCheckout';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -22,7 +22,6 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
-  const { createCheckout } = useSubscription();
   const checkoutTriggered = useRef(false);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   
@@ -36,24 +35,36 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Handle redirect after auth (e.g., checkout flow)
+  // Handle redirect after auth - check both URL params and localStorage
   useEffect(() => {
     if (isAuthenticated && !checkoutTriggered.current) {
+      // First check URL params (from old flow)
       const redirect = searchParams.get('redirect');
-      const plan = searchParams.get('plan') as 'plus' | 'pro' | null;
+      const urlPlan = searchParams.get('plan') as 'plus' | 'pro' | null;
       
-      if (redirect === 'checkout' && plan) {
+      // Then check localStorage (from new flow)
+      const storedPlan = localStorage.getItem('pending_checkout_plan') as 'plus' | 'pro' | null;
+      
+      const plan = urlPlan || storedPlan;
+      const shouldCheckout = (redirect === 'checkout' && urlPlan) || storedPlan;
+      
+      if (shouldCheckout && plan) {
         checkoutTriggered.current = true;
         setIsProcessingCheckout(true);
-        // Small delay to ensure auth state is fully settled
-        setTimeout(() => {
-          createCheckout(plan);
-        }, 500);
+        // Clear stored plan
+        localStorage.removeItem('pending_checkout_plan');
+        // Use standalone function for bulletproof redirect
+        createStripeCheckout(plan).catch((err) => {
+          console.error('[Auth] Checkout failed:', err);
+          setIsProcessingCheckout(false);
+          toast.error('Failed to start checkout. Please try again.');
+          navigate('/app');
+        });
       } else {
         navigate('/app');
       }
     }
-  }, [isAuthenticated, searchParams, createCheckout, navigate]);
+  }, [isAuthenticated, searchParams, navigate]);
 
   const validateLogin = () => {
     const newErrors: Record<string, string> = {};
