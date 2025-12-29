@@ -106,7 +106,7 @@ export default function Landing() {
       highlighted: false,
     },
     {
-      name: 'Pro',
+      name: 'Plus',
       price: '$17',
       period: 'per month',
       description: 'For serious entrepreneurs',
@@ -119,23 +119,23 @@ export default function Landing() {
         'Priority support',
       ],
       cta: 'Start Free Trial',
-      highlighted: true,
+      highlighted: false,
     },
     {
-      name: 'Enterprise',
+      name: 'Pro',
       price: '$29',
       period: 'per month',
       description: 'For teams and agencies',
       features: [
-        'Everything in Pro',
+        'Everything in Plus',
         'Team collaboration',
         'API access',
         'Custom branding',
         'Dedicated account manager',
         'SLA guarantee',
       ],
-      cta: 'Contact Sales',
-      highlighted: false,
+      cta: 'Get Pro',
+      highlighted: true,
     },
   ];
 

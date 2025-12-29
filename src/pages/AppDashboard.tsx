@@ -28,8 +28,8 @@ export default function Index() {
 
   const { isAuthenticated } = useAuth();
   const { 
+    isPlus,
     isPro, 
-    isEnterprise, 
     isFree, 
     analysesUsed, 
     remainingAnalyses, 
@@ -110,15 +110,15 @@ export default function Index() {
           <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <div className="flex items-center gap-2">
-                {isEnterprise ? (
+                {isPro ? (
                   <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
                     <Crown className="w-3 h-3" />
-                    Enterprise
+                    Pro
                   </Badge>
-                ) : isPro ? (
+                ) : isPlus ? (
                   <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
                     <Zap className="w-3 h-3" />
-                    Pro
+                    Plus
                   </Badge>
                 ) : (
                   <Badge variant="secondary" className="gap-1">
@@ -131,7 +131,7 @@ export default function Index() {
                   {remainingAnalyses} of 3 analyses remaining this month
                 </span>
               )}
-              {(isPro || isEnterprise) && (
+              {(isPlus || isPro) && (
                 <span className="text-sm text-muted-foreground">
                   Unlimited analyses
                 </span>

@@ -57,7 +57,7 @@ serve(async (req) => {
         console.log("Checkout completed:", session.id);
 
         const userId = session.metadata?.supabase_user_id;
-        const plan = session.metadata?.plan || "pro";
+        const plan = session.metadata?.plan || "plus";
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
 
@@ -97,15 +97,15 @@ serve(async (req) => {
         console.log("Subscription updated:", subscription.id);
 
         // Determine plan from price
+        const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
         const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
-        const enterprisePriceId = Deno.env.get("STRIPE_ENTERPRISE_PRICE_ID");
         const priceId = subscription.items.data[0]?.price.id;
         
-        let plan = "pro";
-        if (priceId === enterprisePriceId) {
-          plan = "enterprise";
-        } else if (priceId === proPriceId) {
+        let plan = "plus";
+        if (priceId === proPriceId) {
           plan = "pro";
+        } else if (priceId === plusPriceId) {
+          plan = "plus";
         }
 
         // Map Stripe status to our status
