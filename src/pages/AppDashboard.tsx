@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -10,11 +11,16 @@ import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
+import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard } from 'lucide-react';
+import { Skeleton } from '@/components/ui/skeleton';
+import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
 
 export default function Index() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { toast } = useToast();
+  
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' ||
@@ -31,11 +37,13 @@ export default function Index() {
     isPlus,
     isPro, 
     isFree, 
-    analysesUsed, 
     remainingAnalyses, 
-    canAnalyze,
+    loading: subscriptionLoading,
+    error: subscriptionError,
+    isTimedOut,
     createCheckout,
     openPortal,
+    refetch: refetchSubscription,
   } = useSubscription();
 
   const {
@@ -54,6 +62,31 @@ export default function Index() {
     reset,
     isFormValid,
   } = useAnalysis();
+
+  // Handle checkout success/cancel URL parameters
+  useEffect(() => {
+    const checkoutStatus = searchParams.get('checkout');
+    
+    if (checkoutStatus === 'success') {
+      toast({
+        title: 'Payment Successful!',
+        description: 'Your subscription is now active. Refreshing your status...',
+      });
+      // Refetch subscription after a short delay to allow webhook processing
+      setTimeout(() => {
+        refetchSubscription();
+      }, 2000);
+      // Clear the URL parameter
+      setSearchParams({});
+    } else if (checkoutStatus === 'canceled') {
+      toast({
+        title: 'Checkout Canceled',
+        description: 'Your payment was canceled. You can try again anytime.',
+        variant: 'destructive',
+      });
+      setSearchParams({});
+    }
+  }, [searchParams, setSearchParams, toast, refetchSubscription]);
 
   // Apply dark mode
   useEffect(() => {
@@ -100,6 +133,33 @@ export default function Index() {
     },
   ];
 
+  // Subscription status bar skeleton
+  const SubscriptionSkeleton = () => (
+    <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-6 w-16" />
+        <Skeleton className="h-4 w-40" />
+      </div>
+      <Skeleton className="h-9 w-24" />
+    </div>
+  );
+
+  // Subscription error state
+  const SubscriptionError = () => (
+    <div className="mb-6 p-4 rounded-lg border border-destructive/30 bg-destructive/5 flex flex-wrap items-center justify-between gap-4">
+      <div className="flex items-center gap-3 text-destructive">
+        <AlertCircle className="w-5 h-5" />
+        <span className="text-sm">
+          {isTimedOut ? 'Connection timeout - using free tier' : subscriptionError}
+        </span>
+      </div>
+      <Button size="sm" variant="outline" onClick={refetchSubscription} className="gap-1">
+        <RefreshCw className="w-3 h-3" />
+        Retry
+      </Button>
+    </div>
+  );
+
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
@@ -107,50 +167,58 @@ export default function Index() {
       <main className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
         {/* Subscription Status Bar */}
         {isAuthenticated && (
-          <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <div className="flex items-center gap-2">
-                {isPro ? (
-                  <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
-                    <Crown className="w-3 h-3" />
-                    Pro
-                  </Badge>
-                ) : isPlus ? (
-                  <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
-                    <Zap className="w-3 h-3" />
-                    Plus
-                  </Badge>
-                ) : (
-                  <Badge variant="secondary" className="gap-1">
-                    Free Plan
-                  </Badge>
-                )}
+          <>
+            {subscriptionLoading ? (
+              <SubscriptionSkeleton />
+            ) : subscriptionError || isTimedOut ? (
+              <SubscriptionError />
+            ) : (
+              <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-2">
+                    {isPro ? (
+                      <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
+                        <Crown className="w-3 h-3" />
+                        Pro
+                      </Badge>
+                    ) : isPlus ? (
+                      <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
+                        <Zap className="w-3 h-3" />
+                        Plus
+                      </Badge>
+                    ) : (
+                      <Badge variant="secondary" className="gap-1">
+                        Free Plan
+                      </Badge>
+                    )}
+                  </div>
+                  {isFree && (
+                    <span className="text-sm text-muted-foreground">
+                      {remainingAnalyses} of 3 analyses remaining this month
+                    </span>
+                  )}
+                  {(isPlus || isPro) && (
+                    <span className="text-sm text-muted-foreground">
+                      Unlimited analyses
+                    </span>
+                  )}
+                </div>
+                <div className="flex items-center gap-2">
+                  {isFree ? (
+                    <Button size="sm" onClick={() => setShowUpgradePrompt(true)} className="gap-1">
+                      <Zap className="w-3 h-3" />
+                      Upgrade
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
+                      <CreditCard className="w-3 h-3" />
+                      Manage Subscription
+                    </Button>
+                  )}
+                </div>
               </div>
-              {isFree && (
-                <span className="text-sm text-muted-foreground">
-                  {remainingAnalyses} of 3 analyses remaining this month
-                </span>
-              )}
-              {(isPlus || isPro) && (
-                <span className="text-sm text-muted-foreground">
-                  Unlimited analyses
-                </span>
-              )}
-            </div>
-            <div className="flex items-center gap-2">
-              {isFree ? (
-                <Button size="sm" onClick={() => setShowUpgradePrompt(true)} className="gap-1">
-                  <Zap className="w-3 h-3" />
-                  Upgrade
-                </Button>
-              ) : (
-                <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
-                  <CreditCard className="w-3 h-3" />
-                  Manage Subscription
-                </Button>
-              )}
-            </div>
-          </div>
+            )}
+          </>
         )}
 
         {/* Hero Section */}
