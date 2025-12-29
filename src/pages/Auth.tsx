@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Brain, Mail, Lock, User, Loader2, ArrowLeft } from 'lucide-react';
+import { Brain, Mail, Lock, User, Loader2, ArrowLeft, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -10,8 +10,12 @@ import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
-const emailSchema = z.string().email('Please enter a valid email');
+const emailSchema = z.string().trim().email('Please enter a valid email');
 const passwordSchema = z.string().min(6, 'Minimum 6 characters');
+const phoneSchema = z.string().optional().refine(
+  (val) => !val || /^[+]?[\d\s()-]{10,}$/.test(val),
+  'Please enter a valid phone number'
+);
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -19,7 +23,12 @@ export default function Auth() {
   
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
-  const [signupData, setSignupData] = useState({ email: '', password: '', fullName: '' });
+  const [signupData, setSignupData] = useState({ 
+    email: '', 
+    password: '', 
+    fullName: '',
+    phone: ''
+  });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -50,6 +59,10 @@ export default function Auth() {
   const validateSignup = () => {
     const newErrors: Record<string, string> = {};
     
+    if (!signupData.fullName.trim()) {
+      newErrors.signupName = 'Name is required';
+    }
+    
     try {
       emailSchema.parse(signupData.email);
     } catch (e) {
@@ -61,6 +74,12 @@ export default function Auth() {
     } catch (e) {
       if (e instanceof z.ZodError) newErrors.signupPassword = e.errors[0].message;
     }
+
+    try {
+      phoneSchema.parse(signupData.phone);
+    } catch (e) {
+      if (e instanceof z.ZodError) newErrors.signupPhone = e.errors[0].message;
+    }
     
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -71,18 +90,25 @@ export default function Auth() {
     if (!validateLogin()) return;
     
     setIsLoading(true);
-    const { error } = await signIn(loginData.email, loginData.password);
-    setIsLoading(false);
-
-    if (error) {
-      if (error.message.includes('Invalid login credentials')) {
-        toast.error('Invalid email or password');
+    try {
+      const { error } = await signIn(loginData.email.trim(), loginData.password);
+      
+      if (error) {
+        if (error.message.includes('Invalid login credentials')) {
+          toast.error('Invalid email or password');
+        } else if (error.message.includes('Email not confirmed')) {
+          toast.error('Please verify your email first');
+        } else {
+          toast.error(error.message || 'Failed to sign in');
+        }
       } else {
-        toast.error(error.message);
+        toast.success('Welcome back!');
+        navigate('/');
       }
-    } else {
-      toast.success('You have signed in');
-      navigate('/');
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -91,18 +117,30 @@ export default function Auth() {
     if (!validateSignup()) return;
     
     setIsLoading(true);
-    const { error } = await signUp(signupData.email, signupData.password, signupData.fullName);
-    setIsLoading(false);
-
-    if (error) {
-      if (error.message.includes('already registered')) {
-        toast.error('This email is already registered');
+    try {
+      const { error } = await signUp(
+        signupData.email.trim(), 
+        signupData.password, 
+        signupData.fullName.trim(),
+        signupData.phone.trim()
+      );
+      
+      if (error) {
+        if (error.message.includes('already registered') || error.message.includes('already been registered')) {
+          toast.error('This email is already registered. Please sign in instead.');
+        } else if (error.message.includes('password')) {
+          toast.error('Password must be at least 6 characters');
+        } else {
+          toast.error(error.message || 'Failed to create account');
+        }
       } else {
-        toast.error(error.message);
+        toast.success('Account created successfully!');
+        navigate('/');
       }
-    } else {
-      toast.success('Account created! You are now signed in.');
-      navigate('/');
+    } catch (err) {
+      toast.error('An unexpected error occurred');
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -209,19 +247,22 @@ export default function Auth() {
 
                 <form onSubmit={handleSignup} className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="signup-name">Name (optional)</Label>
+                    <Label htmlFor="signup-name">Full Name</Label>
                     <div className="relative">
                       <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
                       <Input
                         id="signup-name"
                         type="text"
-                        placeholder="Your name"
+                        placeholder="Your full name"
                         className="pl-10"
                         value={signupData.fullName}
                         onChange={(e) => setSignupData({ ...signupData, fullName: e.target.value })}
                         disabled={isLoading}
                       />
                     </div>
+                    {errors.signupName && (
+                      <p className="text-sm text-destructive">{errors.signupName}</p>
+                    )}
                   </div>
 
                   <div className="space-y-2">
@@ -240,6 +281,25 @@ export default function Auth() {
                     </div>
                     {errors.signupEmail && (
                       <p className="text-sm text-destructive">{errors.signupEmail}</p>
+                    )}
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="signup-phone">Phone Number (optional)</Label>
+                    <div className="relative">
+                      <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+                      <Input
+                        id="signup-phone"
+                        type="tel"
+                        placeholder="+1 (555) 123-4567"
+                        className="pl-10"
+                        value={signupData.phone}
+                        onChange={(e) => setSignupData({ ...signupData, phone: e.target.value })}
+                        disabled={isLoading}
+                      />
+                    </div>
+                    {errors.signupPhone && (
+                      <p className="text-sm text-destructive">{errors.signupPhone}</p>
                     )}
                   </div>
 
