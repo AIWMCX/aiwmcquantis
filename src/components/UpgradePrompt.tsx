@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import {
   Dialog,
   DialogContent,
@@ -8,28 +8,25 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Sparkles, Zap, Crown, Loader2 } from 'lucide-react';
+import { useStripeCheckout } from '@/hooks/useStripeCheckout';
 
 interface UpgradePromptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   remainingAnalyses: number;
-  onUpgrade: (plan: 'plus' | 'pro') => void;
+  onUpgrade?: (plan: 'plus' | 'pro') => void; // Made optional since we handle internally
 }
 
 export function UpgradePrompt({ 
   open, 
   onOpenChange, 
-  remainingAnalyses, 
-  onUpgrade 
+  remainingAnalyses
 }: UpgradePromptProps) {
-  const [loadingPlan, setLoadingPlan] = useState<'plus' | 'pro' | null>(null);
+  const { initiateCheckout, isLoading } = useStripeCheckout();
 
   const handleUpgrade = async (plan: 'plus' | 'pro') => {
-    setLoadingPlan(plan);
-    // Don't use try/finally - let redirect happen, don't reset loading state
-    await onUpgrade(plan);
-    // If we get here, redirect failed - reset loading after delay
-    setTimeout(() => setLoadingPlan(null), 3000);
+    // Don't close dialog - the overlay will cover everything
+    await initiateCheckout(plan);
   };
 
   return (
@@ -62,10 +59,10 @@ export function UpgradePrompt({
               <Button 
                 variant="outline" 
                 onClick={() => handleUpgrade('plus')} 
-                disabled={loadingPlan !== null}
+                disabled={isLoading}
                 className="shrink-0 min-w-[90px]"
               >
-                {loadingPlan === 'plus' ? (
+                {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   'Upgrade'
@@ -103,10 +100,10 @@ export function UpgradePrompt({
               </div>
               <Button 
                 onClick={() => handleUpgrade('pro')} 
-                disabled={loadingPlan !== null}
+                disabled={isLoading}
                 className="shrink-0 min-w-[90px]"
               >
-                {loadingPlan === 'pro' ? (
+                {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
                   'Upgrade'
