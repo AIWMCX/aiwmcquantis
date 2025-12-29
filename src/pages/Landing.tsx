@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
   Sparkles, 
@@ -15,10 +15,18 @@ import {
   Building2,
   ChevronRight,
   Moon,
-  Sun
+  Sun,
+  Loader2
 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 
 export default function Landing() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { createCheckout } = useSubscription();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' ||
@@ -37,6 +45,26 @@ export default function Landing() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
+  const handlePlanClick = async (planName: string) => {
+    if (planName === 'Free') {
+      navigate('/app');
+      return;
+    }
+    
+    const plan = planName.toLowerCase() as 'plus' | 'pro';
+    setLoadingPlan(planName);
+    
+    if (user) {
+      // User is logged in - go straight to Stripe
+      await createCheckout(plan);
+      // If we get here, redirect failed
+      setTimeout(() => setLoadingPlan(null), 3000);
+    } else {
+      // Not logged in - redirect to auth with plan info
+      navigate(`/auth?redirect=checkout&plan=${plan}`);
+    }
+  };
 
   const features = [
     {
@@ -340,15 +368,22 @@ export default function Landing() {
                     </li>
                   ))}
                 </ul>
-                <Link to="/app">
-                  <Button 
-                    className="w-full" 
-                    variant={plan.highlighted ? 'default' : 'outline'}
-                    size="lg"
-                  >
-                    {plan.cta}
-                  </Button>
-                </Link>
+                <Button 
+                  className="w-full" 
+                  variant={plan.highlighted ? 'default' : 'outline'}
+                  size="lg"
+                  onClick={() => handlePlanClick(plan.name)}
+                  disabled={loadingPlan !== null}
+                >
+                  {loadingPlan === plan.name ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Processing...
+                    </>
+                  ) : (
+                    plan.cta
+                  )}
+                </Button>
               </div>
             ))}
           </div>
