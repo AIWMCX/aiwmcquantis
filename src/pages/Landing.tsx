@@ -174,6 +174,19 @@ export default function Landing() {
     { value: '4.9/5', label: 'User Rating' },
   ];
 
+  // Full-screen loading overlay when checkout is processing
+  if (loadingPlan) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-lg font-medium text-foreground">Redirecting to payment...</p>
+          <p className="text-sm text-muted-foreground">Please wait</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
