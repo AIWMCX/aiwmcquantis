@@ -13,7 +13,7 @@ interface UpgradePromptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   remainingAnalyses: number;
-  onUpgrade: (plan: 'pro' | 'enterprise') => void;
+  onUpgrade: (plan: 'plus' | 'pro') => void;
 }
 
 export function UpgradePrompt({ 
@@ -39,20 +39,17 @@ export function UpgradePrompt({
         </DialogHeader>
 
         <div className="grid gap-4 py-4">
-          {/* Pro Plan */}
-          <div className="relative p-4 rounded-lg border-2 border-primary bg-primary/5">
-            <div className="absolute -top-2 left-4 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded">
-              Most Popular
-            </div>
+          {/* Plus Plan */}
+          <div className="p-4 rounded-lg border border-border">
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-primary" />
-                  <span className="font-semibold">Pro</span>
+                  <span className="font-semibold">Plus</span>
                 </div>
                 <p className="text-2xl font-bold">$17<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
-              <Button onClick={() => onUpgrade('pro')} className="shrink-0">
+              <Button variant="outline" onClick={() => onUpgrade('plus')} className="shrink-0">
                 Upgrade
               </Button>
             </div>
@@ -72,24 +69,27 @@ export function UpgradePrompt({
             </ul>
           </div>
 
-          {/* Enterprise Plan */}
-          <div className="p-4 rounded-lg border border-border">
+          {/* Pro Plan */}
+          <div className="relative p-4 rounded-lg border-2 border-primary bg-primary/5">
+            <div className="absolute -top-2 left-4 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded">
+              Most Popular
+            </div>
             <div className="flex items-start justify-between">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="w-4 h-4 text-warning" />
-                  <span className="font-semibold">Enterprise</span>
+                  <span className="font-semibold">Pro</span>
                 </div>
                 <p className="text-2xl font-bold">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
-              <Button variant="outline" onClick={() => onUpgrade('enterprise')} className="shrink-0">
+              <Button onClick={() => onUpgrade('pro')} className="shrink-0">
                 Upgrade
               </Button>
             </div>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />
-                Everything in Pro
+                Everything in Plus
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />

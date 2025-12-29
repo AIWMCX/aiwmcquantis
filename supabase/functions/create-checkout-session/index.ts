@@ -45,14 +45,14 @@ serve(async (req) => {
     const { plan } = await req.json();
     console.log(`Creating checkout session for plan: ${plan}, user: ${user.email}`);
 
-    if (!["pro", "enterprise"].includes(plan)) {
-      throw new Error("Invalid plan selected");
+    if (!["plus", "pro"].includes(plan)) {
+      throw new Error("Invalid plan selected. Valid plans: plus, pro");
     }
 
     // Get the price ID based on plan
-    const priceId = plan === "pro" 
-      ? Deno.env.get("STRIPE_PRO_PRICE_ID")
-      : Deno.env.get("STRIPE_ENTERPRISE_PRICE_ID");
+    const priceId = plan === "plus" 
+      ? Deno.env.get("STRIPE_PLUS_PRICE_ID")
+      : Deno.env.get("STRIPE_PRO_PRICE_ID");
 
     if (!priceId) {
       throw new Error(`Price ID not configured for ${plan} plan`);

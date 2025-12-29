@@ -22,8 +22,8 @@ interface UsageTracking {
 interface SubscriptionData {
   subscription: Subscription | null;
   usage: UsageTracking | null;
+  isPlus: boolean;
   isPro: boolean;
-  isEnterprise: boolean;
   isFree: boolean;
   isActive: boolean;
   analysesUsed: number;
@@ -33,7 +33,7 @@ interface SubscriptionData {
   loading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
-  createCheckout: (plan: 'pro' | 'enterprise') => Promise<void>;
+  createCheckout: (plan: 'plus' | 'pro') => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
@@ -108,16 +108,16 @@ export function useSubscription(): SubscriptionData {
   const planId = subscription?.plan_id || 'free';
   const status = subscription?.status || 'active';
   const isActive = status === 'active' || status === 'trialing';
+  const isPlus = planId === 'plus' && isActive;
   const isPro = planId === 'pro' && isActive;
-  const isEnterprise = planId === 'enterprise' && isActive;
-  const isFree = !isPro && !isEnterprise;
+  const isFree = !isPlus && !isPro;
 
   const analysesUsed = usage?.analyses_count || 0;
   const analysesLimit = isFree ? FREE_TIER_LIMIT : Infinity;
   const canAnalyze = !isFree || analysesUsed < FREE_TIER_LIMIT;
   const remainingAnalyses = isFree ? Math.max(0, FREE_TIER_LIMIT - analysesUsed) : Infinity;
 
-  const createCheckout = async (plan: 'pro' | 'enterprise') => {
+  const createCheckout = async (plan: 'plus' | 'pro') => {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -180,8 +180,8 @@ export function useSubscription(): SubscriptionData {
   return {
     subscription,
     usage,
+    isPlus,
     isPro,
-    isEnterprise,
     isFree,
     isActive,
     analysesUsed,
