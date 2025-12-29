@@ -19,10 +19,21 @@ interface UseStripeCheckoutReturn {
 }
 
 // This function creates a DOM overlay that React CAN'T unmount
+// Uses hardcoded colors to ensure visibility regardless of CSS variable state
 function createBlockingOverlay(): HTMLDivElement {
   // Remove any existing overlay first
   const existing = document.getElementById('stripe-checkout-overlay');
   if (existing) existing.remove();
+
+  // Check if dark mode is active
+  const isDark = document.documentElement.classList.contains('dark') || 
+    window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  const bgColor = isDark ? '#1f2937' : '#ffffff';
+  const textColor = isDark ? '#f9fafb' : '#111827';
+  const mutedColor = isDark ? '#9ca3af' : '#6b7280';
+  const borderColor = isDark ? '#374151' : '#e5e7eb';
+  const primaryColor = '#3b82f6';
 
   const overlay = document.createElement('div');
   overlay.id = 'stripe-checkout-overlay';
@@ -35,13 +46,13 @@ function createBlockingOverlay(): HTMLDivElement {
       flex-direction: column;
       align-items: center;
       justify-content: center;
-      background: hsl(var(--background));
+      background: ${bgColor};
     ">
       <div style="
         width: 48px;
         height: 48px;
-        border: 4px solid hsl(var(--muted));
-        border-top-color: hsl(var(--primary));
+        border: 4px solid ${borderColor};
+        border-top-color: ${primaryColor};
         border-radius: 50%;
         animation: spin 1s linear infinite;
         margin-bottom: 16px;
@@ -49,12 +60,12 @@ function createBlockingOverlay(): HTMLDivElement {
       <p style="
         font-size: 18px;
         font-weight: 500;
-        color: hsl(var(--foreground));
+        color: ${textColor};
         margin: 0 0 8px 0;
       ">Redirecting to Stripe...</p>
       <p style="
         font-size: 14px;
-        color: hsl(var(--muted-foreground));
+        color: ${mutedColor};
         margin: 0;
       ">Please wait, do not close this page</p>
     </div>

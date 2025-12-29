@@ -108,9 +108,32 @@ serve(async (req) => {
           });
 
         if (upsertError) {
-          console.error("Error upserting subscription:", upsertError);
+          console.error("UPSERT FAILED - Detailed error:", JSON.stringify(upsertError));
+          console.error("Error code:", upsertError.code);
+          console.error("Error hint:", upsertError.hint);
+          console.error("Error details:", upsertError.details);
+          
+          // Fallback: try direct INSERT if upsert fails
+          console.log("Attempting fallback INSERT...");
+          const { error: insertError } = await supabase
+            .from("subscriptions")
+            .insert({
+              user_id: userId,
+              stripe_customer_id: customerId,
+              stripe_subscription_id: subscriptionId,
+              plan_id: plan,
+              status: subscription.status === "active" ? "active" : "trialing",
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            });
+          
+          if (insertError) {
+            console.error("INSERT FALLBACK ALSO FAILED:", JSON.stringify(insertError));
+          } else {
+            console.log("SUCCESS via INSERT fallback for user:", userId);
+          }
         } else {
-          console.log(`SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
+          console.log(`SUCCESS: Subscription upserted for user ${userId}, plan: ${plan}`);
         }
         break;
       }

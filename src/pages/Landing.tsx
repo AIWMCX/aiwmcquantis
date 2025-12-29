@@ -47,21 +47,29 @@ export default function Landing() {
   }, [darkMode]);
 
   const handlePlanClick = async (planName: string) => {
+    console.log('[Landing] Plan clicked:', planName);
+    console.log('[Landing] User authenticated:', !!user);
+    
     if (planName === 'Free') {
+      console.log('[Landing] Free plan - navigating to app');
       navigate('/app');
       return;
     }
     
     const plan = planName.toLowerCase() as 'plus' | 'pro';
     setLoadingPlan(planName);
+    console.log('[Landing] Processing plan:', plan);
     
     if (user) {
+      console.log('[Landing] User is authenticated - initiating Stripe checkout');
       // User is logged in - go straight to Stripe with bulletproof redirect
       await initiateCheckout(plan);
-      // If we get here, redirect failed - the hook handles the overlay
+      console.log('[Landing] initiateCheckout returned - redirect may have failed');
     } else {
+      console.log('[Landing] User not authenticated - saving plan to localStorage');
       // Not logged in - save plan and redirect to auth
       localStorage.setItem('pending_checkout_plan', plan);
+      console.log('[Landing] Navigating to auth page');
       navigate('/auth');
     }
   };
