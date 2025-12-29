@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Brain, Mail, Lock, User, Loader2, ArrowLeft, Phone } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
+import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -19,7 +20,10 @@ const phoneSchema = z.string().optional().refine(
 
 export default function Auth() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
+  const { createCheckout } = useSubscription();
+  const checkoutTriggered = useRef(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -31,11 +35,23 @@ export default function Auth() {
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  // Handle redirect after auth (e.g., checkout flow)
   useEffect(() => {
-    if (isAuthenticated) {
-      navigate('/');
+    if (isAuthenticated && !checkoutTriggered.current) {
+      const redirect = searchParams.get('redirect');
+      const plan = searchParams.get('plan') as 'plus' | 'pro' | null;
+      
+      if (redirect === 'checkout' && plan) {
+        checkoutTriggered.current = true;
+        // Small delay to ensure auth state is fully settled
+        setTimeout(() => {
+          createCheckout(plan);
+        }, 500);
+      } else {
+        navigate('/app');
+      }
     }
-  }, [isAuthenticated, navigate]);
+  }, [isAuthenticated, searchParams, createCheckout, navigate]);
 
   const validateLogin = () => {
     const newErrors: Record<string, string> = {};
