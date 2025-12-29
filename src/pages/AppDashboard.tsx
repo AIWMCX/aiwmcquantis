@@ -329,9 +329,9 @@ export default function Index() {
         open={showUpgradePrompt}
         onOpenChange={setShowUpgradePrompt}
         remainingAnalyses={remainingAnalyses}
-        onUpgrade={(plan) => {
-          setShowUpgradePrompt(false);
-          createCheckout(plan);
+        onUpgrade={async (plan) => {
+          // Don't close dialog - let redirect happen
+          await createCheckout(plan);
         }}
       />
     </div>

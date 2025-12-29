@@ -202,6 +202,8 @@ export function useSubscription(): SubscriptionData {
     }
 
     try {
+      console.log('[Checkout] Starting checkout for plan:', plan);
+      
       toast({
         title: 'Starting checkout...',
         description: 'Redirecting to payment page',
@@ -211,14 +213,29 @@ export function useSubscription(): SubscriptionData {
         body: { plan },
       });
 
+      console.log('[Checkout] Response:', { data, error });
+
       if (error) throw error;
+      
       if (data?.url) {
+        console.log('[Checkout] Redirecting to:', data.url);
+        
+        // Small delay to ensure state is stable before redirect
+        await new Promise(resolve => setTimeout(resolve, 100));
+        
+        // Primary redirect method
         window.location.href = data.url;
+        
+        // Fallback: if still here after 2 seconds, try window.open
+        setTimeout(() => {
+          console.log('[Checkout] Fallback: opening in new tab');
+          window.open(data.url, '_blank');
+        }, 2000);
       } else {
         throw new Error('No checkout URL received');
       }
     } catch (err) {
-      console.error('Checkout error:', err);
+      console.error('[Checkout] Error:', err);
       toast({
         title: 'Checkout Error',
         description: err instanceof Error ? err.message : 'Failed to start checkout. Please try again.',

@@ -26,12 +26,10 @@ export function UpgradePrompt({
 
   const handleUpgrade = async (plan: 'plus' | 'pro') => {
     setLoadingPlan(plan);
-    try {
-      await onUpgrade(plan);
-    } finally {
-      // Only reset if still mounted (dialog might close)
-      setTimeout(() => setLoadingPlan(null), 1000);
-    }
+    // Don't use try/finally - let redirect happen, don't reset loading state
+    await onUpgrade(plan);
+    // If we get here, redirect failed - reset loading after delay
+    setTimeout(() => setLoadingPlan(null), 3000);
   };
 
   return (
