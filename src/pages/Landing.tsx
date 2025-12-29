@@ -107,7 +107,7 @@ export default function Landing() {
     },
     {
       name: 'Pro',
-      price: '$29',
+      price: '$17',
       period: 'per month',
       description: 'For serious entrepreneurs',
       features: [
@@ -123,7 +123,7 @@ export default function Landing() {
     },
     {
       name: 'Enterprise',
-      price: '$99',
+      price: '$29',
       period: 'per month',
       description: 'For teams and agencies',
       features: [

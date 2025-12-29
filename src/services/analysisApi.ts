@@ -60,19 +60,19 @@ export function validateIdea(idea: string): { valid: boolean; error?: string } {
   const trimmed = idea.trim();
   
   if (!trimmed) {
-    return { valid: false, error: 'Введите бизнес-идею' };
+    return { valid: false, error: 'Please enter a business idea' };
   }
   if (trimmed.length < 10) {
-    return { valid: false, error: 'Минимум 10 символов' };
+    return { valid: false, error: 'Minimum 10 characters required' };
   }
   if (trimmed.length > 500) {
-    return { valid: false, error: 'Максимум 500 символов' };
+    return { valid: false, error: 'Maximum 500 characters allowed' };
   }
   
   // Check for suspicious patterns
   const suspiciousPatterns = [/<script/i, /javascript:/i, /<iframe/i];
   if (suspiciousPatterns.some(p => p.test(trimmed))) {
-    return { valid: false, error: 'Недопустимые символы' };
+    return { valid: false, error: 'Invalid characters detected' };
   }
   
   return { valid: true };
@@ -82,13 +82,13 @@ export function validateLocation(location: string): { valid: boolean; error?: st
   const trimmed = location.trim();
   
   if (!trimmed) {
-    return { valid: false, error: 'Введите локацию' };
+    return { valid: false, error: 'Please enter a location' };
   }
   if (trimmed.length < 2) {
-    return { valid: false, error: 'Минимум 2 символа' };
+    return { valid: false, error: 'Minimum 2 characters required' };
   }
   if (trimmed.length > 100) {
-    return { valid: false, error: 'Максимум 100 символов' };
+    return { valid: false, error: 'Maximum 100 characters allowed' };
   }
   
   return { valid: true };
