@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Dialog,
   DialogContent,
@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Sparkles, Zap, Crown } from 'lucide-react';
+import { CheckCircle2, Sparkles, Zap, Crown, Loader2 } from 'lucide-react';
 
 interface UpgradePromptProps {
   open: boolean;
@@ -22,6 +22,18 @@ export function UpgradePrompt({
   remainingAnalyses, 
   onUpgrade 
 }: UpgradePromptProps) {
+  const [loadingPlan, setLoadingPlan] = useState<'plus' | 'pro' | null>(null);
+
+  const handleUpgrade = async (plan: 'plus' | 'pro') => {
+    setLoadingPlan(plan);
+    try {
+      await onUpgrade(plan);
+    } finally {
+      // Only reset if still mounted (dialog might close)
+      setTimeout(() => setLoadingPlan(null), 1000);
+    }
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
@@ -49,8 +61,17 @@ export function UpgradePrompt({
                 </div>
                 <p className="text-2xl font-bold">$17<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
-              <Button variant="outline" onClick={() => onUpgrade('plus')} className="shrink-0">
-                Upgrade
+              <Button 
+                variant="outline" 
+                onClick={() => handleUpgrade('plus')} 
+                disabled={loadingPlan !== null}
+                className="shrink-0 min-w-[90px]"
+              >
+                {loadingPlan === 'plus' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Upgrade'
+                )}
               </Button>
             </div>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
@@ -82,8 +103,16 @@ export function UpgradePrompt({
                 </div>
                 <p className="text-2xl font-bold">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
-              <Button onClick={() => onUpgrade('pro')} className="shrink-0">
-                Upgrade
+              <Button 
+                onClick={() => handleUpgrade('pro')} 
+                disabled={loadingPlan !== null}
+                className="shrink-0 min-w-[90px]"
+              >
+                {loadingPlan === 'pro' ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'Upgrade'
+                )}
               </Button>
             </div>
             <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
