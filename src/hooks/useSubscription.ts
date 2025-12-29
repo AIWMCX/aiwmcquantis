@@ -218,19 +218,10 @@ export function useSubscription(): SubscriptionData {
       if (error) throw error;
       
       if (data?.url) {
-        console.log('[Checkout] Redirecting to:', data.url);
-        
-        // Small delay to ensure state is stable before redirect
-        await new Promise(resolve => setTimeout(resolve, 100));
-        
-        // Primary redirect method
-        window.location.href = data.url;
-        
-        // Fallback: if still here after 2 seconds, try window.open
-        setTimeout(() => {
-          console.log('[Checkout] Fallback: opening in new tab');
-          window.open(data.url, '_blank');
-        }, 2000);
+        console.log('[Checkout] Redirecting immediately to:', data.url);
+        // Use replace for immediate, non-interruptible redirect
+        window.location.replace(data.url);
+        return; // Prevent any further code execution
       } else {
         throw new Error('No checkout URL received');
       }

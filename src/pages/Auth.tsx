@@ -24,6 +24,7 @@ export default function Auth() {
   const { signIn, signUp, isAuthenticated, isLoading: authLoading } = useAuth();
   const { createCheckout } = useSubscription();
   const checkoutTriggered = useRef(false);
+  const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   
   const [isLoading, setIsLoading] = useState(false);
   const [loginData, setLoginData] = useState({ email: '', password: '' });
@@ -43,6 +44,7 @@ export default function Auth() {
       
       if (redirect === 'checkout' && plan) {
         checkoutTriggered.current = true;
+        setIsProcessingCheckout(true);
         // Small delay to ensure auth state is fully settled
         setTimeout(() => {
           createCheckout(plan);
@@ -164,6 +166,19 @@ export default function Auth() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  // Full-screen loading when processing checkout redirect
+  if (isProcessingCheckout) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <Loader2 className="w-12 h-12 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-lg font-medium text-foreground">Redirecting to payment...</p>
+          <p className="text-sm text-muted-foreground">Please wait</p>
+        </div>
       </div>
     );
   }
