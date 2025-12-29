@@ -6,8 +6,13 @@ import { EmptyState } from '@/components/layout/EmptyState';
 import { AnalysisForm } from '@/components/analysis/AnalysisForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/hooks/useAuth';
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard } from 'lucide-react';
 
 export default function Index() {
   const [darkMode, setDarkMode] = useState(() => {
@@ -19,6 +24,19 @@ export default function Index() {
   });
 
   const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+
+  const { isAuthenticated } = useAuth();
+  const { 
+    isPro, 
+    isEnterprise, 
+    isFree, 
+    analysesUsed, 
+    remainingAnalyses, 
+    canAnalyze,
+    createCheckout,
+    openPortal,
+  } = useSubscription();
 
   const {
     idea,
@@ -87,6 +105,54 @@ export default function Index() {
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
 
       <main className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
+        {/* Subscription Status Bar */}
+        {isAuthenticated && (
+          <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2">
+                {isEnterprise ? (
+                  <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
+                    <Crown className="w-3 h-3" />
+                    Enterprise
+                  </Badge>
+                ) : isPro ? (
+                  <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
+                    <Zap className="w-3 h-3" />
+                    Pro
+                  </Badge>
+                ) : (
+                  <Badge variant="secondary" className="gap-1">
+                    Free Plan
+                  </Badge>
+                )}
+              </div>
+              {isFree && (
+                <span className="text-sm text-muted-foreground">
+                  {remainingAnalyses} of 3 analyses remaining this month
+                </span>
+              )}
+              {(isPro || isEnterprise) && (
+                <span className="text-sm text-muted-foreground">
+                  Unlimited analyses
+                </span>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              {isFree ? (
+                <Button size="sm" onClick={() => setShowUpgradePrompt(true)} className="gap-1">
+                  <Zap className="w-3 h-3" />
+                  Upgrade
+                </Button>
+              ) : (
+                <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
+                  <CreditCard className="w-3 h-3" />
+                  Manage Subscription
+                </Button>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
@@ -190,6 +256,16 @@ export default function Index() {
       </main>
 
       <Footer />
+
+      <UpgradePrompt
+        open={showUpgradePrompt}
+        onOpenChange={setShowUpgradePrompt}
+        remainingAnalyses={remainingAnalyses}
+        onUpgrade={(plan) => {
+          setShowUpgradePrompt(false);
+          createCheckout(plan);
+        }}
+      />
     </div>
   );
 }
