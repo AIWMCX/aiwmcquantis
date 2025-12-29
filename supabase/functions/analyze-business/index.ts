@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -1454,6 +1455,72 @@ serve(async (req) => {
   }
 
   try {
+    // ========== USAGE ENFORCEMENT ==========
+    const FREE_TIER_LIMIT = 3;
+    let userId: string | null = null;
+    let userPlan = 'free';
+    
+    // Create Supabase clients
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    const authHeader = req.headers.get("Authorization");
+    
+    if (authHeader) {
+      // Authenticated user - check their subscription
+      const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      
+      const { data: { user }, error: userError } = await supabaseAuth.getUser();
+      
+      if (!userError && user) {
+        userId = user.id;
+        console.log(`Authenticated user: ${user.email}`);
+        
+        // Check subscription
+        const { data: subscription } = await supabaseAuth
+          .from('subscriptions')
+          .select('plan_id, status')
+          .eq('user_id', user.id)
+          .maybeSingle();
+        
+        if (subscription && ['active', 'trialing'].includes(subscription.status)) {
+          userPlan = subscription.plan_id;
+        }
+        
+        console.log(`User plan: ${userPlan}`);
+        
+        // If free tier, check usage
+        if (userPlan === 'free') {
+          const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+          
+          const { data: usage } = await supabaseAuth
+            .from('usage_tracking')
+            .select('analyses_count')
+            .eq('user_id', user.id)
+            .eq('month_year', monthYear)
+            .maybeSingle();
+          
+          const currentUsage = usage?.analyses_count || 0;
+          
+          if (currentUsage >= FREE_TIER_LIMIT) {
+            console.log(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            return new Response(
+              JSON.stringify({ 
+                error: "Monthly analysis limit reached. Upgrade to Pro for unlimited analyses.", 
+                code: "USAGE_LIMIT_EXCEEDED",
+                usage: { current: currentUsage, limit: FREE_TIER_LIMIT }
+              }),
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+    }
+    // ========== END USAGE ENFORCEMENT ==========
+
     const { idea, location, financial_inputs, selected_industry } = await req.json() as AnalysisRequest;
 
     if (!idea || idea.trim().length < 10) {
@@ -1893,6 +1960,19 @@ Call submit_analysis with all sections in English.`;
     result.confidence_score = reliabilityScore;
     
     console.log(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
+
+    // ========== INCREMENT USAGE FOR FREE TIER USERS ==========
+    if (userId && userPlan === 'free') {
+      try {
+        const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+        const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
+        console.log(`Usage incremented for user ${userId}`);
+      } catch (e) {
+        console.error('Failed to increment usage:', e);
+      }
+    }
+    // ========== END USAGE INCREMENT ==========
 
     return new Response(
       JSON.stringify({
