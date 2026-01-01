@@ -354,7 +354,7 @@ export default function Landing() {
               <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} BizAnalyzer. All rights reserved.
+              © {new Date().getFullYear()} SPAnalyzer. All rights reserved.
             </p>
           </div>
         </div>
