@@ -8,13 +8,14 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Sparkles, Zap, Crown, Loader2 } from 'lucide-react';
-import { useStripeCheckout } from '@/hooks/useStripeCheckout';
+import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useAuth } from '@/hooks/useAuth';
 
 interface UpgradePromptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   remainingAnalyses: number;
-  onUpgrade?: (plan: 'plus' | 'pro') => void; // Made optional since we handle internally
+  onUpgrade?: (plan: 'plus' | 'pro') => void;
 }
 
 export function UpgradePrompt({ 
@@ -22,11 +23,13 @@ export function UpgradePrompt({
   onOpenChange, 
   remainingAnalyses
 }: UpgradePromptProps) {
-  const { initiateCheckout, isLoading } = useStripeCheckout();
+  const { user } = useAuth();
+  const { redirectToPayment, isLoading } = usePaymentLinks();
 
-  const handleUpgrade = async (plan: 'plus' | 'pro') => {
-    // Don't close dialog - the overlay will cover everything
-    await initiateCheckout(plan);
+  const handleUpgrade = (plan: 'plus' | 'pro') => {
+    if (user) {
+      redirectToPayment(plan, user.id, user.email || undefined);
+    }
   };
 
   return (

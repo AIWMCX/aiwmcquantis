@@ -7,7 +7,8 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { createStripeCheckout } from '@/hooks/useStripeCheckout';
+import { redirectToPaymentLink } from '@/hooks/useStripeCheckout';
+import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { z } from 'zod';
 
@@ -53,12 +54,16 @@ export default function Auth() {
         setIsProcessingCheckout(true);
         // Clear stored plan
         localStorage.removeItem('pending_checkout_plan');
-        // Use standalone function for bulletproof redirect
-        createStripeCheckout(plan).catch((err) => {
-          console.error('[Auth] Checkout failed:', err);
-          setIsProcessingCheckout(false);
-          toast.error('Failed to start checkout. Please try again.');
-          navigate('/app');
+        
+        // Get user info and redirect to Payment Link
+        supabase.auth.getUser().then(({ data: { user } }) => {
+          if (user) {
+            redirectToPaymentLink(plan, user.id, user.email || undefined);
+          } else {
+            setIsProcessingCheckout(false);
+            toast.error('Failed to get user info. Please try again.');
+            navigate('/app');
+          }
         });
       } else {
         navigate('/app');

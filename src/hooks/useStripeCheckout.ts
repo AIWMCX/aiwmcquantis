@@ -1,10 +1,8 @@
 // ============================================================================
-// BULLETPROOF STRIPE CHECKOUT HOOK
+// PAYMENT LINKS - Simple, bulletproof Stripe integration
 // ============================================================================
-// This hook ensures the Stripe redirect ALWAYS works by:
-// 1. Blocking ALL React updates during checkout
-// 2. Using synchronous redirect that can't be interrupted
-// 3. Adding a DOM-level loading overlay that survives React unmounts
+// Uses Stripe Payment Links for maximum reliability - no API calls needed!
+// Just redirect to the Payment Link with user identification params
 // ============================================================================
 
 import { useState, useCallback, useRef } from 'react';
@@ -12,20 +10,22 @@ import { supabase } from '@/integrations/supabase/client';
 
 type Plan = 'plus' | 'pro';
 
-interface UseStripeCheckoutReturn {
-  initiateCheckout: (plan: Plan) => Promise<void>;
+// Payment Links - configured in Stripe Dashboard with 14-day trials
+const PAYMENT_LINKS = {
+  plus: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
+  pro: 'https://buy.stripe.com/dRmbJ20ET6SEb2S5g9e7m01'
+};
+
+interface UsePaymentLinksReturn {
+  redirectToPayment: (plan: Plan, userId: string, email?: string) => void;
   isLoading: boolean;
-  error: string | null;
 }
 
 // This function creates a DOM overlay that React CAN'T unmount
-// Uses hardcoded colors to ensure visibility regardless of CSS variable state
 function createBlockingOverlay(): HTMLDivElement {
-  // Remove any existing overlay first
   const existing = document.getElementById('stripe-checkout-overlay');
   if (existing) existing.remove();
 
-  // Check if dark mode is active
   const isDark = document.documentElement.classList.contains('dark') || 
     window.matchMedia('(prefers-color-scheme: dark)').matches;
 
@@ -79,25 +79,41 @@ function createBlockingOverlay(): HTMLDivElement {
   return overlay;
 }
 
-// Synchronous redirect that can't be interrupted
-function forceRedirect(url: string): void {
-  console.log('[Checkout] Force redirecting to:', url);
+// Build Payment Link URL with user identification
+function buildPaymentLinkUrl(plan: Plan, userId: string, email?: string): string {
+  const baseUrl = PAYMENT_LINKS[plan];
+  const params = new URLSearchParams();
   
-  // Method 1: Direct assignment (most reliable)
+  // client_reference_id identifies the user in the webhook
+  params.set('client_reference_id', userId);
+  
+  // Prefill email for better UX
+  if (email) {
+    params.set('prefilled_email', email);
+  }
+  
+  return `${baseUrl}?${params.toString()}`;
+}
+
+// Force redirect with multiple fallbacks
+function forceRedirect(url: string): void {
+  console.log('[PaymentLinks] Force redirecting to:', url);
+  
+  // Method 1: Direct assignment
   window.location.href = url;
   
-  // Method 2: Backup - if href assignment somehow fails
+  // Method 2: Backup after 100ms
   setTimeout(() => {
-    if (!window.location.href.includes('checkout.stripe.com')) {
-      console.log('[Checkout] Fallback: using replace');
+    if (window.location.href.indexOf('buy.stripe.com') === -1) {
+      console.log('[PaymentLinks] Fallback: using replace');
       window.location.replace(url);
     }
   }, 100);
   
-  // Method 3: Nuclear option - if still here after 500ms
+  // Method 3: Nuclear option after 500ms
   setTimeout(() => {
-    if (!window.location.href.includes('checkout.stripe.com')) {
-      console.log('[Checkout] Nuclear: creating click link');
+    if (window.location.href.indexOf('buy.stripe.com') === -1) {
+      console.log('[PaymentLinks] Nuclear: creating click link');
       const link = document.createElement('a');
       link.href = url;
       link.click();
@@ -105,95 +121,74 @@ function forceRedirect(url: string): void {
   }, 500);
 }
 
-export function useStripeCheckout(): UseStripeCheckoutReturn {
+// Hook for React components
+export function usePaymentLinks(): UsePaymentLinksReturn {
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const checkoutInProgress = useRef(false);
+  const redirectInProgress = useRef(false);
 
-  const initiateCheckout = useCallback(async (plan: Plan) => {
-    // Prevent double-clicks
-    if (checkoutInProgress.current) {
-      console.log('[Checkout] Already in progress, ignoring');
+  const redirectToPayment = useCallback((plan: Plan, userId: string, email?: string) => {
+    if (redirectInProgress.current) {
+      console.log('[PaymentLinks] Already redirecting, ignoring');
       return;
     }
     
-    checkoutInProgress.current = true;
+    redirectInProgress.current = true;
     setIsLoading(true);
-    setError(null);
 
-    // Step 1: Create blocking overlay IMMEDIATELY
-    const overlay = createBlockingOverlay();
+    console.log('[PaymentLinks] Starting redirect for plan:', plan, 'user:', userId);
 
-    try {
-      console.log('[Checkout] Starting checkout for plan:', plan);
+    // Show overlay immediately
+    createBlockingOverlay();
 
-      // Step 2: Create checkout session
-      const { data, error: checkoutError } = await supabase.functions.invoke(
-        'create-checkout-session',
-        { body: { plan } }
-      );
-
-      console.log('[Checkout] Response:', { data, error: checkoutError });
-
-      if (checkoutError) {
-        throw new Error(checkoutError.message || 'Failed to create checkout session');
-      }
-
-      if (!data?.url) {
-        throw new Error('No checkout URL received from server');
-      }
-
-      console.log('[Checkout] Got URL, redirecting:', data.url);
-
-      // Step 3: Force redirect - this MUST happen before any React updates
-      forceRedirect(data.url);
-
-      // Keep loading state - we're leaving the page anyway
-      
-    } catch (err: any) {
-      console.error('[Checkout] Error:', err);
-      
-      // Remove overlay on error
-      overlay.remove();
-      
-      setError(err.message || 'Checkout failed');
-      setIsLoading(false);
-      checkoutInProgress.current = false;
-    }
+    // Build URL and redirect
+    const url = buildPaymentLinkUrl(plan, userId, email);
+    forceRedirect(url);
   }, []);
 
-  return { initiateCheckout, isLoading, error };
+  return { redirectToPayment, isLoading };
+}
+
+// Standalone function for use outside React (e.g., after auth)
+export function redirectToPaymentLink(plan: Plan, userId: string, email?: string): void {
+  console.log('[PaymentLinks Standalone] Starting redirect for plan:', plan);
+  
+  createBlockingOverlay();
+  const url = buildPaymentLinkUrl(plan, userId, email);
+  forceRedirect(url);
 }
 
 // ============================================================================
-// STANDALONE FUNCTION (for use outside React)
+// LEGACY COMPATIBILITY - Keep old exports working
 // ============================================================================
-// Use this when you need to trigger checkout from non-React code
-// or when you want maximum control
+
+export function useStripeCheckout() {
+  const { redirectToPayment, isLoading } = usePaymentLinks();
+  
+  const initiateCheckout = useCallback(async (plan: Plan) => {
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser();
+    
+    if (!user) {
+      console.error('[PaymentLinks] No user found, cannot redirect');
+      return;
+    }
+    
+    redirectToPayment(plan, user.id, user.email || undefined);
+  }, [redirectToPayment]);
+
+  return { 
+    initiateCheckout, 
+    isLoading, 
+    error: null 
+  };
+}
 
 export async function createStripeCheckout(plan: Plan): Promise<void> {
-  // Create blocking overlay
-  const overlay = createBlockingOverlay();
-
-  try {
-    console.log('[Checkout Standalone] Starting checkout for plan:', plan);
-    
-    const { data, error } = await supabase.functions.invoke(
-      'create-checkout-session',
-      { body: { plan } }
-    );
-
-    console.log('[Checkout Standalone] Response:', { data, error });
-
-    if (error || !data?.url) {
-      throw new Error(error?.message || 'No checkout URL received');
-    }
-
-    forceRedirect(data.url);
-    
-  } catch (err) {
-    console.error('[Checkout Standalone] Error:', err);
-    overlay.remove();
-    throw err;
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) {
+    throw new Error('No user found');
   }
+  
+  redirectToPaymentLink(plan, user.id, user.email || undefined);
 }
