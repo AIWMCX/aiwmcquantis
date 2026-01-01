@@ -146,6 +146,7 @@ export default function Landing() {
       period: 'per month',
       description: 'For serious entrepreneurs',
       features: [
+        '14-day free trial',
         'Unlimited analyses',
         'Advanced financial modeling',
         'Complete business plans',
@@ -155,6 +156,7 @@ export default function Landing() {
       ],
       cta: 'Start Free Trial',
       highlighted: false,
+      hasTrial: true,
     },
     {
       name: 'Pro',
@@ -162,6 +164,7 @@ export default function Landing() {
       period: 'per month',
       description: 'For teams and agencies',
       features: [
+        '14-day free trial',
         'Everything in Plus',
         'Team collaboration',
         'API access',
@@ -169,8 +172,9 @@ export default function Landing() {
         'Dedicated account manager',
         'SLA guarantee',
       ],
-      cta: 'Get Pro',
+      cta: 'Start Free Trial',
       highlighted: true,
+      hasTrial: true,
     },
   ];
 
@@ -363,6 +367,11 @@ export default function Landing() {
                 )}
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-semibold text-foreground mb-2">{plan.name}</h3>
+                  {'hasTrial' in plan && plan.hasTrial && (
+                    <span className="inline-block px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-full mb-2">
+                      14-day free trial
+                    </span>
+                  )}
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-4xl font-bold text-foreground">{plan.price}</span>
                     <span className="text-muted-foreground">/{plan.period}</span>
