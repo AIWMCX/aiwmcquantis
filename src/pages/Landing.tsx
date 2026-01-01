@@ -19,12 +19,12 @@ import {
   Loader2
 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { useStripeCheckout } from '@/hooks/useStripeCheckout';
+import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { initiateCheckout, isLoading: checkoutLoading } = useStripeCheckout();
+  const { redirectToPayment, isLoading: checkoutLoading } = usePaymentLinks();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   
   const [darkMode, setDarkMode] = useState(() => {
@@ -46,7 +46,7 @@ export default function Landing() {
     }
   }, [darkMode]);
 
-  const handlePlanClick = async (planName: string) => {
+  const handlePlanClick = (planName: string) => {
     console.log('[Landing] Plan clicked:', planName);
     console.log('[Landing] User authenticated:', !!user);
     
@@ -61,10 +61,9 @@ export default function Landing() {
     console.log('[Landing] Processing plan:', plan);
     
     if (user) {
-      console.log('[Landing] User is authenticated - initiating Stripe checkout');
-      // User is logged in - go straight to Stripe with bulletproof redirect
-      await initiateCheckout(plan);
-      console.log('[Landing] initiateCheckout returned - redirect may have failed');
+      console.log('[Landing] User is authenticated - redirecting to Payment Link');
+      // User is logged in - go straight to Payment Link
+      redirectToPayment(plan, user.id, user.email || undefined);
     } else {
       console.log('[Landing] User not authenticated - saving plan to localStorage');
       // Not logged in - save plan and redirect to auth
