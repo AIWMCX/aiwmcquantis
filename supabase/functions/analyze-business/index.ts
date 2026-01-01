@@ -1473,7 +1473,7 @@ serve(async (req) => {
         global: { headers: { Authorization: authHeader } },
       });
       
-      const { data: { user }, error: userError } = await supabaseAuth.getUser();
+      const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
       
       if (!userError && user) {
         userId = user.id;
