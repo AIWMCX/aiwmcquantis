@@ -28,7 +28,12 @@ export function UpgradePrompt({
 
   const handleUpgrade = (plan: 'plus' | 'pro') => {
     if (user) {
-      redirectToPayment(plan, user.id, user.email || undefined);
+      // Close dialog first to avoid redirect issues from modal context
+      onOpenChange(false);
+      // Small delay to let dialog close, then redirect
+      setTimeout(() => {
+        redirectToPayment(plan, user.id, user.email || undefined);
+      }, 100);
     }
   };
 
