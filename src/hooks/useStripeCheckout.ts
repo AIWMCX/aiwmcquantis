@@ -7,6 +7,7 @@
 
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
 
 type Plan = 'plus' | 'pro';
 
@@ -19,64 +20,6 @@ const PAYMENT_LINKS = {
 interface UsePaymentLinksReturn {
   redirectToPayment: (plan: Plan, userId: string, email?: string) => void;
   isLoading: boolean;
-}
-
-// This function creates a DOM overlay that React CAN'T unmount
-function createBlockingOverlay(): HTMLDivElement {
-  const existing = document.getElementById('stripe-checkout-overlay');
-  if (existing) existing.remove();
-
-  const isDark = document.documentElement.classList.contains('dark') || 
-    window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-  const bgColor = isDark ? '#1f2937' : '#ffffff';
-  const textColor = isDark ? '#f9fafb' : '#111827';
-  const mutedColor = isDark ? '#9ca3af' : '#6b7280';
-  const borderColor = isDark ? '#374151' : '#e5e7eb';
-  const primaryColor = '#3b82f6';
-
-  const overlay = document.createElement('div');
-  overlay.id = 'stripe-checkout-overlay';
-  overlay.innerHTML = `
-    <div style="
-      position: fixed;
-      inset: 0;
-      z-index: 99999;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      background: ${bgColor};
-    ">
-      <div style="
-        width: 48px;
-        height: 48px;
-        border: 4px solid ${borderColor};
-        border-top-color: ${primaryColor};
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-        margin-bottom: 16px;
-      "></div>
-      <p style="
-        font-size: 18px;
-        font-weight: 500;
-        color: ${textColor};
-        margin: 0 0 8px 0;
-      ">Redirecting to Stripe...</p>
-      <p style="
-        font-size: 14px;
-        color: ${mutedColor};
-        margin: 0;
-      ">Please wait, do not close this page</p>
-    </div>
-    <style>
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
-  `;
-  document.body.appendChild(overlay);
-  return overlay;
 }
 
 // Build Payment Link URL with user identification
@@ -95,32 +38,6 @@ function buildPaymentLinkUrl(plan: Plan, userId: string, email?: string): string
   return `${baseUrl}?${params.toString()}`;
 }
 
-// Force redirect with multiple fallbacks
-function forceRedirect(url: string): void {
-  console.log('[PaymentLinks] Force redirecting to:', url);
-  
-  // Method 1: Direct assignment
-  window.location.href = url;
-  
-  // Method 2: Backup after 100ms
-  setTimeout(() => {
-    if (window.location.href.indexOf('buy.stripe.com') === -1) {
-      console.log('[PaymentLinks] Fallback: using replace');
-      window.location.replace(url);
-    }
-  }, 100);
-  
-  // Method 3: Nuclear option after 500ms
-  setTimeout(() => {
-    if (window.location.href.indexOf('buy.stripe.com') === -1) {
-      console.log('[PaymentLinks] Nuclear: creating click link');
-      const link = document.createElement('a');
-      link.href = url;
-      link.click();
-    }
-  }, 500);
-}
-
 // Hook for React components
 export function usePaymentLinks(): UsePaymentLinksReturn {
   const [isLoading, setIsLoading] = useState(false);
@@ -137,12 +54,35 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 
     console.log('[PaymentLinks] Starting redirect for plan:', plan, 'user:', userId);
 
-    // Show overlay immediately
-    createBlockingOverlay();
-
-    // Build URL and redirect
+    // Build URL
     const url = buildPaymentLinkUrl(plan, userId, email);
-    forceRedirect(url);
+    
+    // Simple redirect - no overlay
+    window.location.href = url;
+    
+    // Fallback: if still on page after 3 seconds, show manual link
+    setTimeout(() => {
+      if (document.visibilityState === 'visible') {
+        console.log('[PaymentLinks] Redirect may have failed, showing fallback');
+        redirectInProgress.current = false;
+        setIsLoading(false);
+        
+        // Create clickable link element and add to toast
+        toast({
+          title: 'Click to continue to checkout',
+          description: 'If redirect failed, click the link below.',
+          duration: 30000,
+          action: (() => {
+            const link = document.createElement('a');
+            link.href = url;
+            link.textContent = '→ Open Stripe Checkout';
+            link.style.cssText = 'text-decoration: underline; font-weight: 500; color: hsl(var(--primary));';
+            link.onclick = () => { window.location.href = url; };
+            return link as unknown as React.ReactElement;
+          })(),
+        });
+      }
+    }, 3000);
   }, []);
 
   return { redirectToPayment, isLoading };
@@ -152,9 +92,8 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 export function redirectToPaymentLink(plan: Plan, userId: string, email?: string): void {
   console.log('[PaymentLinks Standalone] Starting redirect for plan:', plan);
   
-  createBlockingOverlay();
   const url = buildPaymentLinkUrl(plan, userId, email);
-  forceRedirect(url);
+  window.location.href = url;
 }
 
 // ============================================================================
