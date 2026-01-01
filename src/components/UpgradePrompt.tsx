@@ -56,6 +56,9 @@ export function UpgradePrompt({
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="font-semibold">Plus</span>
+                  <span className="px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full">
+                    14-day free trial
+                  </span>
                 </div>
                 <p className="text-2xl font-bold">$17<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
@@ -68,7 +71,7 @@ export function UpgradePrompt({
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Upgrade'
+                  'Start Trial'
                 )}
               </Button>
             </div>
@@ -93,11 +96,14 @@ export function UpgradePrompt({
             <div className="absolute -top-2 left-4 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded">
               Most Popular
             </div>
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between pt-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Crown className="w-4 h-4 text-warning" />
                   <span className="font-semibold">Pro</span>
+                  <span className="px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full">
+                    14-day free trial
+                  </span>
                 </div>
                 <p className="text-2xl font-bold">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
@@ -109,7 +115,7 @@ export function UpgradePrompt({
                 {isLoading ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'Upgrade'
+                  'Start Trial'
                 )}
               </Button>
             </div>

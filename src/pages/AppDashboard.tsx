@@ -63,22 +63,23 @@ export default function Index() {
     isFormValid,
   } = useAnalysis();
 
-  // Handle checkout success/cancel URL parameters
+  // Handle checkout success/cancel URL parameters (supports both patterns)
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
+    const successStatus = searchParams.get('success');
     
-    if (checkoutStatus === 'success') {
+    if (checkoutStatus === 'success' || successStatus === 'true') {
       toast({
-        title: 'Payment Successful!',
-        description: 'Your subscription is now active. Refreshing your status...',
+        title: '🎉 Welcome to Your Trial!',
+        description: 'Your 14-day free trial has started. Enjoy unlimited analyses!',
       });
       // Refetch subscription after a short delay to allow webhook processing
       setTimeout(() => {
         refetchSubscription();
       }, 2000);
-      // Clear the URL parameter
+      // Clear the URL parameters
       setSearchParams({});
-    } else if (checkoutStatus === 'canceled') {
+    } else if (checkoutStatus === 'canceled' || successStatus === 'false') {
       toast({
         title: 'Checkout Canceled',
         description: 'Your payment was canceled. You can try again anytime.',
