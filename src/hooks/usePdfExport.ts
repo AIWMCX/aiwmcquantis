@@ -7,13 +7,19 @@ export function usePdfExport() {
 
   const generatePdf = useCallback(async (result: BusinessAnalysisResult) => {
     setIsGenerating(true);
+    let container: HTMLDivElement | null = null;
     
     try {
+      // Validate result object has minimum required data
+      if (!result || !result.metadata) {
+        throw new Error('Invalid analysis result: missing metadata');
+      }
+      
       // Dynamic import to avoid SSR issues
       const html2pdf = (await import('html2pdf.js')).default;
       
       // Create a temporary container for the PDF content
-      const container = document.createElement('div');
+      container = document.createElement('div');
       container.style.position = 'absolute';
       container.style.left = '-9999px';
       container.style.top = '0';
@@ -24,11 +30,11 @@ export function usePdfExport() {
       container.innerHTML = htmlContent;
 
       // Generate filename
-      const sanitizedIdea = result.metadata.idea
+      const sanitizedIdea = (result.metadata?.idea || 'Business_Analysis')
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 30);
       const date = new Date().toISOString().split('T')[0];
-      const filename = `SPAnalyzer_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+      const filename = `AIWMC_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
       // PDF options
       const options = {
@@ -40,6 +46,7 @@ export function usePdfExport() {
           useCORS: true,
           letterRendering: true,
           backgroundColor: '#0f172a',
+          logging: false,
         },
         jsPDF: { 
           unit: 'mm', 
@@ -50,13 +57,14 @@ export function usePdfExport() {
       };
 
       await html2pdf().set(options).from(container).save();
-      
-      // Cleanup
-      document.body.removeChild(container);
     } catch (error) {
       console.error('PDF generation failed:', error);
       throw error;
     } finally {
+      // Cleanup
+      if (container && document.body.contains(container)) {
+        document.body.removeChild(container);
+      }
       setIsGenerating(false);
     }
   }, []);
@@ -642,11 +650,11 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
         </div>
         
         <div class="section-title">Business Overview</div>
-        <p class="paragraph">${result.business_plan.executive_summary}</p>
+        <p class="paragraph">${result.business_plan?.executive_summary || 'No executive summary available'}</p>
         
         <div class="section-title">Target Market</div>
         <div class="highlight-box">
-          <p class="highlight-text">${result.business_plan.target_audience}</p>
+          <p class="highlight-text">${result.business_plan?.target_audience || 'No target audience defined'}</p>
         </div>
         
         <div class="page-footer">
@@ -826,21 +834,21 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
           <div class="market-size-item">
             <div class="market-size-circle">
               <div class="market-size-label">TAM</div>
-              <div class="market-size-value">${result.market_analysis.market_size.tam}</div>
+              <div class="market-size-value">${result.market_analysis?.market_size?.tam || 'N/A'}</div>
               <div class="market-size-desc">Total Addressable Market</div>
             </div>
           </div>
           <div class="market-size-item">
             <div class="market-size-circle" style="border-color: #3b82f6">
               <div class="market-size-label">SAM</div>
-              <div class="market-size-value">${result.market_analysis.market_size.sam}</div>
+              <div class="market-size-value">${result.market_analysis?.market_size?.sam || 'N/A'}</div>
               <div class="market-size-desc">Serviceable Addressable</div>
             </div>
           </div>
           <div class="market-size-item">
             <div class="market-size-circle" style="border-color: #22c55e">
               <div class="market-size-label">SOM</div>
-              <div class="market-size-value">${result.market_analysis.market_size.som}</div>
+              <div class="market-size-value">${result.market_analysis?.market_size?.som || 'N/A'}</div>
               <div class="market-size-desc">Serviceable Obtainable</div>
             </div>
           </div>
@@ -848,20 +856,20 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
         
         <div class="section-title">Key Market Trends</div>
         <div style="margin-bottom: 24px">
-          ${result.market_analysis.trends.map((trend, i) => `
+          ${(result.market_analysis?.trends || []).map((trend, i) => `
             <div class="list-item">
               <span class="list-bullet">${i + 1}</span>
               <span class="list-text">${trend}</span>
             </div>
-          `).join('')}
+          `).join('') || '<p class="paragraph">No trends data available</p>'}
         </div>
         
         <div class="section-title">Competitive Landscape</div>
-        <p class="paragraph">${result.market_analysis.competition.competitive_landscape}</p>
+        <p class="paragraph">${result.market_analysis?.competition?.competitive_landscape || 'No competitive analysis available'}</p>
         
         <div class="highlight-box" style="border-color: #22c55e">
           <div class="highlight-label" style="color: #22c55e">Growth Opportunities</div>
-          <p class="highlight-text">${result.market_analysis.growth_opportunities}</p>
+          <p class="highlight-text">${result.market_analysis?.growth_opportunities || 'No growth opportunities identified'}</p>
         </div>
         
         <div class="page-footer">
@@ -893,19 +901,24 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
             </tr>
           </thead>
           <tbody>
-            ${result.business_plan.risks.map(risk => `
+            ${(result.business_plan.risks || []).map(risk => {
+              const riskName = risk?.risk || (risk as any)?.name || 'Unknown Risk';
+              const probability = risk?.probability || 'средняя';
+              const impact = risk?.impact || 'средний';
+              const mitigation = risk?.mitigation || (risk as any)?.description || 'N/A';
+              return `
               <tr>
-                <td>${risk.risk}</td>
-                <td class="text-center" style="color: ${risk.probability === 'высокая' ? '#ef4444' : risk.probability === 'средняя' ? '#f59e0b' : '#22c55e'}">${risk.probability.toUpperCase()}</td>
-                <td class="text-center" style="color: ${risk.impact === 'высокий' ? '#ef4444' : risk.impact === 'средний' ? '#f59e0b' : '#22c55e'}">${risk.impact.toUpperCase()}</td>
-                <td>${risk.mitigation}</td>
+                <td>${riskName}</td>
+                <td class="text-center" style="color: ${probability === 'высокая' ? '#ef4444' : probability === 'средняя' ? '#f59e0b' : '#22c55e'}">${String(probability).toUpperCase()}</td>
+                <td class="text-center" style="color: ${impact === 'высокий' ? '#ef4444' : impact === 'средний' ? '#f59e0b' : '#22c55e'}">${String(impact).toUpperCase()}</td>
+                <td>${mitigation}</td>
               </tr>
-            `).join('')}
+            `}).join('') || '<tr><td colspan="4">No risks identified</td></tr>'}
           </tbody>
         </table>
         
         <div class="section-title">Barriers to Entry</div>
-        <p class="paragraph">${result.market_analysis.barriers_to_entry}</p>
+        <p class="paragraph">${result.market_analysis?.barriers_to_entry || 'No barriers to entry analysis available'}</p>
         
         <div class="page-footer">
           <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
@@ -926,22 +939,34 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
         </div>
         
         <div class="section-title">Launch Timeline</div>
-        ${result.business_plan.launch_steps.map(step => `
+        ${(result.business_plan.launch_steps || []).map((step, index) => {
+          if (typeof step === 'string') {
+            return `
           <div class="timeline-item">
-            <div class="timeline-number">${step.step}</div>
+            <div class="timeline-number">${index + 1}</div>
             <div class="timeline-content">
-              <div class="timeline-title">${step.title}</div>
-              <div class="timeline-desc">${step.description}</div>
-              <div class="timeline-meta">
-                <span>Duration: ${step.duration}</span>
-                <span>Cost: ${formatCurrency(step.cost)}</span>
-              </div>
+              <div class="timeline-title">Step ${index + 1}</div>
+              <div class="timeline-desc">${step}</div>
             </div>
-          </div>
-        `).join('')}
+          </div>`;
+          }
+          return `
+          <div class="timeline-item">
+            <div class="timeline-number">${step?.step || index + 1}</div>
+            <div class="timeline-content">
+              <div class="timeline-title">${step?.title || 'Step ' + (index + 1)}</div>
+              <div class="timeline-desc">${step?.description || ''}</div>
+              ${step?.duration || step?.cost ? `
+              <div class="timeline-meta">
+                ${step?.duration ? `<span>Duration: ${step.duration}</span>` : ''}
+                ${step?.cost ? `<span>Cost: ${formatCurrency(step.cost)}</span>` : ''}
+              </div>` : ''}
+            </div>
+          </div>`;
+        }).join('') || '<div class="paragraph">No launch steps defined</div>'}
         
         <div class="section-title">First 90 Days Marketing Plan</div>
-        <p class="paragraph">${result.marketing_plan.first_3_months_plan}</p>
+        <p class="paragraph">${result.marketing_plan?.first_3_months_plan || 'No marketing plan available'}</p>
         
         <div class="page-footer">
           <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
@@ -963,22 +988,22 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
         
         <div class="section-title">Data Sources</div>
         <div style="margin-bottom: 24px">
-          ${result.data_sources.map((source, i) => `
+          ${(result.data_sources || []).map((source, i) => `
             <div class="list-item">
               <span class="list-bullet">${i + 1}</span>
               <span class="list-text">${source}</span>
             </div>
-          `).join('')}
+          `).join('') || '<p class="paragraph">No data sources listed</p>'}
         </div>
         
         <div class="section-title">Analysis Limitations</div>
         <div style="margin-bottom: 24px">
-          ${result.limitations.map((limitation, i) => `
+          ${(result.limitations || []).map((limitation, i) => `
             <div class="list-item">
               <span class="list-bullet">${i + 1}</span>
               <span class="list-text">${limitation}</span>
             </div>
-          `).join('')}
+          `).join('') || '<p class="paragraph">No limitations listed</p>'}
         </div>
         
         <div class="section-title">Legal Disclaimer</div>
