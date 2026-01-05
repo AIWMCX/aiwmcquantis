@@ -1,5 +1,5 @@
 import React, { useRef } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -13,6 +13,8 @@ import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
+import { usePdfExport } from '@/hooks/usePdfExport';
+import { toast } from 'sonner';
 
 interface AnalysisResultsProps {
   result: BusinessAnalysisResult;
@@ -21,8 +23,20 @@ interface AnalysisResultsProps {
 
 export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
+  const { generatePdf, isGenerating } = usePdfExport();
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
+    try {
+      toast.info('Generating Executive Report...', { duration: 2000 });
+      await generatePdf(result);
+      toast.success('Executive Report downloaded successfully');
+    } catch (error) {
+      console.error('PDF export failed:', error);
+      toast.error('Failed to generate PDF. Please try again.');
+    }
+  };
+
+  const handleLegacyExportPDF = () => {
     const printContent = contentRef.current;
     if (!printContent) return;
 
@@ -134,9 +148,18 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
         </div>
         
         <div className="flex gap-2 mt-4">
-          <Button onClick={handleExportPDF} variant="outline" className="gap-2">
-            <FileDown className="w-4 h-4" />
-            Export PDF
+          <Button 
+            onClick={handleExportPDF} 
+            variant="outline" 
+            className="gap-2"
+            disabled={isGenerating}
+          >
+            {isGenerating ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <FileDown className="w-4 h-4" />
+            )}
+            {isGenerating ? 'Generating...' : 'Download Executive Report'}
           </Button>
           {onReset && (
             <Button onClick={onReset} variant="ghost" className="gap-2">
