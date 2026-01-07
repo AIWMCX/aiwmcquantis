@@ -1662,10 +1662,10 @@ Call submit_analysis with all sections in English.`;
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        model: "google/gemini-2.5-flash",
+        model: "openai/gpt-5-mini",
         messages: [{ role: "user", content: prompt }],
         tools: [analysisToolSchema],
-        tool_choice: { type: "function", function: { name: "submit_analysis" } },
+        tool_choice: "auto",
       }),
     });
 
