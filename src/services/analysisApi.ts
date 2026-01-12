@@ -29,11 +29,26 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       });
 
       if (error) {
+        // Check for rate limit error in the response
+        if (error.message?.includes('429') || error.context?.status === 429) {
+          const errorData = error.context?.body || {};
+          const retryAfter = errorData.details?.retry_after_seconds || 60;
+          const minutes = Math.ceil(retryAfter / 60);
+          throw new Error(`RATE_LIMIT_EXCEEDED: Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+        }
         throw new Error(error.message || 'Failed to invoke analysis function');
       }
 
       if (!data) {
         throw new Error('Empty response from server');
+      }
+
+      // Handle rate limit response from edge function
+      if ('code' in data && data.code === 'RATE_LIMIT_EXCEEDED') {
+        const details = (data as any).details || {};
+        const retryAfter = details.retry_after_seconds || 60;
+        const minutes = Math.ceil(retryAfter / 60);
+        throw new Error(`RATE_LIMIT_EXCEEDED: Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
       }
 
       if (!data.success || !data.data) {
@@ -46,8 +61,10 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
       
-      // Don't retry for validation errors
-      if (lastError.message.includes('VALIDATION') || lastError.message.includes('validation')) {
+      // Don't retry for validation errors or rate limit errors
+      if (lastError.message.includes('VALIDATION') || 
+          lastError.message.includes('validation') ||
+          lastError.message.includes('RATE_LIMIT')) {
         throw lastError;
       }
     }

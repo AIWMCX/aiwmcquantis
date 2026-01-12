@@ -88,6 +88,33 @@ export type Database = {
         }
         Relationships: []
       }
+      rate_limits: {
+        Row: {
+          created_at: string | null
+          endpoint: string
+          id: string
+          request_count: number | null
+          user_id: string
+          window_start: string
+        }
+        Insert: {
+          created_at?: string | null
+          endpoint: string
+          id?: string
+          request_count?: number | null
+          user_id: string
+          window_start: string
+        }
+        Update: {
+          created_at?: string | null
+          endpoint?: string
+          id?: string
+          request_count?: number | null
+          user_id?: string
+          window_start?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -159,6 +186,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      check_rate_limit: {
+        Args: {
+          p_endpoint: string
+          p_max_requests: number
+          p_user_id: string
+          p_window_minutes: number
+        }
+        Returns: Json
+      }
+      cleanup_old_rate_limits: { Args: never; Returns: undefined }
       increment_usage: {
         Args: { p_month_year: string; p_user_id: string }
         Returns: undefined

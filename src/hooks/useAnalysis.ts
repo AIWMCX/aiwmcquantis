@@ -80,13 +80,25 @@ export function useAnalysis() {
     onError: (error: Error) => {
       console.error('Analysis error:', error);
       
-      const message = error.message.includes('429') || error.message.includes('RATE_LIMIT')
-        ? 'Too many requests. Please wait a minute.'
-        : error.message.includes('402') || error.message.includes('PAYMENT')
-        ? 'Usage limit exceeded.'
-        : error.message || 'An error occurred during analysis';
+      let message: string;
+      
+      if (error.message.includes('RATE_LIMIT_EXCEEDED')) {
+        // Extract the user-friendly message from the error
+        message = error.message.replace('RATE_LIMIT_EXCEEDED: ', '');
+      } else if (error.message.includes('429') || error.message.includes('RATE_LIMIT')) {
+        message = 'Too many requests. Please wait a minute and try again.';
+      } else if (error.message.includes('402') || error.message.includes('PAYMENT') || error.message.includes('USAGE_LIMIT')) {
+        message = 'Monthly analysis limit reached. Upgrade your plan for more analyses.';
+      } else {
+        message = error.message || 'An error occurred during analysis';
+      }
         
-      toast.error(message);
+      toast.error(message, {
+        duration: 5000,
+        description: error.message.includes('RATE_LIMIT') 
+          ? 'Upgrade to Pro for higher rate limits.'
+          : undefined
+      });
     },
   });
 

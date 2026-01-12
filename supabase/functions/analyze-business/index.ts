@@ -1462,6 +1462,14 @@ serve(async (req) => {
   }
 
   try {
+    // ========== RATE LIMITING CONFIGURATION ==========
+    const RATE_LIMITS = {
+      anonymous: { requests: 1, windowMinutes: 60 },  // 1 request per hour for unauthenticated
+      free: { requests: 2, windowMinutes: 60 },       // 2 requests per hour
+      plus: { requests: 10, windowMinutes: 60 },      // 10 requests per hour  
+      pro: { requests: 30, windowMinutes: 60 },       // 30 requests per hour
+    };
+    
     // ========== USAGE ENFORCEMENT ==========
     const FREE_TIER_LIMIT = 3;
     let userId: string | null = null;
@@ -1471,6 +1479,9 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Service role client for rate limiting
+    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
     
     const authHeader = req.headers.get("Authorization");
     
@@ -1499,7 +1510,7 @@ serve(async (req) => {
         
         console.log(`User plan: ${userPlan}`);
         
-        // If free tier, check usage
+        // If free tier, check monthly usage
         if (userPlan === 'free') {
           const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
           
@@ -1526,7 +1537,64 @@ serve(async (req) => {
         }
       }
     }
-    // ========== END USAGE ENFORCEMENT ==========
+    
+    // ========== HOURLY RATE LIMITING ==========
+    // Get rate limit config based on plan
+    const rateLimitConfig = RATE_LIMITS[userPlan as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
+    
+    // Use authenticated user ID or a fixed anonymous ID for rate limiting
+    const rateLimitUserId = userId || '00000000-0000-0000-0000-000000000000';
+    
+    try {
+      const { data: rateLimitResult, error: rateLimitError } = await supabaseService
+        .rpc('check_rate_limit', {
+          p_user_id: rateLimitUserId,
+          p_endpoint: 'analyze-business',
+          p_window_minutes: rateLimitConfig.windowMinutes,
+          p_max_requests: rateLimitConfig.requests
+        });
+      
+      if (rateLimitError) {
+        console.error('Rate limit check failed:', rateLimitError);
+        // Fail open - allow request but log the error
+      } else if (rateLimitResult && !rateLimitResult.allowed) {
+        console.log(`Rate limit exceeded for ${userId || 'anonymous'}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
+        
+        const resetAt = new Date(rateLimitResult.reset_at);
+        const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+        
+        return new Response(
+          JSON.stringify({ 
+            error: "Too many requests. Please wait before trying again.", 
+            code: "RATE_LIMIT_EXCEEDED",
+            details: {
+              limit: rateLimitResult.limit,
+              remaining: 0,
+              reset_at: rateLimitResult.reset_at,
+              retry_after_seconds: retryAfterSeconds,
+              plan: userPlan
+            }
+          }),
+          { 
+            status: 429, 
+            headers: { 
+              ...corsHeaders, 
+              "Content-Type": "application/json",
+              "Retry-After": String(retryAfterSeconds),
+              "X-RateLimit-Limit": String(rateLimitResult.limit),
+              "X-RateLimit-Remaining": "0",
+              "X-RateLimit-Reset": String(Math.floor(resetAt.getTime() / 1000))
+            } 
+          }
+        );
+      } else if (rateLimitResult) {
+        console.log(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
+      }
+    } catch (rlError) {
+      console.error('Rate limit system error:', rlError);
+      // Fail open on error
+    }
+    // ========== END RATE LIMITING ==========
 
     const { idea, location, financial_inputs, selected_industry, documents } = await req.json() as AnalysisRequest;
 
