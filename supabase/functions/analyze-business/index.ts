@@ -20,6 +20,19 @@ interface DocumentData {
   name: string;
   type: string;
   parsedContent: string;
+  extractedFinancials?: ExtractedDocumentFinancials;
+}
+
+interface ExtractedDocumentFinancials {
+  revenue?: { total?: number; monthly?: number; quarterly?: number; annual?: number; breakdown?: Record<string, number> };
+  costs?: { total?: number; monthly?: number; breakdown?: Record<string, number> };
+  metrics?: { roi?: number; profit_margin?: number; net_profit?: number; conversion_rate?: number; customer_count?: number; mrr?: number; arr?: number; cac?: number; ltv?: number };
+  investment?: { total?: number; breakdown?: Record<string, number> };
+  document_type: string;
+  confidence: number;
+  key_findings: string[];
+  source_document: string;
+  extraction_notes: string[];
 }
 
 interface AnalysisRequest {
@@ -1614,7 +1627,19 @@ serve(async (req) => {
 
     // Build document context if files were uploaded
     let documentContext = '';
+    let documentExtractedFinancials: ExtractedDocumentFinancials[] = [];
+    
     if (documents && documents.length > 0) {
+      // Collect extracted financials from documents
+      documentExtractedFinancials = documents
+        .filter(doc => doc.extractedFinancials)
+        .map(doc => doc.extractedFinancials!);
+      
+      // Build key findings summary
+      const keyFindings = documentExtractedFinancials
+        .flatMap(ef => ef.key_findings)
+        .slice(0, 10);
+      
       documentContext = `
 
 ## UPLOADED BUSINESS DOCUMENTS
@@ -1625,12 +1650,81 @@ ${documents.map(doc => `
 ${doc.parsedContent}
 `).join('\n')}
 
+${keyFindings.length > 0 ? `
+### KEY FINANCIAL DATA EXTRACTED FROM DOCUMENTS:
+${keyFindings.map(f => `- ${f}`).join('\n')}
+` : ''}
+
 IMPORTANT: The above documents contain REAL business data (revenue statements, invoices, marketing reports, etc.). 
 - Use the specific numbers, dates, and metrics from these documents
 - Reference specific findings from these documents in your analysis
 - Base your projections on the actual data provided, not generic estimates
 - If the documents contain financial data, use those figures as the foundation for your analysis
 `;
+    }
+
+    // ========== AGGREGATE DOCUMENT FINANCIALS ==========
+    // Priority: User inputs > Document data > AI estimates
+    let documentDerivedInputs: Partial<OptionalFinancialInputs> = {};
+    
+    if (documentExtractedFinancials.length > 0) {
+      for (const docFin of documentExtractedFinancials) {
+        // Revenue
+        if (!documentDerivedInputs.monthly_revenue) {
+          if (docFin.metrics?.mrr) {
+            documentDerivedInputs.monthly_revenue = docFin.metrics.mrr;
+            console.log(`Document data: MRR $${docFin.metrics.mrr} from ${docFin.source_document}`);
+          } else if (docFin.revenue?.monthly) {
+            documentDerivedInputs.monthly_revenue = docFin.revenue.monthly;
+            console.log(`Document data: Monthly revenue $${docFin.revenue.monthly} from ${docFin.source_document}`);
+          } else if (docFin.revenue?.quarterly) {
+            documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.quarterly / 3);
+            console.log(`Document data: Quarterly revenue $${docFin.revenue.quarterly} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
+          } else if (docFin.revenue?.total) {
+            // Assume quarterly if > 50k, otherwise monthly
+            const divisor = docFin.revenue.total > 50000 ? 3 : 1;
+            documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.total / divisor);
+            console.log(`Document data: Total revenue $${docFin.revenue.total} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
+          }
+        }
+        
+        // Costs
+        if (!documentDerivedInputs.monthly_costs && docFin.costs?.monthly) {
+          documentDerivedInputs.monthly_costs = docFin.costs.monthly;
+          console.log(`Document data: Monthly costs $${docFin.costs.monthly} from ${docFin.source_document}`);
+        }
+        
+        // Investment
+        if (!documentDerivedInputs.startup_investment && docFin.investment?.total) {
+          documentDerivedInputs.startup_investment = docFin.investment.total;
+          console.log(`Document data: Investment $${docFin.investment.total} from ${docFin.source_document}`);
+        }
+        
+        // CAC
+        if (!documentDerivedInputs.cac && docFin.metrics?.cac) {
+          documentDerivedInputs.cac = docFin.metrics.cac;
+          console.log(`Document data: CAC $${docFin.metrics.cac} from ${docFin.source_document}`);
+        }
+        
+        // Customers
+        if (!documentDerivedInputs.expected_customers && docFin.metrics?.customer_count) {
+          documentDerivedInputs.expected_customers = docFin.metrics.customer_count;
+          console.log(`Document data: Customers ${docFin.metrics.customer_count} from ${docFin.source_document}`);
+        }
+      }
+    }
+    
+    // Merge: user inputs override document data
+    const mergedFinancialInputs: OptionalFinancialInputs = {
+      ...documentDerivedInputs,
+      ...financial_inputs,
+    };
+    
+    // Log data sources
+    if (Object.keys(documentDerivedInputs).length > 0) {
+      console.log('Document-derived inputs:', documentDerivedInputs);
+      console.log('User-provided inputs:', financial_inputs);
+      console.log('Merged inputs:', mergedFinancialInputs);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -1914,7 +2008,7 @@ Call submit_analysis with all sections in English.`;
       );
     }
 
-    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier, financial_inputs);
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
@@ -2034,6 +2128,21 @@ Call submit_analysis with all sections in English.`;
       confidenceBreakdown.details.push(`User provided ${userProvidedCount} financial inputs (${userProvidedFields.join(', ')})`);
     }
     
+    // BONUS for document-extracted data (up to +15%)
+    const documentDataCount = Object.keys(documentDerivedInputs).length;
+    if (documentDataCount > 0) {
+      const documentBonus = Math.min(15, documentDataCount * 3);
+      confidenceBreakdown.input_completeness = Math.min(100, confidenceBreakdown.input_completeness + documentBonus);
+      confidenceBreakdown.details.push(`Extracted ${documentDataCount} metrics from uploaded documents`);
+    }
+    
+    // Extra bonus for high-value document types
+    const revenueStatementCount = documentExtractedFinancials.filter(ef => ef.document_type === 'revenue_statement').length;
+    if (revenueStatementCount > 0) {
+      confidenceBreakdown.input_completeness = Math.min(100, confidenceBreakdown.input_completeness + 10);
+      confidenceBreakdown.details.push(`Revenue statements provide verified financial data (+10%)`);
+    }
+    
     // Minimum input quality penalty - just 2 inputs (idea + location) = 25% max
     const ideaLength = idea.trim().length;
     const locationLength = location.trim().length;
@@ -2053,14 +2162,26 @@ Call submit_analysis with all sections in English.`;
     const userDataQuality = userProvidedCount > 0 ? Math.min(40, userProvidedCount * 8) : Math.min(providedRequired * 10, 30);
     dataQualityScore += userDataQuality;
     
+    // Document-extracted data quality (25%) - real business documents
+    if (documentDataCount > 0) {
+      const avgDocConfidence = documentExtractedFinancials.reduce((sum, ef) => sum + ef.confidence, 0) / documentExtractedFinancials.length;
+      const docDataQuality = Math.min(25, Math.round(avgDocConfidence * 0.25));
+      dataQualityScore += docDataQuality;
+      confidenceBreakdown.details.push(`Document extraction confidence: ${Math.round(avgDocConfidence)}%`);
+    }
+    
     // Industry benchmark quality (35%) - we always have this
     dataQualityScore += 35;
     
-    // Real-time/external data (15%) - not implemented yet
-    dataQualityScore += 0;
-    if (userProvidedCount === 0) {
+    // Real-time/external data (0%) - not implemented yet
+    if (userProvidedCount === 0 && documentDataCount === 0) {
       confidenceBreakdown.details.push('Analysis uses industry benchmarks (no real-time market data)');
     }
+    
+    // Calculation certainty (10%) - our formulas are validated
+    dataQualityScore += 10;
+    
+    confidenceBreakdown.data_quality = Math.min(100, dataQualityScore);
     
     // Calculation certainty (10%) - our formulas are validated
     dataQualityScore += 10;
@@ -2150,8 +2271,11 @@ Call submit_analysis with all sections in English.`;
     if (locationMultiplier === 1.0) {
       improvementSuggestions.push('Specify a major city for location-adjusted cost estimates');
     }
-    if (calc.corrections.length > 0 && userProvidedCount === 0) {
-      improvementSuggestions.push('Provide your own financial data to avoid auto-corrections');
+    if (calc.corrections.length > 0 && userProvidedCount === 0 && documentDataCount === 0) {
+      improvementSuggestions.push('Provide your own financial data or upload documents to avoid auto-corrections');
+    }
+    if (documents && documents.length === 0) {
+      improvementSuggestions.push('Upload business documents (invoices, revenue statements) for more accurate analysis');
     }
     
     result.confidence_score = reliabilityScore;
@@ -2202,7 +2326,8 @@ Call submit_analysis with all sections in English.`;
             'Small Business Administration Cost Data',
             'Industry Standard Financial Formulas (GAAP)',
             `${calc.industryDetected} Sector Benchmarks`,
-            locationMultiplier !== 1.0 ? `${location} Cost of Living Index` : 'National Average Cost Data'
+            locationMultiplier !== 1.0 ? `${location} Cost of Living Index` : 'National Average Cost Data',
+            ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `User Document: ${ef.source_document}`) : [])
           ],
           limitations: [
             'Analysis based on industry benchmarks and AI estimates',

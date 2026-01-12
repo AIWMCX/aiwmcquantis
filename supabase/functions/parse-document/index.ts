@@ -11,6 +11,41 @@ interface ParseRequest {
   fileType: string;
 }
 
+// ========== EXTRACTED FINANCIALS STRUCTURE ==========
+interface ExtractedFinancials {
+  revenue?: {
+    total?: number;
+    monthly?: number;
+    quarterly?: number;
+    annual?: number;
+    breakdown?: Record<string, number>;
+  };
+  costs?: {
+    total?: number;
+    monthly?: number;
+    breakdown?: Record<string, number>;
+  };
+  metrics?: {
+    roi?: number;
+    profit_margin?: number;
+    conversion_rate?: number;
+    customer_count?: number;
+    mrr?: number;
+    arr?: number;
+    cac?: number;
+    ltv?: number;
+  };
+  investment?: {
+    total?: number;
+    breakdown?: Record<string, number>;
+  };
+  document_type: 'revenue_statement' | 'invoice' | 'marketing_report' | 'financial_forecast' | 'general' | 'unknown';
+  confidence: number;
+  key_findings: string[];
+  source_document: string;
+  extraction_notes: string[];
+}
+
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -36,37 +71,47 @@ serve(async (req) => {
     }
 
     let content = "";
+    let extractedFinancials: ExtractedFinancials | null = null;
     const contentType = fileResponse.headers.get("content-type") || "";
 
     // Handle different file types
     if (fileType === "txt" || contentType.includes("text/plain")) {
       // Plain text - read directly
       content = await fileResponse.text();
+      extractedFinancials = extractFinancialsFromText(content, fileName);
     } 
     else if (fileType === "csv" || contentType.includes("text/csv")) {
       // CSV - parse and format as readable text
       const csvText = await fileResponse.text();
       content = parseCSV(csvText);
+      extractedFinancials = extractFinancialsFromText(content, fileName);
     }
     else if (fileType === "pdf" || contentType.includes("application/pdf")) {
-      // PDF - use Lovable AI for extraction
+      // PDF - use Lovable AI for extraction with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
-      content = await extractWithAI(arrayBuffer, fileName, "pdf");
+      const result = await extractWithAI(arrayBuffer, fileName, "pdf");
+      content = result.content;
+      extractedFinancials = result.financials;
     }
     else if (fileType === "docx" || contentType.includes("wordprocessingml")) {
-      // DOCX - extract using AI
+      // DOCX - extract using AI with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
-      content = await extractWithAI(arrayBuffer, fileName, "docx");
+      const result = await extractWithAI(arrayBuffer, fileName, "docx");
+      content = result.content;
+      extractedFinancials = result.financials;
     }
     else if (fileType === "xlsx" || fileType === "xls" || contentType.includes("spreadsheetml")) {
-      // Excel - extract using AI
+      // Excel - extract using AI with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
-      content = await extractWithAI(arrayBuffer, fileName, "excel");
+      const result = await extractWithAI(arrayBuffer, fileName, "excel");
+      content = result.content;
+      extractedFinancials = result.financials;
     }
     else {
       // Try to read as text
       try {
         content = await fileResponse.text();
+        extractedFinancials = extractFinancialsFromText(content, fileName);
       } catch {
         content = "[Unable to extract content from this file type]";
       }
@@ -79,6 +124,10 @@ serve(async (req) => {
     }
 
     console.log(`Extracted ${content.length} characters from ${fileName}`);
+    if (extractedFinancials) {
+      console.log(`Document type: ${extractedFinancials.document_type}, Confidence: ${extractedFinancials.confidence}%`);
+      console.log(`Key findings: ${extractedFinancials.key_findings.length}`);
+    }
 
     return new Response(
       JSON.stringify({ 
@@ -86,7 +135,8 @@ serve(async (req) => {
         content,
         fileName,
         fileType,
-        charCount: content.length 
+        charCount: content.length,
+        extractedFinancials
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
@@ -153,12 +203,99 @@ function parseCSV(csvText: string): string {
   return result.join("\n");
 }
 
-async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileType: string): Promise<string> {
+// Simple pattern-based extraction for text files
+function extractFinancialsFromText(text: string, fileName: string): ExtractedFinancials {
+  const financials: ExtractedFinancials = {
+    document_type: 'general',
+    confidence: 30,
+    key_findings: [],
+    source_document: fileName,
+    extraction_notes: ['Basic pattern extraction - AI extraction recommended for complex documents']
+  };
+
+  // Common currency patterns
+  const currencyPattern = /\$[\d,]+(?:\.\d{2})?/g;
+  const percentPattern = /[\d.]+%/g;
+  
+  const amounts = text.match(currencyPattern) || [];
+  const percentages = text.match(percentPattern) || [];
+
+  // Detect document type based on keywords
+  const textLower = text.toLowerCase();
+  if (textLower.includes('revenue statement') || textLower.includes('income statement') || textLower.includes('profit and loss')) {
+    financials.document_type = 'revenue_statement';
+    financials.confidence = 50;
+  } else if (textLower.includes('invoice') || textLower.includes('bill to')) {
+    financials.document_type = 'invoice';
+    financials.confidence = 50;
+  } else if (textLower.includes('marketing') || textLower.includes('campaign') || textLower.includes('conversion')) {
+    financials.document_type = 'marketing_report';
+    financials.confidence = 50;
+  } else if (textLower.includes('forecast') || textLower.includes('projection') || textLower.includes('budget')) {
+    financials.document_type = 'financial_forecast';
+    financials.confidence = 50;
+  }
+
+  // Extract key metrics
+  const revenueMatch = text.match(/(?:total|gross|net)\s*revenue[:\s]*\$?([\d,]+(?:\.\d{2})?)/i);
+  const profitMatch = text.match(/(?:net|gross)\s*profit[:\s]*\$?([\d,]+(?:\.\d{2})?)/i);
+  const roiMatch = text.match(/roi[:\s]*([\d.]+)%?/i);
+  const mrrMatch = text.match(/(?:mrr|monthly recurring)[:\s]*\$?([\d,]+(?:\.\d{2})?)/i);
+
+  if (revenueMatch) {
+    const value = parseFloat(revenueMatch[1].replace(/,/g, ''));
+    financials.revenue = { total: value };
+    financials.key_findings.push(`Total Revenue: $${value.toLocaleString()}`);
+    financials.confidence += 10;
+  }
+
+  if (profitMatch) {
+    const value = parseFloat(profitMatch[1].replace(/,/g, ''));
+    financials.metrics = { ...financials.metrics, profit_margin: value };
+    financials.key_findings.push(`Profit: $${value.toLocaleString()}`);
+    financials.confidence += 10;
+  }
+
+  if (roiMatch) {
+    const value = parseFloat(roiMatch[1]);
+    financials.metrics = { ...financials.metrics, roi: value };
+    financials.key_findings.push(`ROI: ${value}%`);
+    financials.confidence += 10;
+  }
+
+  if (mrrMatch) {
+    const value = parseFloat(mrrMatch[1].replace(/,/g, ''));
+    financials.metrics = { ...financials.metrics, mrr: value };
+    financials.key_findings.push(`MRR: $${value.toLocaleString()}`);
+    financials.confidence += 10;
+  }
+
+  financials.confidence = Math.min(80, financials.confidence);
+  return financials;
+}
+
+interface AIExtractionResult {
+  content: string;
+  financials: ExtractedFinancials;
+}
+
+async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileType: string): Promise<AIExtractionResult> {
   const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+  
+  const defaultFinancials: ExtractedFinancials = {
+    document_type: 'unknown',
+    confidence: 20,
+    key_findings: [],
+    source_document: fileName,
+    extraction_notes: ['AI extraction not available']
+  };
   
   if (!LOVABLE_API_KEY) {
     console.warn("LOVABLE_API_KEY not configured, returning placeholder");
-    return `[Document: ${fileName}]\n\nNote: Document parsing requires AI configuration. Please contact support to enable full document parsing.\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes`;
+    return {
+      content: `[Document: ${fileName}]\n\nNote: Document parsing requires AI configuration. Please contact support to enable full document parsing.\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes`,
+      financials: defaultFinancials
+    };
   }
 
   // Convert to base64 for the AI
@@ -167,7 +304,7 @@ async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileTyp
   );
 
   try {
-    // Use Gemini's vision capability for document understanding
+    // Use Gemini's vision capability with structured extraction prompt
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -182,25 +319,94 @@ async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileTyp
             content: [
               {
                 type: "text",
-                text: `Extract ALL text content from this ${fileType.toUpperCase()} document named "${fileName}". 
-                
-For financial documents (invoices, revenue statements, reports):
-- Extract all numbers, amounts, dates
-- Identify line items, totals, subtotals
-- Note any percentages, growth rates, or comparisons
-- Include headers, footers, and any tabular data
+                text: `You are a financial data extraction specialist. Extract ALL content and financial data from this ${fileType.toUpperCase()} document named "${fileName}".
 
-For marketing documents:
-- Extract campaign names, budgets, metrics
-- Note any KPIs, ROI figures, conversion rates
-- Include target audience information
+## EXTRACTION REQUIREMENTS
 
-For general documents:
-- Preserve the document structure (headings, sections)
-- Include all text content
-- Note any important figures or data points
+### 1. Full Text Content
+Extract all text preserving structure:
+- Headers, sections, paragraphs
+- Tables formatted as rows
+- All numbers, dates, amounts
 
-Return the extracted content in a clean, readable format. If this is a spreadsheet, format data in rows.`
+### 2. Structured Financial Data
+Extract these specific metrics when found:
+
+REVENUE DATA:
+- Total Revenue (any period)
+- Monthly Revenue / MRR
+- Quarterly Revenue
+- Annual Revenue / ARR
+- Revenue by category/service
+
+COST DATA:
+- Total Expenses/Costs
+- Monthly Operating Costs
+- Cost breakdown by category
+
+KEY METRICS:
+- ROI (Return on Investment)
+- Profit Margin %
+- Net Profit amount
+- Customer Count
+- CAC (Customer Acquisition Cost)
+- LTV (Customer Lifetime Value)
+- Conversion Rate
+
+INVESTMENT DATA:
+- Initial Investment
+- Capital Expenditure
+- Startup Costs
+
+### 3. Document Classification
+Identify document type:
+- revenue_statement (income/P&L statements)
+- invoice (bills, invoices)
+- marketing_report (campaigns, metrics)
+- financial_forecast (projections, budgets)
+- general (other business documents)
+
+## OUTPUT FORMAT
+
+First, provide the extracted text content.
+
+Then, at the end of your response, include a JSON block with extracted financials:
+
+\`\`\`json
+{
+  "document_type": "revenue_statement|invoice|marketing_report|financial_forecast|general",
+  "revenue": {
+    "total": number_or_null,
+    "monthly": number_or_null,
+    "quarterly": number_or_null,
+    "annual": number_or_null,
+    "breakdown": {"category": amount}
+  },
+  "costs": {
+    "total": number_or_null,
+    "monthly": number_or_null,
+    "breakdown": {"category": amount}
+  },
+  "metrics": {
+    "roi": number_or_null,
+    "profit_margin": number_or_null,
+    "net_profit": number_or_null,
+    "customer_count": number_or_null,
+    "mrr": number_or_null,
+    "arr": number_or_null,
+    "cac": number_or_null,
+    "ltv": number_or_null
+  },
+  "investment": {
+    "total": number_or_null,
+    "breakdown": {"category": amount}
+  },
+  "key_findings": ["Finding 1: specific value", "Finding 2: specific metric"],
+  "confidence": 0-100
+}
+\`\`\`
+
+Be precise with numbers. Include currency and period context in key_findings.`
               },
               {
                 type: "image_url",
@@ -219,21 +425,74 @@ Return the extracted content in a clean, readable format. If this is a spreadshe
       const errorText = await response.text();
       console.error("AI extraction error:", response.status, errorText);
       
-      // Fallback: return basic info about the file
-      return `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Full content extraction unavailable. The AI analysis will use the document information provided above.`;
+      return {
+        content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Full content extraction unavailable. The AI analysis will use the document information provided above.`,
+        financials: defaultFinancials
+      };
     }
 
     const result = await response.json();
     const extractedContent = result.choices?.[0]?.message?.content || "";
     
     if (!extractedContent) {
-      return `[Document: ${fileName}]\n\nUnable to extract content from this document. Please ensure the file is not password-protected or corrupted.`;
+      return {
+        content: `[Document: ${fileName}]\n\nUnable to extract content from this document. Please ensure the file is not password-protected or corrupted.`,
+        financials: defaultFinancials
+      };
     }
 
-    return `=== Document: ${fileName} ===\n\n${extractedContent}`;
+    // Parse the structured JSON from the response
+    let financials: ExtractedFinancials = {
+      document_type: 'general',
+      confidence: 50,
+      key_findings: [],
+      source_document: fileName,
+      extraction_notes: ['AI-powered extraction']
+    };
+
+    // Try to extract JSON block from response
+    const jsonMatch = extractedContent.match(/```json\s*([\s\S]*?)\s*```/);
+    if (jsonMatch) {
+      try {
+        const parsedData = JSON.parse(jsonMatch[1]);
+        
+        financials = {
+          document_type: parsedData.document_type || 'general',
+          confidence: Math.min(95, parsedData.confidence || 60),
+          key_findings: parsedData.key_findings || [],
+          source_document: fileName,
+          extraction_notes: ['AI-powered extraction with structured data'],
+          revenue: parsedData.revenue,
+          costs: parsedData.costs,
+          metrics: parsedData.metrics,
+          investment: parsedData.investment
+        };
+        
+        // Boost confidence based on data found
+        if (financials.revenue?.total) financials.confidence = Math.min(95, financials.confidence + 5);
+        if (financials.metrics?.roi) financials.confidence = Math.min(95, financials.confidence + 5);
+        if (financials.metrics?.mrr) financials.confidence = Math.min(95, financials.confidence + 5);
+        
+        console.log(`Successfully parsed structured financials: ${JSON.stringify(financials.metrics)}`);
+      } catch (e) {
+        console.warn("Failed to parse structured JSON from AI response:", e);
+        financials.extraction_notes.push('Structured data parsing failed - using text content only');
+      }
+    }
+
+    // Remove JSON block from content for cleaner text
+    const cleanContent = extractedContent.replace(/```json[\s\S]*?```/g, '').trim();
+
+    return {
+      content: `=== Document: ${fileName} ===\n\n${cleanContent}`,
+      financials
+    };
 
   } catch (error) {
     console.error("AI extraction failed:", error);
-    return `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Content extraction encountered an error. Basic file information is included above.`;
+    return {
+      content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Content extraction encountered an error. Basic file information is included above.`,
+      financials: defaultFinancials
+    };
   }
 }
