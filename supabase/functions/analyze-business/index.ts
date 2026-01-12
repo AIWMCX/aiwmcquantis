@@ -1713,34 +1713,105 @@ market_json:
 
 Call submit_analysis with all sections in English.`;
 
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model: "openai/gpt-5-mini",
-        messages: [{ role: "user", content: prompt }],
-        tools: [analysisToolSchema],
-        tool_choice: "auto",
-      }),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      console.error(`AI error: ${response.status}`, errorText);
+    // ========== AI REQUEST WITH RETRY LOGIC ==========
+    const MAX_RETRIES = 3;
+    const INITIAL_DELAY_MS = 1000;
+    
+    let response: Response | null = null;
+    let lastError: string | null = null;
+    
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        console.log(`AI request attempt ${attempt}/${MAX_RETRIES}`);
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        
+        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${LOVABLE_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            model: "openai/gpt-5-mini",
+            messages: [{ role: "user", content: prompt }],
+            tools: [analysisToolSchema],
+            tool_choice: "auto",
+          }),
+          signal: controller.signal,
+        });
+        
+        clearTimeout(timeoutId);
+        
+        if (response.ok) {
+          console.log(`AI request succeeded on attempt ${attempt}`);
+          break;
+        }
+        
+        const errorText = await response.text();
+        lastError = `HTTP ${response.status}: ${errorText}`;
+        console.error(`AI error on attempt ${attempt}: ${lastError}`);
+        
+        // Don't retry on rate limit or auth errors
+        if (response.status === 429 || response.status === 401 || response.status === 403) {
+          break;
+        }
+        
+        // Exponential backoff for retryable errors
+        if (attempt < MAX_RETRIES) {
+          const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
+        console.error(`Fetch error on attempt ${attempt}: ${lastError}`);
+        
+        if (lastError.includes('abort')) {
+          lastError = 'Request timed out after 60 seconds';
+        }
+        
+        if (attempt < MAX_RETRIES) {
+          const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
+          console.log(`Retrying in ${delay}ms...`);
+          await new Promise(resolve => setTimeout(resolve, delay));
+        }
+      }
+    }
+    
+    if (!response || !response.ok) {
+      console.error(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
       
-      if (response.status === 429) {
+      if (response?.status === 429) {
         return new Response(
-          JSON.stringify({ error: "Too many requests. Please wait a minute.", code: "RATE_LIMIT" }),
+          JSON.stringify({ 
+            error: "AI service is busy. Please try again in a minute.", 
+            code: "RATE_LIMIT",
+            details: "Too many concurrent requests to the AI service"
+          }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
       
+      if (response?.status === 401 || response?.status === 403) {
+        return new Response(
+          JSON.stringify({ 
+            error: "AI service authentication failed", 
+            code: "AUTH_ERROR",
+            details: "Please contact support"
+          }),
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      
       return new Response(
-        JSON.stringify({ error: "AI service error", code: "AI_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ 
+          error: "Analysis temporarily unavailable. Please try again shortly.", 
+          code: "AI_ERROR",
+          details: lastError || "Failed to connect to AI service after multiple attempts"
+        }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
@@ -2089,9 +2160,33 @@ Call submit_analysis with all sections in English.`;
     );
 
   } catch (error) {
-    console.error("Error:", error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    console.error("Unhandled error:", errorMessage);
+    console.error("Stack:", errorStack);
+    
+    // Provide user-friendly error messages
+    let userMessage = "Something went wrong. Please try again.";
+    let errorCode = "INTERNAL_ERROR";
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+      userMessage = "Request took too long. Please try with a shorter description.";
+      errorCode = "TIMEOUT_ERROR";
+    } else if (errorMessage.includes('JSON')) {
+      userMessage = "Error processing response. Please try again.";
+      errorCode = "PARSE_ERROR";
+    } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      userMessage = "Network error. Please check your connection and try again.";
+      errorCode = "NETWORK_ERROR";
+    }
+    
     return new Response(
-      JSON.stringify({ error: "Internal error", code: "INTERNAL_ERROR" }),
+      JSON.stringify({ 
+        error: userMessage, 
+        code: errorCode,
+        details: errorMessage,
+        timestamp: new Date().toISOString()
+      }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }

@@ -163,6 +163,7 @@ export type Database = {
         Args: { p_month_year: string; p_user_id: string }
         Returns: undefined
       }
+      is_service_role: { Args: never; Returns: boolean }
     }
     Enums: {
       [_ in never]: never
