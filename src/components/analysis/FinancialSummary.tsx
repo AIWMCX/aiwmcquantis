@@ -1,7 +1,14 @@
-import React, { useState } from 'react';
-import { TrendingUp, TrendingDown, Clock, Wallet, Target, BarChart3, Users, Percent, AlertTriangle, ChevronDown, ChevronUp } from 'lucide-react';
+import React, { useState, useCallback } from 'react';
+import { TrendingUp, TrendingDown, Clock, Wallet, Target, BarChart3, Users, Percent, AlertTriangle, ChevronDown, ChevronUp, Copy, Check } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Button } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { FinancialAnalysis, ScenarioMetrics } from '@/types/analysis';
 
@@ -23,6 +30,79 @@ function formatPercent(value: number): string {
 
 function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
+}
+
+// Copyable metric card component
+function CopyableMetricCard({ 
+  label, 
+  value, 
+  rawValue,
+  subtext,
+  icon: Icon, 
+  color, 
+  bgColor 
+}: { 
+  label: string; 
+  value: string;
+  rawValue: number | string;
+  subtext?: string;
+  icon: React.ElementType; 
+  color: string; 
+  bgColor: string;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(String(rawValue));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  }, [rawValue]);
+
+  return (
+    <div className="group relative p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors">
+      <div className="flex items-center justify-between gap-2 mb-2">
+        <div className="flex items-center gap-2">
+          <div className={cn("p-1.5 rounded-md", bgColor)}>
+            <Icon className={cn("w-4 h-4", color)} />
+          </div>
+          <span className="text-xs font-medium text-muted-foreground">{label}</span>
+        </div>
+        
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={handleCopy}
+                className={cn(
+                  "h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity",
+                  copied && "opacity-100"
+                )}
+              >
+                {copied ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-500" />
+                ) : (
+                  <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                )}
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent side="top" className="text-xs">
+              {copied ? 'Copied!' : 'Copy value'}
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+      <p className={cn("text-xl font-bold", color)}>{value}</p>
+      {subtext && (
+        <p className="text-xs text-muted-foreground mt-1">{subtext}</p>
+      )}
+    </div>
+  );
 }
 
 function ScenarioCard({ title, metrics, variant }: { title: string; metrics: ScenarioMetrics; variant: 'pessimistic' | 'base' | 'optimistic' }) {
@@ -175,25 +255,57 @@ export function FinancialSummary({ financial }: FinancialSummaryProps) {
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-6">
-        {/* Key Metrics Grid */}
+        {/* Key Metrics Grid with Copy */}
         <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
-          {keyMetrics.map((metric) => (
-            <div
-              key={metric.label}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors"
-            >
-              <div className="flex items-center gap-2 mb-2">
-                <div className={cn("p-1.5 rounded-md", metric.bgColor)}>
-                  <metric.icon className={cn("w-4 h-4", metric.color)} />
-                </div>
-                <span className="text-xs font-medium text-muted-foreground">{metric.label}</span>
-              </div>
-              <p className={cn("text-xl font-bold", metric.color)}>{metric.value}</p>
-              {metric.subtext && (
-                <p className="text-xs text-muted-foreground mt-1">{metric.subtext}</p>
-              )}
-            </div>
-          ))}
+          <CopyableMetricCard
+            label="Startup Investment"
+            value={formatCurrency(financial.startup_investment?.total || 0)}
+            rawValue={financial.startup_investment?.total || 0}
+            icon={Wallet}
+            color="text-primary"
+            bgColor="bg-primary/10"
+          />
+          <CopyableMetricCard
+            label="MRR"
+            value={formatCurrency(financial.mrr || 0)}
+            rawValue={financial.mrr || 0}
+            subtext={`ARR: ${formatCurrency(financial.arr || 0)}`}
+            icon={TrendingUp}
+            color="text-emerald-600 dark:text-emerald-400"
+            bgColor="bg-emerald-500/10"
+          />
+          <CopyableMetricCard
+            label="Net Profit/mo"
+            value={formatCurrency(baseProfit)}
+            rawValue={baseProfit}
+            icon={isProfitable ? TrendingUp : TrendingDown}
+            color={isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}
+            bgColor={isProfitable ? 'bg-emerald-500/10' : 'bg-destructive/10'}
+          />
+          <CopyableMetricCard
+            label="Payback Period"
+            value={`${financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0} mo.`}
+            rawValue={financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0}
+            icon={Clock}
+            color="text-amber-600 dark:text-amber-400"
+            bgColor="bg-amber-500/10"
+          />
+          <CopyableMetricCard
+            label="ROI Year 1"
+            value={formatPercent(financial.returns?.roi_year_1 || 0)}
+            rawValue={`${(financial.returns?.roi_year_1 || 0).toFixed(1)}%`}
+            icon={BarChart3}
+            color={(financial.returns?.roi_year_1 || 0) > 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'}
+            bgColor={(financial.returns?.roi_year_1 || 0) > 0 ? 'bg-emerald-500/10' : 'bg-destructive/10'}
+          />
+          <CopyableMetricCard
+            label="LTV:CAC"
+            value={`${formatNumber(financial.unit_economics?.ltv_cac_ratio || 0)}x`}
+            rawValue={`${(financial.unit_economics?.ltv_cac_ratio || 0).toFixed(2)}`}
+            icon={Users}
+            color={(financial.unit_economics?.ltv_cac_ratio || 0) >= 3 ? 'text-emerald-600' : 'text-amber-600'}
+            bgColor={(financial.unit_economics?.ltv_cac_ratio || 0) >= 3 ? 'bg-emerald-500/10' : 'bg-amber-500/10'}
+          />
         </div>
 
         <Tabs defaultValue="scenarios" className="w-full">
