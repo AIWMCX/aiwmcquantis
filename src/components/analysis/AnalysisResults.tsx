@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useMemo } from 'react';
 import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -10,9 +10,11 @@ import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { ValidationSection } from './ValidationSection';
 import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
+import { DocumentInsights } from './DocumentInsights';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
+import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { toast } from 'sonner';
 
@@ -24,6 +26,33 @@ interface AnalysisResultsProps {
 export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGenerating } = usePdfExport();
+
+  // Convert documents_used to ExtractedFinancials format for DocumentInsights
+  const documentInsightsData = useMemo(() => {
+    if (!result.documents_used || result.documents_used.length === 0) {
+      return { documents: [] as ExtractedFinancials[], summary: null };
+    }
+
+    // Convert DocumentUsage[] to ExtractedFinancials[] format
+    const documents: ExtractedFinancials[] = result.documents_used.map(doc => ({
+      document_type: doc.document_type as ExtractedFinancials['document_type'],
+      confidence: doc.confidence,
+      key_findings: doc.metrics_extracted,
+      source_document: doc.source_document,
+      extraction_notes: [],
+    }));
+
+    // Build summary from result data
+    const summary: DocumentAnalysisSummary = {
+      total_documents: result.documents_used.length,
+      documents_with_financials: result.documents_used.filter(d => d.metrics_extracted.length > 0).length,
+      total_confidence_boost: result.document_analysis_summary?.confidenceBoost || 0,
+      primary_data_sources: result.documents_used.map(d => d.source_document),
+      extracted_values: {}
+    };
+
+    return { documents, summary };
+  }, [result.documents_used, result.document_analysis_summary]);
 
   const handleExportPDF = async () => {
     try {
@@ -180,6 +209,14 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
       {/* Validation Section - Show data quality */}
       {result.validation && (
         <ValidationSection validation={result.validation} />
+      )}
+
+      {/* Document Insights - Show how documents improved analysis */}
+      {documentInsightsData.documents.length > 0 && documentInsightsData.summary && (
+        <DocumentInsights 
+          documents={documentInsightsData.documents}
+          summary={documentInsightsData.summary}
+        />
       )}
 
       {/* Actionable Insights - Priority action plan */}

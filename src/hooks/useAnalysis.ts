@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateAnalysis, validateIdea, validateLocation } from '@/services/analysisApi';
@@ -114,12 +114,13 @@ export function useAnalysis() {
     
     const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
     
-    // Get ready files with parsed content
+    // Get ready files with parsed content AND extracted financials
     const readyFiles = fileUpload.getReadyFiles();
     const documents = readyFiles.map(f => ({
       name: f.name,
       type: f.type,
       parsedContent: f.parsedContent || '',
+      extractedFinancials: f.extractedFinancials || undefined,
     }));
     
     mutation.mutate({ 
@@ -129,6 +130,36 @@ export function useAnalysis() {
       ...(documents.length > 0 && { documents })
     });
   }, [idea, location, financialInputs, validate, mutation, fileUpload]);
+  
+  // Auto-fill form when documents are parsed with financial data
+  const handleAutoFillFromDocuments = useCallback(() => {
+    const suggestions = fileUpload.getSuggestedInputs();
+    if (Object.keys(suggestions).length > 0) {
+      setFinancialInputs(prev => ({ ...prev, ...suggestions }));
+      toast.success('Form auto-filled with document data!');
+    }
+  }, [fileUpload]);
+  
+  // Watch for new document extractions and offer auto-fill
+  useEffect(() => {
+    const readyFiles = fileUpload.getReadyFiles();
+    const hasExtractedData = readyFiles.some(f => f.extractedFinancials && Object.keys(f.extractedFinancials).length > 0);
+    
+    if (hasExtractedData) {
+      const suggestions = fileUpload.getSuggestedInputs();
+      const suggestionCount = Object.keys(suggestions).length;
+      
+      if (suggestionCount > 0) {
+        toast.info(`Found ${suggestionCount} financial data points in your documents`, {
+          action: {
+            label: 'Auto-fill Form',
+            onClick: handleAutoFillFromDocuments
+          },
+          duration: 8000,
+        });
+      }
+    }
+  }, [fileUpload.files.filter(f => f.status === 'ready').length]);
 
   const clearError = useCallback((field: keyof FormErrors) => {
     setErrors(prev => {
@@ -171,6 +202,7 @@ export function useAnalysis() {
     handleSubmit,
     reset,
     isFormValid,
+    handleAutoFillFromDocuments,
     
     // File upload
     files: fileUpload.files,
@@ -179,5 +211,6 @@ export function useAnalysis() {
     removeFile: fileUpload.removeFile,
     maxFiles: fileUpload.maxFiles,
     allowedExtensions: fileUpload.allowedExtensions,
+    getDocumentSummary: fileUpload.getDocumentSummary,
   };
 }
