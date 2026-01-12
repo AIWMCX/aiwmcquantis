@@ -366,11 +366,19 @@ export interface OptionalFinancialInputs {
   selected_industry?: string;       // User-selected industry (overrides auto-detection)
 }
 
+// Document data for file uploads
+export interface DocumentData {
+  name: string;
+  type: string;
+  parsedContent: string;
+}
+
 // Request types
 export interface AnalysisRequest {
   idea: string;
   location: string;
   financial_inputs?: OptionalFinancialInputs;
+  documents?: DocumentData[];
 }
 
 // 10 Key Outputs that every analysis must show

@@ -24,6 +24,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
           location: request.location.trim(),
           ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
           ...(request.financial_inputs?.selected_industry && { selected_industry: request.financial_inputs.selected_industry }),
+          ...(request.documents && request.documents.length > 0 && { documents: request.documents }),
         },
       });
 
@@ -65,8 +66,8 @@ export function validateIdea(idea: string): { valid: boolean; error?: string } {
   if (trimmed.length < 10) {
     return { valid: false, error: 'Minimum 10 characters required' };
   }
-  if (trimmed.length > 500) {
-    return { valid: false, error: 'Maximum 500 characters allowed' };
+  if (trimmed.length > 5000) {
+    return { valid: false, error: 'Maximum 5,000 characters allowed' };
   }
   
   // Check for suspicious patterns
