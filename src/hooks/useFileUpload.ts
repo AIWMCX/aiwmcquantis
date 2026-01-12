@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { ExtractedFinancials, aggregateDocumentFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
+import type { OptionalFinancialInputs } from '@/types/analysis';
 
 export interface UploadedFile {
   id: string;
@@ -222,6 +223,43 @@ export function useFileUpload(userId: string | undefined) {
     return aggregateDocumentFinancials(financials);
   }, [getExtractedFinancials]);
 
+  // Get suggested form inputs from extracted document data
+  const getSuggestedInputs = useCallback((): Partial<OptionalFinancialInputs> => {
+    const summary = getDocumentSummary();
+    if (!summary) return {};
+    
+    const suggestions: Partial<OptionalFinancialInputs> = {};
+    const extracted = summary.extracted_values;
+    
+    // Map extracted revenue to form field
+    if (extracted.revenue?.value && extracted.revenue.value > 0) {
+      suggestions.monthly_revenue = Math.round(extracted.revenue.value);
+    } else if (extracted.mrr?.value && extracted.mrr.value > 0) {
+      suggestions.monthly_revenue = Math.round(extracted.mrr.value);
+    }
+    
+    // Map investment data
+    if (extracted.investment?.value && extracted.investment.value > 0) {
+      suggestions.startup_investment = Math.round(extracted.investment.value);
+    }
+    
+    // Map metrics
+    if (extracted.customer_count?.value && extracted.customer_count.value > 0) {
+      suggestions.expected_customers = Math.round(extracted.customer_count.value);
+    }
+    
+    if (extracted.cac?.value && extracted.cac.value > 0) {
+      suggestions.cac = Math.round(extracted.cac.value);
+    }
+    
+    // Map costs
+    if (extracted.costs?.value && extracted.costs.value > 0) {
+      suggestions.monthly_costs = Math.round(extracted.costs.value);
+    }
+    
+    return suggestions;
+  }, [getDocumentSummary]);
+
   return {
     files,
     isUploading,
@@ -232,6 +270,7 @@ export function useFileUpload(userId: string | undefined) {
     getParsedContent,
     getExtractedFinancials,
     getDocumentSummary,
+    getSuggestedInputs,
     maxFiles: MAX_FILES,
     allowedExtensions: ALLOWED_EXTENSIONS,
   };

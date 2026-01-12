@@ -301,6 +301,9 @@ export interface BusinessAnalysisResult {
   data_sources: string[];
   limitations: string[];
   validation?: ValidationResult;
+  // Document tracking
+  documents_used?: DocumentUsage[];
+  document_analysis_summary?: DocumentAnalysisSummary;
   metadata: {
     idea: string;
     location: string;
@@ -367,10 +370,38 @@ export interface OptionalFinancialInputs {
 }
 
 // Document data for file uploads
+export interface ExtractedDocumentFinancials {
+  revenue?: { total?: number; monthly?: number; quarterly?: number; annual?: number; breakdown?: Record<string, number> };
+  costs?: { total?: number; monthly?: number; breakdown?: Record<string, number> };
+  metrics?: { roi?: number; profit_margin?: number; net_profit?: number; conversion_rate?: number; customer_count?: number; mrr?: number; arr?: number; cac?: number; ltv?: number };
+  investment?: { total?: number; breakdown?: Record<string, number> };
+  document_type: string;
+  confidence: number;
+  key_findings: string[];
+  source_document: string;
+  extraction_notes: string[];
+}
+
 export interface DocumentData {
   name: string;
   type: string;
   parsedContent: string;
+  extractedFinancials?: ExtractedDocumentFinancials;
+}
+
+// Document usage tracking in results
+export interface DocumentUsage {
+  source_document: string;
+  document_type: string;
+  confidence: number;
+  metrics_extracted: string[];
+}
+
+export interface DocumentAnalysisSummary {
+  totalDocuments: number;
+  confidenceBoost: number;
+  dataPointsUsed: number;
+  primaryDataSource: string;
 }
 
 // Request types

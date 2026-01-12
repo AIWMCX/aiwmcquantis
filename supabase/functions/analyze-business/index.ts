@@ -2295,12 +2295,41 @@ Call submit_analysis with all sections in English.`;
     }
     // ========== END USAGE INCREMENT ==========
 
+    // Build documents_used array for frontend
+    const documentsUsed = documentExtractedFinancials.map(ef => ({
+      source_document: ef.source_document,
+      document_type: ef.document_type || 'general',
+      confidence: ef.confidence || 0,
+      metrics_extracted: [
+        ef.revenue?.monthly ? 'revenue' : null,
+        ef.revenue?.total ? 'total_revenue' : null,
+        ef.costs?.monthly ? 'costs' : null,
+        ef.investment?.total ? 'investment' : null,
+        ef.metrics?.roi ? 'roi' : null,
+        ef.metrics?.mrr ? 'mrr' : null,
+        ef.metrics?.customer_count ? 'customers' : null,
+        ef.metrics?.cac ? 'cac' : null,
+        ef.metrics?.ltv ? 'ltv' : null,
+        ef.metrics?.net_profit ? 'net_profit' : null,
+      ].filter(Boolean) as string[]
+    }));
+
+    // Calculate document analysis summary
+    const documentAnalysisSummary = documentExtractedFinancials.length > 0 ? {
+      totalDocuments: documentExtractedFinancials.length,
+      confidenceBoost: documentConfidenceBoost,
+      dataPointsUsed: documentsUsed.reduce((acc, d) => acc + d.metrics_extracted.length, 0),
+      primaryDataSource: documentExtractedFinancials[0]?.source_document || 'N/A'
+    } : undefined;
+
     return new Response(
       JSON.stringify({
         success: true,
         data: {
           ...result,
           actionable_insights: actionableInsights,
+          documents_used: documentsUsed.length > 0 ? documentsUsed : undefined,
+          document_analysis_summary: documentAnalysisSummary,
           validation: {
             is_realistic: calc.isProfitable && calc.corrections.length === 0 && warnings.length === 0,
             is_profitable: calc.isProfitable,
@@ -2345,7 +2374,7 @@ Call submit_analysis with all sections in English.`;
             location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
             model: "google/gemini-2.5-flash",
-            version: "8.0-professional-confidence",
+            version: "8.1-document-powered",
           },
         },
       }),
