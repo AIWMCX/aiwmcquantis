@@ -5,6 +5,7 @@ import { generateAnalysis, validateIdea, validateLocation } from '@/services/ana
 import { saveAnalysis } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
+import { useFileUpload } from './useFileUpload';
 import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
 
 interface FormErrors {
@@ -23,6 +24,9 @@ export function useAnalysis() {
   
   const { addEntry } = useAnalysisHistory();
   const { user, isAuthenticated } = useAuth();
+  
+  // File upload functionality
+  const fileUpload = useFileUpload(user?.id);
 
   const validate = useCallback((): boolean => {
     const newErrors: FormErrors = {};
@@ -98,12 +102,21 @@ export function useAnalysis() {
     
     const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
     
+    // Get ready files with parsed content
+    const readyFiles = fileUpload.getReadyFiles();
+    const documents = readyFiles.map(f => ({
+      name: f.name,
+      type: f.type,
+      parsedContent: f.parsedContent || '',
+    }));
+    
     mutation.mutate({ 
       idea: idea.trim(), 
       location: location.trim(),
-      ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs })
+      ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
+      ...(documents.length > 0 && { documents })
     });
-  }, [idea, location, financialInputs, validate, mutation]);
+  }, [idea, location, financialInputs, validate, mutation, fileUpload]);
 
   const clearError = useCallback((field: keyof FormErrors) => {
     setErrors(prev => {
@@ -119,10 +132,11 @@ export function useAnalysis() {
     setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
     setErrors({});
     setResult(null);
+    fileUpload.clearFiles();
     mutation.reset();
-  }, [mutation]);
+  }, [mutation, fileUpload]);
 
-  const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2;
+  const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
 
   return {
     // Form state
@@ -145,5 +159,13 @@ export function useAnalysis() {
     handleSubmit,
     reset,
     isFormValid,
+    
+    // File upload
+    files: fileUpload.files,
+    isUploading: fileUpload.isUploading,
+    uploadFiles: fileUpload.uploadFiles,
+    removeFile: fileUpload.removeFile,
+    maxFiles: fileUpload.maxFiles,
+    allowedExtensions: fileUpload.allowedExtensions,
   };
 }

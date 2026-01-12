@@ -18,6 +18,7 @@ export type Database = {
         Row: {
           confidence_score: number | null
           created_at: string | null
+          documents: Json | null
           id: string
           idea: string
           location: string
@@ -30,6 +31,7 @@ export type Database = {
         Insert: {
           confidence_score?: number | null
           created_at?: string | null
+          documents?: Json | null
           id?: string
           idea: string
           location: string
@@ -42,6 +44,7 @@ export type Database = {
         Update: {
           confidence_score?: number | null
           created_at?: string | null
+          documents?: Json | null
           id?: string
           idea?: string
           location?: string

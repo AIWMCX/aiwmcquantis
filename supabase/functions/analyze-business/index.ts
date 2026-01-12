@@ -16,11 +16,18 @@ interface OptionalFinancialInputs {
   churn_rate?: number;
 }
 
+interface DocumentData {
+  name: string;
+  type: string;
+  parsedContent: string;
+}
+
 interface AnalysisRequest {
   idea: string;
   location: string;
   financial_inputs?: OptionalFinancialInputs;
-  selected_industry?: string;  // User-selected industry (overrides auto-detection)
+  selected_industry?: string;
+  documents?: DocumentData[];
 }
 
 // ========== MULTI-INDUSTRY BENCHMARK SYSTEM ==========
@@ -1521,7 +1528,7 @@ serve(async (req) => {
     }
     // ========== END USAGE ENFORCEMENT ==========
 
-    const { idea, location, financial_inputs, selected_industry } = await req.json() as AnalysisRequest;
+    const { idea, location, financial_inputs, selected_industry, documents } = await req.json() as AnalysisRequest;
 
     if (!idea || idea.trim().length < 10) {
       return new Response(
@@ -1535,6 +1542,27 @@ serve(async (req) => {
         JSON.stringify({ error: "Please specify a location", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
+    }
+
+    // Build document context if files were uploaded
+    let documentContext = '';
+    if (documents && documents.length > 0) {
+      documentContext = `
+
+## UPLOADED BUSINESS DOCUMENTS
+The user has provided the following business documents for analysis. Use this real data to make your analysis more accurate and specific.
+
+${documents.map(doc => `
+### ${doc.name} (${doc.type.toUpperCase()})
+${doc.parsedContent}
+`).join('\n')}
+
+IMPORTANT: The above documents contain REAL business data (revenue statements, invoices, marketing reports, etc.). 
+- Use the specific numbers, dates, and metrics from these documents
+- Reference specific findings from these documents in your analysis
+- Base your projections on the actual data provided, not generic estimates
+- If the documents contain financial data, use those figures as the foundation for your analysis
+`;
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -1584,25 +1612,55 @@ ${financial_inputs.churn_rate ? `- Monthly Churn Rate: ${financial_inputs.churn_
 Note: The user has provided specific financial data. Base your qualitative analysis (business plan, marketing, market analysis) on these realistic numbers.
 ` : '';
 
-    const prompt = `You are a financial analyst. Analyze this business idea.
+    // Build the enhanced McKinsey-level prompt
+    const hasDocuments = documents && documents.length > 0;
+    
+    const prompt = `You are a Senior Partner at a top-tier management consulting firm (McKinsey, BCG, Bain) with 25 years of experience in strategic consulting, M&A, financial due diligence, and business transformation across multiple industries.
+
+## YOUR EXPERTISE
+- Led 500+ strategic engagements across Fortune 500 companies and high-growth startups
+- Deep expertise in market entry strategy, competitive positioning, and operational excellence
+- Proven track record in financial modeling, unit economics optimization, and value creation
+- Specialize in turning complex business challenges into actionable strategic roadmaps
+
+## ANALYSIS STANDARDS
+Your analysis must meet the following quality standards:
+1. **Data-Driven**: Every recommendation backed by specific numbers and metrics
+2. **Actionable**: Clear, prioritized steps with timelines and resource requirements
+3. **Risk-Aware**: Comprehensive risk assessment with mitigation strategies
+4. **Realistic**: Based on industry benchmarks and market realities, not optimistic assumptions
+5. **Professional**: Executive-ready language suitable for board presentations
 
 ## BUSINESS IDEA
 ${idea.trim()}
 
-## LOCATION (USE THIS LOCATION ONLY!)
+## LOCATION (PRIMARY MARKET)
 ${location.trim()}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
-${userFinancialContext}
-## REQUIREMENTS
+${userFinancialContext}${documentContext}
 
-### Use these industry-specific ranges for ${detectedIndustry.name}:
-- Monthly Revenue: $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 100)} - $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 500)}
-- Average Check: $${detectedIndustry.average_check_min} - $${detectedIndustry.average_check_max}
-- CAC: $${detectedIndustry.cac_min} - $${detectedIndustry.cac_max}
-- Startup Investment: $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 10)} - $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 25)}
+## ANALYSIS REQUIREMENTS
 
-### Formulas (IMPORTANT!):
+${hasDocuments ? `
+### DOCUMENT-BASED ANALYSIS (CRITICAL!)
+The user has uploaded real business documents. Your analysis MUST:
+- Extract and use specific financial figures from the documents
+- Reference actual metrics, dates, and performance data
+- Identify patterns, trends, and anomalies in the provided data
+- Base projections on historical performance shown in documents
+- Flag any concerns or opportunities found in the documents
+` : ''}
+
+### Industry-Specific Benchmarks for ${detectedIndustry.name}:
+- Monthly Revenue Range: $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 100)} - $${Math.round(detectedIndustry.average_check_max * detectedIndustry.orders_per_client * 500)}
+- Average Transaction Value: $${detectedIndustry.average_check_min} - $${detectedIndustry.average_check_max}
+- Customer Acquisition Cost: $${detectedIndustry.cac_min} - $${detectedIndustry.cac_max}
+- Typical Startup Investment: $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 10)} - $${Math.round((detectedIndustry.salaries_fixed + detectedIndustry.rent_fixed) * 25)}
+- Net Margin Range: ${detectedIndustry.net_margin_min}% - ${detectedIndustry.net_margin_max}%
+- Client Lifetime: ${detectedIndustry.client_lifetime_months} months
+
+### Financial Formulas (MUST USE!):
 - LTV = Average_Check × ${detectedIndustry.orders_per_client}_orders_per_month × ${detectedIndustry.client_lifetime_months}_months_lifetime
 - Example: $${detectedIndustry.average_check_max} × ${detectedIndustry.orders_per_client} × ${detectedIndustry.client_lifetime_months} = $${detectedIndustry.average_check_max * detectedIndustry.orders_per_client * detectedIndustry.client_lifetime_months}
 

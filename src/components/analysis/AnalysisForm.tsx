@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, MapPin, Send, Loader2, Sparkles } from 'lucide-react';
+import { Brain, MapPin, Send, Loader2, Sparkles, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
+import { FileUploader } from './FileUploader';
 import type { OptionalFinancialInputs } from '@/types/analysis';
+import type { UploadedFile } from '@/hooks/useFileUpload';
 
 interface AnalysisFormProps {
   idea: string;
@@ -21,6 +23,14 @@ interface AnalysisFormProps {
   onFinancialInputsChange: (inputs: OptionalFinancialInputs) => void;
   onClearError: (field: 'idea' | 'location') => void;
   onSubmit: (e: React.FormEvent) => void;
+  // File upload props
+  files?: UploadedFile[];
+  isUploading?: boolean;
+  maxFiles?: number;
+  allowedExtensions?: string[];
+  onUploadFiles?: (files: FileList | File[]) => void;
+  onRemoveFile?: (fileId: string) => void;
+  isAuthenticated?: boolean;
 }
 
 export function AnalysisForm({
@@ -35,6 +45,13 @@ export function AnalysisForm({
   onFinancialInputsChange,
   onClearError,
   onSubmit,
+  files = [],
+  isUploading = false,
+  maxFiles = 5,
+  allowedExtensions = ['.pdf', '.docx', '.xlsx', '.xls', '.csv', '.txt'],
+  onUploadFiles,
+  onRemoveFile,
+  isAuthenticated = false,
 }: AnalysisFormProps) {
   const handleIdeaChange = (value: string) => {
     onIdeaChange(value);
@@ -65,11 +82,18 @@ export function AnalysisForm({
           id="idea"
           value={idea}
           onChange={(e) => handleIdeaChange(e.target.value)}
-          placeholder="Describe your idea in detail: what you plan to do, what problem you solve, who your customer is..."
-          rows={4}
+          placeholder="Describe your idea in detail: what you plan to do, what problem you solve, who your customer is, your business model, target market size, competitive advantages...
+
+The more detail you provide, the more accurate and valuable your analysis will be. Include:
+• Your value proposition
+• Target customer segments
+• Revenue model and pricing strategy
+• Key differentiators from competitors
+• Current stage of development"
+          rows={8}
           disabled={isLoading}
           className={cn(
-            "resize-none transition-colors",
+            "resize-none transition-colors min-h-[200px]",
             errors.idea && "border-destructive focus-visible:ring-destructive"
           )}
         />
@@ -77,13 +101,13 @@ export function AnalysisForm({
           {errors.idea ? (
             <p className="text-sm text-destructive">{errors.idea}</p>
           ) : (
-            <span className="text-xs text-muted-foreground">Minimum 10 characters</span>
+            <span className="text-xs text-muted-foreground">Minimum 10 characters — more detail = better analysis</span>
           )}
           <span className={cn(
-            "text-xs",
-            idea.length > 500 ? "text-destructive" : "text-muted-foreground"
+            "text-xs font-medium",
+            idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
           )}>
-            {idea.length}/500
+            {idea.length.toLocaleString()}/5,000
           </span>
         </div>
       </div>
@@ -126,6 +150,45 @@ export function AnalysisForm({
         onChange={onFinancialInputsChange}
         disabled={isLoading}
       />
+
+      {/* Document Upload Section */}
+      {isAuthenticated && onUploadFiles && onRemoveFile && (
+        <div className="space-y-3 pt-2">
+          <div className="flex items-center gap-2">
+            <FileText className="w-4 h-4 text-muted-foreground" />
+            <Label className="text-sm font-medium text-foreground">
+              Upload Business Documents <span className="text-muted-foreground font-normal">(Optional)</span>
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground -mt-1">
+            Upload revenue statements, invoices, marketing reports, or financial data for deeper AI analysis based on real numbers.
+          </p>
+          <FileUploader
+            files={files}
+            isUploading={isUploading}
+            disabled={isLoading}
+            maxFiles={maxFiles}
+            allowedExtensions={allowedExtensions}
+            onUpload={onUploadFiles}
+            onRemove={onRemoveFile}
+          />
+        </div>
+      )}
+
+      {/* Upgrade prompt for non-authenticated users */}
+      {!isAuthenticated && (
+        <div className="p-4 rounded-lg bg-muted/50 border border-dashed border-muted-foreground/30">
+          <div className="flex items-start gap-3">
+            <FileText className="w-5 h-5 text-muted-foreground mt-0.5" />
+            <div>
+              <p className="text-sm font-medium text-foreground">Document Analysis Available</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Sign in to upload revenue statements, invoices, and financial reports for McKinsey-level analysis based on your real business data.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Submit Button */}
       <Button
@@ -173,8 +236,8 @@ export function AnalysisForm({
       {/* Tip */}
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">💡 Tip:</strong> The more detailed your description, the more accurate the analysis. 
-          Expand "Advanced Financial Details" to boost confidence by up to 40%.
+          <strong className="text-foreground">💡 Pro Tip:</strong> For McKinsey-level analysis, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
+          The AI will analyze actual numbers from your revenue statements and marketing data for precise insights.
         </p>
       </div>
     </form>
