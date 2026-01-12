@@ -1,108 +1,524 @@
 import { useCallback, useRef, useState } from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import {
+  Document,
+  Page,
+  Text,
+  View,
+  StyleSheet,
+  pdf,
+  Font,
+} from '@react-pdf/renderer';
+import React from 'react';
 
-export function usePdfExport() {
-  const [isGenerating, setIsGenerating] = useState(false);
-  const reportRef = useRef<HTMLDivElement>(null);
+// Register Inter font for professional look
+Font.register({
+  family: 'Inter',
+  fonts: [
+    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 400 },
+    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2', fontWeight: 500 },
+    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa25L7.woff2', fontWeight: 600 },
+    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1pL7.woff2', fontWeight: 700 },
+  ],
+});
 
-  const generatePdf = useCallback(async (result: BusinessAnalysisResult) => {
-    setIsGenerating(true);
-    let container: HTMLDivElement | null = null;
-    
-    try {
-      // Validate result object has minimum required data
-      if (!result || !result.metadata) {
-        throw new Error('Invalid analysis result: missing metadata');
-      }
-      
-      // Dynamic import to avoid SSR issues
-      const html2pdf = (await import('html2pdf.js')).default;
-      
-      // Create a temporary container for the PDF content
-      container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      document.body.appendChild(container);
+// Color palette matching the dark executive theme
+const colors = {
+  background: '#0f172a',
+  cardBg: '#1e293b',
+  border: '#334155',
+  primary: '#3b82f6',
+  textPrimary: '#f1f5f9',
+  textSecondary: '#94a3b8',
+  textMuted: '#64748b',
+  success: '#22c55e',
+  warning: '#f59e0b',
+  danger: '#ef4444',
+};
 
-      // Generate the HTML content
-      const htmlContent = generateReportHtml(result);
-      container.innerHTML = htmlContent;
+// Styles for the PDF
+const styles = StyleSheet.create({
+  page: {
+    backgroundColor: colors.background,
+    padding: 40,
+    fontFamily: 'Inter',
+    color: colors.textPrimary,
+    fontSize: 10,
+  },
+  coverPage: {
+    backgroundColor: colors.background,
+    padding: 50,
+    fontFamily: 'Inter',
+    color: colors.textPrimary,
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'space-between',
+    height: '100%',
+  },
+  logoSection: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  logoText: {
+    fontSize: 42,
+    fontWeight: 800,
+    letterSpacing: 6,
+    color: colors.primary,
+    marginBottom: 6,
+  },
+  logoSubtext: {
+    fontSize: 11,
+    letterSpacing: 3,
+    color: colors.textSecondary,
+    textTransform: 'uppercase',
+  },
+  coverTitleSection: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  reportType: {
+    fontSize: 10,
+    letterSpacing: 4,
+    color: colors.textMuted,
+    marginBottom: 20,
+    textTransform: 'uppercase',
+  },
+  coverTitle: {
+    fontSize: 28,
+    fontWeight: 700,
+    color: colors.textPrimary,
+    marginBottom: 12,
+    textAlign: 'center',
+    maxWidth: 400,
+  },
+  coverSubtitle: {
+    fontSize: 16,
+    color: colors.textSecondary,
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  industryBadge: {
+    paddingVertical: 6,
+    paddingHorizontal: 18,
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 4,
+  },
+  industryBadgeText: {
+    fontSize: 10,
+    letterSpacing: 2,
+    color: colors.primary,
+    textTransform: 'uppercase',
+  },
+  coverMetrics: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    gap: 30,
+    marginTop: 30,
+  },
+  coverMetricBox: {
+    alignItems: 'center',
+    padding: 16,
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 6,
+    minWidth: 140,
+  },
+  coverMetricLabel: {
+    fontSize: 9,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  coverMetricValue: {
+    fontSize: 20,
+    fontWeight: 700,
+    color: colors.textPrimary,
+  },
+  coverFooter: {
+    alignItems: 'center',
+    paddingTop: 30,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  confidentialNotice: {
+    fontSize: 9,
+    letterSpacing: 3,
+    color: colors.textMuted,
+    marginBottom: 8,
+  },
+  copyright: {
+    fontSize: 8,
+    color: colors.textMuted,
+  },
+  pageHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+    marginBottom: 20,
+  },
+  pageHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  pageHeaderTitle: {
+    fontSize: 10,
+    fontWeight: 600,
+    color: colors.textSecondary,
+  },
+  pageHeaderSection: {
+    fontSize: 10,
+    color: colors.primary,
+    fontWeight: 500,
+  },
+  pageHeaderLogo: {
+    fontSize: 12,
+    fontWeight: 700,
+    letterSpacing: 2,
+    color: colors.primary,
+  },
+  pageFooter: {
+    position: 'absolute',
+    bottom: 30,
+    left: 40,
+    right: 40,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    fontSize: 8,
+    color: colors.textMuted,
+  },
+  sectionTitle: {
+    fontSize: 14,
+    fontWeight: 700,
+    color: colors.textPrimary,
+    marginTop: 20,
+    marginBottom: 12,
+    paddingBottom: 6,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  verdictBanner: {
+    alignItems: 'center',
+    padding: 20,
+    backgroundColor: colors.cardBg,
+    borderWidth: 2,
+    borderRadius: 6,
+    marginBottom: 20,
+  },
+  verdictLabel: {
+    fontSize: 9,
+    letterSpacing: 2,
+    color: colors.textMuted,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+  },
+  verdictText: {
+    fontSize: 26,
+    fontWeight: 800,
+    letterSpacing: 3,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+    marginBottom: 20,
+  },
+  metricCard: {
+    flex: 1,
+    minWidth: '45%',
+    backgroundColor: colors.cardBg,
+    padding: 16,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  metricCardLabel: {
+    fontSize: 9,
+    color: colors.textMuted,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+  },
+  metricCardValue: {
+    fontSize: 18,
+    fontWeight: 700,
+    color: colors.textPrimary,
+  },
+  paragraph: {
+    fontSize: 10,
+    lineHeight: 1.6,
+    color: colors.textSecondary,
+    marginBottom: 12,
+  },
+  highlightBox: {
+    backgroundColor: colors.cardBg,
+    padding: 14,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    marginBottom: 14,
+  },
+  highlightText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    lineHeight: 1.5,
+  },
+  table: {
+    marginBottom: 20,
+  },
+  tableHeader: {
+    flexDirection: 'row',
+    backgroundColor: colors.border,
+    borderBottomWidth: 2,
+    borderBottomColor: colors.primary,
+  },
+  tableHeaderCell: {
+    padding: 10,
+    fontSize: 9,
+    fontWeight: 600,
+    color: colors.textPrimary,
+    flex: 1,
+  },
+  tableRow: {
+    flexDirection: 'row',
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tableRowTotal: {
+    flexDirection: 'row',
+    backgroundColor: '#1e3a5f',
+  },
+  tableCell: {
+    padding: 8,
+    fontSize: 9,
+    color: colors.textSecondary,
+    flex: 1,
+  },
+  tableCellBold: {
+    padding: 8,
+    fontSize: 9,
+    color: colors.textPrimary,
+    fontWeight: 700,
+    flex: 1,
+  },
+  textRight: {
+    textAlign: 'right',
+  },
+  textCenter: {
+    textAlign: 'center',
+  },
+  listItem: {
+    flexDirection: 'row',
+    marginBottom: 10,
+    alignItems: 'flex-start',
+  },
+  listBullet: {
+    width: 20,
+    height: 20,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 10,
+  },
+  listBulletText: {
+    fontSize: 9,
+    fontWeight: 600,
+    color: colors.textPrimary,
+  },
+  listText: {
+    flex: 1,
+    fontSize: 10,
+    color: colors.textSecondary,
+    lineHeight: 1.5,
+    paddingTop: 2,
+  },
+  timelineItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+    paddingLeft: 36,
+    position: 'relative',
+  },
+  timelineNumber: {
+    position: 'absolute',
+    left: 0,
+    width: 28,
+    height: 28,
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  timelineNumberText: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: colors.textPrimary,
+  },
+  timelineContent: {
+    flex: 1,
+    backgroundColor: colors.cardBg,
+    padding: 14,
+    borderRadius: 6,
+    borderLeftWidth: 2,
+    borderLeftColor: colors.primary,
+  },
+  timelineTitle: {
+    fontSize: 12,
+    fontWeight: 600,
+    color: colors.textPrimary,
+    marginBottom: 6,
+  },
+  timelineDesc: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    marginBottom: 6,
+    lineHeight: 1.4,
+  },
+  timelineMeta: {
+    flexDirection: 'row',
+    gap: 20,
+    fontSize: 9,
+    color: colors.textMuted,
+  },
+  disclaimer: {
+    backgroundColor: colors.cardBg,
+    padding: 14,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  disclaimerText: {
+    fontSize: 8,
+    color: colors.textMuted,
+    lineHeight: 1.7,
+    fontStyle: 'italic',
+  },
+  marketSizeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+    marginBottom: 20,
+    gap: 12,
+  },
+  marketSizeItem: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  marketSizeCircle: {
+    padding: 18,
+    borderWidth: 2,
+    borderColor: colors.primary,
+    borderRadius: 10,
+    alignItems: 'center',
+    width: '100%',
+  },
+  marketSizeLabel: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: colors.primary,
+    marginBottom: 4,
+  },
+  marketSizeValue: {
+    fontSize: 9,
+    color: colors.textPrimary,
+    fontWeight: 600,
+    textAlign: 'center',
+  },
+  marketSizeDesc: {
+    fontSize: 7,
+    color: colors.textMuted,
+    marginTop: 4,
+    textAlign: 'center',
+  },
+  separator: {
+    color: colors.border,
+  },
+  highlightBoxSuccess: {
+    backgroundColor: colors.cardBg,
+    padding: 14,
+    borderRadius: 6,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.success,
+    marginBottom: 14,
+  },
+  highlightLabelSuccess: {
+    fontSize: 9,
+    color: colors.success,
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 1,
+    fontWeight: 600,
+  },
+  emptyText: {
+    fontSize: 10,
+    color: colors.textSecondary,
+    fontStyle: 'italic',
+  },
+});
 
-      // Generate filename
-      const sanitizedIdea = (result.metadata?.idea || 'Business_Analysis')
-        .replace(/[^a-zA-Z0-9]/g, '_')
-        .substring(0, 30);
-      const date = new Date().toISOString().split('T')[0];
-      const filename = `AIWMC_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+// Helper functions
+const formatCurrency = (value: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: 'USD',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 0,
+  }).format(value);
+};
 
-      // PDF options
-      const options = {
-        margin: 0,
-        filename,
-        image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2,
-          useCORS: true,
-          letterRendering: true,
-          backgroundColor: '#0f172a',
-          logging: false,
-        },
-        jsPDF: { 
-          unit: 'mm', 
-          format: 'a4', 
-          orientation: 'portrait' as const,
-        },
-        pagebreak: { mode: ['avoid-all', 'css', 'legacy'] },
-      };
+const formatNumber = (value: number): string => {
+  return new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 1,
+  }).format(value);
+};
 
-      await html2pdf().set(options).from(container).save();
-    } catch (error) {
-      console.error('PDF generation failed:', error);
-      throw error;
-    } finally {
-      // Cleanup
-      if (container && document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-      setIsGenerating(false);
-    }
-  }, []);
+const formatKey = (key: string): string => {
+  return key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+};
 
-  return { generatePdf, isGenerating, reportRef };
-}
+const getScoreColor = (score: number): string => {
+  if (score >= 70) return colors.success;
+  if (score >= 50) return colors.warning;
+  return colors.danger;
+};
 
-// Generate complete HTML for PDF
-function generateReportHtml(result: BusinessAnalysisResult): string {
-  const formatCurrency = (value: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value);
-  };
+const getProfitColor = (profit: number): string => {
+  return profit >= 0 ? colors.success : colors.danger;
+};
 
-  const formatNumber = (value: number): string => {
-    return new Intl.NumberFormat('en-US', {
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 1,
-    }).format(value);
-  };
+const getProbColor = (p: string): string => {
+  const pLower = String(p).toLowerCase();
+  if (pLower.includes('high') || pLower.includes('высок')) return colors.danger;
+  if (pLower.includes('med') || pLower.includes('средн')) return colors.warning;
+  return colors.success;
+};
 
+// Create the document
+const createExecutiveReport = (result: BusinessAnalysisResult) => {
   const financial = result.financial_analysis;
   const monthlyProfit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
   const paybackMonths = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
   const monthlyRevenue = financial.mrr ?? financial.monthly_revenue?.realistic ?? 0;
-  const roi = financial.returns?.roi_year_1 ?? financial.roi_year_1 ?? 0;
 
   const getVerdict = () => {
     if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths <= 18) {
-      return { text: 'VIABLE', color: '#22c55e' };
+      return { text: 'VIABLE', color: colors.success };
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
-      return { text: 'NEEDS REFINEMENT', color: '#f59e0b' };
+      return { text: 'NEEDS REFINEMENT', color: colors.warning };
     } else {
-      return { text: 'HIGH RISK', color: '#ef4444' };
+      return { text: 'HIGH RISK', color: colors.danger };
     }
   };
 
@@ -112,917 +528,661 @@ function generateReportHtml(result: BusinessAnalysisResult): string {
     month: 'long',
     day: 'numeric'
   });
+  const currentDate = new Date().toLocaleDateString('en-US');
+  const currentYear = new Date().getFullYear();
 
-  return `
-    <!DOCTYPE html>
-    <html>
-    <head>
-      <meta charset="UTF-8">
-      <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
-        
-        * {
-          margin: 0;
-          padding: 0;
-          box-sizing: border-box;
-        }
-        
-        body {
-          font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-          background-color: #0f172a;
-          color: #f1f5f9;
-          font-size: 12px;
-          line-height: 1.5;
-        }
-        
-        .page {
-          background-color: #0f172a;
-          padding: 40px;
-          min-height: 297mm;
-          page-break-after: always;
-          position: relative;
-        }
-        
-        .cover-page {
-          display: flex;
-          flex-direction: column;
-          justify-content: space-between;
-          min-height: 297mm;
-          padding: 60px 40px;
-          text-align: center;
-        }
-        
-        .logo-section {
-          margin-bottom: 40px;
-        }
-        
-        .logo-text {
-          font-size: 48px;
-          font-weight: 800;
-          letter-spacing: 8px;
-          color: #3b82f6;
-          margin-bottom: 8px;
-        }
-        
-        .logo-subtext {
-          font-size: 14px;
-          letter-spacing: 4px;
-          color: #94a3b8;
-          text-transform: uppercase;
-        }
-        
-        .cover-title-section {
-          flex: 1;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-        }
-        
-        .report-type {
-          font-size: 12px;
-          letter-spacing: 6px;
-          color: #64748b;
-          margin-bottom: 24px;
-          text-transform: uppercase;
-        }
-        
-        .cover-title {
-          font-size: 36px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin-bottom: 16px;
-          line-height: 1.2;
-        }
-        
-        .cover-subtitle {
-          font-size: 20px;
-          color: #94a3b8;
-          margin-bottom: 24px;
-        }
-        
-        .industry-badge {
-          display: inline-block;
-          padding: 8px 24px;
-          background-color: #1e293b;
-          border: 1px solid #334155;
-          border-radius: 4px;
-          font-size: 12px;
-          letter-spacing: 2px;
-          color: #3b82f6;
-        }
-        
-        .cover-metrics {
-          display: flex;
-          justify-content: center;
-          gap: 40px;
-          margin-top: 40px;
-        }
-        
-        .cover-metric-box {
-          text-align: center;
-          padding: 20px 32px;
-          background-color: #1e293b;
-          border: 1px solid #334155;
-          border-radius: 8px;
-        }
-        
-        .cover-metric-label {
-          font-size: 12px;
-          color: #94a3b8;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        
-        .cover-metric-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #f1f5f9;
-        }
-        
-        .cover-footer {
-          text-align: center;
-          padding-top: 40px;
-          border-top: 1px solid #334155;
-        }
-        
-        .confidential-notice {
-          font-size: 11px;
-          letter-spacing: 4px;
-          color: #64748b;
-          margin-bottom: 12px;
-        }
-        
-        .copyright {
-          font-size: 10px;
-          color: #64748b;
-        }
-        
-        .page-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-bottom: 16px;
-          border-bottom: 1px solid #334155;
-          margin-bottom: 24px;
-        }
-        
-        .page-header-left {
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        
-        .page-header-title {
-          font-size: 12px;
-          font-weight: 600;
-          color: #94a3b8;
-        }
-        
-        .page-header-section {
-          font-size: 12px;
-          color: #3b82f6;
-          font-weight: 500;
-        }
-        
-        .page-header-logo {
-          font-size: 14px;
-          font-weight: 700;
-          letter-spacing: 2px;
-          color: #3b82f6;
-        }
-        
-        .page-footer {
-          position: absolute;
-          bottom: 40px;
-          left: 40px;
-          right: 40px;
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          padding-top: 16px;
-          border-top: 1px solid #334155;
-          font-size: 10px;
-          color: #64748b;
-        }
-        
-        .section-title {
-          font-size: 16px;
-          font-weight: 700;
-          color: #f1f5f9;
-          margin-top: 24px;
-          margin-bottom: 16px;
-          padding-bottom: 8px;
-          border-bottom: 2px solid #3b82f6;
-          display: inline-block;
-        }
-        
-        .verdict-banner {
-          text-align: center;
-          padding: 24px;
-          background-color: #1e293b;
-          border: 2px solid ${verdict.color};
-          border-radius: 8px;
-          margin-bottom: 24px;
-        }
-        
-        .verdict-label {
-          font-size: 11px;
-          letter-spacing: 3px;
-          color: #64748b;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-        }
-        
-        .verdict-text {
-          font-size: 32px;
-          font-weight: 800;
-          letter-spacing: 4px;
-          color: ${verdict.color};
-        }
-        
-        .metrics-grid {
-          display: grid;
-          grid-template-columns: repeat(2, 1fr);
-          gap: 16px;
-          margin-bottom: 24px;
-        }
-        
-        .metric-card {
-          background-color: #1e293b;
-          padding: 20px;
-          border-radius: 8px;
-          border: 1px solid #334155;
-        }
-        
-        .metric-card-label {
-          font-size: 11px;
-          color: #64748b;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-        }
-        
-        .metric-card-value {
-          font-size: 24px;
-          font-weight: 700;
-          color: #f1f5f9;
-        }
-        
-        .metric-card-value.positive {
-          color: #22c55e;
-        }
-        
-        .metric-card-value.negative {
-          color: #ef4444;
-        }
-        
-        table {
-          width: 100%;
-          border-collapse: collapse;
-          margin-bottom: 24px;
-          font-size: 11px;
-        }
-        
-        th {
-          background-color: #334155;
-          padding: 12px;
-          text-align: left;
-          font-weight: 600;
-          color: #f1f5f9;
-          border-bottom: 2px solid #3b82f6;
-        }
-        
-        td {
-          padding: 10px 12px;
-          border-bottom: 1px solid #334155;
-          color: #94a3b8;
-          vertical-align: top;
-        }
-        
-        .total-row {
-          background-color: #1e3a5f;
-        }
-        
-        .total-row td {
-          font-weight: bold;
-          color: #f1f5f9;
-        }
-        
-        .text-right {
-          text-align: right;
-        }
-        
-        .text-center {
-          text-align: center;
-        }
-        
-        .paragraph {
-          font-size: 12px;
-          line-height: 1.7;
-          color: #94a3b8;
-          margin-bottom: 16px;
-        }
-        
-        .list-item {
-          display: flex;
-          gap: 12px;
-          margin-bottom: 12px;
-          align-items: flex-start;
-        }
-        
-        .list-bullet {
-          width: 24px;
-          height: 24px;
-          background-color: #3b82f6;
-          color: #f1f5f9;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 11px;
-          font-weight: 600;
-          flex-shrink: 0;
-        }
-        
-        .list-text {
-          font-size: 12px;
-          color: #94a3b8;
-          line-height: 1.6;
-          padding-top: 2px;
-        }
-        
-        .highlight-box {
-          background-color: #1e293b;
-          padding: 16px;
-          border-radius: 8px;
-          border-left: 4px solid #3b82f6;
-          margin-bottom: 16px;
-        }
-        
-        .highlight-label {
-          font-size: 11px;
-          color: #3b82f6;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 1px;
-          font-weight: 600;
-        }
-        
-        .highlight-text {
-          font-size: 12px;
-          color: #94a3b8;
-          line-height: 1.6;
-        }
-        
-        .timeline-item {
-          display: flex;
-          margin-bottom: 20px;
-          position: relative;
-          padding-left: 40px;
-        }
-        
-        .timeline-number {
-          position: absolute;
-          left: 0;
-          width: 32px;
-          height: 32px;
-          background-color: #3b82f6;
-          color: #f1f5f9;
-          border-radius: 50%;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 14px;
-          font-weight: 700;
-        }
-        
-        .timeline-content {
-          flex: 1;
-          background-color: #1e293b;
-          padding: 16px;
-          border-radius: 8px;
-          border-left: 3px solid #3b82f6;
-        }
-        
-        .timeline-title {
-          font-size: 14px;
-          font-weight: 600;
-          color: #f1f5f9;
-          margin-bottom: 8px;
-        }
-        
-        .timeline-desc {
-          font-size: 12px;
-          color: #94a3b8;
-          margin-bottom: 8px;
-          line-height: 1.5;
-        }
-        
-        .timeline-meta {
-          display: flex;
-          gap: 24px;
-          font-size: 11px;
-          color: #64748b;
-        }
-        
-        .disclaimer {
-          background-color: #1e293b;
-          padding: 16px;
-          border-radius: 8px;
-          font-size: 10px;
-          color: #64748b;
-          line-height: 1.8;
-          font-style: italic;
-          border: 1px solid #334155;
-        }
-        
-        .market-size-container {
-          display: flex;
-          justify-content: space-around;
-          margin-bottom: 24px;
-          gap: 16px;
-        }
-        
-        .market-size-item {
-          flex: 1;
-          text-align: center;
-        }
-        
-        .market-size-circle {
-          padding: 24px;
-          border: 3px solid #3b82f6;
-          border-radius: 12px;
-          display: flex;
-          flex-direction: column;
-          justify-content: center;
-          align-items: center;
-        }
-        
-        .market-size-label {
-          font-size: 14px;
-          font-weight: 700;
-          color: #3b82f6;
-          margin-bottom: 4px;
-        }
-        
-        .market-size-value {
-          font-size: 11px;
-          color: #f1f5f9;
-          font-weight: 600;
-          text-align: center;
-        }
-        
-        .market-size-desc {
-          font-size: 9px;
-          color: #64748b;
-          margin-top: 4px;
-          text-align: center;
-        }
-      </style>
-    </head>
-    <body>
-      <!-- Page 1: Cover -->
-      <div class="page cover-page">
-        <div class="logo-section">
-          <div class="logo-text">AIWMC</div>
-          <div class="logo-subtext">AI Workforce Management Center</div>
-        </div>
-        
-        <div class="cover-title-section">
-          <div class="report-type">BUSINESS FEASIBILITY ANALYSIS</div>
-          <h1 class="cover-title">${result.metadata.idea}</h1>
-          <div class="cover-subtitle">${result.metadata.location}</div>
-          ${result.metadata.industry_detected ? `<div class="industry-badge">${result.metadata.industry_detected.toUpperCase()}</div>` : ''}
-        </div>
-        
-        <div class="cover-metrics">
-          <div class="cover-metric-box">
-            <div class="cover-metric-label">Confidence Score</div>
-            <div class="cover-metric-value" style="color: ${result.confidence_score >= 70 ? '#22c55e' : result.confidence_score >= 50 ? '#f59e0b' : '#ef4444'}">${result.confidence_score}%</div>
-          </div>
-          <div class="cover-metric-box">
-            <div class="cover-metric-label">Analysis Date</div>
-            <div class="cover-metric-value">${generatedDate}</div>
-          </div>
-        </div>
-        
-        <div class="cover-footer">
-          <div class="confidential-notice">CONFIDENTIAL - FOR INTERNAL USE ONLY</div>
-          <div class="copyright">AIWMC TM - AI Workforce Management Center | All Rights Reserved | ${new Date().getFullYear()}</div>
-        </div>
-      </div>
+  const investmentBreakdown = Object.entries(financial.startup_investment.breakdown);
+  const expenseBreakdown = Object.entries(financial.monthly_expenses.breakdown);
+  const trends = result.market_analysis?.trends || [];
+  const risks = result.business_plan.risks || [];
+  const launchSteps = result.business_plan.launch_steps || [];
+  const dataSources = result.data_sources || [];
+  const limitations = result.limitations || [];
+
+  return React.createElement(
+    Document,
+    null,
+    // Cover Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.coverPage },
+      React.createElement(
+        View,
+        { style: styles.logoSection },
+        React.createElement(Text, { style: styles.logoText }, 'AIWMC'),
+        React.createElement(Text, { style: styles.logoSubtext }, 'AI Workforce Management Center')
+      ),
+      React.createElement(
+        View,
+        { style: styles.coverTitleSection },
+        React.createElement(Text, { style: styles.reportType }, 'BUSINESS FEASIBILITY ANALYSIS'),
+        React.createElement(Text, { style: styles.coverTitle }, result.metadata.idea),
+        React.createElement(Text, { style: styles.coverSubtitle }, result.metadata.location),
+        result.metadata.industry_detected && React.createElement(
+          View,
+          { style: styles.industryBadge },
+          React.createElement(Text, { style: styles.industryBadgeText }, result.metadata.industry_detected.toUpperCase())
+        ),
+        React.createElement(
+          View,
+          { style: styles.coverMetrics },
+          React.createElement(
+            View,
+            { style: styles.coverMetricBox },
+            React.createElement(Text, { style: styles.coverMetricLabel }, 'Confidence Score'),
+            React.createElement(Text, { style: { ...styles.coverMetricValue, color: getScoreColor(result.confidence_score) } }, `${result.confidence_score}%`)
+          ),
+          React.createElement(
+            View,
+            { style: styles.coverMetricBox },
+            React.createElement(Text, { style: styles.coverMetricLabel }, 'Analysis Date'),
+            React.createElement(Text, { style: styles.coverMetricValue }, generatedDate)
+          )
+        )
+      ),
+      React.createElement(
+        View,
+        { style: styles.coverFooter },
+        React.createElement(Text, { style: styles.confidentialNotice }, 'CONFIDENTIAL - FOR INTERNAL USE ONLY'),
+        React.createElement(Text, { style: styles.copyright }, `AIWMC TM - AI Workforce Management Center | All Rights Reserved | ${currentYear}`)
+      )
+    ),
+    // Executive Summary Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Executive Summary')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(
+        View,
+        { style: { ...styles.verdictBanner, borderColor: verdict.color } },
+        React.createElement(Text, { style: styles.verdictLabel }, 'Investment Verdict'),
+        React.createElement(Text, { style: { ...styles.verdictText, color: verdict.color } }, verdict.text)
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Key Financial Indicators'),
+      React.createElement(
+        View,
+        { style: styles.metricsGrid },
+        React.createElement(
+          View,
+          { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Total Investment Required'),
+          React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(financial.startup_investment.total))
+        ),
+        React.createElement(
+          View,
+          { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Revenue (MRR)'),
+          React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(monthlyRevenue))
+        ),
+        React.createElement(
+          View,
+          { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Net Profit'),
+          React.createElement(Text, { style: { ...styles.metricCardValue, color: getProfitColor(monthlyProfit) } }, formatCurrency(monthlyProfit))
+        ),
+        React.createElement(
+          View,
+          { style: styles.metricCard },
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Payback Period'),
+          React.createElement(Text, { style: styles.metricCardValue }, `${paybackMonths} months`)
+        )
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Business Overview'),
+      React.createElement(Text, { style: styles.paragraph }, result.business_plan?.executive_summary || 'No executive summary available'),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Target Market'),
+      React.createElement(
+        View,
+        { style: styles.highlightBox },
+        React.createElement(Text, { style: styles.highlightText }, result.business_plan?.target_audience || 'No target audience defined')
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 2 of 8')
+      )
+    ),
+    // Financial Analysis Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Financial Analysis')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Initial Investment Breakdown'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View,
+          { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Category'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Amount'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, '% of Total')
+        ),
+        ...investmentBreakdown.map(([key, value]) =>
+          React.createElement(
+            View,
+            { key, style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, formatKey(key)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(value as number)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(((value as number) / financial.startup_investment.total) * 100)}%`)
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.tableRowTotal },
+          React.createElement(Text, { style: styles.tableCellBold }, 'Total Investment'),
+          React.createElement(Text, { style: { ...styles.tableCellBold, ...styles.textRight } }, formatCurrency(financial.startup_investment.total)),
+          React.createElement(Text, { style: { ...styles.tableCellBold, ...styles.textRight } }, '100%')
+        )
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Monthly Operating Expenses'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View,
+          { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Expense Category'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Monthly Cost'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Annual Cost')
+        ),
+        ...expenseBreakdown.map(([key, value]) =>
+          React.createElement(
+            View,
+            { key, style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, formatKey(key)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(value as number)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency((value as number) * 12))
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.tableRowTotal },
+          React.createElement(Text, { style: styles.tableCellBold }, 'Total Monthly'),
+          React.createElement(Text, { style: { ...styles.tableCellBold, ...styles.textRight } }, formatCurrency(financial.monthly_expenses.total)),
+          React.createElement(Text, { style: { ...styles.tableCellBold, ...styles.textRight } }, formatCurrency(financial.monthly_expenses.total * 12))
+        )
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 3 of 8')
+      )
+    ),
+    // Scenario Analysis Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Scenario Analysis')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      financial.scenarios && React.createElement(
+        View,
+        null,
+        React.createElement(Text, { style: styles.sectionTitle }, 'Three-Scenario Financial Model'),
+        React.createElement(
+          View,
+          { style: styles.table },
+          React.createElement(
+            View,
+            { style: styles.tableHeader },
+            React.createElement(Text, { style: styles.tableHeaderCell }, 'Metric'),
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.danger } }, 'Pessimistic'),
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.primary } }, 'Base Case'),
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.success } }, 'Optimistic')
+          ),
+          React.createElement(
+            View,
+            { style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, 'Monthly Revenue'),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.pessimistic.revenue)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.base.revenue)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.optimistic.revenue))
+          ),
+          React.createElement(
+            View,
+            { style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, 'Gross Profit'),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.pessimistic.gross_profit)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.base.gross_profit)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(financial.scenarios.optimistic.gross_profit))
+          ),
+          React.createElement(
+            View,
+            { style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, 'Net Profit'),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.pessimistic.net_profit) } }, formatCurrency(financial.scenarios.pessimistic.net_profit)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.base.net_profit) } }, formatCurrency(financial.scenarios.base.net_profit)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.optimistic.net_profit) } }, formatCurrency(financial.scenarios.optimistic.net_profit))
+          ),
+          React.createElement(
+            View,
+            { style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, 'Gross Margin'),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.pessimistic.gross_margin)}%`),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.base.gross_margin)}%`),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.optimistic.gross_margin)}%`)
+          ),
+          React.createElement(
+            View,
+            { style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, 'Net Margin'),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.pessimistic.net_margin)}%`),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.base.net_margin)}%`),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.optimistic.net_margin)}%`)
+          )
+        )
+      ),
+      financial.unit_economics && React.createElement(
+        View,
+        null,
+        React.createElement(Text, { style: styles.sectionTitle }, 'Unit Economics'),
+        React.createElement(
+          View,
+          { style: styles.metricsGrid },
+          React.createElement(
+            View,
+            { style: styles.metricCard },
+            React.createElement(Text, { style: styles.metricCardLabel }, 'Customer Acquisition Cost (CAC)'),
+            React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(financial.unit_economics.cac))
+          ),
+          React.createElement(
+            View,
+            { style: styles.metricCard },
+            React.createElement(Text, { style: styles.metricCardLabel }, 'Lifetime Value (LTV)'),
+            React.createElement(Text, { style: styles.metricCardValue }, formatCurrency(financial.unit_economics.ltv))
+          ),
+          React.createElement(
+            View,
+            { style: styles.metricCard },
+            React.createElement(Text, { style: styles.metricCardLabel }, 'LTV:CAC Ratio'),
+            React.createElement(Text, { style: { ...styles.metricCardValue, color: financial.unit_economics.ltv_cac_ratio >= 3 ? colors.success : financial.unit_economics.ltv_cac_ratio >= 1 ? colors.warning : colors.danger } }, `${formatNumber(financial.unit_economics.ltv_cac_ratio)}x`)
+          ),
+          React.createElement(
+            View,
+            { style: styles.metricCard },
+            React.createElement(Text, { style: styles.metricCardLabel }, 'CAC Payback'),
+            React.createElement(Text, { style: styles.metricCardValue }, `${formatNumber(financial.unit_economics.cac_payback_months)} months`)
+          )
+        )
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 4 of 8')
+      )
+    ),
+    // Market Analysis Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Market Analysis')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Market Size Analysis'),
+      React.createElement(
+        View,
+        { style: styles.marketSizeContainer },
+        React.createElement(
+          View,
+          { style: styles.marketSizeItem },
+          React.createElement(
+            View,
+            { style: styles.marketSizeCircle },
+            React.createElement(Text, { style: styles.marketSizeLabel }, 'TAM'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.tam || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeDesc }, 'Total Addressable Market')
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.marketSizeItem },
+          React.createElement(
+            View,
+            { style: { ...styles.marketSizeCircle, borderColor: colors.primary } },
+            React.createElement(Text, { style: styles.marketSizeLabel }, 'SAM'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.sam || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Addressable')
+          )
+        ),
+        React.createElement(
+          View,
+          { style: styles.marketSizeItem },
+          React.createElement(
+            View,
+            { style: { ...styles.marketSizeCircle, borderColor: colors.success } },
+            React.createElement(Text, { style: styles.marketSizeLabel }, 'SOM'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.som || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Obtainable')
+          )
+        )
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Key Market Trends'),
+      React.createElement(
+        View,
+        { style: { marginBottom: 20 } },
+        trends.length > 0
+          ? trends.map((trend, i) =>
+              React.createElement(
+                View,
+                { key: i, style: styles.listItem },
+                React.createElement(
+                  View,
+                  { style: styles.listBullet },
+                  React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
+                ),
+                React.createElement(Text, { style: styles.listText }, trend)
+              )
+            )
+          : React.createElement(Text, { style: styles.emptyText }, 'No trends data available')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Competitive Landscape'),
+      React.createElement(Text, { style: styles.paragraph }, result.market_analysis?.competition?.competitive_landscape || 'No competitive analysis available'),
+      React.createElement(
+        View,
+        { style: styles.highlightBoxSuccess },
+        React.createElement(Text, { style: styles.highlightLabelSuccess }, 'Growth Opportunities'),
+        React.createElement(Text, { style: styles.highlightText }, result.market_analysis?.growth_opportunities || 'No growth opportunities identified')
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 5 of 8')
+      )
+    ),
+    // Risk Assessment Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Risk Assessment')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Business Risk Matrix'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View,
+          { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Risk Factor'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textCenter } }, 'Probability'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textCenter } }, 'Impact'),
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Mitigation Strategy')
+        ),
+        risks.length > 0
+          ? risks.map((risk, index) => {
+              const riskObj = risk as any;
+              const riskName = riskObj?.risk || riskObj?.name || 'Unknown Risk';
+              const probability = riskObj?.probability || 'medium';
+              const impact = riskObj?.impact || 'medium';
+              const mitigation = riskObj?.mitigation || riskObj?.description || 'N/A';
+              return React.createElement(
+                View,
+                { key: index, style: styles.tableRow },
+                React.createElement(Text, { style: styles.tableCell }, riskName),
+                React.createElement(Text, { style: { ...styles.tableCell, ...styles.textCenter, color: getProbColor(probability) } }, String(probability).toUpperCase()),
+                React.createElement(Text, { style: { ...styles.tableCell, ...styles.textCenter, color: getProbColor(impact) } }, String(impact).toUpperCase()),
+                React.createElement(Text, { style: styles.tableCell }, mitigation)
+              );
+            })
+          : React.createElement(
+              View,
+              { style: styles.tableRow },
+              React.createElement(Text, { style: { ...styles.tableCell, flex: 4 } }, 'No risks identified')
+            )
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Barriers to Entry'),
+      React.createElement(Text, { style: styles.paragraph }, result.market_analysis?.barriers_to_entry || 'No barriers to entry analysis available'),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 6 of 8')
+      )
+    ),
+    // Action Plan Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Action Plan')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Launch Timeline'),
+      launchSteps.length > 0
+        ? launchSteps.map((step, index) => {
+            if (typeof step === 'string') {
+              return React.createElement(
+                View,
+                { key: index, style: styles.timelineItem },
+                React.createElement(
+                  View,
+                  { style: styles.timelineNumber },
+                  React.createElement(Text, { style: styles.timelineNumberText }, String(index + 1))
+                ),
+                React.createElement(
+                  View,
+                  { style: styles.timelineContent },
+                  React.createElement(Text, { style: styles.timelineTitle }, `Step ${index + 1}`),
+                  React.createElement(Text, { style: styles.timelineDesc }, step)
+                )
+              );
+            }
+            const stepObj = step as any;
+            return React.createElement(
+              View,
+              { key: index, style: styles.timelineItem },
+              React.createElement(
+                View,
+                { style: styles.timelineNumber },
+                React.createElement(Text, { style: styles.timelineNumberText }, String(stepObj?.step || index + 1))
+              ),
+              React.createElement(
+                View,
+                { style: styles.timelineContent },
+                React.createElement(Text, { style: styles.timelineTitle }, stepObj?.title || `Step ${index + 1}`),
+                React.createElement(Text, { style: styles.timelineDesc }, stepObj?.description || ''),
+                (stepObj?.duration || stepObj?.cost) && React.createElement(
+                  View,
+                  { style: styles.timelineMeta },
+                  stepObj?.duration && React.createElement(Text, null, `Duration: ${stepObj.duration}`),
+                  stepObj?.cost && React.createElement(Text, null, `Cost: ${formatCurrency(stepObj.cost)}`)
+                )
+              )
+            );
+          })
+        : React.createElement(Text, { style: styles.emptyText }, 'No launch steps defined'),
+      React.createElement(Text, { style: styles.sectionTitle }, 'First 90 Days Marketing Plan'),
+      React.createElement(Text, { style: styles.paragraph }, result.marketing_plan?.first_3_months_plan || 'No marketing plan available'),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 7 of 8')
+      )
+    ),
+    // Appendix Page
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: styles.pageHeaderSection }, 'Appendix')
+        ),
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Data Sources'),
+      React.createElement(
+        View,
+        { style: { marginBottom: 20 } },
+        dataSources.length > 0
+          ? dataSources.map((source, i) =>
+              React.createElement(
+                View,
+                { key: i, style: styles.listItem },
+                React.createElement(
+                  View,
+                  { style: styles.listBullet },
+                  React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
+                ),
+                React.createElement(Text, { style: styles.listText }, source)
+              )
+            )
+          : React.createElement(Text, { style: styles.emptyText }, 'No data sources listed')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Analysis Limitations'),
+      React.createElement(
+        View,
+        { style: { marginBottom: 20 } },
+        limitations.length > 0
+          ? limitations.map((limitation, i) =>
+              React.createElement(
+                View,
+                { key: i, style: styles.listItem },
+                React.createElement(
+                  View,
+                  { style: styles.listBullet },
+                  React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
+                ),
+                React.createElement(Text, { style: styles.listText }, limitation)
+              )
+            )
+          : React.createElement(Text, { style: styles.emptyText }, 'No limitations listed')
+      ),
+      React.createElement(Text, { style: styles.sectionTitle }, 'Legal Disclaimer'),
+      React.createElement(
+        View,
+        { style: styles.disclaimer },
+        React.createElement(
+          Text,
+          { style: styles.disclaimerText },
+          'This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. AIWMC and its affiliates assume no liability for decisions made based on this analysis.'
+        )
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} AIWMC - AI Workforce Management Center. All Rights Reserved.`),
+        React.createElement(Text, null, 'Page 8 of 8')
+      )
+    )
+  );
+};
+
+export function usePdfExport() {
+  const [isGenerating, setIsGenerating] = useState(false);
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const generatePdf = useCallback(async (result: BusinessAnalysisResult) => {
+    setIsGenerating(true);
+    
+    try {
+      // Validate result object has minimum required data
+      if (!result || !result.metadata) {
+        throw new Error('Invalid analysis result: missing metadata');
+      }
+
+      // Generate filename
+      const sanitizedIdea = (result.metadata?.idea || 'Business_Analysis')
+        .replace(/[^a-zA-Z0-9]/g, '_')
+        .substring(0, 30);
+      const date = new Date().toISOString().split('T')[0];
+      const filename = `AIWMC_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+
+      // Generate PDF blob using @react-pdf/renderer
+      const doc = createExecutiveReport(result);
+      const blob = await pdf(doc).toBlob();
       
-      <!-- Page 2: Executive Summary -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Executive Summary</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="verdict-banner">
-          <div class="verdict-label">Investment Verdict</div>
-          <div class="verdict-text">${verdict.text}</div>
-        </div>
-        
-        <div class="section-title">Key Financial Indicators</div>
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-card-label">Total Investment Required</div>
-            <div class="metric-card-value">${formatCurrency(financial.startup_investment.total)}</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-card-label">Monthly Revenue (MRR)</div>
-            <div class="metric-card-value">${formatCurrency(monthlyRevenue)}</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-card-label">Monthly Net Profit</div>
-            <div class="metric-card-value ${monthlyProfit >= 0 ? 'positive' : 'negative'}">${formatCurrency(monthlyProfit)}</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-card-label">Payback Period</div>
-            <div class="metric-card-value">${paybackMonths} months</div>
-          </div>
-        </div>
-        
-        <div class="section-title">Business Overview</div>
-        <p class="paragraph">${result.business_plan?.executive_summary || 'No executive summary available'}</p>
-        
-        <div class="section-title">Target Market</div>
-        <div class="highlight-box">
-          <p class="highlight-text">${result.business_plan?.target_audience || 'No target audience defined'}</p>
-        </div>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 2 of 8</div>
-        </div>
-      </div>
+      // Create download link and trigger download
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
       
-      <!-- Page 3: Financial Analysis -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Financial Analysis</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="section-title">Initial Investment Breakdown</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Category</th>
-              <th class="text-right">Amount</th>
-              <th class="text-right">% of Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(financial.startup_investment.breakdown).map(([key, value]) => `
-              <tr>
-                <td>${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</td>
-                <td class="text-right">${formatCurrency(value as number)}</td>
-                <td class="text-right">${formatNumber(((value as number) / financial.startup_investment.total) * 100)}%</td>
-              </tr>
-            `).join('')}
-            <tr class="total-row">
-              <td>Total Investment</td>
-              <td class="text-right">${formatCurrency(financial.startup_investment.total)}</td>
-              <td class="text-right">100%</td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div class="section-title">Monthly Operating Expenses</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Expense Category</th>
-              <th class="text-right">Monthly Cost</th>
-              <th class="text-right">Annual Cost</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${Object.entries(financial.monthly_expenses.breakdown).map(([key, value]) => `
-              <tr>
-                <td>${key.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')}</td>
-                <td class="text-right">${formatCurrency(value as number)}</td>
-                <td class="text-right">${formatCurrency((value as number) * 12)}</td>
-              </tr>
-            `).join('')}
-            <tr class="total-row">
-              <td>Total Monthly</td>
-              <td class="text-right">${formatCurrency(financial.monthly_expenses.total)}</td>
-              <td class="text-right">${formatCurrency(financial.monthly_expenses.total * 12)}</td>
-            </tr>
-          </tbody>
-        </table>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 3 of 8</div>
-        </div>
-      </div>
-      
-      <!-- Page 4: Scenario Analysis -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Scenario Analysis</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        ${financial.scenarios ? `
-          <div class="section-title">Three-Scenario Financial Model</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Metric</th>
-                <th class="text-right" style="color: #ef4444">Pessimistic</th>
-                <th class="text-right" style="color: #3b82f6">Base Case</th>
-                <th class="text-right" style="color: #22c55e">Optimistic</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td>Monthly Revenue</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.pessimistic.revenue)}</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.base.revenue)}</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.optimistic.revenue)}</td>
-              </tr>
-              <tr>
-                <td>Gross Profit</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.pessimistic.gross_profit)}</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.base.gross_profit)}</td>
-                <td class="text-right">${formatCurrency(financial.scenarios.optimistic.gross_profit)}</td>
-              </tr>
-              <tr>
-                <td>Net Profit</td>
-                <td class="text-right" style="color: ${financial.scenarios.pessimistic.net_profit >= 0 ? '#22c55e' : '#ef4444'}">${formatCurrency(financial.scenarios.pessimistic.net_profit)}</td>
-                <td class="text-right" style="color: ${financial.scenarios.base.net_profit >= 0 ? '#22c55e' : '#ef4444'}">${formatCurrency(financial.scenarios.base.net_profit)}</td>
-                <td class="text-right" style="color: ${financial.scenarios.optimistic.net_profit >= 0 ? '#22c55e' : '#ef4444'}">${formatCurrency(financial.scenarios.optimistic.net_profit)}</td>
-              </tr>
-              <tr>
-                <td>Gross Margin</td>
-                <td class="text-right">${formatNumber(financial.scenarios.pessimistic.gross_margin)}%</td>
-                <td class="text-right">${formatNumber(financial.scenarios.base.gross_margin)}%</td>
-                <td class="text-right">${formatNumber(financial.scenarios.optimistic.gross_margin)}%</td>
-              </tr>
-              <tr>
-                <td>Net Margin</td>
-                <td class="text-right">${formatNumber(financial.scenarios.pessimistic.net_margin)}%</td>
-                <td class="text-right">${formatNumber(financial.scenarios.base.net_margin)}%</td>
-                <td class="text-right">${formatNumber(financial.scenarios.optimistic.net_margin)}%</td>
-              </tr>
-            </tbody>
-          </table>
-        ` : ''}
-        
-        ${financial.unit_economics ? `
-          <div class="section-title">Unit Economics</div>
-          <div class="metrics-grid">
-            <div class="metric-card">
-              <div class="metric-card-label">Customer Acquisition Cost (CAC)</div>
-              <div class="metric-card-value">${formatCurrency(financial.unit_economics.cac)}</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-card-label">Lifetime Value (LTV)</div>
-              <div class="metric-card-value">${formatCurrency(financial.unit_economics.ltv)}</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-card-label">LTV:CAC Ratio</div>
-              <div class="metric-card-value" style="color: ${financial.unit_economics.ltv_cac_ratio >= 3 ? '#22c55e' : financial.unit_economics.ltv_cac_ratio >= 1 ? '#f59e0b' : '#ef4444'}">${formatNumber(financial.unit_economics.ltv_cac_ratio)}x</div>
-            </div>
-            <div class="metric-card">
-              <div class="metric-card-label">CAC Payback</div>
-              <div class="metric-card-value">${formatNumber(financial.unit_economics.cac_payback_months)} months</div>
-            </div>
-          </div>
-        ` : ''}
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 4 of 8</div>
-        </div>
-      </div>
-      
-      <!-- Page 5: Market Analysis -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Market Analysis</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="section-title">Market Size Analysis</div>
-        <div class="market-size-container">
-          <div class="market-size-item">
-            <div class="market-size-circle">
-              <div class="market-size-label">TAM</div>
-              <div class="market-size-value">${result.market_analysis?.market_size?.tam || 'N/A'}</div>
-              <div class="market-size-desc">Total Addressable Market</div>
-            </div>
-          </div>
-          <div class="market-size-item">
-            <div class="market-size-circle" style="border-color: #3b82f6">
-              <div class="market-size-label">SAM</div>
-              <div class="market-size-value">${result.market_analysis?.market_size?.sam || 'N/A'}</div>
-              <div class="market-size-desc">Serviceable Addressable</div>
-            </div>
-          </div>
-          <div class="market-size-item">
-            <div class="market-size-circle" style="border-color: #22c55e">
-              <div class="market-size-label">SOM</div>
-              <div class="market-size-value">${result.market_analysis?.market_size?.som || 'N/A'}</div>
-              <div class="market-size-desc">Serviceable Obtainable</div>
-            </div>
-          </div>
-        </div>
-        
-        <div class="section-title">Key Market Trends</div>
-        <div style="margin-bottom: 24px">
-          ${(result.market_analysis?.trends || []).map((trend, i) => `
-            <div class="list-item">
-              <span class="list-bullet">${i + 1}</span>
-              <span class="list-text">${trend}</span>
-            </div>
-          `).join('') || '<p class="paragraph">No trends data available</p>'}
-        </div>
-        
-        <div class="section-title">Competitive Landscape</div>
-        <p class="paragraph">${result.market_analysis?.competition?.competitive_landscape || 'No competitive analysis available'}</p>
-        
-        <div class="highlight-box" style="border-color: #22c55e">
-          <div class="highlight-label" style="color: #22c55e">Growth Opportunities</div>
-          <p class="highlight-text">${result.market_analysis?.growth_opportunities || 'No growth opportunities identified'}</p>
-        </div>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 5 of 8</div>
-        </div>
-      </div>
-      
-      <!-- Page 6: Risk Assessment -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Risk Assessment</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="section-title">Business Risk Matrix</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Risk Factor</th>
-              <th class="text-center">Probability</th>
-              <th class="text-center">Impact</th>
-              <th>Mitigation Strategy</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${(result.business_plan.risks || []).map(risk => {
-              const riskName = risk?.risk || (risk as any)?.name || 'Unknown Risk';
-              const probability = risk?.probability || 'средняя';
-              const impact = risk?.impact || 'средний';
-              const mitigation = risk?.mitigation || (risk as any)?.description || 'N/A';
-              return `
-              <tr>
-                <td>${riskName}</td>
-                <td class="text-center" style="color: ${probability === 'высокая' ? '#ef4444' : probability === 'средняя' ? '#f59e0b' : '#22c55e'}">${String(probability).toUpperCase()}</td>
-                <td class="text-center" style="color: ${impact === 'высокий' ? '#ef4444' : impact === 'средний' ? '#f59e0b' : '#22c55e'}">${String(impact).toUpperCase()}</td>
-                <td>${mitigation}</td>
-              </tr>
-            `}).join('') || '<tr><td colspan="4">No risks identified</td></tr>'}
-          </tbody>
-        </table>
-        
-        <div class="section-title">Barriers to Entry</div>
-        <p class="paragraph">${result.market_analysis?.barriers_to_entry || 'No barriers to entry analysis available'}</p>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 6 of 8</div>
-        </div>
-      </div>
-      
-      <!-- Page 7: Action Plan -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Action Plan</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="section-title">Launch Timeline</div>
-        ${(result.business_plan.launch_steps || []).map((step, index) => {
-          if (typeof step === 'string') {
-            return `
-          <div class="timeline-item">
-            <div class="timeline-number">${index + 1}</div>
-            <div class="timeline-content">
-              <div class="timeline-title">Step ${index + 1}</div>
-              <div class="timeline-desc">${step}</div>
-            </div>
-          </div>`;
-          }
-          return `
-          <div class="timeline-item">
-            <div class="timeline-number">${step?.step || index + 1}</div>
-            <div class="timeline-content">
-              <div class="timeline-title">${step?.title || 'Step ' + (index + 1)}</div>
-              <div class="timeline-desc">${step?.description || ''}</div>
-              ${step?.duration || step?.cost ? `
-              <div class="timeline-meta">
-                ${step?.duration ? `<span>Duration: ${step.duration}</span>` : ''}
-                ${step?.cost ? `<span>Cost: ${formatCurrency(step.cost)}</span>` : ''}
-              </div>` : ''}
-            </div>
-          </div>`;
-        }).join('') || '<div class="paragraph">No launch steps defined</div>'}
-        
-        <div class="section-title">First 90 Days Marketing Plan</div>
-        <p class="paragraph">${result.marketing_plan?.first_3_months_plan || 'No marketing plan available'}</p>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div></div>
-          <div>Page 7 of 8</div>
-        </div>
-      </div>
-      
-      <!-- Page 8: Appendix -->
-      <div class="page">
-        <div class="page-header">
-          <div class="page-header-left">
-            <span class="page-header-title">${result.metadata.idea}</span>
-            <span style="color: #334155">|</span>
-            <span class="page-header-section">Appendix</span>
-          </div>
-          <div class="page-header-logo">AIWMC</div>
-        </div>
-        
-        <div class="section-title">Data Sources</div>
-        <div style="margin-bottom: 24px">
-          ${(result.data_sources || []).map((source, i) => `
-            <div class="list-item">
-              <span class="list-bullet">${i + 1}</span>
-              <span class="list-text">${source}</span>
-            </div>
-          `).join('') || '<p class="paragraph">No data sources listed</p>'}
-        </div>
-        
-        <div class="section-title">Analysis Limitations</div>
-        <div style="margin-bottom: 24px">
-          ${(result.limitations || []).map((limitation, i) => `
-            <div class="list-item">
-              <span class="list-bullet">${i + 1}</span>
-              <span class="list-text">${limitation}</span>
-            </div>
-          `).join('') || '<p class="paragraph">No limitations listed</p>'}
-        </div>
-        
-        <div class="section-title">Legal Disclaimer</div>
-        <div class="disclaimer">
-          This analysis is provided for informational purposes only and does not constitute financial, 
-          investment, legal, or tax advice. The projections contained herein are based on assumptions 
-          and AI-generated estimates that may not reflect actual market conditions. Past performance 
-          is not indicative of future results. Users should consult with qualified professionals 
-          before making any business decisions. AIWMC and its affiliates assume no liability for 
-          decisions made based on this analysis.
-        </div>
-        
-        <div class="page-footer">
-          <div>CONFIDENTIAL | AIWMC TM | ${new Date().toLocaleDateString('en-US')}</div>
-          <div style="font-style: italic">${new Date().getFullYear()} AIWMC - AI Workforce Management Center. All Rights Reserved.</div>
-          <div>Page 8 of 8</div>
-        </div>
-      </div>
-    </body>
-    </html>
-  `;
+    } catch (error) {
+      console.error('PDF generation failed:', error);
+      throw error;
+    } finally {
+      setIsGenerating(false);
+    }
+  }, []);
+
+  return { generatePdf, isGenerating, reportRef };
 }
