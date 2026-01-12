@@ -61,6 +61,12 @@ export default function Index() {
     handleSubmit,
     reset,
     isFormValid,
+    files,
+    isUploading,
+    uploadFiles,
+    removeFile,
+    maxFiles,
+    allowedExtensions,
   } = useAnalysis();
 
   // Handle checkout success/cancel URL parameters (supports both patterns)
@@ -255,6 +261,13 @@ export default function Index() {
                 onFinancialInputsChange={setFinancialInputs}
                 onClearError={clearError}
                 onSubmit={handleSubmit}
+                files={files}
+                isUploading={isUploading}
+                maxFiles={maxFiles}
+                allowedExtensions={allowedExtensions}
+                onUploadFiles={uploadFiles}
+                onRemoveFile={removeFile}
+                isAuthenticated={isAuthenticated}
               />
               
               {/* Quick History Access */}
