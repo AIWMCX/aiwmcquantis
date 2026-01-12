@@ -1899,7 +1899,7 @@ Call submit_analysis with all sections in English.`;
             model: "openai/gpt-5-mini",
             messages: [{ role: "user", content: prompt }],
             tools: [analysisToolSchema],
-            tool_choice: "auto",
+            tool_choice: { type: "function", function: { name: "submit_analysis" } },
           }),
           signal: controller.signal,
         });
