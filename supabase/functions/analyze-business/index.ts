@@ -2130,8 +2130,10 @@ Call submit_analysis with all sections in English.`;
     
     // BONUS for document-extracted data (up to +15%)
     const documentDataCount = Object.keys(documentDerivedInputs).length;
+    let documentConfidenceBoost = 0;
     if (documentDataCount > 0) {
       const documentBonus = Math.min(15, documentDataCount * 3);
+      documentConfidenceBoost = documentBonus;
       confidenceBreakdown.input_completeness = Math.min(100, confidenceBreakdown.input_completeness + documentBonus);
       confidenceBreakdown.details.push(`Extracted ${documentDataCount} metrics from uploaded documents`);
     }
