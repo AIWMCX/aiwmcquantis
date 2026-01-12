@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { ExtractedFinancials, aggregateDocumentFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 
 export interface UploadedFile {
   id: string;
@@ -9,6 +10,7 @@ export interface UploadedFile {
   type: string;
   size: number;
   parsedContent?: string;
+  extractedFinancials?: ExtractedFinancials;
   uploadProgress: number;
   status: 'uploading' | 'parsing' | 'ready' | 'error';
   error?: string;
@@ -114,11 +116,23 @@ export function useFileUpload(userId: string | undefined) {
             : f
         ));
       } else {
+        const extractedFinancials = parseData?.extractedFinancials as ExtractedFinancials | undefined;
+        
         setFiles(prev => prev.map(f => 
           f.id === fileId 
-            ? { ...f, status: 'ready' as const, parsedContent: parseData?.content || '' }
+            ? { 
+                ...f, 
+                status: 'ready' as const, 
+                parsedContent: parseData?.content || '',
+                extractedFinancials
+              }
             : f
         ));
+
+        // Log extracted financials for debugging
+        if (extractedFinancials) {
+          console.log(`Extracted financials from ${file.name}:`, extractedFinancials);
+        }
       }
 
       return {
@@ -127,6 +141,7 @@ export function useFileUpload(userId: string | undefined) {
         uploadProgress: 100,
         status: 'ready',
         parsedContent: parseData?.content || '',
+        extractedFinancials: parseData?.extractedFinancials,
       };
 
     } catch (error) {
@@ -195,6 +210,18 @@ export function useFileUpload(userId: string | undefined) {
       .join('\n');
   }, [files]);
 
+  const getExtractedFinancials = useCallback((): ExtractedFinancials[] => {
+    return files
+      .filter(f => f.status === 'ready' && f.extractedFinancials)
+      .map(f => f.extractedFinancials!);
+  }, [files]);
+
+  const getDocumentSummary = useCallback((): DocumentAnalysisSummary | null => {
+    const financials = getExtractedFinancials();
+    if (financials.length === 0) return null;
+    return aggregateDocumentFinancials(financials);
+  }, [getExtractedFinancials]);
+
   return {
     files,
     isUploading,
@@ -203,6 +230,8 @@ export function useFileUpload(userId: string | undefined) {
     clearFiles,
     getReadyFiles,
     getParsedContent,
+    getExtractedFinancials,
+    getDocumentSummary,
     maxFiles: MAX_FILES,
     allowedExtensions: ALLOWED_EXTENSIONS,
   };
