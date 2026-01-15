@@ -549,8 +549,8 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.logoSection },
-        React.createElement(Text, { style: styles.logoText }, 'AIWMC'),
-        React.createElement(Text, { style: styles.logoSubtext }, 'AI Workforce Management Center')
+        React.createElement(Text, { style: styles.logoText }, 'AIWMC Quantis™'),
+        React.createElement(Text, { style: styles.logoSubtext }, 'AI Business Intelligence Platform')
       ),
       React.createElement(
         View,
@@ -584,7 +584,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
         View,
         { style: styles.coverFooter },
         React.createElement(Text, { style: styles.confidentialNotice }, 'CONFIDENTIAL - FOR INTERNAL USE ONLY'),
-        React.createElement(Text, { style: styles.copyright }, `AIWMC TM - AI Workforce Management Center | All Rights Reserved | ${currentYear}`)
+        React.createElement(Text, { style: styles.copyright }, `AIWMC Quantis™ - AI Business Intelligence Platform | All Rights Reserved | ${currentYear}`)
       )
     ),
     // Executive Summary Page
@@ -601,7 +601,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Executive Summary')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(
         View,
@@ -649,7 +649,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 2 of 8')
       )
@@ -668,7 +668,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Financial Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Initial Investment Breakdown'),
       React.createElement(
@@ -729,7 +729,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 3 of 8')
       )
@@ -748,7 +748,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Scenario Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       financial.scenarios && React.createElement(
         View,
@@ -843,7 +843,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 4 of 8')
       )
@@ -862,7 +862,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Market Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Market Size Analysis'),
       React.createElement(
@@ -932,7 +932,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 5 of 8')
       )
@@ -951,7 +951,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Risk Assessment')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Business Risk Matrix'),
       React.createElement(
@@ -992,7 +992,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 6 of 8')
       )
@@ -1011,7 +1011,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Action Plan')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Launch Timeline'),
       launchSteps.length > 0
@@ -1062,7 +1062,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 7 of 8')
       )
@@ -1081,7 +1081,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: styles.pageHeaderSection }, 'Appendix')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'AIWMC')
+        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Data Sources'),
       React.createElement(
@@ -1128,14 +1128,14 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
         React.createElement(
           Text,
           { style: styles.disclaimerText },
-          'This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. AIWMC and its affiliates assume no liability for decisions made based on this analysis.'
+          'This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. AIWMC Quantis™ and its affiliates assume no liability for decisions made based on this analysis.'
         )
       ),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC TM | ${currentDate}`),
-        React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} AIWMC - AI Workforce Management Center. All Rights Reserved.`),
+        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} AIWMC Quantis™ - AI Business Intelligence Platform. All Rights Reserved.`),
         React.createElement(Text, null, 'Page 8 of 8')
       )
     )
@@ -1160,7 +1160,7 @@ export function usePdfExport() {
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 30);
       const date = new Date().toISOString().split('T')[0];
-      const filename = `AIWMC_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+      const filename = `Quantis_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
       // Generate PDF blob using @react-pdf/renderer
       const doc = createExecutiveReport(result);

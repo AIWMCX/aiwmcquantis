@@ -30,8 +30,8 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             <Brain className="w-6 h-6 text-primary" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-foreground">AI Business Analyzer</h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">Professional business idea analysis</p>
+            <h1 className="text-lg font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></h1>
+            <p className="text-xs text-muted-foreground hidden sm:block">AI Business Intelligence Platform</p>
           </div>
         </Link>
 

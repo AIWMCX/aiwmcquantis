@@ -4,15 +4,11 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Star, Users, Building2, ChevronRight, Moon, Sun, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+
 export default function Landing() {
   const navigate = useNavigate();
-  const {
-    user
-  } = useAuth();
-  const {
-    redirectToPayment,
-    isLoading: checkoutLoading
-  } = usePaymentLinks();
+  const { user } = useAuth();
+  const { redirectToPayment, isLoading: checkoutLoading } = usePaymentLinks();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -20,6 +16,7 @@ export default function Landing() {
     }
     return false;
   });
+
   useEffect(() => {
     const root = document.documentElement;
     if (darkMode) {
@@ -30,6 +27,7 @@ export default function Landing() {
       localStorage.setItem('theme', 'light');
     }
   }, [darkMode]);
+
   const handlePlanClick = (planName: string) => {
     console.log('[Landing] Plan clicked:', planName);
     console.log('[Landing] User authenticated:', !!user);
@@ -43,16 +41,15 @@ export default function Landing() {
     console.log('[Landing] Processing plan:', plan);
     if (user) {
       console.log('[Landing] User is authenticated - redirecting to Payment Link');
-      // User is logged in - go straight to Payment Link
       redirectToPayment(plan, user.id, user.email || undefined);
     } else {
       console.log('[Landing] User not authenticated - saving plan to localStorage');
-      // Not logged in - save plan and redirect to auth
       localStorage.setItem('pending_checkout_plan', plan);
       console.log('[Landing] Navigating to auth page');
       navigate('/auth');
     }
   };
+
   const features = [{
     icon: BarChart3,
     title: 'Financial Projections',
@@ -78,6 +75,7 @@ export default function Landing() {
     title: 'Location Intelligence',
     description: 'Analysis tailored to your specific geographic market and demographics.'
   }];
+
   const testimonials = [{
     name: 'Alex Chen',
     role: 'Startup Founder',
@@ -97,6 +95,7 @@ export default function Landing() {
     content: 'Perfect for quickly evaluating startup pitches. Helps identify viable opportunities.',
     rating: 5
   }];
+
   const pricingPlans = [{
     name: 'Free',
     price: '$0',
@@ -124,6 +123,7 @@ export default function Landing() {
     highlighted: true,
     hasTrial: true
   }];
+
   const stats = [{
     value: '10,000+',
     label: 'Analyses Generated'
@@ -138,16 +138,14 @@ export default function Landing() {
     label: 'User Rating'
   }];
 
-  // The useStripeCheckout hook handles the overlay, so we don't need one here
-
-  return <div className="min-h-screen bg-background text-foreground">
+  return (
+    <div className="min-h-screen bg-background text-foreground">
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              
-              <span className="text-xl font-bold text-foreground">SPAnalyzer</span>
+              <span className="text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
@@ -179,7 +177,7 @@ export default function Landing() {
         
         <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-20 md:py-32">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 animate-fade-in">AIWMC™ Business Intelligence </div>
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 animate-fade-in">AIWMC Quantis™ Business Intelligence</div>
             <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
               Turn Your Business Idea Into
               <span className="text-primary block">Actionable Intelligence</span>
@@ -204,10 +202,12 @@ export default function Landing() {
 
             {/* Stats */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t border-border">
-              {stats.map(stat => <div key={stat.label} className="text-center">
+              {stats.map(stat => (
+                <div key={stat.label} className="text-center">
                   <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">{stat.value}</div>
                   <div className="text-sm text-muted-foreground">{stat.label}</div>
-                </div>)}
+                </div>
+              ))}
             </div>
           </div>
         </div>
@@ -226,13 +226,15 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {features.map(feature => <div key={feature.title} className="group p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
+            {features.map(feature => (
+              <div key={feature.title} className="group p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
                 <div className="p-4 rounded-xl bg-primary/10 w-fit mb-6 group-hover:bg-primary/20 transition-colors">
                   <feature.icon className="w-8 h-8 text-primary" />
                 </div>
                 <h3 className="text-xl font-semibold text-foreground mb-3">{feature.title}</h3>
                 <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>)}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -249,11 +251,12 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map(testimonial => <div key={testimonial.name} className="p-8 rounded-2xl border border-border bg-card">
+            {testimonials.map(testimonial => (
+              <div key={testimonial.name} className="p-8 rounded-2xl border border-border bg-card">
                 <div className="flex gap-1 mb-4">
-                  {Array.from({
-                length: testimonial.rating
-              }).map((_, i) => <Star key={i} className="w-5 h-5 text-warning fill-warning" />)}
+                  {Array.from({ length: testimonial.rating }).map((_, i) => (
+                    <Star key={i} className="w-5 h-5 text-warning fill-warning" />
+                  ))}
                 </div>
                 <p className="text-foreground mb-6 leading-relaxed">"{testimonial.content}"</p>
                 <div className="flex items-center gap-4">
@@ -265,7 +268,8 @@ export default function Landing() {
                     <div className="text-sm text-muted-foreground">{testimonial.role}, {testimonial.company}</div>
                   </div>
                 </div>
-              </div>)}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -282,15 +286,20 @@ export default function Landing() {
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-            {pricingPlans.map(plan => <div key={plan.name} className={`relative p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl scale-105' : 'border-border bg-card'}`}>
-                {plan.highlighted && <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+            {pricingPlans.map(plan => (
+              <div key={plan.name} className={`relative p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl scale-105' : 'border-border bg-card'}`}>
+                {plan.highlighted && (
+                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium">
                     Most Popular
-                  </div>}
+                  </div>
+                )}
                 <div className="text-center mb-6">
                   <h3 className="text-xl font-semibold text-foreground mb-2">{plan.name}</h3>
-                  {'hasTrial' in plan && plan.hasTrial && <span className="inline-block px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-full mb-2">
+                  {'hasTrial' in plan && plan.hasTrial && (
+                    <span className="inline-block px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-full mb-2">
                       14-day free trial
-                    </span>}
+                    </span>
+                  )}
                   <div className="flex items-baseline justify-center gap-1">
                     <span className="text-4xl font-bold text-foreground">{plan.price}</span>
                     <span className="text-muted-foreground">/{plan.period}</span>
@@ -298,18 +307,29 @@ export default function Landing() {
                   <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                 </div>
                 <ul className="space-y-3 mb-8">
-                  {plan.features.map(feature => <li key={feature} className="flex items-center gap-3 text-foreground">
+                  {plan.features.map(feature => (
+                    <li key={feature} className="flex items-center gap-3 text-foreground">
                       <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                       <span>{feature}</span>
-                    </li>)}
+                    </li>
+                  ))}
                 </ul>
-                <Button className="w-full" variant={plan.highlighted ? 'default' : 'outline'} size="lg" onClick={() => handlePlanClick(plan.name)} disabled={loadingPlan !== null}>
-                  {loadingPlan === plan.name ? <>
+                <Button 
+                  className="w-full" 
+                  variant={plan.highlighted ? 'default' : 'outline'} 
+                  size="lg" 
+                  onClick={() => handlePlanClick(plan.name)} 
+                  disabled={loadingPlan !== null}
+                >
+                  {loadingPlan === plan.name ? (
+                    <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Processing...
-                    </> : plan.cta}
+                    </>
+                  ) : plan.cta}
                 </Button>
-              </div>)}
+              </div>
+            ))}
           </div>
         </div>
       </section>
@@ -343,8 +363,7 @@ export default function Landing() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center gap-2">
-              
-              <span className="text-lg font-bold text-foreground">SPAnalyzer</span>
+              <span className="text-lg font-bold text-foreground">AIWMC Quantis™</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
               <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
@@ -352,10 +371,11 @@ export default function Landing() {
               <a href="#" className="hover:text-foreground transition-colors">Contact</a>
             </div>
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} SPAnalyzer. All rights reserved.
+              © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
             </p>
           </div>
         </div>
       </footer>
-    </div>;
+    </div>
+  );
 }
