@@ -15,10 +15,10 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
 
   return (
     <div style={{ ...pdfStyles.page, ...pdfStyles.coverPage }}>
-      {/* AIWMC Logo Area */}
+      {/* AIWMC Quantis Logo Area */}
       <div style={pdfStyles.logoSection}>
-        <div style={pdfStyles.logoText}>AIWMC</div>
-        <div style={pdfStyles.logoSubtext}>AI Workforce Management Center</div>
+        <div style={pdfStyles.logoText}>AIWMC Quantis™</div>
+        <div style={pdfStyles.logoSubtext}>AI Business Intelligence Platform</div>
       </div>
 
       {/* Report Title */}
@@ -55,7 +55,7 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
       <div style={pdfStyles.coverFooter}>
         <div style={pdfStyles.confidentialNotice}>CONFIDENTIAL - FOR INTERNAL USE ONLY</div>
         <div style={pdfStyles.copyright}>
-          AIWMC TM - AI Workforce Management Center | All Rights Reserved | {new Date().getFullYear()}
+          AIWMC Quantis™ - AI Business Intelligence Platform | All Rights Reserved | {new Date().getFullYear()}
         </div>
       </div>
     </div>

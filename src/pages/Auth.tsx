@@ -215,7 +215,7 @@ export default function Auth() {
           <div className="p-2 rounded-lg bg-primary/10">
             <Brain className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">AI Business Analyzer</h1>
+          <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></h1>
         </div>
 
         <Card className="w-full">

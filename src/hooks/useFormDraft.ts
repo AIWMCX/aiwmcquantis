@@ -8,7 +8,7 @@ interface DraftData {
   savedAt: number;
 }
 
-const DRAFT_KEY = 'spanalyzer_draft';
+const DRAFT_KEY = 'quantis_draft';
 const SAVE_DELAY_MS = 1000; // Debounce save by 1 second
 
 /**
