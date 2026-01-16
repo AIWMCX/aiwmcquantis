@@ -119,10 +119,10 @@ export default function AdminBenchmarkUpload() {
         const json = JSON.parse(event.target?.result as string);
         const result = transformKerryDataset(json);
         setTransformedData(result);
-        setPreviewRecords(result.records.slice(0, 10));
+        setPreviewRecords(result.records); // Show all aggregated benchmarks
         
         if (result.successful > 0) {
-          toast.success(`Parsed ${result.successful} valid records from ${result.total} total`);
+          toast.success(`Aggregated ${result.total} scenarios into ${result.successful} business type benchmarks`);
         } else {
           toast.error("No valid records found in file");
         }
@@ -355,7 +355,12 @@ export default function AdminBenchmarkUpload() {
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="h-5 w-5 text-green-500" />
                     <span className="font-medium">{transformedData.successful}</span>
-                    <span className="text-muted-foreground">valid</span>
+                    <span className="text-muted-foreground">business types</span>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <FileJson className="h-5 w-5 text-blue-500" />
+                    <span className="font-medium">{transformedData.total}</span>
+                    <span className="text-muted-foreground">scenarios processed</span>
                   </div>
                   {transformedData.failed > 0 && (
                     <div className="flex items-center gap-2">
@@ -368,10 +373,19 @@ export default function AdminBenchmarkUpload() {
                     <div className="flex items-center gap-2">
                       <AlertTriangle className="h-5 w-5 text-yellow-500" />
                       <span className="font-medium">{transformedData.warnings}</span>
-                      <span className="text-muted-foreground">warnings</span>
+                      <span className="text-muted-foreground">skipped (no benchmarks)</span>
                     </div>
                   )}
                 </div>
+                
+                {/* Business Types Found */}
+                {'businessTypes' in transformedData && transformedData.businessTypes && (
+                  <div className="flex flex-wrap gap-2">
+                    {(transformedData.businessTypes as string[]).map((type) => (
+                      <Badge key={type} variant="secondary">{type}</Badge>
+                    ))}
+                  </div>
+                )}
                 
                 {/* Errors */}
                 {transformedData.errors.length > 0 && (
@@ -394,17 +408,17 @@ export default function AdminBenchmarkUpload() {
                 {/* Preview Table */}
                 {previewRecords.length > 0 && (
                   <div>
-                    <h4 className="font-medium mb-2">Preview (first 10 records)</h4>
-                    <div className="border rounded-lg overflow-auto max-h-64">
+                    <h4 className="font-medium mb-2">Preview ({previewRecords.length} aggregated benchmarks)</h4>
+                    <div className="border rounded-lg overflow-auto max-h-80">
                       <Table>
                         <TableHeader>
                           <TableRow>
-                            <TableHead className="w-[200px]">Industry</TableHead>
-                            <TableHead>Region</TableHead>
-                            <TableHead>COGS %</TableHead>
-                            <TableHead>Net Margin %</TableHead>
-                            <TableHead>CAC</TableHead>
-                            <TableHead>LTV</TableHead>
+                            <TableHead className="w-[180px]">Business Type</TableHead>
+                            <TableHead>Gross Margin</TableHead>
+                            <TableHead>Net Margin</TableHead>
+                            <TableHead>LTV/CAC Ratio</TableHead>
+                            <TableHead>Growth Rate</TableHead>
+                            <TableHead>Sample Size</TableHead>
                             <TableHead>Keywords</TableHead>
                           </TableRow>
                         </TableHeader>
@@ -412,11 +426,31 @@ export default function AdminBenchmarkUpload() {
                           {previewRecords.map((record, i) => (
                             <TableRow key={i}>
                               <TableCell className="font-medium">{record.industry_name}</TableCell>
-                              <TableCell>{record.region}</TableCell>
-                              <TableCell>{record.cogs_percent_avg?.toFixed(1) || '-'}</TableCell>
-                              <TableCell>{record.net_margin_avg?.toFixed(1) || '-'}</TableCell>
-                              <TableCell>${record.cac_typical?.toLocaleString() || '-'}</TableCell>
-                              <TableCell>${record.ltv_typical?.toLocaleString() || '-'}</TableCell>
+                              <TableCell>
+                                {record.gross_margin_min && record.gross_margin_max 
+                                  ? `${record.gross_margin_min}-${record.gross_margin_max}%` 
+                                  : record.gross_margin_avg 
+                                    ? `${record.gross_margin_avg}%` 
+                                    : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {record.net_margin_avg !== undefined 
+                                  ? `${record.net_margin_avg.toFixed(1)}%` 
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {record.ltv_cac_ratio_min 
+                                  ? `${record.ltv_cac_ratio_min}:1+` 
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                {record.growth_rate_percent 
+                                  ? `${record.growth_rate_percent}%` 
+                                  : '-'}
+                              </TableCell>
+                              <TableCell>
+                                <Badge variant="outline">{record.sample_size || 0}</Badge>
+                              </TableCell>
                               <TableCell className="text-xs max-w-[200px] truncate">
                                 {record.keywords.slice(0, 3).join(', ')}
                               </TableCell>
