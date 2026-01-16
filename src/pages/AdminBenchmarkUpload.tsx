@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -46,10 +46,22 @@ import {
   Download,
   Eye,
   EyeOff,
-  Shield
+  Shield,
+  CloudOff,
+  Cloud
 } from "lucide-react";
 import { transformKerryDataset, TransformationSummary, BenchmarkRecord } from "@/utils/kerryDataTransformer";
 import { uploadBenchmarks, clearBenchmarks, getBenchmarkStats, UploadProgress, BenchmarkStats } from "@/services/benchmarkUploadService";
+
+const DRAFT_STORAGE_KEY = 'quantis_benchmark_draft';
+
+type DataSource = 'none' | 'draft' | 'database';
+
+interface DraftData {
+  transformedData: TransformationSummary;
+  records: BenchmarkRecord[];
+  savedAt: string;
+}
 
 export default function AdminBenchmarkUpload() {
   // Admin key state
@@ -60,6 +72,7 @@ export default function AdminBenchmarkUpload() {
   const [file, setFile] = useState<File | null>(null);
   const [transformedData, setTransformedData] = useState<TransformationSummary | null>(null);
   const [previewRecords, setPreviewRecords] = useState<BenchmarkRecord[]>([]);
+  const [dataSource, setDataSource] = useState<DataSource>('none');
   
   // Upload state
   const [batchSize, setBatchSize] = useState("100");
@@ -70,9 +83,54 @@ export default function AdminBenchmarkUpload() {
   // Stats state
   const [stats, setStats] = useState<BenchmarkStats | null>(null);
   const [isLoadingStats, setIsLoadingStats] = useState(false);
+  const [isLoadingDraft, setIsLoadingDraft] = useState(true);
   
   // Refs
   const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Load draft from localStorage on mount
+  useEffect(() => {
+    const loadDraft = () => {
+      try {
+        const draftJson = localStorage.getItem(DRAFT_STORAGE_KEY);
+        if (draftJson) {
+          const draft: DraftData = JSON.parse(draftJson);
+          if (draft.transformedData && draft.records && draft.records.length > 0) {
+            setTransformedData(draft.transformedData);
+            setPreviewRecords(draft.records);
+            setDataSource('draft');
+            toast.info(`Restored ${draft.records.length} benchmarks from draft (saved ${new Date(draft.savedAt).toLocaleString()})`);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to load draft:', err);
+        localStorage.removeItem(DRAFT_STORAGE_KEY);
+      } finally {
+        setIsLoadingDraft(false);
+      }
+    };
+    
+    loadDraft();
+  }, []);
+  
+  // Save draft to localStorage whenever transformedData changes
+  const saveDraft = useCallback((data: TransformationSummary, records: BenchmarkRecord[]) => {
+    try {
+      const draft: DraftData = {
+        transformedData: data,
+        records: records,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
+    } catch (err) {
+      console.error('Failed to save draft:', err);
+    }
+  }, []);
+  
+  // Clear draft from localStorage
+  const clearDraft = useCallback(() => {
+    localStorage.removeItem(DRAFT_STORAGE_KEY);
+  }, []);
   
   // Load current stats
   const loadStats = useCallback(async () => {
@@ -120,9 +178,12 @@ export default function AdminBenchmarkUpload() {
         const result = transformKerryDataset(json);
         setTransformedData(result);
         setPreviewRecords(result.records); // Show all aggregated benchmarks
+        setDataSource('draft');
+        // Save to localStorage
+        saveDraft(result, result.records);
         
         if (result.successful > 0) {
-          toast.success(`Aggregated ${result.total} scenarios into ${result.successful} business type benchmarks`);
+          toast.success(`Aggregated ${result.total} scenarios into ${result.successful} business type benchmarks (saved as draft)`);
         } else {
           toast.error("No valid records found in file");
         }
@@ -134,7 +195,7 @@ export default function AdminBenchmarkUpload() {
       toast.error("Failed to read file");
     };
     reader.readAsText(selectedFile);
-  }, []);
+  }, [saveDraft]);
   
   // Handle file drop
   const handleDrop = useCallback((e: React.DragEvent) => {
@@ -176,6 +237,9 @@ export default function AdminBenchmarkUpload() {
       
       if (result.success) {
         toast.success(`Successfully uploaded ${result.inserted + result.updated} records`);
+        // Clear draft after successful upload
+        clearDraft();
+        setDataSource('database');
         loadStats();
       } else {
         toast.error(`Upload completed with ${result.errors.length} errors`);
@@ -211,6 +275,8 @@ export default function AdminBenchmarkUpload() {
     setPreviewRecords([]);
     setUploadProgress(null);
     setUploadResult(null);
+    setDataSource('none');
+    clearDraft();
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -316,6 +382,29 @@ export default function AdminBenchmarkUpload() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Data Source Status */}
+            {!isLoadingDraft && (
+              <div className="flex items-center gap-2">
+                {dataSource === 'database' && (
+                  <Badge variant="default" className="bg-green-600 hover:bg-green-700">
+                    <Cloud className="h-3 w-3 mr-1" />
+                    Synced with Database
+                  </Badge>
+                )}
+                {dataSource === 'draft' && (
+                  <Badge variant="secondary" className="bg-yellow-500/20 text-yellow-700 dark:text-yellow-400 border-yellow-500/30">
+                    <CloudOff className="h-3 w-3 mr-1" />
+                    Draft - Pending Upload
+                  </Badge>
+                )}
+                {dataSource === 'none' && (
+                  <Badge variant="outline" className="text-muted-foreground">
+                    No data loaded
+                  </Badge>
+                )}
+              </div>
+            )}
+            
             {/* Quick Load Button */}
             <div className="flex gap-3">
               <Button
@@ -330,8 +419,11 @@ export default function AdminBenchmarkUpload() {
                     setTransformedData(result);
                     setPreviewRecords(result.records);
                     setFile(null);
+                    setDataSource('draft');
+                    // Save to localStorage
+                    saveDraft(result, result.records);
                     if (result.successful > 0) {
-                      toast.success(`Loaded ${result.total} scenarios → ${result.successful} business type benchmarks`);
+                      toast.success(`Loaded ${result.total} scenarios → ${result.successful} business type benchmarks (saved as draft)`);
                     } else {
                       toast.error("No valid records found");
                     }
@@ -340,7 +432,7 @@ export default function AdminBenchmarkUpload() {
                   }
                 }}
                 className="flex-1"
-                disabled={isUploading}
+                disabled={isUploading || isLoadingDraft}
               >
                 <Database className="h-4 w-4 mr-2" />
                 Load Kerry Dataset (1000 scenarios)
