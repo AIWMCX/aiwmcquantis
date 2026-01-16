@@ -1,5 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -127,6 +127,58 @@ interface AnalysisRequest {
   financial_inputs?: OptionalFinancialInputs;
   selected_industry?: string;
   documents?: DocumentData[];
+}
+
+// ========== DATABASE BENCHMARK TYPES ==========
+
+interface DatabaseBenchmarkRecord {
+  id: string;
+  industry_id: string;
+  industry_name: string;
+  region: string | null;
+  keywords: string[] | null;
+  cogs_percent_min: number | null;
+  cogs_percent_max: number | null;
+  cogs_percent_avg: number | null;
+  gross_margin_min: number | null;
+  gross_margin_max: number | null;
+  gross_margin_avg: number | null;
+  net_margin_min: number | null;
+  net_margin_max: number | null;
+  net_margin_avg: number | null;
+  cac_min: number | null;
+  cac_max: number | null;
+  cac_typical: number | null;
+  ltv_min: number | null;
+  ltv_max: number | null;
+  ltv_typical: number | null;
+  ltv_cac_ratio_min: number | null;
+  ltv_cac_ratio_max: number | null;
+  average_check_min: number | null;
+  average_check_max: number | null;
+  orders_per_client: number | null;
+  client_lifetime_months: number | null;
+  salaries_fixed: number | null;
+  rent_fixed: number | null;
+  utilities_fixed: number | null;
+  other_fixed: number | null;
+  market_size_usd: number | null;
+  growth_rate_percent: number | null;
+  competition_level: string | null;
+  confidence_score: number | null;
+  sample_size: number | null;
+  source: string | null;
+  additional_metrics: Record<string, unknown> | null;
+}
+
+interface BenchmarkResult {
+  benchmark: IndustryBenchmarks;
+  source: 'database' | 'hardcoded' | 'hybrid';
+  confidence: number;
+  matchedIndustryId: string;
+  matchedRegion: string | null;
+  sampleSize: number | null;
+  dataSource: string | null;
 }
 
 // ========== MULTI-INDUSTRY BENCHMARK SYSTEM ==========
@@ -408,6 +460,217 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
   }
 ];
 
+// ========== DATABASE BENCHMARK FUNCTIONS ==========
+
+/**
+ * Fetches all industry benchmarks from the database
+ */
+async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
+  try {
+    const { data, error } = await supabase
+      .from('industry_benchmarks')
+      .select('*');
+    
+    if (error) {
+      console.error('Failed to fetch benchmarks from database:', error.message);
+      return [];
+    }
+    
+    console.log(`Fetched ${data?.length || 0} benchmark records from database`);
+    return data || [];
+  } catch (err) {
+    console.error('Database benchmark fetch error:', err);
+    return [];
+  }
+}
+
+/**
+ * Transforms a database benchmark record into the IndustryBenchmarks interface
+ * Uses defaults from hardcoded benchmarks if database values are null
+ */
+function transformDbBenchmark(db: DatabaseBenchmarkRecord, fallback?: IndustryBenchmarks): IndustryBenchmarks {
+  // Find a default fallback from hardcoded benchmarks
+  const defaultBenchmark = fallback || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
+  
+  return {
+    id: db.industry_id,
+    name: db.industry_name,
+    cogs_percent: db.cogs_percent_avg ?? defaultBenchmark.cogs_percent,
+    salaries_fixed: db.salaries_fixed ?? defaultBenchmark.salaries_fixed,
+    rent_fixed: db.rent_fixed ?? defaultBenchmark.rent_fixed,
+    utilities_fixed: db.utilities_fixed ?? defaultBenchmark.utilities_fixed,
+    other_fixed: db.other_fixed ?? defaultBenchmark.other_fixed,
+    cac_min: db.cac_min ?? defaultBenchmark.cac_min,
+    cac_max: db.cac_max ?? defaultBenchmark.cac_max,
+    cac_typical: db.cac_typical ?? defaultBenchmark.cac_typical,
+    average_check_min: db.average_check_min ?? defaultBenchmark.average_check_min,
+    average_check_max: db.average_check_max ?? defaultBenchmark.average_check_max,
+    orders_per_client: db.orders_per_client ?? defaultBenchmark.orders_per_client,
+    client_lifetime_months: db.client_lifetime_months ?? defaultBenchmark.client_lifetime_months,
+    ltv_cac_min: db.ltv_cac_ratio_min ?? defaultBenchmark.ltv_cac_min,
+    ltv_cac_max: db.ltv_cac_ratio_max ?? defaultBenchmark.ltv_cac_max,
+    net_margin_min: db.net_margin_min ?? defaultBenchmark.net_margin_min,
+    net_margin_max: db.net_margin_max ?? defaultBenchmark.net_margin_max,
+    keywords: db.keywords ?? [],
+  };
+}
+
+/**
+ * Calculates keyword match score between business idea and benchmark keywords
+ */
+function calculateKeywordScore(businessIdea: string, keywords: string[]): number {
+  if (!keywords || keywords.length === 0) return 0;
+  
+  const ideaLower = businessIdea.toLowerCase();
+  let score = 0;
+  
+  for (const keyword of keywords) {
+    const kw = keyword.toLowerCase();
+    if (ideaLower.includes(kw)) {
+      // Longer keywords are more specific and worth more points
+      score += kw.length;
+    }
+  }
+  
+  return score;
+}
+
+/**
+ * Enhanced industry detection that queries database first, then falls back to hardcoded
+ * Returns benchmark with source tracking
+ */
+async function detectIndustryFromDatabase(
+  businessIdea: string,
+  location: string,
+  dbBenchmarks: DatabaseBenchmarkRecord[],
+  selectedIndustryId?: string
+): Promise<BenchmarkResult> {
+  const ideaLower = businessIdea.toLowerCase();
+  const locationLower = location.toLowerCase();
+  
+  // If user explicitly selected an industry, try to find it
+  if (selectedIndustryId && selectedIndustryId !== 'auto') {
+    // First check database
+    const dbMatch = dbBenchmarks.find(db => db.industry_id === selectedIndustryId);
+    if (dbMatch) {
+      console.log(`Using user-selected industry from database: ${dbMatch.industry_name}`);
+      return {
+        benchmark: transformDbBenchmark(dbMatch),
+        source: 'database',
+        confidence: dbMatch.confidence_score ?? 80,
+        matchedIndustryId: dbMatch.industry_id,
+        matchedRegion: dbMatch.region,
+        sampleSize: dbMatch.sample_size,
+        dataSource: dbMatch.source,
+      };
+    }
+    
+    // Then check hardcoded
+    const hardcodedMatch = INDUSTRY_BENCHMARKS.find(i => i.id === selectedIndustryId);
+    if (hardcodedMatch) {
+      console.log(`Using user-selected industry from hardcoded: ${hardcodedMatch.name}`);
+      return {
+        benchmark: hardcodedMatch,
+        source: 'hardcoded',
+        confidence: 75,
+        matchedIndustryId: hardcodedMatch.id,
+        matchedRegion: null,
+        sampleSize: null,
+        dataSource: 'default_benchmarks',
+      };
+    }
+  }
+  
+  // ===== PHASE 1: Search database benchmarks =====
+  if (dbBenchmarks.length > 0) {
+    let bestDbMatch: DatabaseBenchmarkRecord | null = null;
+    let bestDbScore = 0;
+    let regionMatch: DatabaseBenchmarkRecord | null = null;
+    
+    for (const db of dbBenchmarks) {
+      const keywords = db.keywords || [];
+      let score = calculateKeywordScore(ideaLower, keywords);
+      
+      // Bonus for region match
+      if (db.region && locationLower.includes(db.region.toLowerCase())) {
+        score += 50; // Significant bonus for region match
+        if (score > bestDbScore) {
+          regionMatch = db;
+        }
+      }
+      
+      if (score > bestDbScore) {
+        bestDbScore = score;
+        bestDbMatch = db;
+      }
+    }
+    
+    // Use region-matched benchmark if available and has good score
+    if (regionMatch && bestDbScore >= 20) {
+      console.log(`Matched database benchmark with region: ${regionMatch.industry_name} (${regionMatch.region}), score: ${bestDbScore}`);
+      return {
+        benchmark: transformDbBenchmark(regionMatch),
+        source: 'database',
+        confidence: regionMatch.confidence_score ?? 80,
+        matchedIndustryId: regionMatch.industry_id,
+        matchedRegion: regionMatch.region,
+        sampleSize: regionMatch.sample_size,
+        dataSource: regionMatch.source,
+      };
+    }
+    
+    // Use best matching benchmark if score is high enough
+    if (bestDbMatch && bestDbScore >= 10) {
+      console.log(`Matched database benchmark: ${bestDbMatch.industry_name}, score: ${bestDbScore}`);
+      return {
+        benchmark: transformDbBenchmark(bestDbMatch),
+        source: 'database',
+        confidence: bestDbMatch.confidence_score ?? 80,
+        matchedIndustryId: bestDbMatch.industry_id,
+        matchedRegion: bestDbMatch.region,
+        sampleSize: bestDbMatch.sample_size,
+        dataSource: bestDbMatch.source,
+      };
+    }
+  }
+  
+  // ===== PHASE 2: Fall back to hardcoded benchmarks =====
+  let bestMatch: IndustryBenchmarks | null = null;
+  let bestScore = 0;
+  
+  for (const industry of INDUSTRY_BENCHMARKS) {
+    if (industry.id === 'general') continue;
+    
+    let score = 0;
+    for (const keyword of industry.keywords) {
+      if (ideaLower.includes(keyword.toLowerCase())) {
+        score += keyword.length;
+      }
+    }
+    
+    if (score > bestScore) {
+      bestScore = score;
+      bestMatch = industry;
+    }
+  }
+  
+  const finalBenchmark = bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
+  console.log(`Using hardcoded benchmark: ${finalBenchmark.name}, score: ${bestScore}`);
+  
+  return {
+    benchmark: finalBenchmark,
+    source: 'hardcoded',
+    confidence: bestScore > 0 ? 75 : 60,
+    matchedIndustryId: finalBenchmark.id,
+    matchedRegion: null,
+    sampleSize: null,
+    dataSource: 'default_benchmarks',
+  };
+}
+
+/**
+ * Legacy function for backward compatibility - uses hardcoded benchmarks only
+ */
 function detectIndustry(businessIdea: string): IndustryBenchmarks {
   const ideaLower = businessIdea.toLowerCase();
   
@@ -1911,30 +2174,34 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       );
     }
 
-    // Detect industry from business idea OR use user-selected industry
-    let detectedIndustry: IndustryBenchmarks;
-    let industryWasManuallySelected = false;
-    
-    if (selected_industry && selected_industry !== 'auto') {
-      // User explicitly selected an industry - use it
-      const userSelectedIndustry = INDUSTRY_BENCHMARKS.find(i => i.id === selected_industry);
-      if (userSelectedIndustry) {
-        detectedIndustry = userSelectedIndustry;
-        industryWasManuallySelected = true;
-        console.log(`Using user-selected industry: ${detectedIndustry.name}`);
-      } else {
-        // Invalid industry ID, fall back to auto-detection
-        detectedIndustry = detectIndustry(idea_clean);
-        console.log(`Invalid industry ID "${selected_industry}", auto-detected: ${detectedIndustry.name}`);
-      }
-    } else {
-      // Auto-detect from business idea
-      detectedIndustry = detectIndustry(idea_clean);
+    // ========== DATABASE-DRIVEN INDUSTRY DETECTION ==========
+    // Fetch benchmarks from database first, then fall back to hardcoded
+    let dbBenchmarks: DatabaseBenchmarkRecord[] = [];
+    try {
+      dbBenchmarks = await fetchDatabaseBenchmarks(supabaseService);
+    } catch (err) {
+      console.error('Failed to fetch database benchmarks, using hardcoded:', err);
     }
+    
+    // Detect industry using database-first approach
+    const benchmarkResult = await detectIndustryFromDatabase(
+      idea_clean,
+      location_clean,
+      dbBenchmarks,
+      selected_industry
+    );
+    
+    const detectedIndustry = benchmarkResult.benchmark;
+    const industryWasManuallySelected = selected_industry && selected_industry !== 'auto';
+    const benchmarkSource = benchmarkResult.source;
+    const benchmarkConfidence = benchmarkResult.confidence;
+    const benchmarkDataSource = benchmarkResult.dataSource;
+    const benchmarkSampleSize = benchmarkResult.sampleSize;
+    const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
     const locationMultiplier = getLocationMultiplier(location_clean);
     
-    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${industryWasManuallySelected ? 'user-selected' : 'auto-detected'}) | Location multiplier: ${locationMultiplier}`);
+    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}% | Location multiplier: ${locationMultiplier}`);
 
     // Build user financial context for AI prompt
     const userFinancialContext = financial_inputs ? `
@@ -2404,6 +2671,24 @@ Call submit_analysis with all sections in English.`;
       confidenceBreakdown.details.push('Using general benchmarks - provide industry-specific keywords for better accuracy');
     }
     
+    // BONUS for database-sourced benchmarks (+15%)
+    if (benchmarkSource === 'database') {
+      relevanceScore += 15;
+      confidenceBreakdown.details.push(`Using verified database benchmarks (${benchmarkDataSource || 'Kerry dataset'})`);
+      if (benchmarkSampleSize && benchmarkSampleSize > 50) {
+        relevanceScore += 5; // Extra bonus for large sample size
+        confidenceBreakdown.details.push(`Based on ${benchmarkSampleSize} company sample`);
+      }
+    } else if (benchmarkSource === 'hardcoded') {
+      confidenceBreakdown.details.push('Using default hardcoded benchmarks - upload Kerry dataset for improved accuracy');
+    }
+    
+    // BONUS for region-matched benchmarks (+10%)
+    if (benchmarkMatchedRegion) {
+      relevanceScore += 10;
+      confidenceBreakdown.details.push(`Regional benchmark match: ${benchmarkMatchedRegion}`);
+    }
+    
     // BONUS for user-selected industry (+10%)
     if (industryWasManuallySelected) {
       relevanceScore += 25; // Extra confidence for manual selection
@@ -2528,15 +2813,20 @@ Call submit_analysis with all sections in English.`;
                 : `✓ Calculations verified. Profit $${calc.netProfit.toLocaleString()}/mo`
           },
           data_sources: [
-            'IBISWorld Industry Reports (2024)',
+            benchmarkSource === 'database' 
+              ? `Kerry Industry Dataset (${benchmarkDataSource || 'verified benchmarks'})` 
+              : 'IBISWorld Industry Reports (2024)',
             'U.S. Bureau of Labor Statistics',
             'Small Business Administration Cost Data',
             'Industry Standard Financial Formulas (GAAP)',
             `${calc.industryDetected} Sector Benchmarks`,
             locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
+            benchmarkMatchedRegion ? `Regional data: ${benchmarkMatchedRegion}` : null,
+            benchmarkSampleSize ? `Sample size: ${benchmarkSampleSize} companies` : null,
             ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `User Document: ${ef.source_document}`) : [])
-          ],
+          ].filter(Boolean),
           limitations: [
+            benchmarkSource === 'hardcoded' ? 'Using default benchmarks (upload Kerry dataset for enhanced accuracy)' : null,
             'Analysis based on industry benchmarks and AI estimates',
             ideaLength < 50 ? 'Limited business description reduces accuracy' : null,
             detectedIndustry.id === 'general' ? 'No industry-specific benchmarks applied' : null,
@@ -2549,10 +2839,16 @@ Call submit_analysis with all sections in English.`;
             idea: idea_clean,
             location: location_clean,
             industry_detected: calc.industryDetected,
+            industry_id: detectedIndustry.id,
             location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
-            model: "google/gemini-2.5-flash",
-            version: "8.1-document-powered",
+            model: "openai/gpt-5-mini",
+            version: "9.0-database-benchmarks",
+            benchmark_source: benchmarkSource,
+            benchmark_confidence: benchmarkConfidence,
+            benchmark_data_source: benchmarkDataSource,
+            benchmark_sample_size: benchmarkSampleSize,
+            benchmark_region: benchmarkMatchedRegion,
           },
         },
       }),
