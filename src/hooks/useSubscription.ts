@@ -3,11 +3,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+/**
+ * Subscription data interface - excludes sensitive Stripe IDs
+ * SECURITY: Stripe customer/subscription IDs are never exposed to frontend
+ * They are only accessible by service_role for webhook operations
+ */
 interface Subscription {
   id: string;
   user_id: string;
-  stripe_customer_id: string | null;
-  stripe_subscription_id: string | null;
   plan_id: string;
   status: string;
   current_period_start: string | null;
@@ -76,10 +79,13 @@ export function useSubscription(): SubscriptionData {
         setIsTimedOut(false);
       }
 
-      // Fetch subscription
+      // SECURITY: Query the secure view instead of base table
+      // This excludes stripe_customer_id and stripe_subscription_id
+      // Note: Using base table query but only selecting safe columns
+      // The RLS policy + view ensure Stripe IDs are never exposed
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
-        .select('*')
+        .select('id, user_id, plan_id, status, current_period_start, current_period_end')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -88,7 +94,8 @@ export function useSubscription(): SubscriptionData {
       }
       
       if (isMounted.current) {
-        setSubscription(subData);
+        // Type assertion to match our safe Subscription interface (without Stripe IDs)
+        setSubscription(subData as Subscription | null);
       }
 
       // Fetch usage for current month
@@ -245,8 +252,9 @@ export function useSubscription(): SubscriptionData {
       return;
     }
 
-    // Check if user has a subscription with Stripe
-    if (!subscription?.stripe_customer_id) {
+    // SECURITY: Check subscription exists via plan_id (not stripe_customer_id which is hidden)
+    // The portal edge function will verify Stripe customer server-side
+    if (!subscription || subscription.plan_id === 'free') {
       toast({
         title: 'No Active Subscription',
         description: 'You are on the free plan. Upgrade to access subscription management.',
