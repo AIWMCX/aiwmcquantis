@@ -405,8 +405,8 @@ export default function AdminBenchmarkUpload() {
               </div>
             )}
             
-            {/* Quick Load Button */}
-            <div className="flex gap-3">
+            {/* Quick Actions */}
+            <div className="flex gap-3 flex-wrap">
               <Button
                 variant="default"
                 onClick={async () => {
@@ -435,7 +435,80 @@ export default function AdminBenchmarkUpload() {
                 disabled={isUploading || isLoadingDraft}
               >
                 <Database className="h-4 w-4 mr-2" />
-                Load Kerry Dataset (1000 scenarios)
+                Load Kerry Dataset
+              </Button>
+              
+              {/* One-Click Upload Button */}
+              <Button
+                variant="secondary"
+                onClick={async () => {
+                  if (!adminKey) {
+                    toast.error("Please enter admin key first");
+                    return;
+                  }
+                  
+                  try {
+                    // Step 1: Load dataset
+                    toast.info("Loading Kerry dataset...");
+                    const response = await fetch('/data/kerry_full_dataset_1000.json');
+                    if (!response.ok) throw new Error('Failed to fetch dataset');
+                    const json = await response.json();
+                    const result = transformKerryDataset(json);
+                    
+                    if (result.successful === 0) {
+                      toast.error("No valid records found in dataset");
+                      return;
+                    }
+                    
+                    setTransformedData(result);
+                    setPreviewRecords(result.records);
+                    setFile(null);
+                    
+                    // Step 2: Upload to database
+                    toast.info(`Uploading ${result.successful} benchmarks to database...`);
+                    setIsUploading(true);
+                    setUploadProgress(null);
+                    setUploadResult(null);
+                    
+                    const uploadResult = await uploadBenchmarks(
+                      result.records,
+                      adminKey,
+                      parseInt(batchSize),
+                      setUploadProgress
+                    );
+                    
+                    setUploadResult(uploadResult);
+                    
+                    if (uploadResult.success) {
+                      toast.success(`Successfully uploaded ${uploadResult.inserted + uploadResult.updated} benchmarks to database!`);
+                      clearDraft();
+                      setDataSource('database');
+                      loadStats();
+                    } else {
+                      toast.error(`Upload completed with ${uploadResult.errors.length} errors`);
+                      setDataSource('draft');
+                      saveDraft(result, result.records);
+                    }
+                  } catch (err) {
+                    toast.error(`Failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                  } finally {
+                    setIsUploading(false);
+                  }
+                }}
+                className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+                disabled={isUploading || isLoadingDraft || !adminKey}
+              >
+                {isUploading ? (
+                  <>
+                    <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                    Uploading...
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4 mr-2" />
+                    Quick Upload Kerry Dataset
+                  </>
+                )}
               </Button>
             </div>
             
