@@ -6,6 +6,92 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// ========== SECURITY UTILITIES ==========
+
+/**
+ * Validates HTTP request for security issues
+ */
+function validateHttpRequest(req: Request): { valid: boolean; error?: string } {
+  // Check content type for POST requests
+  const contentType = req.headers.get('content-type');
+  if (req.method !== 'GET' && req.method !== 'OPTIONS' && !contentType?.includes('application/json')) {
+    return { valid: false, error: 'Invalid content type. Expected application/json' };
+  }
+  
+  // Check request size (1MB limit to prevent DoS)
+  const contentLength = req.headers.get('content-length');
+  if (contentLength && parseInt(contentLength) > 1048576) {
+    return { valid: false, error: 'Request too large. Maximum size is 1MB' };
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Sanitizes input string to prevent XSS and injection attacks
+ */
+function sanitizeInput(input: string): string {
+  if (!input || typeof input !== 'string') return '';
+  
+  return input
+    .replace(/<[^>]*>/g, '')      // Remove HTML tags
+    .replace(/[<>{}]/g, '')       // Remove dangerous chars
+    .replace(/javascript:/gi, '') // Remove javascript: protocol
+    .replace(/on\w+=/gi, '')      // Remove event handlers like onclick=
+    .replace(/data:/gi, '')       // Remove data: protocol
+    .trim();
+}
+
+/**
+ * Validates input string for dangerous patterns
+ */
+function validateInputSafety(input: string, fieldName: string): { valid: boolean; error?: string } {
+  if (!input || typeof input !== 'string') {
+    return { valid: false, error: `${fieldName} is required` };
+  }
+  
+  // Check for XSS patterns
+  const dangerousPatterns = [
+    /<script/i,
+    /javascript:/i,
+    /on\w+\s*=/i,
+    /data:\s*text\/html/i,
+    /&#x/i,
+    /&#\d+;/i,
+  ];
+  
+  for (const pattern of dangerousPatterns) {
+    if (pattern.test(input)) {
+      return { valid: false, error: `${fieldName} contains invalid characters` };
+    }
+  }
+  
+  return { valid: true };
+}
+
+/**
+ * Validates numeric input is within safe bounds
+ */
+function validateNumericInput(value: unknown, min: number, max: number, fieldName: string): { valid: boolean; error?: string; value?: number } {
+  if (value === undefined || value === null) {
+    return { valid: true }; // Optional field
+  }
+  
+  const num = Number(value);
+  
+  if (isNaN(num)) {
+    return { valid: false, error: `${fieldName} must be a number` };
+  }
+  
+  if (num < min || num > max) {
+    return { valid: false, error: `${fieldName} must be between ${min} and ${max}` };
+  }
+  
+  return { valid: true, value: num };
+}
+
+// ========== END SECURITY UTILITIES ==========
+
 interface OptionalFinancialInputs {
   startup_investment?: number;
   monthly_revenue?: number;
@@ -1475,6 +1561,16 @@ serve(async (req) => {
   }
 
   try {
+    // ========== HTTP REQUEST VALIDATION ==========
+    const httpValidation = validateHttpRequest(req);
+    if (!httpValidation.valid) {
+      console.error(`HTTP validation failed: ${httpValidation.error}`);
+      return new Response(
+        JSON.stringify({ error: httpValidation.error, code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ========== RATE LIMITING CONFIGURATION ==========
     const RATE_LIMITS = {
       anonymous: { requests: 1, windowMinutes: 60 },  // 1 request per hour for unauthenticated
@@ -1609,21 +1705,101 @@ serve(async (req) => {
     }
     // ========== END RATE LIMITING ==========
 
-    const { idea, location, financial_inputs, selected_industry, documents } = await req.json() as AnalysisRequest;
+    // ========== REQUEST BODY PARSING & VALIDATION ==========
+    let requestBody: AnalysisRequest;
+    try {
+      requestBody = await req.json() as AnalysisRequest;
+    } catch (parseError) {
+      console.error('JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
-    if (!idea || idea.trim().length < 10) {
+    const { idea, location, financial_inputs, selected_industry, documents } = requestBody;
+
+    // ========== INPUT VALIDATION & SANITIZATION ==========
+    
+    // Validate idea
+    const ideaValidation = validateInputSafety(idea, 'Business idea');
+    if (!ideaValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: ideaValidation.error, code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const sanitizedIdea = sanitizeInput(idea);
+    if (sanitizedIdea.length < 10) {
       return new Response(
         JSON.stringify({ error: "Business idea must be at least 10 characters", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    if (!location || location.trim().length < 2) {
+    
+    if (sanitizedIdea.length > 5000) {
       return new Response(
-        JSON.stringify({ error: "Please specify a location", code: "VALIDATION_ERROR" }),
+        JSON.stringify({ error: "Business idea must not exceed 5000 characters", code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // Validate location
+    const locationValidation = validateInputSafety(location, 'Location');
+    if (!locationValidation.valid) {
+      return new Response(
+        JSON.stringify({ error: locationValidation.error, code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    const sanitizedLocation = sanitizeInput(location);
+    if (sanitizedLocation.length < 2) {
+      return new Response(
+        JSON.stringify({ error: "Please specify a location (at least 2 characters)", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    
+    if (sanitizedLocation.length > 200) {
+      return new Response(
+        JSON.stringify({ error: "Location must not exceed 200 characters", code: "VALIDATION_ERROR" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate financial inputs if provided
+    if (financial_inputs) {
+      const numericFields = [
+        { key: 'startup_investment', min: 0, max: 100000000 },
+        { key: 'monthly_revenue', min: 0, max: 100000000 },
+        { key: 'average_price', min: 0, max: 1000000 },
+        { key: 'expected_customers', min: 0, max: 10000000 },
+        { key: 'monthly_costs', min: 0, max: 100000000 },
+        { key: 'cac', min: 0, max: 100000 },
+        { key: 'churn_rate', min: 0, max: 100 },
+      ];
+      
+      for (const field of numericFields) {
+        const value = financial_inputs[field.key as keyof OptionalFinancialInputs];
+        if (value !== undefined && value !== null) {
+          const validation = validateNumericInput(value, field.min, field.max, field.key);
+          if (!validation.valid) {
+            return new Response(
+              JSON.stringify({ error: validation.error, code: "VALIDATION_ERROR" }),
+              { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+        }
+      }
+    }
+
+    // Use sanitized values for the rest of processing
+    const idea_clean = sanitizedIdea;
+    const location_clean = sanitizedLocation;
+
+    console.log(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
 
     // Build document context if files were uploaded
     let documentContext = '';
@@ -1748,17 +1924,17 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
         console.log(`Using user-selected industry: ${detectedIndustry.name}`);
       } else {
         // Invalid industry ID, fall back to auto-detection
-        detectedIndustry = detectIndustry(idea);
+        detectedIndustry = detectIndustry(idea_clean);
         console.log(`Invalid industry ID "${selected_industry}", auto-detected: ${detectedIndustry.name}`);
       }
     } else {
       // Auto-detect from business idea
-      detectedIndustry = detectIndustry(idea);
+      detectedIndustry = detectIndustry(idea_clean);
     }
     
-    const locationMultiplier = getLocationMultiplier(location);
+    const locationMultiplier = getLocationMultiplier(location_clean);
     
-    console.log(`Analyzing: "${idea.substring(0, 40)}..." in ${location} | Industry: ${detectedIndustry.name} (${industryWasManuallySelected ? 'user-selected' : 'auto-detected'}) | Location multiplier: ${locationMultiplier}`);
+    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${industryWasManuallySelected ? 'user-selected' : 'auto-detected'}) | Location multiplier: ${locationMultiplier}`);
 
     // Build user financial context for AI prompt
     const userFinancialContext = financial_inputs ? `
@@ -1794,10 +1970,10 @@ Your analysis must meet the following quality standards:
 5. **Professional**: Executive-ready language suitable for board presentations
 
 ## BUSINESS IDEA
-${idea.trim()}
+${idea_clean}
 
 ## LOCATION (PRIMARY MARKET)
-${location.trim()}
+${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
 ${userFinancialContext}${documentContext}
@@ -2146,8 +2322,8 @@ Call submit_analysis with all sections in English.`;
     }
     
     // Minimum input quality penalty - just 2 inputs (idea + location) = 25% max
-    const ideaLength = idea.trim().length;
-    const locationLength = location.trim().length;
+    const ideaLength = idea_clean.length;
+    const locationLength = location_clean.length;
     if (ideaLength < 30 && userProvidedCount === 0) {
       confidenceBreakdown.input_completeness = Math.min(confidenceBreakdown.input_completeness, 35);
       confidenceBreakdown.details.push('Business idea description is brief - provide more detail for accurate analysis');
@@ -2357,7 +2533,7 @@ Call submit_analysis with all sections in English.`;
             'Small Business Administration Cost Data',
             'Industry Standard Financial Formulas (GAAP)',
             `${calc.industryDetected} Sector Benchmarks`,
-            locationMultiplier !== 1.0 ? `${location} Cost of Living Index` : 'National Average Cost Data',
+            locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
             ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `User Document: ${ef.source_document}`) : [])
           ],
           limitations: [
@@ -2370,8 +2546,8 @@ Call submit_analysis with all sections in English.`;
             calc.corrections.length > 0 ? `${calc.corrections.length} values auto-corrected for realism` : null
           ].filter(Boolean),
           metadata: {
-            idea: idea.trim(),
-            location: location.trim(),
+            idea: idea_clean,
+            location: location_clean,
             industry_detected: calc.industryDetected,
             location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
