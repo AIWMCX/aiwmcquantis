@@ -64,6 +64,132 @@ export type Database = {
           },
         ]
       }
+      industry_benchmarks: {
+        Row: {
+          additional_metrics: Json | null
+          average_check_max: number | null
+          average_check_min: number | null
+          cac_max: number | null
+          cac_min: number | null
+          cac_typical: number | null
+          client_lifetime_months: number | null
+          cogs_percent_avg: number | null
+          cogs_percent_max: number | null
+          cogs_percent_min: number | null
+          competition_level: string | null
+          confidence_score: number | null
+          created_at: string | null
+          gross_margin_avg: number | null
+          gross_margin_max: number | null
+          gross_margin_min: number | null
+          growth_rate_percent: number | null
+          id: string
+          industry_id: string
+          industry_name: string
+          keywords: string[] | null
+          last_updated: string | null
+          ltv_cac_ratio_max: number | null
+          ltv_cac_ratio_min: number | null
+          ltv_max: number | null
+          ltv_min: number | null
+          ltv_typical: number | null
+          market_size_usd: number | null
+          net_margin_avg: number | null
+          net_margin_max: number | null
+          net_margin_min: number | null
+          orders_per_client: number | null
+          other_fixed: number | null
+          region: string | null
+          rent_fixed: number | null
+          salaries_fixed: number | null
+          sample_size: number | null
+          source: string | null
+          utilities_fixed: number | null
+        }
+        Insert: {
+          additional_metrics?: Json | null
+          average_check_max?: number | null
+          average_check_min?: number | null
+          cac_max?: number | null
+          cac_min?: number | null
+          cac_typical?: number | null
+          client_lifetime_months?: number | null
+          cogs_percent_avg?: number | null
+          cogs_percent_max?: number | null
+          cogs_percent_min?: number | null
+          competition_level?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          gross_margin_avg?: number | null
+          gross_margin_max?: number | null
+          gross_margin_min?: number | null
+          growth_rate_percent?: number | null
+          id?: string
+          industry_id: string
+          industry_name: string
+          keywords?: string[] | null
+          last_updated?: string | null
+          ltv_cac_ratio_max?: number | null
+          ltv_cac_ratio_min?: number | null
+          ltv_max?: number | null
+          ltv_min?: number | null
+          ltv_typical?: number | null
+          market_size_usd?: number | null
+          net_margin_avg?: number | null
+          net_margin_max?: number | null
+          net_margin_min?: number | null
+          orders_per_client?: number | null
+          other_fixed?: number | null
+          region?: string | null
+          rent_fixed?: number | null
+          salaries_fixed?: number | null
+          sample_size?: number | null
+          source?: string | null
+          utilities_fixed?: number | null
+        }
+        Update: {
+          additional_metrics?: Json | null
+          average_check_max?: number | null
+          average_check_min?: number | null
+          cac_max?: number | null
+          cac_min?: number | null
+          cac_typical?: number | null
+          client_lifetime_months?: number | null
+          cogs_percent_avg?: number | null
+          cogs_percent_max?: number | null
+          cogs_percent_min?: number | null
+          competition_level?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          gross_margin_avg?: number | null
+          gross_margin_max?: number | null
+          gross_margin_min?: number | null
+          growth_rate_percent?: number | null
+          id?: string
+          industry_id?: string
+          industry_name?: string
+          keywords?: string[] | null
+          last_updated?: string | null
+          ltv_cac_ratio_max?: number | null
+          ltv_cac_ratio_min?: number | null
+          ltv_max?: number | null
+          ltv_min?: number | null
+          ltv_typical?: number | null
+          market_size_usd?: number | null
+          net_margin_avg?: number | null
+          net_margin_max?: number | null
+          net_margin_min?: number | null
+          orders_per_client?: number | null
+          other_fixed?: number | null
+          region?: string | null
+          rent_fixed?: number | null
+          salaries_fixed?: number | null
+          sample_size?: number | null
+          source?: string | null
+          utilities_fixed?: number | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
