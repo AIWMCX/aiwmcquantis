@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
+import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
 interface DraftData {
@@ -12,8 +13,10 @@ const DRAFT_KEY = 'quantis_draft';
 const SAVE_DELAY_MS = 1000; // Debounce save by 1 second
 
 /**
- * Hook for auto-saving form drafts to localStorage
+ * Hook for auto-saving form drafts to encrypted localStorage
  * Provides draft recovery on page load with debounced saves
+ * 
+ * SECURITY: All data is encrypted using AES-GCM before storage
  */
 export function useFormDraft(
   idea: string,
@@ -33,38 +36,40 @@ export function useFormDraft(
   useEffect(() => {
     if (isInitializedRef.current) return;
     
-    try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const draft: DraftData = JSON.parse(saved);
-        // Only show draft if it has meaningful content
-        if (draft.idea?.trim().length > 5 || draft.location?.trim().length > 2) {
-          setHasDraft(true);
-          // Calculate age
-          const ageMs = Date.now() - draft.savedAt;
-          const ageMinutes = Math.floor(ageMs / 60000);
-          const ageHours = Math.floor(ageMinutes / 60);
-          const ageDays = Math.floor(ageHours / 24);
-          
-          if (ageDays > 0) {
-            setDraftAge(`${ageDays} day${ageDays > 1 ? 's' : ''} ago`);
-          } else if (ageHours > 0) {
-            setDraftAge(`${ageHours} hour${ageHours > 1 ? 's' : ''} ago`);
-          } else if (ageMinutes > 0) {
-            setDraftAge(`${ageMinutes} minute${ageMinutes > 1 ? 's' : ''} ago`);
-          } else {
-            setDraftAge('just now');
+    const checkDraft = async () => {
+      try {
+        const draft = await secureGetItem<DraftData>(DRAFT_KEY);
+        if (draft && typeof draft === 'object' && 'savedAt' in draft) {
+          // Only show draft if it has meaningful content
+          if (draft.idea?.trim().length > 5 || draft.location?.trim().length > 2) {
+            setHasDraft(true);
+            // Calculate age
+            const ageMs = Date.now() - draft.savedAt;
+            const ageMinutes = Math.floor(ageMs / 60000);
+            const ageHours = Math.floor(ageMinutes / 60);
+            const ageDays = Math.floor(ageHours / 24);
+            
+            if (ageDays > 0) {
+              setDraftAge(`${ageDays} day${ageDays > 1 ? 's' : ''} ago`);
+            } else if (ageHours > 0) {
+              setDraftAge(`${ageHours} hour${ageHours > 1 ? 's' : ''} ago`);
+            } else if (ageMinutes > 0) {
+              setDraftAge(`${ageMinutes} minute${ageMinutes > 1 ? 's' : ''} ago`);
+            } else {
+              setDraftAge('just now');
+            }
           }
         }
+      } catch (e) {
+        console.error('Failed to check draft:', e);
       }
-    } catch (e) {
-      console.error('Failed to check draft:', e);
-    }
-    
+    };
+
+    checkDraft();
     isInitializedRef.current = true;
   }, []);
 
-  // Debounced save to localStorage
+  // Debounced save to encrypted localStorage
   useEffect(() => {
     // Don't save if we haven't restored yet and have a draft waiting
     if (hasDraft && !isRestored) return;
@@ -75,7 +80,7 @@ export function useFormDraft(
       clearTimeout(saveTimeoutRef.current);
     }
 
-    saveTimeoutRef.current = setTimeout(() => {
+    saveTimeoutRef.current = setTimeout(async () => {
       try {
         const draft: DraftData = {
           idea,
@@ -83,7 +88,7 @@ export function useFormDraft(
           financialInputs,
           savedAt: Date.now(),
         };
-        localStorage.setItem(DRAFT_KEY, JSON.stringify(draft));
+        await secureSetItem(DRAFT_KEY, draft);
       } catch (e) {
         console.error('Failed to save draft:', e);
       }
@@ -97,11 +102,10 @@ export function useFormDraft(
   }, [idea, location, financialInputs, hasDraft, isRestored]);
 
   // Restore draft
-  const restoreDraft = useCallback(() => {
+  const restoreDraft = useCallback(async () => {
     try {
-      const saved = localStorage.getItem(DRAFT_KEY);
-      if (saved) {
-        const draft: DraftData = JSON.parse(saved);
+      const draft = await secureGetItem<DraftData>(DRAFT_KEY);
+      if (draft && typeof draft === 'object') {
         setIdea(draft.idea || '');
         setLocation(draft.location || '');
         setFinancialInputs(draft.financialInputs || {});
@@ -122,7 +126,7 @@ export function useFormDraft(
   // Clear draft (after successful submission)
   const clearDraft = useCallback(() => {
     try {
-      localStorage.removeItem(DRAFT_KEY);
+      secureRemoveItem(DRAFT_KEY);
       setHasDraft(false);
     } catch (e) {
       console.error('Failed to clear draft:', e);
