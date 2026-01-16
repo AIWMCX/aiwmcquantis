@@ -6,6 +6,7 @@ import Landing from "./pages/Landing";
 import AppDashboard from "./pages/AppDashboard";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
+import AdminBenchmarkUpload from "./pages/AdminBenchmarkUpload";
 
 const queryClient = new QueryClient();
 
@@ -18,6 +19,7 @@ const App = () => (
           <Route path="/" element={<Landing />} />
           <Route path="/app" element={<AppDashboard />} />
           <Route path="/auth" element={<Auth />} />
+          <Route path="/admin/benchmarks" element={<AdminBenchmarkUpload />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

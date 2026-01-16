@@ -1,0 +1,579 @@
+import { useState, useCallback, useRef } from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Progress } from "@/components/ui/progress";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { 
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import { toast } from "sonner";
+import { 
+  Upload, 
+  Trash2, 
+  FileJson, 
+  CheckCircle2, 
+  XCircle, 
+  AlertTriangle,
+  Database,
+  RefreshCw,
+  Download,
+  Eye,
+  EyeOff,
+  Shield
+} from "lucide-react";
+import { transformKerryDataset, TransformationSummary, BenchmarkRecord } from "@/utils/kerryDataTransformer";
+import { uploadBenchmarks, clearBenchmarks, getBenchmarkStats, UploadProgress, BenchmarkStats } from "@/services/benchmarkUploadService";
+
+export default function AdminBenchmarkUpload() {
+  // Admin key state
+  const [adminKey, setAdminKey] = useState("");
+  const [showAdminKey, setShowAdminKey] = useState(false);
+  
+  // File and data state
+  const [file, setFile] = useState<File | null>(null);
+  const [transformedData, setTransformedData] = useState<TransformationSummary | null>(null);
+  const [previewRecords, setPreviewRecords] = useState<BenchmarkRecord[]>([]);
+  
+  // Upload state
+  const [batchSize, setBatchSize] = useState("100");
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState<UploadProgress | null>(null);
+  const [uploadResult, setUploadResult] = useState<{ inserted: number; updated: number; failed: number; errors: string[] } | null>(null);
+  
+  // Stats state
+  const [stats, setStats] = useState<BenchmarkStats | null>(null);
+  const [isLoadingStats, setIsLoadingStats] = useState(false);
+  
+  // Refs
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  
+  // Load current stats
+  const loadStats = useCallback(async () => {
+    if (!adminKey) {
+      toast.error("Please enter admin key first");
+      return;
+    }
+    
+    setIsLoadingStats(true);
+    const result = await getBenchmarkStats(adminKey);
+    setIsLoadingStats(false);
+    
+    if (result.error) {
+      toast.error(`Failed to load stats: ${result.error}`);
+    } else if (result.stats) {
+      setStats(result.stats);
+      toast.success(`Database has ${result.stats.totalRecords} benchmark records`);
+    }
+  }, [adminKey]);
+  
+  // Handle file selection
+  const handleFileSelect = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    
+    if (!selectedFile.name.endsWith('.json')) {
+      toast.error("Please select a JSON file");
+      return;
+    }
+    
+    if (selectedFile.size > 50 * 1024 * 1024) {
+      toast.error("File too large (max 50MB)");
+      return;
+    }
+    
+    setFile(selectedFile);
+    setTransformedData(null);
+    setUploadResult(null);
+    
+    // Parse and transform the file
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const json = JSON.parse(event.target?.result as string);
+        const result = transformKerryDataset(json);
+        setTransformedData(result);
+        setPreviewRecords(result.records.slice(0, 10));
+        
+        if (result.successful > 0) {
+          toast.success(`Parsed ${result.successful} valid records from ${result.total} total`);
+        } else {
+          toast.error("No valid records found in file");
+        }
+      } catch (err) {
+        toast.error(`Failed to parse JSON: ${err instanceof Error ? err.message : 'Unknown error'}`);
+      }
+    };
+    reader.onerror = () => {
+      toast.error("Failed to read file");
+    };
+    reader.readAsText(selectedFile);
+  }, []);
+  
+  // Handle file drop
+  const handleDrop = useCallback((e: React.DragEvent) => {
+    e.preventDefault();
+    const droppedFile = e.dataTransfer.files[0];
+    if (droppedFile) {
+      const fakeEvent = {
+        target: { files: [droppedFile] }
+      } as unknown as React.ChangeEvent<HTMLInputElement>;
+      handleFileSelect(fakeEvent);
+    }
+  }, [handleFileSelect]);
+  
+  // Handle upload
+  const handleUpload = useCallback(async () => {
+    if (!adminKey) {
+      toast.error("Please enter admin key");
+      return;
+    }
+    
+    if (!transformedData || transformedData.records.length === 0) {
+      toast.error("No valid records to upload");
+      return;
+    }
+    
+    setIsUploading(true);
+    setUploadProgress(null);
+    setUploadResult(null);
+    
+    try {
+      const result = await uploadBenchmarks(
+        transformedData.records,
+        adminKey,
+        parseInt(batchSize),
+        setUploadProgress
+      );
+      
+      setUploadResult(result);
+      
+      if (result.success) {
+        toast.success(`Successfully uploaded ${result.inserted + result.updated} records`);
+        loadStats();
+      } else {
+        toast.error(`Upload completed with ${result.errors.length} errors`);
+      }
+    } catch (err) {
+      toast.error(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setIsUploading(false);
+    }
+  }, [adminKey, transformedData, batchSize, loadStats]);
+  
+  // Handle clear
+  const handleClear = useCallback(async () => {
+    if (!adminKey) {
+      toast.error("Please enter admin key");
+      return;
+    }
+    
+    const result = await clearBenchmarks(adminKey);
+    
+    if (result.success) {
+      toast.success("All benchmark data cleared");
+      setStats({ totalRecords: 0, industries: [] });
+    } else {
+      toast.error(`Failed to clear: ${result.error}`);
+    }
+  }, [adminKey]);
+  
+  // Reset form
+  const resetForm = () => {
+    setFile(null);
+    setTransformedData(null);
+    setPreviewRecords([]);
+    setUploadProgress(null);
+    setUploadResult(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+  
+  // Export transformed data
+  const exportTransformedData = () => {
+    if (!transformedData) return;
+    
+    const blob = new Blob([JSON.stringify(transformedData.records, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'transformed_benchmarks.json';
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+  
+  const progressPercent = uploadProgress 
+    ? Math.round((uploadProgress.current / uploadProgress.total) * 100) 
+    : 0;
+  
+  return (
+    <div className="min-h-screen bg-background p-4 md:p-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header */}
+        <div className="flex items-center gap-3">
+          <Shield className="h-8 w-8 text-primary" />
+          <div>
+            <h1 className="text-2xl font-bold">Admin: Benchmark Data Upload</h1>
+            <p className="text-muted-foreground">
+              Upload Kerry dataset to industry_benchmarks table
+            </p>
+          </div>
+        </div>
+        
+        {/* Admin Key Input */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Shield className="h-5 w-5" />
+              Authentication
+            </CardTitle>
+            <CardDescription>
+              Enter the admin upload key to enable operations
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <Input
+                  type={showAdminKey ? "text" : "password"}
+                  placeholder="Enter admin key..."
+                  value={adminKey}
+                  onChange={(e) => setAdminKey(e.target.value)}
+                  className="pr-10"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowAdminKey(!showAdminKey)}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                >
+                  {showAdminKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <Button 
+                variant="outline" 
+                onClick={loadStats}
+                disabled={!adminKey || isLoadingStats}
+              >
+                {isLoadingStats ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Database className="h-4 w-4" />}
+                <span className="ml-2">Check DB</span>
+              </Button>
+            </div>
+            
+            {stats && (
+              <div className="mt-4 p-3 bg-muted rounded-lg">
+                <div className="flex items-center gap-2 text-sm">
+                  <Database className="h-4 w-4" />
+                  <span className="font-medium">Current Records:</span>
+                  <Badge variant="secondary">{stats.totalRecords}</Badge>
+                </div>
+                {stats.industries.length > 0 && (
+                  <div className="mt-2 text-xs text-muted-foreground">
+                    Sample: {stats.industries.slice(0, 5).map(i => i.industry_name).join(', ')}
+                    {stats.industries.length > 5 && '...'}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* File Upload */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg flex items-center gap-2">
+              <Upload className="h-5 w-5" />
+              Upload Dataset
+            </CardTitle>
+            <CardDescription>
+              Drop a Kerry dataset JSON file or click to browse
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Drop Zone */}
+            <div
+              onDrop={handleDrop}
+              onDragOver={(e) => e.preventDefault()}
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              onClick={() => fileInputRef.current?.click()}
+            >
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept=".json"
+                onChange={handleFileSelect}
+                className="hidden"
+              />
+              <FileJson className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              {file ? (
+                <div>
+                  <p className="font-medium">{file.name}</p>
+                  <p className="text-sm text-muted-foreground">
+                    {(file.size / 1024).toFixed(1)} KB
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="font-medium">Drop JSON file here</p>
+                  <p className="text-sm text-muted-foreground">or click to browse</p>
+                </div>
+              )}
+            </div>
+            
+            {/* Transformation Results */}
+            {transformedData && (
+              <div className="space-y-4">
+                <Separator />
+                
+                <div className="flex flex-wrap gap-4">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-green-500" />
+                    <span className="font-medium">{transformedData.successful}</span>
+                    <span className="text-muted-foreground">valid</span>
+                  </div>
+                  {transformedData.failed > 0 && (
+                    <div className="flex items-center gap-2">
+                      <XCircle className="h-5 w-5 text-destructive" />
+                      <span className="font-medium">{transformedData.failed}</span>
+                      <span className="text-muted-foreground">failed</span>
+                    </div>
+                  )}
+                  {transformedData.warnings > 0 && (
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-500" />
+                      <span className="font-medium">{transformedData.warnings}</span>
+                      <span className="text-muted-foreground">warnings</span>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Errors */}
+                {transformedData.errors.length > 0 && (
+                  <Alert variant="destructive">
+                    <XCircle className="h-4 w-4" />
+                    <AlertTitle>Transformation Errors</AlertTitle>
+                    <AlertDescription>
+                      <ul className="list-disc list-inside mt-2 text-sm max-h-32 overflow-y-auto">
+                        {transformedData.errors.slice(0, 10).map((e, i) => (
+                          <li key={i}>Record {e.index + 1}: {e.errors.join(', ')}</li>
+                        ))}
+                        {transformedData.errors.length > 10 && (
+                          <li>...and {transformedData.errors.length - 10} more</li>
+                        )}
+                      </ul>
+                    </AlertDescription>
+                  </Alert>
+                )}
+                
+                {/* Preview Table */}
+                {previewRecords.length > 0 && (
+                  <div>
+                    <h4 className="font-medium mb-2">Preview (first 10 records)</h4>
+                    <div className="border rounded-lg overflow-auto max-h-64">
+                      <Table>
+                        <TableHeader>
+                          <TableRow>
+                            <TableHead className="w-[200px]">Industry</TableHead>
+                            <TableHead>Region</TableHead>
+                            <TableHead>COGS %</TableHead>
+                            <TableHead>Net Margin %</TableHead>
+                            <TableHead>CAC</TableHead>
+                            <TableHead>LTV</TableHead>
+                            <TableHead>Keywords</TableHead>
+                          </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                          {previewRecords.map((record, i) => (
+                            <TableRow key={i}>
+                              <TableCell className="font-medium">{record.industry_name}</TableCell>
+                              <TableCell>{record.region}</TableCell>
+                              <TableCell>{record.cogs_percent_avg?.toFixed(1) || '-'}</TableCell>
+                              <TableCell>{record.net_margin_avg?.toFixed(1) || '-'}</TableCell>
+                              <TableCell>${record.cac_typical?.toLocaleString() || '-'}</TableCell>
+                              <TableCell>${record.ltv_typical?.toLocaleString() || '-'}</TableCell>
+                              <TableCell className="text-xs max-w-[200px] truncate">
+                                {record.keywords.slice(0, 3).join(', ')}
+                              </TableCell>
+                            </TableRow>
+                          ))}
+                        </TableBody>
+                      </Table>
+                    </div>
+                  </div>
+                )}
+                
+                {/* Actions */}
+                <div className="flex flex-wrap gap-3">
+                  <Button variant="outline" onClick={exportTransformedData}>
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Transformed
+                  </Button>
+                  <Button variant="outline" onClick={resetForm}>
+                    Reset
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+        
+        {/* Upload Controls */}
+        {transformedData && transformedData.successful > 0 && (
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Upload to Database</CardTitle>
+              <CardDescription>
+                Upload {transformedData.successful} records to industry_benchmarks table
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex flex-wrap gap-4 items-end">
+                <div className="space-y-2">
+                  <Label>Batch Size</Label>
+                  <Select value={batchSize} onValueChange={setBatchSize}>
+                    <SelectTrigger className="w-[120px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="50">50</SelectItem>
+                      <SelectItem value="100">100</SelectItem>
+                      <SelectItem value="200">200</SelectItem>
+                      <SelectItem value="500">500</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <Button 
+                  onClick={handleUpload} 
+                  disabled={!adminKey || isUploading}
+                  className="min-w-[150px]"
+                >
+                  {isUploading ? (
+                    <>
+                      <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+                      Uploading...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Upload All
+                    </>
+                  )}
+                </Button>
+                
+                <AlertDialog>
+                  <AlertDialogTrigger asChild>
+                    <Button variant="destructive" disabled={!adminKey}>
+                      <Trash2 className="h-4 w-4 mr-2" />
+                      Clear Database
+                    </Button>
+                  </AlertDialogTrigger>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Clear All Benchmark Data?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete all records from the industry_benchmarks table.
+                        This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={handleClear} className="bg-destructive text-destructive-foreground">
+                        Yes, Clear All Data
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
+              
+              {/* Upload Progress */}
+              {uploadProgress && (
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span>
+                      Chunk {uploadProgress.currentChunk} of {uploadProgress.totalChunks}
+                    </span>
+                    <span>
+                      {uploadProgress.current} / {uploadProgress.total} records
+                    </span>
+                  </div>
+                  <Progress value={progressPercent} className="h-2" />
+                  <div className="flex gap-4 text-sm">
+                    <span className="text-green-600">
+                      ✓ {uploadProgress.successful} successful
+                    </span>
+                    {uploadProgress.failed > 0 && (
+                      <span className="text-destructive">
+                        ✗ {uploadProgress.failed} failed
+                      </span>
+                    )}
+                  </div>
+                </div>
+              )}
+              
+              {/* Upload Result */}
+              {uploadResult && (
+                <Alert variant={uploadResult.errors.length > 0 ? "destructive" : "default"}>
+                  {uploadResult.errors.length > 0 ? (
+                    <AlertTriangle className="h-4 w-4" />
+                  ) : (
+                    <CheckCircle2 className="h-4 w-4" />
+                  )}
+                  <AlertTitle>
+                    {uploadResult.errors.length > 0 ? 'Upload Completed with Errors' : 'Upload Complete'}
+                  </AlertTitle>
+                  <AlertDescription>
+                    <div className="mt-2">
+                      <p>Inserted: {uploadResult.inserted} | Updated: {uploadResult.updated} | Failed: {uploadResult.failed}</p>
+                      {uploadResult.errors.length > 0 && (
+                        <ul className="list-disc list-inside mt-2 text-sm max-h-32 overflow-y-auto">
+                          {uploadResult.errors.slice(0, 10).map((e, i) => (
+                            <li key={i}>{e}</li>
+                          ))}
+                          {uploadResult.errors.length > 10 && (
+                            <li>...and {uploadResult.errors.length - 10} more errors</li>
+                          )}
+                        </ul>
+                      )}
+                    </div>
+                  </AlertDescription>
+                </Alert>
+              )}
+            </CardContent>
+          </Card>
+        )}
+        
+        {/* Footer */}
+        <p className="text-center text-sm text-muted-foreground">
+          Admin access only • Data is uploaded via manage-benchmarks edge function
+        </p>
+      </div>
+    </div>
+  );
+}
