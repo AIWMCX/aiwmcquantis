@@ -64,6 +64,33 @@ export type Database = {
           },
         ]
       }
+      anonymous_usage: {
+        Row: {
+          created_at: string | null
+          device_id: string
+          id: string
+          idea_hash: string
+          ip_hash: string
+          location_hash: string
+        }
+        Insert: {
+          created_at?: string | null
+          device_id: string
+          id?: string
+          idea_hash: string
+          ip_hash: string
+          location_hash: string
+        }
+        Update: {
+          created_at?: string | null
+          device_id?: string
+          id?: string
+          idea_hash?: string
+          ip_hash?: string
+          location_hash?: string
+        }
+        Relationships: []
+      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null
@@ -374,6 +401,18 @@ export type Database = {
       }
     }
     Functions: {
+      check_anonymous_rate_limit: {
+        Args: {
+          p_device_id: string
+          p_device_limit?: number
+          p_idea_hash: string
+          p_ip_hash: string
+          p_ip_limit?: number
+          p_location_hash: string
+          p_window_minutes?: number
+        }
+        Returns: Json
+      }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -383,6 +422,7 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
       increment_usage: {
@@ -390,6 +430,15 @@ export type Database = {
         Returns: undefined
       }
       is_service_role: { Args: never; Returns: boolean }
+      record_anonymous_usage: {
+        Args: {
+          p_device_id: string
+          p_idea_hash: string
+          p_ip_hash: string
+          p_location_hash: string
+        }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
