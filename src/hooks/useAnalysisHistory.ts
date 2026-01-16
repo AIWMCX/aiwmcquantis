@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import { getAnalyses, deleteAnalysis, migrateLocalStorageToDb } from '@/services/analysisDb';
+import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import type { AnalysisHistoryEntry } from '@/types/analysis';
 
 const STORAGE_KEY = 'business_analysis_history';
@@ -21,10 +22,12 @@ export function useAnalysisHistory() {
         // Authenticated: load from database
         setIsSyncing(true);
         
-        // First, migrate any local history
+        // First, migrate any local history (handles both encrypted and legacy data)
         const migrated = await migrateLocalStorageToDb(user.id);
         if (migrated > 0) {
           console.log(`Migrated ${migrated} analyses to cloud`);
+          // Clear local storage after successful migration
+          secureRemoveItem(STORAGE_KEY);
         }
         
         // Then fetch from database
@@ -32,14 +35,11 @@ export function useAnalysisHistory() {
         setHistory(dbHistory);
         setIsSyncing(false);
       } else {
-        // Guest: load from localStorage
+        // Guest: load from encrypted localStorage
         try {
-          const stored = localStorage.getItem(STORAGE_KEY);
-          if (stored) {
-            const parsed = JSON.parse(stored);
-            if (Array.isArray(parsed)) {
-              setHistory(parsed);
-            }
+          const stored = await secureGetItem<AnalysisHistoryEntry[]>(STORAGE_KEY);
+          if (stored && Array.isArray(stored)) {
+            setHistory(stored);
           }
         } catch (error) {
           console.error('Failed to load local history:', error);
@@ -51,15 +51,19 @@ export function useAnalysisHistory() {
     loadHistory();
   }, [isAuthenticated, user, authLoading]);
 
-  // Save to localStorage for guests (when history changes)
+  // Save to encrypted localStorage for guests (when history changes)
   useEffect(() => {
     if (!isLoaded || isAuthenticated || authLoading) return;
     
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
-    } catch (error) {
-      console.error('Failed to save local history:', error);
-    }
+    const saveHistory = async () => {
+      try {
+        await secureSetItem(STORAGE_KEY, history);
+      } catch (error) {
+        console.error('Failed to save local history:', error);
+      }
+    };
+
+    saveHistory();
   }, [history, isLoaded, isAuthenticated, authLoading]);
 
   const addEntry = useCallback((entry: AnalysisHistoryEntry) => {
@@ -90,6 +94,9 @@ export function useAnalysisHistory() {
       for (const entry of history) {
         await deleteAnalysis(entry.id);
       }
+    } else {
+      // Clear encrypted local storage
+      secureRemoveItem(STORAGE_KEY);
     }
     setHistory([]);
   }, [isAuthenticated, history]);
