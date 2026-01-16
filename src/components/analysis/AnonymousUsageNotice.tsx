@@ -1,0 +1,48 @@
+import React from 'react';
+import { AlertCircle, LogIn, Sparkles } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Link } from 'react-router-dom';
+
+interface AnonymousUsageNoticeProps {
+  className?: string;
+}
+
+/**
+ * Notice shown to anonymous users about their limited free analysis
+ */
+export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
+  return (
+    <div className={`p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 ${className || ''}`}>
+      <div className="flex items-start gap-3">
+        <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <p className="text-sm font-medium text-foreground">
+              Free Analysis Mode
+            </p>
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400">
+              1 per hour
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
+            You're using a free analysis. Sign in to get <strong className="text-foreground">3 analyses per month</strong> and unlock document uploads for deeper insights.
+          </p>
+          <div className="flex items-center gap-2 mt-3">
+            <Button asChild size="sm" variant="default" className="h-8 text-xs gap-1.5">
+              <Link to="/auth">
+                <LogIn className="w-3.5 h-3.5" />
+                Sign In
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5">
+              <Link to="/auth?mode=signup">
+                <Sparkles className="w-3.5 h-3.5" />
+                Create Account
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}

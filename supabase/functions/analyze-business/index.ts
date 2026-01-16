@@ -1842,10 +1842,18 @@ serve(async (req) => {
       pro: { requests: 30, windowMinutes: 60 },       // 30 requests per hour
     };
     
+    // Anonymous abuse prevention configuration
+    const ANONYMOUS_LIMITS = {
+      deviceLimit: 1,      // 1 request per device per hour
+      ipLimit: 3,          // Max 3 requests per IP per hour (prevents incognito abuse)
+      windowMinutes: 60,
+    };
+    
     // ========== USAGE ENFORCEMENT ==========
     const FREE_TIER_LIMIT = 3;
     let userId: string | null = null;
     let userPlan = 'free';
+    let isAnonymous = true;
     
     // Create Supabase clients
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
@@ -1867,6 +1875,7 @@ serve(async (req) => {
       
       if (!userError && user) {
         userId = user.id;
+        isAnonymous = false;
         console.log(`Authenticated user: ${user.email}`);
         
         // Check subscription
@@ -1910,61 +1919,138 @@ serve(async (req) => {
       }
     }
     
-    // ========== HOURLY RATE LIMITING ==========
-    // Get rate limit config based on plan
-    const rateLimitConfig = RATE_LIMITS[userPlan as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
-    
-    // Use authenticated user ID or a fixed anonymous ID for rate limiting
-    const rateLimitUserId = userId || '00000000-0000-0000-0000-000000000000';
-    
-    try {
-      const { data: rateLimitResult, error: rateLimitError } = await supabaseService
-        .rpc('check_rate_limit', {
-          p_user_id: rateLimitUserId,
-          p_endpoint: 'analyze-business',
-          p_window_minutes: rateLimitConfig.windowMinutes,
-          p_max_requests: rateLimitConfig.requests
-        });
+    // ========== ANONYMOUS USER RATE LIMITING (Per-Device + IP) ==========
+    if (isAnonymous) {
+      // Get device ID and fingerprint from headers
+      const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
+      const fingerprint = req.headers.get('X-Fingerprint') || '';
       
-      if (rateLimitError) {
-        console.error('Rate limit check failed:', rateLimitError);
-        // Fail open - allow request but log the error
-      } else if (rateLimitResult && !rateLimitResult.allowed) {
-        console.log(`Rate limit exceeded for ${userId || 'anonymous'}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
+      // Get client IP for additional tracking
+      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+        || req.headers.get('cf-connecting-ip') 
+        || req.headers.get('x-real-ip')
+        || 'unknown-ip';
+      
+      console.log(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}...`);
+      
+      // Create hashes for storage (privacy-preserving)
+      const encoder = new TextEncoder();
+      
+      // Hash the IP address
+      const ipHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(clientIp + 'quantis-salt'));
+      const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+      
+      // Use the request body to check for duplicate submissions (after parsing)
+      // We'll do the duplicate check after parsing the body below
+      
+      try {
+        // First, do a pre-check without idea/location (we'll check duplicates after parsing body)
+        // For now, check device and IP limits
+        const { data: rateLimitResult, error: rateLimitError } = await supabaseService
+          .rpc('check_anonymous_rate_limit', {
+            p_device_id: deviceId,
+            p_ip_hash: ipHash,
+            p_idea_hash: 'pre-check', // Placeholder - will be checked properly after body parse
+            p_location_hash: 'pre-check',
+            p_window_minutes: ANONYMOUS_LIMITS.windowMinutes,
+            p_device_limit: ANONYMOUS_LIMITS.deviceLimit,
+            p_ip_limit: ANONYMOUS_LIMITS.ipLimit,
+          });
         
-        const resetAt = new Date(rateLimitResult.reset_at);
-        const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
-        
-        return new Response(
-          JSON.stringify({ 
-            error: "Too many requests. Please wait before trying again.", 
-            code: "RATE_LIMIT_EXCEEDED",
-            details: {
-              limit: rateLimitResult.limit,
-              remaining: 0,
-              reset_at: rateLimitResult.reset_at,
-              retry_after_seconds: retryAfterSeconds,
-              plan: userPlan
+        if (rateLimitError) {
+          console.error('Anonymous rate limit check failed:', rateLimitError);
+          // Fall back to old method if new system fails
+        } else if (rateLimitResult && !rateLimitResult.allowed) {
+          const reason = rateLimitResult.reason as string;
+          const resetAt = new Date(rateLimitResult.reset_at);
+          const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+          
+          console.log(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
+          
+          return new Response(
+            JSON.stringify({ 
+              error: rateLimitResult.message || "Free analysis limit reached. Sign in for more.", 
+              code: "ANONYMOUS_LIMIT_EXCEEDED",
+              details: {
+                reason,
+                retry_after_seconds: retryAfterSeconds,
+                reset_at: rateLimitResult.reset_at,
+                suggestion: "Sign in to get 3 free analyses per month"
+              }
+            }),
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                "Content-Type": "application/json",
+                "Retry-After": String(retryAfterSeconds),
+              } 
             }
-          }),
-          { 
-            status: 429, 
-            headers: { 
-              ...corsHeaders, 
-              "Content-Type": "application/json",
-              "Retry-After": String(retryAfterSeconds),
-              "X-RateLimit-Limit": String(rateLimitResult.limit),
-              "X-RateLimit-Remaining": "0",
-              "X-RateLimit-Reset": String(Math.floor(resetAt.getTime() / 1000))
-            } 
-          }
-        );
-      } else if (rateLimitResult) {
-        console.log(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
+          );
+        } else if (rateLimitResult) {
+          console.log(`Anonymous rate limit check passed: Device remaining: ${rateLimitResult.device_remaining}, IP remaining: ${rateLimitResult.ip_remaining}`);
+        }
+      } catch (anonRlError) {
+        console.error('Anonymous rate limit system error:', anonRlError);
+        // Fall through to standard rate limiting
       }
-    } catch (rlError) {
-      console.error('Rate limit system error:', rlError);
-      // Fail open on error
+    }
+    // ========== END ANONYMOUS RATE LIMITING ==========
+    
+    // ========== AUTHENTICATED USER HOURLY RATE LIMITING ==========
+    if (!isAnonymous && userId) {
+      // Get rate limit config based on plan
+      const rateLimitConfig = RATE_LIMITS[userPlan as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
+      
+      try {
+        const { data: rateLimitResult, error: rateLimitError } = await supabaseService
+          .rpc('check_rate_limit', {
+            p_user_id: userId,
+            p_endpoint: 'analyze-business',
+            p_window_minutes: rateLimitConfig.windowMinutes,
+            p_max_requests: rateLimitConfig.requests
+          });
+        
+        if (rateLimitError) {
+          console.error('Rate limit check failed:', rateLimitError);
+          // Fail open - allow request but log the error
+        } else if (rateLimitResult && !rateLimitResult.allowed) {
+          console.log(`Rate limit exceeded for user ${userId}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
+          
+          const resetAt = new Date(rateLimitResult.reset_at);
+          const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
+          
+          return new Response(
+            JSON.stringify({ 
+              error: "Too many requests. Please wait before trying again.", 
+              code: "RATE_LIMIT_EXCEEDED",
+              details: {
+                limit: rateLimitResult.limit,
+                remaining: 0,
+                reset_at: rateLimitResult.reset_at,
+                retry_after_seconds: retryAfterSeconds,
+                plan: userPlan
+              }
+            }),
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                "Content-Type": "application/json",
+                "Retry-After": String(retryAfterSeconds),
+                "X-RateLimit-Limit": String(rateLimitResult.limit),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": String(Math.floor(resetAt.getTime() / 1000))
+              } 
+            }
+          );
+        } else if (rateLimitResult) {
+          console.log(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
+        }
+      } catch (rlError) {
+        console.error('Rate limit system error:', rlError);
+        // Fail open on error
+      }
     }
     // ========== END RATE LIMITING ==========
 
@@ -2745,10 +2831,44 @@ Call submit_analysis with all sections in English.`;
     
     console.log(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
-    // ========== INCREMENT USAGE FOR FREE TIER USERS ==========
+    // ========== RECORD USAGE ==========
+    // Record anonymous usage for rate limiting
+    if (isAnonymous) {
+      try {
+        const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
+        const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+          || req.headers.get('cf-connecting-ip') 
+          || req.headers.get('x-real-ip')
+          || 'unknown-ip';
+        
+        // Create hashes for privacy-preserving storage
+        const encoder = new TextEncoder();
+        
+        const ipHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(clientIp + 'quantis-salt'));
+        const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+        
+        const ideaHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(idea_clean.toLowerCase()));
+        const ideaHash = Array.from(new Uint8Array(ideaHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+        
+        const locationHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(location_clean.toLowerCase()));
+        const locationHash = Array.from(new Uint8Array(locationHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+        
+        // Record the anonymous usage
+        await supabaseService.rpc('record_anonymous_usage', {
+          p_device_id: deviceId,
+          p_ip_hash: ipHash,
+          p_idea_hash: ideaHash,
+          p_location_hash: locationHash,
+        });
+        console.log(`Anonymous usage recorded for device ${deviceId.substring(0, 8)}...`);
+      } catch (e) {
+        console.error('Failed to record anonymous usage:', e);
+      }
+    }
+    
+    // Increment usage for authenticated free tier users
     if (userId && userPlan === 'free') {
       try {
-        const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
         const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
         console.log(`Usage incremented for user ${userId}`);
@@ -2756,7 +2876,7 @@ Call submit_analysis with all sections in English.`;
         console.error('Failed to increment usage:', e);
       }
     }
-    // ========== END USAGE INCREMENT ==========
+    // ========== END USAGE RECORDING ==========
 
     // Build documents_used array for frontend
     const documentsUsed = documentExtractedFinancials.map(ef => ({

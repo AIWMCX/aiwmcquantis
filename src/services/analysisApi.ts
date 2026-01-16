@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { AnalysisRequest, AnalysisAPIResponse, BusinessAnalysisResult } from '@/types/analysis';
+import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
@@ -8,8 +9,24 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
+/**
+ * Get anonymous tracking headers for abuse prevention
+ */
+async function getAnonymousHeaders(): Promise<Record<string, string>> {
+  const deviceId = getAnonymousDeviceId();
+  const fingerprint = await getBrowserFingerprint();
+  
+  return {
+    'X-Device-Id': deviceId,
+    'X-Fingerprint': fingerprint,
+  };
+}
+
 export async function generateAnalysis(request: AnalysisRequest): Promise<BusinessAnalysisResult> {
   let lastError: Error | null = null;
+  
+  // Get anonymous tracking headers
+  const anonymousHeaders = await getAnonymousHeaders();
   
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -19,6 +36,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
+        headers: anonymousHeaders,
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
@@ -34,7 +52,19 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
           const errorData = error.context?.body || {};
           const retryAfter = errorData.details?.retry_after_seconds || 60;
           const minutes = Math.ceil(retryAfter / 60);
-          throw new Error(`RATE_LIMIT_EXCEEDED: Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+          
+          // Provide context-aware message
+          const reason = errorData.details?.reason;
+          let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+          if (reason === 'device_limit') {
+            message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+          } else if (reason === 'ip_limit') {
+            message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+          } else if (reason === 'duplicate_submission') {
+            message = 'This exact analysis was already performed recently. Try a different idea or location.';
+          }
+          
+          throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
         }
         throw new Error(error.message || 'Failed to invoke analysis function');
       }
@@ -44,11 +74,22 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       }
 
       // Handle rate limit response from edge function
-      if ('code' in data && data.code === 'RATE_LIMIT_EXCEEDED') {
+      if ('code' in data && (data.code === 'RATE_LIMIT_EXCEEDED' || data.code === 'ANONYMOUS_LIMIT_EXCEEDED')) {
         const details = (data as any).details || {};
         const retryAfter = details.retry_after_seconds || 60;
         const minutes = Math.ceil(retryAfter / 60);
-        throw new Error(`RATE_LIMIT_EXCEEDED: Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`);
+        
+        const reason = details.reason;
+        let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+        if (reason === 'device_limit') {
+          message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+        } else if (reason === 'ip_limit') {
+          message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+        } else if (reason === 'duplicate_submission') {
+          message = 'This exact analysis was already performed recently. Try a different idea or location.';
+        }
+        
+        throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
       }
 
       if (!data.success || !data.data) {

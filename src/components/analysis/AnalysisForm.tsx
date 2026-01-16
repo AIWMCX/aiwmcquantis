@@ -8,6 +8,7 @@ import { cn } from '@/lib/utils';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
 import { FileUploader } from './FileUploader';
+import { AnonymousUsageNotice } from './AnonymousUsageNotice';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
 
@@ -65,6 +66,9 @@ export function AnalysisForm({
 
   return (
     <form onSubmit={onSubmit} className="section-card space-y-6">
+      {/* Anonymous User Notice */}
+      {!isAuthenticated && <AnonymousUsageNotice />}
+      
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 rounded-lg bg-primary/10">
           <Sparkles className="w-5 h-5 text-primary" />
