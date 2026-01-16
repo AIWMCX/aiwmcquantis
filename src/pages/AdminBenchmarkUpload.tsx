@@ -312,15 +312,55 @@ export default function AdminBenchmarkUpload() {
               Upload Dataset
             </CardTitle>
             <CardDescription>
-              Drop a Kerry dataset JSON file or click to browse
+              Load the built-in Kerry dataset or upload a custom JSON file
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Quick Load Button */}
+            <div className="flex gap-3">
+              <Button
+                variant="default"
+                onClick={async () => {
+                  try {
+                    toast.info("Loading Kerry dataset...");
+                    const response = await fetch('/data/kerry_full_dataset_1000.json');
+                    if (!response.ok) throw new Error('Failed to fetch dataset');
+                    const json = await response.json();
+                    const result = transformKerryDataset(json);
+                    setTransformedData(result);
+                    setPreviewRecords(result.records);
+                    setFile(null);
+                    if (result.successful > 0) {
+                      toast.success(`Loaded ${result.total} scenarios → ${result.successful} business type benchmarks`);
+                    } else {
+                      toast.error("No valid records found");
+                    }
+                  } catch (err) {
+                    toast.error(`Failed to load: ${err instanceof Error ? err.message : 'Unknown error'}`);
+                  }
+                }}
+                className="flex-1"
+                disabled={isUploading}
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Load Kerry Dataset (1000 scenarios)
+              </Button>
+            </div>
+            
+            <div className="relative">
+              <div className="absolute inset-0 flex items-center">
+                <span className="w-full border-t" />
+              </div>
+              <div className="relative flex justify-center text-xs uppercase">
+                <span className="bg-background px-2 text-muted-foreground">or upload custom file</span>
+              </div>
+            </div>
+            
             {/* Drop Zone */}
             <div
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
-              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-8 text-center hover:border-primary/50 transition-colors cursor-pointer"
+              className="border-2 border-dashed border-muted-foreground/25 rounded-lg p-6 text-center hover:border-primary/50 transition-colors cursor-pointer"
               onClick={() => fileInputRef.current?.click()}
             >
               <input
@@ -330,18 +370,17 @@ export default function AdminBenchmarkUpload() {
                 onChange={handleFileSelect}
                 className="hidden"
               />
-              <FileJson className="h-12 w-12 mx-auto mb-4 text-muted-foreground" />
+              <FileJson className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
               {file ? (
                 <div>
-                  <p className="font-medium">{file.name}</p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="font-medium text-sm">{file.name}</p>
+                  <p className="text-xs text-muted-foreground">
                     {(file.size / 1024).toFixed(1)} KB
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p className="font-medium">Drop JSON file here</p>
-                  <p className="text-sm text-muted-foreground">or click to browse</p>
+                  <p className="text-sm text-muted-foreground">Drop JSON file or click to browse</p>
                 </div>
               )}
             </div>
