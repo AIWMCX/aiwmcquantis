@@ -25,10 +25,10 @@ export function Footer() {
             <Mail className="w-4 h-4 text-muted-foreground" />
             <span className="text-sm text-muted-foreground">Support:</span>
             <a 
-              href="mailto:support@startup-success-pilotaiwmc.com" 
+              href="mailto:support@aiwmcquantis.com" 
               className="text-sm text-primary hover:text-primary/80 transition-colors font-medium"
             >
-              support@startup-success-pilotaiwmc.com
+              support@aiwmcquantis.com
             </a>
           </div>
         </div>

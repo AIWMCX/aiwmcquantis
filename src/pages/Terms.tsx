@@ -223,7 +223,7 @@ export default function Terms() {
               For questions about these Terms of Service:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email: legal@aiwmc.com</li>
+              <li>Email: legal@aiwmcquantis.com</li>
               <li>Address: Denver, Colorado, USA</li>
             </ul>
           </section>

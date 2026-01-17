@@ -90,7 +90,7 @@ serve(async (req) => {
     }
 
     // Create checkout session
-    const origin = req.headers.get("origin") || "https://lovable.dev";
+    const origin = req.headers.get("origin") || "https://aiwmcquantis.com";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
       mode: "subscription",

@@ -91,7 +91,7 @@ class ErrorBoundary extends Component<Props, State> {
             </div>
 
             <p className="text-xs text-muted-foreground">
-              If this problem persists, please contact support at support@aiwmc.com
+              If this problem persists, please contact support at support@aiwmcquantis.com
             </p>
           </div>
         </div>

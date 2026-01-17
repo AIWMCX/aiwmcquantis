@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     // Create portal session
-    const origin = req.headers.get("origin") || "https://lovable.dev";
+    const origin = req.headers.get("origin") || "https://aiwmcquantis.com";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: subscription.stripe_customer_id,
       return_url: `${origin}/app`,
