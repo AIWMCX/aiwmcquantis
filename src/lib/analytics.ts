@@ -10,49 +10,19 @@ declare global {
   }
 }
 
-const GA_MEASUREMENT_ID = import.meta.env.VITE_GA_MEASUREMENT_ID;
+const GA_MEASUREMENT_ID = 'G-NZE7RGVNEN';
 
 /**
  * Initialize Google Analytics 4
- * Should be called once when the app loads
+ * GA is already loaded via index.html script tag
+ * This function ensures gtag is available for custom events
  */
 export function initAnalytics(): void {
-  if (!GA_MEASUREMENT_ID) {
-    console.warn('GA Measurement ID not configured - analytics disabled');
-    return;
-  }
-
-  // Prevent duplicate initialization
-  if (window.gtag) {
-    return;
-  }
-
-  // Initialize dataLayer
-  window.dataLayer = window.dataLayer || [];
-  
-  // Define gtag function
-  window.gtag = function gtag(...args: unknown[]) {
-    window.dataLayer.push(args);
-  };
-
-  // Initialize with timestamp
-  window.gtag('js', new Date());
-  
-  // Configure GA4 with enhanced settings
-  window.gtag('config', GA_MEASUREMENT_ID, {
-    send_page_view: false, // We'll handle page views manually for SPA
-    cookie_flags: 'SameSite=None;Secure',
-    anonymize_ip: true,
-  });
-
-  // Load the gtag.js script
-  const script = document.createElement('script');
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  document.head.appendChild(script);
-
-  if (import.meta.env.DEV) {
-    console.log('Google Analytics initialized:', GA_MEASUREMENT_ID);
+  // GA is loaded via index.html, just verify it's available
+  if (typeof window.gtag === 'function') {
+    if (import.meta.env.DEV) {
+      console.log('Google Analytics ready:', GA_MEASUREMENT_ID);
+    }
   }
 }
 
