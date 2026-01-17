@@ -103,7 +103,7 @@ export default function Privacy() {
               <li><strong>Right to Withdraw Consent</strong> - Withdraw consent at any time</li>
             </ul>
             <p className="text-muted-foreground leading-relaxed">
-              To exercise these rights, contact us at privacy@aiwmc.com
+              To exercise these rights, contact us at privacy@aiwmcquantis.com
             </p>
           </section>
 
@@ -156,7 +156,7 @@ export default function Privacy() {
               If you have any questions about this Privacy Policy, please contact us:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>Email: privacy@aiwmc.com</li>
+              <li>Email: privacy@aiwmcquantis.com</li>
               <li>Address: Denver, Colorado, USA</li>
             </ul>
           </section>
