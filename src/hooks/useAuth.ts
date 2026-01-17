@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
+import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry';
 
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
@@ -14,6 +15,16 @@ export function useAuth() {
         setSession(session);
         setUser(session?.user ?? null);
         setIsLoading(false);
+
+        // Update Sentry user context
+        if (session?.user) {
+          setSentryUser({
+            id: session.user.id,
+            email: session.user.email,
+          });
+        } else {
+          clearSentryUser();
+        }
       }
     );
 
@@ -22,6 +33,14 @@ export function useAuth() {
       setSession(session);
       setUser(session?.user ?? null);
       setIsLoading(false);
+
+      // Set initial Sentry user context
+      if (session?.user) {
+        setSentryUser({
+          id: session.user.id,
+          email: session.user.email,
+        });
+      }
     });
 
     return () => subscription.unsubscribe();
@@ -53,6 +72,7 @@ export function useAuth() {
   }, []);
 
   const signOut = useCallback(async () => {
+    clearSentryUser();
     const { error } = await supabase.auth.signOut();
     return { error };
   }, []);
