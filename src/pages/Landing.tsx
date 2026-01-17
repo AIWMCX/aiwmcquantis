@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { StructuredData } from '@/components/seo/StructuredData';
+import { FAQSection } from '@/components/landing/FAQSection';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -140,6 +142,9 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      {/* Structured Data for SEO */}
+      <StructuredData />
+      
       {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4">
@@ -149,8 +154,9 @@ export default function Landing() {
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Testimonials</a>
+              <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Why Us</a>
               <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+              <a href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
             </div>
             <div className="flex items-center gap-3">
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg hover:bg-accent transition-colors" aria-label="Toggle theme">
@@ -338,6 +344,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* FAQ Section */}
+      <FAQSection />
 
       {/* CTA Section */}
       <section className="py-20 md:py-32">
