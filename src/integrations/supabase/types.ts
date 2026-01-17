@@ -422,6 +422,16 @@ export type Database = {
       }
     }
     Functions: {
+      audit_rls_security: {
+        Args: never
+        Returns: {
+          has_anon_deny: boolean
+          policy_count: number
+          rls_enabled: boolean
+          rls_forced: boolean
+          table_name: string
+        }[]
+      }
       check_anonymous_rate_limit: {
         Args: {
           p_device_id: string
