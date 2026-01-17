@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Star, Users, Building2, ChevronRight, Moon, Sun, Loader2 } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 
@@ -76,25 +76,24 @@ export default function Landing() {
     description: 'Analysis tailored to your specific geographic market and demographics.'
   }];
 
-  const testimonials = [{
-    name: 'Alex Chen',
-    role: 'Startup Founder',
-    company: 'TechFlow',
-    content: 'This tool saved me weeks of research. The financial projections were surprisingly accurate.',
-    rating: 5
-  }, {
-    name: 'Maria Rodriguez',
-    role: 'Business Consultant',
-    company: 'Strategy Partners',
-    content: 'I use this for every new client. The market analysis is comprehensive and actionable.',
-    rating: 5
-  }, {
-    name: 'David Kim',
-    role: 'Angel Investor',
-    company: 'Venture Capital',
-    content: 'Perfect for quickly evaluating startup pitches. Helps identify viable opportunities.',
-    rating: 5
-  }];
+  // Beta feedback section instead of fake testimonials
+  const betaFeatures = [
+    {
+      icon: Sparkles,
+      title: 'AI-Powered Analysis',
+      description: 'Get comprehensive business insights powered by advanced AI in under 2 minutes.'
+    },
+    {
+      icon: Target,
+      title: 'Location Intelligence',
+      description: 'Analysis tailored to your specific geographic market, starting with Denver.'
+    },
+    {
+      icon: TrendingUp,
+      title: 'Financial Modeling',
+      description: 'Professional-grade projections including ROI, payback period, and cash flow.'
+    }
+  ];
 
   const pricingPlans = [{
     name: 'Free',
@@ -124,18 +123,19 @@ export default function Landing() {
     hasTrial: true
   }];
 
+  // Real stats - updated to reflect actual platform state
   const stats = [{
-    value: '10,000+',
-    label: 'Analyses Generated'
+    value: '1,000+',
+    label: 'Industry Benchmarks'
   }, {
-    value: '94%',
-    label: 'Accuracy Rate'
+    value: '12',
+    label: 'Financial Variables'
   }, {
-    value: '2 min',
-    label: 'Average Analysis Time'
+    value: '<2 min',
+    label: 'Analysis Time'
   }, {
-    value: '4.9/5',
-    label: 'User Rating'
+    value: '3',
+    label: 'Scenario Types'
   }];
 
   return (
@@ -239,37 +239,42 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* Social Proof / Testimonials */}
+      {/* Why Choose Us Section (replacing testimonials) */}
       <section id="testimonials" className="py-20 md:py-32">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-16">
+            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success text-sm font-medium mb-6">
+              🚀 Now in Beta
+            </div>
             <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Trusted by Entrepreneurs Worldwide
+              Why Business Owners Choose Us
             </h2>
             <p className="text-lg text-muted-foreground">
-              Join thousands of founders, consultants, and investors who use our platform.
+              Get professional-grade business analysis without the consultant fees.
+              Join our growing community of entrepreneurs.
             </p>
           </div>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {testimonials.map(testimonial => (
-              <div key={testimonial.name} className="p-8 rounded-2xl border border-border bg-card">
-                <div className="flex gap-1 mb-4">
-                  {Array.from({ length: testimonial.rating }).map((_, i) => (
-                    <Star key={i} className="w-5 h-5 text-warning fill-warning" />
-                  ))}
+            {betaFeatures.map(feature => (
+              <div key={feature.title} className="p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300">
+                <div className="p-4 rounded-xl bg-primary/10 w-fit mb-6">
+                  <feature.icon className="w-8 h-8 text-primary" />
                 </div>
-                <p className="text-foreground mb-6 leading-relaxed">"{testimonial.content}"</p>
-                <div className="flex items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center">
-                    <Users className="w-6 h-6 text-primary" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-foreground">{testimonial.name}</div>
-                    <div className="text-sm text-muted-foreground">{testimonial.role}, {testimonial.company}</div>
-                  </div>
-                </div>
+                <h3 className="text-xl font-semibold text-foreground mb-3">{feature.title}</h3>
+                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
+          </div>
+          <div className="text-center mt-12">
+            <p className="text-muted-foreground mb-4">
+              Be among the first to try our platform and help shape its future.
+            </p>
+            <Link to="/app">
+              <Button size="lg" variant="outline" className="gap-2">
+                Try Free Beta Access
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
           </div>
         </div>
       </section>
@@ -344,7 +349,7 @@ export default function Landing() {
                 Ready to Validate Your Business Idea?
               </h2>
               <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-8">
-                Join over 10,000 entrepreneurs who have already analyzed their ideas. 
+                Join our growing community of entrepreneurs using AI-powered analysis. 
                 Start for free, no credit card required.
               </p>
               <Link to="/app">
@@ -366,9 +371,9 @@ export default function Landing() {
               <span className="text-lg font-bold text-foreground">AIWMC Quantis™</span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-foreground transition-colors">Privacy Policy</a>
-              <a href="#" className="hover:text-foreground transition-colors">Terms of Service</a>
-              <a href="#" className="hover:text-foreground transition-colors">Contact</a>
+              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+              <a href="mailto:support@aiwmc.com" className="hover:text-foreground transition-colors">Contact</a>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
