@@ -1,4 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useRef, useState, useEffect } from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import {
   Document,
@@ -8,8 +8,31 @@ import {
   StyleSheet,
   pdf,
   Font,
+  Image,
 } from '@react-pdf/renderer';
 import React from 'react';
+import { supabase } from '@/integrations/supabase/client';
+
+// ============================================
+// BRANDING CONFIGURATION
+// ============================================
+
+export interface BrandingConfig {
+  companyName: string;
+  logoUrl?: string;
+  primaryColor: string;
+  accentColor: string;
+  footerText?: string;
+  headerText?: string;
+  hideQuantisBranding: boolean;
+}
+
+const defaultBranding: BrandingConfig = {
+  companyName: 'AIWMC Quantis™',
+  primaryColor: '#3b82f6',
+  accentColor: '#22c55e',
+  hideQuantisBranding: false,
+};
 
 // ============================================
 // FONT CONFIGURATION - Using Built-in Helvetica
@@ -20,19 +43,23 @@ import React from 'react';
 // Hyphenation callback to prevent text wrapping issues
 Font.registerHyphenationCallback(word => [word]);
 
-// Color palette matching the dark executive theme
-const colors = {
+// Create colors with branding support
+const createColors = (branding: BrandingConfig) => ({
   background: '#0f172a',
   cardBg: '#1e293b',
   border: '#334155',
-  primary: '#3b82f6',
+  primary: branding.primaryColor || '#3b82f6',
+  accent: branding.accentColor || '#22c55e',
   textPrimary: '#f1f5f9',
   textSecondary: '#94a3b8',
   textMuted: '#64748b',
   success: '#22c55e',
   warning: '#f59e0b',
   danger: '#ef4444',
-};
+});
+
+// Default colors for static styles
+const colors = createColors(defaultBranding);
 
 // Built-in font families (no external loading required)
 const fontFamily = 'Helvetica';
@@ -648,9 +675,12 @@ function prepareSafeResult(result: BusinessAnalysisResult): SafeResult {
 // CREATE EXECUTIVE REPORT
 // ============================================
 
-const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
+const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
+  
+  // Create branded colors
+  const brandedColors = createColors(branding);
   
   const financial = result.financial_analysis;
   const monthlyProfit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
@@ -659,11 +689,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
 
   const getVerdict = () => {
     if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths <= 18) {
-      return { text: 'VIABLE', color: colors.success };
+      return { text: 'VIABLE', color: brandedColors.success };
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
-      return { text: 'NEEDS REFINEMENT', color: colors.warning };
+      return { text: 'NEEDS REFINEMENT', color: brandedColors.warning };
     } else {
-      return { text: 'HIGH RISK', color: colors.danger };
+      return { text: 'HIGH RISK', color: brandedColors.danger };
     }
   };
 
@@ -684,6 +714,18 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
   const dataSources = result.data_sources || [];
   const limitations = result.limitations || [];
 
+  // Branding text values
+  const brandName = branding.companyName || 'AIWMC Quantis™';
+  const brandSubtitle = branding.headerText || 'AI Business Intelligence Platform';
+  const footerText = branding.footerText || `${brandName} - ${brandSubtitle}`;
+  const showQuantisBranding = !branding.hideQuantisBranding;
+  const displayBrandName = showQuantisBranding ? brandName : brandName.replace('AIWMC Quantis™', brandName);
+
+  // Dynamic branded styles
+  const brandedLogoText = { ...styles.logoText, color: brandedColors.primary };
+  const brandedHeaderLogo = { ...styles.pageHeaderLogo, color: brandedColors.primary };
+  const brandedIndustryBadgeText = { ...styles.industryBadgeText, color: brandedColors.primary };
+
   return React.createElement(
     Document,
     null,
@@ -694,8 +736,10 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.logoSection },
-        React.createElement(Text, { style: styles.logoText }, 'AIWMC Quantis™'),
-        React.createElement(Text, { style: styles.logoSubtext }, 'AI Business Intelligence Platform')
+        branding.logoUrl 
+          ? React.createElement(Image, { src: branding.logoUrl, style: { width: 180, height: 60, marginBottom: 10, objectFit: 'contain' } })
+          : React.createElement(Text, { style: brandedLogoText }, displayBrandName),
+        React.createElement(Text, { style: styles.logoSubtext }, brandSubtitle)
       ),
       React.createElement(
         View,
@@ -706,7 +750,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
         result.metadata.industry_detected && React.createElement(
           View,
           { style: styles.industryBadge },
-          React.createElement(Text, { style: styles.industryBadgeText }, result.metadata.industry_detected.toUpperCase())
+          React.createElement(Text, { style: brandedIndustryBadgeText }, result.metadata.industry_detected.toUpperCase())
         ),
         React.createElement(
           View,
@@ -729,7 +773,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
         View,
         { style: styles.coverFooter },
         React.createElement(Text, { style: styles.confidentialNotice }, 'CONFIDENTIAL - FOR INTERNAL USE ONLY'),
-        React.createElement(Text, { style: styles.copyright }, `AIWMC Quantis™ - AI Business Intelligence Platform | All Rights Reserved | ${currentYear}`)
+        React.createElement(Text, { style: styles.copyright }, `${footerText} | All Rights Reserved | ${currentYear}`)
       )
     ),
     // Executive Summary Page
@@ -744,9 +788,9 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Executive Summary')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Executive Summary')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
       React.createElement(
         View,
@@ -754,7 +798,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
         React.createElement(Text, { style: styles.verdictLabel }, 'Investment Verdict'),
         React.createElement(Text, { style: { ...styles.verdictText, color: verdict.color } }, verdict.text)
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Key Financial Indicators'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Key Financial Indicators'),
       React.createElement(
         View,
         { style: styles.metricsGrid },
@@ -783,18 +827,18 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           React.createElement(Text, { style: styles.metricCardValue }, `${paybackMonths} months`)
         )
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Business Overview'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Business Overview'),
       React.createElement(Text, { style: styles.paragraph }, result.business_plan.executive_summary),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Target Market'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Target Market'),
       React.createElement(
         View,
-        { style: styles.highlightBox },
+        { style: { ...styles.highlightBox, borderLeftColor: brandedColors.primary } },
         React.createElement(Text, { style: styles.highlightText }, result.business_plan.target_audience)
       ),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 2 of 8')
       )
@@ -811,17 +855,17 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Financial Analysis')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Financial Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Initial Investment Breakdown'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Initial Investment Breakdown'),
       React.createElement(
         View,
         { style: styles.table },
         React.createElement(
           View,
-          { style: styles.tableHeader },
+          { style: { ...styles.tableHeader, borderBottomColor: brandedColors.primary } },
           React.createElement(Text, { style: styles.tableHeaderCell }, 'Category'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Amount'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, '% of Total')
@@ -845,13 +889,13 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           React.createElement(Text, { style: { ...styles.tableCellBold, ...styles.textRight } }, '100%')
         )
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Monthly Operating Expenses'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Monthly Operating Expenses'),
       React.createElement(
         View,
         { style: styles.table },
         React.createElement(
           View,
-          { style: styles.tableHeader },
+          { style: { ...styles.tableHeader, borderBottomColor: brandedColors.primary } },
           React.createElement(Text, { style: styles.tableHeaderCell }, 'Expense Category'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Monthly Cost'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Annual Cost')
@@ -877,7 +921,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 3 of 8')
       )
@@ -894,24 +938,24 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Scenario Analysis')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Scenario Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
       financial.scenarios && React.createElement(
         View,
         null,
-        React.createElement(Text, { style: styles.sectionTitle }, 'Three-Scenario Financial Model'),
+        React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Three-Scenario Financial Model'),
         React.createElement(
           View,
           { style: styles.table },
           React.createElement(
             View,
-            { style: styles.tableHeader },
+            { style: { ...styles.tableHeader, borderBottomColor: brandedColors.primary } },
             React.createElement(Text, { style: styles.tableHeaderCell }, 'Metric'),
-            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.danger } }, 'Pessimistic'),
-            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.primary } }, 'Base Case'),
-            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: colors.success } }, 'Optimistic')
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: brandedColors.danger } }, 'Pessimistic'),
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: brandedColors.primary } }, 'Base Case'),
+            React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight, color: brandedColors.success } }, 'Optimistic')
           ),
           React.createElement(
             View,
@@ -957,13 +1001,13 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
       ),
       !financial.scenarios && React.createElement(
         View,
-        { style: styles.highlightBox },
+        { style: { ...styles.highlightBox, borderLeftColor: brandedColors.primary } },
         React.createElement(Text, { style: styles.highlightText }, 'Scenario analysis data not available for this analysis.')
       ),
       financial.unit_economics && React.createElement(
         View,
         null,
-        React.createElement(Text, { style: styles.sectionTitle }, 'Unit Economics'),
+        React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Unit Economics'),
         React.createElement(
           View,
           { style: styles.metricsGrid },
@@ -983,7 +1027,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
             View,
             { style: styles.metricCard },
             React.createElement(Text, { style: styles.metricCardLabel }, 'LTV:CAC Ratio'),
-            React.createElement(Text, { style: { ...styles.metricCardValue, color: financial.unit_economics.ltv_cac_ratio >= 3 ? colors.success : financial.unit_economics.ltv_cac_ratio >= 1 ? colors.warning : colors.danger } }, `${formatNumber(financial.unit_economics.ltv_cac_ratio)}x`)
+            React.createElement(Text, { style: { ...styles.metricCardValue, color: financial.unit_economics.ltv_cac_ratio >= 3 ? brandedColors.success : financial.unit_economics.ltv_cac_ratio >= 1 ? brandedColors.warning : brandedColors.danger } }, `${formatNumber(financial.unit_economics.ltv_cac_ratio)}x`)
           ),
           React.createElement(
             View,
@@ -996,7 +1040,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 4 of 8')
       )
@@ -1013,11 +1057,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Market Analysis')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Market Analysis')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Market Size Analysis'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Market Size Analysis'),
       React.createElement(
         View,
         { style: styles.marketSizeContainer },
@@ -1026,8 +1070,8 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.marketSizeItem },
           React.createElement(
             View,
-            { style: styles.marketSizeCircle },
-            React.createElement(Text, { style: styles.marketSizeLabel }, 'TAM'),
+            { style: { ...styles.marketSizeCircle, borderColor: brandedColors.primary } },
+            React.createElement(Text, { style: { ...styles.marketSizeLabel, color: brandedColors.primary } }, 'TAM'),
             React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.tam),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Total Addressable Market')
           )
@@ -1037,8 +1081,8 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.marketSizeItem },
           React.createElement(
             View,
-            { style: { ...styles.marketSizeCircle, borderColor: colors.primary } },
-            React.createElement(Text, { style: styles.marketSizeLabel }, 'SAM'),
+            { style: { ...styles.marketSizeCircle, borderColor: brandedColors.primary } },
+            React.createElement(Text, { style: { ...styles.marketSizeLabel, color: brandedColors.primary } }, 'SAM'),
             React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.sam),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Addressable')
           )
@@ -1048,14 +1092,14 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.marketSizeItem },
           React.createElement(
             View,
-            { style: { ...styles.marketSizeCircle, borderColor: colors.success } },
-            React.createElement(Text, { style: styles.marketSizeLabel }, 'SOM'),
+            { style: { ...styles.marketSizeCircle, borderColor: brandedColors.accent } },
+            React.createElement(Text, { style: { ...styles.marketSizeLabel, color: brandedColors.accent } }, 'SOM'),
             React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.som),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Obtainable')
           )
         )
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Key Market Trends'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Key Market Trends'),
       React.createElement(
         View,
         { style: { marginBottom: 20 } },
@@ -1066,7 +1110,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
                 { key: i, style: styles.listItem },
                 React.createElement(
                   View,
-                  { style: styles.listBullet },
+                  { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
                 React.createElement(Text, { style: styles.listText }, String(trend))
@@ -1074,18 +1118,18 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No trends data available')
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Competitive Landscape'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Competitive Landscape'),
       React.createElement(Text, { style: styles.paragraph }, result.market_analysis.competition.competitive_landscape),
       React.createElement(
         View,
-        { style: styles.highlightBoxSuccess },
-        React.createElement(Text, { style: styles.highlightLabelSuccess }, 'Growth Opportunities'),
+        { style: { ...styles.highlightBoxSuccess, borderLeftColor: brandedColors.accent } },
+        React.createElement(Text, { style: { ...styles.highlightLabelSuccess, color: brandedColors.accent } }, 'Growth Opportunities'),
         React.createElement(Text, { style: styles.highlightText }, result.market_analysis.growth_opportunities)
       ),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 5 of 8')
       )
@@ -1102,17 +1146,17 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Risk Assessment')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Risk Assessment')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Business Risk Matrix'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Business Risk Matrix'),
       React.createElement(
         View,
         { style: styles.table },
         React.createElement(
           View,
-          { style: styles.tableHeader },
+          { style: { ...styles.tableHeader, borderBottomColor: brandedColors.primary } },
           React.createElement(Text, { style: styles.tableHeaderCell }, 'Risk Factor'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textCenter } }, 'Probability'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textCenter } }, 'Impact'),
@@ -1140,12 +1184,12 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
               React.createElement(Text, { style: { ...styles.tableCell, flex: 4 } }, 'No risks identified')
             )
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Barriers to Entry'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Barriers to Entry'),
       React.createElement(Text, { style: styles.paragraph }, result.market_analysis.barriers_to_entry),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 6 of 8')
       )
@@ -1162,11 +1206,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Action Plan')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Action Plan')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Launch Timeline'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Launch Timeline'),
       launchSteps.length > 0
         ? launchSteps.map((step, index) => {
             if (typeof step === 'string') {
@@ -1175,12 +1219,12 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
                 { key: index, style: styles.timelineItem },
                 React.createElement(
                   View,
-                  { style: styles.timelineNumber },
+                  { style: { ...styles.timelineNumber, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.timelineNumberText }, String(index + 1))
                 ),
                 React.createElement(
                   View,
-                  { style: styles.timelineContent },
+                  { style: { ...styles.timelineContent, borderLeftColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.timelineTitle }, `Step ${index + 1}`),
                   React.createElement(Text, { style: styles.timelineDesc }, String(step))
                 )
@@ -1192,12 +1236,12 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
               { key: index, style: styles.timelineItem },
               React.createElement(
                 View,
-                { style: styles.timelineNumber },
+                { style: { ...styles.timelineNumber, backgroundColor: brandedColors.primary } },
                 React.createElement(Text, { style: styles.timelineNumberText }, String(stepObj?.step || index + 1))
               ),
               React.createElement(
                 View,
-                { style: styles.timelineContent },
+                { style: { ...styles.timelineContent, borderLeftColor: brandedColors.primary } },
                 React.createElement(Text, { style: styles.timelineTitle }, String(stepObj?.title || `Step ${index + 1}`)),
                 React.createElement(Text, { style: styles.timelineDesc }, String(stepObj?.description || '')),
                 (stepObj?.duration || stepObj?.cost) && React.createElement(
@@ -1210,12 +1254,12 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
             );
           })
         : React.createElement(Text, { style: styles.emptyText }, 'No launch steps defined'),
-      React.createElement(Text, { style: styles.sectionTitle }, 'First 90 Days Marketing Plan'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'First 90 Days Marketing Plan'),
       React.createElement(Text, { style: styles.paragraph }, result.marketing_plan.first_3_months_plan),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
         React.createElement(Text, null, 'Page 7 of 8')
       )
@@ -1232,11 +1276,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
           { style: styles.pageHeaderLeft },
           React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
           React.createElement(Text, { style: styles.separator }, ' | '),
-          React.createElement(Text, { style: styles.pageHeaderSection }, 'Appendix')
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Appendix')
         ),
-        React.createElement(Text, { style: styles.pageHeaderLogo }, 'Quantis™')
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Data Sources'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Data Sources'),
       React.createElement(
         View,
         { style: { marginBottom: 20 } },
@@ -1247,7 +1291,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
                 { key: i, style: styles.listItem },
                 React.createElement(
                   View,
-                  { style: styles.listBullet },
+                  { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
                 React.createElement(Text, { style: styles.listText }, String(source))
@@ -1255,7 +1299,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No data sources listed')
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Analysis Limitations'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Analysis Limitations'),
       React.createElement(
         View,
         { style: { marginBottom: 20 } },
@@ -1266,7 +1310,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
                 { key: i, style: styles.listItem },
                 React.createElement(
                   View,
-                  { style: styles.listBullet },
+                  { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
                 React.createElement(Text, { style: styles.listText }, String(limitation))
@@ -1274,21 +1318,21 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No limitations listed')
       ),
-      React.createElement(Text, { style: styles.sectionTitle }, 'Legal Disclaimer'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Legal Disclaimer'),
       React.createElement(
         View,
         { style: styles.disclaimer },
         React.createElement(
           Text,
           { style: styles.disclaimerText },
-          'This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. AIWMC Quantis™ and its affiliates assume no liability for decisions made based on this analysis.'
+          `This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. ${showQuantisBranding ? 'AIWMC Quantis™ and its affiliates assume' : brandName + ' assumes'} no liability for decisions made based on this analysis.`
         )
       ),
       React.createElement(
         View,
         { style: styles.pageFooter },
-        React.createElement(Text, null, `CONFIDENTIAL | AIWMC Quantis™ | ${currentDate}`),
-        React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} AIWMC Quantis™ - AI Business Intelligence Platform. All Rights Reserved.`),
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
+        React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} ${footerText}. All Rights Reserved.`),
         React.createElement(Text, null, 'Page 8 of 8')
       )
     )
@@ -1301,11 +1345,46 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
 
 const PDF_GENERATION_TIMEOUT = 45000; // 45 seconds timeout
 
+// Helper to fetch branding from database
+async function fetchBrandingSettings(): Promise<BrandingConfig | null> {
+  try {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+
+    const { data, error } = await supabase
+      .from('branding_settings')
+      .select('*')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (error || !data) return null;
+
+    return {
+      companyName: data.company_name || 'AIWMC Quantis™',
+      logoUrl: data.logo_url || undefined,
+      primaryColor: data.primary_color || '#3b82f6',
+      accentColor: data.accent_color || '#22c55e',
+      footerText: data.footer_text || undefined,
+      headerText: data.header_text || undefined,
+      hideQuantisBranding: data.hide_quantis_branding || false,
+    };
+  } catch (error) {
+    console.error('Failed to fetch branding settings:', error);
+    return null;
+  }
+}
+
 export function usePdfExport() {
   const [isGenerating, setIsGenerating] = useState(false);
+  const [branding, setBranding] = useState<BrandingConfig | null>(null);
   const reportRef = useRef<HTMLDivElement>(null);
 
-  const generatePdf = useCallback(async (result: BusinessAnalysisResult) => {
+  // Fetch branding on mount
+  useEffect(() => {
+    fetchBrandingSettings().then(setBranding);
+  }, []);
+
+  const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig) => {
     setIsGenerating(true);
     
     try {
@@ -1322,15 +1401,21 @@ export function usePdfExport() {
         throw new Error('VALIDATION_ERROR: Analysis result missing financial data');
       }
 
-      // Generate filename
+      // Use custom branding, or fetched branding, or default
+      const activeBranding = customBranding || branding || defaultBranding;
+
+      // Generate filename with branding
+      const brandPrefix = activeBranding.hideQuantisBranding && activeBranding.companyName
+        ? activeBranding.companyName.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 15)
+        : 'Quantis';
       const sanitizedIdea = (result.metadata?.idea || 'Business_Analysis')
         .replace(/[^a-zA-Z0-9]/g, '_')
         .substring(0, 30);
       const date = new Date().toISOString().split('T')[0];
-      const filename = `Quantis_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+      const filename = `${brandPrefix}_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
       // Generate PDF blob using @react-pdf/renderer with timeout
-      const doc = createExecutiveReport(result);
+      const doc = createExecutiveReport(result, activeBranding);
       
       const blobPromise = pdf(doc).toBlob();
       const timeoutPromise = new Promise<never>((_, reject) => 
@@ -1356,7 +1441,13 @@ export function usePdfExport() {
     } finally {
       setIsGenerating(false);
     }
+  }, [branding]);
+
+  // Refresh branding settings
+  const refreshBranding = useCallback(async () => {
+    const newBranding = await fetchBrandingSettings();
+    setBranding(newBranding);
   }, []);
 
-  return { generatePdf, isGenerating, reportRef };
+  return { generatePdf, isGenerating, reportRef, branding, refreshBranding };
 }
