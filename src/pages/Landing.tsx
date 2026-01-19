@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2 } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2, Calculator } from 'lucide-react';
+import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -154,7 +155,7 @@ export default function Landing() {
             </div>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#testimonials" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Why Us</a>
+              <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
               <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
               <a href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
             </div>
@@ -244,6 +245,9 @@ export default function Landing() {
           </div>
         </div>
       </section>
+
+      {/* How It Works Section */}
+      <HowItWorksSection />
 
       {/* Why Choose Us Section (replacing testimonials) */}
       <section id="testimonials" className="py-20 md:py-32">
