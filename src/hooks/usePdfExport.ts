@@ -11,16 +11,35 @@ import {
 } from '@react-pdf/renderer';
 import React from 'react';
 
-// Register Inter font for professional look
-Font.register({
-  family: 'Inter',
-  fonts: [
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 400 },
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2', fontWeight: 500 },
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa25L7.woff2', fontWeight: 600 },
-    { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1pL7.woff2', fontWeight: 700 },
-  ],
-});
+// ============================================
+// FONT REGISTRATION WITH FALLBACK
+// ============================================
+let fontsRegistered = false;
+
+const registerFonts = () => {
+  if (fontsRegistered) return;
+  
+  try {
+    Font.register({
+      family: 'Inter',
+      fonts: [
+        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 400 },
+        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2', fontWeight: 500 },
+        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa25L7.woff2', fontWeight: 600 },
+        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1pL7.woff2', fontWeight: 700 },
+      ],
+    });
+    fontsRegistered = true;
+  } catch (error) {
+    console.warn('Failed to register Inter font, falling back to Helvetica:', error);
+  }
+};
+
+// Register fonts on module load
+registerFonts();
+
+// Hyphenation callback to prevent text wrapping issues
+Font.registerHyphenationCallback(word => [word]);
 
 // Color palette matching the dark executive theme
 const colors = {
@@ -36,19 +55,22 @@ const colors = {
   danger: '#ef4444',
 };
 
+// Determine font family - fallback to Helvetica if Inter failed
+const fontFamily = fontsRegistered ? 'Inter' : 'Helvetica';
+
 // Styles for the PDF
 const styles = StyleSheet.create({
   page: {
     backgroundColor: colors.background,
     padding: 40,
-    fontFamily: 'Inter',
+    fontFamily,
     color: colors.textPrimary,
     fontSize: 10,
   },
   coverPage: {
     backgroundColor: colors.background,
     padding: 50,
-    fontFamily: 'Inter',
+    fontFamily,
     color: colors.textPrimary,
     display: 'flex',
     flexDirection: 'column',
@@ -467,21 +489,26 @@ const styles = StyleSheet.create({
   },
 });
 
-// Helper functions
-const formatCurrency = (value: number): string => {
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+
+const formatCurrency = (value: number | undefined | null): string => {
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
   return new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     minimumFractionDigits: 0,
     maximumFractionDigits: 0,
-  }).format(value);
+  }).format(safeValue);
 };
 
-const formatNumber = (value: number): string => {
+const formatNumber = (value: number | undefined | null): string => {
+  const safeValue = typeof value === 'number' && !isNaN(value) ? value : 0;
   return new Intl.NumberFormat('en-US', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 1,
-  }).format(value);
+  }).format(safeValue);
 };
 
 const formatKey = (key: string): string => {
@@ -499,14 +526,152 @@ const getProfitColor = (profit: number): string => {
 };
 
 const getProbColor = (p: string): string => {
-  const pLower = String(p).toLowerCase();
+  const pLower = String(p || '').toLowerCase();
   if (pLower.includes('high') || pLower.includes('высок')) return colors.danger;
   if (pLower.includes('med') || pLower.includes('средн')) return colors.warning;
   return colors.success;
 };
 
-// Create the document
-const createExecutiveReport = (result: BusinessAnalysisResult) => {
+// ============================================
+// DATA SANITIZATION - Defensive Data Preparation
+// ============================================
+
+interface SafeResult extends BusinessAnalysisResult {
+  _sanitized: true;
+}
+
+function prepareSafeResult(result: BusinessAnalysisResult): SafeResult {
+  const defaultBreakdown = {
+    rent_deposit: 0,
+    equipment: 0,
+    inventory: 0,
+    legal: 0,
+    marketing_initial: 0,
+    working_capital: 0,
+  };
+
+  const defaultExpenseBreakdown = {
+    rent: 0,
+    utilities: 0,
+    salaries: 0,
+    inventory_replenishment: 0,
+    marketing: 0,
+    other: 0,
+  };
+
+  const defaultScenarioMetrics = {
+    revenue: 0,
+    variable_costs: 0,
+    fixed_costs: 0,
+    gross_profit: 0,
+    net_profit: 0,
+    gross_margin: 0,
+    net_margin: 0,
+  };
+
+  return {
+    ...result,
+    _sanitized: true,
+    confidence_score: result.confidence_score ?? 0,
+    data_sources: Array.isArray(result.data_sources) ? result.data_sources : [],
+    limitations: Array.isArray(result.limitations) ? result.limitations : [],
+    financial_analysis: {
+      ...result.financial_analysis,
+      startup_investment: {
+        total: result.financial_analysis?.startup_investment?.total ?? 0,
+        breakdown: {
+          ...defaultBreakdown,
+          ...(result.financial_analysis?.startup_investment?.breakdown || {}),
+        },
+        reasoning: result.financial_analysis?.startup_investment?.reasoning || '',
+      },
+      monthly_expenses: {
+        total: result.financial_analysis?.monthly_expenses?.total ?? 0,
+        variable_costs: result.financial_analysis?.monthly_expenses?.variable_costs,
+        fixed_costs: result.financial_analysis?.monthly_expenses?.fixed_costs,
+        breakdown: {
+          ...defaultExpenseBreakdown,
+          ...(result.financial_analysis?.monthly_expenses?.breakdown || {}),
+        },
+      },
+      scenarios: result.financial_analysis?.scenarios ? {
+        pessimistic: { ...defaultScenarioMetrics, ...result.financial_analysis.scenarios.pessimistic },
+        base: { ...defaultScenarioMetrics, ...result.financial_analysis.scenarios.base },
+        optimistic: { ...defaultScenarioMetrics, ...result.financial_analysis.scenarios.optimistic },
+      } : undefined,
+      unit_economics: result.financial_analysis?.unit_economics ? {
+        contribution_margin: result.financial_analysis.unit_economics.contribution_margin ?? 0,
+        contribution_margin_ratio: result.financial_analysis.unit_economics.contribution_margin_ratio ?? 0,
+        cac: result.financial_analysis.unit_economics.cac ?? 0,
+        cac_payback_months: result.financial_analysis.unit_economics.cac_payback_months ?? 0,
+        ltv: result.financial_analysis.unit_economics.ltv ?? 0,
+        ltv_cac_ratio: result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0,
+      } : undefined,
+      mrr: result.financial_analysis?.mrr ?? 0,
+      returns: result.financial_analysis?.returns ? {
+        payback_period_months: result.financial_analysis.returns.payback_period_months ?? 0,
+        roi_year_1: result.financial_analysis.returns.roi_year_1 ?? 0,
+        roi_year_3: result.financial_analysis.returns.roi_year_3 ?? 0,
+        npv_3_years: result.financial_analysis.returns.npv_3_years ?? 0,
+      } : undefined,
+      monthly_profit: result.financial_analysis?.monthly_profit,
+      payback_period_months: result.financial_analysis?.payback_period_months,
+      monthly_revenue: result.financial_analysis?.monthly_revenue,
+    },
+    business_plan: {
+      executive_summary: result.business_plan?.executive_summary || 'No executive summary available',
+      product_description: result.business_plan?.product_description || 'Not specified',
+      target_audience: result.business_plan?.target_audience || 'Not specified',
+      competitive_advantages: result.business_plan?.competitive_advantages || 'Not identified',
+      operations: result.business_plan?.operations || 'Not defined',
+      risks: Array.isArray(result.business_plan?.risks) ? result.business_plan.risks : [],
+      launch_steps: Array.isArray(result.business_plan?.launch_steps) ? result.business_plan.launch_steps : [],
+    },
+    market_analysis: {
+      market_size: {
+        tam: result.market_analysis?.market_size?.tam || 'N/A',
+        sam: result.market_analysis?.market_size?.sam || 'N/A',
+        som: result.market_analysis?.market_size?.som || 'N/A',
+      },
+      trends: Array.isArray(result.market_analysis?.trends) ? result.market_analysis.trends : [],
+      competition: {
+        main_competitors: Array.isArray(result.market_analysis?.competition?.main_competitors) 
+          ? result.market_analysis.competition.main_competitors 
+          : [],
+        competitive_landscape: result.market_analysis?.competition?.competitive_landscape || 'Not analyzed',
+        market_gaps: result.market_analysis?.competition?.market_gaps || 'Not identified',
+      },
+      barriers_to_entry: result.market_analysis?.barriers_to_entry || 'Not analyzed',
+      growth_opportunities: result.market_analysis?.growth_opportunities || 'Not identified',
+    },
+    marketing_plan: {
+      positioning: result.marketing_plan?.positioning || 'Not defined',
+      pricing_strategy: result.marketing_plan?.pricing_strategy || 'Not defined',
+      channels: Array.isArray(result.marketing_plan?.channels) ? result.marketing_plan.channels : [],
+      cac: result.marketing_plan?.cac ?? 0,
+      ltv: result.marketing_plan?.ltv ?? 0,
+      first_3_months_plan: result.marketing_plan?.first_3_months_plan || 'Not specified',
+    },
+    metadata: {
+      idea: result.metadata?.idea || 'Business Analysis',
+      location: result.metadata?.location || 'Location not specified',
+      industry_detected: result.metadata?.industry_detected || undefined,
+      location_cost_multiplier: result.metadata?.location_cost_multiplier,
+      generated_at: result.metadata?.generated_at || new Date().toISOString(),
+      model: result.metadata?.model || 'AI Model',
+      version: result.metadata?.version || '1.0',
+    },
+  };
+}
+
+// ============================================
+// CREATE EXECUTIVE REPORT
+// ============================================
+
+const createExecutiveReport = (rawResult: BusinessAnalysisResult) => {
+  // Sanitize data to ensure all fields have safe defaults
+  const result = prepareSafeResult(rawResult);
+  
   const financial = result.financial_analysis;
   const monthlyProfit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
   const paybackMonths = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
@@ -531,8 +696,8 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
   const currentDate = new Date().toLocaleDateString('en-US');
   const currentYear = new Date().getFullYear();
 
-  const investmentBreakdown = Object.entries(financial.startup_investment.breakdown);
-  const expenseBreakdown = Object.entries(financial.monthly_expenses.breakdown);
+  const investmentBreakdown = Object.entries(financial.startup_investment.breakdown || {});
+  const expenseBreakdown = Object.entries(financial.monthly_expenses.breakdown || {});
   const trends = result.market_analysis?.trends || [];
   const risks = result.business_plan.risks || [];
   const launchSteps = result.business_plan.launch_steps || [];
@@ -639,12 +804,12 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
         )
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Business Overview'),
-      React.createElement(Text, { style: styles.paragraph }, result.business_plan?.executive_summary || 'No executive summary available'),
+      React.createElement(Text, { style: styles.paragraph }, result.business_plan.executive_summary),
       React.createElement(Text, { style: styles.sectionTitle }, 'Target Market'),
       React.createElement(
         View,
         { style: styles.highlightBox },
-        React.createElement(Text, { style: styles.highlightText }, result.business_plan?.target_audience || 'No target audience defined')
+        React.createElement(Text, { style: styles.highlightText }, result.business_plan.target_audience)
       ),
       React.createElement(
         View,
@@ -681,15 +846,17 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Amount'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, '% of Total')
         ),
-        ...investmentBreakdown.map(([key, value]) =>
-          React.createElement(
+        ...investmentBreakdown.map(([key, value]) => {
+          const numValue = typeof value === 'number' ? value : 0;
+          const total = financial.startup_investment.total || 1;
+          return React.createElement(
             View,
             { key, style: styles.tableRow },
             React.createElement(Text, { style: styles.tableCell }, formatKey(key)),
-            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(value as number)),
-            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(((value as number) / financial.startup_investment.total) * 100)}%`)
-          )
-        ),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(numValue)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber((numValue / total) * 100)}%`)
+          );
+        }),
         React.createElement(
           View,
           { style: styles.tableRowTotal },
@@ -709,15 +876,16 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Monthly Cost'),
           React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Annual Cost')
         ),
-        ...expenseBreakdown.map(([key, value]) =>
-          React.createElement(
+        ...expenseBreakdown.map(([key, value]) => {
+          const numValue = typeof value === 'number' ? value : 0;
+          return React.createElement(
             View,
             { key, style: styles.tableRow },
             React.createElement(Text, { style: styles.tableCell }, formatKey(key)),
-            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(value as number)),
-            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency((value as number) * 12))
-          )
-        ),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(numValue)),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, formatCurrency(numValue * 12))
+          );
+        }),
         React.createElement(
           View,
           { style: styles.tableRowTotal },
@@ -807,6 +975,11 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           )
         )
       ),
+      !financial.scenarios && React.createElement(
+        View,
+        { style: styles.highlightBox },
+        React.createElement(Text, { style: styles.highlightText }, 'Scenario analysis data not available for this analysis.')
+      ),
       financial.unit_economics && React.createElement(
         View,
         null,
@@ -875,7 +1048,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
             View,
             { style: styles.marketSizeCircle },
             React.createElement(Text, { style: styles.marketSizeLabel }, 'TAM'),
-            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.tam || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.tam),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Total Addressable Market')
           )
         ),
@@ -886,7 +1059,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
             View,
             { style: { ...styles.marketSizeCircle, borderColor: colors.primary } },
             React.createElement(Text, { style: styles.marketSizeLabel }, 'SAM'),
-            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.sam || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.sam),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Addressable')
           )
         ),
@@ -897,7 +1070,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
             View,
             { style: { ...styles.marketSizeCircle, borderColor: colors.success } },
             React.createElement(Text, { style: styles.marketSizeLabel }, 'SOM'),
-            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis?.market_size?.som || 'N/A'),
+            React.createElement(Text, { style: styles.marketSizeValue }, result.market_analysis.market_size.som),
             React.createElement(Text, { style: styles.marketSizeDesc }, 'Serviceable Obtainable')
           )
         )
@@ -916,18 +1089,18 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
                   { style: styles.listBullet },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
-                React.createElement(Text, { style: styles.listText }, trend)
+                React.createElement(Text, { style: styles.listText }, String(trend))
               )
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No trends data available')
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Competitive Landscape'),
-      React.createElement(Text, { style: styles.paragraph }, result.market_analysis?.competition?.competitive_landscape || 'No competitive analysis available'),
+      React.createElement(Text, { style: styles.paragraph }, result.market_analysis.competition.competitive_landscape),
       React.createElement(
         View,
         { style: styles.highlightBoxSuccess },
         React.createElement(Text, { style: styles.highlightLabelSuccess }, 'Growth Opportunities'),
-        React.createElement(Text, { style: styles.highlightText }, result.market_analysis?.growth_opportunities || 'No growth opportunities identified')
+        React.createElement(Text, { style: styles.highlightText }, result.market_analysis.growth_opportunities)
       ),
       React.createElement(
         View,
@@ -975,10 +1148,10 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
               return React.createElement(
                 View,
                 { key: index, style: styles.tableRow },
-                React.createElement(Text, { style: styles.tableCell }, riskName),
+                React.createElement(Text, { style: styles.tableCell }, String(riskName)),
                 React.createElement(Text, { style: { ...styles.tableCell, ...styles.textCenter, color: getProbColor(probability) } }, String(probability).toUpperCase()),
                 React.createElement(Text, { style: { ...styles.tableCell, ...styles.textCenter, color: getProbColor(impact) } }, String(impact).toUpperCase()),
-                React.createElement(Text, { style: styles.tableCell }, mitigation)
+                React.createElement(Text, { style: styles.tableCell }, String(mitigation))
               );
             })
           : React.createElement(
@@ -988,7 +1161,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
             )
       ),
       React.createElement(Text, { style: styles.sectionTitle }, 'Barriers to Entry'),
-      React.createElement(Text, { style: styles.paragraph }, result.market_analysis?.barriers_to_entry || 'No barriers to entry analysis available'),
+      React.createElement(Text, { style: styles.paragraph }, result.market_analysis.barriers_to_entry),
       React.createElement(
         View,
         { style: styles.pageFooter },
@@ -1029,7 +1202,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
                   View,
                   { style: styles.timelineContent },
                   React.createElement(Text, { style: styles.timelineTitle }, `Step ${index + 1}`),
-                  React.createElement(Text, { style: styles.timelineDesc }, step)
+                  React.createElement(Text, { style: styles.timelineDesc }, String(step))
                 )
               );
             }
@@ -1045,8 +1218,8 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
               React.createElement(
                 View,
                 { style: styles.timelineContent },
-                React.createElement(Text, { style: styles.timelineTitle }, stepObj?.title || `Step ${index + 1}`),
-                React.createElement(Text, { style: styles.timelineDesc }, stepObj?.description || ''),
+                React.createElement(Text, { style: styles.timelineTitle }, String(stepObj?.title || `Step ${index + 1}`)),
+                React.createElement(Text, { style: styles.timelineDesc }, String(stepObj?.description || '')),
                 (stepObj?.duration || stepObj?.cost) && React.createElement(
                   View,
                   { style: styles.timelineMeta },
@@ -1058,7 +1231,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
           })
         : React.createElement(Text, { style: styles.emptyText }, 'No launch steps defined'),
       React.createElement(Text, { style: styles.sectionTitle }, 'First 90 Days Marketing Plan'),
-      React.createElement(Text, { style: styles.paragraph }, result.marketing_plan?.first_3_months_plan || 'No marketing plan available'),
+      React.createElement(Text, { style: styles.paragraph }, result.marketing_plan.first_3_months_plan),
       React.createElement(
         View,
         { style: styles.pageFooter },
@@ -1097,7 +1270,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
                   { style: styles.listBullet },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
-                React.createElement(Text, { style: styles.listText }, source)
+                React.createElement(Text, { style: styles.listText }, String(source))
               )
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No data sources listed')
@@ -1116,7 +1289,7 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
                   { style: styles.listBullet },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
-                React.createElement(Text, { style: styles.listText }, limitation)
+                React.createElement(Text, { style: styles.listText }, String(limitation))
               )
             )
           : React.createElement(Text, { style: styles.emptyText }, 'No limitations listed')
@@ -1142,6 +1315,12 @@ const createExecutiveReport = (result: BusinessAnalysisResult) => {
   );
 };
 
+// ============================================
+// PDF EXPORT HOOK
+// ============================================
+
+const PDF_GENERATION_TIMEOUT = 45000; // 45 seconds timeout
+
 export function usePdfExport() {
   const [isGenerating, setIsGenerating] = useState(false);
   const reportRef = useRef<HTMLDivElement>(null);
@@ -1151,8 +1330,16 @@ export function usePdfExport() {
     
     try {
       // Validate result object has minimum required data
-      if (!result || !result.metadata) {
-        throw new Error('Invalid analysis result: missing metadata');
+      if (!result) {
+        throw new Error('VALIDATION_ERROR: No analysis result provided');
+      }
+      
+      if (!result.metadata) {
+        throw new Error('VALIDATION_ERROR: Analysis result missing metadata');
+      }
+
+      if (!result.financial_analysis) {
+        throw new Error('VALIDATION_ERROR: Analysis result missing financial data');
       }
 
       // Generate filename
@@ -1162,9 +1349,15 @@ export function usePdfExport() {
       const date = new Date().toISOString().split('T')[0];
       const filename = `Quantis_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
-      // Generate PDF blob using @react-pdf/renderer
+      // Generate PDF blob using @react-pdf/renderer with timeout
       const doc = createExecutiveReport(result);
-      const blob = await pdf(doc).toBlob();
+      
+      const blobPromise = pdf(doc).toBlob();
+      const timeoutPromise = new Promise<never>((_, reject) => 
+        setTimeout(() => reject(new Error('PDF_TIMEOUT: Generation took too long')), PDF_GENERATION_TIMEOUT)
+      );
+      
+      const blob = await Promise.race([blobPromise, timeoutPromise]);
       
       // Create download link and trigger download
       const url = URL.createObjectURL(blob);
@@ -1177,7 +1370,8 @@ export function usePdfExport() {
       URL.revokeObjectURL(url);
       
     } catch (error) {
-      console.error('PDF generation failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('PDF generation failed:', errorMessage, error);
       throw error;
     } finally {
       setIsGenerating(false);
