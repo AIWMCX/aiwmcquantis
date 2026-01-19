@@ -93,6 +93,7 @@ serve(async (req) => {
     const origin = req.headers.get("origin") || "https://aiwmcquantis.com";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
+      client_reference_id: user.id, // PRIMARY: Used for user identification
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [

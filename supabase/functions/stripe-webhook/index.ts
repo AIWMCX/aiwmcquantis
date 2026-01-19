@@ -85,6 +85,37 @@ serve(async (req) => {
     console.log(`[${requestId}] Event type: ${event.type}`);
     console.log(`[${requestId}] Event ID: ${event.id}`);
 
+    // Helper function to find user by email
+    async function findUserByEmail(email: string): Promise<string | null> {
+      console.log(`[${requestId}] Looking up user by email: ${email}`);
+      const { data: { users }, error } = await supabase.auth.admin.listUsers();
+      if (error) {
+        console.error(`[${requestId}] Error listing users:`, error.message);
+        return null;
+      }
+      const matchedUser = users?.find(u => u.email === email);
+      if (matchedUser) {
+        console.log(`[${requestId}] Found user by email: ${matchedUser.id}`);
+        return matchedUser.id;
+      }
+      console.log(`[${requestId}] No user found for email: ${email}`);
+      return null;
+    }
+
+    // Helper function to get customer email from Stripe
+    async function getCustomerEmail(customerId: string): Promise<string | null> {
+      try {
+        const customer = await stripe.customers.retrieve(customerId);
+        if (customer && !customer.deleted && customer.email) {
+          console.log(`[${requestId}] Customer email from Stripe: ${customer.email}`);
+          return customer.email;
+        }
+      } catch (err) {
+        console.error(`[${requestId}] Error fetching customer:`, err.message);
+      }
+      return null;
+    }
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
@@ -93,17 +124,33 @@ serve(async (req) => {
         console.log(`[${requestId}] Client Reference ID: ${session.client_reference_id}`);
         console.log(`[${requestId}] Session metadata: ${JSON.stringify(session.metadata)}`);
         console.log(`[${requestId}] Customer: ${session.customer}`);
+        console.log(`[${requestId}] Customer Email: ${session.customer_email}`);
         console.log(`[${requestId}] Subscription: ${session.subscription}`);
 
-        // Payment Links use client_reference_id, API checkout uses metadata
-        const userId = session.client_reference_id || session.metadata?.supabase_user_id;
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
+
+        // Try multiple methods to resolve user ID
+        let userId = session.client_reference_id || session.metadata?.supabase_user_id;
+
+        // Fallback 1: Look up user by session customer_email
+        if (!userId && session.customer_email) {
+          userId = await findUserByEmail(session.customer_email);
+        }
+
+        // Fallback 2: Look up customer in Stripe and get email
+        if (!userId && customerId) {
+          const customerEmail = await getCustomerEmail(customerId);
+          if (customerEmail) {
+            userId = await findUserByEmail(customerEmail);
+          }
+        }
 
         if (!userId) {
           console.error(`[${requestId}] NO USER ID FOUND - cannot create subscription`);
           console.error(`[${requestId}] client_reference_id: ${session.client_reference_id}`);
           console.error(`[${requestId}] metadata: ${JSON.stringify(session.metadata)}`);
+          console.error(`[${requestId}] customer_email: ${session.customer_email}`);
           break;
         }
 
@@ -181,6 +228,7 @@ serve(async (req) => {
         console.log(`[${requestId}] === Subscription Updated ===`);
         console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
         console.log(`[${requestId}] Status: ${subscription.status}`);
+        console.log(`[${requestId}] Customer: ${subscription.customer}`);
 
         const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
         const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
@@ -202,20 +250,60 @@ serve(async (req) => {
 
         console.log(`[${requestId}] Updating - Plan: ${plan}, Status: ${status}`);
 
-        const { error: updateError } = await supabase
+        // First, try to update by subscription ID
+        const { data: existingBySubId, error: selectError } = await supabase
           .from("subscriptions")
-          .update({
-            plan_id: plan,
-            status: status,
-            current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-            current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-          })
-          .eq("stripe_subscription_id", subscription.id);
+          .select("id, user_id")
+          .eq("stripe_subscription_id", subscription.id)
+          .maybeSingle();
 
-        if (updateError) {
-          console.error(`[${requestId}] Update error:`, updateError);
+        if (existingBySubId) {
+          // Found by subscription ID - update it
+          const { error: updateError } = await supabase
+            .from("subscriptions")
+            .update({
+              plan_id: plan,
+              status: status,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+
+          if (updateError) {
+            console.error(`[${requestId}] Update error:`, updateError);
+          } else {
+            console.log(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
+          }
         } else {
-          console.log(`[${requestId}] SUCCESS: Subscription updated`);
+          // Fallback: Find user by customer email and upsert
+          console.log(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
+          const customerEmail = await getCustomerEmail(subscription.customer as string);
+          if (customerEmail) {
+            const userId = await findUserByEmail(customerEmail);
+            if (userId) {
+              const { error: upsertError } = await supabase
+                .from("subscriptions")
+                .upsert({
+                  user_id: userId,
+                  stripe_customer_id: subscription.customer as string,
+                  stripe_subscription_id: subscription.id,
+                  plan_id: plan,
+                  status: status,
+                  current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                  current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                }, { onConflict: "user_id" });
+
+              if (upsertError) {
+                console.error(`[${requestId}] Upsert fallback error:`, upsertError);
+              } else {
+                console.log(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
+              }
+            } else {
+              console.error(`[${requestId}] Could not find user for email ${customerEmail}`);
+            }
+          } else {
+            console.error(`[${requestId}] Could not get customer email for fallback`);
+          }
         }
         break;
       }
@@ -237,6 +325,71 @@ serve(async (req) => {
           console.error(`[${requestId}] Delete error:`, deleteError);
         } else {
           console.log(`[${requestId}] SUCCESS: Subscription canceled`);
+        }
+        break;
+      }
+
+      case "invoice.paid": {
+        const invoice = event.data.object as Stripe.Invoice;
+        console.log(`[${requestId}] === Invoice Paid ===`);
+        console.log(`[${requestId}] Invoice ID: ${invoice.id}`);
+        console.log(`[${requestId}] Subscription: ${invoice.subscription}`);
+        console.log(`[${requestId}] Customer: ${invoice.customer}`);
+
+        if (invoice.subscription && invoice.customer) {
+          // Fetch full subscription to sync data
+          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          
+          const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
+          const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
+          const priceId = subscription.items.data[0]?.price.id;
+          
+          let plan = "plus";
+          if (priceId === proPriceId) {
+            plan = "pro";
+          }
+
+          // Update subscription period dates
+          const { error: updateError } = await supabase
+            .from("subscriptions")
+            .update({
+              plan_id: plan,
+              status: subscription.status === "active" ? "active" : subscription.status,
+              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+            })
+            .eq("stripe_subscription_id", subscription.id);
+
+          if (updateError) {
+            console.error(`[${requestId}] Invoice update error:`, updateError);
+            
+            // Fallback: try to find by customer email
+            const customerEmail = await getCustomerEmail(invoice.customer as string);
+            if (customerEmail) {
+              const userId = await findUserByEmail(customerEmail);
+              if (userId) {
+                const { error: upsertError } = await supabase
+                  .from("subscriptions")
+                  .upsert({
+                    user_id: userId,
+                    stripe_customer_id: invoice.customer as string,
+                    stripe_subscription_id: subscription.id,
+                    plan_id: plan,
+                    status: subscription.status === "active" ? "active" : subscription.status,
+                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                  }, { onConflict: "user_id" });
+
+                if (upsertError) {
+                  console.error(`[${requestId}] Invoice upsert fallback error:`, upsertError);
+                } else {
+                  console.log(`[${requestId}] SUCCESS: Subscription synced via invoice.paid fallback`);
+                }
+              }
+            }
+          } else {
+            console.log(`[${requestId}] SUCCESS: Subscription updated from invoice.paid`);
+          }
         }
         break;
       }
