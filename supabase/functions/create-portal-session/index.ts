@@ -54,8 +54,33 @@ serve(async (req) => {
       throw new Error("Error fetching subscription");
     }
 
-    if (!subscription?.stripe_customer_id) {
-      throw new Error("No subscription found. Please subscribe first.");
+    let customerId = subscription?.stripe_customer_id;
+
+    // If no customer ID in DB, try to find by email in Stripe
+    if (!customerId) {
+      console.log(`No customer ID in DB, searching Stripe by email: ${user.email}`);
+      const customers = await stripe.customers.list({
+        email: user.email!,
+        limit: 1,
+      });
+      
+      if (customers.data.length > 0) {
+        customerId = customers.data[0].id;
+        console.log(`Found Stripe customer: ${customerId}`);
+        
+        // Update the subscription record with the found customer ID
+        if (subscription) {
+          await supabase
+            .from("subscriptions")
+            .update({ stripe_customer_id: customerId })
+            .eq("user_id", user.id);
+          console.log(`Updated subscription with Stripe customer ID`);
+        }
+      }
+    }
+
+    if (!customerId) {
+      throw new Error("No Stripe customer found. Please subscribe first.");
     }
 
     // Create portal session
