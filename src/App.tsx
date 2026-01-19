@@ -14,6 +14,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
+const ProSettings = lazy(() => import("./pages/ProSettings"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               <Route path="/admin/benchmarks" element={<AdminBenchmarkUpload />} />
+              <Route path="/pro" element={<ProSettings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>
