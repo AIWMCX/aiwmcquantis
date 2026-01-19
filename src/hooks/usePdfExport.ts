@@ -12,31 +12,10 @@ import {
 import React from 'react';
 
 // ============================================
-// FONT REGISTRATION WITH FALLBACK
+// FONT CONFIGURATION - Using Built-in Helvetica
 // ============================================
-let fontsRegistered = false;
-
-const registerFonts = () => {
-  if (fontsRegistered) return;
-  
-  try {
-    Font.register({
-      family: 'Inter',
-      fonts: [
-        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1ZL7.woff2', fontWeight: 400 },
-        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa2JL7.woff2', fontWeight: 500 },
-        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa25L7.woff2', fontWeight: 600 },
-        { src: 'https://fonts.gstatic.com/s/inter/v13/UcC73FwrK3iLTeHuS_fvQtMwCp50KnMa1pL7.woff2', fontWeight: 700 },
-      ],
-    });
-    fontsRegistered = true;
-  } catch (error) {
-    console.warn('Failed to register Inter font, falling back to Helvetica:', error);
-  }
-};
-
-// Register fonts on module load
-registerFonts();
+// Note: @react-pdf/renderer only supports .ttf fonts, not .woff2
+// Using built-in Helvetica for maximum reliability
 
 // Hyphenation callback to prevent text wrapping issues
 Font.registerHyphenationCallback(word => [word]);
@@ -55,8 +34,9 @@ const colors = {
   danger: '#ef4444',
 };
 
-// Determine font family - fallback to Helvetica if Inter failed
-const fontFamily = fontsRegistered ? 'Inter' : 'Helvetica';
+// Built-in font families (no external loading required)
+const fontFamily = 'Helvetica';
+const fontFamilyBold = 'Helvetica-Bold';
 
 // Styles for the PDF
 const styles = StyleSheet.create({
@@ -83,7 +63,7 @@ const styles = StyleSheet.create({
   },
   logoText: {
     fontSize: 42,
-    fontWeight: 800,
+    fontFamily: 'Helvetica-Bold',
     letterSpacing: 6,
     color: colors.primary,
     marginBottom: 6,
@@ -108,7 +88,7 @@ const styles = StyleSheet.create({
   },
   coverTitle: {
     fontSize: 28,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     marginBottom: 12,
     textAlign: 'center',
@@ -158,7 +138,7 @@ const styles = StyleSheet.create({
   },
   coverMetricValue: {
     fontSize: 20,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
   },
   coverFooter: {
@@ -193,17 +173,17 @@ const styles = StyleSheet.create({
   },
   pageHeaderTitle: {
     fontSize: 10,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textSecondary,
   },
   pageHeaderSection: {
     fontSize: 10,
     color: colors.primary,
-    fontWeight: 500,
+    fontFamily: 'Helvetica-Bold',
   },
   pageHeaderLogo: {
     fontSize: 12,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     letterSpacing: 2,
     color: colors.primary,
   },
@@ -223,7 +203,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 14,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     marginTop: 20,
     marginBottom: 12,
@@ -248,7 +228,7 @@ const styles = StyleSheet.create({
   },
   verdictText: {
     fontSize: 26,
-    fontWeight: 800,
+    fontFamily: 'Helvetica-Bold',
     letterSpacing: 3,
   },
   metricsGrid: {
@@ -275,7 +255,7 @@ const styles = StyleSheet.create({
   },
   metricCardValue: {
     fontSize: 18,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
   },
   paragraph: {
@@ -309,7 +289,7 @@ const styles = StyleSheet.create({
   tableHeaderCell: {
     padding: 10,
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     flex: 1,
   },
@@ -332,7 +312,7 @@ const styles = StyleSheet.create({
     padding: 8,
     fontSize: 9,
     color: colors.textPrimary,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     flex: 1,
   },
   textRight: {
@@ -357,7 +337,7 @@ const styles = StyleSheet.create({
   },
   listBulletText: {
     fontSize: 9,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
   },
   listText: {
@@ -385,7 +365,7 @@ const styles = StyleSheet.create({
   },
   timelineNumberText: {
     fontSize: 12,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
   },
   timelineContent: {
@@ -398,7 +378,7 @@ const styles = StyleSheet.create({
   },
   timelineTitle: {
     fontSize: 12,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     marginBottom: 6,
   },
@@ -447,14 +427,14 @@ const styles = StyleSheet.create({
   },
   marketSizeLabel: {
     fontSize: 12,
-    fontWeight: 700,
+    fontFamily: 'Helvetica-Bold',
     color: colors.primary,
     marginBottom: 4,
   },
   marketSizeValue: {
     fontSize: 9,
     color: colors.textPrimary,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
     textAlign: 'center',
   },
   marketSizeDesc: {
@@ -480,7 +460,7 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 1,
-    fontWeight: 600,
+    fontFamily: 'Helvetica-Bold',
   },
   emptyText: {
     fontSize: 10,
