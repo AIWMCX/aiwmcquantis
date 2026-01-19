@@ -713,6 +713,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      increment_api_key_usage: {
+        Args: { p_key_id: string }
+        Returns: undefined
+      }
       increment_usage: {
         Args: { p_month_year: string; p_user_id: string }
         Returns: undefined

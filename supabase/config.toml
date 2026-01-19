@@ -14,3 +14,9 @@ verify_jwt = true
 
 [functions.parse-document]
 verify_jwt = true
+
+[functions.api-analyze]
+verify_jwt = false
+
+[functions.manage-benchmarks]
+verify_jwt = false
