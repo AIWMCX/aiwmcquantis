@@ -55,13 +55,41 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
   }, [result.documents_used, result.document_analysis_summary]);
 
   const handleExportPDF = async () => {
+    const toastId = 'pdf-generation';
+    
     try {
-      toast.info('Generating Executive Report...', { duration: 2000 });
+      toast.loading('Generating your Executive Report...', { 
+        id: toastId,
+        description: 'This may take up to 30 seconds for the 8-page report.',
+      });
+      
       await generatePdf(result);
-      toast.success('Executive Report downloaded successfully');
+      
+      toast.success('Executive Report downloaded!', { 
+        id: toastId,
+        description: 'Your professional 8-page PDF report is ready.',
+      });
     } catch (error) {
       console.error('PDF export failed:', error);
-      toast.error('Failed to generate PDF. Please try again.');
+      
+      const errorMessage = error instanceof Error ? error.message : '';
+      
+      if (errorMessage.includes('TIMEOUT')) {
+        toast.error('PDF generation timed out', { 
+          id: toastId,
+          description: 'Please try again. If the problem persists, try with a simpler analysis.',
+        });
+      } else if (errorMessage.includes('VALIDATION')) {
+        toast.error('Analysis data incomplete', { 
+          id: toastId,
+          description: 'Please run a new analysis to generate a complete report.',
+        });
+      } else {
+        toast.error('Failed to generate PDF', { 
+          id: toastId,
+          description: 'Please try again or contact support if the issue persists.',
+        });
+      }
     }
   };
 
