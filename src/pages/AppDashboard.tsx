@@ -17,10 +17,12 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard, RefreshCw, AlertCircle } from 'lucide-react';
+import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const navigate = useNavigate();
   const { toast } = useToast();
   
   const [darkMode, setDarkMode] = useState(() => {
@@ -242,10 +244,18 @@ export default function Index() {
                       Upgrade
                     </Button>
                   ) : (
-                    <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
-                      <CreditCard className="w-3 h-3" />
-                      Manage Subscription
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      {isPro && (
+                        <Button size="sm" variant="outline" onClick={() => navigate('/pro')} className="gap-1">
+                          <Settings className="w-3 h-3" />
+                          Pro Settings
+                        </Button>
+                      )}
+                      <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
+                        <CreditCard className="w-3 h-3" />
+                        Billing
+                      </Button>
+                    </div>
                   )}
                 </div>
               </div>
