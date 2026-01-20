@@ -1,11 +1,12 @@
 /**
- * QUANTIS ACTIONABLE INSIGHTS ENGINE
+ * QUANTIS TRUST FIX - ACTIONABLE INSIGHTS ENGINE
  * 
- * Generates prioritized, actionable recommendations based on computed metrics.
- * All insights reference deterministic calculations - no invented numbers.
+ * Generates prioritized, actionable recommendations based on COMPUTED metrics.
+ * All insights reference DETERMINISTIC calculations - no invented numbers.
+ * This ensures recommendations are grounded in validated financial data.
  */
 
-import type { ComputedMetrics, ValidationIssue } from './schemas.ts';
+import type { ComputedMetrics } from './schemas.ts';
 import type { IndustryBenchmarks } from './financial-engine.ts';
 
 // ========== INSIGHT TYPES ==========

@@ -1,9 +1,14 @@
 /**
- * QUANTIS LLM NARRATOR PROMPT
+ * QUANTIS TRUST FIX - LLM NARRATOR PROMPT
  * 
- * CRITICAL: The LLM is a NARRATOR only. It CANNOT compute numbers.
- * All financial data is provided by the deterministic engine.
+ * CRITICAL PRINCIPLE: The LLM is a NARRATOR only. It CANNOT compute numbers.
+ * All financial data comes from the deterministic engine.
  * The LLM's job is to EXPLAIN and CONTEXTUALIZE the computed results.
+ * 
+ * This separation is what makes the system "unbreakable":
+ * - Even if the LLM is jailbroken, it cannot change computed results
+ * - Numbers in the PDF come only from the engine
+ * - LLM can only influence wording
  */
 
 import type { ComputedMetrics, NarratorOutput } from './schemas.ts';
@@ -15,39 +20,39 @@ export const narratorToolSchema = {
   type: "function",
   function: {
     name: "submit_narrative_analysis",
-    description: "Submit qualitative business analysis narrative. You do NOT compute numbers - all financial data is provided. Your role is to explain, contextualize, and provide strategic recommendations based on the pre-computed financial metrics.",
+    description: "Submit qualitative business analysis narrative. You do NOT compute numbers - all financial data is pre-calculated by the deterministic engine. Your role is to EXPLAIN, CONTEXTUALIZE, and provide strategic RECOMMENDATIONS based on the provided metrics. NEVER invent or calculate financial figures.",
     parameters: {
       type: "object",
       properties: {
         executive_summary: {
           type: "string",
-          description: "2-3 paragraph executive summary explaining the business opportunity and key findings. Reference the provided metrics (e.g., 'With projected monthly profit of $X...')"
+          description: "2-3 paragraph executive summary explaining the business opportunity. MUST reference the exact metrics provided (e.g., 'With projected monthly profit of $X...'). Do NOT invent numbers."
         },
         investment_verdict: {
           type: "string",
           enum: ["HIGH_RISK", "MEDIUM_RISK", "LOW_RISK", "PROMISING"],
-          description: "Overall investment recommendation based on provided metrics"
+          description: "Overall investment recommendation based on PROVIDED metrics only"
         },
         key_takeaways: {
           type: "array",
           items: { type: "string" },
-          description: "3-5 key strategic takeaways"
+          description: "3-5 key strategic takeaways referencing specific metrics"
         },
         business_plan_json: {
           type: "string",
-          description: "JSON with: product_description, target_audience, competitive_advantages, operations, launch_steps array, risks array"
+          description: "JSON: product_description, target_audience, competitive_advantages, operations, launch_steps array (step, title, description, duration, cost_reference), risks array (risk, probability, impact, mitigation)"
         },
         marketing_plan_json: {
           type: "string",
-          description: "JSON with: positioning, pricing_strategy, channels array, first_3_months_plan"
+          description: "JSON: positioning, pricing_strategy, channels array (channel, description, budget_percent, expected_roi), first_3_months_plan"
         },
         market_analysis_json: {
           type: "string",
-          description: "JSON with: tam, sam, som, trends array, competitors array, competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities"
+          description: "JSON: tam, sam, som, trends array, competitors array (name, strengths, weaknesses), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities"
         },
         action_plan_json: {
           type: "string",
-          description: "JSON array of action steps with: step, timeline, priority, metric_reference"
+          description: "JSON array: step, timeline, priority (critical/high/medium/low), metric_reference"
         }
       },
       required: [
@@ -70,63 +75,84 @@ export function buildNarratorSystemPrompt(
   benchmarks: IndustryBenchmarks,
   hasDocuments: boolean
 ): string {
-  return `You are a Senior Strategic Consultant at a top-tier management consulting firm (McKinsey, BCG, Bain) with 25+ years of experience.
+  const profitStatus = metrics.isProfitable 
+    ? `✅ PROFITABLE (+$${metrics.netProfit.toLocaleString()}/mo)`
+    : `❌ LOSS (-$${Math.abs(metrics.netProfit).toLocaleString()}/mo)`;
+    
+  const ltvCacStatus = metrics.ltvCacRatio >= 3 
+    ? '✅ HEALTHY' 
+    : '⚠️ NEEDS IMPROVEMENT';
 
-## YOUR ROLE: NARRATOR & STRATEGIST
-You are a NARRATOR. You do NOT compute financial numbers. All financial metrics have been pre-calculated by our deterministic financial engine. Your job is to:
-1. EXPLAIN the business opportunity in strategic terms
-2. CONTEXTUALIZE the financial metrics for the client
-3. PROVIDE actionable recommendations based on the data
-4. IDENTIFY risks and opportunities
+  return `You are a Senior Strategic Consultant at McKinsey & Company with 25+ years of experience advising Fortune 500 companies and high-growth startups.
 
-## CRITICAL RULES
+## YOUR ROLE: NARRATOR & STRATEGIST (NOT CALCULATOR)
+
+🚫 CRITICAL RULE: You are a NARRATOR. You do NOT compute financial numbers.
+✅ All financial metrics below have been PRE-CALCULATED by a deterministic engine.
+✅ Your job is to EXPLAIN, CONTEXTUALIZE, and provide STRATEGIC RECOMMENDATIONS.
+
+## ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE)
 ⛔ NEVER invent or calculate financial numbers
-⛔ NEVER contradict the provided metrics
-⛔ NEVER include numbers in your text that aren't in the provided data
-✅ Reference metrics by name (e.g., "the projected monthly profit of $${metrics.netProfit.toLocaleString()}")
-✅ Use the exact numbers provided below
-✅ Focus on qualitative analysis, strategy, and actionable recommendations
+⛔ NEVER contradict the provided metrics  
+⛔ NEVER include dollar amounts not listed below
+⛔ NEVER say "I estimate" or "approximately" for financials
+✅ Reference metrics by EXACT value: "the projected $${metrics.netProfit.toLocaleString()} monthly profit"
+✅ Focus on QUALITATIVE analysis and STRATEGY
+✅ Explain WHY the numbers matter
 
-## PRE-COMPUTED FINANCIAL METRICS (USE THESE EXACT VALUES)
-### Revenue & Profitability
-- Monthly Revenue (MRR): $${metrics.mrr.toLocaleString()}
-- Annual Revenue (ARR): $${metrics.arr.toLocaleString()}
-- Monthly Net Profit: $${metrics.netProfit.toLocaleString()} ${metrics.isProfitable ? '(PROFITABLE)' : '(LOSS)'}
-- Net Margin: ${metrics.netMarginPercent}%
-- Gross Profit: $${metrics.grossProfit.toLocaleString()}
-- Gross Margin: ${metrics.grossMarginPercent}%
+## PRE-COMPUTED FINANCIAL METRICS (SOURCE OF TRUTH)
 
-### Expenses (Total: $${metrics.totalExpenses.toLocaleString()}/month)
-- COGS: $${metrics.expenses.cogs.toLocaleString()}
-- Salaries: $${metrics.expenses.salaries.toLocaleString()}
-- Rent: $${metrics.expenses.rent.toLocaleString()}
-- Utilities: $${metrics.expenses.utilities.toLocaleString()}
-- Marketing: $${metrics.expenses.marketing.toLocaleString()}
-- Other: $${metrics.expenses.other.toLocaleString()}
+### Revenue & Profitability ${profitStatus}
+| Metric | Value |
+|--------|-------|
+| Monthly Revenue (MRR) | $${metrics.mrr.toLocaleString()} |
+| Annual Revenue (ARR) | $${metrics.arr.toLocaleString()} |
+| Monthly Net Profit | $${metrics.netProfit.toLocaleString()} |
+| Net Margin | ${metrics.netMarginPercent}% |
+| Gross Profit | $${metrics.grossProfit.toLocaleString()} |
+| Gross Margin | ${metrics.grossMarginPercent}% |
 
-### Unit Economics
-- Customer Acquisition Cost (CAC): $${metrics.cac}
-- Lifetime Value (LTV): $${metrics.ltv.toLocaleString()}
-- LTV:CAC Ratio: ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? '(HEALTHY)' : '(NEEDS IMPROVEMENT)'}
-- CAC Payback: ${metrics.cacPaybackMonths} months
+### Monthly Expenses (Total: $${metrics.totalExpenses.toLocaleString()})
+| Category | Amount |
+|----------|--------|
+| COGS | $${metrics.expenses.cogs.toLocaleString()} |
+| Salaries | $${metrics.expenses.salaries.toLocaleString()} |
+| Rent | $${metrics.expenses.rent.toLocaleString()} |
+| Utilities | $${metrics.expenses.utilities.toLocaleString()} |
+| Marketing | $${metrics.expenses.marketing.toLocaleString()} |
+| Other | $${metrics.expenses.other.toLocaleString()} |
+
+### Unit Economics ${ltvCacStatus}
+| Metric | Value |
+|--------|-------|
+| CAC | $${metrics.cac} |
+| LTV | $${metrics.ltv.toLocaleString()} |
+| LTV:CAC Ratio | ${metrics.ltvCacRatio}x |
+| CAC Payback | ${metrics.cacPaybackMonths} months |
 
 ### Investment Returns
-- Initial Investment: $${metrics.startupInvestment.toLocaleString()}
-- Payback Period: ${metrics.paybackMonths === 999 ? 'Never (unprofitable)' : metrics.paybackMonths + ' months'}
-- Year 1 ROI: ${metrics.roiYear1Percent}%
-- Year 3 ROI: ${metrics.roiYear3Percent}%
-- 3-Year NPV: $${metrics.npv3Years.toLocaleString()}
+| Metric | Value |
+|--------|-------|
+| Initial Investment | $${metrics.startupInvestment.toLocaleString()} |
+| Payback Period | ${metrics.paybackMonths === 999 ? 'N/A (unprofitable)' : metrics.paybackMonths + ' months'} |
+| Year 1 ROI | ${metrics.roiYear1Percent}% |
+| Year 3 ROI | ${metrics.roiYear3Percent}% |
+| 3-Year NPV | $${metrics.npv3Years.toLocaleString()} |
 
 ### Break-Even Analysis
-- Break-Even Revenue: $${metrics.breakEvenRevenue.toLocaleString()}/month
-- Break-Even Units: ${metrics.breakEvenUnits} transactions
-- Revenue for $45k Profit: $${metrics.revenueFor45kProfit.toLocaleString()}/month
+| Metric | Value |
+|--------|-------|
+| Break-Even Revenue | $${metrics.breakEvenRevenue.toLocaleString()}/mo |
+| Break-Even Units | ${metrics.breakEvenUnits} transactions |
+| Revenue for $45k Profit | $${metrics.revenueFor45kProfit.toLocaleString()}/mo |
 
 ### Customer Metrics
-- Active Clients: ${metrics.clientsActive}
-- Average Transaction: $${metrics.averageCheck}
-- New Clients Needed Monthly: ${metrics.newClientsNeeded}
-- Monthly Transactions: ${metrics.ordersMonthly}
+| Metric | Value |
+|--------|-------|
+| Active Clients | ${metrics.clientsActive} |
+| Average Transaction | $${metrics.averageCheck} |
+| New Clients Needed/Month | ${metrics.newClientsNeeded} |
+| Monthly Transactions | ${metrics.ordersMonthly} |
 
 ### Scenario Analysis
 | Scenario | Revenue | Net Profit | Net Margin |
@@ -136,29 +162,34 @@ You are a NARRATOR. You do NOT compute financial numbers. All financial metrics 
 | Optimistic | $${metrics.scenarios.optimistic.revenue.toLocaleString()} | $${metrics.scenarios.optimistic.netProfit.toLocaleString()} | ${metrics.scenarios.optimistic.netMargin}% |
 
 ## INDUSTRY CONTEXT: ${benchmarks.name}
-- Typical Net Margin Range: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%
-- Typical LTV:CAC Range: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x
+- Typical Net Margin: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%
+- Typical LTV:CAC: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x
 - Industry CAC Range: $${benchmarks.cac_min}-$${benchmarks.cac_max}
 - Customer Lifetime: ${benchmarks.client_lifetime_months} months
 
 ${hasDocuments ? `
-## DOCUMENT ANALYSIS
-The user has uploaded business documents. Reference specific findings from these documents in your analysis.
+## DOCUMENT DATA
+User uploaded business documents. Reference specific findings from documents in your analysis.
+Document data has already been extracted and incorporated into the metrics above.
 ` : ''}
 
 ## OUTPUT REQUIREMENTS
-1. Executive Summary: 2-3 paragraphs explaining the opportunity, using the exact metrics provided
-2. Investment Verdict: Based on the metrics (HIGH_RISK if unprofitable or ROI<10%, MEDIUM_RISK if payback>24mo, LOW_RISK if healthy metrics, PROMISING if exceptional)
-3. Key Takeaways: 3-5 strategic insights referencing specific metrics
-4. Business Plan: Qualitative sections (product, audience, advantages, operations, launch steps, risks)
-5. Marketing Plan: Strategy, channels, first 3 months plan
-6. Market Analysis: TAM/SAM/SOM estimates, trends, competition, barriers, opportunities
-7. Action Plan: Prioritized steps with timelines
+1. **Executive Summary**: 2-3 paragraphs using EXACT metrics from above
+2. **Investment Verdict**: Based on provided metrics:
+   - HIGH_RISK: Unprofitable OR ROI < 10% OR LTV:CAC < 2
+   - MEDIUM_RISK: Payback > 24mo OR margin below industry
+   - LOW_RISK: All metrics within healthy ranges
+   - PROMISING: Profitable with strong unit economics
+3. **Key Takeaways**: 3-5 strategic insights referencing specific metrics
+4. **Business Plan**: Product, audience, advantages, operations, launch steps (reference cost from computed metrics), risks
+5. **Marketing Plan**: Strategy and channels with budget as % of marketing spend
+6. **Market Analysis**: TAM/SAM/SOM, trends, competition
+7. **Action Plan**: Prioritized steps with timelines
 
-Remember: You explain and strategize. The engine computes. Never invent numbers.`;
+Remember: You EXPLAIN and STRATEGIZE. The engine COMPUTES. Never invent numbers.`;
 }
 
-// ========== BUILD FULL PROMPT ==========
+// ========== BUILD USER PROMPT ==========
 
 export function buildNarratorPrompt(
   businessIdea: string,
@@ -177,20 +208,23 @@ ${location}
 ## DETECTED INDUSTRY
 ${benchmarks.name}
 
-${userFinancialContext}
+${userFinancialContext ? `## USER-PROVIDED FINANCIAL CONTEXT
+${userFinancialContext}` : ''}
 
-${documentContext}
+${documentContext ? `## DOCUMENT INSIGHTS
+${documentContext}` : ''}
 
 ## YOUR TASK
-Provide a comprehensive strategic analysis using ONLY the pre-computed financial metrics provided in the system prompt. Do not calculate or invent any financial numbers. Focus on:
+Provide a comprehensive strategic analysis using ONLY the pre-computed financial metrics from the system prompt. 
 
-1. **Strategic Assessment**: What makes this business viable or risky?
-2. **Competitive Positioning**: How should this business differentiate?
-3. **Go-to-Market Strategy**: What's the optimal path to market?
-4. **Risk Mitigation**: What are the key risks and how to address them?
-5. **Action Plan**: What specific steps should the founder take?
+Focus on:
+1. **Strategic Assessment**: What makes this business viable or risky given the computed metrics?
+2. **Competitive Positioning**: How should this business differentiate in ${location}?
+3. **Go-to-Market Strategy**: What's the optimal path to market given $${metrics.startupInvestment.toLocaleString()} investment?
+4. **Risk Mitigation**: Key risks based on the ${metrics.isProfitable ? 'profitable' : 'currently unprofitable'} model
+5. **Action Plan**: Specific steps to ${metrics.isProfitable ? 'grow' : 'reach profitability'}
 
-Use the exact financial metrics from the system prompt when referencing numbers.`;
+Use the EXACT financial metrics from the system prompt. Do not calculate or estimate new figures.`;
 }
 
 // ========== PARSE NARRATOR RESPONSE ==========
@@ -201,21 +235,19 @@ export function parseNarratorResponse(rawResponse: unknown): NarratorOutput | nu
   const r = rawResponse as Record<string, unknown>;
   
   try {
-    const businessPlan = typeof r.business_plan_json === 'string' 
-      ? JSON.parse(r.business_plan_json) 
-      : r.business_plan_json || {};
-      
-    const marketingPlan = typeof r.marketing_plan_json === 'string' 
-      ? JSON.parse(r.marketing_plan_json) 
-      : r.marketing_plan_json || {};
-      
-    const marketAnalysis = typeof r.market_analysis_json === 'string' 
-      ? JSON.parse(r.market_analysis_json) 
-      : r.market_analysis_json || {};
-      
-    const actionPlan = typeof r.action_plan_json === 'string' 
-      ? JSON.parse(r.action_plan_json) 
-      : r.action_plan_json || [];
+    const parseJson = (field: string, defaultVal: unknown) => {
+      const val = r[field];
+      if (!val) return defaultVal;
+      if (typeof val === 'string') {
+        try { return JSON.parse(val); } catch { return defaultVal; }
+      }
+      return val;
+    };
+    
+    const businessPlan = parseJson('business_plan_json', {});
+    const marketingPlan = parseJson('marketing_plan_json', {});
+    const marketAnalysis = parseJson('market_analysis_json', {});
+    const actionPlan = parseJson('action_plan_json', []);
     
     return {
       executive_summary: String(r.executive_summary || ''),
@@ -256,4 +288,87 @@ export function parseNarratorResponse(rawResponse: unknown): NarratorOutput | nu
     console.error('Failed to parse narrator response:', e);
     return null;
   }
+}
+
+// ========== FALLBACK NARRATOR (NO LLM NEEDED) ==========
+
+export function generateFallbackNarrator(
+  metrics: ComputedMetrics,
+  benchmarks: IndustryBenchmarks,
+  businessIdea: string,
+  location: string
+): NarratorOutput {
+  const profitStatus = metrics.isProfitable 
+    ? `profitable with $${metrics.netProfit.toLocaleString()}/month net income`
+    : `currently showing a loss of $${Math.abs(metrics.netProfit).toLocaleString()}/month`;
+    
+  const verdict = !metrics.isProfitable ? 'HIGH_RISK' 
+    : metrics.ltvCacRatio < 2 ? 'HIGH_RISK'
+    : metrics.paybackMonths > 36 ? 'MEDIUM_RISK'
+    : metrics.ltvCacRatio >= 3 && metrics.paybackMonths <= 18 ? 'PROMISING'
+    : 'LOW_RISK';
+
+  return {
+    executive_summary: `This analysis evaluates a ${benchmarks.name} business opportunity in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}. The LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'indicates healthy unit economics' : 'suggests customer acquisition costs need optimization'}. With an initial investment of $${metrics.startupInvestment.toLocaleString()}, the projected payback period is ${metrics.paybackMonths === 999 ? 'indeterminate until profitability is achieved' : `${metrics.paybackMonths} months`}. All financial projections are computed using industry benchmarks for ${benchmarks.name} adjusted for the ${location} market.`,
+    
+    investment_verdict: verdict as NarratorOutput['investment_verdict'],
+    
+    key_takeaways: [
+      `Monthly revenue potential of $${metrics.mrr.toLocaleString()} with ${metrics.netMarginPercent}% net margin`,
+      `LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'supports scalable growth' : 'requires optimization before scaling'}`,
+      `Break-even requires $${metrics.breakEvenRevenue.toLocaleString()}/month in revenue`,
+      metrics.isProfitable 
+        ? `Year 1 ROI of ${metrics.roiYear1Percent}% makes this an attractive investment`
+        : `Focus on reaching profitability before scaling operations`,
+    ],
+    
+    business_plan: {
+      product_description: `A ${benchmarks.name} business serving the ${location} market.`,
+      target_audience: `Customers in ${location} seeking ${benchmarks.name.toLowerCase()} solutions.`,
+      competitive_advantages: `Focus on operational efficiency and customer retention to maintain margins.`,
+      operations: `Standard ${benchmarks.name} operations with focus on ${metrics.isProfitable ? 'scaling' : 'cost optimization'}.`,
+      launch_steps: [
+        { step: 1, title: 'Market Validation', description: 'Validate demand in target market', duration: '1-2 weeks', cost_reference: '10% of marketing budget' },
+        { step: 2, title: 'MVP Launch', description: 'Launch minimum viable product', duration: '4-8 weeks', cost_reference: '60% of initial investment' },
+        { step: 3, title: 'Customer Acquisition', description: 'Begin systematic customer acquisition', duration: 'Ongoing', cost_reference: `$${metrics.cac} per customer` },
+      ],
+      risks: [
+        { risk: 'Market competition', probability: 'medium' as const, impact: 'medium' as const, mitigation: 'Focus on differentiation and customer service' },
+        { risk: 'Customer churn', probability: 'medium' as const, impact: 'high' as const, mitigation: 'Implement retention programs early' },
+      ],
+    },
+    
+    marketing_plan: {
+      positioning: `Value-focused ${benchmarks.name} solution for ${location} market.`,
+      pricing_strategy: `Average transaction of $${metrics.averageCheck} aligned with market expectations.`,
+      channels: [
+        { channel: 'Digital Marketing', description: 'Paid and organic digital channels', budget_percent: 60, expected_roi: `${metrics.ltvCacRatio}x LTV:CAC` },
+        { channel: 'Referral Program', description: 'Customer referral incentives', budget_percent: 20, expected_roi: 'Lower CAC through word-of-mouth' },
+        { channel: 'Content Marketing', description: 'Educational content for organic reach', budget_percent: 20, expected_roi: 'Long-term brand building' },
+      ],
+      first_3_months_plan: `Focus on acquiring first ${metrics.clientsActive} customers while optimizing CAC from current $${metrics.cac}.`,
+    },
+    
+    market_analysis: {
+      tam: `Total addressable market for ${benchmarks.name} in the region.`,
+      sam: `Serviceable market in ${location} and surrounding areas.`,
+      som: `Initial target of ${metrics.clientsActive} active customers.`,
+      trends: ['Digital transformation', 'Increasing customer expectations', 'Cost optimization focus'],
+      competitors: [],
+      competitive_landscape: `Competitive ${benchmarks.name} market requiring differentiation.`,
+      market_gaps: 'Opportunity for superior customer experience and operational efficiency.',
+      barriers_to_entry: 'Initial investment and customer acquisition costs.',
+      growth_opportunities: metrics.isProfitable 
+        ? 'Scale operations while maintaining unit economics.'
+        : 'Reach profitability, then scale systematically.',
+    },
+    
+    action_plan: [
+      { step: 'Validate market demand with 10-20 pilot customers', timeline: 'Week 1-4', priority: 'critical' as const },
+      { step: metrics.isProfitable ? 'Optimize CAC to improve LTV:CAC' : 'Reduce costs to reach profitability', timeline: 'Week 1-8', priority: 'critical' as const },
+      { step: 'Build customer acquisition system', timeline: 'Week 4-12', priority: 'high' as const },
+      { step: 'Implement retention programs', timeline: 'Week 8-16', priority: 'high' as const },
+      { step: 'Scale operations', timeline: 'Month 4-6', priority: 'medium' as const },
+    ],
+  };
 }
