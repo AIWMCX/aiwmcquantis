@@ -212,7 +212,13 @@ export function useTeam(): UseTeamReturn {
         .select()
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Check for RLS policy violation (Pro subscription required)
+        if (insertError.message?.includes('row-level security') || insertError.code === '42501') {
+          throw new Error('Team collaboration requires a Pro subscription. Please upgrade to create teams.');
+        }
+        throw insertError;
+      }
 
       await fetchTeamData();
 

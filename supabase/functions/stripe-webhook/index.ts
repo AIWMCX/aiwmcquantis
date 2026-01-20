@@ -85,6 +85,23 @@ serve(async (req) => {
     console.log(`[${requestId}] Event type: ${event.type}`);
     console.log(`[${requestId}] Event ID: ${event.id}`);
 
+    // Log webhook event for reliability tracking
+    try {
+      await supabase
+        .from("stripe_webhook_events")
+        .insert({
+          event_id: event.id,
+          event_type: event.type,
+          customer_id: (event.data.object as any)?.customer || null,
+          status: "processing",
+          payload: event.data.object as any,
+        });
+    } catch (logErr) {
+      console.warn(`[${requestId}] Failed to log webhook event:`, logErr);
+      // Continue processing even if logging fails
+    }
+    console.log(`[${requestId}] Event ID: ${event.id}`);
+
     // Helper function to find user by email
     async function findUserByEmail(email: string): Promise<string | null> {
       console.log(`[${requestId}] Looking up user by email: ${email}`);
@@ -399,6 +416,19 @@ serve(async (req) => {
     }
 
     console.log(`[${requestId}] === Webhook processing complete ===`);
+
+    // Update webhook event status to processed
+    try {
+      await supabase
+        .from("stripe_webhook_events")
+        .update({
+          status: "processed",
+          processed_at: new Date().toISOString(),
+        })
+        .eq("event_id", event.id);
+    } catch (updateErr) {
+      console.warn(`[${requestId}] Failed to update webhook event status:`, updateErr);
+    }
     
     return new Response(
       JSON.stringify({ received: true, event_type: event.type, request_id: requestId }),

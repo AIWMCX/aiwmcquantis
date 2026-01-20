@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -53,6 +54,70 @@ serve(async (req) => {
   }
 
   try {
+    // ========== SUBSCRIPTION VERIFICATION ==========
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Authentication required for document parsing",
+          code: "AUTH_REQUIRED"
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    
+    // Verify user authentication
+    const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } },
+    });
+
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
+    if (authError || !user) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid authentication",
+          code: "INVALID_AUTH"
+        }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    // Verify Plus or Pro subscription using service role
+    const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
+    const { data: subscription, error: subError } = await supabaseService
+      .from("subscriptions")
+      .select("plan_id, status, current_period_end")
+      .eq("user_id", user.id)
+      .maybeSingle();
+
+    if (subError) {
+      console.error("Subscription check error:", subError);
+    }
+
+    const isValidSubscription = subscription && 
+      (subscription.status === "active" || subscription.status === "trialing") &&
+      (subscription.plan_id === "plus" || subscription.plan_id === "pro") &&
+      (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
+
+    if (!isValidSubscription) {
+      console.log(`Document upload blocked for user ${user.id}: plan=${subscription?.plan_id}, status=${subscription?.status}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Document Intelligence requires Plus or Pro subscription",
+          code: "SUBSCRIPTION_REQUIRED",
+          current_plan: subscription?.plan_id || "free"
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`Document upload authorized for user ${user.id}: plan=${subscription.plan_id}`);
+    // ========== END SUBSCRIPTION VERIFICATION ==========
+
     const { fileUrl, fileName, fileType } = await req.json() as ParseRequest;
 
     if (!fileUrl) {

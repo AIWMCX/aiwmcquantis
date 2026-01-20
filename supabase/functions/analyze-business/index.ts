@@ -1931,7 +1931,7 @@ serve(async (req) => {
         || req.headers.get('x-real-ip')
         || 'unknown-ip';
       
-      console.log(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}...`);
+      console.log(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
       
       // Create hashes for storage (privacy-preserving)
       const encoder = new TextEncoder();
@@ -1940,22 +1940,37 @@ serve(async (req) => {
       const ipHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(clientIp + 'quantis-salt'));
       const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
       
+      // Hash the fingerprint if provided
+      let fingerprintHash: string | null = null;
+      if (fingerprint && fingerprint.length > 10) {
+        const fpHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(fingerprint + 'quantis-fp-salt'));
+        fingerprintHash = Array.from(new Uint8Array(fpHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+      }
+      
       // Use the request body to check for duplicate submissions (after parsing)
       // We'll do the duplicate check after parsing the body below
       
       try {
         // First, do a pre-check without idea/location (we'll check duplicates after parsing body)
-        // For now, check device and IP limits
+        // Check device, IP, and fingerprint limits
+        const rateLimitParams: Record<string, any> = {
+          p_device_id: deviceId,
+          p_ip_hash: ipHash,
+          p_idea_hash: 'pre-check', // Placeholder - will be checked properly after body parse
+          p_location_hash: 'pre-check',
+          p_window_minutes: ANONYMOUS_LIMITS.windowMinutes,
+          p_device_limit: ANONYMOUS_LIMITS.deviceLimit,
+          p_ip_limit: ANONYMOUS_LIMITS.ipLimit,
+        };
+        
+        // Add fingerprint check if available (provides additional abuse protection)
+        if (fingerprintHash) {
+          rateLimitParams.p_fingerprint_hash = fingerprintHash;
+          rateLimitParams.p_fingerprint_limit = 2; // Max 2 analyses per fingerprint per hour
+        }
+        
         const { data: rateLimitResult, error: rateLimitError } = await supabaseService
-          .rpc('check_anonymous_rate_limit', {
-            p_device_id: deviceId,
-            p_ip_hash: ipHash,
-            p_idea_hash: 'pre-check', // Placeholder - will be checked properly after body parse
-            p_location_hash: 'pre-check',
-            p_window_minutes: ANONYMOUS_LIMITS.windowMinutes,
-            p_device_limit: ANONYMOUS_LIMITS.deviceLimit,
-            p_ip_limit: ANONYMOUS_LIMITS.ipLimit,
-          });
+          .rpc('check_anonymous_rate_limit', rateLimitParams);
         
         if (rateLimitError) {
           console.error('Anonymous rate limit check failed:', rateLimitError);
@@ -2853,14 +2868,23 @@ Call submit_analysis with all sections in English.`;
         const locationHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(location_clean.toLowerCase()));
         const locationHash = Array.from(new Uint8Array(locationHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
         
-        // Record the anonymous usage
+        // Hash fingerprint if provided
+        const fingerprint = req.headers.get('X-Fingerprint') || '';
+        let fingerprintHash: string | null = null;
+        if (fingerprint && fingerprint.length > 10) {
+          const fpHashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(fingerprint + 'quantis-fp-salt'));
+          fingerprintHash = Array.from(new Uint8Array(fpHashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('').substring(0, 32);
+        }
+        
+        // Record the anonymous usage with fingerprint
         await supabaseService.rpc('record_anonymous_usage', {
           p_device_id: deviceId,
           p_ip_hash: ipHash,
           p_idea_hash: ideaHash,
           p_location_hash: locationHash,
+          p_fingerprint_hash: fingerprintHash,
         });
-        console.log(`Anonymous usage recorded for device ${deviceId.substring(0, 8)}...`);
+        console.log(`Anonymous usage recorded for device ${deviceId.substring(0, 8)}...${fingerprintHash ? ', fingerprint tracked' : ''}`);
       } catch (e) {
         console.error('Failed to record anonymous usage:', e);
       }
