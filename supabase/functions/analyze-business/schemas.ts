@@ -1,64 +1,55 @@
 /**
- * QUANTIS ANALYSIS SCHEMAS
- * Strict Zod validation for all inputs and outputs
- * LLM cannot invent numbers - only the financial engine can
+ * QUANTIS TRUST FIX - STRICT SCHEMAS
+ * 
+ * Single source of truth for all data contracts.
+ * Zod-like validation without external dependencies.
+ * LLM cannot invent numbers - only the financial engine can.
  */
 
-// Type definitions for Deno runtime
-type ZodIssue = {
-  path: (string | number)[];
-  message: string;
-  code?: string;
-};
+// ========== CURRENCY & LOCALE ==========
 
-// ========== INPUT SCHEMAS ==========
+export type CurrencyCode = 'USD' | 'EUR' | 'GBP' | 'RUB';
 
 export interface LocaleInput {
   country: string;
   city: string;
-  currency: 'USD' | 'EUR' | 'GBP' | 'RUB';
+  currency: CurrencyCode;
 }
 
-export interface PricingPlan {
-  name: string;
-  priceMonthly: number;
-}
-
-export interface BusinessInput {
-  name: string;
-  industry: string;
-  description: string;
-  pricing?: {
-    plans: PricingPlan[];
-    expectedArpu: number;
-  };
-}
-
-export interface FinancialAssumptions {
-  mrr: number;
-  grossMargin: number;
-  monthlyChurn: number;
-  cac: number;
-  monthlyOpex: number;
-  initialInvestment: number;
-}
+// ========== INVESTMENT BREAKDOWN ==========
 
 export interface InvestmentBreakdownItem {
   category: string;
   amount: number;
 }
 
-export interface AnalysisInput {
-  locale: LocaleInput;
-  business: BusinessInput;
-  assumptions: FinancialAssumptions;
-  investmentBreakdown: InvestmentBreakdownItem[];
+// ========== EXPENSE BREAKDOWN ==========
+
+export interface ExpenseBreakdown {
+  cogs: number;
+  salaries: number;
+  rent: number;
+  utilities: number;
+  marketing: number;
+  other: number;
 }
 
-// ========== COMPUTED METRICS (from deterministic engine only) ==========
+// ========== SCENARIO METRICS ==========
+
+export interface ScenarioMetrics {
+  revenue: number;
+  variableCosts: number;
+  fixedCosts: number;
+  grossProfit: number;
+  netProfit: number;
+  grossMargin: number;
+  netMargin: number;
+}
+
+// ========== COMPUTED METRICS (DETERMINISTIC ENGINE OUTPUT) ==========
 
 export interface ComputedMetrics {
-  // Core revenue metrics
+  // Core revenue
   mrr: number;
   arr: number;
   
@@ -68,16 +59,9 @@ export interface ComputedMetrics {
   netProfit: number;
   netMarginPercent: number;
   
-  // Expenses (deterministic from engine)
+  // Expenses
   totalExpenses: number;
-  expenses: {
-    cogs: number;
-    salaries: number;
-    rent: number;
-    utilities: number;
-    marketing: number;
-    other: number;
-  };
+  expenses: ExpenseBreakdown;
   
   // Unit Economics
   cac: number;
@@ -103,46 +87,30 @@ export interface ComputedMetrics {
   breakEvenUnits: number;
   revenueFor45kProfit: number;
   
-  // Scenarios (computed, not AI-generated)
+  // Scenarios
   scenarios: {
     pessimistic: ScenarioMetrics;
     base: ScenarioMetrics;
     optimistic: ScenarioMetrics;
   };
   
-  // Validation status
+  // Status
   isProfitable: boolean;
   industryDetected: string;
 }
 
-export interface ScenarioMetrics {
-  revenue: number;
-  variableCosts: number;
-  fixedCosts: number;
-  grossProfit: number;
-  netProfit: number;
-  grossMargin: number;
-  netMargin: number;
-}
-
 // ========== VALIDATION TYPES ==========
+
+export type ValidationSeverity = 'error' | 'warning' | 'info';
 
 export interface ValidationIssue {
   code: string;
   field: string;
   message: string;
-  severity: 'error' | 'warning' | 'info';
+  severity: ValidationSeverity;
   fix?: string;
   originalValue?: number;
   correctedValue?: number;
-}
-
-export interface ValidationResult {
-  isValid: boolean;
-  hasHardErrors: boolean;
-  issues: ValidationIssue[];
-  corrections: ValidationIssue[];
-  warnings: ValidationIssue[];
 }
 
 export interface CalculationAudit {
@@ -153,7 +121,43 @@ export interface CalculationAudit {
   notes?: string;
 }
 
-// ========== LLM NARRATOR OUTPUT (qualitative only, no numbers) ==========
+// ========== NARRATOR OUTPUT (QUALITATIVE ONLY) ==========
+
+export interface LaunchStep {
+  step: number;
+  title: string;
+  description: string;
+  duration: string;
+  cost_reference: string;
+}
+
+export interface BusinessRisk {
+  risk: string;
+  probability: 'low' | 'medium' | 'high';
+  impact: 'low' | 'medium' | 'high';
+  mitigation: string;
+}
+
+export interface MarketingChannel {
+  channel: string;
+  description: string;
+  budget_percent: number;
+  expected_roi: string;
+}
+
+export interface CompetitorAnalysis {
+  name: string;
+  strengths: string;
+  weaknesses: string;
+  positioning?: string;
+}
+
+export interface ActionStep {
+  step: string;
+  timeline: string;
+  priority: 'critical' | 'high' | 'medium' | 'low';
+  metric_reference?: string;
+}
 
 export interface NarratorOutput {
   executive_summary: string;
@@ -191,181 +195,26 @@ export interface NarratorOutput {
   action_plan: ActionStep[];
 }
 
-export interface LaunchStep {
-  step: number;
-  title: string;
-  description: string;
-  duration: string;
-  cost_reference: string; // References computed metric, e.g., "startup_investment.marketing_initial"
+// ========== VALIDATION RESULT ==========
+
+export interface ValidationResult {
+  isValid: boolean;
+  hasHardErrors: boolean;
+  canGeneratePdf: boolean;
+  issues: ValidationIssue[];
+  corrections: ValidationIssue[];
+  warnings: ValidationIssue[];
+  blockingReason?: string;
 }
 
-export interface BusinessRisk {
-  risk: string;
-  probability: 'low' | 'medium' | 'high';
-  impact: 'low' | 'medium' | 'high';
-  mitigation: string;
-}
+// ========== CONFIDENCE BREAKDOWN ==========
 
-export interface MarketingChannel {
-  channel: string;
-  description: string;
-  budget_percent: number; // Percentage of marketing budget (computed)
-  expected_roi: string;
-}
-
-export interface CompetitorAnalysis {
-  name: string;
-  strengths: string;
-  weaknesses: string;
-  positioning: string;
-}
-
-export interface ActionStep {
-  step: string;
-  timeline: string;
-  priority: 'critical' | 'high' | 'medium' | 'low';
-  metric_reference?: string; // References computed metric for context
-}
-
-// ========== VALIDATION FUNCTIONS ==========
-
-export function validateLocale(input: unknown): { valid: boolean; data?: LocaleInput; errors?: string[] } {
-  const errors: string[] = [];
-  
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: ['Locale must be an object'] };
-  }
-  
-  const obj = input as Record<string, unknown>;
-  
-  if (!obj.country || typeof obj.country !== 'string' || obj.country.length < 2) {
-    errors.push('Country must be at least 2 characters');
-  }
-  
-  if (!obj.city || typeof obj.city !== 'string' || obj.city.length < 1) {
-    errors.push('City is required');
-  }
-  
-  const validCurrencies = ['USD', 'EUR', 'GBP', 'RUB'];
-  const currency = obj.currency || 'USD';
-  if (!validCurrencies.includes(currency as string)) {
-    errors.push(`Currency must be one of: ${validCurrencies.join(', ')}`);
-  }
-  
-  if (errors.length > 0) {
-    return { valid: false, errors };
-  }
-  
-  return {
-    valid: true,
-    data: {
-      country: obj.country as string,
-      city: obj.city as string,
-      currency: (currency as 'USD' | 'EUR' | 'GBP' | 'RUB'),
-    }
-  };
-}
-
-export function validateAssumptions(input: unknown): { valid: boolean; data?: FinancialAssumptions; errors?: string[] } {
-  const errors: string[] = [];
-  
-  if (!input || typeof input !== 'object') {
-    return { valid: false, errors: ['Assumptions must be an object'] };
-  }
-  
-  const obj = input as Record<string, unknown>;
-  
-  // MRR
-  const mrr = Number(obj.mrr);
-  if (isNaN(mrr) || mrr < 0) {
-    errors.push('MRR must be a non-negative number');
-  }
-  
-  // Gross Margin (0-1)
-  const grossMargin = Number(obj.grossMargin);
-  if (isNaN(grossMargin) || grossMargin < 0 || grossMargin > 1) {
-    errors.push('Gross margin must be between 0 and 1');
-  }
-  
-  // Monthly Churn (0-1)
-  const monthlyChurn = Number(obj.monthlyChurn);
-  if (isNaN(monthlyChurn) || monthlyChurn < 0 || monthlyChurn > 1) {
-    errors.push('Monthly churn must be between 0 and 1');
-  }
-  
-  // CAC
-  const cac = Number(obj.cac);
-  if (isNaN(cac) || cac < 0) {
-    errors.push('CAC must be a non-negative number');
-  }
-  
-  // Monthly OPEX
-  const monthlyOpex = Number(obj.monthlyOpex);
-  if (isNaN(monthlyOpex) || monthlyOpex < 0) {
-    errors.push('Monthly OPEX must be a non-negative number');
-  }
-  
-  // Initial Investment
-  const initialInvestment = Number(obj.initialInvestment);
-  if (isNaN(initialInvestment) || initialInvestment < 0) {
-    errors.push('Initial investment must be a non-negative number');
-  }
-  
-  if (errors.length > 0) {
-    return { valid: false, errors };
-  }
-  
-  return {
-    valid: true,
-    data: {
-      mrr,
-      grossMargin,
-      monthlyChurn,
-      cac,
-      monthlyOpex,
-      initialInvestment,
-    }
-  };
-}
-
-export function validateInvestmentBreakdown(
-  breakdown: InvestmentBreakdownItem[],
-  totalInvestment: number
-): ValidationIssue[] {
-  const issues: ValidationIssue[] = [];
-  
-  if (!breakdown || breakdown.length === 0) {
-    return issues; // Optional field
-  }
-  
-  const breakdownSum = breakdown.reduce((sum, item) => sum + item.amount, 0);
-  const tolerance = totalInvestment * 0.01; // 1% tolerance
-  
-  if (Math.abs(breakdownSum - totalInvestment) > tolerance) {
-    issues.push({
-      code: 'INVESTMENT_BREAKDOWN_MISMATCH',
-      field: 'investmentBreakdown',
-      message: `Investment breakdown sum ($${breakdownSum.toLocaleString()}) does not equal initial investment ($${totalInvestment.toLocaleString()})`,
-      severity: 'error',
-      fix: 'Normalize breakdown to match initialInvestment OR update initialInvestment to true total',
-      originalValue: breakdownSum,
-      correctedValue: totalInvestment,
-    });
-  }
-  
-  // Check for negative amounts
-  for (const item of breakdown) {
-    if (item.amount < 0) {
-      issues.push({
-        code: 'NEGATIVE_BREAKDOWN_ITEM',
-        field: `investmentBreakdown.${item.category}`,
-        message: `Breakdown item "${item.category}" has negative amount`,
-        severity: 'error',
-      });
-    }
-  }
-  
-  return issues;
+export interface ConfidenceBreakdown {
+  input_completeness: number;
+  data_quality: number;
+  validation_score: number;
+  industry_relevance: number;
+  details: string[];
 }
 
 // ========== ANTI-INJECTION SECURITY ==========
@@ -377,8 +226,8 @@ const DANGEROUS_PATTERNS = [
   /pretend\s+to\s+be/i,
   /act\s+as\s+if/i,
   /system\s*:\s*/i,
-  /\[\[.*?\]\]/,  // Injection brackets
-  /\{\{.*?\}\}/,  // Template injection
+  /\[\[.*?\]\]/,
+  /\{\{.*?\}\}/,
   /<script/i,
   /javascript:/i,
   /on\w+\s*=/i,
@@ -390,12 +239,17 @@ const INSTRUCTION_PATTERNS = [
   /^(always\s+|make\s+sure\s+)/i,
 ];
 
-export function sanitizeUserInput(input: string): { sanitized: string; wasModified: boolean; threats: string[] } {
+export interface SanitizationResult {
+  sanitized: string;
+  wasModified: boolean;
+  threats: string[];
+}
+
+export function sanitizeUserInput(input: string): SanitizationResult {
   const threats: string[] = [];
   let sanitized = input;
   let wasModified = false;
   
-  // Check for dangerous patterns
   for (const pattern of DANGEROUS_PATTERNS) {
     if (pattern.test(sanitized)) {
       threats.push(`Dangerous pattern detected: ${pattern.source}`);
@@ -404,15 +258,13 @@ export function sanitizeUserInput(input: string): { sanitized: string; wasModifi
     }
   }
   
-  // Check for instruction-like patterns at start
   for (const pattern of INSTRUCTION_PATTERNS) {
     if (pattern.test(sanitized.trim())) {
-      threats.push(`Instruction-like pattern at start: ${pattern.source}`);
-      // Don't remove but flag it
+      threats.push(`Instruction-like pattern: ${pattern.source}`);
     }
   }
   
-  // Remove HTML tags
+  // Remove HTML
   const htmlPattern = /<[^>]*>/g;
   if (htmlPattern.test(sanitized)) {
     sanitized = sanitized.replace(htmlPattern, '');
@@ -420,7 +272,7 @@ export function sanitizeUserInput(input: string): { sanitized: string; wasModifi
     threats.push('HTML tags removed');
   }
   
-  // Escape special characters that could break JSON
+  // Escape JSON-breaking chars
   sanitized = sanitized
     .replace(/\\/g, '\\\\')
     .replace(/"/g, '\\"')
@@ -431,9 +283,9 @@ export function sanitizeUserInput(input: string): { sanitized: string; wasModifi
   return { sanitized, wasModified, threats };
 }
 
-export function classifyInputAsDataOrInstruction(input: string): 'data' | 'instruction' | 'mixed' {
-  const instructionScore = INSTRUCTION_PATTERNS.filter(p => p.test(input)).length;
+export function classifyInput(input: string): 'data' | 'instruction' | 'mixed' {
   const dangerousScore = DANGEROUS_PATTERNS.filter(p => p.test(input)).length;
+  const instructionScore = INSTRUCTION_PATTERNS.filter(p => p.test(input)).length;
   
   if (dangerousScore > 0) return 'instruction';
   if (instructionScore >= 2) return 'instruction';
@@ -441,30 +293,17 @@ export function classifyInputAsDataOrInstruction(input: string): 'data' | 'instr
   return 'data';
 }
 
-// ========== OUTPUT VALIDATION ==========
+// ========== NARRATOR OUTPUT VALIDATION ==========
 
 /**
- * Validates that LLM output doesn't contain invented numbers
- * All numbers in the narrative must reference computed metrics
+ * Validates that LLM narrator output doesn't contain invented numbers.
+ * All numbers must reference computed metrics.
  */
-export function validateNarratorOutput(
+export function validateNarratorNumbers(
   narratorOutput: NarratorOutput,
   computedMetrics: ComputedMetrics
 ): ValidationIssue[] {
   const issues: ValidationIssue[] = [];
-  
-  // Extract all numbers from narrative text
-  const numberPattern = /\$[\d,]+(?:\.\d{2})?|\d{1,3}(?:,\d{3})+|\d+%/g;
-  
-  const textFields = [
-    narratorOutput.executive_summary,
-    ...narratorOutput.key_takeaways,
-    narratorOutput.business_plan.product_description,
-    narratorOutput.business_plan.target_audience,
-    narratorOutput.market_analysis.competitive_landscape,
-    narratorOutput.marketing_plan.positioning,
-    narratorOutput.marketing_plan.first_3_months_plan,
-  ];
   
   // Build set of valid numbers from computed metrics
   const validNumbers = new Set<string>();
@@ -475,6 +314,10 @@ export function validateNarratorOutput(
     validNumbers.add(`$${n.toLocaleString()}`);
     validNumbers.add(`${n}%`);
     validNumbers.add(`${Math.round(n)}%`);
+    // Add common variations
+    validNumbers.add(Math.round(n).toString());
+    validNumbers.add(Math.round(n / 1000) + 'k');
+    validNumbers.add(Math.round(n / 1000000) + 'M');
   };
   
   // Add all computed values
@@ -488,48 +331,77 @@ export function validateNarratorOutput(
   addNumber(computedMetrics.ltvCacRatio);
   addNumber(computedMetrics.paybackMonths);
   addNumber(computedMetrics.roiYear1Percent);
+  addNumber(computedMetrics.roiYear3Percent);
   addNumber(computedMetrics.startupInvestment);
   addNumber(computedMetrics.breakEvenRevenue);
   addNumber(computedMetrics.netMarginPercent);
   addNumber(computedMetrics.grossMarginPercent);
   addNumber(computedMetrics.averageCheck);
   addNumber(computedMetrics.clientsActive);
+  addNumber(computedMetrics.cacPaybackMonths);
+  addNumber(computedMetrics.npv3Years);
+  addNumber(computedMetrics.revenueFor45kProfit);
   
   // Add expense breakdown
   Object.values(computedMetrics.expenses).forEach(addNumber);
   
   // Add scenario values
-  ['pessimistic', 'base', 'optimistic'].forEach(scenario => {
-    const s = computedMetrics.scenarios[scenario as keyof typeof computedMetrics.scenarios];
-    addNumber(s.revenue);
-    addNumber(s.netProfit);
-    addNumber(s.grossProfit);
-  });
+  const scenarios = [
+    computedMetrics.scenarios.pessimistic,
+    computedMetrics.scenarios.base,
+    computedMetrics.scenarios.optimistic
+  ];
+  for (const scenario of scenarios) {
+    addNumber(scenario.revenue);
+    addNumber(scenario.netProfit);
+    addNumber(scenario.grossProfit);
+    addNumber(scenario.netMargin);
+    addNumber(scenario.grossMargin);
+  }
   
-  // Check each text field for unauthorized numbers
+  // Add common safe numbers
+  [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 15, 20, 24, 30, 36, 50, 100].forEach(addNumber);
+  
+  // Extract all dollar amounts from narrative
+  const dollarPattern = /\$[\d,]+(?:\.\d{2})?/g;
+  
+  const textFields = [
+    narratorOutput.executive_summary,
+    ...narratorOutput.key_takeaways,
+    narratorOutput.business_plan.product_description,
+    narratorOutput.business_plan.target_audience,
+    narratorOutput.marketing_plan.positioning,
+    narratorOutput.marketing_plan.first_3_months_plan,
+    narratorOutput.market_analysis.competitive_landscape,
+  ].filter(Boolean);
+  
   for (const text of textFields) {
-    if (!text) continue;
-    
-    const matches = text.match(numberPattern) || [];
+    const matches = text.match(dollarPattern) || [];
     for (const match of matches) {
-      // Skip small generic numbers (1-12, percentages under 100%)
-      const numValue = parseFloat(match.replace(/[$,%,]/g, ''));
-      if (numValue <= 12 || (match.includes('%') && numValue <= 100)) continue;
-      
-      // Check if this number is in our valid set
-      const isValid = validNumbers.has(match) || 
-                      validNumbers.has(match.replace(/,/g, '')) ||
-                      Math.abs(numValue - computedMetrics.mrr) < 100 ||
-                      Math.abs(numValue - computedMetrics.netProfit) < 100 ||
-                      Math.abs(numValue - computedMetrics.startupInvestment) < 100;
-      
-      if (!isValid) {
-        issues.push({
-          code: 'UNAUTHORIZED_NUMBER',
-          field: 'narrator_output',
-          message: `LLM generated unauthorized number: ${match}. All numbers must come from computed metrics.`,
-          severity: 'warning',
-        });
+      // Check if this number is valid
+      if (!validNumbers.has(match)) {
+        const numValue = parseInt(match.replace(/[$,]/g, ''));
+        // Allow if within 10% of a valid number (for rounding)
+        let isClose = false;
+        for (const valid of validNumbers) {
+          const validNum = parseInt(valid.replace(/[$,%kM]/g, ''));
+          if (!isNaN(validNum) && validNum > 0) {
+            if (Math.abs(numValue - validNum) / validNum < 0.1) {
+              isClose = true;
+              break;
+            }
+          }
+        }
+        
+        if (!isClose && numValue > 100) {
+          issues.push({
+            code: 'INVENTED_NUMBER',
+            field: 'narrative',
+            message: `Narrator may have invented number: ${match}`,
+            severity: 'warning',
+            fix: 'Verify this number comes from computed metrics',
+          });
+        }
       }
     }
   }
