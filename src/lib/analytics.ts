@@ -89,6 +89,31 @@ export function trackSignup(method: string = 'email'): void {
 }
 
 /**
+ * Track signup conversion for Google Ads
+ * This fires on the Thank You page load for conversion attribution
+ * 
+ * To configure your Google Ads conversion:
+ * 1. Replace 'AW-XXXXXXXXXX/XXXXXXXXXXXXX' with your actual conversion ID
+ * 2. The conversion ID is found in Google Ads → Tools → Conversions → Your signup conversion
+ */
+export function trackSignupConversion(): void {
+  // GA4 sign_up event
+  trackSignup('email');
+  
+  // Google Ads conversion event
+  // TODO: Replace with your actual Google Ads conversion ID
+  if (window.gtag) {
+    window.gtag('event', 'conversion', {
+      'send_to': 'AW-XXXXXXXXXX/XXXXXXXXXXXXX', // Replace with your conversion ID
+    });
+  }
+  
+  if (import.meta.env.DEV) {
+    console.log('Signup conversion tracked');
+  }
+}
+
+/**
  * Track user login
  */
 export function trackLogin(method: string = 'email'): void {
