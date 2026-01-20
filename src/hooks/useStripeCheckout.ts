@@ -9,12 +9,12 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type Plan = 'plus' | 'pro';
+type Plan = 'plus';
 
 // Payment Links - configured in Stripe Dashboard with 14-day trials
+// Pro tier has been removed - only Plus available
 const PAYMENT_LINKS = {
   plus: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
-  pro: 'https://buy.stripe.com/dRmbJ20ET6SEb2S5g9e7m01'
 };
 
 interface UsePaymentLinksReturn {

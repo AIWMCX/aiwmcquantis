@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Sparkles, Zap, Crown, Loader2 } from 'lucide-react';
+import { CheckCircle2, Sparkles, Zap, Loader2 } from 'lucide-react';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -15,7 +15,7 @@ interface UpgradePromptProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   remainingAnalyses: number;
-  onUpgrade?: (plan: 'plus' | 'pro') => void;
+  onUpgrade?: (plan: 'plus') => void;
 }
 
 export function UpgradePrompt({ 
@@ -26,13 +26,13 @@ export function UpgradePrompt({
   const { user } = useAuth();
   const { redirectToPayment, isLoading } = usePaymentLinks();
 
-  const handleUpgrade = (plan: 'plus' | 'pro') => {
+  const handleUpgrade = () => {
     if (user) {
       // Close dialog first to avoid redirect issues from modal context
       onOpenChange(false);
       // Small delay to let dialog close, then redirect
       setTimeout(() => {
-        redirectToPayment(plan, user.id, user.email || undefined);
+        redirectToPayment('plus', user.id, user.email || undefined);
       }, 100);
     }
   };
@@ -53,10 +53,13 @@ export function UpgradePrompt({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-4 py-4">
+        <div className="py-4">
           {/* Plus Plan */}
-          <div className="p-4 rounded-lg border border-border">
-            <div className="flex items-start justify-between">
+          <div className="relative p-4 rounded-lg border-2 border-primary bg-primary/5">
+            <div className="absolute -top-2 left-4 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded">
+              Recommended
+            </div>
+            <div className="flex items-start justify-between pt-2">
               <div>
                 <div className="flex items-center gap-2 mb-1">
                   <Zap className="w-4 h-4 text-primary" />
@@ -68,8 +71,7 @@ export function UpgradePrompt({
                 <p className="text-2xl font-bold">$17<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
               </div>
               <Button 
-                variant="outline" 
-                onClick={() => handleUpgrade('plus')} 
+                onClick={handleUpgrade} 
                 disabled={isLoading}
                 className="shrink-0 min-w-[90px]"
               >
@@ -91,51 +93,11 @@ export function UpgradePrompt({
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />
-                PDF export & priority support
-              </li>
-            </ul>
-          </div>
-
-          {/* Pro Plan */}
-          <div className="relative p-4 rounded-lg border-2 border-primary bg-primary/5">
-            <div className="absolute -top-2 left-4 px-2 py-0.5 text-xs font-medium bg-primary text-primary-foreground rounded">
-              Most Popular
-            </div>
-            <div className="flex items-start justify-between pt-2">
-              <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <Crown className="w-4 h-4 text-warning" />
-                  <span className="font-semibold">Pro</span>
-                  <span className="px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full">
-                    14-day free trial
-                  </span>
-                </div>
-                <p className="text-2xl font-bold">$29<span className="text-sm font-normal text-muted-foreground">/mo</span></p>
-              </div>
-              <Button 
-                onClick={() => handleUpgrade('pro')} 
-                disabled={isLoading}
-                className="shrink-0 min-w-[90px]"
-              >
-                {isLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  'Start Trial'
-                )}
-              </Button>
-            </div>
-            <ul className="mt-3 space-y-1.5 text-sm text-muted-foreground">
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-success" />
-                Everything in Plus
+                Document intelligence & PDF export
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />
-                Team collaboration & API access
-              </li>
-              <li className="flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 text-success" />
-                Custom branding & SLA guarantee
+                Custom branding & priority support
               </li>
             </ul>
           </div>

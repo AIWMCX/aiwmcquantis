@@ -100,7 +100,6 @@ serve(async (req) => {
       console.warn(`[${requestId}] Failed to log webhook event:`, logErr);
       // Continue processing even if logging fails
     }
-    console.log(`[${requestId}] Event ID: ${event.id}`);
 
     // Helper function to find user by email
     async function findUserByEmail(email: string): Promise<string | null> {
@@ -178,23 +177,9 @@ serve(async (req) => {
         const subscription = await stripe.subscriptions.retrieve(subscriptionId);
         console.log(`[${requestId}] Subscription status: ${subscription.status}`);
 
-        // Get line items to determine plan
-        console.log(`[${requestId}] Fetching line items...`);
-        const lineItems = await stripe.checkout.sessions.listLineItems(session.id);
-        const priceId = lineItems.data[0]?.price?.id;
-        
-        const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
-        const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
-        
-        console.log(`[${requestId}] Price ID from checkout: ${priceId}`);
-        console.log(`[${requestId}] Plus Price ID (env): ${plusPriceId}`);
-        console.log(`[${requestId}] Pro Price ID (env): ${proPriceId}`);
-        
-        let plan = "plus"; // Default to plus
-        if (priceId === proPriceId) {
-          plan = "pro";
-        }
-        console.log(`[${requestId}] Determined plan: ${plan}`);
+        // All paid subscriptions are now 'plus' (Pro tier removed)
+        const plan = "plus";
+        console.log(`[${requestId}] Determined plan: ${plan} (Pro tier has been removed)`);
 
         // Map status
         let status = "active";
@@ -247,14 +232,8 @@ serve(async (req) => {
         console.log(`[${requestId}] Status: ${subscription.status}`);
         console.log(`[${requestId}] Customer: ${subscription.customer}`);
 
-        const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
-        const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
-        const priceId = subscription.items.data[0]?.price.id;
-        
-        let plan = "plus";
-        if (priceId === proPriceId) {
-          plan = "pro";
-        }
+        // All paid subscriptions are now 'plus' (Pro tier removed)
+        const plan = "plus";
 
         let status = "active";
         if (subscription.status === "canceled") {
@@ -357,14 +336,8 @@ serve(async (req) => {
           // Fetch full subscription to sync data
           const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
           
-          const plusPriceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
-          const proPriceId = Deno.env.get("STRIPE_PRO_PRICE_ID");
-          const priceId = subscription.items.data[0]?.price.id;
-          
-          let plan = "plus";
-          if (priceId === proPriceId) {
-            plan = "pro";
-          }
+          // All paid subscriptions are now 'plus' (Pro tier removed)
+          const plan = "plus";
 
           // Update subscription period dates
           const { error: updateError } = await supabase
@@ -438,14 +411,12 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error(`[${requestId}] === Webhook Error ===`);
-    console.error(`[${requestId}] Error:`, error.message);
-    
+    console.error(`[${requestId}] Webhook error:`, error);
     return new Response(
-      JSON.stringify({ error: error.message, request_id: requestId }),
-      {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-        status: 400,
+      JSON.stringify({ error: error.message }),
+      { 
+        status: 500, 
+        headers: { ...corsHeaders, "Content-Type": "application/json" } 
       }
     );
   }
