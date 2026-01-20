@@ -147,7 +147,17 @@ export function useFileUpload(userId: string | undefined) {
 
     } catch (error) {
       console.error('Upload error:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      let errorMessage = error instanceof Error ? error.message : 'Upload failed';
+      
+      // Handle subscription-related errors from edge function
+      if (error instanceof Error) {
+        const errorBody = error.message;
+        if (errorBody.includes('SUBSCRIPTION_REQUIRED') || errorBody.includes('Plus or Pro subscription')) {
+          errorMessage = 'Document uploads require Plus or Pro subscription. Please upgrade to continue.';
+        } else if (errorBody.includes('AUTH_REQUIRED') || errorBody.includes('Authentication required')) {
+          errorMessage = 'Please sign in to upload documents.';
+        }
+      }
       
       setFiles(prev => prev.map(f => 
         f.id === fileId 

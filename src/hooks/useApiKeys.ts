@@ -126,7 +126,13 @@ export function useApiKeys(): UseApiKeysReturn {
         .select('id')
         .single();
 
-      if (insertError) throw insertError;
+      if (insertError) {
+        // Check for RLS policy violation (Pro subscription required)
+        if (insertError.message?.includes('row-level security') || insertError.code === '42501') {
+          throw new Error('API access requires a Pro subscription. Please upgrade to create API keys.');
+        }
+        throw insertError;
+      }
 
       await fetchApiKeys();
 

@@ -78,6 +78,7 @@ export type Database = {
         Row: {
           created_at: string | null
           device_id: string
+          fingerprint_hash: string | null
           id: string
           idea_hash: string
           ip_hash: string
@@ -86,6 +87,7 @@ export type Database = {
         Insert: {
           created_at?: string | null
           device_id: string
+          fingerprint_hash?: string | null
           id?: string
           idea_hash: string
           ip_hash: string
@@ -94,6 +96,7 @@ export type Database = {
         Update: {
           created_at?: string | null
           device_id?: string
+          fingerprint_hash?: string | null
           id?: string
           idea_hash?: string
           ip_hash?: string
@@ -442,6 +445,45 @@ export type Database = {
         }
         Relationships: []
       }
+      stripe_webhook_events: {
+        Row: {
+          created_at: string | null
+          customer_id: string | null
+          error_message: string | null
+          event_id: string
+          event_type: string
+          id: string
+          payload: Json | null
+          processed_at: string | null
+          status: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          event_id: string
+          event_type: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          customer_id?: string | null
+          error_message?: string | null
+          event_id?: string
+          event_type?: string
+          id?: string
+          payload?: Json | null
+          processed_at?: string | null
+          status?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -682,18 +724,33 @@ export type Database = {
           table_name: string
         }[]
       }
-      check_anonymous_rate_limit: {
-        Args: {
-          p_device_id: string
-          p_device_limit?: number
-          p_idea_hash: string
-          p_ip_hash: string
-          p_ip_limit?: number
-          p_location_hash: string
-          p_window_minutes?: number
-        }
-        Returns: Json
-      }
+      check_anonymous_rate_limit:
+        | {
+            Args: {
+              p_device_id: string
+              p_device_limit?: number
+              p_fingerprint_hash?: string
+              p_fingerprint_limit?: number
+              p_idea_hash: string
+              p_ip_hash: string
+              p_ip_limit?: number
+              p_location_hash: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_device_id: string
+              p_device_limit?: number
+              p_idea_hash: string
+              p_ip_hash: string
+              p_ip_limit?: number
+              p_location_hash: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -730,19 +787,32 @@ export type Database = {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
       }
-      record_anonymous_usage: {
-        Args: {
-          p_device_id: string
-          p_idea_hash: string
-          p_ip_hash: string
-          p_location_hash: string
-        }
-        Returns: undefined
-      }
+      record_anonymous_usage:
+        | {
+            Args: {
+              p_device_id: string
+              p_idea_hash: string
+              p_ip_hash: string
+              p_location_hash: string
+            }
+            Returns: undefined
+          }
+        | {
+            Args: {
+              p_device_id: string
+              p_fingerprint_hash?: string
+              p_idea_hash: string
+              p_ip_hash: string
+              p_location_hash: string
+            }
+            Returns: undefined
+          }
       user_owns_subscription: {
         Args: { subscription_user_id: string }
         Returns: boolean
       }
+      verify_paid_subscription: { Args: { p_user_id: string }; Returns: string }
+      verify_pro_subscription: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {
       app_role: "admin" | "moderator" | "user"
