@@ -544,6 +544,7 @@ export type Database = {
           role: string
           team_id: string
           token: string | null
+          token_hash: string | null
         }
         Insert: {
           accepted_at?: string | null
@@ -555,6 +556,7 @@ export type Database = {
           role?: string
           team_id: string
           token?: string | null
+          token_hash?: string | null
         }
         Update: {
           accepted_at?: string | null
@@ -566,6 +568,7 @@ export type Database = {
           role?: string
           team_id?: string
           token?: string | null
+          token_hash?: string | null
         }
         Relationships: [
           {
@@ -808,9 +811,12 @@ export type Database = {
         }
         Returns: Json
       }
+      cleanup_expired_invitations: { Args: never; Returns: undefined }
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
+      cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
+      cleanup_old_webhook_events: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       encrypt_pii: { Args: { plain_text: string }; Returns: string }
       get_admin_metrics: {
@@ -893,6 +899,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      run_scheduled_cleanup: { Args: never; Returns: Json }
       user_owns_subscription: {
         Args: { subscription_user_id: string }
         Returns: boolean
