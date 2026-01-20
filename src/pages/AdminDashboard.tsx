@@ -1,18 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
-import { useAdmin } from '@/hooks/useAdmin';
+import { Link } from 'react-router-dom';
 import { AdminMetricsDashboard } from '@/components/admin/AdminMetricsDashboard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Skeleton } from '@/components/ui/skeleton';
 import { Shield, Database, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+// Note: Authentication and admin role checks are handled by ProtectedRoute in App.tsx
+
 export default function AdminDashboard() {
-  const navigate = useNavigate();
-  const { isAuthenticated, isLoading: authLoading } = useAuth();
-  const { isAdmin, isLoading: adminLoading } = useAdmin();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark';
@@ -24,45 +20,6 @@ export default function AdminDashboard() {
     document.documentElement.classList.toggle('dark', darkMode);
     localStorage.setItem('theme', darkMode ? 'dark' : 'light');
   }, [darkMode]);
-
-  // Redirect non-authenticated users
-  useEffect(() => {
-    if (!authLoading && !isAuthenticated) {
-      navigate('/auth');
-    }
-  }, [authLoading, isAuthenticated, navigate]);
-
-  // Redirect non-admin users
-  useEffect(() => {
-    if (!adminLoading && !authLoading && isAuthenticated && !isAdmin) {
-      navigate('/app');
-    }
-  }, [adminLoading, authLoading, isAuthenticated, isAdmin, navigate]);
-
-  const isLoading = authLoading || adminLoading;
-
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
-        <main className="flex-1 container max-w-7xl mx-auto px-4 py-8">
-          <div className="space-y-6">
-            <Skeleton className="h-8 w-64" />
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              {[...Array(4)].map((_, i) => (
-                <Skeleton key={i} className="h-32" />
-              ))}
-            </div>
-          </div>
-        </main>
-        <Footer />
-      </div>
-    );
-  }
-
-  if (!isAdmin) {
-    return null; // Will redirect
-  }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
