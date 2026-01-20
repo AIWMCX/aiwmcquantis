@@ -72,6 +72,13 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+          {
+            foreignKeyName: "analyses_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
         ]
       }
       anonymous_usage: {
@@ -370,6 +377,7 @@ export type Database = {
           full_name: string | null
           id: string
           phone: string | null
+          phone_encrypted: string | null
           updated_at: string | null
         }
         Insert: {
@@ -377,6 +385,7 @@ export type Database = {
           full_name?: string | null
           id: string
           phone?: string | null
+          phone_encrypted?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -384,6 +393,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           phone?: string | null
+          phone_encrypted?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -691,6 +701,30 @@ export type Database = {
         }
         Relationships: []
       }
+      profiles_secure: {
+        Row: {
+          created_at: string | null
+          full_name: string | null
+          id: string | null
+          phone: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          full_name?: string | null
+          id?: string | null
+          phone?: never
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       subscriptions_public: {
         Row: {
           created_at: string | null
@@ -736,6 +770,7 @@ export type Database = {
           table_name: string
         }[]
       }
+      can_access_pii: { Args: { target_user_id: string }; Returns: boolean }
       check_anonymous_rate_limit:
         | {
             Args: {
@@ -763,6 +798,7 @@ export type Database = {
             }
             Returns: Json
           }
+      check_pii_access_rate: { Args: { p_user_id?: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
           p_endpoint: string
@@ -775,6 +811,8 @@ export type Database = {
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
+      decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
+      encrypt_pii: { Args: { plain_text: string }; Returns: string }
       get_admin_metrics: {
         Args: never
         Returns: {
@@ -801,6 +839,7 @@ export type Database = {
           month_year: string
         }[]
       }
+      get_my_phone: { Args: never; Returns: string }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -824,6 +863,15 @@ export type Database = {
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_sensitive_access: {
+        Args: {
+          p_accessed_resource: string
+          p_additional_data?: Json
+          p_event_type: string
+          p_resource_id?: string
+        }
+        Returns: undefined
       }
       record_anonymous_usage:
         | {
