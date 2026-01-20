@@ -9,3 +9,17 @@ initSentry();
 initAnalytics();
 
 createRoot(document.getElementById("root")!).render(<App />);
+
+// Register service worker in production for offline support
+if ('serviceWorker' in navigator && import.meta.env.PROD) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker
+      .register('/sw.js')
+      .then((registration) => {
+        console.log('[SW] Registered:', registration.scope);
+      })
+      .catch((error) => {
+        console.error('[SW] Registration failed:', error);
+      });
+  });
+}

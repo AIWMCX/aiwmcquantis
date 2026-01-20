@@ -1,0 +1,20 @@
+{
+  "name": "AIWMC Quantis",
+  "short_name": "Quantis",
+  "description": "AI-powered business analysis platform for entrepreneurs and startups",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0a0a0a",
+  "theme_color": "#6366f1",
+  "scope": "/",
+  "lang": "en",
+  "categories": ["business", "productivity", "finance"],
+  "icons": [
+    {
+      "src": "/favicon.ico",
+      "sizes": "64x64",
+      "type": "image/x-icon"
+    }
+  ]
+}
