@@ -30,7 +30,8 @@ const PLUS_PRICE = 17; // Monthly Plus subscription price
 export function AdminMetricsDashboard() {
   const { 
     metrics, 
-    isLoading, 
+    isLoading,
+    isRefetching,
     refetch, 
     dailySignups, 
     monthlyAnalyses 
@@ -69,9 +70,9 @@ export function AdminMetricsDashboard() {
           <h2 className="text-2xl font-bold text-foreground">Business Metrics</h2>
           <p className="text-muted-foreground">Real-time dashboard • Auto-refreshes every 30s</p>
         </div>
-        <Button variant="outline" size="sm" onClick={() => refetch()}>
-          <RefreshCw className="w-4 h-4 mr-2" />
-          Refresh
+        <Button variant="outline" size="sm" onClick={() => refetch()} disabled={isRefetching}>
+          <RefreshCw className={`w-4 h-4 mr-2 ${isRefetching ? 'animate-spin' : ''}`} />
+          {isRefetching ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
 

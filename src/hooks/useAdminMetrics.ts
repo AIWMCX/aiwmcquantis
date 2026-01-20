@@ -91,11 +91,20 @@ export function useAdminMetrics() {
     staleTime: 60 * 1000,
   });
 
+  const refetchAll = async () => {
+    await Promise.all([
+      metricsQuery.refetch(),
+      dailySignupsQuery.refetch(),
+      monthlyAnalysesQuery.refetch(),
+    ]);
+  };
+
   return {
     metrics: metricsQuery.data,
     isLoading: metricsQuery.isLoading,
+    isRefetching: metricsQuery.isFetching || dailySignupsQuery.isFetching || monthlyAnalysesQuery.isFetching,
     error: metricsQuery.error,
-    refetch: metricsQuery.refetch,
+    refetch: refetchAll,
     dailySignups: dailySignupsQuery.data || [],
     monthlyAnalyses: monthlyAnalysesQuery.data || [],
   };
