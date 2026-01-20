@@ -78,26 +78,17 @@ export default function Terms() {
               <li>Unlimited analyses</li>
               <li>Advanced financial modeling</li>
               <li>Complete business plans</li>
-              <li>PDF export</li>
+              <li>Document Intelligence (AI extraction)</li>
+              <li>PDF export with custom branding</li>
             </ul>
 
-            <h3 className="text-xl font-medium text-foreground">4.3 Pro Plan ($29/month)</h3>
-            <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>14-day free trial</li>
-              <li>All Plus features</li>
-              <li>Team collaboration</li>
-              <li>API access</li>
-              <li>Custom branding</li>
-              <li>SLA guarantee</li>
-            </ul>
-
-            <h3 className="text-xl font-medium text-foreground">4.4 Billing</h3>
+            <h3 className="text-xl font-medium text-foreground">4.3 Billing</h3>
             <p className="text-muted-foreground leading-relaxed">
               Payments are processed securely by Stripe. Subscriptions are billed monthly and automatically 
               renew unless cancelled. You may cancel at any time through your account settings.
             </p>
 
-            <h3 className="text-xl font-medium text-foreground">4.5 Refunds</h3>
+            <h3 className="text-xl font-medium text-foreground">4.4 Refunds</h3>
             <p className="text-muted-foreground leading-relaxed">
               We offer a 14-day free trial for paid plans. After the trial period, refunds are provided at our 
               discretion on a case-by-case basis.

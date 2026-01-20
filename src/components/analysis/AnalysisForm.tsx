@@ -197,7 +197,7 @@ The more detail you provide, the more accurate and valuable your analysis will b
             <div>
               <p className="text-sm font-medium text-foreground">Document Analysis Available</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Sign in to upload revenue statements, invoices, and financial reports for McKinsey-level analysis based on your real business data.
+                Sign in to upload revenue statements, invoices, and financial reports for comprehensive analysis based on your real business data.
               </p>
             </div>
           </div>
@@ -250,7 +250,7 @@ The more detail you provide, the more accurate and valuable your analysis will b
       {/* Tip */}
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">💡 Pro Tip:</strong> For McKinsey-level analysis, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
+          <strong className="text-foreground">💡 Pro Tip:</strong> For best results, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
           The AI will analyze actual numbers from your revenue statements and marketing data for precise insights.
         </p>
       </div>

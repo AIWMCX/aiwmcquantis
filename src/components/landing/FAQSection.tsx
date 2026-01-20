@@ -17,7 +17,7 @@ const faqItems = [
   },
   {
     question: 'Can I try AIWMC Quantis for free?',
-    answer: 'Yes! Our Free plan includes 3 analyses per month with basic financial projections and business plan outlines. No credit card required. Plus and Pro plans offer a 14-day free trial with full access to all features.'
+    answer: 'Yes! Our Free plan includes 3 analyses per month with basic financial projections and business plan outlines. No credit card required. Plus plan offers a 14-day free trial with full access to all features including Document Intelligence and custom branding.'
   },
   {
     question: 'What industries does AIWMC Quantis support?',
@@ -33,7 +33,7 @@ const faqItems = [
   },
   {
     question: 'Can I cancel my subscription anytime?',
-    answer: 'Absolutely. You can cancel your Plus or Pro subscription at any time with no cancellation fees. Your access continues until the end of your billing period, and you can downgrade to the Free plan.'
+    answer: 'Absolutely. You can cancel your Plus subscription at any time with no cancellation fees. Your access continues until the end of your billing period, and you can downgrade to the Free plan.'
   },
   {
     question: 'Do you offer refunds?',
