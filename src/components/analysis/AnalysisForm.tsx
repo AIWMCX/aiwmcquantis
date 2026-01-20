@@ -9,6 +9,7 @@ import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
 import { FileUploader } from './FileUploader';
 import { AnonymousUsageNotice } from './AnonymousUsageNotice';
+import { InputQualityIndicator } from './InputQualityIndicator';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
 
@@ -153,6 +154,15 @@ The more detail you provide, the more accurate and valuable your analysis will b
         financialInputs={financialInputs}
         onChange={onFinancialInputsChange}
         disabled={isLoading}
+      />
+
+      {/* Input Quality Indicator */}
+      <InputQualityIndicator
+        idea={idea}
+        location={location}
+        financialInputs={financialInputs}
+        files={files}
+        isAuthenticated={isAuthenticated}
       />
 
       {/* Document Upload Section */}
