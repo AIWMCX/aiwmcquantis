@@ -1,13 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2, Calculator } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2, Calculator, FileDown, DollarSign, AlertTriangle, Play } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { FAQSection } from '@/components/landing/FAQSection';
-
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -168,43 +167,83 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section */}
+      {/* Hero Section - Conversion Optimized */}
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-background to-background" />
-        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/5 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-primary/5 rounded-full blur-3xl" />
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-background" />
+        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/8 rounded-full blur-3xl" />
+        <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-primary/6 rounded-full blur-3xl" />
         
-        <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-20 md:py-32">
+        <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24 lg:py-32">
           <div className="text-center max-w-4xl mx-auto">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-8 animate-fade-in">AIWMC Quantis™ Business Intelligence</div>
-            <h1 className="text-4xl md:text-6xl lg:text-7xl font-bold text-foreground mb-6 leading-tight">
-              Turn Your Business Idea Into
-              <span className="text-primary block">Actionable Intelligence</span>
+            {/* Clear Value Proposition */}
+            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-tight tracking-tight">
+              AI Business Analysis
+              <span className="text-primary block mt-1">In Minutes, Not Weeks</span>
             </h1>
-            <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-10">
-              Get comprehensive financial projections, market analysis, and a complete business plan 
-              in under 2 minutes. Powered by AI, grounded in real data.
+            
+            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8 leading-relaxed">
+              Get a complete AI-powered report — revenue projections, risks, and next steps. No spreadsheets needed.
             </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-12">
-              <Link to="/app">
-                <Button size="lg" className="gap-2 text-lg px-8 py-6">
-                  Analyze Your Idea Free
-                  <ChevronRight className="w-5 h-5" />
+
+            {/* Primary CTA - Dominant */}
+            <div className="flex flex-col items-center gap-3 mb-8 md:mb-10">
+              <Link to="/app" className="w-full sm:w-auto">
+                <Button size="lg" className="w-full sm:w-auto gap-2 text-base sm:text-lg px-8 py-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
+                  <Play className="w-5 h-5" />
+                  Get My Free Analysis
                 </Button>
               </Link>
-              <a href="#features">
-                <Button variant="outline" size="lg" className="text-lg px-8 py-6">
-                  See How It Works
-                </Button>
-              </a>
+              <p className="text-xs sm:text-sm text-muted-foreground">
+                No signup required • Results in 2 minutes • Instant PDF
+              </p>
             </div>
 
-            {/* Stats */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-8 pt-12 border-t border-border">
+            {/* Quick Benefits - Above the fold */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 md:mb-12 max-w-2xl mx-auto">
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
+                <div className="p-2 rounded-full bg-success/10">
+                  <CheckCircle2 className="w-5 h-5 text-success" />
+                </div>
+                <span className="text-sm font-medium text-foreground text-left">Validate your idea</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
+                <div className="p-2 rounded-full bg-success/10">
+                  <DollarSign className="w-5 h-5 text-success" />
+                </div>
+                <span className="text-sm font-medium text-foreground text-left">See unit economics</span>
+              </div>
+              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
+                <div className="p-2 rounded-full bg-success/10">
+                  <AlertTriangle className="w-5 h-5 text-success" />
+                </div>
+                <span className="text-sm font-medium text-foreground text-left">Know risks first</span>
+              </div>
+            </div>
+
+            {/* Simple 3-Step Flow */}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 py-8 border-y border-border bg-muted/30 rounded-xl px-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">1</div>
+                <span className="text-sm font-medium text-foreground">Describe your idea</span>
+              </div>
+              <ChevronRight className="hidden sm:block w-5 h-5 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">2</div>
+                <span className="text-sm font-medium text-foreground">AI analyzes data</span>
+              </div>
+              <ChevronRight className="hidden sm:block w-5 h-5 text-muted-foreground" />
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">3</div>
+                <span className="text-sm font-medium text-foreground">Get executive report</span>
+              </div>
+            </div>
+
+            {/* Stats - Compact */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 md:pt-12">
               {stats.map(stat => (
                 <div key={stat.label} className="text-center">
-                  <div className="text-3xl md:text-4xl font-bold text-foreground mb-1">{stat.value}</div>
-                  <div className="text-sm text-muted-foreground">{stat.label}</div>
+                  <div className="text-2xl md:text-3xl font-bold text-foreground mb-1">{stat.value}</div>
+                  <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
                 </div>
               ))}
             </div>
@@ -386,6 +425,19 @@ export default function Landing() {
           </div>
         </div>
       </footer>
+
+      {/* Mobile Sticky CTA */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
+        <Link to="/app" className="block">
+          <Button size="lg" className="w-full gap-2 text-base py-6 shadow-xl">
+            <Play className="w-5 h-5" />
+            Get My Free Analysis
+          </Button>
+        </Link>
+      </div>
+
+      {/* Bottom padding for mobile sticky CTA */}
+      <div className="h-20 md:hidden" />
     </div>
   );
 }
