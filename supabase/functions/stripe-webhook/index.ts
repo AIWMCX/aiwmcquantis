@@ -2,9 +2,17 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+// Security headers for all responses
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
+};
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
+  ...securityHeaders,
 };
 
 console.log("=== Stripe Webhook Function Started ===");
@@ -14,7 +22,6 @@ serve(async (req) => {
   const requestId = crypto.randomUUID().slice(0, 8);
   console.log(`[${requestId}] === Stripe Webhook Request ===`);
   console.log(`[${requestId}] Method: ${req.method}`);
-  console.log(`[${requestId}] URL: ${req.url}`);
   console.log(`[${requestId}] Timestamp: ${new Date().toISOString()}`);
   
   // Handle CORS preflight
@@ -35,6 +42,14 @@ serve(async (req) => {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200 
       }
+    );
+  }
+
+  // Only allow POST for webhooks
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 
@@ -66,7 +81,10 @@ serve(async (req) => {
 
     if (!signature) {
       console.error(`[${requestId}] No Stripe signature in headers`);
-      throw new Error("No Stripe signature found");
+      return new Response(
+        JSON.stringify({ error: "No Stripe signature found" }),
+        { status: 401, headers: corsHeaders }
+      );
     }
 
     // Verify webhook signature
@@ -78,7 +96,7 @@ serve(async (req) => {
       console.error(`[${requestId}] Signature verification failed:`, err.message);
       return new Response(
         JSON.stringify({ error: "Webhook signature verification failed", details: err.message }),
-        { status: 400, headers: corsHeaders }
+        { status: 401, headers: corsHeaders }
       );
     }
 
