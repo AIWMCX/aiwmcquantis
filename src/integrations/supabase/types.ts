@@ -775,6 +775,18 @@ export type Database = {
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
+      get_admin_metrics: {
+        Args: never
+        Returns: {
+          free_users: number
+          monthly_analyses: number
+          monthly_signups: number
+          plus_subscribers: number
+          total_analyses: number
+          total_users: number
+          weekly_signups: number
+        }[]
+      }
       get_daily_signups: {
         Args: { days_back?: number }
         Returns: {

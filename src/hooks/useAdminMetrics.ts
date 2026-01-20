@@ -25,40 +25,32 @@ export function useAdminMetrics() {
   const metricsQuery = useQuery({
     queryKey: ['admin-metrics'],
     queryFn: async (): Promise<AdminMetrics> => {
-      // Query metrics using RPC or direct counts
-      const [
-        { count: totalUsers },
-        { count: totalAnalyses },
-        { count: plusSubscribers },
-        { count: freeUsers },
-        { data: usageData },
-        { count: weeklySignups },
-        { count: monthlySignups }
-      ] = await Promise.all([
-        supabase.from('profiles').select('*', { count: 'exact', head: true }),
-        supabase.from('analyses').select('*', { count: 'exact', head: true }),
-        supabase.from('subscriptions').select('*', { count: 'exact', head: true })
-          .in('status', ['active', 'trialing']).eq('plan_id', 'plus'),
-        supabase.from('subscriptions').select('*', { count: 'exact', head: true })
-          .eq('status', 'active').eq('plan_id', 'free'),
-        supabase.from('usage_tracking').select('analyses_count')
-          .eq('month_year', new Date().toISOString().slice(0, 7)),
-        supabase.from('profiles').select('*', { count: 'exact', head: true })
-          .gte('created_at', new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()),
-        supabase.from('profiles').select('*', { count: 'exact', head: true })
-          .gte('created_at', new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString())
-      ]);
-
-      const monthlyAnalyses = usageData?.reduce((sum, row) => sum + (row.analyses_count || 0), 0) || 0;
+      // Use secure RPC function that validates admin role server-side
+      const { data, error } = await supabase.rpc('get_admin_metrics');
+      
+      if (error) {
+        console.error('Failed to fetch admin metrics:', error.message);
+        throw new Error(error.message.includes('admin role required') 
+          ? 'Access denied: You must be an admin to view these metrics.'
+          : error.message
+        );
+      }
+      
+      // RPC returns an array, get the first row
+      const metrics = Array.isArray(data) ? data[0] : data;
+      
+      if (!metrics) {
+        throw new Error('No metrics data returned');
+      }
 
       return {
-        total_users: totalUsers || 0,
-        total_analyses: totalAnalyses || 0,
-        plus_subscribers: plusSubscribers || 0,
-        free_users: freeUsers || 0,
-        monthly_analyses: monthlyAnalyses,
-        weekly_signups: weeklySignups || 0,
-        monthly_signups: monthlySignups || 0
+        total_users: metrics.total_users || 0,
+        total_analyses: metrics.total_analyses || 0,
+        plus_subscribers: metrics.plus_subscribers || 0,
+        free_users: metrics.free_users || 0,
+        monthly_analyses: metrics.monthly_analyses || 0,
+        weekly_signups: metrics.weekly_signups || 0,
+        monthly_signups: metrics.monthly_signups || 0
       };
     },
     staleTime: 30 * 1000, // 30 seconds
