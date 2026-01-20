@@ -172,7 +172,7 @@ export default function Auth() {
         }
       } else {
         toast.success('Account created successfully!');
-        navigate('/');
+        navigate('/thank-you');
       }
     } catch (err) {
       toast.error('An unexpected error occurred');

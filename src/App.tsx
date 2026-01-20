@@ -11,6 +11,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 const Landing = lazy(() => import("./pages/Landing"));
 const AppDashboard = lazy(() => import("./pages/AppDashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
+const ThankYou = lazy(() => import("./pages/ThankYou"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
@@ -47,6 +48,11 @@ const App = () => (
               {/* Public routes */}
               <Route path="/" element={<Landing />} />
               <Route path="/auth" element={<Auth />} />
+              <Route path="/thank-you" element={
+                <ProtectedRoute>
+                  <ThankYou />
+                </ProtectedRoute>
+              } />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
               
