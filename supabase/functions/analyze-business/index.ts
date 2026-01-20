@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+// Embedded benchmarks are now seeded via database migration - no import needed
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -464,9 +465,13 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
 
 /**
  * Fetches all industry benchmarks from the database
+ * Auto-seeds from embedded data if empty
  */
 async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
   try {
+    // First, auto-seed if empty
+    await autoSeedBenchmarksIfEmpty(supabase);
+    
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
