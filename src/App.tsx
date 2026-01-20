@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
+import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
@@ -43,14 +44,36 @@ const App = () => (
         <BrowserRouter>
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
+              {/* Public routes */}
               <Route path="/" element={<Landing />} />
-              <Route path="/app" element={<AppDashboard />} />
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
-              <Route path="/admin" element={<AdminDashboard />} />
-              <Route path="/admin/benchmarks" element={<AdminBenchmarkUpload />} />
-              <Route path="/plus-settings" element={<PlusSettings />} />
+              
+              {/* Protected routes - require authentication */}
+              <Route path="/app" element={
+                <ProtectedRoute>
+                  <AppDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/plus-settings" element={
+                <ProtectedRoute>
+                  <PlusSettings />
+                </ProtectedRoute>
+              } />
+              
+              {/* Admin routes - require authentication + admin role */}
+              <Route path="/admin" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminDashboard />
+                </ProtectedRoute>
+              } />
+              <Route path="/admin/benchmarks" element={
+                <ProtectedRoute requireAdmin>
+                  <AdminBenchmarkUpload />
+                </ProtectedRoute>
+              } />
+              
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />
             </Routes>

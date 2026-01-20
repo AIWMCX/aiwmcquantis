@@ -42,6 +42,7 @@ export default function Auth() {
       // First check URL params (from old flow)
       const redirect = searchParams.get('redirect');
       const urlPlan = searchParams.get('plan') as 'plus' | null;
+      const returnUrl = searchParams.get('returnUrl');
       
       // Then check localStorage (from new flow)
       const storedPlan = localStorage.getItem('pending_checkout_plan') as 'plus' | null;
@@ -66,7 +67,9 @@ export default function Auth() {
           }
         });
       } else {
-        navigate('/app');
+        // Redirect to returnUrl if provided, otherwise to /app
+        const destination = returnUrl ? decodeURIComponent(returnUrl) : '/app';
+        navigate(destination);
       }
     }
   }, [isAuthenticated, searchParams, navigate]);
