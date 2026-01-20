@@ -1,11 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BrandingSettings } from '@/components/pro/BrandingSettings';
-import { ApiKeysManager } from '@/components/pro/ApiKeysManager';
-import { TeamSettings } from '@/components/pro/TeamSettings';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
@@ -14,18 +11,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   Palette, 
-  Key, 
-  Users, 
-  Crown, 
+  Zap, 
   ArrowLeft, 
   Lock,
   Sparkles 
 } from 'lucide-react';
 
-export default function ProSettings() {
+export default function PlusSettings() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { isPro, loading: subscriptionLoading, createCheckout } = useSubscription();
+  const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
   
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -75,7 +70,7 @@ export default function ProSettings() {
               <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
               <CardTitle>Authentication Required</CardTitle>
               <CardDescription>
-                Please sign in to access Pro settings
+                Please sign in to access Plus settings
               </CardDescription>
             </CardHeader>
             <CardContent className="flex justify-center">
@@ -90,8 +85,8 @@ export default function ProSettings() {
     );
   }
 
-  // Not Pro subscriber
-  if (!isPro) {
+  // Not Plus subscriber
+  if (!isPlus) {
     return (
       <div className="min-h-screen bg-background text-foreground flex flex-col">
         <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
@@ -105,49 +100,33 @@ export default function ProSettings() {
             Back to Dashboard
           </Button>
 
-          <Card className="border-warning/30 bg-gradient-to-br from-warning/5 to-background">
+          <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
             <CardHeader className="text-center">
-              <div className="mx-auto mb-4 p-4 rounded-full bg-warning/10 w-fit">
-                <Crown className="w-12 h-12 text-warning" />
+              <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 w-fit">
+                <Zap className="w-12 h-12 text-primary" />
               </div>
-              <CardTitle className="text-2xl">Upgrade to Pro</CardTitle>
+              <CardTitle className="text-2xl">Upgrade to Plus</CardTitle>
               <CardDescription className="text-base max-w-md mx-auto">
-                Unlock powerful Pro features including custom branding, API access, and team collaboration
+                Unlock powerful Plus features including custom branding for your PDF exports
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="p-4 rounded-lg border border-border bg-card">
-                  <Palette className="w-8 h-8 text-primary mb-3" />
-                  <h3 className="font-semibold mb-1">Custom Branding</h3>
-                  <p className="text-sm text-muted-foreground">
-                    White-label PDF exports with your company logo and colors
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border border-border bg-card">
-                  <Key className="w-8 h-8 text-primary mb-3" />
-                  <h3 className="font-semibold mb-1">API Access</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Programmatic access for integrations and automation
-                  </p>
-                </div>
-                <div className="p-4 rounded-lg border border-border bg-card">
-                  <Users className="w-8 h-8 text-primary mb-3" />
-                  <h3 className="font-semibold mb-1">Team Workspaces</h3>
-                  <p className="text-sm text-muted-foreground">
-                    Collaborate with your team on shared analyses
-                  </p>
-                </div>
+              <div className="p-4 rounded-lg border border-border bg-card max-w-sm mx-auto">
+                <Palette className="w-8 h-8 text-primary mb-3" />
+                <h3 className="font-semibold mb-1">Custom Branding</h3>
+                <p className="text-sm text-muted-foreground">
+                  White-label PDF exports with your company logo and colors
+                </p>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
                 <Button
                   size="lg"
-                  onClick={() => createCheckout('pro')}
-                  className="gap-2 bg-warning hover:bg-warning/90 text-warning-foreground"
+                  onClick={() => createCheckout('plus')}
+                  className="gap-2"
                 >
                   <Sparkles className="w-4 h-4" />
-                  Upgrade to Pro - $29/month
+                  Upgrade to Plus - $17/month
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   14-day free trial included
@@ -161,7 +140,7 @@ export default function ProSettings() {
     );
   }
 
-  // Pro subscriber - show settings
+  // Plus subscriber - show settings
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
@@ -178,45 +157,18 @@ export default function ProSettings() {
           </Button>
 
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">Pro Settings</h1>
-            <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
-              <Crown className="w-3 h-3" />
-              Pro
+            <h1 className="text-3xl font-bold">Plus Settings</h1>
+            <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
+              <Zap className="w-3 h-3" />
+              Plus
             </Badge>
           </div>
           <p className="text-muted-foreground mt-2">
-            Manage your Pro features: custom branding, API access, and team collaboration
+            Manage your Plus features: customize your brand for PDF exports
           </p>
         </div>
 
-        <Tabs defaultValue="branding" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="branding" className="gap-2">
-              <Palette className="w-4 h-4" />
-              <span className="hidden sm:inline">Branding</span>
-            </TabsTrigger>
-            <TabsTrigger value="api" className="gap-2">
-              <Key className="w-4 h-4" />
-              <span className="hidden sm:inline">API</span>
-            </TabsTrigger>
-            <TabsTrigger value="team" className="gap-2">
-              <Users className="w-4 h-4" />
-              <span className="hidden sm:inline">Team</span>
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="branding">
-            <BrandingSettings />
-          </TabsContent>
-
-          <TabsContent value="api">
-            <ApiKeysManager />
-          </TabsContent>
-
-          <TabsContent value="team">
-            <TeamSettings />
-          </TabsContent>
-        </Tabs>
+        <BrandingSettings />
       </main>
 
       <Footer />

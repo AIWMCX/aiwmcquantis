@@ -17,7 +17,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, Crown, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export default function Index() {
@@ -39,7 +39,6 @@ export default function Index() {
   const { isAuthenticated } = useAuth();
   const { 
     isPlus,
-    isPro, 
     isFree, 
     remainingAnalyses, 
     loading: subscriptionLoading,
@@ -210,12 +209,7 @@ export default function Index() {
               <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-3">
                   <div className="flex items-center gap-2">
-                    {isPro ? (
-                      <Badge className="gap-1 bg-warning/10 text-warning border-warning/30">
-                        <Crown className="w-3 h-3" />
-                        Pro
-                      </Badge>
-                    ) : isPlus ? (
+                    {isPlus ? (
                       <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
                         <Zap className="w-3 h-3" />
                         Plus
@@ -231,7 +225,7 @@ export default function Index() {
                       {remainingAnalyses} of 3 analyses remaining this month
                     </span>
                   )}
-                  {(isPlus || isPro) && (
+                  {isPlus && (
                     <span className="text-sm text-muted-foreground">
                       Unlimited analyses
                     </span>
@@ -245,10 +239,10 @@ export default function Index() {
                     </Button>
                   ) : (
                     <div className="flex items-center gap-2">
-                      {isPro && (
-                        <Button size="sm" variant="outline" onClick={() => navigate('/pro')} className="gap-1">
+                      {isPlus && (
+                        <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1">
                           <Settings className="w-3 h-3" />
-                          Pro Settings
+                          Plus Settings
                         </Button>
                       )}
                       <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">

@@ -812,6 +812,10 @@ export type Database = {
         Returns: boolean
       }
       verify_paid_subscription: { Args: { p_user_id: string }; Returns: string }
+      verify_plus_subscription: {
+        Args: { p_user_id: string }
+        Returns: boolean
+      }
       verify_pro_subscription: { Args: { p_user_id: string }; Returns: boolean }
     }
     Enums: {

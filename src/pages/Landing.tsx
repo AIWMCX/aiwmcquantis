@@ -39,7 +39,8 @@ export default function Landing() {
       navigate('/app');
       return;
     }
-    const plan = planName.toLowerCase() as 'plus' | 'pro';
+    // Only Plus plan available now (Pro tier removed)
+    const plan = 'plus' as const;
     setLoadingPlan(planName);
     console.log('[Landing] Processing plan:', plan);
     if (user) {
@@ -111,16 +112,7 @@ export default function Landing() {
     price: '$17',
     period: 'per month',
     description: 'For serious entrepreneurs',
-    features: ['14-day free trial', 'Unlimited analyses', 'Advanced financial modeling', 'Complete business plans', 'Marketing strategy', 'PDF export', 'Priority support'],
-    cta: 'Start Free Trial',
-    highlighted: false,
-    hasTrial: true
-  }, {
-    name: 'Pro',
-    price: '$29',
-    period: 'per month',
-    description: 'For teams and agencies',
-    features: ['14-day free trial', 'Everything in Plus', 'Team collaboration', 'API access', 'Custom branding', 'Dedicated account manager', 'SLA guarantee'],
+    features: ['14-day free trial', 'Unlimited analyses', 'Advanced financial modeling', 'Complete business plans', 'Marketing strategy', 'Document intelligence', 'PDF export', 'Custom branding', 'Priority support'],
     cta: 'Start Free Trial',
     highlighted: true,
     hasTrial: true
@@ -300,7 +292,7 @@ export default function Landing() {
               Start free and upgrade as you grow. No hidden fees.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-5xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
             {pricingPlans.map(plan => (
               <div key={plan.name} className={`relative p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl scale-105' : 'border-border bg-card'}`}>
                 {plan.highlighted && (

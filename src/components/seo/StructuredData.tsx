@@ -22,7 +22,7 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
       sameAs: []
     };
 
-    // SoftwareApplication Schema
+    // SoftwareApplication Schema - Pro tier removed
     const softwareSchema = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
@@ -44,15 +44,7 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
           price: '17',
           priceCurrency: 'USD',
           priceValidUntil: '2026-12-31',
-          description: 'Unlimited analyses with advanced financial modeling and PDF export'
-        },
-        {
-          '@type': 'Offer',
-          name: 'Pro',
-          price: '29',
-          priceCurrency: 'USD',
-          priceValidUntil: '2026-12-31',
-          description: 'Team collaboration, API access, and custom branding'
+          description: 'Unlimited analyses with advanced financial modeling, document intelligence, PDF export, and custom branding'
         }
       ],
       aggregateRating: {
@@ -68,7 +60,8 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
         'Business Plan Generation',
         'Document Intelligence',
         'Location-Based Insights',
-        'PDF Export'
+        'PDF Export',
+        'Custom Branding'
       ]
     };
 
