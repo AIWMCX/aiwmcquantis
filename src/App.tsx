@@ -12,6 +12,7 @@ const AppDashboard = lazy(() => import("./pages/AppDashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
+const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const PlusSettings = lazy(() => import("./pages/PlusSettings"));
@@ -47,6 +48,7 @@ const App = () => (
               <Route path="/auth" element={<Auth />} />
               <Route path="/privacy" element={<Privacy />} />
               <Route path="/terms" element={<Terms />} />
+              <Route path="/admin" element={<AdminDashboard />} />
               <Route path="/admin/benchmarks" element={<AdminBenchmarkUpload />} />
               <Route path="/plus-settings" element={<PlusSettings />} />
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
