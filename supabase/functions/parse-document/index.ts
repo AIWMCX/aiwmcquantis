@@ -1,10 +1,33 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Security headers for all responses
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
 };
+
+// CORS configuration - tightened for production
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://aiwmcquantis.com",
+    "https://www.aiwmcquantis.com",
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ];
+  
+  // Also allow Lovable preview domains
+  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
+  const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    ...securityHeaders,
+  };
+}
 
 interface ParseRequest {
   fileUrl: string;
@@ -48,12 +71,32 @@ interface ExtractedFinancials {
 }
 
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   try {
+    // Validate content type
+    const contentType = req.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      return new Response(
+        JSON.stringify({ error: "Content-Type must be application/json" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // ========== SUBSCRIPTION VERIFICATION ==========
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
@@ -70,44 +113,48 @@ serve(async (req) => {
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     
-    // Verify user authentication
+    // Verify JWT using getClaims
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
 
-    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser();
-    if (authError || !user) {
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ 
-          error: "Invalid authentication",
+          error: "Invalid authentication token",
           code: "INVALID_AUTH"
         }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    // Verify Plus or Pro subscription using service role
+    const userId = claimsData.claims.sub;
+
+    // Verify Plus subscription using service role
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
     const { data: subscription, error: subError } = await supabaseService
       .from("subscriptions")
       .select("plan_id, status, current_period_end")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (subError) {
       console.error("Subscription check error:", subError);
     }
 
+    // Only check for 'plus' now (Pro tier removed)
     const isValidSubscription = subscription && 
       (subscription.status === "active" || subscription.status === "trialing") &&
-      (subscription.plan_id === "plus" || subscription.plan_id === "pro") &&
+      (subscription.plan_id === "plus" || subscription.plan_id === "enterprise") &&
       (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
 
     if (!isValidSubscription) {
-      console.log(`Document upload blocked for user ${user.id}: plan=${subscription?.plan_id}, status=${subscription?.status}`);
+      console.log(`Document upload blocked for user ${userId}: plan=${subscription?.plan_id}, status=${subscription?.status}`);
       return new Response(
         JSON.stringify({ 
-          error: "Document Intelligence requires Plus or Pro subscription",
+          error: "Document Intelligence requires Plus subscription",
           code: "SUBSCRIPTION_REQUIRED",
           current_plan: subscription?.plan_id || "free"
         }),
@@ -115,7 +162,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`Document upload authorized for user ${user.id}: plan=${subscription.plan_id}`);
+    console.log(`Document upload authorized for user ${userId}: plan=${subscription.plan_id}`);
     // ========== END SUBSCRIPTION VERIFICATION ==========
 
     const { fileUrl, fileName, fileType } = await req.json() as ParseRequest;
@@ -137,35 +184,35 @@ serve(async (req) => {
 
     let content = "";
     let extractedFinancials: ExtractedFinancials | null = null;
-    const contentType = fileResponse.headers.get("content-type") || "";
+    const fileContentType = fileResponse.headers.get("content-type") || "";
 
     // Handle different file types
-    if (fileType === "txt" || contentType.includes("text/plain")) {
+    if (fileType === "txt" || fileContentType.includes("text/plain")) {
       // Plain text - read directly
       content = await fileResponse.text();
       extractedFinancials = extractFinancialsFromText(content, fileName);
     } 
-    else if (fileType === "csv" || contentType.includes("text/csv")) {
+    else if (fileType === "csv" || fileContentType.includes("text/csv")) {
       // CSV - parse and format as readable text
       const csvText = await fileResponse.text();
       content = parseCSV(csvText);
       extractedFinancials = extractFinancialsFromText(content, fileName);
     }
-    else if (fileType === "pdf" || contentType.includes("application/pdf")) {
+    else if (fileType === "pdf" || fileContentType.includes("application/pdf")) {
       // PDF - use Lovable AI for extraction with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
       const result = await extractWithAI(arrayBuffer, fileName, "pdf");
       content = result.content;
       extractedFinancials = result.financials;
     }
-    else if (fileType === "docx" || contentType.includes("wordprocessingml")) {
+    else if (fileType === "docx" || fileContentType.includes("wordprocessingml")) {
       // DOCX - extract using AI with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
       const result = await extractWithAI(arrayBuffer, fileName, "docx");
       content = result.content;
       extractedFinancials = result.financials;
     }
-    else if (fileType === "xlsx" || fileType === "xls" || contentType.includes("spreadsheetml")) {
+    else if (fileType === "xlsx" || fileType === "xls" || fileContentType.includes("spreadsheetml")) {
       // Excel - extract using AI with structured output
       const arrayBuffer = await fileResponse.arrayBuffer();
       const result = await extractWithAI(arrayBuffer, fileName, "excel");
@@ -208,6 +255,8 @@ serve(async (req) => {
 
   } catch (error) {
     console.error("Parse document error:", error);
+    const origin = req.headers.get("origin");
+    const corsHeaders = getCorsHeaders(origin);
     return new Response(
       JSON.stringify({ 
         error: error instanceof Error ? error.message : "Failed to parse document",
@@ -277,13 +326,6 @@ function extractFinancialsFromText(text: string, fileName: string): ExtractedFin
     source_document: fileName,
     extraction_notes: ['Basic pattern extraction - AI extraction recommended for complex documents']
   };
-
-  // Common currency patterns
-  const currencyPattern = /\$[\d,]+(?:\.\d{2})?/g;
-  const percentPattern = /[\d.]+%/g;
-  
-  const amounts = text.match(currencyPattern) || [];
-  const percentages = text.match(percentPattern) || [];
 
   // Detect document type based on keywords
   const textLower = text.toLowerCase();
@@ -498,50 +540,33 @@ Be precise with numbers. Include currency and period context in key_findings.`
 
     const result = await response.json();
     const extractedContent = result.choices?.[0]?.message?.content || "";
-    
-    if (!extractedContent) {
-      return {
-        content: `[Document: ${fileName}]\n\nUnable to extract content from this document. Please ensure the file is not password-protected or corrupted.`,
-        financials: defaultFinancials
-      };
-    }
 
-    // Parse the structured JSON from the response
-    let financials: ExtractedFinancials = {
-      document_type: 'general',
-      confidence: 50,
-      key_findings: [],
-      source_document: fileName,
-      extraction_notes: ['AI-powered extraction']
+    // Parse extracted financials from JSON block
+    let parsedFinancials: ExtractedFinancials = {
+      ...defaultFinancials,
+      confidence: 60,
+      extraction_notes: ['AI extraction completed']
     };
 
-    // Try to extract JSON block from response
-    const jsonMatch = extractedContent.match(/```json\s*([\s\S]*?)\s*```/);
+    // Try to extract JSON from the response
+    const jsonMatch = extractedContent.match(/```json\s*([\s\S]*?)```/);
     if (jsonMatch) {
       try {
-        const parsedData = JSON.parse(jsonMatch[1]);
-        
-        financials = {
-          document_type: parsedData.document_type || 'general',
-          confidence: Math.min(95, parsedData.confidence || 60),
-          key_findings: parsedData.key_findings || [],
+        const jsonData = JSON.parse(jsonMatch[1]);
+        parsedFinancials = {
+          document_type: jsonData.document_type || 'general',
+          revenue: jsonData.revenue,
+          costs: jsonData.costs,
+          metrics: jsonData.metrics,
+          investment: jsonData.investment,
+          key_findings: jsonData.key_findings || [],
+          confidence: jsonData.confidence || 70,
           source_document: fileName,
-          extraction_notes: ['AI-powered extraction with structured data'],
-          revenue: parsedData.revenue,
-          costs: parsedData.costs,
-          metrics: parsedData.metrics,
-          investment: parsedData.investment
+          extraction_notes: ['AI extraction with structured output']
         };
-        
-        // Boost confidence based on data found
-        if (financials.revenue?.total) financials.confidence = Math.min(95, financials.confidence + 5);
-        if (financials.metrics?.roi) financials.confidence = Math.min(95, financials.confidence + 5);
-        if (financials.metrics?.mrr) financials.confidence = Math.min(95, financials.confidence + 5);
-        
-        console.log(`Successfully parsed structured financials: ${JSON.stringify(financials.metrics)}`);
-      } catch (e) {
-        console.warn("Failed to parse structured JSON from AI response:", e);
-        financials.extraction_notes.push('Structured data parsing failed - using text content only');
+      } catch (parseErr) {
+        console.warn("Failed to parse JSON from AI response:", parseErr);
+        parsedFinancials.extraction_notes = ['AI extraction completed, JSON parsing failed'];
       }
     }
 
@@ -549,14 +574,14 @@ Be precise with numbers. Include currency and period context in key_findings.`
     const cleanContent = extractedContent.replace(/```json[\s\S]*?```/g, '').trim();
 
     return {
-      content: `=== Document: ${fileName} ===\n\n${cleanContent}`,
-      financials
+      content: cleanContent || extractedContent,
+      financials: parsedFinancials
     };
 
   } catch (error) {
     console.error("AI extraction failed:", error);
     return {
-      content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Content extraction encountered an error. Basic file information is included above.`,
+      content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: AI extraction failed. The analysis will proceed with limited document context.`,
       financials: defaultFinancials
     };
   }

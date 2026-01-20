@@ -2,14 +2,48 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Security headers for all responses
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
 };
 
+// CORS configuration - tightened for production
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://aiwmcquantis.com",
+    "https://www.aiwmcquantis.com",
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ];
+  
+  // Also allow Lovable preview domains
+  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
+  const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    ...securityHeaders,
+  };
+}
+
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
+  }
+
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
   }
 
   try {
@@ -25,7 +59,10 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Create Supabase client
@@ -35,19 +72,26 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error("User not authenticated");
+    // Verify JWT and get user
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    console.log(`Creating portal session for user: ${user.email}`);
+    const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email;
+
+    console.log(`Creating portal session for user: ${userEmail}`);
 
     // Get user's subscription to find their Stripe customer ID
     const { data: subscription, error: subError } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     if (subError) {
@@ -58,9 +102,9 @@ serve(async (req) => {
 
     // If no customer ID in DB, try to find by email in Stripe
     if (!customerId) {
-      console.log(`No customer ID in DB, searching Stripe by email: ${user.email}`);
+      console.log(`No customer ID in DB, searching Stripe by email: ${userEmail}`);
       const customers = await stripe.customers.list({
-        email: user.email!,
+        email: userEmail!,
         limit: 1,
       });
       
@@ -73,21 +117,24 @@ serve(async (req) => {
           await supabase
             .from("subscriptions")
             .update({ stripe_customer_id: customerId })
-            .eq("user_id", user.id);
+            .eq("user_id", userId);
           console.log(`Updated subscription with Stripe customer ID`);
         }
       }
     }
 
     if (!customerId) {
-      throw new Error("No Stripe customer found. Please subscribe first.");
+      return new Response(
+        JSON.stringify({ error: "No Stripe customer found. Please subscribe first." }),
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Create portal session
-    const origin = req.headers.get("origin") || "https://aiwmcquantis.com";
+    const returnOrigin = origin || "https://aiwmcquantis.com";
     const portalSession = await stripe.billingPortal.sessions.create({
       customer: customerId,
-      return_url: `${origin}/app`,
+      return_url: `${returnOrigin}/app`,
     });
 
     console.log(`Portal session created: ${portalSession.id}`);

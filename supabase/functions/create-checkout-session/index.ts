@@ -2,18 +2,61 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// Security headers for all responses
+const securityHeaders = {
+  "X-Content-Type-Options": "nosniff",
+  "X-Frame-Options": "DENY",
+  "X-XSS-Protection": "1; mode=block",
 };
 
+// CORS configuration - tightened for production
+function getCorsHeaders(origin: string | null): Record<string, string> {
+  const allowedOrigins = [
+    "https://aiwmcquantis.com",
+    "https://www.aiwmcquantis.com",
+    "http://localhost:5173",
+    "http://localhost:8080",
+  ];
+  
+  // Also allow Lovable preview domains
+  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
+  const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
+  
+  return {
+    "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
+    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+    "Access-Control-Allow-Methods": "POST, OPTIONS",
+    ...securityHeaders,
+  };
+}
+
 serve(async (req) => {
+  const origin = req.headers.get("origin");
+  const corsHeaders = getCorsHeaders(origin);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Only allow POST requests
+  if (req.method !== "POST") {
+    return new Response(
+      JSON.stringify({ error: "Method not allowed" }),
+      { status: 405, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
   try {
+    // Validate content type
+    const contentType = req.headers.get("content-type");
+    if (!contentType?.includes("application/json")) {
+      return new Response(
+        JSON.stringify({ error: "Content-Type must be application/json" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     if (!stripeSecretKey) {
       throw new Error("STRIPE_SECRET_KEY not configured");
@@ -26,7 +69,10 @@ serve(async (req) => {
     // Get the authorization header
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
-      throw new Error("No authorization header");
+      return new Response(
+        JSON.stringify({ error: "Authorization required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // Create Supabase client
@@ -36,33 +82,46 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
 
-    // Get the user
-    const { data: { user }, error: userError } = await supabase.auth.getUser();
-    if (userError || !user) {
-      throw new Error("User not authenticated");
+    // Verify JWT and get user
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication token" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    const userId = claimsData.claims.sub;
+    const userEmail = claimsData.claims.email;
 
     const { plan } = await req.json();
-    console.log(`Creating checkout session for plan: ${plan}, user: ${user.email}`);
+    console.log(`Creating checkout session for plan: ${plan}, user: ${userEmail}`);
 
-    if (!["plus", "pro"].includes(plan)) {
-      throw new Error("Invalid plan selected. Valid plans: plus, pro");
+    // SECURITY: Only allow 'plus' plan - Pro tier has been removed
+    if (plan !== "plus") {
+      console.warn(`Invalid plan requested: ${plan}`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Invalid plan. Only 'plus' plan is available.",
+          valid_plans: ["plus"]
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Get the price ID based on plan
-    const priceId = plan === "plus" 
-      ? Deno.env.get("STRIPE_PLUS_PRICE_ID")
-      : Deno.env.get("STRIPE_PRO_PRICE_ID");
-
+    // Get the Plus price ID
+    const priceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
     if (!priceId) {
-      throw new Error(`Price ID not configured for ${plan} plan`);
+      console.error("STRIPE_PLUS_PRICE_ID not configured");
+      throw new Error("Payment configuration error. Please contact support.");
     }
 
     // Check if user already has a Stripe customer
     const { data: existingSubscription } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
-      .eq("user_id", user.id)
+      .eq("user_id", userId)
       .maybeSingle();
 
     let customerId = existingSubscription?.stripe_customer_id;
@@ -71,7 +130,7 @@ serve(async (req) => {
     if (!customerId) {
       // Check if customer exists in Stripe by email
       const existingCustomers = await stripe.customers.list({
-        email: user.email,
+        email: userEmail,
         limit: 1,
       });
 
@@ -80,9 +139,9 @@ serve(async (req) => {
       } else {
         // Create new customer
         const customer = await stripe.customers.create({
-          email: user.email,
+          email: userEmail,
           metadata: {
-            supabase_user_id: user.id,
+            supabase_user_id: userId,
           },
         });
         customerId = customer.id;
@@ -90,10 +149,10 @@ serve(async (req) => {
     }
 
     // Create checkout session
-    const origin = req.headers.get("origin") || "https://aiwmcquantis.com";
+    const returnOrigin = origin || "https://aiwmcquantis.com";
     const session = await stripe.checkout.sessions.create({
       customer: customerId,
-      client_reference_id: user.id, // PRIMARY: Used for user identification
+      client_reference_id: userId, // PRIMARY: Used for user identification
       mode: "subscription",
       payment_method_types: ["card"],
       line_items: [
@@ -102,17 +161,17 @@ serve(async (req) => {
           quantity: 1,
         },
       ],
-      success_url: `${origin}/app?checkout=success`,
-      cancel_url: `${origin}/app?checkout=canceled`,
+      success_url: `${returnOrigin}/app?checkout=success`,
+      cancel_url: `${returnOrigin}/app?checkout=canceled`,
       subscription_data: {
         metadata: {
-          supabase_user_id: user.id,
-          plan: plan,
+          supabase_user_id: userId,
+          plan: "plus",
         },
       },
       metadata: {
-        supabase_user_id: user.id,
-        plan: plan,
+        supabase_user_id: userId,
+        plan: "plus",
       },
     });
 
