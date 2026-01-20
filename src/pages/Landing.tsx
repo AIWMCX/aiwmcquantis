@@ -7,6 +7,8 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { FAQSection } from '@/components/landing/FAQSection';
+import { trackCtaClick } from '@/lib/analytics';
+
 export default function Landing() {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -187,7 +189,7 @@ export default function Landing() {
 
             {/* Primary CTA - Dominant */}
             <div className="flex flex-col items-center gap-3 mb-8 md:mb-10">
-              <Link to="/app" className="w-full sm:w-auto">
+              <Link to="/app" className="w-full sm:w-auto" onClick={() => trackCtaClick('get_free_analysis', 'hero_primary')}>
                 <Button size="lg" className="w-full sm:w-auto gap-2 text-base sm:text-lg px-8 py-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
                   <Play className="w-5 h-5" />
                   Get My Free Analysis
@@ -310,7 +312,7 @@ export default function Landing() {
             <p className="text-muted-foreground mb-4">
               Be among the first to try our platform and help shape its future.
             </p>
-            <Link to="/app">
+            <Link to="/app" onClick={() => trackCtaClick('try_beta_access', 'why_choose_us')}>
               <Button size="lg" variant="outline" className="gap-2">
                 Try Free Beta Access
                 <ArrowRight className="w-4 h-4" />
@@ -396,7 +398,7 @@ export default function Landing() {
                 Join our growing community of entrepreneurs using AI-powered analysis. 
                 Start for free, no credit card required.
               </p>
-              <Link to="/app">
+              <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
                 <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6">
                   Start Your Free Analysis
                   <ArrowRight className="w-5 h-5" />
@@ -428,7 +430,7 @@ export default function Landing() {
 
       {/* Mobile Sticky CTA */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
-        <Link to="/app" className="block">
+        <Link to="/app" className="block" onClick={() => trackCtaClick('get_free_analysis', 'mobile_sticky')}>
           <Button size="lg" className="w-full gap-2 text-base py-6 shadow-xl">
             <Play className="w-5 h-5" />
             Get My Free Analysis
