@@ -679,6 +679,18 @@ export type Database = {
       }
     }
     Views: {
+      admin_metrics: {
+        Row: {
+          free_users: number | null
+          monthly_analyses: number | null
+          monthly_signups: number | null
+          plus_subscribers: number | null
+          total_analyses: number | null
+          total_users: number | null
+          weekly_signups: number | null
+        }
+        Relationships: []
+      }
       subscriptions_public: {
         Row: {
           created_at: string | null
@@ -763,6 +775,20 @@ export type Database = {
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
+      get_daily_signups: {
+        Args: { days_back?: number }
+        Returns: {
+          signup_count: number
+          signup_date: string
+        }[]
+      }
+      get_monthly_analyses: {
+        Args: { months_back?: number }
+        Returns: {
+          analyses_count: number
+          month_year: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

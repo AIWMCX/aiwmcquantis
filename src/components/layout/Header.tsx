@@ -1,8 +1,9 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Moon, Sun, LogOut, User } from 'lucide-react';
+import { Brain, Moon, Sun, LogOut, User, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
+import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 
 interface HeaderProps {
@@ -12,6 +13,7 @@ interface HeaderProps {
 
 export function Header({ darkMode, onToggleTheme }: HeaderProps) {
   const { user, isAuthenticated, signOut, isLoading } = useAuth();
+  const { isAdmin } = useAdmin();
 
   const handleSignOut = async () => {
     const { error } = await signOut();
@@ -54,6 +56,14 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             <>
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
+                  {isAdmin && (
+                    <Button asChild variant="ghost" size="sm" className="hidden sm:flex">
+                      <Link to="/admin" className="flex items-center gap-1.5">
+                        <Shield className="w-4 h-4" />
+                        <span>Admin</span>
+                      </Link>
+                    </Button>
+                  )}
                   <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
                     <User className="w-4 h-4 text-muted-foreground" />
                     <span className="text-sm text-foreground truncate max-w-[150px]">
