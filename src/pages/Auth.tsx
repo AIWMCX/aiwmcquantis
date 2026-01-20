@@ -13,7 +13,8 @@ import { toast } from 'sonner';
 import { z } from 'zod';
 
 const emailSchema = z.string().trim().email('Please enter a valid email');
-const passwordSchema = z.string().min(6, 'Minimum 6 characters');
+const passwordSchema = z.string().min(12, 'Password must be at least 12 characters');
+const nameSchema = z.string().trim().min(2, 'Name must be at least 2 characters');
 const phoneSchema = z.string().optional().refine(
   (val) => !val || /^[+]?[\d\s()-]{10,}$/.test(val),
   'Please enter a valid phone number'
@@ -96,8 +97,10 @@ export default function Auth() {
   const validateSignup = () => {
     const newErrors: Record<string, string> = {};
     
-    if (!signupData.fullName.trim()) {
-      newErrors.signupName = 'Name is required';
+    try {
+      nameSchema.parse(signupData.fullName);
+    } catch (e) {
+      if (e instanceof z.ZodError) newErrors.signupName = e.errors[0].message;
     }
     
     try {
@@ -166,7 +169,7 @@ export default function Auth() {
         if (error.message.includes('already registered') || error.message.includes('already been registered')) {
           toast.error('This email is already registered. Please sign in instead.');
         } else if (error.message.includes('password')) {
-          toast.error('Password must be at least 6 characters');
+          toast.error('Password must be at least 12 characters');
         } else {
           toast.error(error.message || 'Failed to create account');
         }
@@ -264,7 +267,7 @@ export default function Auth() {
                       <Input
                         id="login-password"
                         type="password"
-                        placeholder="••••••••"
+                        placeholder="••••••••••••"
                         className="pl-10"
                         value={loginData.password}
                         onChange={(e) => setLoginData({ ...loginData, password: e.target.value })}
@@ -360,13 +363,16 @@ export default function Auth() {
                       <Input
                         id="signup-password"
                         type="password"
-                        placeholder="Minimum 6 characters"
+                        placeholder="Minimum 12 characters"
                         className="pl-10"
                         value={signupData.password}
                         onChange={(e) => setSignupData({ ...signupData, password: e.target.value })}
                         disabled={isLoading}
                       />
                     </div>
+                    <p className="text-xs text-muted-foreground">
+                      Password must be at least 12 characters for security
+                    </p>
                     {errors.signupPassword && (
                       <p className="text-sm text-destructive">{errors.signupPassword}</p>
                     )}
