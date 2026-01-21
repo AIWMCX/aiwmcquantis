@@ -6,7 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
-
+import { SkipToContent } from "./components/accessibility/SkipToContent";
 // Lazy load all pages for code splitting
 const Landing = lazy(() => import("./pages/Landing"));
 const AppDashboard = lazy(() => import("./pages/AppDashboard"));
@@ -43,6 +43,7 @@ const App = () => (
       <TooltipProvider>
         <Toaster richColors position="top-center" />
         <BrowserRouter>
+          <SkipToContent />
           <Suspense fallback={<LoadingFallback />}>
             <Routes>
               {/* Public routes */}

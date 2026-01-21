@@ -197,7 +197,7 @@ export default function Index() {
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
 
-      <main className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
+      <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
         {/* Subscription Status Bar */}
         {isAuthenticated && (
           <>
