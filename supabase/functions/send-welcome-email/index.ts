@@ -238,7 +238,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending welcome email to: ${email}`);
 
     const emailResponse = await resend.emails.send({
-      from: "AIWMC Quantis <onboarding@resend.dev>",
+      from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
       to: [email],
       replyTo: "AIWMCSRM@gmail.com",
       subject: "Welcome to AIWMC Quantis™ - Your Account is Ready!",
