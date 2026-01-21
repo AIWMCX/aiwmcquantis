@@ -10,6 +10,7 @@ import { FAQSection } from '@/components/landing/FAQSection';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { useExitIntent } from '@/hooks/useExitIntent';
 import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
+import { PopupErrorBoundary } from '@/components/marketing/PopupErrorBoundary';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -458,8 +459,10 @@ export default function Landing() {
       {/* Bottom padding for mobile sticky CTA */}
       <div className="h-20 md:hidden" />
 
-      {/* Exit Intent Popup */}
-      <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} onSubmitSuccess={markExitSubmitted} />
+      {/* Exit Intent Popup - wrapped in error boundary to prevent page crashes */}
+      <PopupErrorBoundary>
+        <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} onSubmitSuccess={markExitSubmitted} />
+      </PopupErrorBoundary>
     </div>
   );
 }
