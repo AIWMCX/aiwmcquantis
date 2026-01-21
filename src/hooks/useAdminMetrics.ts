@@ -75,9 +75,9 @@ export function useAdminMetrics() {
     queryFn: async (): Promise<MonthlyAnalysis[]> => {
       const { data, error } = await supabase.rpc('get_monthly_analyses', { months_back: 6 });
       if (error) throw error;
-      return (data || []).map((row: { month_year: string; analyses_count: number }) => ({
+      return (data || []).map((row: { month_year: string; analysis_count: number }) => ({
         month_year: row.month_year,
-        analyses_count: Number(row.analyses_count)
+        analyses_count: Number(row.analysis_count)
       }));
     },
     staleTime: 60 * 1000,

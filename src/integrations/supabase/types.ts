@@ -841,7 +841,7 @@ export type Database = {
       get_monthly_analyses: {
         Args: { months_back?: number }
         Returns: {
-          analyses_count: number
+          analysis_count: number
           month_year: string
         }[]
       }
