@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2, Mail, Lock } from 'lucide-react';
 import { z } from 'zod';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 import { trackLogin, trackEvent } from '@/lib/analytics';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
+import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
 
 // Login form validation schema
 const loginFormSchema = z.object({
@@ -35,9 +36,15 @@ interface LoginFormProps {
 
 export function LoginForm({ onSuccess, returnUrl, className }: LoginFormProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
+  // Get saved lead data or email from URL for prefilling
+  const savedLead = getSavedLead();
+  const emailFromUrl = searchParams.get('email');
+  const prefillEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : savedLead?.email || '';
 
   const {
     register,
@@ -47,17 +54,34 @@ export function LoginForm({ onSuccess, returnUrl, className }: LoginFormProps) {
     resolver: zodResolver(loginFormSchema),
     mode: 'onBlur',
     defaultValues: {
-      email: '',
+      email: prefillEmail,
       password: '',
     },
   });
 
+  // Initialize lead from URL on mount
+  useEffect(() => {
+    initLeadFromUrl();
+    
+    // Track returning lead
+    if (savedLead?.source === 'exit_intent_popup') {
+      trackEvent('lead_returning_login', { 
+        source: savedLead.source,
+        days_since_capture: Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24))
+      });
+    }
+  }, []);
+
   const onSubmit = async (data: LoginFormData) => {
     setIsLoading(true);
+    
+    // Check if this is a lead conversion
+    const leadConversion = isLeadConversion(data.email);
     
     try {
       trackEvent('login_attempt', { 
         email_domain: data.email.split('@')[1],
+        is_lead_conversion: leadConversion,
       });
 
       const { error } = await signIn(data.email, data.password);
@@ -77,7 +101,17 @@ export function LoginForm({ onSuccess, returnUrl, className }: LoginFormProps) {
         return;
       }
 
-      // Success!
+      // Success! Track lead conversion if applicable
+      if (leadConversion) {
+        trackEvent('lead_converted_to_login', { 
+          source: savedLead?.source,
+          days_to_convert: savedLead ? Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24)) : 0
+        });
+      }
+      
+      // Clear lead data after successful login
+      clearLeadData();
+      
       trackLogin('email');
       toast.success('Welcome back!');
       

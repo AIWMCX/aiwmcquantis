@@ -13,8 +13,11 @@ interface WelcomeEmailRequest {
   name: string;
 }
 
-const generateWelcomeEmailHtml = (name: string): string => {
+const generateWelcomeEmailHtml = (name: string, email: string): string => {
   const firstName = name.split(' ')[0] || 'Friend';
+  const encodedEmail = encodeURIComponent(email);
+  const signupUrl = `https://aiwmcquantis.lovable.app/auth?email=${encodedEmail}&tab=signup`;
+  const appUrl = `https://aiwmcquantis.lovable.app/app?email=${encodedEmail}`;
   
   return `
 <!DOCTYPE html>
@@ -59,7 +62,7 @@ const generateWelcomeEmailHtml = (name: string): string => {
                 Welcome, ${firstName}! 👋
               </h1>
               <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                Thank you for creating your account with AIWMC Quantis™. We're excited to have you on board!
+                Thank you for your interest in AIWMC Quantis™. We're excited to help you analyze your business ideas!
               </p>
             </td>
           </tr>
@@ -123,7 +126,7 @@ const generateWelcomeEmailHtml = (name: string): string => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td align="center" style="border-radius: 8px; background-color: #1a1a1a;">
-                    <a href="https://aiwmcquantis.lovable.app/app" target="_blank" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">
+                    <a href="${appUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">
                       Start Your First Analysis →
                     </a>
                   </td>
@@ -241,8 +244,8 @@ const handler = async (req: Request): Promise<Response> => {
       from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
       to: [email],
       replyTo: "AIWMCSRM@gmail.com",
-      subject: "Welcome to AIWMC Quantis™ - Your Account is Ready!",
-      html: generateWelcomeEmailHtml(name),
+      subject: "Welcome to AIWMC Quantis™ - Your Free Analysis Awaits!",
+      html: generateWelcomeEmailHtml(name, email),
     });
 
     console.log("Email sent successfully:", emailResponse);

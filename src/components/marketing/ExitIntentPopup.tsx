@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { saveLeadEmail } from '@/lib/leadMemory';
 
 interface ExitIntentPopupProps {
   isOpen: boolean;
@@ -57,7 +58,10 @@ export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
 
       console.log('✅ Lead captured:', data);
       
-      // 2. Send the same welcome email used for signup
+      // 2. Save email to localStorage for prefilling auth forms
+      saveLeadEmail(email, 'exit_intent_popup');
+      
+      // 3. Send the same welcome email used for signup
       const emailName = email.split('@')[0].replace(/[._-]/g, ' ') || 'Friend';
       const capitalizedName = emailName.split(' ').map(word => 
         word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
