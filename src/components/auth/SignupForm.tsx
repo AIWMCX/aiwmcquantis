@@ -1,9 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Loader2, Mail, Lock, User, Shield, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +16,7 @@ import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { supabase } from '@/integrations/supabase/client';
+import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
 
 // Simplified signup form validation schema - optimized for conversion
 const signupFormSchema = z.object({
@@ -49,11 +50,19 @@ interface SignupFormProps {
 
 export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { signUp } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [signupComplete, setSignupComplete] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
+  const [isFromLead, setIsFromLead] = useState(false);
+
+  // Get saved lead data or email from URL for prefilling
+  const savedLead = getSavedLead();
+  const emailFromUrl = searchParams.get('email');
+  const prefillEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : savedLead?.email || '';
+  const prefillName = savedLead?.name || '';
 
   const {
     register,
@@ -65,12 +74,26 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     resolver: zodResolver(signupFormSchema),
     mode: 'onChange',
     defaultValues: {
-      fullName: '',
-      email: '',
+      fullName: prefillName,
+      email: prefillEmail,
       password: '',
       acceptTerms: false,
     },
   });
+
+  // Initialize lead from URL on mount
+  useEffect(() => {
+    initLeadFromUrl();
+    
+    // Track if user is from exit intent popup
+    if (savedLead?.source === 'exit_intent_popup') {
+      setIsFromLead(true);
+      trackEvent('lead_returning', { 
+        source: savedLead.source,
+        days_since_capture: Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24))
+      });
+    }
+  }, []);
 
   const password = watch('password');
   const passwordStrength = password ? checkPasswordStrength(password) : null;
@@ -85,9 +108,14 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
     
+    // Check if this is a lead conversion
+    const leadConversion = isLeadConversion(data.email);
+    
     try {
       trackEvent('signup_attempt', { 
         email_domain: data.email.split('@')[1],
+        is_lead_conversion: leadConversion,
+        lead_source: savedLead?.source,
       });
 
       const { error } = await signUp(
@@ -112,8 +140,20 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         return;
       }
 
-      // Success!
+      // Success! Track lead conversion if applicable
+      if (leadConversion) {
+        trackEvent('lead_converted_to_signup', { 
+          source: savedLead?.source,
+          days_to_convert: savedLead ? Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24)) : 0
+        });
+      }
+      
       trackSignup('email');
+      setSubmittedEmail(data.email);
+      setSignupComplete(true);
+      
+      // Clear lead data after successful signup
+      clearLeadData();
       setSubmittedEmail(data.email);
       setSignupComplete(true);
       
