@@ -14,6 +14,8 @@ import { trackSignup, trackEvent } from '@/lib/analytics';
 import { PasswordStrengthMeter, checkPasswordStrength } from './PasswordStrengthMeter';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
+import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
+import { supabase } from '@/integrations/supabase/client';
 
 // Signup form validation schema
 const signupFormSchema = z.object({
@@ -123,30 +125,37 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       setSubmittedEmail(data.email);
       setSignupComplete(true);
       
-      // Send welcome email via Resend
+      // Send welcome email via centralized service
       try {
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`,
-          {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
-            },
-            body: JSON.stringify({
-              email: data.email,
-              name: data.fullName,
-            }),
-          }
-        );
+        // Get the user ID for tracking
+        const { data: { user } } = await supabase.auth.getUser();
         
-        if (!response.ok) {
-          console.warn('Welcome email could not be sent:', await response.text());
+        trackEvent('email_welcome_email_attempt', { source: 'signup_form' });
+        
+        const result = await sendWelcomeEmail({
+          email: data.email,
+          name: data.fullName,
+        });
+        
+        if (result.success) {
+          if (user) {
+            markWelcomeEmailSent(user.id);
+          }
+          console.log('[SignupForm] Welcome email sent successfully');
+          trackEvent('email_welcome_email_sent', { source: 'signup_form' });
         } else {
-          console.log('Welcome email sent successfully');
+          console.error('[SignupForm] Welcome email failed:', result.error);
+          trackEvent('email_welcome_email_failed', { 
+            source: 'signup_form',
+            error: result.error 
+          });
         }
       } catch (emailError) {
-        console.warn('Failed to send welcome email:', emailError);
+        console.error('[SignupForm] Failed to send welcome email:', emailError);
+        trackEvent('email_welcome_email_failed', { 
+          source: 'signup_form',
+          error: emailError instanceof Error ? emailError.message : 'Unknown error'
+        });
         // Don't block signup if email fails
       }
       
