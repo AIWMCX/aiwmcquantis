@@ -1,0 +1,226 @@
+import { useState } from 'react';
+import { X, Sparkles, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { trackEvent } from '@/lib/analytics';
+import { toast } from 'sonner';
+import { supabase } from '@/integrations/supabase/client';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+
+interface ExitIntentPopupProps {
+  isOpen: boolean;
+  onClose: () => void;
+}
+
+export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
+  const [email, setEmail] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isSuccess, setIsSuccess] = useState(false);
+
+  if (!isOpen) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!email || !email.includes('@')) {
+      toast.error('Please enter a valid email address');
+      return;
+    }
+
+    setIsSubmitting(true);
+    trackEvent('exit_intent_email_submitted', { email_domain: email.split('@')[1] });
+
+    try {
+      const { data, error } = await supabase.rpc('capture_lead', {
+        p_email: email,
+        p_source: 'exit_intent_popup',
+        p_offer: 'free_analysis',
+        p_metadata: {
+          user_agent: navigator.userAgent,
+          referrer: document.referrer,
+          page_url: window.location.href,
+          timestamp: new Date().toISOString(),
+        },
+      });
+
+      if (error) {
+        if (error.message.includes('already captured')) {
+          toast.info("You've already requested an analysis. Check your email!");
+          setIsSuccess(true);
+        } else if (error.message.includes('Invalid email')) {
+          toast.error('Please enter a valid email address');
+        } else {
+          throw error;
+        }
+        return;
+      }
+
+      console.log('✅ Lead captured:', data);
+      setIsSuccess(true);
+      trackEvent('exit_intent_conversion', { lead_id: data });
+
+      setTimeout(() => {
+        onClose();
+      }, 4000);
+    } catch (error) {
+      console.error('Lead capture error:', error);
+      toast.error('Something went wrong. Please try again.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleClose = () => {
+    trackEvent('exit_intent_dismissed');
+    onClose();
+  };
+
+  const handleBackdropClick = (e: React.MouseEvent) => {
+    if (e.target === e.currentTarget) {
+      handleClose();
+    }
+  };
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div 
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 animate-in fade-in duration-300"
+        onClick={handleBackdropClick}
+      />
+
+      {/* Popup */}
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
+        <div className="bg-background border border-border rounded-2xl shadow-2xl max-w-md w-full p-6 md:p-8 pointer-events-auto animate-in zoom-in-95 slide-in-from-bottom-4 duration-300">
+          
+          {/* Close Button */}
+          <button 
+            onClick={handleClose}
+            className="absolute top-4 right-4 text-muted-foreground hover:text-foreground transition-colors"
+            aria-label="Close popup"
+          >
+            <X className="h-5 w-5" />
+          </button>
+
+          {isSuccess ? (
+            // Success State
+            <div className="text-center py-4">
+              <div className="w-16 h-16 bg-success/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle2 className="h-8 w-8 text-success" />
+              </div>
+              
+              <h3 className="text-2xl font-bold text-foreground mb-2">
+                🎉 You're All Set!
+              </h3>
+              
+              <p className="text-muted-foreground mb-4">
+                Check your inbox for your free AI analysis report.
+              </p>
+              
+              <p className="text-sm text-muted-foreground">
+                We'll also send you exclusive tips to grow your business with AI.
+              </p>
+            </div>
+          ) : (
+            // Main Content
+            <>
+              {/* Icon */}
+              <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Sparkles className="h-7 w-7 text-primary" />
+              </div>
+
+              {/* Headline */}
+              <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-2">
+                Wait! Don't Miss This...
+              </h2>
+
+              {/* Subheadline */}
+              <p className="text-center text-primary font-semibold text-lg mb-6">
+                Get a FREE AI Business Analysis worth $500
+              </p>
+
+              {/* Benefits */}
+              <div className="space-y-3 mb-6">
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Personalized AI Strategy</span> - Custom recommendations for your business
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">ROI Calculator</span> - See exactly how much you could save
+                  </p>
+                </div>
+                <div className="flex items-start gap-3">
+                  <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
+                  <p className="text-sm text-muted-foreground">
+                    <span className="font-medium text-foreground">Implementation Roadmap</span> - Step-by-step guide to get started
+                  </p>
+                </div>
+              </div>
+
+              {/* Email Form */}
+              <form onSubmit={handleSubmit} className="space-y-3">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Enter your work email"
+                  className="h-12"
+                  disabled={isSubmitting}
+                  required
+                />
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 text-base font-semibold"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Sending...
+                    </>
+                  ) : (
+                    <>
+                      Get My Free Analysis
+                      <ArrowRight className="ml-2 h-4 w-4" />
+                    </>
+                  )}
+                </Button>
+              </form>
+
+              {/* Trust Signals */}
+              <div className="mt-4 text-center">
+                <p className="text-xs text-muted-foreground flex items-center justify-center gap-2 flex-wrap">
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    No credit card
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    Instant delivery
+                  </span>
+                  <span>•</span>
+                  <span className="flex items-center gap-1">
+                    <CheckCircle2 className="h-3 w-3 text-success" />
+                    100% Free
+                  </span>
+                </p>
+              </div>
+
+              {/* Social Proof */}
+              <div className="mt-4 pt-4 border-t border-border text-center">
+                <p className="text-xs text-muted-foreground">
+                  🔥 <span className="font-medium">1,247 businesses</span> got their analysis this month
+                </p>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+    </>
+  );
+};

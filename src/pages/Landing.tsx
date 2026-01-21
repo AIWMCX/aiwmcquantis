@@ -7,7 +7,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { FAQSection } from '@/components/landing/FAQSection';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackCtaClick, trackEvent } from '@/lib/analytics';
+import { useExitIntent } from '@/hooks/useExitIntent';
+import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -20,6 +22,20 @@ export default function Landing() {
     }
     return false;
   });
+
+  // Exit Intent Hook - triggers when user moves mouse to leave the page
+  const { shouldShow: showExitPopup, close: closeExitPopup } = useExitIntent({
+    enabled: true,
+    threshold: 20,
+    delay: 500,
+    cookieExpiry: 7, // Show again after 7 days
+  });
+
+  useEffect(() => {
+    if (showExitPopup) {
+      trackEvent('exit_intent_shown', { page: 'landing' });
+    }
+  }, [showExitPopup]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -440,6 +456,9 @@ export default function Landing() {
 
       {/* Bottom padding for mobile sticky CTA */}
       <div className="h-20 md:hidden" />
+
+      {/* Exit Intent Popup */}
+      <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} />
     </div>
   );
 }

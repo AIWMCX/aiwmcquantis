@@ -371,6 +371,39 @@ export type Database = {
         }
         Relationships: []
       }
+      leads: {
+        Row: {
+          created_at: string | null
+          email: string
+          id: string
+          metadata: Json | null
+          offer: string
+          source: string
+          status: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          email: string
+          id?: string
+          metadata?: Json | null
+          offer: string
+          source: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          email?: string
+          id?: string
+          metadata?: Json | null
+          offer?: string
+          source?: string
+          status?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null
@@ -774,6 +807,15 @@ export type Database = {
         }[]
       }
       can_access_pii: { Args: { target_user_id: string }; Returns: boolean }
+      capture_lead: {
+        Args: {
+          p_email: string
+          p_metadata?: Json
+          p_offer: string
+          p_source: string
+        }
+        Returns: string
+      }
       check_anonymous_rate_limit:
         | {
             Args: {
