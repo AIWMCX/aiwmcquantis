@@ -2,6 +2,15 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Badge } from '@/components/ui/badge';
+import { 
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
 import { 
   Users, 
   BarChart3, 
@@ -10,7 +19,10 @@ import {
   RefreshCw,
   UserPlus,
   Target,
-  Activity
+  Activity,
+  Clock,
+  LogIn,
+  Sparkles
 } from 'lucide-react';
 import { useAdminMetrics } from '@/hooks/useAdminMetrics';
 import { 
@@ -34,7 +46,9 @@ export function AdminMetricsDashboard() {
     isRefetching,
     refetch, 
     dailySignups, 
-    monthlyAnalyses 
+    monthlyAnalyses,
+    recentUsers,
+    todaysActivity
   } = useAdminMetrics();
 
   const conversionRate = metrics 
@@ -42,6 +56,23 @@ export function AdminMetricsDashboard() {
     : '0';
   
   const mrr = metrics ? metrics.plus_subscribers * PLUS_PRICE : 0;
+
+  const formatTime = (dateString: string | null) => {
+    if (!dateString) return 'Never';
+    return new Date(dateString).toLocaleTimeString('en-US', { 
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric',
+      year: 'numeric'
+    });
+  };
 
   if (isLoading) {
     return (
@@ -62,6 +93,9 @@ export function AdminMetricsDashboard() {
     );
   }
 
+  const newSignupsToday = todaysActivity.filter(a => a.is_new_today);
+  const loginsToday = todaysActivity.filter(a => !a.is_new_today);
+
   return (
     <div className="space-y-6">
       {/* Header with refresh */}
@@ -75,6 +109,89 @@ export function AdminMetricsDashboard() {
           {isRefetching ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
+
+      {/* Today's Activity - Most Important Section */}
+      <Card className="border-primary/50 bg-primary/5">
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Clock className="w-5 h-5 text-primary" />
+            Today's Activity
+          </CardTitle>
+          <CardDescription>Real-time signups and logins for today</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* New Signups Today */}
+            <div>
+              <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                <Sparkles className="w-4 h-4 text-primary" />
+                New Signups Today ({newSignupsToday.length})
+              </h3>
+              {newSignupsToday.length > 0 ? (
+                <div className="space-y-2">
+                  {newSignupsToday.map((user) => (
+                    <div 
+                      key={user.user_id} 
+                      className="flex items-center justify-between p-3 bg-accent/50 rounded-lg border border-accent"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {user.full_name || 'No name'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <Badge variant="default">New</Badge>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          {formatTime(user.created_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 bg-muted/50 rounded-lg text-muted-foreground">
+                  No new signups today yet
+                </div>
+              )}
+            </div>
+
+            {/* Logins Today */}
+            <div>
+              <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
+                <LogIn className="w-4 h-4 text-primary" />
+                Logins Today ({loginsToday.length})
+              </h3>
+              {loginsToday.length > 0 ? (
+                <div className="space-y-2 max-h-[200px] overflow-y-auto">
+                  {loginsToday.map((user) => (
+                    <div 
+                      key={user.user_id} 
+                      className="flex items-center justify-between p-3 bg-secondary/50 rounded-lg border border-secondary"
+                    >
+                      <div>
+                        <p className="font-medium text-foreground">
+                          {user.full_name || 'No name'}
+                        </p>
+                        <p className="text-sm text-muted-foreground">{user.email}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-xs text-muted-foreground">
+                          {formatTime(user.last_sign_in_at)}
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center p-4 bg-muted/50 rounded-lg text-muted-foreground">
+                  No logins recorded today yet
+                </div>
+              )}
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Key Metrics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
@@ -150,6 +267,57 @@ export function AdminMetricsDashboard() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Recent Users Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            Recent Signups
+          </CardTitle>
+          <CardDescription>Users who signed up in the last 30 days</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {recentUsers.length > 0 ? (
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Signed Up</TableHead>
+                    <TableHead>Last Login</TableHead>
+                    <TableHead>Plan</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentUsers.map((user) => (
+                    <TableRow key={user.user_id}>
+                      <TableCell className="font-medium">
+                        {user.full_name || <span className="text-muted-foreground">No name</span>}
+                      </TableCell>
+                      <TableCell>{user.email}</TableCell>
+                      <TableCell>{formatDate(user.created_at)}</TableCell>
+                      <TableCell>
+                        {user.last_sign_in_at ? formatDate(user.last_sign_in_at) : 'Never'}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={user.plan_id === 'plus' ? 'default' : 'secondary'}>
+                          {user.plan_id === 'plus' ? 'Plus' : 'Free'}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          ) : (
+            <div className="text-center p-8 text-muted-foreground">
+              No recent signups found
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
