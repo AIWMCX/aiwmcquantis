@@ -10,9 +10,10 @@ import { saveLeadEmail } from '@/lib/leadMemory';
 interface ExitIntentPopupProps {
   isOpen: boolean;
   onClose: () => void;
+  onSubmitSuccess?: () => void;
 }
 
-export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
+export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntentPopupProps) => {
   const [email, setEmail] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
@@ -83,6 +84,9 @@ export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
 
       setIsSuccess(true);
       trackEvent('exit_intent_conversion', { lead_id: data });
+      
+      // Mark as submitted for smarter cooldown
+      onSubmitSuccess?.();
 
       setTimeout(() => {
         onClose();
