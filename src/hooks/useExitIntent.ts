@@ -3,12 +3,12 @@ import { useAuth } from '@/hooks/useAuth';
 
 interface ExitIntentOptions {
   enabled?: boolean;
-  threshold?: number; // pixels from top before triggering (desktop)
-  delay?: number; // ms delay before showing
-  cooldownDays?: number; // days before showing again after submission
-  dismissCooldownHours?: number; // hours before showing again if just dismissed
-  scrollDepthThreshold?: number; // % of page scrolled before enabling scroll-back trigger (mobile)
-  scrollBackThreshold?: number; // % scrolled back up to trigger (mobile)
+  threshold?: number;
+  delay?: number;
+  cooldownDays?: number;
+  dismissCooldownHours?: number;
+  scrollDepthThreshold?: number;
+  scrollBackThreshold?: number;
 }
 
 interface ExitIntentState {
@@ -52,8 +52,30 @@ const saveState = (state: ExitIntentState) => {
   }
 };
 
-// Detect if user is on mobile/touch device
-const isTouchDevice = () => {
+// Pure function - no hooks
+const checkCooldown = (cooldownDays: number, dismissCooldownHours: number): boolean => {
+  const state = getStoredState();
+  
+  if (state.lastSubmitted) {
+    const daysSinceSubmission = (Date.now() - new Date(state.lastSubmitted).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceSubmission < cooldownDays) return true;
+  }
+
+  if (state.lastDismissed) {
+    const hoursSinceDismissal = (Date.now() - new Date(state.lastDismissed).getTime()) / (1000 * 60 * 60);
+    if (hoursSinceDismissal < dismissCooldownHours) return true;
+  }
+
+  if (state.dismissCount >= 3 && state.lastDismissed) {
+    const daysSinceDismissal = (Date.now() - new Date(state.lastDismissed).getTime()) / (1000 * 60 * 60 * 24);
+    if (daysSinceDismissal < 7) return true;
+  }
+
+  return false;
+};
+
+// Pure function - no hooks
+const isTouchDevice = (): boolean => {
   if (typeof window === 'undefined') return false;
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 };
@@ -65,61 +87,33 @@ export const useExitIntent = (options: ExitIntentOptions = {}) => {
     delay = 500,
     cooldownDays = 14,
     dismissCooldownHours = 4,
-    scrollDepthThreshold = 40, // User must scroll 40% down first (engaged)
-    scrollBackThreshold = 25, // Then scroll back to 25% of page (leaving signal)
+    scrollDepthThreshold = 40,
+    scrollBackThreshold = 25,
   } = options;
 
+  // All hooks MUST be called unconditionally at the top
   const { user } = useAuth();
   const [shouldShow, setShouldShow] = useState(false);
   const [hasShown, setHasShown] = useState(false);
-  
-  // Track scroll state for mobile
   const maxScrollDepth = useRef(0);
   const hasReachedThreshold = useRef(false);
-  const isInitialized = useRef(false);
 
-  // Check if we're in cooldown period
-  const isInCooldown = useCallback(() => {
-    const state = getStoredState();
-    
-    if (state.lastSubmitted) {
-      const daysSinceSubmission = (Date.now() - new Date(state.lastSubmitted).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceSubmission < cooldownDays) return true;
-    }
-
-    if (state.lastDismissed) {
-      const hoursSinceDismissal = (Date.now() - new Date(state.lastDismissed).getTime()) / (1000 * 60 * 60);
-      if (hoursSinceDismissal < dismissCooldownHours) return true;
-    }
-
-    if (state.dismissCount >= 3 && state.lastDismissed) {
-      const daysSinceDismissal = (Date.now() - new Date(state.lastDismissed).getTime()) / (1000 * 60 * 60 * 24);
-      if (daysSinceDismissal < 7) return true;
-    }
-
-    return false;
-  }, [cooldownDays, dismissCooldownHours]);
-
+  // Effect for desktop mouse-leave detection
   useEffect(() => {
-    // Don't show to authenticated users
-    if (!enabled || user) {
-      setShouldShow(false);
-      return;
-    }
-
-    if (isInCooldown()) {
+    if (!enabled || user || hasShown) return;
+    if (checkCooldown(cooldownDays, dismissCooldownHours)) {
       setHasShown(true);
       return;
     }
 
     const isMobile = isTouchDevice();
+    if (isMobile) return;
+
     let isExiting = false;
     let timer: ReturnType<typeof setTimeout>;
 
-    // Desktop: Mouse leave detection
     const handleMouseLeave = (e: MouseEvent) => {
-      if (isMobile) return; // Skip on mobile
-      if (e.clientY <= threshold && !isExiting && !hasShown) {
+      if (e.clientY <= threshold && !isExiting) {
         isExiting = true;
         timer = setTimeout(() => {
           setShouldShow(true);
@@ -133,52 +127,60 @@ export const useExitIntent = (options: ExitIntentOptions = {}) => {
       if (timer) clearTimeout(timer);
     };
 
-    // Mobile: Scroll-depth detection
-    const handleScroll = () => {
-      if (!isMobile || hasShown) return;
+    const initTimer = setTimeout(() => {
+      document.addEventListener('mouseleave', handleMouseLeave);
+      document.addEventListener('mouseenter', handleMouseEnter);
+    }, 3000);
 
+    return () => {
+      clearTimeout(initTimer);
+      if (timer) clearTimeout(timer);
+      document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseenter', handleMouseEnter);
+    };
+  }, [enabled, threshold, delay, hasShown, user, cooldownDays, dismissCooldownHours]);
+
+  // Effect for mobile scroll-depth detection
+  useEffect(() => {
+    if (!enabled || user || hasShown) return;
+    if (checkCooldown(cooldownDays, dismissCooldownHours)) {
+      setHasShown(true);
+      return;
+    }
+
+    const isMobile = isTouchDevice();
+    if (!isMobile) return;
+
+    const handleScroll = () => {
       const scrollTop = window.scrollY;
       const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+      if (docHeight <= 0) return;
+      
       const scrollPercent = (scrollTop / docHeight) * 100;
 
-      // Track maximum scroll depth
       if (scrollPercent > maxScrollDepth.current) {
         maxScrollDepth.current = scrollPercent;
       }
 
-      // Check if user has scrolled deep enough to be "engaged"
       if (maxScrollDepth.current >= scrollDepthThreshold) {
         hasReachedThreshold.current = true;
       }
 
-      // If user was engaged and is now scrolling back up significantly
       if (hasReachedThreshold.current && scrollPercent <= scrollBackThreshold) {
-        // User scrolled down, engaged with content, now scrolling back up (leaving signal)
         setShouldShow(true);
         setHasShown(true);
       }
     };
 
-    // Initialize after delay
     const initTimer = setTimeout(() => {
-      isInitialized.current = true;
-      
-      if (!isMobile) {
-        document.addEventListener('mouseleave', handleMouseLeave);
-        document.addEventListener('mouseenter', handleMouseEnter);
-      } else {
-        window.addEventListener('scroll', handleScroll, { passive: true });
-      }
+      window.addEventListener('scroll', handleScroll, { passive: true });
     }, 3000);
 
     return () => {
       clearTimeout(initTimer);
-      document.removeEventListener('mouseleave', handleMouseLeave);
-      document.removeEventListener('mouseenter', handleMouseEnter);
       window.removeEventListener('scroll', handleScroll);
-      if (timer) clearTimeout(timer);
     };
-  }, [enabled, threshold, delay, hasShown, user, isInCooldown, scrollDepthThreshold, scrollBackThreshold]);
+  }, [enabled, hasShown, user, cooldownDays, dismissCooldownHours, scrollDepthThreshold, scrollBackThreshold]);
 
   const markSubmitted = useCallback(() => {
     const state = getStoredState();
