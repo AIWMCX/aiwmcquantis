@@ -24,11 +24,12 @@ export default function Landing() {
   });
 
   // Exit Intent Hook - triggers when user moves mouse to leave the page
-  const { shouldShow: showExitPopup, close: closeExitPopup } = useExitIntent({
+  const { shouldShow: showExitPopup, close: closeExitPopup, markSubmitted: markExitSubmitted } = useExitIntent({
     enabled: true,
     threshold: 20,
     delay: 500,
-    cookieExpiry: 7, // Show again after 7 days
+    cooldownDays: 14, // 14 days after email submission
+    dismissCooldownHours: 4, // 4 hours after dismiss (respect but don't give up)
   });
 
   useEffect(() => {
@@ -458,7 +459,7 @@ export default function Landing() {
       <div className="h-20 md:hidden" />
 
       {/* Exit Intent Popup */}
-      <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} />
+      <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} onSubmitSuccess={markExitSubmitted} />
     </div>
   );
 }
