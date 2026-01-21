@@ -846,6 +846,28 @@ export type Database = {
         }[]
       }
       get_my_phone: { Args: never; Returns: string }
+      get_recent_users: {
+        Args: { days_back?: number }
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          last_sign_in_at: string
+          plan_id: string
+          user_id: string
+        }[]
+      }
+      get_todays_activity: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          full_name: string
+          is_new_today: boolean
+          last_sign_in_at: string
+          user_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

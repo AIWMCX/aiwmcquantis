@@ -21,6 +21,24 @@ interface MonthlyAnalysis {
   analyses_count: number;
 }
 
+interface RecentUser {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  created_at: string;
+  last_sign_in_at: string | null;
+  plan_id: string;
+}
+
+interface TodaysActivity {
+  user_id: string;
+  email: string;
+  full_name: string | null;
+  last_sign_in_at: string | null;
+  created_at: string;
+  is_new_today: boolean;
+}
+
 export function useAdminMetrics() {
   const metricsQuery = useQuery({
     queryKey: ['admin-metrics'],
@@ -83,21 +101,67 @@ export function useAdminMetrics() {
     staleTime: 60 * 1000,
   });
 
+  const recentUsersQuery = useQuery({
+    queryKey: ['admin-recent-users'],
+    queryFn: async (): Promise<RecentUser[]> => {
+      const { data, error } = await supabase.rpc('get_recent_users', { days_back: 30 });
+      if (error) {
+        console.error('Failed to fetch recent users:', error.message);
+        throw error;
+      }
+      return (data || []).map((row: RecentUser) => ({
+        user_id: row.user_id,
+        email: row.email,
+        full_name: row.full_name,
+        created_at: row.created_at,
+        last_sign_in_at: row.last_sign_in_at,
+        plan_id: row.plan_id
+      }));
+    },
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
+  const todaysActivityQuery = useQuery({
+    queryKey: ['admin-todays-activity'],
+    queryFn: async (): Promise<TodaysActivity[]> => {
+      const { data, error } = await supabase.rpc('get_todays_activity');
+      if (error) {
+        console.error('Failed to fetch today\'s activity:', error.message);
+        throw error;
+      }
+      return (data || []).map((row: TodaysActivity) => ({
+        user_id: row.user_id,
+        email: row.email,
+        full_name: row.full_name,
+        last_sign_in_at: row.last_sign_in_at,
+        created_at: row.created_at,
+        is_new_today: row.is_new_today
+      }));
+    },
+    staleTime: 30 * 1000,
+    refetchInterval: 30 * 1000,
+  });
+
   const refetchAll = async () => {
     await Promise.all([
       metricsQuery.refetch(),
       dailySignupsQuery.refetch(),
       monthlyAnalysesQuery.refetch(),
+      recentUsersQuery.refetch(),
+      todaysActivityQuery.refetch(),
     ]);
   };
 
   return {
     metrics: metricsQuery.data,
     isLoading: metricsQuery.isLoading,
-    isRefetching: metricsQuery.isFetching || dailySignupsQuery.isFetching || monthlyAnalysesQuery.isFetching,
+    isRefetching: metricsQuery.isFetching || dailySignupsQuery.isFetching || monthlyAnalysesQuery.isFetching || recentUsersQuery.isFetching || todaysActivityQuery.isFetching,
     error: metricsQuery.error,
     refetch: refetchAll,
     dailySignups: dailySignupsQuery.data || [],
     monthlyAnalyses: monthlyAnalysesQuery.data || [],
+    recentUsers: recentUsersQuery.data || [],
+    todaysActivity: todaysActivityQuery.data || [],
   };
 }
