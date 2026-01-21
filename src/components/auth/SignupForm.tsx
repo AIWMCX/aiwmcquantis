@@ -123,6 +123,33 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       setSubmittedEmail(data.email);
       setSignupComplete(true);
       
+      // Send welcome email via Resend
+      try {
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-welcome-email`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY}`,
+            },
+            body: JSON.stringify({
+              email: data.email,
+              name: data.fullName,
+            }),
+          }
+        );
+        
+        if (!response.ok) {
+          console.warn('Welcome email could not be sent:', await response.text());
+        } else {
+          console.log('Welcome email sent successfully');
+        }
+      } catch (emailError) {
+        console.warn('Failed to send welcome email:', emailError);
+        // Don't block signup if email fails
+      }
+      
       toast.success('Account created successfully!');
       
       if (onSuccess) {
