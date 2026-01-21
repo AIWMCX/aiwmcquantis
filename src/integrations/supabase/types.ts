@@ -873,6 +873,7 @@ export type Database = {
           weekly_signups: number
         }[]
       }
+      get_ai_learning_metrics: { Args: never; Returns: Json }
       get_daily_signups: {
         Args: { days_back?: number }
         Returns: {
