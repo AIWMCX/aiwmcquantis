@@ -161,9 +161,9 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
+            <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
               <span className="text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
-            </div>
+            </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
@@ -174,14 +174,31 @@ export default function Landing() {
               <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg hover:bg-accent transition-colors" aria-label="Toggle theme">
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
-              <Link to="/auth">
-                <Button variant="ghost" size="sm">Sign In</Button>
-              </Link>
-              <Link to="/app">
-                <Button size="sm" className="gap-2">
-                  Try Free <ArrowRight className="w-4 h-4" />
-                </Button>
-              </Link>
+              {user ? (
+                <>
+                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
+                    <span className="text-sm text-foreground truncate max-w-[150px]">
+                      {user.email}
+                    </span>
+                  </div>
+                  <Link to="/app">
+                    <Button size="sm" className="gap-2">
+                      Go to App <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </>
+              ) : (
+                <>
+                  <Link to="/auth">
+                    <Button variant="ghost" size="sm">Sign In</Button>
+                  </Link>
+                  <Link to="/app">
+                    <Button size="sm" className="gap-2">
+                      Try Free <ArrowRight className="w-4 h-4" />
+                    </Button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
