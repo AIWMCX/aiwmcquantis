@@ -17,7 +17,7 @@ export interface PasswordStrength {
 
 export function checkPasswordStrength(password: string): PasswordStrength {
   const checks = {
-    length: password.length >= 12,
+    length: password.length >= 8,
     uppercase: /[A-Z]/.test(password),
     lowercase: /[a-z]/.test(password),
     number: /[0-9]/.test(password),
@@ -99,7 +99,7 @@ export function PasswordStrengthMeter({ password, className }: PasswordStrengthM
 
       {/* Requirements Checklist */}
       <div className="grid grid-cols-2 gap-1.5 text-xs">
-        <RequirementItem met={strength.checks.length} text="12+ characters" />
+        <RequirementItem met={strength.checks.length} text="8+ characters" />
         <RequirementItem met={strength.checks.uppercase} text="Uppercase (A-Z)" />
         <RequirementItem met={strength.checks.lowercase} text="Lowercase (a-z)" />
         <RequirementItem met={strength.checks.number} text="Number (0-9)" />
