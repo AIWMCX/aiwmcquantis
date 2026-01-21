@@ -3,18 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { BrandingSettings } from '@/components/pro/BrandingSettings';
+import { PlusValueIndicator } from '@/components/pro/PlusValueIndicator';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { 
   Palette, 
   Zap, 
   ArrowLeft, 
   Lock,
-  Sparkles 
+  Sparkles,
+  TrendingUp
 } from 'lucide-react';
 
 export default function PlusSettings() {
@@ -164,11 +167,30 @@ export default function PlusSettings() {
             </Badge>
           </div>
           <p className="text-muted-foreground mt-2">
-            Manage your Plus features: customize your brand for PDF exports
+            Manage your Plus subscription and see your exclusive advantages
           </p>
         </div>
 
-        <BrandingSettings />
+        <Tabs defaultValue="intelligence" className="space-y-6">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="intelligence" className="gap-2">
+              <TrendingUp className="w-4 h-4" />
+              Plus Intelligence
+            </TabsTrigger>
+            <TabsTrigger value="branding" className="gap-2">
+              <Palette className="w-4 h-4" />
+              Custom Branding
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="intelligence" className="mt-6">
+            <PlusValueIndicator />
+          </TabsContent>
+
+          <TabsContent value="branding" className="mt-6">
+            <BrandingSettings />
+          </TabsContent>
+        </Tabs>
       </main>
 
       <Footer />
