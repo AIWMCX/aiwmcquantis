@@ -30,6 +30,7 @@ export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
     trackEvent('exit_intent_email_submitted', { email_domain: email.split('@')[1] });
 
     try {
+      // 1. Capture the lead in database
       const { data, error } = await supabase.rpc('capture_lead', {
         p_email: email,
         p_source: 'exit_intent_popup',
@@ -55,6 +56,27 @@ export const ExitIntentPopup = ({ isOpen, onClose }: ExitIntentPopupProps) => {
       }
 
       console.log('✅ Lead captured:', data);
+      
+      // 2. Send the same welcome email used for signup
+      const emailName = email.split('@')[0].replace(/[._-]/g, ' ') || 'Friend';
+      const capitalizedName = emailName.split(' ').map(word => 
+        word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+      ).join(' ');
+
+      const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+        body: { 
+          email, 
+          name: capitalizedName 
+        },
+      });
+
+      if (emailError) {
+        console.error('Failed to send welcome email:', emailError);
+        // Don't fail the whole flow, lead is already captured
+      } else {
+        console.log('✅ Welcome email sent to:', email);
+      }
+
       setIsSuccess(true);
       trackEvent('exit_intent_conversion', { lead_id: data });
 
