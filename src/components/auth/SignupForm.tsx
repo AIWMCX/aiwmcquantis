@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { Eye, EyeOff, Loader2, Mail, Lock, User, Phone, Shield, CheckCircle2 } from 'lucide-react';
+import { Eye, EyeOff, Loader2, Mail, Lock, User, Shield, CheckCircle2 } from 'lucide-react';
 import { z } from 'zod';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -17,7 +17,7 @@ import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { supabase } from '@/integrations/supabase/client';
 
-// Signup form validation schema
+// Simplified signup form validation schema - optimized for conversion
 const signupFormSchema = z.object({
   fullName: z.string()
     .trim()
@@ -29,14 +29,8 @@ const signupFormSchema = z.object({
     .email('Please enter a valid email address')
     .max(255, 'Email is too long')
     .toLowerCase(),
-  phone: z.string()
-    .optional()
-    .refine(
-      (val) => !val || /^[+]?[\d\s()-]{7,}$/.test(val),
-      'Please enter a valid phone number'
-    ),
   password: z.string()
-    .min(12, 'Password must be at least 12 characters')
+    .min(8, 'Password must be at least 8 characters')
     .max(72, 'Password is too long')
     .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
     .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
@@ -73,7 +67,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     defaultValues: {
       fullName: '',
       email: '',
-      phone: '',
       password: '',
       acceptTerms: false,
     },
@@ -95,14 +88,13 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     try {
       trackEvent('signup_attempt', { 
         email_domain: data.email.split('@')[1],
-        has_phone: !!data.phone,
       });
 
       const { error } = await signUp(
         data.email,
         data.password,
         data.fullName,
-        data.phone || undefined
+        undefined
       );
 
       if (error) {
@@ -110,7 +102,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
           toast.error('This email is already registered. Please sign in instead.');
           trackEvent('signup_error', { reason: 'email_exists' });
         } else if (error.message.includes('password')) {
-          toast.error('Password must be at least 12 characters');
+          toast.error('Password must be at least 8 characters');
           trackEvent('signup_error', { reason: 'weak_password' });
         } else {
           toast.error(error.message || 'Failed to create account');
@@ -202,15 +194,20 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   }
 
   return (
-    <div className={cn('space-y-6', className)}>
+    <div className={cn('space-y-5', className)}>
       {/* Trust Signals */}
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <Shield className="w-3.5 h-3.5" />
         <span>Secure • Join 1,000+ companies • Cancel anytime</span>
       </div>
 
-      {/* Social Login */}
-      <GoogleLoginButton mode="signup" className="w-full" />
+      {/* Social Login - Prioritized */}
+      <div className="space-y-2">
+        <GoogleLoginButton mode="signup" className="w-full h-12 text-base" />
+        <p className="text-xs text-center text-muted-foreground">
+          ⚡ Fastest way to sign up — no password needed
+        </p>
+      </div>
 
       {/* Divider */}
       <div className="relative">
@@ -219,7 +216,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         </div>
         <div className="relative flex justify-center text-xs uppercase">
           <span className="bg-background px-2 text-muted-foreground">
-            Or continue with email
+            Or use email
           </span>
         </div>
       </div>
@@ -266,28 +263,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
           )}
         </div>
 
-        {/* Phone Field (Optional) */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-phone">
-            Phone Number <span className="text-muted-foreground">(optional)</span>
-          </Label>
-          <div className="relative">
-            <Phone className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="signup-phone"
-              type="tel"
-              placeholder="+1 (555) 123-4567"
-              className={cn('pl-10', errors.phone && 'border-destructive')}
-              {...register('phone')}
-              onFocus={() => handleFieldFocus('phone')}
-              disabled={isLoading}
-            />
-          </div>
-          {errors.phone && (
-            <p className="text-sm text-destructive">{errors.phone.message}</p>
-          )}
-        </div>
-
         {/* Password Field */}
         <div className="space-y-2">
           <Label htmlFor="signup-password">Password</Label>
@@ -296,7 +271,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
             <Input
               id="signup-password"
               type={showPassword ? 'text' : 'password'}
-              placeholder="Minimum 12 characters"
+              placeholder="Minimum 8 characters"
               className={cn('pl-10 pr-10', errors.password && 'border-destructive')}
               {...register('password')}
               onFocus={() => handleFieldFocus('password')}
@@ -348,11 +323,11 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
           )}
         </div>
 
-        {/* Submit Button */}
+        {/* Submit Button - Lowered password score requirement from 4 to 3 */}
         <Button 
           type="submit" 
           className="w-full" 
-          disabled={isLoading || (passwordStrength && passwordStrength.score < 4)}
+          disabled={isLoading || (passwordStrength && passwordStrength.score < 3)}
         >
           {isLoading ? (
             <>
@@ -360,7 +335,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
               Creating Account...
             </>
           ) : (
-            'Create Account'
+            'Create Free Account'
           )}
         </Button>
       </form>
