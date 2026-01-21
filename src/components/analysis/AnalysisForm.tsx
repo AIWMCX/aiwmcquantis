@@ -80,7 +80,7 @@ export function AnalysisForm({
       {/* Business Idea */}
       <div className="space-y-2">
         <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <Brain className="w-4 h-4 text-muted-foreground" />
+          <Brain className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
           Your Business Idea
         </Label>
         <Textarea
@@ -97,6 +97,8 @@ The more detail you provide, the more accurate and valuable your analysis will b
 • Current stage of development"
           rows={8}
           disabled={isLoading}
+          aria-describedby={errors.idea ? "idea-error" : "idea-hint"}
+          aria-invalid={!!errors.idea}
           className={cn(
             "resize-none transition-colors min-h-[200px]",
             errors.idea && "border-destructive focus-visible:ring-destructive"
@@ -104,14 +106,18 @@ The more detail you provide, the more accurate and valuable your analysis will b
         />
         <div className="flex justify-between items-center">
           {errors.idea ? (
-            <p className="text-sm text-destructive">{errors.idea}</p>
+            <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>
           ) : (
-            <span className="text-xs text-muted-foreground">Minimum 10 characters — more detail = better analysis</span>
+            <span id="idea-hint" className="text-xs text-muted-foreground">Minimum 10 characters — more detail = better analysis</span>
           )}
-          <span className={cn(
-            "text-xs font-medium",
-            idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
-          )}>
+          <span 
+            className={cn(
+              "text-xs font-medium",
+              idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
+            )}
+            aria-live="polite"
+            aria-atomic="true"
+          >
             {idea.length.toLocaleString()}/5,000
           </span>
         </div>
@@ -120,7 +126,7 @@ The more detail you provide, the more accurate and valuable your analysis will b
       {/* Location */}
       <div className="space-y-2">
         <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-foreground">
-          <MapPin className="w-4 h-4 text-muted-foreground" />
+          <MapPin className="w-4 h-4 text-muted-foreground" aria-hidden="true" />
           Country or City
         </Label>
         <Input
@@ -129,13 +135,15 @@ The more detail you provide, the more accurate and valuable your analysis will b
           onChange={(e) => handleLocationChange(e.target.value)}
           placeholder="New York, USA"
           disabled={isLoading}
+          aria-describedby={errors.location ? "location-error" : undefined}
+          aria-invalid={!!errors.location}
           className={cn(
             "transition-colors",
             errors.location && "border-destructive focus-visible:ring-destructive"
           )}
         />
         {errors.location && (
-          <p className="text-sm text-destructive">{errors.location}</p>
+          <p id="location-error" className="text-sm text-destructive" role="alert">{errors.location}</p>
         )}
       </div>
 

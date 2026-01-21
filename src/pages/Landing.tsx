@@ -170,7 +170,7 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section - Conversion Optimized */}
-      <section className="relative overflow-hidden">
+      <section id="main-content" className="relative overflow-hidden" aria-label="Hero">
         <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-background" />
         <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/8 rounded-full blur-3xl" />
         <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-primary/6 rounded-full blur-3xl" />
