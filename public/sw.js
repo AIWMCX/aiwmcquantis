@@ -1,51 +1,53 @@
 /**
  * AIWMC Quantis Service Worker
- * Provides offline support and caching strategy
+ * Network-first strategy for fresh content, cache fallback for offline
+ * 
+ * IMPORTANT: Increment CACHE_VERSION on every deployment to bust old caches
  */
 
-const CACHE_VERSION = 'v1.0.0';
+const CACHE_VERSION = 'v2.1.0';
 const STATIC_CACHE = `aiwmc-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `aiwmc-dynamic-${CACHE_VERSION}`;
 
-// Assets to cache immediately on install
+// Only cache truly static assets
 const STATIC_ASSETS = [
-  '/',
-  '/index.html',
   '/manifest.json',
   '/favicon.ico',
 ];
 
-// Install event - cache static assets
+// Install event - cache only essential static assets
 self.addEventListener('install', (event) => {
+  console.log('[SW] Installing new version:', CACHE_VERSION);
   event.waitUntil(
     caches.open(STATIC_CACHE).then((cache) => {
       console.log('[SW] Caching static assets');
       return cache.addAll(STATIC_ASSETS);
     })
   );
-  // Activate immediately
+  // Force immediate activation - don't wait for old SW to close
   self.skipWaiting();
 });
 
-// Activate event - clean old caches
+// Activate event - AGGRESSIVELY clean ALL old caches
 self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating new version:', CACHE_VERSION);
   event.waitUntil(
     caches.keys().then((keys) => {
       return Promise.all(
         keys
           .filter((key) => key !== STATIC_CACHE && key !== DYNAMIC_CACHE)
           .map((key) => {
-            console.log('[SW] Removing old cache:', key);
+            console.log('[SW] Deleting old cache:', key);
             return caches.delete(key);
           })
       );
     })
   );
-  // Take control immediately
+  // Take control of ALL clients immediately
   self.clients.claim();
 });
 
-// Fetch event - serve from cache, fallback to network
+// Fetch event - NETWORK-FIRST for HTML/JS, cache fallback only for offline
 self.addEventListener('fetch', (event) => {
   const { request } = event;
   const url = new URL(request.url);
@@ -55,38 +57,49 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip API requests and Supabase calls
+  // Skip external API requests entirely - let them go through normally
   if (
-    url.pathname.startsWith('/api') ||
     url.hostname.includes('supabase') ||
-    url.hostname.includes('sentry')
+    url.hostname.includes('sentry') ||
+    url.hostname.includes('googleapis') ||
+    url.hostname.includes('gstatic') ||
+    url.hostname.includes('googletagmanager')
   ) {
     return;
   }
 
-  event.respondWith(
-    caches.match(request).then((cachedResponse) => {
-      // Return cached version if available
-      if (cachedResponse) {
-        // Fetch fresh version in background (stale-while-revalidate)
-        event.waitUntil(
-          fetch(request).then((networkResponse) => {
-            if (networkResponse.ok) {
-              caches.open(DYNAMIC_CACHE).then((cache) => {
-                cache.put(request, networkResponse);
-              });
-            }
-          }).catch(() => {
-            // Network failed, but we have cache - ignore
-          })
-        );
-        return cachedResponse;
-      }
-
-      // No cache - fetch from network
-      return fetch(request)
+  // For navigation requests (HTML pages) - ALWAYS network first
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request)
         .then((networkResponse) => {
-          // Cache successful responses
+          // Cache the fresh response for offline fallback only
+          const responseToCache = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+          return networkResponse;
+        })
+        .catch(() => {
+          // Network failed - try cache as last resort
+          return caches.match(request).then((cachedResponse) => {
+            return cachedResponse || caches.match('/');
+          });
+        })
+    );
+    return;
+  }
+
+  // For JS/CSS assets - network first with cache fallback
+  if (
+    url.pathname.endsWith('.js') ||
+    url.pathname.endsWith('.css') ||
+    url.pathname.endsWith('.tsx') ||
+    url.pathname.includes('/src/')
+  ) {
+    event.respondWith(
+      fetch(request)
+        .then((networkResponse) => {
           if (networkResponse.ok) {
             const responseToCache = networkResponse.clone();
             caches.open(DYNAMIC_CACHE).then((cache) => {
@@ -96,19 +109,43 @@ self.addEventListener('fetch', (event) => {
           return networkResponse;
         })
         .catch(() => {
-          // Network failed and no cache - show offline page for navigation
-          if (request.mode === 'navigate') {
-            return caches.match('/');
-          }
-          return new Response('Offline', { status: 503, statusText: 'Service Unavailable' });
-        });
+          return caches.match(request);
+        })
+    );
+    return;
+  }
+
+  // For images and other static assets - cache first with network fallback
+  event.respondWith(
+    caches.match(request).then((cachedResponse) => {
+      if (cachedResponse) {
+        return cachedResponse;
+      }
+      return fetch(request).then((networkResponse) => {
+        if (networkResponse.ok) {
+          const responseToCache = networkResponse.clone();
+          caches.open(DYNAMIC_CACHE).then((cache) => {
+            cache.put(request, responseToCache);
+          });
+        }
+        return networkResponse;
+      });
     })
   );
 });
 
-// Listen for messages from the app
+// Listen for skip waiting message from the app
 self.addEventListener('message', (event) => {
   if (event.data && event.data.type === 'SKIP_WAITING') {
+    console.log('[SW] Skip waiting requested');
     self.skipWaiting();
+  }
+  
+  // Allow app to request cache clear
+  if (event.data && event.data.type === 'CLEAR_CACHE') {
+    console.log('[SW] Cache clear requested');
+    caches.keys().then((keys) => {
+      keys.forEach((key) => caches.delete(key));
+    });
   }
 });
