@@ -9,7 +9,8 @@ import { redirectToPaymentLink } from '@/hooks/useStripeCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SignupForm, LoginForm } from '@/components/auth';
-import { trackPageView } from '@/lib/analytics';
+import { trackPageView, trackEvent } from '@/lib/analytics';
+import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ export default function Auth() {
   }, []);
 
   // Handle redirect after auth - check both URL params and localStorage
+  // Also send welcome email for OAuth signups
   useEffect(() => {
     if (isAuthenticated && !checkoutTriggered.current) {
       // First check URL params (from old flow)
@@ -37,27 +39,55 @@ export default function Auth() {
       const plan: 'plus' | null = urlPlan || storedPlan;
       const shouldCheckout = (redirect === 'checkout' && urlPlan) || storedPlan;
       
-      if (shouldCheckout && plan) {
-        checkoutTriggered.current = true;
-        setIsProcessingCheckout(true);
-        // Clear stored plan
-        localStorage.removeItem('pending_checkout_plan');
-        
-        // Get user info and redirect to Payment Link
-        supabase.auth.getUser().then(({ data: { user } }) => {
-          if (user) {
+      // Get user info for checkout and welcome email
+      supabase.auth.getUser().then(async ({ data: { user } }) => {
+        if (user) {
+          // Check if this is a new OAuth user (created within last 60 seconds)
+          // and we haven't already sent them a welcome email
+          if (isNewUser(user.created_at) && !wasWelcomeEmailSent(user.id)) {
+            const userName = user.user_metadata?.full_name || 
+                           user.user_metadata?.name || 
+                           user.email?.split('@')[0] || 
+                           'Friend';
+            
+            console.log('[Auth] New OAuth user detected, sending welcome email');
+            trackEvent('oauth_welcome_email_attempt', { provider: user.app_metadata?.provider });
+            
+            const result = await sendWelcomeEmail({
+              email: user.email!,
+              name: userName
+            });
+            
+            if (result.success) {
+              markWelcomeEmailSent(user.id);
+              console.log('[Auth] Welcome email sent for OAuth user');
+              trackEvent('oauth_welcome_email_sent', { provider: user.app_metadata?.provider });
+            } else {
+              console.error('[Auth] Failed to send welcome email:', result.error);
+              trackEvent('oauth_welcome_email_failed', { 
+                provider: user.app_metadata?.provider,
+                error: result.error 
+              });
+            }
+          }
+          
+          if (shouldCheckout && plan) {
+            checkoutTriggered.current = true;
+            setIsProcessingCheckout(true);
+            // Clear stored plan
+            localStorage.removeItem('pending_checkout_plan');
             redirectToPaymentLink(plan, user.id, user.email || undefined);
           } else {
-            setIsProcessingCheckout(false);
-            toast.error('Failed to get user info. Please try again.');
-            navigate('/app');
+            // Redirect to returnUrl if provided, otherwise to /app
+            const destination = returnUrl ? decodeURIComponent(returnUrl) : '/app';
+            navigate(destination);
           }
-        });
-      } else {
-        // Redirect to returnUrl if provided, otherwise to /app
-        const destination = returnUrl ? decodeURIComponent(returnUrl) : '/app';
-        navigate(destination);
-      }
+        } else if (shouldCheckout) {
+          setIsProcessingCheckout(false);
+          toast.error('Failed to get user info. Please try again.');
+          navigate('/app');
+        }
+      });
     }
   }, [isAuthenticated, searchParams, navigate]);
 
