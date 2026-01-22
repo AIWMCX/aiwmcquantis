@@ -462,6 +462,35 @@ export function validateBusinessInput(
     ? Math.round(((finalRevenue - (input.expenses?.inventory || 0)) / finalRevenue) * 100) 
     : 0;
   
+  // CRITICAL SANITY CHECK: Flag unrealistic net margins
+  // Industry averages: F&B 3-9%, Retail 5-15%, SaaS 15-40%, Consulting 20-50%
+  const MAX_REALISTIC_NET_MARGIN = 50; // Even for high-margin businesses, >50% is suspicious
+  const MAX_FB_NET_MARGIN = 15; // F&B industry rarely exceeds 15%
+  const MAX_RETAIL_NET_MARGIN = 20; // Retail rarely exceeds 20%
+  
+  if (netMarginPercent > MAX_REALISTIC_NET_MARGIN) {
+    errors.push({
+      code: 'UNREALISTIC_NET_MARGIN',
+      field: 'netMarginPercent',
+      message: `Net margin of ${netMarginPercent}% is unrealistically high. Most businesses operate at 10-30% net margin.`,
+      severity: 'error',
+      originalValue: netMarginPercent,
+      expectedValue: `${MAX_REALISTIC_NET_MARGIN}% or less`,
+      suggestedFix: 'Review expense calculations - likely missing costs like rent, salaries, or marketing',
+      impact: 'Analysis results may be misleading to users'
+    });
+    profitabilityScore -= 40;
+  } else if (netMarginPercent > 40) {
+    warnings.push({
+      code: 'HIGH_NET_MARGIN',
+      field: 'netMarginPercent',
+      message: `Net margin of ${netMarginPercent}% is unusually high. Verify all operating costs are included.`,
+      severity: 'warning',
+      suggestedFix: 'Ensure rent, utilities, salaries, and marketing costs are accounted for'
+    });
+    profitabilityScore -= 15;
+  }
+  
   // Calculate payback period
   let paybackPeriodMonths: number | null = null;
   let paybackDisplay = 'Not calculable';

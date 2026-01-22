@@ -309,8 +309,22 @@ export function processQuantisAnalysis(
   // Reduce for corrections
   reliabilityScore = Math.max(15, reliabilityScore - (validationResult.corrections.length * 5));
   
+  // CRITICAL FIX: Reduce reliability for unrealistic margins
+  const calculatedNetMargin = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  if (calculatedNetMargin > 50) {
+    reliabilityScore = Math.max(15, reliabilityScore - 25);
+  } else if (calculatedNetMargin > 40) {
+    reliabilityScore = Math.max(15, reliabilityScore - 10);
+  }
+  
+  // CRITICAL FIX: isRealistic requires consistent internal data
+  const hasConsistentData = 
+    validationResult.calculatedMetrics.expenseSource !== 'corrected' &&
+    validationResult.corrections.length === 0 &&
+    calculatedNetMargin <= 40;
+  
   const validationOutput: QuantisValidationOutput = {
-    isRealistic: validationResult.isValid && isProfitable && validationResult.corrections.length === 0,
+    isRealistic: validationResult.isValid && isProfitable && hasConsistentData,
     isProfitable,
     wasAutoCorrected,
     reliabilityScore: Math.round(reliabilityScore),
@@ -407,7 +421,7 @@ export function processQuantisAnalysis(
     
     improvementSuggestions: validationResult.improvementSuggestions,
     
-    summary: buildValidationSummary(isProfitable, wasAutoCorrected, validationResult, breakEvenRevenue, netProfit),
+    summary: buildValidationSummary(isProfitable, wasAutoCorrected, validationResult, breakEvenRevenue, netProfit, mrr),
     
     healthScores: {
       dataQualityScore: validationResult.healthScores.dataQualityScore,
@@ -472,14 +486,27 @@ function buildValidationSummary(
   wasAutoCorrected: boolean,
   validation: BulletproofValidationResult,
   breakEvenRevenue: number,
-  netProfit: number
+  netProfit: number,
+  mrr?: number
 ): string {
+  // Calculate net margin for additional context
+  const netMargin = mrr && mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  
   if (!isProfitable) {
     return `❌ Business is unprofitable. Need revenue of $${breakEvenRevenue.toLocaleString()}/mo to break even.`;
   }
   
   if (validation.hasCriticalErrors) {
-    return `⛔ Critical issues detected. Address ${validation.errors.filter(e => e.severity === 'critical').length} critical errors.`;
+    return `⛔ Critical issues detected. Address ${validation.errors.filter(e => e.severity === 'critical').length} critical errors before proceeding.`;
+  }
+  
+  // CRITICAL FIX: Flag unrealistic margins
+  if (netMargin > 50) {
+    return `⚠️ VERIFY DATA: Net margin of ${netMargin}% is unrealistic. Likely missing expenses. Profit: $${netProfit.toLocaleString()}/mo`;
+  }
+  
+  if (netMargin > 40) {
+    return `⚠️ High margin: ${netMargin}% net margin is above industry norms. Verify all costs included. Profit: $${netProfit.toLocaleString()}/mo`;
   }
   
   if (wasAutoCorrected) {
