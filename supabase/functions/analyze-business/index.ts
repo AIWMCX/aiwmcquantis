@@ -2,6 +2,21 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Embedded benchmarks are now seeded via database migration - no import needed
 
+// ========== NEW INTELLIGENCE MODULES ==========
+import { 
+  getEnhancedLocationMultiplier, 
+  getLocationMultiplier,
+  calculateLocationAdjustedCosts,
+  type LocationMultiplierResult 
+} from "./location-intelligence.ts";
+
+import { 
+  detectSubIndustry, 
+  applySubIndustryModifiers,
+  getSubIndustryChurnRate,
+  type SubIndustryResult 
+} from "./sub-industry-detection.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
@@ -701,22 +716,9 @@ function detectIndustry(businessIdea: string): IndustryBenchmarks {
   return bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
 }
 
-function getLocationMultiplier(location: string): number {
-  const loc = location.toLowerCase();
-  const highCostCities = [
-    'new york', 'nyc', 'san francisco', 'sf', 'los angeles', 'la', 'london', 
-    'tokyo', 'singapore', 'hong kong', 'zurich', 'geneva', 'paris', 'sydney',
-    'москва', 'moscow', 'санкт-петербург', 'спб', 'st petersburg'
-  ];
-  const mediumCostCities = [
-    'chicago', 'boston', 'seattle', 'miami', 'denver', 'austin', 'toronto',
-    'berlin', 'amsterdam', 'dubai', 'melbourne', 'dublin'
-  ];
-  
-  if (highCostCities.some(city => loc.includes(city))) return 1.4;
-  if (mediumCostCities.some(city => loc.includes(city))) return 1.15;
-  return 1.0;
-}
+// LEGACY getLocationMultiplier is now imported from location-intelligence.ts
+// This comment preserves line numbers for reference - the old 3-tier system has been replaced
+// with granular 50+ city multipliers for salary, rent, utilities, and marketing costs
 
 // Tool schema for AI
 const analysisToolSchema = {
@@ -803,7 +805,8 @@ function calculateStrictFinancials(
   rawLtv: number,
   rawAvgCheck: number,
   benchmarks: IndustryBenchmarks,
-  locationMultiplier: number,
+  locationMultipliers: LocationMultiplierResult,
+  subIndustry: SubIndustryResult | null,
   userProvidedCosts?: number,
   userProvidedChurnRate?: number,
   userProvidedCustomers?: number
@@ -811,11 +814,68 @@ function calculateStrictFinancials(
   const corrections: Array<{ field: string; original: number; corrected: number; reason: string }> = [];
   const audit: CalculationAudit[] = [];
   
-  // Apply location multiplier to fixed costs
-  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultiplier);
-  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultiplier);
-  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultiplier);
-  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultiplier);
+  // ===== ENHANCED: Apply granular location multipliers =====
+  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultipliers.salary);
+  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultipliers.rent);
+  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultipliers.utility);
+  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultipliers.overall);
+  
+  // Log location adjustment details
+  console.log(`Location adjustments: salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, utility=${locationMultipliers.utility}x, marketing=${locationMultipliers.marketing}x`);
+  if (locationMultipliers.matched) {
+    console.log(`Matched city: ${locationMultipliers.matchedCity} (${locationMultipliers.region})`);
+  }
+  
+  // ===== ENHANCED: Apply sub-industry modifiers to benchmarks =====
+  let effectiveBenchmarks = { ...benchmarks };
+  let effectiveChurnRate = userProvidedChurnRate || 0.08; // Default 8% monthly
+  
+  if (subIndustry && subIndustry.confidence > 50) {
+    const modified = applySubIndustryModifiers(
+      {
+        cac_typical: benchmarks.cac_typical,
+        cac_min: benchmarks.cac_min,
+        cac_max: benchmarks.cac_max,
+        client_lifetime_months: benchmarks.client_lifetime_months,
+        net_margin_min: benchmarks.net_margin_min,
+        net_margin_max: benchmarks.net_margin_max,
+      },
+      subIndustry.modifiers
+    );
+    
+    effectiveBenchmarks = {
+      ...benchmarks,
+      cac_typical: modified.cac_typical,
+      cac_min: modified.cac_min,
+      cac_max: modified.cac_max,
+      client_lifetime_months: modified.client_lifetime_months,
+      net_margin_min: modified.net_margin_min,
+      net_margin_max: modified.net_margin_max,
+    };
+    
+    // Use sub-industry churn rate if user didn't provide one
+    if (!userProvidedChurnRate) {
+      effectiveChurnRate = getSubIndustryChurnRate(subIndustry);
+    }
+    
+    console.log(`Sub-industry detected: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale})`);
+    console.log(`Applied modifiers: CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x, Churn=${subIndustry.modifiers.churn_multiplier}x`);
+    console.log(`Effective churn rate: ${(effectiveChurnRate * 100).toFixed(1)}%/month`);
+    
+    audit.push({
+      formula: 'Sub-Industry Detection',
+      inputs: {
+        'Business Model': subIndustry.businessModel,
+        'Target Scale': subIndustry.targetScale,
+        'CAC Multiplier': subIndustry.modifiers.cac_multiplier,
+        'LTV Multiplier': subIndustry.modifiers.ltv_multiplier,
+        'Churn Multiplier': subIndustry.modifiers.churn_multiplier,
+      },
+      result: subIndustry.confidence,
+      isValid: true,
+      notes: `${subIndustry.subIndustryName}: Keywords matched: ${subIndustry.detectedKeywords.join(', ') || 'none'}`
+    });
+  }
   
   // ===== STEP 1: Validate and correct input values =====
   
@@ -841,40 +901,54 @@ function calculateStrictFinancials(
     avgCheck = corrected;
   }
   
-  // 1.2 CAC
+  // 1.2 CAC - Use effectiveBenchmarks for sub-industry adjusted ranges
   let cac = rawCac;
-  if (cac < benchmarks.cac_min) {
+  if (cac < effectiveBenchmarks.cac_min) {
     corrections.push({
       field: 'cac',
       original: cac,
-      corrected: benchmarks.cac_typical,
-      reason: `CAC $${cac} is unrealistically low. Minimum is $${benchmarks.cac_min} even for organic channels in ${benchmarks.name}.`
+      corrected: effectiveBenchmarks.cac_typical,
+      reason: `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
     });
-    cac = benchmarks.cac_typical;
-  } else if (cac > benchmarks.cac_max) {
+    cac = effectiveBenchmarks.cac_typical;
+  } else if (cac > effectiveBenchmarks.cac_max) {
     corrections.push({
       field: 'cac',
       original: cac,
-      corrected: benchmarks.cac_max,
-      reason: `CAC $${cac} is too high for ${benchmarks.name}. Adjusted to maximum $${benchmarks.cac_max}`
+      corrected: effectiveBenchmarks.cac_max,
+      reason: `CAC $${cac} is too high for ${subIndustry?.subIndustryName || benchmarks.name}. Adjusted to maximum $${effectiveBenchmarks.cac_max}`
     });
-    cac = benchmarks.cac_max;
+    cac = effectiveBenchmarks.cac_max;
   }
   
-  // 1.3 LTV - calculate from formula
+  // Apply location marketing multiplier to CAC
+  const locationAdjustedCac = Math.round(cac * locationMultipliers.marketing);
+  if (locationAdjustedCac !== cac) {
+    audit.push({
+      formula: 'Location-Adjusted CAC',
+      inputs: { 'Base CAC': cac, 'Marketing Multiplier': locationMultipliers.marketing },
+      result: locationAdjustedCac,
+      isValid: true,
+      notes: `$${cac} × ${locationMultipliers.marketing}x = $${locationAdjustedCac} (${locationMultipliers.matchedCity || 'regional'} adjustment)`
+    });
+    cac = locationAdjustedCac;
+  }
+  
+  // 1.3 LTV - calculate from formula with sub-industry adjusted lifetime
   // FORMULA: LTV = Avg_Check × Orders_per_Month × Lifetime_Months
-  const calculatedLtv = avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months;
+  const effectiveLifetime = effectiveBenchmarks.client_lifetime_months;
+  const calculatedLtv = avgCheck * benchmarks.orders_per_client * effectiveLifetime;
   
   audit.push({
     formula: 'LTV = Avg_Check × Orders_per_Month × Client_Lifetime',
     inputs: {
       'Average Check': avgCheck,
       'Orders/Month': benchmarks.orders_per_client,
-      'Lifetime (months)': benchmarks.client_lifetime_months
+      'Lifetime (months)': effectiveLifetime
     },
     result: calculatedLtv,
     isValid: true,
-    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${calculatedLtv}`
+    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${effectiveLifetime} = $${calculatedLtv}`
   });
   
   let ltv = calculatedLtv;
@@ -884,7 +958,7 @@ function calculateStrictFinancials(
       field: 'ltv',
       original: rawLtv,
       corrected: calculatedLtv,
-      reason: `LTV recalculated: $${avgCheck} × ${benchmarks.orders_per_client} orders × ${benchmarks.client_lifetime_months} months = $${calculatedLtv}`
+      reason: `LTV recalculated: $${avgCheck} × ${benchmarks.orders_per_client} orders × ${effectiveLifetime} months = $${calculatedLtv}`
     });
   }
   
@@ -933,26 +1007,30 @@ function calculateStrictFinancials(
   const other = adjustedOther;
   const fixedCosts = salaries + rent + utilities + other;
   
-  // 2.3 Marketing cost
+  // 2.3 Marketing cost - Use dynamic churn rate from sub-industry detection
   const revenuePerClient = avgCheck * benchmarks.orders_per_client;
   
   // Use user-provided customers if available
   const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
     ? userProvidedCustomers 
     : Math.ceil(mrr / revenuePerClient);
-  const newClientsNeeded = Math.ceil(clientsActive * 0.25);
+  
+  // ENHANCED: Use sub-industry specific churn rate instead of hardcoded 25%
+  const monthlyChurnPercent = effectiveChurnRate * 100;
+  const newClientsNeeded = Math.ceil(clientsActive * effectiveChurnRate);
   const marketing = newClientsNeeded * cac;
   
   audit.push({
     formula: 'Marketing = New_Clients × CAC',
     inputs: { 
       'Active Clients': clientsActive,
-      'New Clients (25%)': newClientsNeeded,
+      'Monthly Churn Rate': `${monthlyChurnPercent.toFixed(1)}%`,
+      'New Clients Needed': newClientsNeeded,
       'CAC': cac 
     },
     result: marketing,
     isValid: true,
-    notes: `${newClientsNeeded} × $${cac} = $${marketing}${userProvidedCustomers ? ' (user-provided customer count)' : ''}`
+    notes: `${clientsActive} clients × ${monthlyChurnPercent.toFixed(1)}% churn = ${newClientsNeeded} new clients × $${cac} = $${marketing}${userProvidedCustomers ? ' (user-provided customer count)' : ''}`
   });
   
   // 2.4 Total expenses - CRITICAL: Use user-provided costs if available
@@ -1561,7 +1639,8 @@ function transformResponse(
   raw: any, 
   location: string, 
   benchmarks: IndustryBenchmarks, 
-  locationMultiplier: number,
+  locationMultipliers: LocationMultiplierResult,
+  subIndustry: SubIndustryResult | null,
   userInputs?: OptionalFinancialInputs
 ) {
   const fa = safeParseJSON(raw.financial_json, {});
@@ -1601,7 +1680,7 @@ function transformResponse(
     }
   }
   
-  // Calculate with strict validation, passing user-provided costs/churn
+  // Calculate with strict validation using enhanced multipliers and sub-industry
   const calc = calculateStrictFinancials(
     rawMrr, 
     rawInvestment, 
@@ -1609,7 +1688,8 @@ function transformResponse(
     rawLtv, 
     rawAvgCheck, 
     benchmarks, 
-    locationMultiplier,
+    locationMultipliers,
+    subIndustry,
     userProvidedCosts,
     userProvidedChurnRate,
     userProvidedCustomers
@@ -2305,9 +2385,18 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
-    const locationMultiplier = getLocationMultiplier(location_clean);
+    // ========== ENHANCED LOCATION INTELLIGENCE ==========
+    const locationMultipliers = getEnhancedLocationMultiplier(location_clean);
+    const locationMultiplier = locationMultipliers.overall; // Legacy compatibility
     
-    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}% | Location multiplier: ${locationMultiplier}`);
+    // ========== SUB-INDUSTRY DETECTION ==========
+    const subIndustry = detectSubIndustry(idea_clean, detectedIndustry.id);
+    
+    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}%`);
+    console.log(`Location: ${locationMultipliers.matched ? locationMultipliers.matchedCity : 'regional'} (${locationMultipliers.region}) | salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, marketing=${locationMultipliers.marketing}x`);
+    if (subIndustry.confidence > 50) {
+      console.log(`Sub-industry: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale}) | CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x`);
+    }
 
     // Build user financial context for AI prompt
     const userFinancialContext = financial_inputs ? `
@@ -2557,7 +2646,7 @@ Call submit_analysis with all sections in English.`;
       );
     }
 
-    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultiplier, mergedFinancialInputs);
+    const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
