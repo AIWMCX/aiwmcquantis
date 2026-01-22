@@ -253,6 +253,8 @@ export type Database = {
           cac_max: number | null
           cac_min: number | null
           cac_typical: number | null
+          churn_rate_annual: number | null
+          churn_rate_monthly: number | null
           client_lifetime_months: number | null
           cogs_percent_avg: number | null
           cogs_percent_max: number | null
@@ -284,6 +286,7 @@ export type Database = {
           rent_fixed: number | null
           salaries_fixed: number | null
           sample_size: number | null
+          seasonality_coefficients: Json | null
           source: string | null
           utilities_fixed: number | null
         }
@@ -294,6 +297,8 @@ export type Database = {
           cac_max?: number | null
           cac_min?: number | null
           cac_typical?: number | null
+          churn_rate_annual?: number | null
+          churn_rate_monthly?: number | null
           client_lifetime_months?: number | null
           cogs_percent_avg?: number | null
           cogs_percent_max?: number | null
@@ -325,6 +330,7 @@ export type Database = {
           rent_fixed?: number | null
           salaries_fixed?: number | null
           sample_size?: number | null
+          seasonality_coefficients?: Json | null
           source?: string | null
           utilities_fixed?: number | null
         }
@@ -335,6 +341,8 @@ export type Database = {
           cac_max?: number | null
           cac_min?: number | null
           cac_typical?: number | null
+          churn_rate_annual?: number | null
+          churn_rate_monthly?: number | null
           client_lifetime_months?: number | null
           cogs_percent_avg?: number | null
           cogs_percent_max?: number | null
@@ -366,6 +374,7 @@ export type Database = {
           rent_fixed?: number | null
           salaries_fixed?: number | null
           sample_size?: number | null
+          seasonality_coefficients?: Json | null
           source?: string | null
           utilities_fixed?: number | null
         }
