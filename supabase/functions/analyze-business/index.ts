@@ -1762,35 +1762,60 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       },
       mrr: calc.mrr,
       arr: calc.mrr * 12,
-      scenarios: {
-        pessimistic: {
-          revenue: Math.round(calc.mrr * 0.8),
-          variable_costs: Math.round(calc.expenses.cogs * 0.8),
-          fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-          gross_profit: Math.round((calc.mrr * 0.8) - (calc.expenses.cogs * 0.8)),
-          net_profit: Math.round((calc.mrr * 0.8) - calc.totalExpenses * 0.95),
-          gross_margin: calc.grossMarginPercent,
-          net_margin: calc.netMarginPercent - 8
-        },
-        base: {
-          revenue: calc.mrr,
-          variable_costs: calc.expenses.cogs,
-          fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-          gross_profit: calc.grossProfit,
-          net_profit: calc.netProfit,
-          gross_margin: calc.grossMarginPercent,
-          net_margin: calc.netMarginPercent
-        },
-        optimistic: {
-          revenue: Math.round(calc.mrr * 1.25),
-          variable_costs: Math.round(calc.expenses.cogs * 1.25),
-          fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-          gross_profit: Math.round((calc.mrr * 1.25) - (calc.expenses.cogs * 1.25)),
-          net_profit: Math.round((calc.mrr * 1.25) - calc.totalExpenses * 1.1),
-          gross_margin: calc.grossMarginPercent,
-          net_margin: calc.netMarginPercent + 5
-        }
-      },
+      scenarios: (() => {
+        // CRITICAL FIX: Calculate expenses from breakdown, not calc.totalExpenses
+        const fixedCosts = calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other;
+        const variableCosts = calc.expenses.cogs + calc.expenses.marketing;
+        const totalExpensesFromBreakdown = fixedCosts + variableCosts;
+        
+        // Pessimistic scenario: 20% less revenue, slightly less variable costs
+        const pessRevenue = Math.round(calc.mrr * 0.8);
+        const pessVariableCosts = Math.round(variableCosts * 0.85); // Less sales = less COGS/marketing
+        const pessTotalExpenses = fixedCosts + pessVariableCosts;
+        const pessNetProfit = pessRevenue - pessTotalExpenses;
+        const pessNetMargin = pessRevenue > 0 ? Math.round((pessNetProfit / pessRevenue) * 100) : 0;
+        
+        // Base scenario: current values
+        const baseNetProfit = calc.mrr - totalExpensesFromBreakdown;
+        const baseNetMargin = calc.mrr > 0 ? Math.round((baseNetProfit / calc.mrr) * 100) : 0;
+        
+        // Optimistic scenario: 25% more revenue, proportional variable cost increase
+        const optRevenue = Math.round(calc.mrr * 1.25);
+        const optVariableCosts = Math.round(variableCosts * 1.25);
+        const optTotalExpenses = fixedCosts + optVariableCosts;
+        const optNetProfit = optRevenue - optTotalExpenses;
+        const optNetMargin = optRevenue > 0 ? Math.round((optNetProfit / optRevenue) * 100) : 0;
+        
+        return {
+          pessimistic: {
+            revenue: pessRevenue,
+            variable_costs: pessVariableCosts,
+            fixed_costs: fixedCosts,
+            gross_profit: Math.round(pessRevenue - (calc.expenses.cogs * 0.85)),
+            net_profit: pessNetProfit,
+            gross_margin: calc.grossMarginPercent,
+            net_margin: pessNetMargin
+          },
+          base: {
+            revenue: calc.mrr,
+            variable_costs: variableCosts,
+            fixed_costs: fixedCosts,
+            gross_profit: calc.grossProfit,
+            net_profit: baseNetProfit,
+            gross_margin: calc.grossMarginPercent,
+            net_margin: baseNetMargin
+          },
+          optimistic: {
+            revenue: optRevenue,
+            variable_costs: optVariableCosts,
+            fixed_costs: fixedCosts,
+            gross_profit: Math.round(optRevenue - (calc.expenses.cogs * 1.25)),
+            net_profit: optNetProfit,
+            gross_margin: calc.grossMarginPercent,
+            net_margin: optNetMargin
+          }
+        };
+      })(),
       unit_economics: {
         contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
         contribution_margin_ratio: (100 - benchmarks.cogs_percent) / 100,
@@ -1810,31 +1835,70 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         roi_year_3: Math.round((calc.netProfit * 36 / calc.startupInvestment) * 100),
         npv_3_years: Math.round(calc.netProfit * 36 - calc.startupInvestment)
       },
-      startup_investment: {
-        total: calc.startupInvestment,
-        breakdown: {
-          rent_deposit: Math.round(calc.expenses.rent * 2),
-          equipment: Math.round(calc.startupInvestment * 0.45),
-          inventory: Math.round(calc.startupInvestment * 0.15),
-          legal: 2000,
-          marketing_initial: Math.round(calc.startupInvestment * 0.1),
-          working_capital: Math.round(calc.startupInvestment * 0.2)
-        },
-        reasoning: `Investment $${calc.startupInvestment.toLocaleString()}: equipment 45%, inventory 15%, working capital 20%, marketing 10%, deposit & legal 10%`
-      },
-      monthly_expenses: {
-        total: calc.totalExpenses,
-        variable_costs: calc.expenses.cogs + calc.expenses.marketing,
-        fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-        breakdown: {
+      startup_investment: (() => {
+        // CRITICAL FIX: Calculate breakdown items that sum EXACTLY to total
+        const total = calc.startupInvestment;
+        const rentDeposit = Math.round(calc.expenses.rent * 2);
+        const equipment = Math.round(total * 0.40);
+        const inventory = Math.round(total * 0.15);
+        const legal = Math.min(2000, Math.round(total * 0.05));
+        const marketingInitial = Math.round(total * 0.10);
+        // Working capital absorbs the remainder to ensure exact sum
+        const workingCapital = total - rentDeposit - equipment - inventory - legal - marketingInitial;
+        
+        // Validation: log if working capital is negative (indicates rent deposit is too high)
+        if (workingCapital < 0) {
+          console.warn(`⚠️ Investment breakdown issue: working_capital=${workingCapital}. Adjusting rent deposit.`);
+        }
+        
+        const breakdown = {
+          rent_deposit: rentDeposit,
+          equipment: equipment,
+          inventory: inventory,
+          legal: legal,
+          marketing_initial: marketingInitial,
+          working_capital: Math.max(0, workingCapital)
+        };
+        
+        // Final validation: ensure sum matches total
+        const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+        if (breakdownSum !== total) {
+          // Adjust working capital to match exactly
+          breakdown.working_capital += (total - breakdownSum);
+        }
+        
+        return {
+          total,
+          breakdown,
+          reasoning: `Investment $${total.toLocaleString()}: equipment 40%, inventory 15%, working capital ${Math.round(Math.max(0, workingCapital) / total * 100)}%, marketing 10%, deposit & legal ${Math.round((rentDeposit + legal) / total * 100)}%`
+        };
+      })(),
+      monthly_expenses: (() => {
+        // CRITICAL FIX: Use expense breakdown as source of truth, ensure total = sum
+        const breakdown = {
           rent: calc.expenses.rent,
           utilities: calc.expenses.utilities,
           salaries: calc.expenses.salaries,
           inventory_replenishment: calc.expenses.cogs,
           marketing: calc.expenses.marketing,
           other: calc.expenses.other
+        };
+        
+        // Calculate actual sum of breakdown items
+        const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+        
+        // Log warning if there's a mismatch with calc.totalExpenses
+        if (Math.abs(breakdownSum - calc.totalExpenses) > 1) {
+          console.warn(`⚠️ Expense mismatch detected: breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses}. Using sum.`);
         }
-      },
+        
+        return {
+          total: breakdownSum, // Use the SUM as the total, not the separate calc.totalExpenses
+          variable_costs: calc.expenses.cogs + calc.expenses.marketing,
+          fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
+          breakdown
+        };
+      })(),
       risk_analysis: {
         revenue_drop_20: {
           scenario: "Revenue drops 20%",
