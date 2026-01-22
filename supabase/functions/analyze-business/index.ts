@@ -17,6 +17,14 @@ import {
   type SubIndustryResult 
 } from "./sub-industry-detection.ts";
 
+// ========== QUANTIS 2.0 ENGINE ==========
+import { 
+  processQuantisAnalysis,
+  type QuantisEngineInput,
+  type QuantisEngineOutput,
+  QUANTIS_ENGINE_INFO
+} from "./quantis-engine.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
@@ -2650,10 +2658,36 @@ Call submit_analysis with all sections in English.`;
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
     
-    // Generate actionable insights
+    // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
+    // Run the bulletproof validation and recommendation engine
+    const quantisInput: QuantisEngineInput = {
+      businessIdea: idea_clean,
+      location: location_clean,
+      financialInputs: mergedFinancialInputs ? {
+        startupInvestment: mergedFinancialInputs.startup_investment,
+        monthlyRevenue: mergedFinancialInputs.monthly_revenue,
+        averagePrice: mergedFinancialInputs.average_price,
+        expectedCustomers: mergedFinancialInputs.expected_customers,
+        monthlyCosts: mergedFinancialInputs.monthly_costs,
+        cac: mergedFinancialInputs.cac,
+        churnRate: mergedFinancialInputs.churn_rate,
+      } : undefined,
+      expenses: undefined, // Will be populated from documents if available
+      selectedIndustry: selected_industry,
+      documents: documents,
+      benchmarks: detectedIndustry,
+      locationMultipliers,
+      subIndustry,
+    };
+    
+    // Process through Quantis 2.0 engine
+    const quantisOutput = processQuantisAnalysis(quantisInput);
+    console.log(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    
+    // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
     
-    // Build validation warnings
+    // ========== MERGE QUANTIS 2.0 WARNINGS WITH LEGACY WARNINGS ==========
     const warnings: Array<{
       field: string;
       value: number | string;
@@ -2662,7 +2696,19 @@ Call submit_analysis with all sections in English.`;
       message: string;
     }> = [];
     
-    if (!calc.isProfitable) {
+    // Add Quantis 2.0 validation warnings
+    for (const w of quantisOutput.validation.warnings) {
+      warnings.push({
+        field: w.code,
+        value: w.message,
+        expected: w.fix || 'See recommendations',
+        severity: w.severity === 'critical' || w.severity === 'error' ? 'error' : 'warning',
+        message: w.message
+      });
+    }
+    
+    // Legacy warning additions (only if not already covered by Quantis)
+    if (!calc.isProfitable && !warnings.some(w => w.field === 'UNPROFITABLE_NO_PAYBACK')) {
       warnings.push({
         field: 'profitability',
         value: calc.netProfit,
@@ -2672,7 +2718,7 @@ Call submit_analysis with all sections in English.`;
       });
     }
     
-    if (calc.ltvCacRatio < 3) {
+    if (calc.ltvCacRatio < 3 && !warnings.some(w => w.field === 'LTV_CAC_BELOW_MINIMUM')) {
       warnings.push({
         field: 'ltv_cac_ratio',
         value: calc.ltvCacRatio,
@@ -2682,7 +2728,7 @@ Call submit_analysis with all sections in English.`;
       });
     }
     
-    if (calc.paybackMonths > 36 && calc.paybackMonths < 999) {
+    if (calc.paybackMonths > 36 && calc.paybackMonths < 999 && !warnings.some(w => w.field === 'PAYBACK_TOO_LONG')) {
       warnings.push({
         field: 'payback',
         value: calc.paybackMonths,
@@ -3031,25 +3077,58 @@ Call submit_analysis with all sections in English.`;
           actionable_insights: actionableInsights,
           documents_used: documentsUsed.length > 0 ? documentsUsed : undefined,
           document_analysis_summary: documentAnalysisSummary,
+          
+          // ========== QUANTIS 2.0 ENHANCED VALIDATION ==========
           validation: {
-            is_realistic: calc.isProfitable && calc.corrections.length === 0 && warnings.length === 0,
-            is_profitable: calc.isProfitable,
-            was_auto_corrected: calc.corrections.length > 0,
-            reliability_score: reliabilityScore,
-            corrections: calc.corrections,
+            is_realistic: quantisOutput.validation.isRealistic,
+            is_profitable: quantisOutput.validation.isProfitable,
+            was_auto_corrected: quantisOutput.validation.wasAutoCorrected,
+            reliability_score: quantisOutput.validation.reliabilityScore,
+            corrections: quantisOutput.validation.corrections,
             warnings,
-            calculation_audit: calc.audit,
-            break_even_revenue: calc.breakEvenRevenue,
-            revenue_for_45k_profit: calc.revenueFor45kProfit,
-            industry_detected: calc.industryDetected,
-            confidence_breakdown: confidenceBreakdown,
-            improvement_suggestions: improvementSuggestions,
-            summary: !calc.isProfitable 
-              ? `❌ Business is unprofitable. Need revenue from $${calc.breakEvenRevenue.toLocaleString()}/mo`
-              : calc.corrections.length > 0 
-                ? `⚠ Corrected ${calc.corrections.length} metrics for accuracy`
-                : `✓ Calculations verified. Profit $${calc.netProfit.toLocaleString()}/mo`
+            calculation_audit: quantisOutput.validation.calculationAudit,
+            break_even_revenue: quantisOutput.validation.breakEvenRevenue,
+            revenue_for_45k_profit: quantisOutput.validation.revenueFor45kProfit,
+            industry_detected: quantisOutput.validation.industryDetected,
+            confidence_breakdown: quantisOutput.validation.confidenceBreakdown,
+            improvement_suggestions: quantisOutput.validation.improvementSuggestions,
+            summary: quantisOutput.validation.summary,
+            // Health scores (Quantis 2.0)
+            health_scores: quantisOutput.validation.healthScores,
           },
+          
+          // ========== QUANTIS 2.0 RECOMMENDATIONS ==========
+          recommendations: {
+            summary: quantisOutput.recommendations.summary,
+            priorities: {
+              immediate: quantisOutput.recommendations.priorities.immediate,
+              short_term: quantisOutput.recommendations.priorities.shortTerm,
+              long_term: quantisOutput.recommendations.priorities.longTerm,
+            },
+            action_plan: quantisOutput.recommendations.actionPlan,
+            generated_at: quantisOutput.recommendations.generatedAt,
+            version: quantisOutput.recommendations.version,
+          },
+          
+          // ========== QUANTIS 2.0 METRICS ==========
+          quantis_metrics: {
+            mrr: quantisOutput.metrics.mrr,
+            arr: quantisOutput.metrics.arr,
+            net_profit: quantisOutput.metrics.netProfit,
+            net_margin_percent: quantisOutput.metrics.netMarginPercent,
+            gross_profit: quantisOutput.metrics.grossProfit,
+            gross_margin_percent: quantisOutput.metrics.grossMarginPercent,
+            total_expenses: quantisOutput.metrics.totalExpenses,
+            payback_months: quantisOutput.metrics.paybackMonths,
+            payback_display: quantisOutput.metrics.paybackDisplay,
+            roi_year_1_percent: quantisOutput.metrics.roiYear1Percent,
+            ltv_cac_ratio: quantisOutput.metrics.ltvCacRatio,
+            cac: quantisOutput.metrics.cac,
+            ltv: quantisOutput.metrics.ltv,
+          },
+          
+          // Engine version info
+          engine_version: quantisOutput.version,
           data_sources: [
             benchmarkSource === 'database' 
               ? `Kerry Industry Dataset (${benchmarkDataSource || 'verified benchmarks'})` 
