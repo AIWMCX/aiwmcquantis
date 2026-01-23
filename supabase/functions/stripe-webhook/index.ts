@@ -87,10 +87,10 @@ serve(async (req) => {
       );
     }
 
-    // Verify webhook signature
+    // Verify webhook signature - MUST use async version for Deno
     let event: Stripe.Event;
     try {
-      event = stripe.webhooks.constructEvent(body, signature, webhookSecret);
+      event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       console.log(`[${requestId}] Signature verified successfully`);
     } catch (err) {
       console.error(`[${requestId}] Signature verification failed:`, err.message);
