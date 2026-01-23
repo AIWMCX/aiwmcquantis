@@ -383,7 +383,8 @@ export type Database = {
       leads: {
         Row: {
           created_at: string | null
-          email: string
+          email_encrypted: string
+          email_hash: string | null
           id: string
           metadata: Json | null
           offer: string
@@ -393,7 +394,8 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
-          email: string
+          email_encrypted: string
+          email_hash?: string | null
           id?: string
           metadata?: Json | null
           offer: string
@@ -403,7 +405,8 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
-          email?: string
+          email_encrypted?: string
+          email_hash?: string | null
           id?: string
           metadata?: Json | null
           offer?: string
@@ -890,6 +893,7 @@ export type Database = {
           signup_date: string
         }[]
       }
+      get_lead_email: { Args: { p_lead_id: string }; Returns: string }
       get_monthly_analyses: {
         Args: { months_back?: number }
         Returns: {
