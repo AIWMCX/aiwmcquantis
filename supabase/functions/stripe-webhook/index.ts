@@ -15,6 +15,51 @@ const corsHeaders = {
   ...securityHeaders,
 };
 
+// Retry configuration
+const RETRY_CONFIG = {
+  maxRetries: 3,
+  baseDelayMs: 100,
+  maxDelayMs: 2000,
+};
+
+// Exponential backoff with jitter
+function calculateBackoff(attempt: number): number {
+  const exponentialDelay = RETRY_CONFIG.baseDelayMs * Math.pow(2, attempt);
+  const jitter = Math.random() * exponentialDelay * 0.1;
+  return Math.min(exponentialDelay + jitter, RETRY_CONFIG.maxDelayMs);
+}
+
+// Sleep helper
+function sleep(ms: number): Promise<void> {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// Retry wrapper for database operations
+async function withRetry<T>(
+  operation: () => Promise<T>,
+  operationName: string,
+  requestId: string
+): Promise<T> {
+  let lastError: Error | null = null;
+  
+  for (let attempt = 0; attempt <= RETRY_CONFIG.maxRetries; attempt++) {
+    try {
+      return await operation();
+    } catch (error) {
+      lastError = error;
+      
+      if (attempt < RETRY_CONFIG.maxRetries) {
+        const delay = calculateBackoff(attempt);
+        console.warn(`[${requestId}] ${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), retrying in ${delay}ms:`, error.message);
+        await sleep(delay);
+      }
+    }
+  }
+  
+  console.error(`[${requestId}] ${operationName} failed after ${RETRY_CONFIG.maxRetries + 1} attempts`);
+  throw lastError;
+}
+
 console.log("=== Stripe Webhook Function Started ===");
 console.log("Timestamp:", new Date().toISOString());
 
@@ -36,7 +81,8 @@ serve(async (req) => {
       JSON.stringify({ 
         status: "healthy", 
         message: "Stripe webhook is ready to receive events",
-        timestamp: new Date().toISOString()
+        timestamp: new Date().toISOString(),
+        retryConfig: RETRY_CONFIG
       }),
       { 
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -103,51 +149,106 @@ serve(async (req) => {
     console.log(`[${requestId}] Event type: ${event.type}`);
     console.log(`[${requestId}] Event ID: ${event.id}`);
 
-    // Log webhook event for reliability tracking
+    // Log webhook event for reliability tracking (with retry)
     try {
-      await supabase
-        .from("stripe_webhook_events")
-        .insert({
-          event_id: event.id,
-          event_type: event.type,
-          customer_id: (event.data.object as any)?.customer || null,
-          status: "processing",
-          payload: event.data.object as any,
-        });
+      await withRetry(
+        async () => {
+          const { error } = await supabase
+            .from("stripe_webhook_events")
+            .insert({
+              event_id: event.id,
+              event_type: event.type,
+              customer_id: (event.data.object as any)?.customer || null,
+              status: "processing",
+              payload: event.data.object as any,
+            });
+          if (error) throw error;
+        },
+        "Log webhook event",
+        requestId
+      );
     } catch (logErr) {
-      console.warn(`[${requestId}] Failed to log webhook event:`, logErr);
+      console.warn(`[${requestId}] Failed to log webhook event after retries:`, logErr);
       // Continue processing even if logging fails
     }
 
-    // Helper function to find user by email
+    // Helper function to find user by email (with retry)
     async function findUserByEmail(email: string): Promise<string | null> {
       console.log(`[${requestId}] Looking up user by email: ${email}`);
-      const { data: { users }, error } = await supabase.auth.admin.listUsers();
-      if (error) {
-        console.error(`[${requestId}] Error listing users:`, error.message);
+      try {
+        return await withRetry(
+          async () => {
+            const { data: { users }, error } = await supabase.auth.admin.listUsers();
+            if (error) throw error;
+            const matchedUser = users?.find(u => u.email === email);
+            if (matchedUser) {
+              console.log(`[${requestId}] Found user by email: ${matchedUser.id}`);
+              return matchedUser.id;
+            }
+            console.log(`[${requestId}] No user found for email: ${email}`);
+            return null;
+          },
+          "Find user by email",
+          requestId
+        );
+      } catch (err) {
+        console.error(`[${requestId}] Error finding user by email:`, err.message);
         return null;
       }
-      const matchedUser = users?.find(u => u.email === email);
-      if (matchedUser) {
-        console.log(`[${requestId}] Found user by email: ${matchedUser.id}`);
-        return matchedUser.id;
-      }
-      console.log(`[${requestId}] No user found for email: ${email}`);
-      return null;
     }
 
-    // Helper function to get customer email from Stripe
+    // Helper function to get customer email from Stripe (with retry)
     async function getCustomerEmail(customerId: string): Promise<string | null> {
       try {
-        const customer = await stripe.customers.retrieve(customerId);
-        if (customer && !customer.deleted && customer.email) {
-          console.log(`[${requestId}] Customer email from Stripe: ${customer.email}`);
-          return customer.email;
-        }
+        return await withRetry(
+          async () => {
+            const customer = await stripe.customers.retrieve(customerId);
+            if (customer && !customer.deleted && customer.email) {
+              console.log(`[${requestId}] Customer email from Stripe: ${customer.email}`);
+              return customer.email;
+            }
+            return null;
+          },
+          "Get customer email",
+          requestId
+        );
       } catch (err) {
         console.error(`[${requestId}] Error fetching customer:`, err.message);
+        return null;
       }
-      return null;
+    }
+
+    // Helper function to upsert subscription with retry
+    async function upsertSubscription(data: any): Promise<{ success: boolean; error?: any }> {
+      try {
+        await withRetry(
+          async () => {
+            const { error } = await supabase
+              .from("subscriptions")
+              .upsert(data, { onConflict: "user_id" });
+            if (error) throw error;
+          },
+          "Upsert subscription",
+          requestId
+        );
+        return { success: true };
+      } catch (upsertError) {
+        // Fallback: try INSERT
+        console.log(`[${requestId}] Upsert failed, attempting INSERT fallback...`);
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await supabase.from("subscriptions").insert(data);
+              if (error) throw error;
+            },
+            "Insert subscription fallback",
+            requestId
+          );
+          return { success: true };
+        } catch (insertError) {
+          return { success: false, error: insertError };
+        }
+      }
     }
 
     switch (event.type) {
@@ -190,9 +291,13 @@ serve(async (req) => {
 
         console.log(`[${requestId}] User ID resolved: ${userId}`);
 
-        // Get subscription details from Stripe
+        // Get subscription details from Stripe (with retry)
         console.log(`[${requestId}] Fetching subscription details...`);
-        const subscription = await stripe.subscriptions.retrieve(subscriptionId);
+        const subscription = await withRetry(
+          () => stripe.subscriptions.retrieve(subscriptionId),
+          "Retrieve subscription",
+          requestId
+        );
         console.log(`[${requestId}] Subscription status: ${subscription.status}`);
 
         // All paid subscriptions are now 'plus' (Pro tier removed)
@@ -206,7 +311,7 @@ serve(async (req) => {
         }
         console.log(`[${requestId}] Status: ${status}`);
 
-        // Upsert subscription
+        // Upsert subscription with retry
         console.log(`[${requestId}] Upserting subscription to database...`);
         const subscriptionData = {
           user_id: userId,
@@ -219,26 +324,11 @@ serve(async (req) => {
         };
         console.log(`[${requestId}] Subscription data:`, JSON.stringify(subscriptionData));
 
-        const { data: upsertData, error: upsertError } = await supabase
-          .from("subscriptions")
-          .upsert(subscriptionData, { onConflict: "user_id" });
-
-        if (upsertError) {
-          console.error(`[${requestId}] UPSERT FAILED:`, JSON.stringify(upsertError));
-          
-          // Fallback: try INSERT
-          console.log(`[${requestId}] Attempting fallback INSERT...`);
-          const { error: insertError } = await supabase
-            .from("subscriptions")
-            .insert(subscriptionData);
-          
-          if (insertError) {
-            console.error(`[${requestId}] INSERT FALLBACK FAILED:`, JSON.stringify(insertError));
-          } else {
-            console.log(`[${requestId}] SUCCESS via INSERT fallback`);
-          }
-        } else {
+        const result = await upsertSubscription(subscriptionData);
+        if (result.success) {
           console.log(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
+        } else {
+          console.error(`[${requestId}] FAILED to create subscription:`, result.error);
         }
         break;
       }
@@ -264,40 +354,49 @@ serve(async (req) => {
 
         console.log(`[${requestId}] Updating - Plan: ${plan}, Status: ${status}`);
 
-        // First, try to update by subscription ID
-        const { data: existingBySubId, error: selectError } = await supabase
-          .from("subscriptions")
-          .select("id, user_id")
-          .eq("stripe_subscription_id", subscription.id)
-          .maybeSingle();
-
-        if (existingBySubId) {
-          // Found by subscription ID - update it
-          const { error: updateError } = await supabase
-            .from("subscriptions")
-            .update({
-              plan_id: plan,
-              status: status,
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            })
-            .eq("stripe_subscription_id", subscription.id);
-
-          if (updateError) {
-            console.error(`[${requestId}] Update error:`, updateError);
-          } else {
-            console.log(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
-          }
-        } else {
-          // Fallback: Find user by customer email and upsert
-          console.log(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
-          const customerEmail = await getCustomerEmail(subscription.customer as string);
-          if (customerEmail) {
-            const userId = await findUserByEmail(customerEmail);
-            if (userId) {
-              const { error: upsertError } = await supabase
+        // First, try to update by subscription ID (with retry)
+        try {
+          const existing = await withRetry(
+            async () => {
+              const { data, error } = await supabase
                 .from("subscriptions")
-                .upsert({
+                .select("id, user_id")
+                .eq("stripe_subscription_id", subscription.id)
+                .maybeSingle();
+              if (error) throw error;
+              return data;
+            },
+            "Find subscription by ID",
+            requestId
+          );
+
+          if (existing) {
+            // Found by subscription ID - update it
+            await withRetry(
+              async () => {
+                const { error } = await supabase
+                  .from("subscriptions")
+                  .update({
+                    plan_id: plan,
+                    status: status,
+                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                  })
+                  .eq("stripe_subscription_id", subscription.id);
+                if (error) throw error;
+              },
+              "Update subscription by ID",
+              requestId
+            );
+            console.log(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
+          } else {
+            // Fallback: Find user by customer email and upsert
+            console.log(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
+            const customerEmail = await getCustomerEmail(subscription.customer as string);
+            if (customerEmail) {
+              const userId = await findUserByEmail(customerEmail);
+              if (userId) {
+                const result = await upsertSubscription({
                   user_id: userId,
                   stripe_customer_id: subscription.customer as string,
                   stripe_subscription_id: subscription.id,
@@ -305,19 +404,21 @@ serve(async (req) => {
                   status: status,
                   current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
                   current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-                }, { onConflict: "user_id" });
-
-              if (upsertError) {
-                console.error(`[${requestId}] Upsert fallback error:`, upsertError);
+                });
+                if (result.success) {
+                  console.log(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
+                } else {
+                  console.error(`[${requestId}] Upsert fallback error:`, result.error);
+                }
               } else {
-                console.log(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
+                console.error(`[${requestId}] Could not find user for email ${customerEmail}`);
               }
             } else {
-              console.error(`[${requestId}] Could not find user for email ${customerEmail}`);
+              console.error(`[${requestId}] Could not get customer email for fallback`);
             }
-          } else {
-            console.error(`[${requestId}] Could not get customer email for fallback`);
           }
+        } catch (err) {
+          console.error(`[${requestId}] Subscription update failed:`, err.message);
         }
         break;
       }
@@ -327,18 +428,24 @@ serve(async (req) => {
         console.log(`[${requestId}] === Subscription Deleted ===`);
         console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
 
-        const { error: deleteError } = await supabase
-          .from("subscriptions")
-          .update({
-            plan_id: "free",
-            status: "canceled",
-          })
-          .eq("stripe_subscription_id", subscription.id);
-
-        if (deleteError) {
-          console.error(`[${requestId}] Delete error:`, deleteError);
-        } else {
+        try {
+          await withRetry(
+            async () => {
+              const { error } = await supabase
+                .from("subscriptions")
+                .update({
+                  plan_id: "free",
+                  status: "canceled",
+                })
+                .eq("stripe_subscription_id", subscription.id);
+              if (error) throw error;
+            },
+            "Cancel subscription",
+            requestId
+          );
           console.log(`[${requestId}] SUCCESS: Subscription canceled`);
+        } catch (err) {
+          console.error(`[${requestId}] Delete error:`, err.message);
         }
         break;
       }
@@ -351,24 +458,36 @@ serve(async (req) => {
         console.log(`[${requestId}] Customer: ${invoice.customer}`);
 
         if (invoice.subscription && invoice.customer) {
-          // Fetch full subscription to sync data
-          const subscription = await stripe.subscriptions.retrieve(invoice.subscription as string);
+          // Fetch full subscription to sync data (with retry)
+          const subscription = await withRetry(
+            () => stripe.subscriptions.retrieve(invoice.subscription as string),
+            "Retrieve subscription for invoice",
+            requestId
+          );
           
           // All paid subscriptions are now 'plus' (Pro tier removed)
           const plan = "plus";
 
-          // Update subscription period dates
-          const { error: updateError } = await supabase
-            .from("subscriptions")
-            .update({
-              plan_id: plan,
-              status: subscription.status === "active" ? "active" : subscription.status,
-              current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-              current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-            })
-            .eq("stripe_subscription_id", subscription.id);
-
-          if (updateError) {
+          // Update subscription period dates (with retry)
+          try {
+            await withRetry(
+              async () => {
+                const { error } = await supabase
+                  .from("subscriptions")
+                  .update({
+                    plan_id: plan,
+                    status: subscription.status === "active" ? "active" : subscription.status,
+                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                  })
+                  .eq("stripe_subscription_id", subscription.id);
+                if (error) throw error;
+              },
+              "Update subscription from invoice",
+              requestId
+            );
+            console.log(`[${requestId}] SUCCESS: Subscription updated from invoice.paid`);
+          } catch (updateError) {
             console.error(`[${requestId}] Invoice update error:`, updateError);
             
             // Fallback: try to find by customer email
@@ -376,27 +495,22 @@ serve(async (req) => {
             if (customerEmail) {
               const userId = await findUserByEmail(customerEmail);
               if (userId) {
-                const { error: upsertError } = await supabase
-                  .from("subscriptions")
-                  .upsert({
-                    user_id: userId,
-                    stripe_customer_id: invoice.customer as string,
-                    stripe_subscription_id: subscription.id,
-                    plan_id: plan,
-                    status: subscription.status === "active" ? "active" : subscription.status,
-                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-                  }, { onConflict: "user_id" });
-
-                if (upsertError) {
-                  console.error(`[${requestId}] Invoice upsert fallback error:`, upsertError);
-                } else {
+                const result = await upsertSubscription({
+                  user_id: userId,
+                  stripe_customer_id: invoice.customer as string,
+                  stripe_subscription_id: subscription.id,
+                  plan_id: plan,
+                  status: subscription.status === "active" ? "active" : subscription.status,
+                  current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                  current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                });
+                if (result.success) {
                   console.log(`[${requestId}] SUCCESS: Subscription synced via invoice.paid fallback`);
+                } else {
+                  console.error(`[${requestId}] Invoice upsert fallback error:`, result.error);
                 }
               }
             }
-          } else {
-            console.log(`[${requestId}] SUCCESS: Subscription updated from invoice.paid`);
           }
         }
         break;
@@ -408,15 +522,22 @@ serve(async (req) => {
 
     console.log(`[${requestId}] === Webhook processing complete ===`);
 
-    // Update webhook event status to processed
+    // Update webhook event status to processed (with retry)
     try {
-      await supabase
-        .from("stripe_webhook_events")
-        .update({
-          status: "processed",
-          processed_at: new Date().toISOString(),
-        })
-        .eq("event_id", event.id);
+      await withRetry(
+        async () => {
+          const { error } = await supabase
+            .from("stripe_webhook_events")
+            .update({
+              status: "processed",
+              processed_at: new Date().toISOString(),
+            })
+            .eq("event_id", event.id);
+          if (error) throw error;
+        },
+        "Update webhook event status",
+        requestId
+      );
     } catch (updateErr) {
       console.warn(`[${requestId}] Failed to update webhook event status:`, updateErr);
     }
