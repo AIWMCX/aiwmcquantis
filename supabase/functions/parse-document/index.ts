@@ -174,7 +174,30 @@ serve(async (req) => {
       );
     }
 
+    // ========== DOCUMENT SIZE LIMIT (100KB) ==========
+    const MAX_DOCUMENT_SIZE = 102400; // 100KB limit
     console.log(`Parsing document: ${fileName} (${fileType})`);
+
+    // Fetch the file with size check
+    const fileResponse = await fetch(fileUrl);
+    if (!fileResponse.ok) {
+      throw new Error(`Failed to fetch file: ${fileResponse.status}`);
+    }
+
+    // Check content-length header if available
+    const contentLength = fileResponse.headers.get('content-length');
+    if (contentLength && parseInt(contentLength) > MAX_DOCUMENT_SIZE) {
+      console.log(`Document rejected: ${fileName} is ${parseInt(contentLength)} bytes (limit: ${MAX_DOCUMENT_SIZE})`);
+      return new Response(
+        JSON.stringify({ 
+          error: "Document too large. Maximum size is 100KB",
+          code: "DOCUMENT_TOO_LARGE",
+          size: parseInt(contentLength),
+          limit: MAX_DOCUMENT_SIZE
+        }),
+        { status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
 
     // Fetch the file
     const fileResponse = await fetch(fileUrl);
