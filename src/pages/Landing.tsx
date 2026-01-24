@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, ChevronRight, Moon, Sun, Loader2, Calculator, FileDown, DollarSign, AlertTriangle, Play } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
+import { MobileHero } from '@/components/landing/MobileHero';
+import { DemoPreview } from '@/components/landing/DemoPreview';
+import { ClientTestimonials } from '@/components/landing/ClientTestimonials';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -24,13 +27,13 @@ export default function Landing() {
     return false;
   });
 
-  // Exit Intent Hook - triggers when user moves mouse to leave the page
+  // Exit Intent Hook
   const { shouldShow: showExitPopup, close: closeExitPopup, markSubmitted: markExitSubmitted } = useExitIntent({
     enabled: true,
     threshold: 20,
     delay: 500,
-    cooldownDays: 14, // 14 days after email submission
-    dismissCooldownHours: 4, // 4 hours after dismiss (respect but don't give up)
+    cooldownDays: 14,
+    dismissCooldownHours: 4,
   });
 
   useEffect(() => {
@@ -51,24 +54,16 @@ export default function Landing() {
   }, [darkMode]);
 
   const handlePlanClick = (planName: string) => {
-    console.log('[Landing] Plan clicked:', planName);
-    console.log('[Landing] User authenticated:', !!user);
     if (planName === 'Free') {
-      console.log('[Landing] Free plan - navigating to app');
       navigate('/app');
       return;
     }
-    // Only Plus plan available now (Pro tier removed)
     const plan = 'plus' as const;
     setLoadingPlan(planName);
-    console.log('[Landing] Processing plan:', plan);
     if (user) {
-      console.log('[Landing] User is authenticated - redirecting to Payment Link');
       redirectToPayment(plan, user.id, user.email || undefined);
     } else {
-      console.log('[Landing] User not authenticated - saving plan to localStorage');
       localStorage.setItem('pending_checkout_plan', plan);
-      console.log('[Landing] Navigating to auth page');
       navigate('/auth');
     }
   };
@@ -99,25 +94,6 @@ export default function Landing() {
     description: 'Analysis tailored to your specific geographic market and demographics.'
   }];
 
-  // Beta feedback section instead of fake testimonials
-  const betaFeatures = [
-    {
-      icon: Sparkles,
-      title: 'AI-Powered Analysis',
-      description: 'Get comprehensive business insights powered by advanced AI in under 2 minutes.'
-    },
-    {
-      icon: Target,
-      title: 'Location Intelligence',
-      description: 'Analysis tailored to your specific geographic market, starting with Denver.'
-    },
-    {
-      icon: TrendingUp,
-      title: 'Financial Modeling',
-      description: 'Professional-grade projections including ROI, payback period, and cash flow.'
-    }
-  ];
-
   const pricingPlans = [{
     name: 'Free',
     price: '$0',
@@ -137,7 +113,7 @@ export default function Landing() {
     hasTrial: true
   }];
 
-  // Real stats - updated to reflect actual platform state
+  // Real stats
   const stats = [{
     value: '1,000+',
     label: 'Industry Benchmarks'
@@ -157,44 +133,50 @@ export default function Landing() {
       {/* Structured Data for SEO */}
       <StructuredData />
       
-      {/* Navigation */}
+      {/* Navigation - Mobile optimized */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-4">
+        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
-              <span className="text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
+              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
+              <a href="#demo-preview" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Demo</a>
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
               <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
-              <a href="#faq" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">FAQ</a>
             </div>
-            <div className="flex items-center gap-3">
-              <button onClick={() => setDarkMode(!darkMode)} className="p-2 rounded-lg hover:bg-accent transition-colors" aria-label="Toggle theme">
+            <div className="flex items-center gap-2 sm:gap-3">
+              <button 
+                onClick={() => setDarkMode(!darkMode)} 
+                className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" 
+                aria-label="Toggle theme"
+              >
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
               </button>
               {user ? (
                 <>
                   <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-                    <span className="text-sm text-foreground truncate max-w-[150px]">
+                    <span className="text-sm text-foreground truncate max-w-[120px]">
                       {user.email}
                     </span>
                   </div>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2">
+                    <Button size="sm" className="gap-2 min-h-[44px] px-4">
                       Go to App <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link to="/auth">
-                    <Button variant="ghost" size="sm">Sign In</Button>
+                  <Link to="/auth" className="hidden sm:block">
+                    <Button variant="ghost" size="sm" className="min-h-[44px]">Sign In</Button>
                   </Link>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2">
-                      Try Free <ArrowRight className="w-4 h-4" />
+                    <Button size="sm" className="gap-2 min-h-[44px] px-4">
+                      <span className="hidden sm:inline">Try Free</span>
+                      <span className="sm:hidden">Start</span>
+                      <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
                 </>
@@ -204,110 +186,35 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section - Conversion Optimized */}
-      <section id="main-content" className="relative overflow-hidden" aria-label="Hero">
-        <div className="absolute inset-0 bg-gradient-to-br from-primary/8 via-background to-background" />
-        <div className="absolute top-0 right-0 w-1/2 h-1/2 bg-primary/8 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-1/3 h-1/3 bg-primary/6 rounded-full blur-3xl" />
-        
-        <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-24 lg:py-32">
-          <div className="text-center max-w-4xl mx-auto">
-            {/* Clear Value Proposition */}
-            <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 md:mb-6 leading-tight tracking-tight">
-              AI Business Analysis
-              <span className="text-primary block mt-1">In Minutes, Not Weeks</span>
-            </h1>
-            
-            <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-xl mx-auto mb-6 md:mb-8 leading-relaxed">
-              Get a complete AI-powered report — revenue projections, risks, and next steps. No spreadsheets needed.
-            </p>
+      {/* Hero Section - Mobile Optimized */}
+      <MobileHero stats={stats} />
 
-            {/* Primary CTA - Dominant */}
-            <div className="flex flex-col items-center gap-3 mb-8 md:mb-10">
-              <Link to="/app" className="w-full sm:w-auto" onClick={() => trackCtaClick('get_free_analysis', 'hero_primary')}>
-                <Button size="lg" className="w-full sm:w-auto gap-2 text-base sm:text-lg px-8 py-6 shadow-xl hover:shadow-2xl transition-all duration-300 hover:scale-105">
-                  <Play className="w-5 h-5" />
-                  Get My Free Analysis
-                </Button>
-              </Link>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                No signup required • Results in 2 minutes • Instant PDF
-              </p>
-            </div>
+      {/* Demo Preview - See before you sign up */}
+      <DemoPreview />
 
-            {/* Quick Benefits - Above the fold */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 md:mb-12 max-w-2xl mx-auto">
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
-                <div className="p-2 rounded-full bg-success/10">
-                  <CheckCircle2 className="w-5 h-5 text-success" />
-                </div>
-                <span className="text-sm font-medium text-foreground text-left">Validate your idea</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
-                <div className="p-2 rounded-full bg-success/10">
-                  <DollarSign className="w-5 h-5 text-success" />
-                </div>
-                <span className="text-sm font-medium text-foreground text-left">See unit economics</span>
-              </div>
-              <div className="flex items-center gap-3 p-3 rounded-lg bg-card/50 border border-border/50">
-                <div className="p-2 rounded-full bg-success/10">
-                  <AlertTriangle className="w-5 h-5 text-success" />
-                </div>
-                <span className="text-sm font-medium text-foreground text-left">Know risks first</span>
-              </div>
-            </div>
-
-            {/* Simple 3-Step Flow */}
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 py-8 border-y border-border bg-muted/30 rounded-xl px-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">1</div>
-                <span className="text-sm font-medium text-foreground">Describe your idea</span>
-              </div>
-              <ChevronRight className="hidden sm:block w-5 h-5 text-muted-foreground" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">2</div>
-                <span className="text-sm font-medium text-foreground">AI analyzes data</span>
-              </div>
-              <ChevronRight className="hidden sm:block w-5 h-5 text-muted-foreground" />
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground font-bold text-sm flex items-center justify-center">3</div>
-                <span className="text-sm font-medium text-foreground">Get executive report</span>
-              </div>
-            </div>
-
-            {/* Stats - Compact */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8 md:pt-12">
-              {stats.map(stat => (
-                <div key={stat.label} className="text-center">
-                  <div className="text-2xl md:text-3xl font-bold text-foreground mb-1">{stat.value}</div>
-                  <div className="text-xs md:text-sm text-muted-foreground">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </section>
+      {/* Client Testimonials */}
+      <ClientTestimonials />
 
       {/* Features Section */}
-      <section id="features" className="py-20 md:py-32 bg-muted/30">
+      <section id="features" className="py-16 md:py-24 bg-muted/30">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
               Everything You Need to Validate Your Idea
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base md:text-lg text-muted-foreground">
               Our AI analyzes your business concept and delivers actionable insights 
               that would take consultants weeks to produce.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {features.map(feature => (
-              <div key={feature.title} className="group p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
-                <div className="p-4 rounded-xl bg-primary/10 w-fit mb-6 group-hover:bg-primary/20 transition-colors">
-                  <feature.icon className="w-8 h-8 text-primary" />
+              <div key={feature.title} className="group p-6 md:p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
+                <div className="p-3 md:p-4 rounded-xl bg-primary/10 w-fit mb-4 md:mb-6 group-hover:bg-primary/20 transition-colors">
+                  <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
+                <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2 md:mb-3">{feature.title}</h3>
+                <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -317,62 +224,22 @@ export default function Landing() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-      {/* Why Choose Us Section (replacing testimonials) */}
-      <section id="testimonials" className="py-20 md:py-32">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 text-success text-sm font-medium mb-6">
-              🚀 Now in Beta
-            </div>
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-              Why Business Owners Choose Us
-            </h2>
-            <p className="text-lg text-muted-foreground">
-              Get professional-grade business analysis without the consultant fees.
-              Join our growing community of entrepreneurs.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {betaFeatures.map(feature => (
-              <div key={feature.title} className="p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300">
-                <div className="p-4 rounded-xl bg-primary/10 w-fit mb-6">
-                  <feature.icon className="w-8 h-8 text-primary" />
-                </div>
-                <h3 className="text-xl font-semibold text-foreground mb-3">{feature.title}</h3>
-                <p className="text-muted-foreground leading-relaxed">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-          <div className="text-center mt-12">
-            <p className="text-muted-foreground mb-4">
-              Be among the first to try our platform and help shape its future.
-            </p>
-            <Link to="/app" onClick={() => trackCtaClick('try_beta_access', 'why_choose_us')}>
-              <Button size="lg" variant="outline" className="gap-2">
-                Try Free Beta Access
-                <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </section>
-
       {/* Pricing Section */}
-      <section id="pricing" className="py-20 md:py-32 bg-muted/30">
+      <section id="pricing" className="py-16 md:py-24 bg-muted/30">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-16">
-            <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
+          <div className="text-center max-w-3xl mx-auto mb-12">
+            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
               Simple, Transparent Pricing
             </h2>
-            <p className="text-lg text-muted-foreground">
+            <p className="text-base md:text-lg text-muted-foreground">
               Start free and upgrade as you grow. No hidden fees.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-3xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
             {pricingPlans.map(plan => (
-              <div key={plan.name} className={`relative p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl scale-105' : 'border-border bg-card'}`}>
+              <div key={plan.name} className={`relative p-6 md:p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl md:scale-105' : 'border-border bg-card'}`}>
                 {plan.highlighted && (
-                  <div className="absolute -top-4 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium">
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium">
                     Most Popular
                   </div>
                 )}
@@ -384,21 +251,21 @@ export default function Landing() {
                     </span>
                   )}
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold text-foreground">{plan.price}</span>
+                    <span className="text-3xl md:text-4xl font-bold text-foreground">{plan.price}</span>
                     <span className="text-muted-foreground">/{plan.period}</span>
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
                 </div>
-                <ul className="space-y-3 mb-8">
+                <ul className="space-y-3 mb-6 md:mb-8">
                   {plan.features.map(feature => (
-                    <li key={feature} className="flex items-center gap-3 text-foreground">
+                    <li key={feature} className="flex items-center gap-3 text-sm md:text-base text-foreground">
                       <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
                       <span>{feature}</span>
                     </li>
                   ))}
                 </ul>
                 <Button 
-                  className="w-full" 
+                  className="w-full min-h-[48px]" 
                   variant={plan.highlighted ? 'default' : 'outline'} 
                   size="lg" 
                   onClick={() => handlePlanClick(plan.name)} 
@@ -421,20 +288,20 @@ export default function Landing() {
       <FAQSection />
 
       {/* CTA Section */}
-      <section className="py-20 md:py-32">
+      <section className="py-16 md:py-24">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="relative overflow-hidden rounded-3xl bg-primary p-12 md:p-20 text-center">
+          <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-primary p-8 md:p-16 text-center">
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
             <div className="relative">
-              <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+              <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
                 Ready to Validate Your Business Idea?
               </h2>
-              <p className="text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-8">
-                Join our growing community of entrepreneurs using AI-powered analysis. 
-                Start for free, no credit card required.
+              <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
+                Join entrepreneurs using AI-powered analysis. 
+                Start free, no credit card required.
               </p>
               <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
-                <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6">
+                <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px]">
                   Start Your Free Analysis
                   <ArrowRight className="w-5 h-5" />
                 </Button>
@@ -445,16 +312,16 @@ export default function Landing() {
       </section>
 
       {/* Footer */}
-      <footer className="border-t border-border py-12">
+      <footer className="border-t border-border py-8 md:py-12">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
             <div className="flex items-center gap-2">
               <span className="text-lg font-bold text-foreground">AIWMC Quantis™</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link to="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-              <Link to="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-              <a href="mailto:support@aiwmcquantis.com" className="hover:text-foreground transition-colors">Contact</a>
+            <div className="flex items-center gap-4 md:gap-6 text-sm text-muted-foreground">
+              <Link to="/privacy" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Privacy Policy</Link>
+              <Link to="/terms" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Terms of Service</Link>
+              <a href="mailto:support@aiwmcquantis.com" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Contact</a>
             </div>
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
@@ -463,10 +330,10 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Mobile Sticky CTA */}
+      {/* Mobile Sticky CTA - Larger touch target */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
         <Link to="/app" className="block" onClick={() => trackCtaClick('get_free_analysis', 'mobile_sticky')}>
-          <Button size="lg" className="w-full gap-2 text-base py-6 shadow-xl">
+          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-xl min-h-[60px]">
             <Play className="w-5 h-5" />
             Get My Free Analysis
           </Button>
@@ -474,9 +341,9 @@ export default function Landing() {
       </div>
 
       {/* Bottom padding for mobile sticky CTA */}
-      <div className="h-20 md:hidden" />
+      <div className="h-24 md:hidden" />
 
-      {/* Exit Intent Popup - wrapped in error boundary to prevent page crashes */}
+      {/* Exit Intent Popup */}
       <PopupErrorBoundary>
         <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} onSubmitSuccess={markExitSubmitted} />
       </PopupErrorBoundary>
