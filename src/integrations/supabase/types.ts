@@ -974,6 +974,7 @@ export type Database = {
             }
             Returns: undefined
           }
+      rotate_pii_encryption_key: { Args: never; Returns: Json }
       run_scheduled_cleanup: { Args: never; Returns: Json }
       user_owns_subscription: {
         Args: { subscription_user_id: string }
