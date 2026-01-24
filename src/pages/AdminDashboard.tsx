@@ -2,9 +2,10 @@ import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminMetricsDashboard } from '@/components/admin/AdminMetricsDashboard';
 import { SystemHealthDashboard } from '@/components/admin/SystemHealthDashboard';
+import { UptimeStatusCard } from '@/components/admin/UptimeStatusCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft } from 'lucide-react';
+import { Shield, Database, ArrowLeft, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 // Note: Authentication and admin role checks are handled by ProtectedRoute in App.tsx
@@ -56,9 +57,10 @@ export default function AdminDashboard() {
           </div>
         </div>
 
-        {/* System Health Dashboard */}
-        <div className="mb-8">
+        {/* System Health & Uptime Grid */}
+        <div className="grid gap-6 md:grid-cols-2 mb-8">
           <SystemHealthDashboard />
+          <UptimeStatusCard />
         </div>
 
         {/* Metrics Dashboard */}
