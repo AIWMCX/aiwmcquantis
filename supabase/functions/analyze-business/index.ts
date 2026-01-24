@@ -25,6 +25,20 @@ import {
   QUANTIS_ENGINE_INFO
 } from "./quantis-engine.ts";
 
+// ========== AI SAFETY GUARDRAILS ==========
+import {
+  validateAndSanitizeInput,
+  validateAIOutput,
+  generateTruthLabels,
+  estimateRequestCost,
+  checkKillSwitch,
+  createSecurityAuditLog,
+  AI_COST_LIMITS,
+  type InputValidationResult,
+  type OutputValidationResult,
+  type TruthLabel,
+} from "./ai-safety-guardrails.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
