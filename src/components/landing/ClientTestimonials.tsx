@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star, Quote } from 'lucide-react';
+import { Star, StarHalf, Quote } from 'lucide-react';
 
 interface Testimonial {
   quote: string;
@@ -16,7 +16,7 @@ const testimonials: Testimonial[] = [
     name: "Maria S.",
     role: "Founder",
     company: "FreshBake Co.",
-    rating: 5,
+    rating: 4.5,
     highlight: "Better than $3K consultant",
   },
   {
@@ -24,7 +24,7 @@ const testimonials: Testimonial[] = [
     name: "James T.",
     role: "Serial Entrepreneur",
     company: "Denver, CO",
-    rating: 5,
+    rating: 4.5,
     highlight: "Avoided bad investment",
   },
   {
@@ -32,10 +32,49 @@ const testimonials: Testimonial[] = [
     name: "Dr. Sarah K.",
     role: "Business Professor",
     company: "CU Boulder",
-    rating: 5,
+    rating: 4.5,
     highlight: "Transparent calculations",
   },
 ];
+
+// Star rating component with half-star support
+function StarRating({ rating }: { rating: number }) {
+  const fullStars = Math.floor(rating);
+  const hasHalfStar = rating % 1 >= 0.5;
+  const emptyStars = 5 - fullStars - (hasHalfStar ? 1 : 0);
+
+  return (
+    <div className="flex items-center gap-0.5">
+      {/* Full Stars */}
+      {Array.from({ length: fullStars }).map((_, i) => (
+        <Star
+          key={`full-${i}`}
+          className="w-4 h-4 fill-warning text-warning drop-shadow-sm"
+        />
+      ))}
+      
+      {/* Half Star */}
+      {hasHalfStar && (
+        <div className="relative w-4 h-4">
+          {/* Empty star background */}
+          <Star className="absolute inset-0 w-4 h-4 text-warning/30" />
+          {/* Half-filled star using clip */}
+          <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+            <Star className="w-4 h-4 fill-warning text-warning drop-shadow-sm" />
+          </div>
+        </div>
+      )}
+      
+      {/* Empty Stars */}
+      {Array.from({ length: emptyStars }).map((_, i) => (
+        <Star
+          key={`empty-${i}`}
+          className="w-4 h-4 text-warning/30"
+        />
+      ))}
+    </div>
+  );
+}
 
 export function ClientTestimonials() {
   return (
@@ -76,13 +115,8 @@ export function ClientTestimonials() {
               </blockquote>
 
               {/* Rating */}
-              <div className="flex items-center gap-1 mb-4">
-                {Array.from({ length: testimonial.rating }).map((_, i) => (
-                  <Star
-                    key={i}
-                    className="w-4 h-4 fill-warning text-warning"
-                  />
-                ))}
+              <div className="mb-4">
+                <StarRating rating={testimonial.rating} />
               </div>
 
               {/* Author */}
@@ -113,7 +147,20 @@ export function ClientTestimonials() {
               <div className="text-sm text-muted-foreground">Analyses Generated</div>
             </div>
             <div className="text-center">
-              <div className="text-2xl md:text-3xl font-bold text-foreground">4.8/5</div>
+              <div className="flex items-center justify-center gap-2">
+                <span className="text-2xl md:text-3xl font-bold text-foreground">4.5</span>
+                <div className="flex items-center">
+                  {Array.from({ length: 4 }).map((_, i) => (
+                    <Star key={i} className="w-4 h-4 fill-warning text-warning" />
+                  ))}
+                  <div className="relative w-4 h-4">
+                    <Star className="absolute inset-0 w-4 h-4 text-warning/30" />
+                    <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
+                      <Star className="w-4 h-4 fill-warning text-warning" />
+                    </div>
+                  </div>
+                </div>
+              </div>
               <div className="text-sm text-muted-foreground">Average Rating</div>
             </div>
             <div className="text-center">
