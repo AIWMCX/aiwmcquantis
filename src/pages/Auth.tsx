@@ -8,7 +8,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { redirectToPaymentLink } from '@/hooks/useStripeCheckout';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
-import { SignupForm, LoginForm } from '@/components/auth';
+import { SignupForm, LoginForm, ForgotPasswordForm } from '@/components/auth';
 import { trackPageView, trackEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 
@@ -18,6 +18,7 @@ export default function Auth() {
   const { isAuthenticated, isLoading: authLoading } = useAuth();
   const checkoutTriggered = useRef(false);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
+  const [showForgotPassword, setShowForgotPassword] = useState(false);
 
   // Track page view
   useEffect(() => {
@@ -152,11 +153,20 @@ export default function Auth() {
               </TabsContent>
 
               <TabsContent value="login" className="mt-0">
-                <CardTitle className="mb-2">Sign in to your account</CardTitle>
-                <CardDescription className="mb-6">
-                  Welcome back! Sign in to access your analyses
-                </CardDescription>
-                <LoginForm returnUrl={returnUrl || undefined} />
+                {showForgotPassword ? (
+                  <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+                ) : (
+                  <>
+                    <CardTitle className="mb-2">Sign in to your account</CardTitle>
+                    <CardDescription className="mb-6">
+                      Welcome back! Sign in to access your analyses
+                    </CardDescription>
+                    <LoginForm 
+                      returnUrl={returnUrl || undefined} 
+                      onForgotPassword={() => setShowForgotPassword(true)}
+                    />
+                  </>
+                )}
               </TabsContent>
             </CardContent>
           </Tabs>
