@@ -30,11 +30,12 @@ type LoginFormData = z.infer<typeof loginFormSchema>;
 
 interface LoginFormProps {
   onSuccess?: () => void;
+  onForgotPassword?: () => void;
   returnUrl?: string;
   className?: string;
 }
 
-export function LoginForm({ onSuccess, returnUrl, className }: LoginFormProps) {
+export function LoginForm({ onSuccess, onForgotPassword, returnUrl, className }: LoginFormProps) {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { signIn } = useAuth();
@@ -170,7 +171,18 @@ export function LoginForm({ onSuccess, returnUrl, className }: LoginFormProps) {
 
         {/* Password Field */}
         <div className="space-y-2">
-          <Label htmlFor="login-password">Password</Label>
+          <div className="flex items-center justify-between">
+            <Label htmlFor="login-password">Password</Label>
+            {onForgotPassword && (
+              <button
+                type="button"
+                onClick={onForgotPassword}
+                className="text-xs text-primary hover:underline"
+              >
+                Forgot password?
+              </button>
+            )}
+          </div>
           <div className="relative">
             <Lock className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
             <Input
