@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,12 +13,52 @@ import {
   CheckCircle2,
   AlertTriangle,
   XCircle,
-  Clock
+  Clock,
+  Bell
 } from "lucide-react";
 import { useSystemHealth, getStatusColor, type ComponentHealth } from "@/hooks/useSystemHealth";
+import { useHealthAlerts } from "@/hooks/useAlertNotification";
+import { toast } from "sonner";
 
 export function SystemHealthDashboard() {
   const { data: health, isLoading, error, refetch, isFetching } = useSystemHealth();
+  const { checkAndAlert } = useHealthAlerts();
+  const previousStatusRef = useRef<'healthy' | 'degraded' | 'unhealthy' | null>(null);
+
+  // Auto-alert on status changes
+  useEffect(() => {
+    if (health?.status && health.status !== previousStatusRef.current) {
+      const sendAlert = async () => {
+        try {
+          await checkAndAlert(health.status, previousStatusRef.current, {
+            checks: health.checks,
+            latency: health.latency,
+            timestamp: health.timestamp,
+          });
+          
+          // Show local notification for admins
+          if (health.status === 'unhealthy') {
+            toast.error('System is UNHEALTHY - Immediate action required!', {
+              duration: 10000,
+            });
+          } else if (health.status === 'degraded' && previousStatusRef.current === 'healthy') {
+            toast.warning('System performance is degraded', {
+              duration: 5000,
+            });
+          } else if (health.status === 'healthy' && previousStatusRef.current !== 'healthy') {
+            toast.success('System has recovered', {
+              duration: 5000,
+            });
+          }
+        } catch (e) {
+          console.error('Failed to send health alert:', e);
+        }
+      };
+      
+      sendAlert();
+      previousStatusRef.current = health.status;
+    }
+  }, [health?.status, checkAndAlert]);
 
   const getStatusIcon = (status: 'up' | 'down' | 'degraded') => {
     switch (status) {

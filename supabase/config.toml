@@ -29,3 +29,9 @@ verify_jwt = false
 
 [functions.replay-webhook-events]
 verify_jwt = false
+
+[functions.health-check]
+verify_jwt = false
+
+[functions.alert-webhook]
+verify_jwt = false
