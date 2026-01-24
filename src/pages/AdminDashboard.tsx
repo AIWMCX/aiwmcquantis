@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { AdminMetricsDashboard } from '@/components/admin/AdminMetricsDashboard';
+import { SystemHealthDashboard } from '@/components/admin/SystemHealthDashboard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Shield, Database, ArrowLeft } from 'lucide-react';
@@ -53,6 +54,11 @@ export default function AdminDashboard() {
               </Link>
             </Button>
           </div>
+        </div>
+
+        {/* System Health Dashboard */}
+        <div className="mb-8">
+          <SystemHealthDashboard />
         </div>
 
         {/* Metrics Dashboard */}
