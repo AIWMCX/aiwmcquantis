@@ -1,7 +1,33 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
-import { Resend } from "npm:resend@2.0.0";
 
-const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
+// Resend API client - using fetch directly to avoid npm dependency issues
+const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
+
+const sendEmail = async (options: {
+  from: string;
+  to: string[];
+  replyTo?: string;
+  subject: string;
+  html: string;
+}) => {
+  const response = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${RESEND_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(options),
+  });
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Resend API error: ${error}`);
+  }
+  
+  return response.json();
+};
+
+
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -240,7 +266,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     console.log(`Sending welcome email to: ${email}`);
 
-    const emailResponse = await resend.emails.send({
+    const emailResponse = await sendEmail({
       from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
       to: [email],
       replyTo: "AIWMCSRM@gmail.com",
