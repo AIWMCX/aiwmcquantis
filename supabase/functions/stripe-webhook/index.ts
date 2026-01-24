@@ -149,7 +149,9 @@ serve(async (req) => {
     console.log(`[${requestId}] Event type: ${event.type}`);
     console.log(`[${requestId}] Event ID: ${event.id}`);
 
-    // Log webhook event for reliability tracking (with retry)
+    // ATOMIC EVENT LOGGING - Log BEFORE processing starts (critical for audit trail)
+    // This ensures we have a record even if processing crashes
+    let webhookEventLogged = false;
     try {
       await withRetry(
         async () => {
@@ -159,17 +161,31 @@ serve(async (req) => {
               event_id: event.id,
               event_type: event.type,
               customer_id: (event.data.object as any)?.customer || null,
-              status: "processing",
+              status: "received", // Mark as received, not processing yet
               payload: event.data.object as any,
             });
           if (error) throw error;
         },
-        "Log webhook event",
+        "Log webhook event (atomic)",
         requestId
       );
+      webhookEventLogged = true;
+      console.log(`[${requestId}] ✓ Webhook event logged atomically BEFORE processing`);
     } catch (logErr) {
-      console.warn(`[${requestId}] Failed to log webhook event after retries:`, logErr);
-      // Continue processing even if logging fails
+      console.error(`[${requestId}] ⚠️ CRITICAL: Failed to log webhook event - continuing anyway:`, logErr);
+      // Continue processing even if logging fails, but log prominently
+    }
+
+    // Update status to processing
+    if (webhookEventLogged) {
+      try {
+        await supabase
+          .from("stripe_webhook_events")
+          .update({ status: "processing" })
+          .eq("event_id", event.id);
+      } catch (e) {
+        console.warn(`[${requestId}] Could not update status to processing`);
+      }
     }
 
     // Helper function to find user by email (with retry)
@@ -427,8 +443,31 @@ serve(async (req) => {
         const subscription = event.data.object as Stripe.Subscription;
         console.log(`[${requestId}] === Subscription Deleted ===`);
         console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
+        console.log(`[${requestId}] Customer: ${subscription.customer}`);
+        console.log(`[${requestId}] Cancel reason: ${subscription.cancellation_details?.reason || 'unknown'}`);
+        console.log(`[${requestId}] Canceled at: ${subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : 'N/A'}`);
 
+        // PROTECTION: Before canceling, verify with Stripe that subscription is truly canceled
+        // and check if there's an active replacement subscription
         try {
+          const customerId = subscription.customer as string;
+          console.log(`[${requestId}] Checking for active subscriptions for customer ${customerId}...`);
+          
+          const activeSubscriptions = await stripe.subscriptions.list({
+            customer: customerId,
+            status: 'active',
+            limit: 5,
+          });
+
+          if (activeSubscriptions.data.length > 0) {
+            console.log(`[${requestId}] ⚠️ Customer has ${activeSubscriptions.data.length} active subscription(s) - NOT downgrading to free`);
+            console.log(`[${requestId}] Active subscription IDs: ${activeSubscriptions.data.map(s => s.id).join(', ')}`);
+            // Don't cancel - customer has another active subscription
+            break;
+          }
+
+          console.log(`[${requestId}] No active subscriptions found - proceeding with cancellation`);
+
           await withRetry(
             async () => {
               const { error } = await supabase
@@ -443,7 +482,7 @@ serve(async (req) => {
             "Cancel subscription",
             requestId
           );
-          console.log(`[${requestId}] SUCCESS: Subscription canceled`);
+          console.log(`[${requestId}] SUCCESS: Subscription canceled (verified no active replacements)`);
         } catch (err) {
           console.error(`[${requestId}] Delete error:`, err.message);
         }
@@ -456,8 +495,12 @@ serve(async (req) => {
         console.log(`[${requestId}] Invoice ID: ${invoice.id}`);
         console.log(`[${requestId}] Subscription: ${invoice.subscription}`);
         console.log(`[${requestId}] Customer: ${invoice.customer}`);
+        console.log(`[${requestId}] Amount Paid: ${invoice.amount_paid / 100} ${invoice.currency?.toUpperCase()}`);
+        console.log(`[${requestId}] Billing Reason: ${invoice.billing_reason}`);
 
-        if (invoice.subscription && invoice.customer) {
+        // CRITICAL: invoice.paid is the STRONGEST signal of an active subscription
+        // If payment succeeded, user MUST have Plus access regardless of other events
+        if (invoice.subscription && invoice.customer && invoice.amount_paid > 0) {
           // Fetch full subscription to sync data (with retry)
           const subscription = await withRetry(
             () => stripe.subscriptions.retrieve(invoice.subscription as string),
@@ -467,30 +510,35 @@ serve(async (req) => {
           
           // All paid subscriptions are now 'plus' (Pro tier removed)
           const plan = "plus";
+          const status = subscription.status === "active" || subscription.status === "trialing" ? "active" : subscription.status;
 
-          // Update subscription period dates (with retry)
+          console.log(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${subscription.id}`);
+          console.log(`[${requestId}] Stripe subscription status: ${subscription.status}`);
+
+          // Try to update by subscription ID first
+          let updated = false;
           try {
-            await withRetry(
-              async () => {
-                const { error } = await supabase
-                  .from("subscriptions")
-                  .update({
-                    plan_id: plan,
-                    status: subscription.status === "active" ? "active" : subscription.status,
-                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
-                  })
-                  .eq("stripe_subscription_id", subscription.id);
-                if (error) throw error;
-              },
-              "Update subscription from invoice",
-              requestId
-            );
-            console.log(`[${requestId}] SUCCESS: Subscription updated from invoice.paid`);
-          } catch (updateError) {
-            console.error(`[${requestId}] Invoice update error:`, updateError);
-            
-            // Fallback: try to find by customer email
+            const { data, error } = await supabase
+              .from("subscriptions")
+              .update({
+                plan_id: plan,
+                status: status,
+                current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
+                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+              })
+              .eq("stripe_subscription_id", subscription.id)
+              .select();
+              
+            if (!error && data && data.length > 0) {
+              updated = true;
+              console.log(`[${requestId}] ✓ Subscription updated from invoice.paid by subscription_id`);
+            }
+          } catch (err) {
+            console.log(`[${requestId}] Could not update by subscription_id, trying fallback...`);
+          }
+
+          // Fallback: find user by customer email and upsert
+          if (!updated) {
             const customerEmail = await getCustomerEmail(invoice.customer as string);
             if (customerEmail) {
               const userId = await findUserByEmail(customerEmail);
@@ -500,18 +548,24 @@ serve(async (req) => {
                   stripe_customer_id: invoice.customer as string,
                   stripe_subscription_id: subscription.id,
                   plan_id: plan,
-                  status: subscription.status === "active" ? "active" : subscription.status,
+                  status: status,
                   current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
                   current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                 });
                 if (result.success) {
-                  console.log(`[${requestId}] SUCCESS: Subscription synced via invoice.paid fallback`);
+                  console.log(`[${requestId}] ✓ Subscription synced via invoice.paid email fallback for user ${userId}`);
                 } else {
                   console.error(`[${requestId}] Invoice upsert fallback error:`, result.error);
                 }
+              } else {
+                console.error(`[${requestId}] CRITICAL: Paid invoice but cannot find user for email ${customerEmail}`);
               }
+            } else {
+              console.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);
             }
           }
+        } else if (invoice.amount_paid === 0) {
+          console.log(`[${requestId}] Skipping $0 invoice (likely trial or proration)`);
         }
         break;
       }

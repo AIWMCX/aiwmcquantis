@@ -536,6 +536,69 @@ export type Database = {
         }
         Relationships: []
       }
+      subscription_audit_log: {
+        Row: {
+          created_at: string
+          event_source: string
+          event_type: string
+          id: string
+          ip_address: string | null
+          metadata: Json | null
+          new_state: Json
+          previous_state: Json | null
+          reason: string | null
+          stripe_event_id: string | null
+          subscription_id: string | null
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_source: string
+          event_type: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_state: Json
+          previous_state?: Json | null
+          reason?: string | null
+          stripe_event_id?: string | null
+          subscription_id?: string | null
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_source?: string
+          event_type?: string
+          id?: string
+          ip_address?: string | null
+          metadata?: Json | null
+          new_state?: Json
+          previous_state?: Json | null
+          reason?: string | null
+          stripe_event_id?: string | null
+          subscription_id?: string | null
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "subscription_audit_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "subscription_audit_log_subscription_id_fkey"
+            columns: ["subscription_id"]
+            isOneToOne: false
+            referencedRelation: "subscriptions_public"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       subscriptions: {
         Row: {
           created_at: string
@@ -805,6 +868,15 @@ export type Database = {
       }
     }
     Functions: {
+      admin_force_sync_subscription: {
+        Args: {
+          p_plan_id: string
+          p_reason: string
+          p_status: string
+          p_user_email: string
+        }
+        Returns: Json
+      }
       audit_rls_security: {
         Args: never
         Returns: {
