@@ -506,9 +506,7 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
  */
 async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
   try {
-    // First, auto-seed if empty
-    await autoSeedBenchmarksIfEmpty(supabase);
-    
+    // Fetch benchmarks from database (admin seeds via /admin/benchmarks)
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
@@ -518,7 +516,9 @@ async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<Databa
       return [];
     }
     
-    console.log(`Fetched ${data?.length || 0} benchmark records from database`);
+    if (data && data.length > 0) {
+      console.log(`Fetched ${data.length} benchmark records from database`);
+    }
     return data || [];
   } catch (err) {
     console.error('Database benchmark fetch error:', err);
@@ -742,22 +742,71 @@ function detectIndustry(businessIdea: string): IndustryBenchmarks {
 // This comment preserves line numbers for reference - the old 3-tier system has been replaced
 // with granular 50+ city multipliers for salary, rent, utilities, and marketing costs
 
-// Tool schema for AI
+// Tool schema for AI - ENHANCED for professional structured output
 const analysisToolSchema = {
   type: "function",
   function: {
     name: "submit_analysis",
-    description: "Submit business analysis with realistic industry benchmarks",
+    description: "Submit comprehensive business analysis with detailed structured data for all sections. Each JSON field must contain properly formatted objects as specified.",
     parameters: {
       type: "object",
       properties: {
-        financial_json: { type: "string", description: "JSON object with financial metrics" },
-        business_json: { type: "string", description: "JSON with business plan sections" },
-        marketing_json: { type: "string", description: "JSON with marketing plan" },
-        market_json: { type: "string", description: "JSON with market analysis" },
-        confidence: { type: "number" },
-        sources: { type: "string" },
-        limitations: { type: "string" }
+        financial_json: { 
+          type: "string", 
+          description: "JSON: {mrr: number, average_check: number, orders_monthly: number, startup_investment: number, cac: number, ltv: number, equipment: number}" 
+        },
+        business_json: { 
+          type: "string", 
+          description: `JSON: {
+            executive_summary: "2-3 paragraph strategic summary",
+            product_description: "detailed product/service description",
+            target_audience: "specific target customer profile",
+            competitive_advantages: "3-5 key differentiators",
+            operations: "operational model and processes",
+            launch_steps: [
+              {step: 1, title: "Step Name", description: "What to do", duration: "2-4 weeks", cost: 5000},
+              ... (5-8 steps total)
+            ],
+            risks: [
+              {risk: "Risk description", probability: "low|medium|high", impact: "low|medium|high", mitigation: "How to mitigate"},
+              ... (4-6 risks)
+            ]
+          }` 
+        },
+        marketing_json: { 
+          type: "string", 
+          description: `JSON: {
+            positioning: "market positioning statement",
+            pricing_strategy: "pricing approach and rationale",
+            channels: [
+              {channel: "Channel Name", description: "Strategy for this channel", budget_monthly: 500, expected_roi: "3x return"},
+              ... (3-5 channels)
+            ],
+            cac: number,
+            ltv: number,
+            first_3_months_plan: "detailed 90-day marketing roadmap"
+          }` 
+        },
+        market_json: { 
+          type: "string", 
+          description: `JSON: {
+            tam: "Total Addressable Market size and description",
+            sam: "Serviceable Available Market",
+            som: "Serviceable Obtainable Market (realistic first year)",
+            trends: ["Trend 1", "Trend 2", ...],
+            competitors: [
+              {name: "Competitor Name", strengths: "Their strengths", weaknesses: "Their weaknesses"},
+              ... (3-5 competitors)
+            ],
+            competitive_landscape: "overall competitive analysis",
+            market_gaps: "opportunities in the market",
+            barriers_to_entry: "challenges for new entrants",
+            growth_opportunities: "expansion possibilities"
+          }` 
+        },
+        confidence: { type: "number", description: "Confidence score 0-100 based on data quality" },
+        sources: { type: "string", description: "Comma-separated data sources used" },
+        limitations: { type: "string", description: "Comma-separated analysis limitations" }
       },
       required: ["financial_json", "business_json", "marketing_json", "market_json", "confidence"]
     }
@@ -1951,36 +2000,138 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       industry_detected: calc.industryDetected
     },
     business_plan: {
-      executive_summary: bp.executive_summary || "",
-      product_description: bp.product_description || "",
-      target_audience: bp.target_audience || "",
-      competitive_advantages: bp.competitive_advantages || "",
-      operations: bp.operations || "",
-      launch_steps: Array.isArray(bp.launch_steps) ? bp.launch_steps : [],
-      risks: Array.isArray(bp.risks) ? bp.risks : []
+      executive_summary: bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
+      product_description: bp.product_description || "Product/service details being analyzed.",
+      target_audience: bp.target_audience || `Target customers in ${location} market.`,
+      competitive_advantages: bp.competitive_advantages || "Differentiation analysis in progress.",
+      operations: bp.operations || "Operational model being developed.",
+      // Transform launch_steps - handle various formats from AI
+      launch_steps: (() => {
+        if (!bp.launch_steps || !Array.isArray(bp.launch_steps)) {
+          // Return default launch steps if none provided
+          return [
+            { step: 1, title: "Market Validation", description: "Validate demand with target customers", duration: "2-3 weeks", cost: Math.round(calc.startupInvestment * 0.05) },
+            { step: 2, title: "Business Setup", description: "Legal registration and initial setup", duration: "2-4 weeks", cost: Math.round(calc.startupInvestment * 0.10) },
+            { step: 3, title: "Build MVP", description: "Develop minimum viable product/service", duration: "4-8 weeks", cost: Math.round(calc.startupInvestment * 0.40) },
+            { step: 4, title: "Beta Launch", description: "Soft launch with early adopters", duration: "2-4 weeks", cost: Math.round(calc.startupInvestment * 0.15) },
+            { step: 5, title: "Marketing Launch", description: "Full marketing campaign activation", duration: "4-6 weeks", cost: Math.round(calc.startupInvestment * 0.20) },
+            { step: 6, title: "Scale Operations", description: "Optimize and scale based on feedback", duration: "Ongoing", cost: Math.round(calc.startupInvestment * 0.10) },
+          ];
+        }
+        return bp.launch_steps.map((step: any, idx: number) => {
+          if (typeof step === 'string') {
+            // Handle simple string array
+            return { step: idx + 1, title: step, description: step, duration: "2-4 weeks", cost: Math.round(calc.startupInvestment * 0.1) };
+          }
+          // Handle object format - normalize field names
+          return {
+            step: step.step || idx + 1,
+            title: step.title || step.name || `Step ${idx + 1}`,
+            description: step.description || step.details || "",
+            duration: step.duration || step.timeline || "2-4 weeks",
+            cost: typeof step.cost === 'number' ? step.cost : Math.round(calc.startupInvestment * 0.1)
+          };
+        });
+      })(),
+      // Transform risks - handle various formats from AI
+      risks: (() => {
+        if (!bp.risks || !Array.isArray(bp.risks)) {
+          // Return default risks if none provided
+          return [
+            { risk: "Market Competition", probability: "high" as const, impact: "high" as const, mitigation: "Focus on differentiation and superior customer experience." },
+            { risk: "Customer Acquisition", probability: "medium" as const, impact: "high" as const, mitigation: "Diversify marketing channels and optimize CAC." },
+            { risk: "Cash Flow Management", probability: "medium" as const, impact: "high" as const, mitigation: "Maintain 3-6 month operating reserve and monitor closely." },
+            { risk: "Operational Challenges", probability: "medium" as const, impact: "medium" as const, mitigation: "Build processes and documentation early." },
+          ];
+        }
+        return bp.risks.map((risk: any) => {
+          if (typeof risk === 'string') {
+            return { risk: risk, probability: "medium" as const, impact: "medium" as const, mitigation: "Develop mitigation strategy." };
+          }
+          // Normalize probability and impact values
+          const normalizePriority = (val: string | undefined): "low" | "medium" | "high" => {
+            const v = (val || 'medium').toLowerCase();
+            if (v.includes('low') || v.includes('низк')) return 'low';
+            if (v.includes('high') || v.includes('высок')) return 'high';
+            return 'medium';
+          };
+          return {
+            risk: risk.risk || risk.name || risk.description || "Identified risk",
+            probability: normalizePriority(risk.probability),
+            impact: normalizePriority(risk.impact),
+            mitigation: risk.mitigation || risk.solution || "Develop mitigation strategy."
+          };
+        });
+      })()
     },
     marketing_plan: {
-      positioning: mp.positioning || "",
-      pricing_strategy: mp.pricing_strategy || "",
-      channels: Array.isArray(mp.channels) ? mp.channels : [],
+      positioning: mp.positioning || "Strategic market positioning being developed.",
+      pricing_strategy: mp.pricing_strategy || `Competitive pricing strategy for ${location} market.`,
+      // Transform channels - handle various formats from AI
+      channels: (() => {
+        if (!mp.channels || !Array.isArray(mp.channels)) {
+          // Return default channels if none provided
+          const monthlyMarketingBudget = calc.expenses.marketing || 1000;
+          return [
+            { channel: "Social Media Marketing", description: "Organic and paid social media presence", budget_monthly: Math.round(monthlyMarketingBudget * 0.30), expected_roi: "3-4x return" },
+            { channel: "Content Marketing", description: "Blog, SEO, and educational content", budget_monthly: Math.round(monthlyMarketingBudget * 0.20), expected_roi: "Long-term organic growth" },
+            { channel: "Paid Advertising", description: "Google Ads and targeted campaigns", budget_monthly: Math.round(monthlyMarketingBudget * 0.35), expected_roi: "2-3x return" },
+            { channel: "Referral Program", description: "Customer referral incentives", budget_monthly: Math.round(monthlyMarketingBudget * 0.15), expected_roi: "5x return via word-of-mouth" },
+          ];
+        }
+        return mp.channels.map((ch: any) => {
+          if (typeof ch === 'string') {
+            return { channel: ch, description: ch, budget_monthly: Math.round((calc.expenses.marketing || 1000) * 0.25), expected_roi: "Expected positive return" };
+          }
+          return {
+            channel: ch.channel || ch.name || "Marketing Channel",
+            description: ch.description || ch.strategy || "",
+            budget_monthly: typeof ch.budget_monthly === 'number' ? ch.budget_monthly : (typeof ch.budget === 'number' ? ch.budget : Math.round((calc.expenses.marketing || 1000) * 0.25)),
+            expected_roi: ch.expected_roi || ch.roi || "Expected positive return"
+          };
+        });
+      })(),
       cac: calc.cac,
       ltv: calc.ltv,
-      first_3_months_plan: mp.first_3_months_plan || ""
+      first_3_months_plan: mp.first_3_months_plan || "Month 1: Establish presence and initial customer acquisition. Month 2: Optimize campaigns based on data. Month 3: Scale successful channels and refine targeting."
     },
     market_analysis: {
       market_size: {
-        tam: ma.tam || "",
-        sam: ma.sam || "",
-        som: ma.som || ""
+        tam: ma.tam || "Total addressable market analysis in progress.",
+        sam: ma.sam || "Serviceable available market to be determined.",
+        som: ma.som || "Realistic obtainable market share target."
       },
-      trends: Array.isArray(ma.trends) ? ma.trends : [],
+      trends: Array.isArray(ma.trends) && ma.trends.length > 0 ? ma.trends : [
+        "Digital transformation accelerating industry adoption",
+        "Consumer preference shifting toward convenience and quality",
+        "Increased competition driving innovation",
+        "Economic factors affecting purchasing decisions"
+      ],
       competition: {
-        main_competitors: Array.isArray(ma.competitors) ? ma.competitors : [],
-        competitive_landscape: ma.competitive_landscape || "",
-        market_gaps: ma.market_gaps || ""
+        main_competitors: (() => {
+          if (!ma.competitors || !Array.isArray(ma.competitors) || ma.competitors.length === 0) {
+            return [
+              { name: "Direct Competitor A", strengths: "Established market presence", weaknesses: "Higher prices, less personalized service" },
+              { name: "Direct Competitor B", strengths: "Strong brand recognition", weaknesses: "Slower to innovate" },
+              { name: "Indirect Alternative", strengths: "Different approach to same problem", weaknesses: "Less focused solution" }
+            ];
+          }
+          return ma.competitors.map((comp: any) => {
+            if (typeof comp === 'string') {
+              return { name: comp, strengths: "Established player", weaknesses: "Opportunity to differentiate" };
+            }
+            return {
+              name: comp.name || "Competitor",
+              strengths: comp.strengths || "Market presence",
+              weaknesses: comp.weaknesses || "Areas for differentiation"
+            };
+          });
+        })(),
+        competitive_landscape: ma.competitive_landscape || `Competitive market in ${location} with opportunities for differentiation.`,
+        market_gaps: ma.market_gaps || "Identify underserved segments and unmet customer needs."
       },
-      barriers_to_entry: ma.barriers_to_entry || "",
-      growth_opportunities: ma.growth_opportunities || ""
+      barriers_to_entry: ma.barriers_to_entry || "Capital requirements, regulatory compliance, and competitive positioning challenges.",
+      growth_opportunities: ma.growth_opportunities || "Geographic expansion, product line extension, and strategic partnerships."
     },
     confidence_score: 0,
     data_sources: sources,
@@ -2552,52 +2703,82 @@ The user has uploaded real business documents. Your analysis MUST:
 
 ## RESPONSE FORMAT (ALL IN ENGLISH!)
 
+**CRITICAL: Provide DETAILED, PROFESSIONAL content for each section. Do NOT use placeholders or generic text.**
+
 financial_json:
 {
-  "mrr": number (monthly revenue in USD),
-  "average_check": number (in USD),
-  "orders_monthly": number,
-  "startup_investment": number (in USD),
-  "cac": number (in USD),
-  "ltv": number (calculate using formula!),
-  "equipment": number (in USD)
+  "mrr": number (monthly revenue in USD, realistic for this industry),
+  "average_check": number (average transaction value in USD),
+  "orders_monthly": number (monthly transactions/orders),
+  "startup_investment": number (total startup capital in USD),
+  "cac": number (customer acquisition cost in USD),
+  "ltv": number (lifetime value - calculate: avg_check × orders_per_client × lifetime_months),
+  "equipment": number (equipment costs in USD)
 }
 
 business_json:
 {
-  "executive_summary": "brief summary",
-  "product_description": "description",
-  "target_audience": "audience in ${location.trim()}",
-  "competitive_advantages": "advantages",
-  "operations": "operations plan",
-  "launch_steps": ["step1", "step2", "step3"],
-  "risks": [{"name": "risk name", "description": "description", "mitigation": "how to mitigate"}]
+  "executive_summary": "2-3 detailed paragraphs covering: 1) The business opportunity and value proposition, 2) Financial viability based on benchmarks, 3) Key success factors and risks. Be specific with numbers and insights.",
+  "product_description": "Detailed description of the product/service, its features, benefits, and how it solves customer problems. Include pricing model and delivery method.",
+  "target_audience": "Specific customer profile including demographics, psychographics, pain points, and buying behavior for ${location.trim()} market.",
+  "competitive_advantages": "3-5 specific advantages: unique value, technology edge, cost advantage, team expertise, market positioning, or customer relationships.",
+  "operations": "Operational model including: team structure, technology stack, processes, suppliers, quality control, and scalability plan.",
+  "launch_steps": [
+    {"step": 1, "title": "Market Validation", "description": "Detailed description of validation activities", "duration": "2-3 weeks", "cost": 1500},
+    {"step": 2, "title": "Legal & Setup", "description": "Business registration, permits, contracts", "duration": "2-4 weeks", "cost": 3000},
+    {"step": 3, "title": "Build MVP/Infrastructure", "description": "Core product or service setup", "duration": "4-8 weeks", "cost": 10000},
+    {"step": 4, "title": "Beta Launch", "description": "Soft launch with initial customers", "duration": "2-4 weeks", "cost": 2000},
+    {"step": 5, "title": "Marketing Launch", "description": "Full marketing campaign activation", "duration": "4-6 weeks", "cost": 5000},
+    {"step": 6, "title": "Scale Operations", "description": "Hire team, optimize processes", "duration": "ongoing", "cost": 8000}
+  ],
+  "risks": [
+    {"risk": "Market Competition Risk", "probability": "high", "impact": "high", "mitigation": "Specific mitigation strategy with actionable steps"},
+    {"risk": "Customer Acquisition Risk", "probability": "medium", "impact": "high", "mitigation": "Specific mitigation strategy"},
+    {"risk": "Operational Risk", "probability": "medium", "impact": "medium", "mitigation": "Specific mitigation strategy"},
+    {"risk": "Financial/Cash Flow Risk", "probability": "medium", "impact": "high", "mitigation": "Specific mitigation strategy"},
+    {"risk": "Regulatory/Legal Risk", "probability": "low", "impact": "medium", "mitigation": "Specific mitigation strategy"}
+  ]
 }
 
 marketing_json:
 {
-  "positioning": "market positioning",
-  "pricing_strategy": "pricing strategy",
-  "channels": [{"name": "channel name", "budget": number, "expected_roi": number}],
+  "positioning": "Clear positioning statement: For [target customer] who [needs/wants], [product name] is a [category] that [key benefit]. Unlike [competitors], we [unique differentiator].",
+  "pricing_strategy": "Detailed pricing strategy including: price point rationale, comparison to competitors, margin analysis, and pricing tiers if applicable.",
+  "channels": [
+    {"channel": "Social Media Marketing", "description": "Detailed strategy for platforms, content types, posting frequency", "budget_monthly": 800, "expected_roi": "3-4x return within 90 days"},
+    {"channel": "Content Marketing/SEO", "description": "Blog, video, or educational content strategy", "budget_monthly": 500, "expected_roi": "Long-term organic traffic growth"},
+    {"channel": "Paid Advertising", "description": "Google Ads, Facebook Ads targeting strategy", "budget_monthly": 1200, "expected_roi": "2-3x return"},
+    {"channel": "Referral Program", "description": "Customer referral incentive structure", "budget_monthly": 300, "expected_roi": "5x return through word-of-mouth"},
+    {"channel": "Local Partnerships", "description": "Strategic partnerships for ${location.trim()} market", "budget_monthly": 400, "expected_roi": "Network effect benefits"}
+  ],
   "cac": number,
   "ltv": number,
-  "first_3_months_plan": "first 3 months marketing plan"
+  "first_3_months_plan": "Month 1: Specific activities and goals with metrics. Month 2: Next phase activities and targets. Month 3: Scaling activities and expected outcomes. Include specific KPIs for each month."
 }
 
 market_json:
 {
-  "tam": "Total Addressable Market",
-  "sam": "Serviceable Available Market",
-  "som": "Serviceable Obtainable Market",
-  "trends": ["trend1", "trend2"],
-  "competitors": [{"name": "competitor", "strengths": "strengths", "weaknesses": "weaknesses"}],
-  "competitive_landscape": "analysis",
-  "market_gaps": "opportunities",
-  "barriers_to_entry": "barriers",
-  "growth_opportunities": "growth potential"
+  "tam": "Total Addressable Market: $X billion globally. Include market size data and growth projections.",
+  "sam": "Serviceable Available Market: $X million in regional market. Define geographic and segment scope.",
+  "som": "Serviceable Obtainable Market: $X thousand realistic first-year target. Based on realistic capture rate.",
+  "trends": [
+    "Trend 1: Specific industry trend with implications for this business",
+    "Trend 2: Consumer behavior shift relevant to target market",
+    "Trend 3: Technology or regulatory trend affecting the industry",
+    "Trend 4: Economic or demographic trend in ${location.trim()}"
+  ],
+  "competitors": [
+    {"name": "Competitor 1 Name", "strengths": "Their key advantages", "weaknesses": "Their vulnerabilities to exploit"},
+    {"name": "Competitor 2 Name", "strengths": "Their key advantages", "weaknesses": "Their vulnerabilities to exploit"},
+    {"name": "Competitor 3 Name", "strengths": "Their key advantages", "weaknesses": "Their vulnerabilities to exploit"}
+  ],
+  "competitive_landscape": "Detailed analysis of competition intensity, market maturity, and competitive dynamics in ${location.trim()}.",
+  "market_gaps": "Specific unmet needs or underserved segments that represent opportunities.",
+  "barriers_to_entry": "Capital requirements, regulatory hurdles, expertise needed, and incumbent advantages.",
+  "growth_opportunities": "Expansion paths: geographic, product line, customer segments, partnerships."
 }
 
-Call submit_analysis with all sections in English.`;
+Provide comprehensive, actionable analysis suitable for a professional investor presentation. Call submit_analysis with all sections in English.`;
 
     // ========== AI REQUEST WITH RETRY LOGIC ==========
     const MAX_RETRIES = 3;
