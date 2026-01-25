@@ -5,7 +5,7 @@
  * IMPORTANT: Increment CACHE_VERSION on every deployment to bust old caches
  */
 
-const CACHE_VERSION = 'v2.1.0';
+const CACHE_VERSION = 'v3.0.0';
 const STATIC_CACHE = `aiwmc-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `aiwmc-dynamic-${CACHE_VERSION}`;
 
@@ -13,6 +13,8 @@ const DYNAMIC_CACHE = `aiwmc-dynamic-${CACHE_VERSION}`;
 const STATIC_ASSETS = [
   '/manifest.json',
   '/favicon.ico',
+  '/icon-192.png',
+  '/icon-512.png',
 ];
 
 // Install event - cache only essential static assets
