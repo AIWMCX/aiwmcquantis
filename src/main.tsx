@@ -27,7 +27,7 @@ if ('serviceWorker' in navigator) {
       if ('caches' in window) {
         const cacheNames = await caches.keys();
         const staleVersions = cacheNames.filter(name => 
-          !name.includes('v2.1.0') // Current version
+          !name.includes('v3.0.0') // Current version
         );
         await Promise.all(staleVersions.map(name => caches.delete(name)));
         if (staleVersions.length > 0) {
