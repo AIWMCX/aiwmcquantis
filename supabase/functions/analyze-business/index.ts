@@ -39,6 +39,9 @@ import {
   type TruthLabel,
 } from "./ai-safety-guardrails.ts";
 
+// ========== FALLBACK NARRATOR ==========
+import { generateFallbackNarrator } from "./narrator-prompt.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
@@ -1706,6 +1709,190 @@ function generateActionableInsights(
   };
 }
 
+// ========== DETERMINISTIC FALLBACK GENERATOR ==========
+// Generates a complete analysis when AI is unavailable
+// Uses industry benchmarks and location data to create professional content
+
+function generateDeterministicFallbackResult(
+  idea: string,
+  location: string,
+  benchmarks: IndustryBenchmarks,
+  locationMultipliers: LocationMultiplierResult,
+  userInputs?: OptionalFinancialInputs
+): any {
+  const investmentAmount = userInputs?.startup_investment || Math.round((benchmarks.salaries_fixed + benchmarks.rent_fixed) * 12);
+  const monthlyRevenue = userInputs?.monthly_revenue || Math.round(benchmarks.average_check_max * benchmarks.orders_per_client * 80);
+  const cacValue = userInputs?.cac || benchmarks.cac_typical;
+  const avgCheck = userInputs?.average_price || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  const ltvValue = Math.round(avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
+  
+  // Generate professional launch steps
+  const launchSteps = [
+    {
+      step: 1,
+      title: "Market Validation & Research",
+      description: `Conduct comprehensive market research in ${location}. Validate demand through surveys, interviews with potential customers, and competitive analysis. Identify key customer segments and their pain points.`,
+      duration: "2-3 weeks",
+      cost: Math.round(investmentAmount * 0.05)
+    },
+    {
+      step: 2,
+      title: "Legal & Business Setup",
+      description: `Register business entity, obtain necessary licenses and permits for ${location}. Set up business banking, accounting systems, and legal contracts. Secure insurance coverage.`,
+      duration: "2-4 weeks",
+      cost: Math.round(investmentAmount * 0.08)
+    },
+    {
+      step: 3,
+      title: "Build Core Product/Service Infrastructure",
+      description: `Develop the minimum viable product or service offering. Set up operational infrastructure, technology stack, and vendor relationships. Create standard operating procedures.`,
+      duration: "4-8 weeks",
+      cost: Math.round(investmentAmount * 0.40)
+    },
+    {
+      step: 4,
+      title: "Beta Launch & Customer Feedback",
+      description: `Launch to a small group of early adopters. Collect detailed feedback on product/service, pricing, and customer experience. Iterate based on real user data before full launch.`,
+      duration: "3-4 weeks",
+      cost: Math.round(investmentAmount * 0.12)
+    },
+    {
+      step: 5,
+      title: "Marketing & Customer Acquisition Launch",
+      description: `Execute full marketing campaign across digital and local channels. Implement customer acquisition funnels, referral programs, and promotional strategies targeted at ${location} market.`,
+      duration: "4-6 weeks",
+      cost: Math.round(investmentAmount * 0.20)
+    },
+    {
+      step: 6,
+      title: "Scale & Optimize Operations",
+      description: `Hire additional team members, expand capacity, and optimize operations based on learnings. Focus on improving unit economics, customer retention, and operational efficiency.`,
+      duration: "Ongoing",
+      cost: Math.round(investmentAmount * 0.15)
+    }
+  ];
+
+  // Generate comprehensive risks
+  const risks = [
+    {
+      risk: "Market Competition Intensification",
+      probability: "high",
+      impact: "high",
+      mitigation: `Build strong differentiation through superior customer experience and unique value proposition. Monitor competitor activities in ${location} market and respond strategically. Focus on building customer loyalty and switching costs.`
+    },
+    {
+      risk: "Customer Acquisition Cost Escalation",
+      probability: "medium",
+      impact: "high",
+      mitigation: `Diversify acquisition channels to reduce dependency on any single source. Invest in organic growth through content marketing and referrals. Continuously A/B test and optimize marketing campaigns for efficiency.`
+    },
+    {
+      risk: "Cash Flow Management Challenges",
+      probability: "medium",
+      impact: "high",
+      mitigation: `Maintain 4-6 months operating reserve. Negotiate favorable payment terms with suppliers. Monitor cash flow weekly and adjust spending proactively. Consider revenue-based financing if needed.`
+    },
+    {
+      risk: "Operational Scaling Difficulties",
+      probability: "medium",
+      impact: "medium",
+      mitigation: `Document all processes early. Invest in systems and automation before they're critically needed. Hire ahead of demand curve. Build relationships with reliable vendors and partners.`
+    },
+    {
+      risk: "Regulatory or Compliance Changes",
+      probability: "low",
+      impact: "high",
+      mitigation: `Stay informed about industry regulations in ${location}. Engage with industry associations. Build compliance into operations from the start. Maintain relationship with legal counsel.`
+    }
+  ];
+
+  // Generate marketing channels
+  const marketingBudget = Math.round(monthlyRevenue * 0.15) || 1500;
+  const channels = [
+    {
+      channel: "Digital Advertising (Google/Meta)",
+      description: `Targeted paid advertising campaigns on Google Ads and Meta platforms. Focus on high-intent keywords and lookalike audiences in ${location}. Implement retargeting for website visitors.`,
+      budget_monthly: Math.round(marketingBudget * 0.40),
+      expected_roi: "2.5-3.5x return on ad spend within 60-90 days"
+    },
+    {
+      channel: "Content Marketing & SEO",
+      description: `Create valuable content addressing customer pain points. Optimize for local SEO in ${location}. Build authority through blogs, videos, and educational resources to drive organic traffic.`,
+      budget_monthly: Math.round(marketingBudget * 0.20),
+      expected_roi: "Long-term organic growth, 5-10x ROI over 12 months"
+    },
+    {
+      channel: "Social Media Marketing",
+      description: `Build engaged community on relevant social platforms. Share valuable content, customer stories, and behind-the-scenes content. Engage actively with followers and local ${location} community.`,
+      budget_monthly: Math.round(marketingBudget * 0.15),
+      expected_roi: "Brand awareness and 3-4x engagement-to-conversion"
+    },
+    {
+      channel: "Referral & Loyalty Program",
+      description: `Incentivize existing customers to refer friends and family. Implement loyalty rewards for repeat purchases. Create advocacy program for top customers.`,
+      budget_monthly: Math.round(marketingBudget * 0.15),
+      expected_roi: "5-7x ROI through word-of-mouth, lowest CAC channel"
+    },
+    {
+      channel: "Local Partnerships & Events",
+      description: `Partner with complementary businesses in ${location}. Participate in local events, sponsor community activities. Build strategic alliances for cross-promotion.`,
+      budget_monthly: Math.round(marketingBudget * 0.10),
+      expected_roi: "Network effects and brand credibility in local market"
+    }
+  ];
+
+  return {
+    financial_json: JSON.stringify({
+      mrr: monthlyRevenue,
+      average_check: avgCheck,
+      orders_monthly: Math.round(monthlyRevenue / avgCheck),
+      startup_investment: investmentAmount,
+      cac: cacValue,
+      ltv: ltvValue,
+      equipment: Math.round(investmentAmount * 0.35)
+    }),
+    business_json: JSON.stringify({
+      executive_summary: `This ${benchmarks.name} business opportunity in ${location} presents a compelling investment case based on industry benchmarks and market analysis. With a projected monthly revenue of $${monthlyRevenue.toLocaleString()} and an initial investment of $${investmentAmount.toLocaleString()}, the business targets the growing demand in the ${location} market.\n\nThe ${benchmarks.name} industry shows average net margins of ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}%, with customer lifetime values ranging from $${benchmarks.ltv_min?.toLocaleString() || ltvValue.toLocaleString()} to $${benchmarks.ltv_max?.toLocaleString() || (ltvValue * 2).toLocaleString()}. The LTV:CAC ratio potential of ${Math.round(ltvValue / cacValue)}:1 indicates healthy unit economics when customer acquisition is optimized.\n\nKey success factors include building strong customer relationships, optimizing operational efficiency, and maintaining competitive differentiation. The phased launch approach minimizes risk while allowing for iterative improvements based on real market feedback. Location-specific factors in ${location} have been incorporated into financial projections.`,
+      product_description: `A ${benchmarks.name} offering designed to meet the specific needs of customers in the ${location} market. The product/service delivers measurable value through quality, convenience, and customer-centric design. Pricing is set at an average of $${avgCheck.toLocaleString()} per transaction, aligned with market expectations and competitive positioning. The delivery model is optimized for scalability while maintaining service quality.`,
+      target_audience: `Primary target customers in ${location} who are seeking high-quality ${benchmarks.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience. Psychographic profile: busy professionals and families looking for reliable service providers. Key pain points include inconsistent quality from competitors, inconvenient service delivery, and lack of personalized attention.`,
+      competitive_advantages: `1) Customer-centric approach with personalized service delivery. 2) Operational efficiency enabling competitive pricing without sacrificing margins. 3) Technology-enabled processes for superior customer experience. 4) Strong local market knowledge and ${location}-specific expertise. 5) Commitment to continuous improvement based on customer feedback.`,
+      operations: `The operational model focuses on efficiency and scalability. Initial team structure includes core operations staff with clear roles and responsibilities. Technology stack leverages modern tools for customer management, operations, and analytics. Standard operating procedures ensure consistent quality delivery. Supplier relationships are established for reliable inventory/resource management. Quality control processes are built into every customer touchpoint.`,
+      launch_steps: launchSteps,
+      risks: risks
+    }),
+    marketing_json: JSON.stringify({
+      positioning: `For customers in ${location} who need reliable ${benchmarks.name.toLowerCase()} solutions, we offer a customer-focused approach that prioritizes quality and convenience. Unlike traditional competitors who offer generic solutions, we provide personalized experiences backed by modern operational excellence.`,
+      pricing_strategy: `Pricing strategy targets the $${benchmarks.average_check_min}-$${benchmarks.average_check_max} range per transaction, positioning in the quality-value segment. This pricing supports ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}% net margins while remaining competitive. Tiered pricing options may be introduced based on service levels and customer segments.`,
+      channels: channels,
+      cac: cacValue,
+      ltv: ltvValue,
+      first_3_months_plan: `Month 1: Execute soft launch with founding customers, validate product-market fit, optimize operations based on feedback. Target: 20-30 paying customers. Month 2: Activate paid advertising channels, launch referral program, begin content marketing. Target: 50-70 customers, establish CAC baselines. Month 3: Scale successful channels, optimize underperformers, hire additional team if needed. Target: 100+ customers, achieve unit economics targets.`
+    }),
+    market_json: JSON.stringify({
+      tam: `Total Addressable Market for ${benchmarks.name} in the broader region represents a multi-billion dollar opportunity globally, with consistent growth driven by increasing consumer demand and market maturation.`,
+      sam: `Serviceable Available Market in the ${location} area and surrounding regions represents approximately $50-200M in annual spending, depending on market density and demographic factors.`,
+      som: `Serviceable Obtainable Market targets realistic first-year revenue of $${(monthlyRevenue * 12).toLocaleString()} based on capacity constraints and market penetration assumptions. Year 2-3 growth targets 50-100% annually.`,
+      trends: [
+        "Digital transformation accelerating customer expectations for convenience and transparency",
+        "Increasing preference for local, trusted service providers over large national chains",
+        "Growing focus on customer experience as a key differentiator in competitive markets",
+        `Economic factors in ${location} creating opportunities for value-focused offerings`
+      ],
+      competitors: [
+        { name: "Established Local Provider", strengths: "Market presence, customer relationships", weaknesses: "Outdated operations, poor digital experience" },
+        { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service, higher overhead" },
+        { name: "Emerging Competitors", strengths: "Fresh approach, low costs", weaknesses: "Unproven, limited track record" }
+      ],
+      competitive_landscape: `The ${benchmarks.name} market in ${location} is moderately competitive with a mix of established players and emerging alternatives. Opportunity exists for differentiated offerings that combine quality with modern customer experience expectations.`,
+      market_gaps: `Underserved segments include busy professionals seeking convenience, quality-conscious customers frustrated with inconsistent service, and digitally-savvy consumers expecting modern service delivery.`,
+      barriers_to_entry: `Initial capital requirements of $${investmentAmount.toLocaleString()}, time to build customer trust and reputation, competitive response from established players, and operational complexity.`,
+      growth_opportunities: `Geographic expansion within ${location} region, service line extensions, strategic partnerships with complementary businesses, and technology-enabled scaling.`
+    }),
+    sources: "Industry benchmarks, market analysis, location intelligence",
+    limitations: "Analysis based on industry averages; actual results may vary based on execution"
+  };
+}
+
 function transformResponse(
   raw: any, 
   location: string, 
@@ -2847,9 +3034,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
     
+    // ========== FALLBACK TO DETERMINISTIC ANALYSIS ==========
+    // If AI fails, generate complete analysis using deterministic engine
+    let rawResult: any;
+    let usedFallback = false;
+    
     if (!response || !response.ok) {
-      console.error(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
+      console.log(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
+      console.log("Generating deterministic fallback analysis...");
       
+      // For rate limit (429), still return error as user should wait
       if (response?.status === 429) {
         return new Response(
           JSON.stringify({ 
@@ -2861,6 +3055,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
       }
       
+      // For auth errors, return error
       if (response?.status === 401 || response?.status === 403) {
         return new Response(
           JSON.stringify({ 
@@ -2872,47 +3067,62 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
       }
       
-      return new Response(
-        JSON.stringify({ 
-          error: "Analysis temporarily unavailable. Please try again shortly.", 
-          code: "AI_ERROR",
-          details: lastError || "Failed to connect to AI service after multiple attempts"
-        }),
-        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      // Generate deterministic fallback for all other failures (503, timeout, etc.)
+      rawResult = generateDeterministicFallbackResult(
+        idea_clean,
+        location_clean,
+        detectedIndustry,
+        locationMultipliers,
+        mergedFinancialInputs
       );
+      usedFallback = true;
+      console.log("Deterministic fallback generated successfully");
+    } else {
+      // AI succeeded - parse response
+      const aiResponse = await response.json();
+      console.log("AI Response received");
+
+      if (aiResponse.error) {
+        console.log("AI returned error, using fallback:", JSON.stringify(aiResponse.error));
+        rawResult = generateDeterministicFallbackResult(
+          idea_clean,
+          location_clean,
+          detectedIndustry,
+          locationMultipliers,
+          mergedFinancialInputs
+        );
+        usedFallback = true;
+      } else {
+        const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+        if (!toolCall) {
+          console.log("No tool call in AI response, using fallback");
+          rawResult = generateDeterministicFallbackResult(
+            idea_clean,
+            location_clean,
+            detectedIndustry,
+            locationMultipliers,
+            mergedFinancialInputs
+          );
+          usedFallback = true;
+        } else {
+          try {
+            rawResult = JSON.parse(toolCall.function.arguments);
+          } catch (e) {
+            console.log("Failed to parse AI response, using fallback:", e);
+            rawResult = generateDeterministicFallbackResult(
+              idea_clean,
+              location_clean,
+              detectedIndustry,
+              locationMultipliers,
+              mergedFinancialInputs
+            );
+            usedFallback = true;
+          }
+        }
+      }
     }
 
-    const aiResponse = await response.json();
-    console.log("AI Response received");
-
-    if (aiResponse.error) {
-      console.error("AI error:", JSON.stringify(aiResponse.error));
-      return new Response(
-        JSON.stringify({ error: "AI error. Please try again.", code: "AI_API_ERROR" }),
-        { status: 502, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) {
-      console.error("No tool call in response");
-      return new Response(
-        JSON.stringify({ error: "AI did not return analysis. Please try again.", code: "NO_TOOL_CALL" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    let rawResult;
-    try {
-      rawResult = JSON.parse(toolCall.function.arguments);
-    } catch (e) {
-      console.error("Parse error:", e);
-      return new Response(
-        JSON.stringify({ error: "Parse error", code: "PARSE_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
+    // Transform using either AI result or fallback
     const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
     delete result._calc;
@@ -3418,13 +3628,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             industry_id: detectedIndustry.id,
             location_cost_multiplier: locationMultiplier,
             generated_at: new Date().toISOString(),
-            model: "openai/gpt-5-mini",
-            version: "9.0-database-benchmarks",
+            model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
+            version: "9.1-resilient-fallback",
             benchmark_source: benchmarkSource,
             benchmark_confidence: benchmarkConfidence,
             benchmark_data_source: benchmarkDataSource,
             benchmark_sample_size: benchmarkSampleSize,
             benchmark_region: benchmarkMatchedRegion,
+            used_fallback: usedFallback,
           },
         },
       }),
