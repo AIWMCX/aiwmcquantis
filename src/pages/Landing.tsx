@@ -1,19 +1,30 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
+import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
-import { DemoPreview } from '@/components/landing/DemoPreview';
-import { ClientTestimonials } from '@/components/landing/ClientTestimonials';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
-import { FAQSection } from '@/components/landing/FAQSection';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { useExitIntent } from '@/hooks/useExitIntent';
 import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
 import { PopupErrorBoundary } from '@/components/marketing/PopupErrorBoundary';
+import { useLazySection } from '@/hooks/useLazySection';
+
+// Lazy load below-fold components for faster LCP
+const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
+const ClientTestimonials = lazy(() => import('@/components/landing/ClientTestimonials').then(m => ({ default: m.ClientTestimonials })));
+const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
+
+// Section skeleton for lazy-loaded components
+const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
+  <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-16">
+    <Skeleton className={`w-full rounded-2xl`} style={{ height }} />
+  </div>
+);
 
 export default function Landing() {
   const navigate = useNavigate();
@@ -26,6 +37,11 @@ export default function Landing() {
     }
     return false;
   });
+
+  // Progressive hydration for below-fold sections
+  const demoSection = useLazySection({ rootMargin: '300px' });
+  const testimonialsSection = useLazySection({ rootMargin: '200px' });
+  const faqSection = useLazySection({ rootMargin: '200px' });
 
   // Exit Intent Hook
   const { shouldShow: showExitPopup, close: closeExitPopup, markSubmitted: markExitSubmitted } = useExitIntent({
@@ -186,16 +202,32 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section - Mobile Optimized */}
+      {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
       <MobileHero stats={stats} />
 
-      {/* Demo Preview - See before you sign up */}
-      <DemoPreview />
+      {/* Demo Preview - Progressive hydration */}
+      <div ref={demoSection.ref} id="demo-preview">
+        {demoSection.isVisible ? (
+          <Suspense fallback={<SectionSkeleton height={500} />}>
+            <DemoPreview />
+          </Suspense>
+        ) : (
+          <SectionSkeleton height={500} />
+        )}
+      </div>
 
-      {/* Client Testimonials */}
-      <ClientTestimonials />
+      {/* Client Testimonials - Progressive hydration */}
+      <div ref={testimonialsSection.ref}>
+        {testimonialsSection.isVisible ? (
+          <Suspense fallback={<SectionSkeleton height={300} />}>
+            <ClientTestimonials />
+          </Suspense>
+        ) : (
+          <SectionSkeleton height={300} />
+        )}
+      </div>
 
-      {/* Features Section */}
+      {/* Features Section (Critical - loads immediately) */}
       <section id="features" className="py-16 md:py-24 bg-muted/30">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
@@ -284,8 +316,16 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* FAQ Section */}
-      <FAQSection />
+      {/* FAQ Section - Progressive hydration */}
+      <div ref={faqSection.ref}>
+        {faqSection.isVisible ? (
+          <Suspense fallback={<SectionSkeleton height={400} />}>
+            <FAQSection />
+          </Suspense>
+        ) : (
+          <SectionSkeleton height={400} />
+        )}
+      </div>
 
       {/* CTA Section */}
       <section className="py-16 md:py-24">
