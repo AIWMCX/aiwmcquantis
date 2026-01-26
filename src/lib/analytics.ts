@@ -1,6 +1,11 @@
 /**
- * Google Analytics 4 Integration
+ * Google Analytics 4 Integration with Bot Filtering
  * Professional analytics tracking for AIWMC Quantis
+ * 
+ * Features:
+ * - Spam referrer filtering
+ * - Bot user-agent detection
+ * - Session quality verification
  */
 
 declare global {
@@ -11,6 +16,90 @@ declare global {
 }
 
 const GA_MEASUREMENT_ID = 'G-NZE7RGVNEN';
+
+// Known spam referrer patterns to filter out
+const SPAM_REFERRER_PATTERNS = [
+  /syndicatedsearch\.goog/i,
+  /wealth\.kuninganmass\.com/i,
+  /jasakonsultasipajak\.com/i,
+  /semalt\.com/i,
+  /buttons-for-website\.com/i,
+  /darodar\.com/i,
+  /ilovevitaly\.com/i,
+  /priceg\.com/i,
+  /blackhatworth\.com/i,
+  /hulfingtonpost\.com/i,
+  /prodvigator\.ua/i,
+  /ranksonic\.info/i,
+  /savetubevideo\.com/i,
+  /kambasoft\.com/i,
+  /lumb\.co/i,
+  /humanoithemes\.com/i,
+];
+
+// Known bot user agent patterns
+const BOT_USER_AGENT_PATTERNS = [
+  /bot/i,
+  /crawler/i,
+  /spider/i,
+  /headless/i,
+  /phantom/i,
+  /selenium/i,
+  /puppeteer/i,
+  /slurp/i,
+  /mediapartners/i,
+];
+
+// Cache the spam/bot check result
+let isSpamSession: boolean | null = null;
+
+/**
+ * Check if current session appears to be from a bot or spam referrer
+ */
+function isSpamOrBot(): boolean {
+  try {
+    // Check referrer against spam patterns
+    const referrer = document.referrer;
+    if (referrer) {
+      for (const pattern of SPAM_REFERRER_PATTERNS) {
+        if (pattern.test(referrer)) {
+          if (import.meta.env.DEV) {
+            console.log(`🚫 Filtered spam referrer: ${referrer}`);
+          }
+          return true;
+        }
+      }
+    }
+    
+    // Check user agent against bot patterns
+    const userAgent = navigator.userAgent;
+    for (const pattern of BOT_USER_AGENT_PATTERNS) {
+      if (pattern.test(userAgent)) {
+        if (import.meta.env.DEV) {
+          console.log(`🤖 Filtered bot user agent: ${userAgent}`);
+        }
+        return true;
+      }
+    }
+    
+    // Check for suspicious behavior patterns
+    // Headless browsers often have zero screen dimensions or missing plugins
+    if (navigator.webdriver) {
+      return true;
+    }
+    
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+function shouldTrack(): boolean {
+  if (isSpamSession === null) {
+    isSpamSession = isSpamOrBot();
+  }
+  return !isSpamSession;
+}
 
 /**
  * Initialize Google Analytics 4
@@ -28,26 +117,38 @@ export function initAnalytics(): void {
 
 /**
  * Track page views (for SPA navigation)
+ * Automatically filters spam/bot traffic
  */
 export function trackPageView(path: string, title?: string): void {
+  if (!shouldTrack()) return;
   if (!window.gtag || !GA_MEASUREMENT_ID) return;
 
   window.gtag('config', GA_MEASUREMENT_ID, {
     page_path: path,
     page_title: title || document.title,
+    session_quality: 'verified',
   });
 }
 
 /**
  * Track custom events
+ * Automatically filters spam/bot traffic
  */
 export function trackEvent(
   eventName: string,
   params?: Record<string, unknown>
 ): void {
+  if (!shouldTrack()) return;
   if (!window.gtag) return;
 
-  window.gtag('event', eventName, params);
+  window.gtag('event', eventName, {
+    ...params,
+    session_quality: 'verified',
+  });
+  
+  if (import.meta.env.DEV) {
+    console.log(`📈 Analytics: ${eventName}`, params);
+  }
 }
 
 // ============================================
@@ -169,6 +270,37 @@ export function trackCtaClick(ctaName: string, location: string): void {
     cta_name: ctaName,
     cta_location: location,
   });
+}
+
+/**
+ * Track errors (always tracked, even from bots for debugging)
+ */
+export function trackError(errorType: string, errorMessage: string): void {
+  try {
+    if (window.gtag) {
+      window.gtag('event', 'exception', {
+        description: `${errorType}: ${errorMessage}`,
+        fatal: false,
+      });
+    }
+  } catch {
+    // Silently fail
+  }
+}
+
+/**
+ * Get session quality info (for debugging)
+ */
+export function getSessionQuality(): {
+  isHuman: boolean;
+  referrer: string;
+  userAgent: string;
+} {
+  return {
+    isHuman: shouldTrack(),
+    referrer: document.referrer || 'direct',
+    userAgent: navigator.userAgent,
+  };
 }
 
 // ============================================
