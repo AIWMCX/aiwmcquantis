@@ -4,7 +4,17 @@
   <head>
     <meta charset="UTF-8" />
     
-    <!-- Google Analytics 4 -->
+    <!-- DNS Prefetch for faster third-party resource loading -->
+    <link rel="dns-prefetch" href="//fonts.googleapis.com">
+    <link rel="dns-prefetch" href="//fonts.gstatic.com">
+    <link rel="dns-prefetch" href="//www.googletagmanager.com">
+    <link rel="dns-prefetch" href="//www.google-analytics.com">
+    
+    <!-- Preconnect for critical third-party origins (before any scripts) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Google Analytics 4 (async to not block rendering) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-NZE7RGVNEN"></script>
     <script>
       window.dataLayer = window.dataLayer || [];
@@ -12,6 +22,7 @@
       gtag('js', new Date());
       gtag('config', 'G-NZE7RGVNEN');
     </script>
+    
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>AIWMC Quantis™ - AI Business Intelligence Platform | Neural OS™</title>
     <meta name="description" content="AIWMC Quantis™ - AI-Powered Business Intelligence Platform with Neural OS™. Get instant financial projections, market analysis, and complete business plans in 2 minutes. Transform your business with intelligent automation.">
@@ -19,6 +30,9 @@
     <meta name="keywords" content="AI business intelligence, Neural OS, AI automation, business intelligence platform, AIWMC Quantis, AI agents, financial projections, market analysis, business plan generator, enterprise AI, startup analysis" />
     <link rel="canonical" href="https://aiwmcquantis.com" />
 
+    <!-- Favicons and App Icons -->
+    <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/02jw8cYqavMYVgbcUyUgCIbUR6r2/uploads/1767032494387-Снимок экрана 2025-11-28 221148.png">
+    
     <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://aiwmcquantis.com" />
@@ -27,21 +41,20 @@
     <meta property="og:image:width" content="1200" />
     <meta property="og:image:height" content="630" />
     <meta property="og:image:alt" content="AIWMC Quantis - AI Business Intelligence Platform" />
+    <meta property="og:title" content="AIWMC Quantis™ - AI Business Intelligence Platform | Neural OS™">
+    <meta property="og:description" content="AI-Powered Business Intelligence Platform. Get instant financial projections, market analysis, and complete business plans in 2 minutes.">
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:site" content="@AIWMC_official" />
     <meta name="twitter:creator" content="@AIWMC_official" />
     <meta name="twitter:image" content="https://aiwmcquantis.com/og-image.png" />
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <meta property="og:title" content="AIWMC Quantis™ - AI Business Intelligence Platform | Neural OS™">
     <meta name="twitter:title" content="AIWMC Quantis™ - AI Business Intelligence Platform | Neural OS™">
-    <meta property="og:description" content="AI-Powered Business Intelligence Platform. Get instant financial projections, market analysis, and complete business plans in 2 minutes.">
     <meta name="twitter:description" content="AI-Powered Business Intelligence Platform. Get instant financial projections, market analysis, and complete business plans in 2 minutes.">
-  <link rel="icon" type="image/x-icon" href="https://storage.googleapis.com/gpt-engineer-file-uploads/02jw8cYqavMYVgbcUyUgCIbUR6r2/uploads/1767032494387-Снимок экрана 2025-11-28 221148.png">
-</head>
+    
+    <!-- Google Fonts with display=swap for faster text rendering -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  </head>
 
   <body>
     <div id="root"></div>
