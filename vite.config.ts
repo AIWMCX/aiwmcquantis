@@ -71,7 +71,6 @@ export default defineConfig(({ mode }) => ({
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],
-    // Exclude heavy deps from pre-bundling for faster dev server start
-    exclude: ['@react-pdf/renderer'],
+    // Note: @react-pdf/renderer must be pre-bundled to fix base64-js module format issues
   },
 }));
