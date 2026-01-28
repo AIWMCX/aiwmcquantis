@@ -273,11 +273,11 @@ export default function Index() {
           </p>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-16">
-          {/* Form Column */}
-          <div className="lg:col-span-1">
-            <div className="sticky top-24 space-y-4">
+        {/* Main Content - Mobile-first layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
+          {/* Form Column - Appears second on mobile for results-first experience */}
+          <div className="lg:col-span-1 order-2 lg:order-1">
+            <div className="lg:sticky lg:top-24 space-y-4">
               {/* Draft Recovery Banner */}
               {hasDraft && (
                 <DraftRecoveryBanner
@@ -311,7 +311,7 @@ export default function Index() {
               {/* Quick History Access */}
               <button
                 onClick={() => setActiveTab('history')}
-                className="w-full p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground"
+                className="w-full p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground min-h-[48px]"
               >
                 <History className="w-4 h-4" />
                 Analysis History
@@ -319,17 +319,19 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Results Column */}
-          <div className="lg:col-span-2">
+          {/* Results Column - Appears first on mobile */}
+          <div className="lg:col-span-2 order-1 lg:order-2">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
-              <TabsList className="mb-6 grid w-full grid-cols-2">
-                <TabsTrigger value="analyze" className="gap-2">
+              <TabsList className="mb-4 lg:mb-6 grid w-full grid-cols-2">
+                <TabsTrigger value="analyze" className="gap-2 min-h-[44px]">
                   <Sparkles className="w-4 h-4" />
-                  Results
+                  <span className="hidden sm:inline">Results</span>
+                  <span className="sm:hidden">📊</span>
                 </TabsTrigger>
-                <TabsTrigger value="history" className="gap-2">
+                <TabsTrigger value="history" className="gap-2 min-h-[44px]">
                   <History className="w-4 h-4" />
-                  History
+                  <span className="hidden sm:inline">History</span>
+                  <span className="sm:hidden">📋</span>
                 </TabsTrigger>
               </TabsList>
 

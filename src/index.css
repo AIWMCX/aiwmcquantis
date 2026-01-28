@@ -163,4 +163,37 @@
   .safe-area-pb {
     padding-bottom: max(env(safe-area-inset-bottom), 0.5rem);
   }
+  
+  /* Hide scrollbar for horizontal scroll areas */
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+  
+  /* Enhanced touch targets */
+  .touch-target {
+    @apply min-w-[48px] min-h-[48px];
+  }
+  
+  .touch-target-lg {
+    @apply min-w-[56px] min-h-[56px];
+  }
+  
+  /* Line clamp utilities */
+  .line-clamp-3 {
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .line-clamp-4 {
+    display: -webkit-box;
+    -webkit-line-clamp: 4;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
 }
