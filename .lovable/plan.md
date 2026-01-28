@@ -1,210 +1,175 @@
 
-# Mobile Signup Form Tests and Conversion Tracking
+# Minimalist Landing Page Hero Redesign
 
-## Overview
+## Problem Analysis
 
-This plan adds comprehensive mobile-specific tests for the simplified signup form and implements conversion tracking to measure the improvement from the recent friction-reducing changes.
+Looking at the current hero section, there are several design inconsistencies creating a cluttered appearance:
 
----
-
-## Part 1: Test Infrastructure Setup
-
-### Create Vitest Configuration
-
-Since `vitest.config.ts` doesn't exist, create one with proper test environment settings:
-
-```typescript
-// vitest.config.ts
-import { defineConfig } from "vitest/config";
-import react from "@vitejs/plugin-react-swc";
-import path from "path";
-
-export default defineConfig({
-  plugins: [react()],
-  test: {
-    environment: "jsdom",
-    globals: true,
-    setupFiles: ["./src/test/setup.ts"],
-    include: ["src/**/*.{test,spec}.{ts,tsx}"],
-  },
-  resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
-  },
-});
-```
-
-### Create Test Setup File
-
-```typescript
-// src/test/setup.ts
-import "@testing-library/jest-dom";
-
-// Mock matchMedia for responsive tests
-Object.defineProperty(window, "matchMedia", {
-  writable: true,
-  value: (query: string) => ({
-    matches: query.includes("max-width: 767px"), // Simulate mobile
-    media: query,
-    onchange: null,
-    addListener: () => {},
-    removeListener: () => {},
-    addEventListener: () => {},
-    removeEventListener: () => {},
-    dispatchEvent: () => {},
-  }),
-});
-```
+1. **Too many bordered elements** - Quick benefit cards and the 3-step process bar both have visible borders competing for attention
+2. **Semi-transparent backgrounds** - `bg-card/60` and `bg-muted/30` create muddy layering effects in dark mode
+3. **Colored icon backgrounds** - The `bg-success/10` rounded circles around icons add visual noise
+4. **Heavy container styling** - The 3-step process has a bordered box that feels heavyweight
+5. **Inconsistent spacing** - Multiple `mb-8` creates uniform but cramped sections
 
 ---
 
-## Part 2: Mobile Signup Form Tests
+## Design Philosophy
 
-### New Test File: `src/__tests__/signup-mobile.test.tsx`
+Apply a **clean minimalist approach**:
+- Remove unnecessary borders
+- Use subtle backgrounds without transparency mixing
+- Simplify icon presentation (no circular backgrounds)
+- Create breathing room with better spacing
+- Let content speak for itself
 
-| Test Category | Test Cases |
-|---------------|------------|
-| **Mobile UI Elements** | Progress indicator visible on mobile, touch target sizes (48px+), Google button prominence |
-| **Simplified Password** | 8-character minimum only, no complexity requirements, always-enabled submit button |
-| **Form Validation** | Inline error display, password character counter, implicit terms consent |
-| **Analytics Tracking** | Field focus events, form start events, conversion tracking |
+---
 
-### Key Test Cases
+## Specific Changes
+
+### 1. Quick Benefits Section (Lines 60-79)
+
+**Before:**
+- Cards with `bg-card/60 border border-border/50`
+- Icons in `p-2 rounded-full bg-success/10`
+- Creates 3 heavy bordered cards
+
+**After:**
+- Remove cards entirely, use simple inline badges
+- Icons directly next to text without backgrounds
+- Clean text with muted icons
 
 ```text
-Mobile-Specific UX Tests
-├── Shows "Step 1 of 1" progress indicator on mobile viewports
-├── Hides progress indicator on desktop viewports
-├── Google login button uses primary variant with proper styling
-├── Submit button is never disabled by password strength
-├── Password hint shows remaining characters needed
-├── Form fields have proper touch target sizes (48px+)
-└── Implicit terms text displays instead of checkbox
+BEFORE:
+┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
+│ (●) Validate    │ │ ($) See real    │ │ (!) Know risks  │
+│     idea        │ │     numbers     │ │     first       │
+└─────────────────┘ └─────────────────┘ └─────────────────┘
 
-Simplified Validation Tests
-├── Accepts passwords with exactly 8 characters
-├── Rejects passwords with 7 characters
-├── Does not require uppercase letters
-├── Does not require lowercase letters
-├── Does not require numbers
-├── Does not require special characters
-└── Validation triggers on submit, not on blur
-
-Conversion Tracking Tests
-├── Tracks signup_started on first field focus
-├── Tracks signup_field_focus for each field
-├── Tracks signup_attempt on form submission
-├── Tracks lead_converted_to_signup for returning leads
-└── Tracks signup_error with reason on failure
+AFTER:
+✓ Validate idea    $ See real numbers    ⚠ Know risks first
 ```
 
----
+### 2. 3-Step Process Section (Lines 82-103)
 
-## Part 3: Conversion Improvement Tracking
+**Before:**
+- Heavy bordered container with `border border-border bg-muted/30 rounded-2xl`
+- ChevronRight separators between steps
+- Feels like a separate UI component
 
-### Add New Analytics Events
-
-| Event Name | Description | Properties |
-|------------|-------------|------------|
-| `mobile_signup_started` | User begins signup on mobile | `viewport_width`, `is_touch_device` |
-| `mobile_signup_completed` | Successful signup on mobile | `time_to_complete`, `fields_refilled` |
-| `password_validation_passed` | Password meets requirements | `password_length`, `validation_mode` |
-| `simplified_form_conversion` | A/B test conversion tracking | `form_version`, `time_to_submit` |
-
-### Update Analytics Module
-
-Add mobile-specific tracking helpers:
-
-```typescript
-// New functions in src/lib/analytics.ts
-export function trackMobileSignupStarted(viewportWidth: number): void;
-export function trackMobileSignupCompleted(timeToCompleteMs: number): void;
-export function trackSimplifiedFormConversion(formVersion: string): void;
-```
-
----
-
-## Part 4: A/B Test Integration
-
-### Track Simplified vs Complex Form Performance
-
-Since the form was just simplified, add tracking to compare:
-
-| Metric | Old Form (Baseline) | New Form (Target) |
-|--------|---------------------|-------------------|
-| Conversion Rate | 18% | 35-40% |
-| Password Abandonment | High | Low |
-| Mobile Completion Time | Unknown | Track |
-
-### Implementation
-
-1. Add `form_version: 'simplified_v2'` to all signup events
-2. Track time from first field focus to successful submission
-3. Track password retry count (how many times user re-types)
-
----
-
-## Files to Create/Modify
-
-| File | Action | Description |
-|------|--------|-------------|
-| `vitest.config.ts` | Create | Test configuration with jsdom environment |
-| `src/test/setup.ts` | Create | Test setup with matchMedia mock |
-| `src/__tests__/signup-mobile.test.tsx` | Create | 25+ mobile-specific signup tests |
-| `src/lib/analytics.ts` | Modify | Add mobile conversion tracking functions |
-| `src/components/auth/SignupForm.tsx` | Modify | Add form version tracking, time tracking |
-| `tsconfig.app.json` | Modify | Add vitest globals type |
-
----
-
-## Test Structure
+**After:**
+- Remove container border, keep subtle background
+- Replace chevrons with simple dots or dashes
+- Integrate more seamlessly with page flow
 
 ```text
-src/__tests__/signup-mobile.test.tsx
-├── describe('Mobile Signup Form')
-│   ├── describe('Mobile UI Rendering')
-│   │   ├── it('displays mobile progress indicator on small screens')
-│   │   ├── it('hides mobile progress indicator on desktop')
-│   │   ├── it('renders Google button with primary variant')
-│   │   └── it('shows trust signals with proper sizing')
-│   │
-│   ├── describe('Simplified Password Validation')
-│   │   ├── it('accepts 8+ character passwords without complexity')
-│   │   ├── it('rejects passwords under 8 characters')
-│   │   ├── it('shows character count hint while typing')
-│   │   └── it('submit button is always enabled')
-│   │
-│   ├── describe('Touch-Friendly Interactions')
-│   │   ├── it('input fields have minimum 48px touch targets')
-│   │   ├── it('buttons have adequate touch spacing')
-│   │   └── it('password toggle is easily tappable')
-│   │
-│   ├── describe('Form Submission Flow')
-│   │   ├── it('submits successfully with valid data')
-│   │   ├── it('displays inline errors for invalid fields')
-│   │   └── it('shows success state after signup')
-│   │
-│   └── describe('Conversion Analytics')
-│       ├── it('tracks signup_started on first interaction')
-│       ├── it('tracks field focus events')
-│       └── it('tracks form version for A/B comparison')
+BEFORE:
+┌─────────────────────────────────────────────────────────┐
+│  (1) Describe  >  (2) AI Analyzes  >  (3) Get Report   │
+└─────────────────────────────────────────────────────────┘
+
+AFTER:
+     (1)              (2)               (3)
+   Describe    ·    AI Analyzes    ·   Get Report
+```
+
+### 3. Stats Section (Lines 106-113)
+
+**Before:**
+- Cards with `bg-card/60 border border-border/50`
+
+**After:**
+- Remove borders, use cleaner dividers or no separation
+- Simple text hierarchy without card containers
+
+### 4. Spacing Adjustments
+
+- Increase vertical rhythm between sections
+- Add more breathing room around CTA
+- Reduce visual density
+
+---
+
+## Files to Modify
+
+| File | Changes |
+|------|---------|
+| `src/components/landing/MobileHero.tsx` | Redesign Quick Benefits, 3-Step Process, Stats sections |
+
+---
+
+## Visual Comparison
+
+```text
+CURRENT (Cluttered):
+────────────────────────────────────────
+      Know Your Numbers
+      Before You Invest
+
+   [────────────────────────]
+   │ Get My Free Analysis  │
+   [────────────────────────]
+
+┌─────────┐ ┌─────────┐ ┌─────────┐
+│ Validate│ │ Numbers │ │ Risks   │
+└─────────┘ └─────────┘ └─────────┘
+
+┌─────────────────────────────────────┐
+│ 1 Describe > 2 Analyze > 3 Report  │
+└─────────────────────────────────────┘
+
+┌─────┐ ┌─────┐ ┌─────┐ ┌─────┐
+│1000+│ │ 12  │ │<2min│ │  3  │
+└─────┘ └─────┘ └─────┘ └─────┘
+
+
+REDESIGNED (Minimalist):
+────────────────────────────────────────
+      Know Your Numbers
+      Before You Invest
+
+   [────────────────────────]
+   │ Get My Free Analysis  │
+   [────────────────────────]
+   AI-powered analysis in 2 minutes
+
+   ✓ Validate idea  ·  $ See real numbers  ·  ⚠ Know risks
+
+         1              2              3
+      Describe    ·  AI Analyzes  ·  Get Report
+
+    1,000+         12          <2 min         3
+   Benchmarks   Variables    Analysis    Scenarios
+────────────────────────────────────────
 ```
 
 ---
 
-## Expected Outcomes
+## Technical Implementation
 
-After implementing these tests and tracking:
+### MobileHero.tsx Changes
 
-1. **Test Coverage**: 25+ new tests specifically for mobile signup UX
-2. **Regression Prevention**: Any future changes that break mobile signup will fail tests
-3. **Conversion Visibility**: Clear metrics to compare before/after simplified form
-4. **A/B Data**: Form version tracking enables future optimization decisions
+1. **Quick Benefits**: Change from card grid to inline flex with simple styling
+   - Remove: `p-4 rounded-xl bg-card/60 border border-border/50`
+   - Remove: Icon circular backgrounds
+   - Add: Simple inline layout with dots as separators
+
+2. **3-Step Process**: Simplify container
+   - Remove: `border border-border`
+   - Keep: Light background `bg-muted/20`
+   - Replace: ChevronRight with centered dots `·`
+   - Simplify: Remove flex-shrink-0 clutter
+
+3. **Stats Section**: Clean up cards
+   - Remove: `bg-card/60 border border-border/50`
+   - Add: Simple dividers or clean spacing
+   - Result: Pure typography-focused stats
 
 ---
 
-## Technical Notes
+## Expected Outcome
 
-- Tests use `@testing-library/react` for component rendering
-- Mock `window.matchMedia` to simulate mobile/desktop viewports
-- Mock `supabase.auth.signUp` to test form behavior without network calls
-- Mock `trackEvent` to verify analytics calls without sending data
+- Cleaner, more professional appearance
+- Better visual hierarchy
+- Reduced cognitive load
+- Modern minimalist aesthetic matching premium SaaS products
+- Improved dark mode appearance (no muddy transparency layers)
