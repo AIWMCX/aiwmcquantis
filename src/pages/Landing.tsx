@@ -388,7 +388,7 @@ export default function Landing() {
       {/* Mobile Sticky CTA - Enhanced with trust indicator */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
         <Link to="/app" className="block" onClick={() => trackCtaClick('get_free_analysis', 'mobile_sticky')}>
-          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-2xl min-h-[60px] animate-pulse-subtle hover:animate-none">
+          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-2xl min-h-[60px] transition-all duration-300">
             <Play className="w-5 h-5" />
             Get My Free Analysis
           </Button>
