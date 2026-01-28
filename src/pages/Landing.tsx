@@ -156,17 +156,17 @@ export default function Landing() {
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            {/* Mobile hamburger menu */}
-            {isMobile && (
+            {/* Mobile hamburger menu - CSS-based visibility for immediate render */}
+            <div className="md:hidden">
               <MobileNav>
                 <button 
-                  className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center md:hidden"
+                  className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
                   aria-label="Open navigation menu"
                 >
                   <Menu className="w-5 h-5" />
                 </button>
               </MobileNav>
-            )}
+            </div>
             
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
               <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
