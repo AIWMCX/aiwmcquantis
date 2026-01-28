@@ -219,41 +219,34 @@ export function ClientTestimonials() {
             <ChevronRight className="w-5 h-5 text-foreground" />
           </button>
 
-          {/* Scrollable container */}
+          {/* Cards container - Stack on mobile, grid on desktop */}
           <div 
             ref={scrollRef}
-            onTouchStart={handleTouchStart}
-            onTouchMove={handleTouchMove}
-            onTouchEnd={handleTouchEnd}
-            className="flex md:grid md:grid-cols-3 gap-4 md:gap-6 overflow-x-auto pb-4 md:pb-0 snap-x snap-mandatory -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide touch-pan-x"
+            className="flex flex-col md:grid md:grid-cols-3 gap-4 md:gap-6"
           >
             {testimonials.map((testimonial, index) => (
               <div
                 key={index}
-                className={`relative p-5 md:p-6 rounded-2xl border bg-card transition-all duration-300 min-w-[300px] md:min-w-0 flex-shrink-0 snap-center ${
-                  index === activeIndex 
-                    ? 'border-primary/50 shadow-lg md:border-border md:shadow-none' 
-                    : 'border-border hover:border-primary/30'
-                }`}
+                className="relative p-5 md:p-6 rounded-2xl border bg-card transition-all duration-300 border-border hover:border-primary/30 hover:shadow-md"
               >
-                {/* Highlight Badge - Positioned inside card on mobile */}
+                {/* Highlight Badge */}
                 {testimonial.highlight && (
                   <div className="inline-block mb-3 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium">
                     {testimonial.highlight}
                   </div>
                 )}
 
-                {/* Quote Icon - Smaller on mobile */}
+                {/* Quote Icon */}
                 <div className="mb-3 md:mb-4">
                   <Quote className="w-6 h-6 md:w-8 md:h-8 text-primary/20" />
                 </div>
 
-                {/* Quote Text */}
+                {/* Quote Text - FULL TEXT, NO TRUNCATION */}
                 <blockquote className="text-sm md:text-base text-foreground leading-relaxed mb-4 md:mb-6">
                   "{testimonial.quote}"
                 </blockquote>
 
-                {/* Rating - Larger on mobile for visibility */}
+                {/* Rating */}
                 <div className="mb-3 md:mb-4">
                   <StarRating rating={testimonial.rating} size="large" />
                 </div>
@@ -265,11 +258,11 @@ export function ClientTestimonials() {
                       {testimonial.name.charAt(0)}
                     </span>
                   </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-foreground truncate">
+                  <div>
+                    <div className="font-medium text-foreground">
                       {testimonial.name}
                     </div>
-                    <div className="text-sm text-muted-foreground truncate">
+                    <div className="text-sm text-muted-foreground">
                       {testimonial.role}, {testimonial.company}
                     </div>
                   </div>
@@ -279,23 +272,6 @@ export function ClientTestimonials() {
           </div>
         </div>
         
-        {/* Navigation dots - Mobile only with active state */}
-        <div className="flex justify-center gap-2 mt-4 md:hidden" role="tablist" aria-label="Testimonial navigation">
-          {testimonials.map((_, i) => (
-            <button
-              key={i}
-              onClick={() => scrollToIndex(i)}
-              role="tab"
-              aria-selected={i === activeIndex}
-              aria-label={`Go to testimonial ${i + 1}`}
-              className={`transition-all duration-300 rounded-full haptic-btn ${
-                i === activeIndex 
-                  ? 'w-6 h-2 bg-primary' 
-                  : 'w-2 h-2 bg-primary/30 hover:bg-primary/50'
-              }`}
-            />
-          ))}
-        </div>
 
         {/* Social Proof Stats - Enhanced mobile layout with backgrounds */}
         <div className="mt-10 md:mt-12 pt-6 md:pt-8 border-t border-border">
