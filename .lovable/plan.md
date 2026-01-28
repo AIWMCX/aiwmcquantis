@@ -1,232 +1,178 @@
 
-# Comprehensive Project Audit Report
+# Landing Page Optimization for 30-Second Attention Spans
+
+## Current Problem Analysis (Based on Real Data)
+
+Your analytics show:
+- **30-second average engagement** (today's real data)
+- **89.2% drop-off** before auth (360 → 39 visitors)
+- **42% bounce rate** on landing
+- **77.8% mobile traffic**
+
+The current page structure requires users to scroll and read too much before understanding value. The demo preview is below the fold. The path to action is unclear.
 
 ---
 
-## ISSUE IDENTIFIED: Blinking Button
+## Core Strategy: "Value in 5 Seconds"
 
-### Root Cause Analysis
-
-The "Get Your Full Report Free" button is blinking because of the `animate-pulse-subtle` CSS class applied in **two locations**:
-
-1. **`DemoPreview.tsx` (Line 233)**:
-```jsx
-<Button ... className="... animate-pulse-subtle hover:animate-none ...">
-```
-
-2. **`Landing.tsx` (Line 391)** (Mobile sticky CTA):
-```jsx
-<Button ... className="... animate-pulse-subtle hover:animate-none">
-```
-
-### Animation Definition (in `tailwind.config.ts` lines 93-96 and `index.css` lines 153-160):
-```css
-@keyframes pulse-subtle {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.7; }
-}
-```
-
-This creates an infinite 2-second opacity cycle (1.0 → 0.7 → 1.0), giving the appearance of a "bad bulb blinking" effect.
-
-### Recommended Fix
-Remove `animate-pulse-subtle` from both buttons. Use a subtle hover effect instead for user engagement:
-
-| File | Line | Current | Replace With |
-|------|------|---------|--------------|
-| `DemoPreview.tsx` | 233 | `animate-pulse-subtle hover:animate-none` | `transition-all duration-300 hover:shadow-primary/20` |
-| `Landing.tsx` | 391 | `animate-pulse-subtle hover:animate-none` | `transition-all duration-300` |
+Users should understand WHAT you offer and HOW to get it within 5 seconds of landing. No scrolling required.
 
 ---
 
-## AUDIT 1: GENERAL AUDIT
+## Specific Changes
 
-### Overall Quality Score: 8.2/10
+### 1. Hero Section Overhaul (MobileHero.tsx)
 
-### Strengths
-| Area | Finding | Status |
-|------|---------|--------|
-| **Architecture** | Clean component separation, lazy loading for below-fold sections | Excellent |
-| **Design System** | Consistent use of Tailwind tokens, semantic color variables | Excellent |
-| **Accessibility** | WCAG 2.1 AA compliant: skip links, focus rings, ARIA labels | Excellent |
-| **Mobile Optimization** | Progressive enhancement, touch targets (48px+), safe-area padding | Good |
-| **SEO** | Structured data, meta tags, semantic HTML | Good |
+**Current Issues:**
+- Subheadline too generic: "AI-powered business analysis in 2 minutes"
+- CTA subtext repeats same info: "AI-powered analysis in 2 minutes"
+- 3-step process adds cognitive load before action
+- Stats are at the bottom (users won't reach them in 30 seconds)
 
-### Issues Found
-| Severity | Issue | Location | Recommendation |
-|----------|-------|----------|----------------|
-| High | Blinking button animation is distracting | `DemoPreview.tsx:233`, `Landing.tsx:391` | Remove `animate-pulse-subtle` |
-| Medium | Mobile sticky CTA duplicates hero CTA text | `Landing.tsx:388-397` | Consider different messaging |
-| Low | "Live Demo" indicator uses animate-pulse (also blinks) | `DemoPreview.tsx:126` | Replace with static styling |
+**Proposed Changes:**
 
-### User Experience Assessment
-| Metric | Current State | Target | Status |
-|--------|---------------|--------|--------|
-| Hero clarity | Clear value proposition | - | Pass |
-| CTA visibility | Too aggressive (blinking) | Subtle but prominent | Needs Fix |
-| Trust signals | Present (benchmarks, testimonials) | - | Pass |
-| Mobile navigation | Hamburger menu with sheet | - | Pass |
-| Loading states | Skeleton fallbacks | - | Pass |
+| Element | Current | Optimized |
+|---------|---------|-----------|
+| Headline | "Know Your Numbers Before You Invest" | Keep (good) |
+| Subheadline | "AI-powered business analysis in 2 minutes. Revenue, risks, and a clear action plan." | "Describe your business idea → Get profit projections, risks, and a 90-day action plan." |
+| CTA Button | "Get My Free Analysis" | "See My Numbers Free" (more specific outcome) |
+| CTA Subtext | "AI-powered analysis in 2 minutes" | "No signup needed to try" |
+| Quick Benefits | Generic icons + text | Remove - already in subheadline |
+| 3-Step Process | Full visual process | Move below fold or remove |
+| Stats | Bottom of hero | Remove from hero (move to demo section) |
 
----
+**Result:** Hero fits in one mobile viewport. Clear action path.
 
-## AUDIT 2: PERFORMANCE AUDIT
+### 2. Demo Preview - Instant Gratification (DemoPreview.tsx)
 
-### Overall Performance Score: 7.8/10
+**Current Issues:**
+- Animation delays (400ms × 5 steps = 2 seconds before full visibility)
+- Users must wait to see value
+- Demo is below the fold
 
-### Build Optimization
-| Feature | Implementation | Status |
-|---------|----------------|--------|
-| Code splitting | Manual chunks for vendors | Excellent |
-| Lazy loading | Below-fold components | Excellent |
-| CSS code splitting | Enabled | Good |
-| Asset inlining | 4KB threshold | Good |
-| Source maps | Dev only | Correct |
+**Proposed Changes:**
 
-### Chunk Strategy Analysis
+| Element | Current | Optimized |
+|---------|---------|-----------|
+| Animation | Staggered 2-second reveal | Instant visibility (no animation delays) |
+| Header | "See What Your Report Looks Like" | "Your Report Preview" (shorter) |
+| Position | Below hero | Keep but reduce hero height so demo is visible faster |
+| CTA | "Get Your Full Report Free" | "Analyze My Idea" |
+
+### 3. Remove Friction Elements
+
+**Remove from Above-the-Fold:**
+- 3-step process visual (redundant, adds clutter)
+- Stats section (move to demo area)
+- "Live Demo" badge (unnecessary)
+
+**Keep:**
+- Headline + subheadline
+- One CTA button
+- Trust signal (e.g., "Join 1,000+ entrepreneurs")
+
+### 4. Mobile-First Viewport Optimization
+
+For 77.8% mobile traffic, the first viewport must contain:
+
 ```text
-Current Chunks:
-├── react-vendor (react, react-dom, react-router-dom)
-├── ui-vendor (7 Radix UI components)
-├── supabase-vendor (@supabase/supabase-js)
-├── query-vendor (@tanstack/react-query)
-├── charts (recharts) - lazy loaded
-├── pdf (@react-pdf/renderer) - lazy loaded
-├── forms (react-hook-form, zod)
-├── date-utils (date-fns)
-└── animation (embla-carousel-react)
+CURRENT MOBILE VIEWPORT (too much):
+┌─────────────────────────────┐
+│  [Logo]    [☀️]  [Start→]  │ ← Nav
+├─────────────────────────────┤
+│                             │
+│    Know Your Numbers        │
+│    Before You Invest        │
+│                             │
+│  Describe your idea...      │
+│                             │
+│   [▶ See My Numbers Free]   │
+│   No signup needed to try   │
+│                             │
+│  ✓ Validate · $ Numbers · ⚠ Risks │
+│                             │
+│   1 ── 2 ── 3               │ ← Remove
+│ Describe AI Get             │ ← Remove
+│                             │
+│  1000+   12   <2min   3     │ ← Move below
+└─────────────────────────────┘
+
+OPTIMIZED MOBILE VIEWPORT:
+┌─────────────────────────────┐
+│  [Logo]    [☀️]  [Start→]  │
+├─────────────────────────────┤
+│                             │
+│    Know Your Numbers        │
+│    Before You Invest        │
+│                             │
+│  Describe idea → Get profit │
+│  projections & action plan  │
+│                             │
+│   [▶ See My Numbers Free]   │
+│     No signup to try        │
+│                             │
+│   Join 1,000+ entrepreneurs │
+│                             │
+│ ┌─────────────────────────┐ │
+│ │ DEMO PREVIEW VISIBLE    │ │ ← Demo starts here
+│ │ Coffee Shop • Denver    │ │
+│ │ $4,200/mo profit        │ │
+│ └─────────────────────────┘ │
+└─────────────────────────────┘
 ```
 
-### Web Vitals Monitoring
-| Metric | Target | Implementation | Status |
-|--------|--------|----------------|--------|
-| LCP | < 2.5s | Monitored via PerformanceObserver | Implemented |
-| FID | < 100ms | Monitored via PerformanceObserver | Implemented |
-| CLS | < 0.1 | Monitored via PerformanceObserver | Implemented |
-| TTFB | < 200ms | Monitored via Navigation Timing | Implemented |
-| FCP | < 1.8s | Monitored via PerformanceObserver | Implemented |
-
-### Issues Found
-| Severity | Issue | Impact | Recommendation |
-|----------|-------|--------|----------------|
-| Medium | Infinite animation runs continuously | Battery drain, GPU usage | Remove or limit animation iterations |
-| Low | Multiple IntersectionObserver instances | Minor memory overhead | Consider single observer for lazy sections |
-| Low | No resource hints for external APIs | Slower first API call | Add `dns-prefetch` for Supabase |
-
-### Lighthouse Optimization Opportunities
-| Metric | Current | Recommendation |
-|--------|---------|----------------|
-| Animation efficiency | Infinite loop | Use `animation-iteration-count: 3` or remove |
-| First party scripts | Good | Already code-split |
-| Third party scripts | Sentry, GA | Already loaded conditionally |
-
 ---
 
-## AUDIT 3: TECHNICAL AUDIT
-
-### Overall Technical Score: 8.5/10
-
-### Code Architecture
-| Component | Quality | Notes |
-|-----------|---------|-------|
-| **React Patterns** | Excellent | Proper hooks usage, memoization where needed |
-| **TypeScript** | Excellent | Strong typing, interfaces for all data structures |
-| **State Management** | Good | React Query for server state, local state for UI |
-| **Error Handling** | Excellent | ErrorBoundary, try-catch in async operations |
-| **Testing** | Good | Vitest setup with 24+ mobile signup tests |
-
-### Session & Stability Analysis
-| Area | Implementation | Status |
-|------|----------------|--------|
-| Auth state persistence | Supabase auth with session management | Stable |
-| Query caching | 5min stale time, 30min cache | Optimized |
-| Error boundaries | Global + component-level | Protected |
-| Service worker | Cache-first for assets, network-first for HTML | Active |
-| Toast notifications | Sonner with rich colors | Working |
-
-### Security Infrastructure
-| Feature | Status | Notes |
-|---------|--------|-------|
-| RLS policies | Enabled on all tables | Secure |
-| PII encryption | Vault-based AES-256 | Secure |
-| Rate limiting | Anonymous + authenticated | Implemented |
-| CSRF protection | Supabase built-in | Active |
-| Input validation | Zod schemas | Comprehensive |
-
-### Edge Function Health
-| Function | Purpose | Health Check |
-|----------|---------|--------------|
-| `analyze-business` | Core analysis engine | 3,280+ lines, deterministic fallback |
-| `health-check` | System monitoring | 4 component checks |
-| `stripe-webhook` | Payment processing | PII redaction, event dedup |
-| `alert-webhook` | Incident notifications | Slack/Email integration |
-
-### Issues Found
-| Severity | Issue | Location | Recommendation |
-|----------|-------|----------|----------------|
-| Low | CSS animation runs on invisible button | DemoPreview overlay | Pause when not in viewport |
-| Low | Duplicate animation definitions | `index.css` + `tailwind.config.ts` | Keep only in Tailwind config |
-| Info | Console logging in dev mode | webVitals.ts | Already conditionally logged |
-
-### Real-time Session Stability
-| Feature | Implementation | Stability |
-|---------|----------------|-----------|
-| Auth session | Supabase auth listener with cleanup | Stable |
-| Query refetching | On reconnect only, no focus refetch | Stable |
-| Exit intent detection | Debounced, cooldown-protected | Stable |
-| Toast queue | Sonner with stacking | Stable |
-
----
-
-## RECOMMENDED FIXES (Priority Order)
-
-### Critical (Fix Immediately)
-1. **Remove blinking animation from CTAs**
-   - Files: `DemoPreview.tsx`, `Landing.tsx`
-   - Change: Remove `animate-pulse-subtle hover:animate-none`
-
-### High Priority
-2. **Remove blinking from "Live Demo" indicator**
-   - File: `DemoPreview.tsx` line 126
-   - Change: Remove `animate-pulse` from the green dot
-
-### Medium Priority
-3. **Clean up duplicate animation definition**
-   - Keep animation in `tailwind.config.ts` only
-   - Remove from `index.css` (lines 153-160)
-
-### Low Priority
-4. **Add viewport-aware animation**
-   - Only animate when element is in view
-   - Use IntersectionObserver pattern
-
----
-
-## FILES TO MODIFY
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/components/landing/DemoPreview.tsx` | Remove `animate-pulse-subtle` (line 233), remove `animate-pulse` (line 126) |
-| `src/pages/Landing.tsx` | Remove `animate-pulse-subtle` (line 391) |
-| `src/index.css` | Remove duplicate keyframe definition (lines 153-160) |
+| `src/components/landing/MobileHero.tsx` | Simplify hero, remove 3-step process and stats, add social proof, reduce padding |
+| `src/components/landing/DemoPreview.tsx` | Remove animation delays, instant visibility, shorter header |
+| `src/pages/Landing.tsx` | Reduce gap between hero and demo |
 
 ---
 
-## SUMMARY
+## Technical Implementation Details
 
-### What's Working Well
-- Robust technical architecture with proper separation of concerns
-- Excellent accessibility compliance (WCAG 2.1 AA)
-- Strong performance optimization with code splitting
-- Comprehensive monitoring and health checks
-- Secure backend with RLS and PII encryption
+### MobileHero.tsx Changes
 
-### What Needs Fixing
-- The `animate-pulse-subtle` animation on CTA buttons creates an unprofessional "blinking" effect
-- This should be replaced with subtle static styling or hover-only effects
+1. **Simplify subheadline** to action-oriented copy
+2. **Update CTA text** from "Get My Free Analysis" to "See My Numbers Free"
+3. **Change CTA subtext** from "AI-powered analysis..." to "No signup needed to try"
+4. **Remove Quick Benefits section** (lines 58-74) - redundant
+5. **Remove 3-Step Process section** (lines 76-98)
+6. **Remove Stats section** (lines 100-108)
+7. **Add social proof line**: "Join 1,000+ entrepreneurs"
+8. **Reduce vertical padding** from `py-12 md:py-24` to `py-8 md:py-16`
 
-### Expected Outcome After Fixes
-- Professional, polished button appearance
-- Reduced GPU usage from infinite animations
-- Better user perception of stability and quality
-- Maintained engagement through hover effects instead of distracting blinks
+### DemoPreview.tsx Changes
+
+1. **Set animationStep to 5 initially** (skip all animation delays)
+2. **Reduce top padding** from `py-16 md:py-24` to `py-8 md:py-12`
+3. **Remove "Live Demo" badge** for cleaner look
+4. **Shorten header text** to "Your Report Preview"
+
+### Landing.tsx Changes
+
+1. **Reduce gap between hero and demo** - tighter spacing
+2. **Move stats to DemoPreview** header area if desired
+
+---
+
+## Expected Outcome
+
+| Metric | Before | After Target |
+|--------|--------|--------------|
+| Time to value | 5+ seconds (scroll needed) | <3 seconds (visible immediately) |
+| Mobile first viewport | Hero only | Hero + demo preview visible |
+| CTA clarity | Generic "analysis" | Specific "numbers" outcome |
+| Cognitive load | 3-step process, stats, benefits | Single clear action |
+
+---
+
+## Risk Mitigation
+
+- Keeping headline unchanged (already tested)
+- Moving (not deleting) stats to demo section preserves trust
+- A/B testable via existing `abTesting.ts` infrastructure
