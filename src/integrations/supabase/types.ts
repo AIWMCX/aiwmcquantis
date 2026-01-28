@@ -941,6 +941,16 @@ export type Database = {
       cleanup_old_security_logs: { Args: never; Returns: undefined }
       cleanup_old_webhook_events: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
+      detect_orphaned_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          email: string
+          has_profile: boolean
+          has_subscription: boolean
+          user_id: string
+        }[]
+      }
       encrypt_pii: { Args: { plain_text: string }; Returns: string }
       get_admin_metrics: {
         Args: never
