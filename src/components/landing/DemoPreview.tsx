@@ -123,7 +123,7 @@ export function DemoPreview() {
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
-                <div className="w-2 h-2 rounded-full bg-success animate-pulse" />
+                <div className="w-2 h-2 rounded-full bg-success" />
                 Live Demo
               </div>
             </div>
@@ -230,7 +230,7 @@ export function DemoPreview() {
                     onClick={() => trackCtaClick('unlock_full_report', 'demo_preview')}
                     className="w-full md:w-auto"
                   >
-                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base animate-pulse-subtle hover:animate-none haptic-btn relative overflow-hidden">
+                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base transition-all duration-300 hover:shadow-primary/20 haptic-btn relative overflow-hidden">
                       <Play className="w-5 h-5" />
                       Get Your Full Report Free
                       <ArrowRight className="w-4 h-4 hidden sm:block" />
