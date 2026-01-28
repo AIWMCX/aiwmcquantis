@@ -1,164 +1,210 @@
 
-# Reduce Signup Form Friction - Boost Conversion
+# Mobile Signup Form Tests and Conversion Tracking
 
-## Problem Summary
+## Overview
 
-The current signup form has **18% conversion rate** (7 of 39 visitors). Analysis reveals password complexity requirements are the #1 blocker, with the submit button being disabled until users meet multiple criteria.
+This plan adds comprehensive mobile-specific tests for the simplified signup form and implements conversion tracking to measure the improvement from the recent friction-reducing changes.
 
 ---
 
-## Key Changes
+## Part 1: Test Infrastructure Setup
 
-### 1. Remove Submit Button Disabled State (Highest Impact)
+### Create Vitest Configuration
 
-**Current Code (Line 370):**
-```javascript
-disabled={isLoading || (passwordStrength && passwordStrength.score < 3)}
+Since `vitest.config.ts` doesn't exist, create one with proper test environment settings:
+
+```typescript
+// vitest.config.ts
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react-swc";
+import path from "path";
+
+export default defineConfig({
+  plugins: [react()],
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: ["./src/test/setup.ts"],
+    include: ["src/**/*.{test,spec}.{ts,tsx}"],
+  },
+  resolve: {
+    alias: { "@": path.resolve(__dirname, "./src") },
+  },
+});
 ```
 
-**Change to:**
-```javascript
-disabled={isLoading}
-```
+### Create Test Setup File
 
-Let users click submit and see clear error messages instead of a mysteriously disabled button.
+```typescript
+// src/test/setup.ts
+import "@testing-library/jest-dom";
 
-### 2. Simplify Password Requirements
-
-**Current:** 4 requirements (8 chars, uppercase, lowercase, number)
-
-**Change to:** 8 characters minimum only
-
-Update `signupFormSchema` to remove regex requirements:
-```javascript
-password: z.string()
-  .min(8, 'Password must be at least 8 characters')
-  .max(72, 'Password is too long'),
-```
-
-### 3. Hide Complex Password Checklist
-
-Remove or collapse the `PasswordStrengthMeter` component on the signup form. Show only a simple progress bar or nothing at all.
-
-### 4. Make Google OAuth More Prominent
-
-**Current:** Outline button (secondary style)
-
-**Change to:** Primary style with larger size
-
-```jsx
-<GoogleLoginButton mode="signup" className="w-full h-14 text-base font-semibold" variant="default" />
-```
-
-Add visual emphasis: "1-Click Signup →"
-
-### 5. Auto-Check Terms (Optional Consent Pattern)
-
-Consider changing to implicit consent with link-only terms:
-```jsx
-<p className="text-xs text-center text-muted-foreground">
-  By signing up, you agree to our{' '}
-  <Link to="/terms">Terms</Link> and <Link to="/privacy">Privacy Policy</Link>
-</p>
-```
-
-Or keep checkbox but pre-check it (common pattern).
-
-### 6. Add Progress Indicator for Mobile
-
-Show users they're close to completing signup:
-```
-Step 1 of 1: Create Your Account
+// Mock matchMedia for responsive tests
+Object.defineProperty(window, "matchMedia", {
+  writable: true,
+  value: (query: string) => ({
+    matches: query.includes("max-width: 767px"), // Simulate mobile
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => {},
+  }),
+});
 ```
 
 ---
 
-## Files to Modify
+## Part 2: Mobile Signup Form Tests
 
-| File | Changes |
-|------|---------|
-| `src/components/auth/SignupForm.tsx` | Simplify password validation, remove button disabled logic, hide complexity checklist |
-| `src/components/auth/PasswordStrengthMeter.tsx` | Simplify or remove from signup (keep for password reset) |
-| `src/components/auth/GoogleLoginButton.tsx` | Add variant prop, make more prominent |
+### New Test File: `src/__tests__/signup-mobile.test.tsx`
 
----
+| Test Category | Test Cases |
+|---------------|------------|
+| **Mobile UI Elements** | Progress indicator visible on mobile, touch target sizes (48px+), Google button prominence |
+| **Simplified Password** | 8-character minimum only, no complexity requirements, always-enabled submit button |
+| **Form Validation** | Inline error display, password character counter, implicit terms consent |
+| **Analytics Tracking** | Field focus events, form start events, conversion tracking |
 
-## Expected Impact
-
-| Metric | Before | After (Projected) |
-|--------|--------|-------------------|
-| Auth Page Conversion | 18% | 35-40% |
-| Signups per 39 visitors | 7 | 14-16 |
-| Password abandonment | High | Low |
-
----
-
-## Technical Changes
-
-### SignupForm.tsx Changes
-
-1. **Remove password strength score check from button (Line 367-380):**
-   - Remove: `passwordStrength && passwordStrength.score < 3` from disabled prop
-
-2. **Simplify password schema (Lines 33-38):**
-   - Remove uppercase, lowercase, number regex requirements
-   - Keep only: `min(8)` and `max(72)`
-
-3. **Conditionally hide PasswordStrengthMeter (Line 331):**
-   - Add prop: `showChecklist={false}` or remove entirely
-
-4. **Remove or simplify terms checkbox (Lines 338-364):**
-   - Option A: Remove checkbox, add inline text
-   - Option B: Keep but remove from validation (form always valid)
-
-### GoogleLoginButton.tsx Changes
-
-1. **Add variant prop support:**
-   - Accept `variant` prop with `default` | `outline`
-   - Default to `default` for more prominence
-
-2. **Update button styling:**
-   - Larger height on signup form
-   - Bolder text
-
----
-
-## Visual Before/After
+### Key Test Cases
 
 ```text
-BEFORE (Complex):
-┌─────────────────────────────────┐
-│ Continue with Google (outline)  │
-├─────────────────────────────────┤
-│ Full Name: ________________     │
-│ Email: ____________________     │
-│ Password: _________________     │
-│ ┌─────────────────────────────┐ │
-│ │ Password Strength: Weak     │ │
-│ │ ☐ 8+ characters            │ │
-│ │ ☐ Uppercase (A-Z)          │ │
-│ │ ☐ Lowercase (a-z)          │ │
-│ │ ☐ Number (0-9)             │ │
-│ │ ☐ Special (!@#$%)          │ │
-│ └─────────────────────────────┘ │
-│ ☐ I agree to Terms & Privacy    │
-│ [Create Free Account] DISABLED  │
-└─────────────────────────────────┘
+Mobile-Specific UX Tests
+├── Shows "Step 1 of 1" progress indicator on mobile viewports
+├── Hides progress indicator on desktop viewports
+├── Google login button uses primary variant with proper styling
+├── Submit button is never disabled by password strength
+├── Password hint shows remaining characters needed
+├── Form fields have proper touch target sizes (48px+)
+└── Implicit terms text displays instead of checkbox
 
-AFTER (Simple):
-┌─────────────────────────────────┐
-│ Continue with Google (PRIMARY)  │
-│ ⚡ 1-click signup - recommended │
-├─────────────────────────────────┤
-│ OR use email:                   │
-│ Full Name: ________________     │
-│ Email: ____________________     │
-│ Password: _________ (8+ chars)  │
-│ By signing up, you agree to     │
-│ Terms and Privacy Policy        │
-│                                 │
-│ [Create Free Account] ENABLED   │
-└─────────────────────────────────┘
+Simplified Validation Tests
+├── Accepts passwords with exactly 8 characters
+├── Rejects passwords with 7 characters
+├── Does not require uppercase letters
+├── Does not require lowercase letters
+├── Does not require numbers
+├── Does not require special characters
+└── Validation triggers on submit, not on blur
+
+Conversion Tracking Tests
+├── Tracks signup_started on first field focus
+├── Tracks signup_field_focus for each field
+├── Tracks signup_attempt on form submission
+├── Tracks lead_converted_to_signup for returning leads
+└── Tracks signup_error with reason on failure
 ```
 
-This simplification should increase conversion from **18% to 35-40%**, potentially doubling your signups.
+---
+
+## Part 3: Conversion Improvement Tracking
+
+### Add New Analytics Events
+
+| Event Name | Description | Properties |
+|------------|-------------|------------|
+| `mobile_signup_started` | User begins signup on mobile | `viewport_width`, `is_touch_device` |
+| `mobile_signup_completed` | Successful signup on mobile | `time_to_complete`, `fields_refilled` |
+| `password_validation_passed` | Password meets requirements | `password_length`, `validation_mode` |
+| `simplified_form_conversion` | A/B test conversion tracking | `form_version`, `time_to_submit` |
+
+### Update Analytics Module
+
+Add mobile-specific tracking helpers:
+
+```typescript
+// New functions in src/lib/analytics.ts
+export function trackMobileSignupStarted(viewportWidth: number): void;
+export function trackMobileSignupCompleted(timeToCompleteMs: number): void;
+export function trackSimplifiedFormConversion(formVersion: string): void;
+```
+
+---
+
+## Part 4: A/B Test Integration
+
+### Track Simplified vs Complex Form Performance
+
+Since the form was just simplified, add tracking to compare:
+
+| Metric | Old Form (Baseline) | New Form (Target) |
+|--------|---------------------|-------------------|
+| Conversion Rate | 18% | 35-40% |
+| Password Abandonment | High | Low |
+| Mobile Completion Time | Unknown | Track |
+
+### Implementation
+
+1. Add `form_version: 'simplified_v2'` to all signup events
+2. Track time from first field focus to successful submission
+3. Track password retry count (how many times user re-types)
+
+---
+
+## Files to Create/Modify
+
+| File | Action | Description |
+|------|--------|-------------|
+| `vitest.config.ts` | Create | Test configuration with jsdom environment |
+| `src/test/setup.ts` | Create | Test setup with matchMedia mock |
+| `src/__tests__/signup-mobile.test.tsx` | Create | 25+ mobile-specific signup tests |
+| `src/lib/analytics.ts` | Modify | Add mobile conversion tracking functions |
+| `src/components/auth/SignupForm.tsx` | Modify | Add form version tracking, time tracking |
+| `tsconfig.app.json` | Modify | Add vitest globals type |
+
+---
+
+## Test Structure
+
+```text
+src/__tests__/signup-mobile.test.tsx
+├── describe('Mobile Signup Form')
+│   ├── describe('Mobile UI Rendering')
+│   │   ├── it('displays mobile progress indicator on small screens')
+│   │   ├── it('hides mobile progress indicator on desktop')
+│   │   ├── it('renders Google button with primary variant')
+│   │   └── it('shows trust signals with proper sizing')
+│   │
+│   ├── describe('Simplified Password Validation')
+│   │   ├── it('accepts 8+ character passwords without complexity')
+│   │   ├── it('rejects passwords under 8 characters')
+│   │   ├── it('shows character count hint while typing')
+│   │   └── it('submit button is always enabled')
+│   │
+│   ├── describe('Touch-Friendly Interactions')
+│   │   ├── it('input fields have minimum 48px touch targets')
+│   │   ├── it('buttons have adequate touch spacing')
+│   │   └── it('password toggle is easily tappable')
+│   │
+│   ├── describe('Form Submission Flow')
+│   │   ├── it('submits successfully with valid data')
+│   │   ├── it('displays inline errors for invalid fields')
+│   │   └── it('shows success state after signup')
+│   │
+│   └── describe('Conversion Analytics')
+│       ├── it('tracks signup_started on first interaction')
+│       ├── it('tracks field focus events')
+│       └── it('tracks form version for A/B comparison')
+```
+
+---
+
+## Expected Outcomes
+
+After implementing these tests and tracking:
+
+1. **Test Coverage**: 25+ new tests specifically for mobile signup UX
+2. **Regression Prevention**: Any future changes that break mobile signup will fail tests
+3. **Conversion Visibility**: Clear metrics to compare before/after simplified form
+4. **A/B Data**: Form version tracking enables future optimization decisions
+
+---
+
+## Technical Notes
+
+- Tests use `@testing-library/react` for component rendering
+- Mock `window.matchMedia` to simulate mobile/desktop viewports
+- Mock `supabase.auth.signUp` to test form behavior without network calls
+- Mock `trackEvent` to verify analytics calls without sending data
