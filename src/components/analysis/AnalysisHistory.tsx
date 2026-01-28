@@ -1,9 +1,10 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn } from 'lucide-react';
+import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn, RefreshCw } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
+import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import type { AnalysisHistoryEntry, BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 
@@ -30,7 +31,17 @@ function formatDate(dateStr: string): string {
 }
 
 export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
-  const { history, isLoaded, isSyncing, isAuthenticated, removeEntry, clearHistory, hasHistory } = useAnalysisHistory();
+  const { history, isLoaded, isSyncing, isAuthenticated, removeEntry, clearHistory, hasHistory, refresh } = useAnalysisHistory();
+  
+  const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
+    onRefresh: refresh,
+    threshold: 80,
+  });
+
+  // Calculate indicator opacity and rotation based on pull distance
+  const indicatorOpacity = Math.min(pullDistance / 40, 1);
+  const indicatorRotation = (pullDistance / 80) * 180;
+  const isThresholdReached = pullDistance >= 80;
 
   if (!isLoaded) {
     return (
@@ -49,7 +60,7 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
           <CardTitle className="flex items-center gap-2 text-lg">
             <History className="w-5 h-5 text-primary" />
             Analysis History ({history.length})
-            {isSyncing ? (
+            {(isSyncing || isRefreshing) ? (
               <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
             ) : isAuthenticated ? (
               <span title="Synced to cloud"><Cloud className="w-4 h-4 text-primary" /></span>
@@ -74,7 +85,36 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
           )}
         </div>
       </CardHeader>
-      <CardContent className="space-y-3">
+      
+      {/* Pull-to-refresh container */}
+      <CardContent 
+        ref={containerRef}
+        className="space-y-3 overflow-y-auto max-h-[60vh] relative"
+      >
+        {/* Pull indicator - visible when pulling */}
+        {(pullDistance > 0 || isRefreshing) && isAuthenticated && (
+          <div 
+            className="flex items-center justify-center py-2 -mt-2 mb-2"
+            style={{ 
+              opacity: isRefreshing ? 1 : indicatorOpacity,
+              transform: `translateY(${Math.min(pullDistance / 2, 20)}px)`
+            }}
+          >
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <RefreshCw 
+                className={`w-4 h-4 transition-transform ${isRefreshing ? 'pull-indicator-spin' : ''}`}
+                style={{ 
+                  transform: isRefreshing ? undefined : `rotate(${indicatorRotation}deg)`,
+                  color: isThresholdReached ? 'hsl(var(--primary))' : undefined
+                }}
+              />
+              <span className="text-xs">
+                {isRefreshing ? 'Refreshing...' : isThresholdReached ? 'Release to refresh' : 'Pull to refresh'}
+              </span>
+            </div>
+          </div>
+        )}
+        
         {!isAuthenticated && (
           <div className="p-4 rounded-lg bg-muted/50 border border-border mb-4">
             <div className="flex items-start gap-3">
@@ -106,7 +146,7 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
           history.map((entry: AnalysisHistoryEntry) => (
             <div
               key={entry.id}
-              className="p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer group"
+              className="p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer group haptic-btn relative overflow-hidden"
               onClick={() => onSelect(entry.result)}
             >
               <div className="flex items-start justify-between gap-3">
@@ -136,8 +176,8 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3 text-emerald-500" />
-                      <span className="font-medium text-emerald-600 dark:text-emerald-400">
+                      <TrendingUp className="w-3 h-3 text-success" />
+                      <span className="font-medium text-success">
                         {formatCurrency(getMonthlyProfit(entry.result.financial_analysis))}/mo
                       </span>
                     </span>

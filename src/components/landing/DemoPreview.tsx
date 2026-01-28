@@ -230,7 +230,7 @@ export function DemoPreview() {
                     onClick={() => trackCtaClick('unlock_full_report', 'demo_preview')}
                     className="w-full md:w-auto"
                   >
-                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base animate-pulse-subtle hover:animate-none">
+                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base animate-pulse-subtle hover:animate-none haptic-btn relative overflow-hidden">
                       <Play className="w-5 h-5" />
                       Get Your Full Report Free
                       <ArrowRight className="w-4 h-4 hidden sm:block" />
