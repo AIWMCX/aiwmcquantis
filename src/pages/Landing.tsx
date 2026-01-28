@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play, Menu, Lock } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play, Menu } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -394,8 +394,8 @@ export default function Landing() {
           </Button>
         </Link>
         <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-2">
-          <Lock className="w-3 h-3" />
-          No signup required • Results in 2 min
+          <Zap className="w-3 h-3" />
+          Results in 2 min • Free to start
         </p>
       </div>
 
