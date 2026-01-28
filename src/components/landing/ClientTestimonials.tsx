@@ -51,7 +51,9 @@ function StarRating({ rating, size = 'default' }: { rating: number; size?: 'defa
       {Array.from({ length: fullStars }).map((_, i) => (
         <Star
           key={`full-${i}`}
-          className={`${starSize} fill-warning text-warning drop-shadow-sm`}
+          className={`${starSize} drop-shadow-sm`}
+          fill="hsl(38 92% 50%)"
+          stroke="hsl(38 92% 50%)"
           aria-hidden="true"
         />
       ))}
@@ -60,10 +62,20 @@ function StarRating({ rating, size = 'default' }: { rating: number; size?: 'defa
       {hasHalfStar && (
         <div className={`relative ${starSize}`}>
           {/* Empty star background */}
-          <Star className={`absolute inset-0 ${starSize} text-warning/30`} aria-hidden="true" />
+          <Star 
+            className={`absolute inset-0 ${starSize}`} 
+            fill="hsl(38 92% 50% / 0.2)" 
+            stroke="hsl(38 92% 50% / 0.3)" 
+            aria-hidden="true" 
+          />
           {/* Half-filled star using clip */}
           <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
-            <Star className={`${starSize} fill-warning text-warning drop-shadow-sm`} aria-hidden="true" />
+            <Star 
+              className={`${starSize} drop-shadow-sm`} 
+              fill="hsl(38 92% 50%)" 
+              stroke="hsl(38 92% 50%)" 
+              aria-hidden="true" 
+            />
           </div>
         </div>
       )}
@@ -72,7 +84,9 @@ function StarRating({ rating, size = 'default' }: { rating: number; size?: 'defa
       {Array.from({ length: emptyStars }).map((_, i) => (
         <Star
           key={`empty-${i}`}
-          className={`${starSize} text-warning/30`}
+          className={`${starSize}`}
+          fill="hsl(38 92% 50% / 0.2)"
+          stroke="hsl(38 92% 50% / 0.3)"
           aria-hidden="true"
         />
       ))}
@@ -216,7 +230,7 @@ export function ClientTestimonials() {
             {testimonials.map((testimonial, index) => (
               <div
                 key={index}
-                className={`relative p-5 md:p-6 rounded-2xl border bg-card transition-all duration-300 min-w-[280px] md:min-w-0 flex-shrink-0 snap-center ${
+                className={`relative p-5 md:p-6 rounded-2xl border bg-card transition-all duration-300 min-w-[300px] md:min-w-0 flex-shrink-0 snap-center ${
                   index === activeIndex 
                     ? 'border-primary/50 shadow-lg md:border-border md:shadow-none' 
                     : 'border-border hover:border-primary/30'
@@ -235,7 +249,7 @@ export function ClientTestimonials() {
                 </div>
 
                 {/* Quote Text */}
-                <blockquote className="text-sm md:text-base text-foreground leading-relaxed mb-4 md:mb-6 line-clamp-4 md:line-clamp-none">
+                <blockquote className="text-sm md:text-base text-foreground leading-relaxed mb-4 md:mb-6">
                   "{testimonial.quote}"
                 </blockquote>
 
@@ -295,12 +309,12 @@ export function ClientTestimonials() {
                 <span className="text-xl md:text-3xl font-bold text-foreground">4.5</span>
                 <div className="flex items-center">
                   {Array.from({ length: 4 }).map((_, i) => (
-                    <Star key={i} className="w-3 h-3 md:w-4 md:h-4 fill-warning text-warning" aria-hidden="true" />
+                    <Star key={i} className="w-3 h-3 md:w-4 md:h-4" fill="hsl(38 92% 50%)" stroke="hsl(38 92% 50%)" aria-hidden="true" />
                   ))}
                   <div className="relative w-3 h-3 md:w-4 md:h-4">
-                    <Star className="absolute inset-0 w-3 h-3 md:w-4 md:h-4 text-warning/30" aria-hidden="true" />
+                    <Star className="absolute inset-0 w-3 h-3 md:w-4 md:h-4" fill="hsl(38 92% 50% / 0.2)" stroke="hsl(38 92% 50% / 0.3)" aria-hidden="true" />
                     <div className="absolute inset-0 overflow-hidden" style={{ width: '50%' }}>
-                      <Star className="w-3 h-3 md:w-4 md:h-4 fill-warning text-warning" aria-hidden="true" />
+                      <Star className="w-3 h-3 md:w-4 md:h-4" fill="hsl(38 92% 50%)" stroke="hsl(38 92% 50%)" aria-hidden="true" />
                     </div>
                   </div>
                 </div>
