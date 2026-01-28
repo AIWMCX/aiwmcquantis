@@ -177,6 +177,90 @@ export default function Index() {
     </div>
   );
 
+  // Full page loading skeleton for initial load
+  const DashboardSkeleton = () => (
+    <div className="animate-fade-in">
+      {/* Subscription skeleton */}
+      <SubscriptionSkeleton />
+
+      {/* Hero skeleton */}
+      <div className="text-center mb-12">
+        <Skeleton className="h-8 w-48 mx-auto mb-6 rounded-full" />
+        <Skeleton className="h-12 w-80 mx-auto mb-4" />
+        <Skeleton className="h-6 w-96 mx-auto max-w-full" />
+      </div>
+
+      {/* Main content skeleton - Mobile-first layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
+        {/* Form skeleton - hidden on mobile initially */}
+        <div className="lg:col-span-1 order-2 lg:order-1 hidden lg:block">
+          <div className="space-y-4">
+            <div className="p-6 rounded-xl border border-border bg-card space-y-4">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <Skeleton className="h-24 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full" />
+              <Skeleton className="h-12 w-full mt-4" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        </div>
+
+        {/* Results skeleton - visible first on mobile */}
+        <div className="lg:col-span-2 order-1 lg:order-2">
+          {/* Tabs skeleton */}
+          <div className="mb-4 lg:mb-6 grid grid-cols-2 gap-1 bg-muted p-1 rounded-lg">
+            <Skeleton className="h-10 rounded-md" />
+            <Skeleton className="h-10 rounded-md" />
+          </div>
+          
+          {/* Empty state skeleton */}
+          <div className="p-8 md:p-12 rounded-2xl border border-border bg-card text-center">
+            <Skeleton className="w-16 h-16 rounded-full mx-auto mb-6" />
+            <Skeleton className="h-8 w-64 mx-auto mb-4" />
+            <Skeleton className="h-5 w-80 mx-auto mb-8 max-w-full" />
+            
+            {/* Feature cards skeleton - 2 cols on mobile */}
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-3 md:gap-4 max-w-2xl mx-auto">
+              {[1, 2, 3, 4, 5, 6].map((i) => (
+                <div key={i} className="p-3 md:p-4 rounded-xl border border-border bg-card/50">
+                  <Skeleton className="w-8 h-8 rounded-lg mx-auto mb-2" />
+                  <Skeleton className="h-4 w-20 mx-auto mb-1" />
+                  <Skeleton className="h-3 w-full md:block hidden" />
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Mobile form skeleton - only visible on mobile */}
+        <div className="lg:hidden order-2">
+          <div className="space-y-4">
+            <div className="p-5 rounded-xl border border-border bg-card space-y-4">
+              <Skeleton className="h-5 w-32 mb-4" />
+              <Skeleton className="h-20 w-full" />
+              <Skeleton className="h-11 w-full" />
+              <Skeleton className="h-12 w-full mt-4" />
+            </div>
+            <Skeleton className="h-12 w-full rounded-lg" />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Track initial page load
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+
+  // Clear initial load state after subscription data loads or times out
+  useEffect(() => {
+    if (!subscriptionLoading || isTimedOut) {
+      // Small delay to ensure smooth transition
+      const timer = setTimeout(() => setIsInitialLoad(false), 150);
+      return () => clearTimeout(timer);
+    }
+  }, [subscriptionLoading, isTimedOut]);
+
   // Subscription error state
   const SubscriptionError = () => (
     <div className="mb-6 p-4 rounded-lg border border-destructive/30 bg-destructive/5 flex flex-wrap items-center justify-between gap-4">
@@ -198,64 +282,69 @@ export default function Index() {
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
 
       <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
-        {/* Subscription Status Bar */}
-        {isAuthenticated && (
+        {/* Show skeleton during initial page load for authenticated users */}
+        {isAuthenticated && isInitialLoad ? (
+          <DashboardSkeleton />
+        ) : (
           <>
-            {subscriptionLoading ? (
-              <SubscriptionSkeleton />
-            ) : subscriptionError || isTimedOut ? (
-              <SubscriptionError />
-            ) : (
-              <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-center gap-2">
-                    {isPlus ? (
-                      <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
-                        <Zap className="w-3 h-3" />
-                        Plus
-                      </Badge>
-                    ) : (
-                      <Badge variant="secondary" className="gap-1">
-                        Free Plan
-                      </Badge>
-                    )}
-                  </div>
-                  {isFree && (
-                    <span className="text-sm text-muted-foreground">
-                      {remainingAnalyses} of 3 analyses remaining this month
-                    </span>
-                  )}
-                  {isPlus && (
-                    <span className="text-sm text-muted-foreground">
-                      Unlimited analyses
-                    </span>
-                  )}
-                </div>
-                <div className="flex items-center gap-2">
-                  {isFree ? (
-                    <Button size="sm" onClick={() => setShowUpgradePrompt(true)} className="gap-1">
-                      <Zap className="w-3 h-3" />
-                      Upgrade
-                    </Button>
-                  ) : (
-                    <div className="flex items-center gap-2">
-                      {isPlus && (
-                        <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1">
-                          <Settings className="w-3 h-3" />
-                          Plus Settings
-                        </Button>
+            {/* Subscription Status Bar */}
+            {isAuthenticated && (
+              <>
+                {subscriptionLoading ? (
+                  <SubscriptionSkeleton />
+                ) : subscriptionError || isTimedOut ? (
+                  <SubscriptionError />
+                ) : (
+                  <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                      <div className="flex items-center gap-2">
+                        {isPlus ? (
+                          <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
+                            <Zap className="w-3 h-3" />
+                            Plus
+                          </Badge>
+                        ) : (
+                          <Badge variant="secondary" className="gap-1">
+                            Free Plan
+                          </Badge>
+                        )}
+                      </div>
+                      {isFree && (
+                        <span className="text-sm text-muted-foreground">
+                          {remainingAnalyses} of 3 analyses remaining this month
+                        </span>
                       )}
-                      <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
-                        <CreditCard className="w-3 h-3" />
-                        Billing
-                      </Button>
+                      {isPlus && (
+                        <span className="text-sm text-muted-foreground">
+                          Unlimited analyses
+                        </span>
+                      )}
                     </div>
-                  )}
-                </div>
-              </div>
+                    <div className="flex items-center gap-2">
+                      {isFree ? (
+                        <Button size="sm" onClick={() => setShowUpgradePrompt(true)} className="gap-1">
+                          <Zap className="w-3 h-3" />
+                          Upgrade
+                        </Button>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          {isPlus && (
+                            <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1">
+                              <Settings className="w-3 h-3" />
+                              Plus Settings
+                            </Button>
+                          )}
+                          <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
+                            <CreditCard className="w-3 h-3" />
+                            Billing
+                          </Button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </>
             )}
-          </>
-        )}
 
         {/* Hero Section */}
         <div className="text-center mb-12">
@@ -375,6 +464,8 @@ export default function Index() {
             ))}
           </div>
         </div>
+          </>
+        )}
       </main>
 
       <Footer />
