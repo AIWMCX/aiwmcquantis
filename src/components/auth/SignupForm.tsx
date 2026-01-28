@@ -7,11 +7,9 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Checkbox } from '@/components/ui/checkbox';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 import { trackSignup, trackEvent } from '@/lib/analytics';
-import { PasswordStrengthMeter, checkPasswordStrength } from './PasswordStrengthMeter';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
@@ -19,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
 
 // Simplified signup form validation schema - optimized for conversion
+// Removed complex password requirements to reduce friction
 const signupFormSchema = z.object({
   fullName: z.string()
     .trim()
@@ -32,13 +31,7 @@ const signupFormSchema = z.object({
     .toLowerCase(),
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
-    .max(72, 'Password is too long')
-    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-    .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-    .regex(/[0-9]/, 'Password must contain at least one number'),
-  acceptTerms: z.boolean().refine((val) => val === true, {
-    message: 'You must accept the Terms of Service and Privacy Policy',
-  }),
+    .max(72, 'Password is too long'),
 });
 
 type SignupFormData = z.infer<typeof signupFormSchema>;
@@ -77,7 +70,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       fullName: prefillName,
       email: prefillEmail,
       password: '',
-      acceptTerms: false,
     },
   });
 
@@ -93,10 +85,9 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         days_since_capture: Math.floor((Date.now() - new Date(savedLead.timestamp).getTime()) / (1000 * 60 * 60 * 24))
       });
     }
-  }, []);
+  }, [savedLead]);
 
   const password = watch('password');
-  const passwordStrength = password ? checkPasswordStrength(password) : null;
 
   const handleFieldFocus = (fieldName: string) => {
     if (!touchedFields.fullName && !touchedFields.email && !touchedFields.password) {
@@ -241,11 +232,20 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         <span>Secure • Join 1,000+ companies • Cancel anytime</span>
       </div>
 
-      {/* Social Login - Prioritized */}
+      {/* Mobile Progress Indicator */}
+      <div className="text-xs text-center text-muted-foreground md:hidden">
+        Step 1 of 1 — Create Your Account
+      </div>
+
+      {/* Social Login - Made Primary */}
       <div className="space-y-2">
-        <GoogleLoginButton mode="signup" className="w-full h-12 text-base" />
+        <GoogleLoginButton 
+          mode="signup" 
+          className="w-full h-14 text-base font-semibold shadow-md hover:shadow-lg transition-shadow" 
+          variant="default"
+        />
         <p className="text-xs text-center text-muted-foreground">
-          ⚡ Fastest way to sign up — no password needed
+          ⚡ 1-click signup — recommended
         </p>
       </div>
 
@@ -327,47 +327,23 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
             </button>
           </div>
           
-          {/* Password Strength Meter */}
-          <PasswordStrengthMeter password={password || ''} />
+          {/* Simplified Password Hint */}
+          {password && password.length > 0 && password.length < 8 && (
+            <p className="text-xs text-muted-foreground">
+              {8 - password.length} more character{8 - password.length !== 1 ? 's' : ''} needed
+            </p>
+          )}
           
           {errors.password && (
             <p className="text-sm text-destructive">{errors.password.message}</p>
           )}
         </div>
 
-        {/* Terms Checkbox */}
-        <div className="space-y-2">
-          <div className="flex items-start space-x-2">
-            <Checkbox
-              id="accept-terms"
-              checked={watch('acceptTerms')}
-              onCheckedChange={(checked) => setValue('acceptTerms', checked as boolean)}
-              disabled={isLoading}
-            />
-            <label
-              htmlFor="accept-terms"
-              className="text-sm leading-tight cursor-pointer"
-            >
-              I agree to the{' '}
-              <Link to="/terms" className="text-primary hover:underline font-medium">
-                Terms of Service
-              </Link>{' '}
-              and{' '}
-              <Link to="/privacy" className="text-primary hover:underline font-medium">
-                Privacy Policy
-              </Link>
-            </label>
-          </div>
-          {errors.acceptTerms && (
-            <p className="text-sm text-destructive">{errors.acceptTerms.message}</p>
-          )}
-        </div>
-
-        {/* Submit Button - Lowered password score requirement from 4 to 3 */}
+        {/* Submit Button - Always enabled, shows errors on submit */}
         <Button 
           type="submit" 
-          className="w-full" 
-          disabled={isLoading || (passwordStrength && passwordStrength.score < 3)}
+          className="w-full h-12 text-base font-semibold" 
+          disabled={isLoading}
         >
           {isLoading ? (
             <>
@@ -380,8 +356,20 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         </Button>
       </form>
 
+      {/* Implicit Terms Consent */}
+      <p className="text-xs text-center text-muted-foreground">
+        By signing up, you agree to our{' '}
+        <Link to="/terms" className="text-primary hover:underline">
+          Terms
+        </Link>{' '}
+        and{' '}
+        <Link to="/privacy" className="text-primary hover:underline">
+          Privacy Policy
+        </Link>
+      </p>
+
       {/* Security Badge */}
-      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground pt-2">
+      <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <Lock className="w-3 h-3" />
         <span>Protected with 256-bit encryption</span>
       </div>
