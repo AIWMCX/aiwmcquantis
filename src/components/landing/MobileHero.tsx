@@ -45,7 +45,7 @@ export function MobileHero({ stats }: MobileHeroProps) {
             >
               <Button 
                 size="lg" 
-                className="w-full sm:w-auto gap-2 text-lg px-8 py-7 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 min-h-[64px]"
+                className="w-full sm:w-auto gap-2 text-lg px-8 py-7 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 min-h-[64px] haptic-btn relative overflow-hidden"
               >
                 <Play className="w-6 h-6" />
                 <span className="flex flex-col items-start leading-tight">
