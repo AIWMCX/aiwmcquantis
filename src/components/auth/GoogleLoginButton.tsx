@@ -8,9 +8,10 @@ import { trackEvent } from '@/lib/analytics';
 interface GoogleLoginButtonProps {
   mode?: 'signup' | 'login';
   className?: string;
+  variant?: 'default' | 'outline';
 }
 
-export function GoogleLoginButton({ mode = 'signup', className }: GoogleLoginButtonProps) {
+export function GoogleLoginButton({ mode = 'signup', className, variant = 'outline' }: GoogleLoginButtonProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleLogin = async () => {
@@ -42,7 +43,7 @@ export function GoogleLoginButton({ mode = 'signup', className }: GoogleLoginBut
   return (
     <Button
       type="button"
-      variant="outline"
+      variant={variant}
       onClick={handleGoogleLogin}
       disabled={isLoading}
       className={className}
