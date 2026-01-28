@@ -304,6 +304,55 @@ export function getSessionQuality(): {
 }
 
 // ============================================
+// Mobile Signup Conversion Tracking
+// ============================================
+
+/**
+ * Track when a mobile user starts the signup process
+ */
+export function trackMobileSignupStarted(viewportWidth: number): void {
+  const isTouchDevice = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+  trackEvent('mobile_signup_started', {
+    viewport_width: viewportWidth,
+    is_touch_device: isTouchDevice,
+    form_version: 'simplified_v2',
+  });
+}
+
+/**
+ * Track when a mobile user completes signup
+ */
+export function trackMobileSignupCompleted(timeToCompleteMs: number): void {
+  trackEvent('mobile_signup_completed', {
+    time_to_complete_ms: timeToCompleteMs,
+    time_to_complete_seconds: Math.round(timeToCompleteMs / 1000),
+    form_version: 'simplified_v2',
+  });
+}
+
+/**
+ * Track simplified form conversion for A/B comparison
+ */
+export function trackSimplifiedFormConversion(formVersion: string, timeToSubmitMs?: number): void {
+  trackEvent('simplified_form_conversion', {
+    form_version: formVersion,
+    time_to_submit_ms: timeToSubmitMs,
+    time_to_submit_seconds: timeToSubmitMs ? Math.round(timeToSubmitMs / 1000) : undefined,
+  });
+}
+
+/**
+ * Track password validation for simplified requirements
+ */
+export function trackPasswordValidationPassed(passwordLength: number): void {
+  trackEvent('password_validation_passed', {
+    password_length: passwordLength,
+    validation_mode: 'simplified',
+    form_version: 'simplified_v2',
+  });
+}
+
+// ============================================
 // Helper Functions
 // ============================================
 

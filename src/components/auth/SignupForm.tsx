@@ -9,12 +9,13 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { trackSignup, trackEvent } from '@/lib/analytics';
+import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed } from '@/lib/analytics';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { supabase } from '@/integrations/supabase/client';
 import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Simplified signup form validation schema - optimized for conversion
 // Removed complex password requirements to reduce friction
@@ -50,6 +51,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const [signupComplete, setSignupComplete] = useState(false);
   const [submittedEmail, setSubmittedEmail] = useState('');
   const [isFromLead, setIsFromLead] = useState(false);
+  const [formStartTime, setFormStartTime] = useState<number | null>(null);
+  const isMobile = useIsMobile();
 
   // Get saved lead data or email from URL for prefilling
   const savedLead = getSavedLead();
@@ -91,22 +94,35 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
 
   const handleFieldFocus = (fieldName: string) => {
     if (!touchedFields.fullName && !touchedFields.email && !touchedFields.password) {
-      trackEvent('signup_started', { source: 'form' });
+      trackEvent('signup_started', { source: 'form', form_version: 'simplified_v2' });
+      setFormStartTime(Date.now());
+      
+      // Track mobile-specific start
+      if (isMobile) {
+        trackMobileSignupStarted(window.innerWidth);
+      }
     }
     trackEvent('signup_field_focus', { field: fieldName });
   };
 
   const onSubmit = async (data: SignupFormData) => {
     setIsLoading(true);
+    const submitTime = Date.now();
+    const timeToSubmit = formStartTime ? submitTime - formStartTime : undefined;
     
     // Check if this is a lead conversion
     const leadConversion = isLeadConversion(data.email);
+    
+    // Track password validation passed
+    trackPasswordValidationPassed(data.password.length);
     
     try {
       trackEvent('signup_attempt', { 
         email_domain: data.email.split('@')[1],
         is_lead_conversion: leadConversion,
         lead_source: savedLead?.source,
+        form_version: 'simplified_v2',
+        time_to_submit_ms: timeToSubmit,
       });
 
       const { error } = await signUp(
@@ -140,6 +156,15 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       }
       
       trackSignup('email');
+      
+      // Track form conversion metrics
+      trackSimplifiedFormConversion('simplified_v2', timeToSubmit);
+      
+      // Track mobile completion
+      if (isMobile && timeToSubmit) {
+        trackMobileSignupCompleted(timeToSubmit);
+      }
+      
       setSubmittedEmail(data.email);
       setSignupComplete(true);
       
