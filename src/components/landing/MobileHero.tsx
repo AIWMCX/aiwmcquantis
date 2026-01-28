@@ -39,9 +39,6 @@ export function MobileHero() {
                 See My Numbers Free
               </Button>
             </Link>
-            <p className="text-sm text-muted-foreground">
-              No signup needed to try
-            </p>
           </div>
 
           {/* Social Proof */}
