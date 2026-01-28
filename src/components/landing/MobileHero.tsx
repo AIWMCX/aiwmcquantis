@@ -7,7 +7,6 @@ import {
   DollarSign, 
   AlertTriangle,
   ChevronRight,
-  Clock,
   BarChart3
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
@@ -48,15 +47,12 @@ export function MobileHero({ stats }: MobileHeroProps) {
                 className="w-full sm:w-auto gap-2 text-lg px-8 py-7 shadow-2xl hover:shadow-3xl transition-all duration-300 hover:scale-105 min-h-[64px] haptic-btn relative overflow-hidden"
               >
                 <Play className="w-6 h-6" />
-                <span className="flex flex-col items-start leading-tight">
-                  <span>Get My Free Analysis</span>
-                  <span className="text-xs font-normal opacity-80">(No Card Required)</span>
-                </span>
+                Get My Free Analysis
               </Button>
             </Link>
             <p className="text-sm text-muted-foreground flex items-center gap-2">
-              <Clock className="w-4 h-4" />
-              No signup required • Results in 2 min
+              <BarChart3 className="w-4 h-4" />
+              AI-powered analysis in 2 minutes
             </p>
           </div>
 
