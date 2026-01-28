@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,7 +9,6 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
-  Zap,
   Play
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
@@ -58,50 +57,19 @@ const demoRisks = [
 ];
 
 export function DemoPreview() {
-  const [isVisible, setIsVisible] = useState(false);
-  const [animationStep, setAnimationStep] = useState(0);
-
-  useEffect(() => {
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        if (entry.isIntersecting) {
-          setIsVisible(true);
-        }
-      },
-      { threshold: 0.2 }
-    );
-
-    const element = document.getElementById('demo-preview');
-    if (element) {
-      observer.observe(element);
-    }
-
-    return () => observer.disconnect();
-  }, []);
-
-  useEffect(() => {
-    if (isVisible && animationStep < 5) {
-      const timer = setTimeout(() => {
-        setAnimationStep(prev => prev + 1);
-      }, 400);
-      return () => clearTimeout(timer);
-    }
-  }, [isVisible, animationStep]);
+  // Instant visibility - no animation delays
+  const animationStep = 5;
 
   return (
-    <section id="demo-preview" className="py-16 md:py-24 bg-background overflow-hidden">
+    <section id="demo-preview" className="py-8 md:py-12 bg-background overflow-hidden">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Header */}
-        <div className="text-center max-w-2xl mx-auto mb-10">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
-            <Zap className="w-4 h-4" />
-            Live Demo
-          </div>
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            See What Your Report Looks Like
+        {/* Header - Simplified */}
+        <div className="text-center max-w-2xl mx-auto mb-6">
+          <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
+            Your Report Preview
           </h2>
-          <p className="text-muted-foreground">
-            Sample analysis for: "Coffee shop in downtown Denver"
+          <p className="text-sm text-muted-foreground">
+            Sample: "Coffee shop in downtown Denver"
           </p>
         </div>
 
@@ -232,7 +200,7 @@ export function DemoPreview() {
                   >
                     <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base transition-all duration-300 hover:shadow-primary/20 haptic-btn relative overflow-hidden">
                       <Play className="w-5 h-5" />
-                      Get Your Full Report Free
+                      Analyze My Idea
                       <ArrowRight className="w-4 h-4 hidden sm:block" />
                     </Button>
                   </Link>

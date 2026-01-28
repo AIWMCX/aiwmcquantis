@@ -218,16 +218,16 @@ export default function Landing() {
       </nav>
 
       {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
-      <MobileHero stats={stats} />
+      <MobileHero />
 
-      {/* Demo Preview - Progressive hydration */}
-      <div ref={demoSection.ref} id="demo-preview">
+      {/* Demo Preview - No gap, immediate visibility */}
+      <div ref={demoSection.ref} id="demo-preview" className="-mt-2">
         {demoSection.isVisible ? (
-          <Suspense fallback={<SectionSkeleton height={500} />}>
+          <Suspense fallback={<SectionSkeleton height={400} />}>
             <DemoPreview />
           </Suspense>
         ) : (
-          <SectionSkeleton height={500} />
+          <SectionSkeleton height={400} />
         )}
       </div>
 
@@ -387,10 +387,10 @@ export default function Landing() {
 
       {/* Mobile Sticky CTA - Enhanced with trust indicator */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
-        <Link to="/app" className="block" onClick={() => trackCtaClick('get_free_analysis', 'mobile_sticky')}>
+        <Link to="/app" className="block" onClick={() => trackCtaClick('see_my_numbers', 'mobile_sticky')}>
           <Button size="lg" className="w-full gap-2 text-base py-7 shadow-2xl min-h-[60px] transition-all duration-300">
             <Play className="w-5 h-5" />
-            Get My Free Analysis
+            See My Numbers Free
           </Button>
         </Link>
         <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-2">
