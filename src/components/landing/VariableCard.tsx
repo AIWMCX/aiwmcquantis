@@ -42,8 +42,8 @@ export function VariableCard({ code, name, description, color }: VariableCardPro
           {code}
         </div>
         <div className="flex-1 min-w-0">
-          <p className="font-medium text-foreground text-sm">{name}</p>
-          <p className="text-xs text-muted-foreground truncate">{description}</p>
+          <p className="font-medium text-foreground text-sm leading-tight">{name}</p>
+          <p className="text-xs text-muted-foreground line-clamp-2 md:truncate">{description}</p>
         </div>
       </div>
     </div>
