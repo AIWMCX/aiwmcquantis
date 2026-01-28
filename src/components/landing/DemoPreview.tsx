@@ -223,16 +223,17 @@ export function DemoPreview() {
                   </div>
                 </div>
                 
-                {/* CTA Overlay */}
-                <div className="absolute inset-0 flex items-center justify-center z-20">
+                {/* CTA Overlay - Enhanced for mobile */}
+                <div className="absolute inset-0 flex items-center justify-center z-20 px-4">
                   <Link 
                     to="/app"
                     onClick={() => trackCtaClick('unlock_full_report', 'demo_preview')}
+                    className="w-full md:w-auto"
                   >
-                    <Button size="lg" className="gap-2 shadow-xl">
+                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base animate-pulse-subtle hover:animate-none">
                       <Play className="w-5 h-5" />
                       Get Your Full Report Free
-                      <ArrowRight className="w-4 h-4" />
+                      <ArrowRight className="w-4 h-4 hidden sm:block" />
                     </Button>
                   </Link>
                 </div>
@@ -241,8 +242,8 @@ export function DemoPreview() {
           </div>
 
           {/* Mobile Touch Prompt */}
-          <p className="text-center text-sm text-muted-foreground mt-4 md:hidden">
-            Tap to explore the full demo
+          <p className="text-center text-sm text-muted-foreground mt-4 md:hidden font-medium">
+            👆 Tap above to get your free analysis
           </p>
         </div>
       </div>

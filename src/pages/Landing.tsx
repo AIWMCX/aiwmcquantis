@@ -2,9 +2,10 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play, Menu, Lock } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
+import { MobileNav } from '@/components/layout/MobileNav';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -13,6 +14,7 @@ import { useExitIntent } from '@/hooks/useExitIntent';
 import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
 import { PopupErrorBoundary } from '@/components/marketing/PopupErrorBoundary';
 import { useLazySection } from '@/hooks/useLazySection';
+import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
@@ -31,6 +33,7 @@ export default function Landing() {
   const { user } = useAuth();
   const { redirectToPayment, isLoading: checkoutLoading } = usePaymentLinks();
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || !localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -149,10 +152,22 @@ export default function Landing() {
       {/* Structured Data for SEO */}
       <StructuredData />
       
-      {/* Navigation - Mobile optimized */}
+      {/* Navigation - Mobile optimized with hamburger menu */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
+            {/* Mobile hamburger menu */}
+            {isMobile && (
+              <MobileNav>
+                <button 
+                  className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center md:hidden"
+                  aria-label="Open navigation menu"
+                >
+                  <Menu className="w-5 h-5" />
+                </button>
+              </MobileNav>
+            )}
+            
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
               <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
             </Link>
@@ -165,7 +180,7 @@ export default function Landing() {
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
                 onClick={() => setDarkMode(!darkMode)} 
-                className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center" 
+                className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center" 
                 aria-label="Toggle theme"
               >
                 {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
@@ -178,7 +193,7 @@ export default function Landing() {
                     </span>
                   </div>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[44px] px-4">
+                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
                       Go to App <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
@@ -186,11 +201,11 @@ export default function Landing() {
               ) : (
                 <>
                   <Link to="/auth" className="hidden sm:block">
-                    <Button variant="ghost" size="sm" className="min-h-[44px]">Sign In</Button>
+                    <Button variant="ghost" size="sm" className="min-h-[48px]">Sign In</Button>
                   </Link>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[44px] px-4">
-                      <span className="hidden sm:inline">Try Free</span>
+                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
+                      <span className="hidden sm:inline">Get Started</span>
                       <span className="sm:hidden">Start</span>
                       <ArrowRight className="w-4 h-4" />
                     </Button>
@@ -239,14 +254,14 @@ export default function Landing() {
               that would take consultants weeks to produce.
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
             {features.map(feature => (
-              <div key={feature.title} className="group p-6 md:p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg">
-                <div className="p-3 md:p-4 rounded-xl bg-primary/10 w-fit mb-4 md:mb-6 group-hover:bg-primary/20 transition-colors">
-                  <feature.icon className="w-6 h-6 md:w-8 md:h-8 text-primary" />
+              <div key={feature.title} className="group p-4 md:p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg min-h-[140px] md:min-h-0">
+                <div className="p-2.5 md:p-4 rounded-xl bg-primary/10 w-fit mb-3 md:mb-6 group-hover:bg-primary/20 transition-colors">
+                  <feature.icon className="w-5 h-5 md:w-8 md:h-8 text-primary" />
                 </div>
-                <h3 className="text-lg md:text-xl font-semibold text-foreground mb-2 md:mb-3">{feature.title}</h3>
-                <p className="text-sm md:text-base text-muted-foreground leading-relaxed">{feature.description}</p>
+                <h3 className="text-sm md:text-xl font-semibold text-foreground mb-1 md:mb-3">{feature.title}</h3>
+                <p className="text-xs md:text-base text-muted-foreground leading-relaxed line-clamp-3 md:line-clamp-none">{feature.description}</p>
               </div>
             ))}
           </div>
@@ -370,18 +385,22 @@ export default function Landing() {
         </div>
       </footer>
 
-      {/* Mobile Sticky CTA - Larger touch target */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-background/95 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
+      {/* Mobile Sticky CTA - Enhanced with trust indicator */}
+      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
         <Link to="/app" className="block" onClick={() => trackCtaClick('get_free_analysis', 'mobile_sticky')}>
-          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-xl min-h-[60px]">
+          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-2xl min-h-[60px] animate-pulse-subtle hover:animate-none">
             <Play className="w-5 h-5" />
             Get My Free Analysis
           </Button>
         </Link>
+        <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-2">
+          <Lock className="w-3 h-3" />
+          No signup required • Results in 2 min
+        </p>
       </div>
 
       {/* Bottom padding for mobile sticky CTA */}
-      <div className="h-24 md:hidden" />
+      <div className="h-28 md:hidden" />
 
       {/* Exit Intent Popup */}
       <PopupErrorBoundary>

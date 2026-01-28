@@ -87,23 +87,33 @@ export function AnalysisForm({
           id="idea"
           value={idea}
           onChange={(e) => handleIdeaChange(e.target.value)}
-          placeholder="Describe your idea in detail: what you plan to do, what problem you solve, who your customer is, your business model, target market size, competitive advantages...
-
-The more detail you provide, the more accurate and valuable your analysis will be. Include:
-• Your value proposition
-• Target customer segments
-• Revenue model and pricing strategy
-• Key differentiators from competitors
-• Current stage of development"
-          rows={8}
+          placeholder="Describe your idea in detail: what you plan to do, what problem you solve, who your customer is, your business model..."
+          rows={5}
           disabled={isLoading}
           aria-describedby={errors.idea ? "idea-error" : "idea-hint"}
           aria-invalid={!!errors.idea}
           className={cn(
-            "resize-none transition-colors min-h-[200px]",
+            "resize-none transition-colors min-h-[140px] md:min-h-[200px]",
             errors.idea && "border-destructive focus-visible:ring-destructive"
           )}
         />
+        <div className="flex justify-between items-center">
+          {errors.idea ? (
+            <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>
+          ) : (
+            <span id="idea-hint" className="text-xs text-muted-foreground">More detail = better analysis</span>
+          )}
+          <span 
+            className={cn(
+              "text-xs font-medium",
+              idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
+            )}
+            aria-live="polite"
+            aria-atomic="true"
+          >
+            {idea.length > 999 ? `${(idea.length / 1000).toFixed(1)}k` : idea.length}/5k
+          </span>
+        </div>
         <div className="flex justify-between items-center">
           {errors.idea ? (
             <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>

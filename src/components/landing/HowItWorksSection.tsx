@@ -172,18 +172,18 @@ export function HowItWorksSection() {
               Every analysis uses these proven financial metrics
             </p>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
             {variableGroups.map((group) => (
-              <div key={group.name} className="space-y-3">
-                <h4 className={`text-sm font-semibold uppercase tracking-wide ${
+              <div key={group.name} className="space-y-2 md:space-y-3">
+                <h4 className={`text-xs md:text-sm font-semibold uppercase tracking-wide ${
                   group.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
                   group.color === 'amber' ? 'text-amber-600 dark:text-amber-400' :
                   group.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
                   'text-purple-600 dark:text-purple-400'
                 }`}>
-                  {group.name} Variables
+                  {group.name}
                 </h4>
-                <div className="space-y-2">
+                <div className="space-y-1.5 md:space-y-2">
                   {group.variables.map((variable) => (
                     <VariableCard
                       key={variable.code}
@@ -201,13 +201,14 @@ export function HowItWorksSection() {
 
         {/* Formulas */}
         <div className="mb-20">
-          <div className="text-center mb-10">
-            <h3 className="text-2xl font-bold text-foreground mb-2">Key Formulas We Calculate</h3>
-            <p className="text-muted-foreground">
-              Hover over any formula to see a real example
+          <div className="text-center mb-8 md:mb-10">
+            <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">Key Formulas We Calculate</h3>
+            <p className="text-sm md:text-base text-muted-foreground">
+              <span className="hidden md:inline">Hover over any formula to see a real example</span>
+              <span className="md:hidden">Tap any formula to see an example</span>
             </p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
             {formulas.map((formula) => (
               <FormulaDisplay
                 key={formula.name}
