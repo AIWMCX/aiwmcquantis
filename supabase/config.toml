@@ -38,3 +38,6 @@ verify_jwt = false
 
 [functions.share-report]
 verify_jwt = false
+
+[functions.analyze-preview]
+verify_jwt = false

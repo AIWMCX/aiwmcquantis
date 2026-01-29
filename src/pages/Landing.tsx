@@ -18,6 +18,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
+const MiniDemo = lazy(() => import('@/components/landing/MiniDemo').then(m => ({ default: m.MiniDemo })));
 const ClientTestimonials = lazy(() => import('@/components/landing/ClientTestimonials').then(m => ({ default: m.ClientTestimonials })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
 
@@ -42,6 +43,7 @@ export default function Landing() {
   });
 
   // Progressive hydration for below-fold sections
+  const miniDemoSection = useLazySection({ rootMargin: '300px' });
   const demoSection = useLazySection({ rootMargin: '300px' });
   const testimonialsSection = useLazySection({ rootMargin: '200px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
@@ -219,6 +221,17 @@ export default function Landing() {
 
       {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
       <MobileHero />
+
+      {/* Mini Demo - Interactive preview with real calculations */}
+      <div ref={miniDemoSection.ref} id="try-it">
+        {miniDemoSection.isVisible ? (
+          <Suspense fallback={<SectionSkeleton height={500} />}>
+            <MiniDemo />
+          </Suspense>
+        ) : (
+          <SectionSkeleton height={500} />
+        )}
+      </div>
 
       {/* Demo Preview - No gap, immediate visibility */}
       <div ref={demoSection.ref} id="demo-preview" className="-mt-2">
