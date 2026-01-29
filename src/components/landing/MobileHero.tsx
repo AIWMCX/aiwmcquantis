@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Play, Users } from 'lucide-react';
+import { Play, Shield } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 
 export function MobileHero() {
@@ -41,10 +41,10 @@ export function MobileHero() {
             </Link>
           </div>
 
-          {/* Social Proof */}
+          {/* Verified Trust Indicator - No fabricated stats */}
           <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-            <Users className="w-4 h-4 text-primary" />
-            <span>Join 1,000+ entrepreneurs</span>
+            <Shield className="w-4 h-4 text-success" />
+            <span>No credit card required • Free analysis</span>
           </div>
         </div>
       </div>
