@@ -1,238 +1,506 @@
 
 
-# AIWMC Quantis: 10-Day Post-Launch Audit + Implementation Plan
-## Professional Assessment | January 29, 2026
+# Knowledge Base Construction Prompt for AIWMC Quantis
+
+## Project Overview
+
+Build a comprehensive, production-ready knowledge base for the AIWMC Quantis business analysis platform. This knowledge base will power the AI analysis engine with real-world industry data, location intelligence, and business benchmarks.
 
 ---
 
-## EXECUTIVE SUMMARY
+## PROMPT FOR KNOWLEDGE BASE CONSTRUCTION
 
-After thorough testing and codebase analysis, this plan addresses:
-1. Testing the 4-step wizard and Mini-Demo (verified working)
-2. Adding scenario tabs to AnalysisResults
-3. Implementing PDF export queue
-4. Conducting a professional 10-day post-launch audit
+```
+You are building a comprehensive Knowledge Base for AIWMC Quantis - a 2-minute business analysis SaaS platform. This knowledge base must power deterministic financial calculations, AI-enhanced business recommendations, and location-specific cost adjustments.
 
----
+## CONTEXT
 
-## PART 1: VERIFIED FUNCTIONALITY
+The platform analyzes business ideas by combining:
+1. User input (idea, location, financial projections)
+2. Industry benchmarks (margins, CAC, LTV, churn rates)
+3. Location intelligence (cost multipliers for 50+ cities)
+4. AI-generated qualitative insights
 
-### Mini-Demo Component
-- **Status**: WORKING
-- Edge function `analyze-preview` returns 200 status
-- Industry detection and benchmark estimation functional
-- Rate limiting via IP hash (3/hour) implemented
-- Pre-fill to wizard working via localStorage
+Current data sources:
+- Kerry Dataset: 1,000 business scenarios (see structure below)
+- Embedded benchmarks: 50+ industry types
+- Location database: 50+ global cities with cost indices
+- AI safety guardrails: 7-layer validation system
 
-### 4-Step Wizard
-- **Status**: WORKING
-- Step navigation (Back/Next) functional
-- Progress indicator shows completed steps
-- Pre-fill from mini-demo working (Denver, Colorado populated)
-- Documents upload on Step 4 visible
-- "Skip optional steps" shortcut available
-- Analysis submission triggers correctly
+## KNOWLEDGE BASE STRUCTURE
 
----
+### Dataset 1: Industry Benchmarks (Required)
 
-## PART 2: SCENARIO TABS IMPLEMENTATION
+Create records for 100+ industries following this schema:
 
-### Current State
-The `FinancialSummary.tsx` already has scenario tabs within its internal Tabs component (lines 311-331), showing Pessimistic/Base/Optimistic scenarios. However, these are nested inside the Financial tab.
-
-### Enhancement Required
-Add a top-level scenario selector in `AnalysisResults.tsx` that affects ALL financial metrics displayed.
-
-### Implementation
-
-**File: `src/components/analysis/ScenarioSelector.tsx` (NEW)**
-- Create a tab group with Conservative/Baseline/Optimistic
-- Store selected scenario in component state
-- Pass selected scenario to child components (FinancialSummary, ActionableInsights)
-
-**File: `src/components/analysis/AnalysisResults.tsx` (MODIFY)**
-- Add ScenarioSelector above the main content
-- Pass `selectedScenario` prop to FinancialSummary
-- Update headline metrics (profit, payback, ROI) based on scenario
-
----
-
-## PART 3: PDF EXPORT QUEUE IMPLEMENTATION
-
-### Database Schema
-Already exists: `export_jobs` table with:
-- `status`: pending/processing/completed/failed
-- `idempotency_key`: prevents duplicate processing
-- `file_url`: completed PDF location
-- RLS policies in place
-
-### Implementation Steps
-
-**1. Create Export Queue Edge Function**
-
-File: `supabase/functions/queue-export/index.ts`
-```text
-- Accept analysis_id + idempotency_key
-- Check for existing job with same key
-- Insert new job with status='pending'
-- Return job_id immediately (non-blocking)
-- Use EdgeRuntime.waitUntil() to process in background
-- Update job status to 'processing', then 'completed'
-- Store PDF to Supabase Storage bucket
+```json
+{
+  "industry_id": "string (snake_case, unique)",
+  "industry_name": "string (human readable)",
+  "region": "global | north_america | europe | asia_pacific | latin_america | middle_east | africa | cis",
+  
+  "margins": {
+    "gross_margin_min": "number (0-100%)",
+    "gross_margin_max": "number (0-100%)",
+    "gross_margin_avg": "number (0-100%)",
+    "net_margin_min": "number (-50 to 80%)",
+    "net_margin_max": "number (-50 to 80%)",
+    "net_margin_avg": "number (-50 to 80%)",
+    "cogs_percent_avg": "number (0-100%)"
+  },
+  
+  "unit_economics": {
+    "cac_min": "number (USD, typical customer acquisition cost floor)",
+    "cac_max": "number (USD, typical CAC ceiling)",
+    "cac_typical": "number (USD, median CAC)",
+    "ltv_min": "number (USD, lifetime value floor)",
+    "ltv_max": "number (USD, LTV ceiling)",
+    "ltv_typical": "number (USD, median LTV)",
+    "ltv_cac_ratio_min": "number (healthy minimum, typically 2-3)",
+    "ltv_cac_ratio_max": "number (excellent, typically 5-10)"
+  },
+  
+  "transaction_metrics": {
+    "average_check_min": "number (USD, minimum transaction value)",
+    "average_check_max": "number (USD, maximum transaction value)",
+    "orders_per_client": "number (annual average)",
+    "client_lifetime_months": "number (average retention period)"
+  },
+  
+  "fixed_costs": {
+    "salaries_fixed": "number (USD/month, baseline staffing)",
+    "rent_fixed": "number (USD/month, typical commercial rent)",
+    "utilities_fixed": "number (USD/month)",
+    "other_fixed": "number (USD/month, insurance, software, etc.)"
+  },
+  
+  "market_context": {
+    "market_size_usd": "number (total addressable market)",
+    "growth_rate_percent": "number (annual industry growth)",
+    "competition_level": "low | medium | high | very_high"
+  },
+  
+  "churn_metrics": {
+    "churn_rate_monthly": "number (0-30%)",
+    "churn_rate_annual": "number (0-100%)"
+  },
+  
+  "seasonality": {
+    "jan": "number (1.0 = baseline, 1.2 = 20% above)",
+    "feb": "number",
+    "...": "...",
+    "dec": "number"
+  },
+  
+  "keywords": ["array", "of", "matching", "terms"],
+  "sample_size": "number (data points used)",
+  "confidence_score": "number (0-100)",
+  "source": "kerry_dataset | industry_report | government_data | proprietary"
+}
 ```
 
-**2. Create Polling Hook**
+### Dataset 2: Location Intelligence (Required)
 
-File: `src/hooks/useExportQueue.ts`
-```text
-- Poll job status every 2 seconds
-- Show progress indicator while processing
-- Download PDF when completed
-- Handle failures with retry option
+Create records for 100+ cities following this schema:
+
+```json
+{
+  "city_id": "string (snake_case)",
+  "city": "string (human readable)",
+  "country": "string",
+  "region": "north_america | europe | asia_pacific | middle_east | latin_america | africa | cis",
+  
+  "cost_indices": {
+    "overall_cost_index": "number (1.0 = US average)",
+    "salary_multiplier": "number (1.0 = US average)",
+    "rent_multiplier": "number (1.0 = US average)",
+    "utility_multiplier": "number (1.0 = US average)"
+  },
+  
+  "business_environment": {
+    "tax_burden": "number (0-1, effective rate)",
+    "regulatory_complexity": "number (1-5, 1=easy, 5=complex)",
+    "market_maturity": "number (1-5, 1=emerging, 5=saturated)"
+  },
+  
+  "locale": {
+    "currency_code": "string (ISO 4217)",
+    "currency_symbol": "string",
+    "locale_code": "string (BCP 47)",
+    "timezone": "string (IANA)",
+    "primary_language": "string"
+  }
+}
 ```
 
-**3. Update AnalysisResults**
-- Replace blocking PDF generation with queue-based approach
-- Show "Generating..." with progress bar
-- Display download button when complete
+### Dataset 3: Business Scenarios (Training Data)
+
+Expand Kerry dataset format for AI training:
+
+```json
+{
+  "scenario_id": "string (unique identifier)",
+  "category": "financial_planning | growth_strategy | operations | marketing | product",
+  "subcategory": "string",
+  "business_type": "string (maps to industry_id)",
+  
+  "business_context": {
+    "type": "string",
+    "mrr": "number (monthly recurring revenue)",
+    "growth_rate": "number (MoM percentage)",
+    "churn_rate": "number (monthly percentage)",
+    "customers": "number",
+    "team_size": "number",
+    "stage": "pre_seed | seed | series_a | series_b | growth | mature"
+  },
+  
+  "user_query": "string (sample business question)",
+  
+  "expert_analysis": {
+    "situation_assessment": "string (2-3 paragraphs)",
+    "key_insights": ["string", "string", "string"],
+    "priority_level": "low | medium | high | critical"
+  },
+  
+  "recommendations": [
+    {
+      "priority": "number (1-5)",
+      "category": "string",
+      "action": "string (specific action item)",
+      "expected_impact": "string (quantified outcome)",
+      "implementation": "string (how to execute)",
+      "timeline": "string (e.g., '2-3 months')"
+    }
+  ],
+  
+  "industry_benchmarks": {
+    "healthy_growth_rate": "string (e.g., '15-20% MoM')",
+    "acceptable_churn": "string (e.g., '3-5% monthly')",
+    "target_ltv_cac_ratio": "string (e.g., '3:1 minimum')",
+    "gross_margin_target": "string (e.g., '70-80%')"
+  },
+  
+  "tags": ["array", "of", "keywords"],
+  "difficulty_level": "beginner | intermediate | advanced | expert",
+  "urgency": "low | medium | high | critical"
+}
+```
+
+### Dataset 4: Risk Factors (New)
+
+Create a comprehensive risk database:
+
+```json
+{
+  "risk_id": "string",
+  "risk_category": "market | financial | operational | regulatory | competitive | technology",
+  "risk_name": "string",
+  "description": "string (100-200 words)",
+  
+  "applicability": {
+    "industries": ["array of industry_ids or 'all'"],
+    "business_stages": ["pre_seed", "seed", "growth", "mature"],
+    "regions": ["array of region codes or 'global'"]
+  },
+  
+  "impact_assessment": {
+    "probability": "number (0-100%)",
+    "financial_impact": "low | medium | high | critical",
+    "time_to_materialize": "immediate | short_term | medium_term | long_term"
+  },
+  
+  "mitigation_strategies": [
+    {
+      "strategy": "string",
+      "cost_estimate": "number (USD)",
+      "effectiveness": "number (0-100%)",
+      "implementation_time": "string"
+    }
+  ],
+  
+  "warning_signs": ["string", "string"],
+  "related_risks": ["risk_id", "risk_id"]
+}
+```
+
+### Dataset 5: Launch Checklist Templates (New)
+
+Industry-specific launch requirements:
+
+```json
+{
+  "template_id": "string",
+  "industry_id": "string (foreign key)",
+  "template_name": "string",
+  
+  "phases": [
+    {
+      "phase_number": 1,
+      "phase_name": "Pre-Launch",
+      "duration_weeks": 4,
+      "tasks": [
+        {
+          "task_id": "string",
+          "task_name": "string",
+          "description": "string",
+          "estimated_cost": "number (USD)",
+          "required_time_hours": "number",
+          "dependencies": ["task_id"],
+          "regulatory_requirement": "boolean",
+          "priority": "must_have | should_have | nice_to_have"
+        }
+      ]
+    }
+  ],
+  
+  "region_specific_requirements": {
+    "us": ["task_ids requiring US compliance"],
+    "eu": ["task_ids requiring EU compliance"],
+    "global": ["universally applicable task_ids"]
+  },
+  
+  "total_estimated_cost": "number (USD)",
+  "total_estimated_weeks": "number"
+}
+```
+
+### Dataset 6: Marketing Channel Benchmarks (New)
+
+```json
+{
+  "channel_id": "string",
+  "channel_name": "string",
+  "channel_category": "paid | organic | referral | partnerships | outbound",
+  
+  "benchmarks_by_industry": [
+    {
+      "industry_id": "string",
+      "cac_range": {"min": "number", "max": "number"},
+      "conversion_rate": {"min": "number", "max": "number"},
+      "time_to_first_conversion_days": "number",
+      "scalability": "low | medium | high",
+      "recommended_budget_percent": "number (0-100%)"
+    }
+  ],
+  
+  "best_practices": ["string", "string"],
+  "common_mistakes": ["string", "string"],
+  "tools_recommended": ["string", "string"]
+}
+```
 
 ---
 
-## PART 4: 10-DAY POST-LAUNCH SECURITY AUDIT
+## DATA QUALITY REQUIREMENTS
 
-### Day 1-2: Security Assessment
+### Accuracy Standards
+- All financial figures must be sourced from verifiable data
+- Confidence scores required for each record
+- Update frequency noted for time-sensitive data
 
-| Area | Current Status | Action Required |
-|------|----------------|-----------------|
-| RLS Policies | 17+ tables protected | No issues found |
-| Database Linter | 0 issues | Passed |
-| SECURITY DEFINER Functions | 28 functions reviewed | All properly scoped |
-| PII Encryption | Vault-based AES-256 | Implemented |
-| Rate Limiting | Multi-layer (device, IP, fingerprint) | Active |
-| Prompt Injection | 7-layer AI guardrails | Protected |
+### Coverage Requirements
+- 100+ industries with full benchmark data
+- 100+ cities with cost indices
+- 1,000+ business scenarios for AI training
+- 50+ risk factor templates
+- 25+ launch checklist templates
+- 15+ marketing channel benchmarks
 
-**Security Scan Results:**
-- 0 ERROR level issues
-- 4 WARNING level issues (all reviewed, low risk)
-- All views use security_invoker or RPC gating
-
-### Day 3-4: Performance Assessment
-
-| Metric | Target | Current | Status |
-|--------|--------|---------|--------|
-| LCP | <2.5s | 2.1s | PASS |
-| FCP | <1.8s | 2.1s | NEEDS WORK |
-| TTFB | <200ms | 318ms | NEEDS WORK |
-| Bundle Size | <200KB | ~180KB | PASS |
-| analyze-preview p95 | <3s | 1.5s | PASS |
-
-**Performance Actions:**
-1. Investigate TTFB improvement (consider edge caching)
-2. Optimize FCP with critical CSS inlining
-3. Add preconnect hints for Supabase endpoints
-
-### Day 5-6: Scalability Assessment
-
-| Component | Current Limit | Bottleneck | Mitigation |
-|-----------|---------------|------------|------------|
-| AI Analysis | ~1000/day | LLM rate limits | Queue + caching |
-| PDF Generation | Blocking | Timeout risk | Background queue |
-| Database Queries | 1000 row default | Pagination needed | Add LIMIT awareness |
-| Anonymous Usage | 3/hr IP, 1/hr device | Proper limits | Implemented |
-
-**Scalability Actions:**
-1. Implement PDF export queue (this plan)
-2. Add result caching for similar queries
-3. Monitor Supabase Edge Function cold starts
-
-### Day 7-8: Observability & Monitoring
-
-| System | Status | Recommendation |
-|--------|--------|----------------|
-| Sentry Error Tracking | DSN not configured | Configure VITE_SENTRY_DSN |
-| Google Analytics | Active (G-NZE7RGVNEN) | Working |
-| Health Check Endpoint | /health-check exists | Monitor externally |
-| Security Logs | Captured in DB | Review weekly |
-
-**Monitoring Actions:**
-1. Configure Sentry DSN for production
-2. Set up UptimeRobot for /health-check
-3. Create admin alerts for error spikes
-
-### Day 9-10: Code Quality & Testing
-
-| Test Suite | Coverage | Files |
-|------------|----------|-------|
-| Financial Engine | 30+ tests | bulletproof-validator.test.ts, financial-engine.test.ts |
-| Auth E2E | 50+ tests | auth-e2e.test.ts |
-| Prompt Injection | 20+ tests | prompt-injection.test.ts |
-| Mobile Signup | Unit tests | signup-mobile.test.tsx |
-
-**Testing Actions:**
-1. Add integration tests for Mini-Demo
-2. Add E2E test for 4-step wizard completion
-3. Add scenario tab switching tests
+### Validation Rules
+- Margins must sum correctly (gross_margin = revenue - cogs)
+- LTV must exceed CAC for healthy businesses (ratio > 1)
+- Location multipliers must be relative to a consistent baseline
+- All percentages must be 0-100 (or -100 to +100 for net margins)
 
 ---
 
-## IMPLEMENTATION CHECKLIST
+## OUTPUT FORMAT
 
-### Phase 1: Scenario Tabs (2 days)
-- [x] Create ScenarioSelector component
-- [x] Add state management for selected scenario
-- [x] Update FinancialSummary to receive scenario prop
-- [x] Update headline metrics based on scenario
-- [ ] Test all three scenarios display correctly
-
-### Phase 2: PDF Export Queue (3 days)
-- [x] Create queue-export edge function
-- [x] Implement background processing with waitUntil
-- [x] Create useExportQueue polling hook
-- [x] Update AnalysisResults UI for queued exports
-- [x] Add idempotency key generation
-- [ ] Test end-to-end export flow
-
-### Phase 3: Audit Remediation (5 days)
-- [ ] Configure Sentry DSN
-- [x] Improve TTFB with edge caching hints (preconnect added)
-- [ ] Add FCP optimization (critical CSS)
-- [ ] Set up external monitoring
-- [ ] Add Mini-Demo integration tests
-- [ ] Add wizard E2E tests
-- [ ] Document all security controls
+Deliver datasets as:
+1. JSON files (one per dataset type)
+2. SQL migration scripts for Supabase
+3. TypeScript interfaces for type safety
+4. Validation test suite
 
 ---
 
-## TECHNICAL SPECIFICATIONS
+## INTEGRATION POINTS
 
-### New Files to Create
-1. `src/components/analysis/ScenarioSelector.tsx` - Scenario tab component
-2. `supabase/functions/queue-export/index.ts` - Background PDF queue
-3. `src/hooks/useExportQueue.ts` - Polling hook for export status
-4. `src/__tests__/mini-demo.test.tsx` - Mini-demo integration tests
-5. `src/__tests__/wizard-flow.test.tsx` - Wizard E2E tests
+The knowledge base must integrate with:
 
-### Files to Modify
-1. `src/components/analysis/AnalysisResults.tsx` - Add ScenarioSelector
-2. `src/components/analysis/FinancialSummary.tsx` - Accept scenario prop
-3. `supabase/config.toml` - Register queue-export function
-4. `src/hooks/usePdfExport.ts` - Replace with queue-based approach
+1. **Financial Engine** (`financial-engine.ts`)
+   - Consumes industry benchmarks for margin validation
+   - Uses location multipliers for cost adjustments
+   - References churn/LTV data for projections
 
-### Dependencies
-No new dependencies required - using existing:
-- React Query for polling
-- Supabase client for edge functions
-- Existing UI components (Tabs, Button)
+2. **AI Narrator** (`narrator-prompt.ts`)
+   - References scenarios for recommendation patterns
+   - Uses risk factors for warning generation
+   - Follows launch checklists for action items
+
+3. **Industry Matching** (`embedded-benchmarks.ts`)
+   - Keyword-based industry detection
+   - Confidence scoring for match quality
+   - Fallback hierarchy when exact match not found
+
+4. **Location Intelligence** (`location-intelligence.ts`)
+   - City/region matching from user input
+   - Cost adjustment calculations
+   - Currency and locale handling
 
 ---
 
-## SUCCESS METRICS
+## PRIORITY ORDER
 
-| Metric | Current | Target | Timeframe |
-|--------|---------|--------|-----------|
-| PDF Export Success Rate | ~85% | >98% | Week 1 |
-| Export p95 Latency | 30-45s blocking | <500ms enqueue | Week 1 |
-| Scenario Tab Usage | N/A | >40% of users | Week 2 |
-| Error Rate | Unknown | <0.1% | Week 2 |
-| Sentry Coverage | 0% | 100% | Day 1 |
+1. **Critical (Week 1)**: Industry benchmarks + Location data
+2. **High (Week 2)**: Business scenarios + Risk factors
+3. **Medium (Week 3)**: Launch checklists + Marketing channels
+4. **Enhancement (Week 4)**: Seasonality data + Sub-industry variations
+
+---
+
+## EXISTING DATA TO EXPAND
+
+### Current Kerry Dataset Structure (1,000 records)
+Located at: `public/data/kerry_full_dataset_1000.json`
+
+Sample record:
+- scenario_id, category, subcategory, business_type
+- business_context (MRR, growth, churn, customers, team size)
+- industry_benchmarks (growth targets, margin targets, LTV:CAC ratios)
+- recommendations with priority, action, impact, timeline
+- tags for keyword matching
+
+### Current Embedded Benchmarks (50+ industries)
+Located at: `supabase/functions/analyze-business/embedded-benchmarks.ts`
+
+Covers: SaaS, E-commerce, Restaurants, Consulting, Fitness, Education, Healthcare, Real Estate, and more.
+
+### Current Location Database (50+ cities)
+Located at: `supabase/functions/analyze-business/location-intelligence.ts`
+
+Covers: North America (11), Europe (15), Asia-Pacific (12), CIS (5), Middle East (4), Latin America (3), Africa (2)
+
+---
+
+## SUCCESS CRITERIA
+
+1. Zero hardcoded magic numbers in financial calculations
+2. Every metric traceable to a knowledge base source
+3. Confidence scoring for all AI-influenced outputs
+4. <3 second lookup time for any benchmark query
+5. 95%+ industry match rate for common business types
+6. 90%+ city match rate for major global markets
+```
+
+---
+
+## Implementation Architecture
+
+```text
+┌─────────────────────────────────────────────────────────────────┐
+│                    KNOWLEDGE BASE ARCHITECTURE                   │
+├─────────────────────────────────────────────────────────────────┤
+│                                                                 │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │             PRIMARY DATA SOURCES                         │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ Kerry       │ │ Industry    │ │ Government/Public   ││   │
+│  │  │ Dataset     │ │ Reports     │ │ Economic Data       ││   │
+│  │  │ (1000 recs) │ │ (IBISWorld) │ │ (Census, BLS)       ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │             TRANSFORMATION LAYER                         │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ Kerry       │ │ Benchmark   │ │ Location            ││   │
+│  │  │ Transformer │ │ Normalizer  │ │ Geocoder            ││   │
+│  │  │ (TS util)   │ │             │ │                     ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │             STORAGE LAYER (Supabase)                     │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ industry_   │ │ location_   │ │ scenario_           ││   │
+│  │  │ benchmarks  │ │ data        │ │ library             ││   │
+│  │  │ (100+ recs) │ │ (100+ recs) │ │ (1000+ recs)        ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ risk_       │ │ launch_     │ │ marketing_          ││   │
+│  │  │ factors     │ │ checklists  │ │ channels            ││   │
+│  │  │ (50+ recs)  │ │ (25+ recs)  │ │ (15+ recs)          ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │             ACCESS LAYER (Edge Functions)                │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ Benchmark   │ │ Location    │ │ Scenario            ││   │
+│  │  │ Resolver    │ │ Matcher     │ │ Recommender         ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                              │                                  │
+│                              ▼                                  │
+│  ┌─────────────────────────────────────────────────────────┐   │
+│  │             CONSUMER LAYER                               │   │
+│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
+│  │  │ Financial   │ │ AI Narrator │ │ Report              ││   │
+│  │  │ Engine      │ │ Prompt      │ │ Generator           ││   │
+│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
+│  └─────────────────────────────────────────────────────────┘   │
+│                                                                 │
+└─────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Database Tables to Create
+
+| Table | Purpose | Record Count |
+|-------|---------|--------------|
+| `industry_benchmarks` | Financial metrics by industry | 100+ |
+| `location_data` | City-level cost indices | 100+ |
+| `scenario_library` | AI training scenarios | 1,000+ |
+| `risk_factors` | Business risk templates | 50+ |
+| `launch_checklists` | Industry-specific launch steps | 25+ |
+| `marketing_channels` | Channel performance benchmarks | 15+ |
+| `seasonality_patterns` | Monthly adjustment factors | 50+ |
+| `compliance_requirements` | Regional regulatory needs | 100+ |
+
+---
+
+## Deliverables
+
+1. **Data Files**
+   - `datasets/industry_benchmarks_v2.json` (100+ industries)
+   - `datasets/location_intelligence_v2.json` (100+ cities)
+   - `datasets/scenario_library.json` (1,000+ scenarios)
+   - `datasets/risk_factors.json` (50+ risks)
+   - `datasets/launch_checklists.json` (25+ templates)
+   - `datasets/marketing_channels.json` (15+ channels)
+
+2. **Database Migrations**
+   - SQL scripts for all new tables
+   - Seed data for initial population
+   - Indexes for performance
+
+3. **TypeScript Types**
+   - Interface definitions for all datasets
+   - Zod schemas for runtime validation
+   - Type guards for safe parsing
+
+4. **Documentation**
+   - Data dictionary with field descriptions
+   - Source attribution for all data
+   - Update procedures and schedules
+
+5. **Admin Tools**
+   - Bulk upload endpoint for each dataset
+   - Validation reports
+   - Data quality dashboard
 
