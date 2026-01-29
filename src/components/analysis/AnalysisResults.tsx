@@ -1,5 +1,5 @@
 import React, { useRef, useMemo } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2 } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Link2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -16,16 +16,19 @@ import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useShareReport } from '@/hooks/useShareReport';
 import { toast } from 'sonner';
 
 interface AnalysisResultsProps {
   result: BusinessAnalysisResult;
+  analysisId?: string;
   onReset?: () => void;
 }
 
-export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
+export function AnalysisResults({ result, analysisId, onReset }: AnalysisResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGenerating } = usePdfExport();
+  const { shareReport, isSharing } = useShareReport();
 
   // Convert documents_used to ExtractedFinancials format for DocumentInsights
   const documentInsightsData = useMemo(() => {
@@ -123,7 +126,7 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
           </div>
         </div>
         
-        <div className="flex gap-2 mt-4">
+        <div className="flex flex-wrap gap-2 mt-4">
           <Button 
             onClick={handleExportPDF} 
             variant="outline" 
@@ -135,8 +138,23 @@ export function AnalysisResults({ result, onReset }: AnalysisResultsProps) {
             ) : (
               <FileDown className="w-4 h-4" />
             )}
-            {isGenerating ? 'Generating...' : 'Download Executive Report'}
+            {isGenerating ? 'Generating...' : 'Export PDF'}
           </Button>
+          {analysisId && (
+            <Button 
+              onClick={() => shareReport(analysisId)} 
+              variant="outline" 
+              className="gap-2"
+              disabled={isSharing}
+            >
+              {isSharing ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : (
+                <Share2 className="w-4 h-4" />
+              )}
+              {isSharing ? 'Creating...' : 'Share Link'}
+            </Button>
+          )}
           {onReset && (
             <Button onClick={onReset} variant="ghost" className="gap-2">
               <RefreshCw className="w-4 h-4" />

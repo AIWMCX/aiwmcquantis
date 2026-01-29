@@ -17,6 +17,7 @@ const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
 const NotFound = lazy(() => import("./pages/NotFound"));
+const SharedReport = lazy(() => import("./pages/SharedReport"));
 const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -68,6 +69,9 @@ const App = () => {
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                
+                {/* Public share route - no auth required */}
+                <Route path="/share/:token" element={<SharedReport />} />
                 
                 {/* Protected routes - require authentication */}
                 <Route path="/app" element={
