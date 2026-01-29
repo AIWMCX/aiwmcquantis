@@ -1,7 +1,8 @@
-import React, { useRef, useMemo } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Link2 } from 'lucide-react';
+import React, { useRef, useMemo, useState } from 'react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Progress } from '@/components/ui/progress';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { FinancialSummary } from './FinancialSummary';
 import { BusinessPlanSection } from './BusinessPlanSection';
@@ -11,12 +12,13 @@ import { ValidationSection } from './ValidationSection';
 import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { DocumentInsights } from './DocumentInsights';
+import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
-import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
+import { useExportQueue } from '@/hooks/useExportQueue';
 import { toast } from 'sonner';
 
 interface AnalysisResultsProps {
@@ -29,6 +31,29 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const contentRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing } = useShareReport();
+  const { queueExport, status: exportStatus, progress: exportProgress, reset: resetExport } = useExportQueue();
+  
+  // Scenario selector state
+  const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
+
+  // Get scenario-specific metrics
+  const scenarioMetrics = useMemo(() => {
+    const scenarios = result.financial_analysis?.scenarios;
+    if (!scenarios) {
+      return {
+        revenue: result.financial_analysis?.mrr || 0,
+        profit: result.financial_analysis?.scenarios?.base?.net_profit || 0,
+        margin: result.financial_analysis?.scenarios?.base?.net_margin || 0,
+      };
+    }
+    
+    const current = scenarios[selectedScenario];
+    return {
+      revenue: current.revenue,
+      profit: current.net_profit,
+      margin: current.net_margin,
+    };
+  }, [result.financial_analysis, selectedScenario]);
 
   // Convert documents_used to ExtractedFinancials format for DocumentInsights
   const documentInsightsData = useMemo(() => {
@@ -126,20 +151,60 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </div>
         </div>
         
+        {/* Scenario-aware headline metrics */}
+        <div className="grid grid-cols-3 gap-3 mt-4 p-3 rounded-lg bg-muted/30 border border-border">
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Monthly Revenue</p>
+            <p className="text-lg font-bold text-foreground">
+              ${scenarioMetrics.revenue.toLocaleString()}
+            </p>
+          </div>
+          <div className="text-center border-x border-border">
+            <p className="text-xs text-muted-foreground">Net Profit/mo</p>
+            <p className={cn(
+              "text-lg font-bold",
+              scenarioMetrics.profit >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+            )}>
+              ${scenarioMetrics.profit.toLocaleString()}
+            </p>
+          </div>
+          <div className="text-center">
+            <p className="text-xs text-muted-foreground">Net Margin</p>
+            <p className={cn(
+              "text-lg font-bold",
+              scenarioMetrics.margin >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+            )}>
+              {scenarioMetrics.margin.toFixed(1)}%
+            </p>
+          </div>
+        </div>
+        
         <div className="flex flex-wrap gap-2 mt-4">
           <Button 
             onClick={handleExportPDF} 
             variant="outline" 
             className="gap-2"
-            disabled={isGenerating}
+            disabled={isGenerating || exportStatus === 'processing'}
           >
-            {isGenerating ? (
+            {isGenerating || exportStatus === 'processing' ? (
               <Loader2 className="w-4 h-4 animate-spin" />
             ) : (
               <FileDown className="w-4 h-4" />
             )}
-            {isGenerating ? 'Generating...' : 'Export PDF'}
+            {isGenerating ? 'Generating...' : 
+             exportStatus === 'processing' ? 'Processing...' : 'Export PDF'}
           </Button>
+          
+          {/* Export progress bar */}
+          {(exportStatus === 'pending' || exportStatus === 'processing') && (
+            <div className="w-full mt-2">
+              <Progress value={exportProgress} className="h-1" />
+              <p className="text-xs text-muted-foreground mt-1">
+                {exportStatus === 'pending' ? 'Queuing export...' : 'Generating report...'}
+              </p>
+            </div>
+          )}
+          
           {analysisId && (
             <Button 
               onClick={() => shareReport(analysisId)} 
@@ -163,6 +228,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           )}
         </div>
       </div>
+
+      {/* Scenario Selector - Top-level toggle */}
+      <ScenarioSelector 
+        selectedScenario={selectedScenario}
+        onScenarioChange={setSelectedScenario}
+      />
 
       {/* Confidence Indicator - Always visible at top */}
       <ConfidenceIndicator 
@@ -199,7 +270,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         </TabsList>
         
         <TabsContent value="financial">
-          <FinancialSummary financial={result.financial_analysis} />
+          <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
         </TabsContent>
         
         <TabsContent value="business">

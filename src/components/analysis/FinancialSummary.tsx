@@ -11,9 +11,11 @@ import {
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import type { FinancialAnalysis, ScenarioMetrics } from '@/types/analysis';
+import type { ScenarioType } from './ScenarioSelector';
 
 interface FinancialSummaryProps {
   financial: FinancialAnalysis;
+  selectedScenario?: ScenarioType;
 }
 
 function formatCurrency(value: number): string {
@@ -187,15 +189,19 @@ function RiskCard({ scenario, description, profit, probability }: {
   );
 }
 
-export function FinancialSummary({ financial }: FinancialSummaryProps) {
+export function FinancialSummary({ financial, selectedScenario = 'base' }: FinancialSummaryProps) {
   const [showFormulas, setShowFormulas] = useState(false);
   
   // Handle both old and new data structures
   const hasNewStructure = financial.scenarios && financial.unit_economics;
   
-  // Get base scenario metrics or fall back to old structure
-  const baseProfit = hasNewStructure 
-    ? financial.scenarios.base.net_profit 
+  // Get scenario-specific metrics based on selection
+  const currentScenario = hasNewStructure 
+    ? financial.scenarios[selectedScenario] 
+    : null;
+  
+  const baseProfit = currentScenario 
+    ? currentScenario.net_profit 
     : (financial as any).monthly_profit || 0;
   
   const isProfitable = baseProfit > 0;
