@@ -84,7 +84,7 @@ export function MiniDemo() {
       <div className="container max-w-4xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 text-primary font-semibold text-sm mb-4">
             <Sparkles className="w-4 h-4" />
             Try It Free — No Signup Required
           </div>

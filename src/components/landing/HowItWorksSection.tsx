@@ -128,7 +128,7 @@ export function HowItWorksSection() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-16">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 text-primary font-semibold text-sm mb-6">
             <Calculator className="w-4 h-4" />
             Real Math, Real Results
           </div>
@@ -176,10 +176,10 @@ export function HowItWorksSection() {
             {variableGroups.map((group) => (
               <div key={group.name} className="space-y-2 md:space-y-3">
                 <h4 className={`text-xs md:text-sm font-semibold uppercase tracking-wide ${
-                  group.color === 'emerald' ? 'text-emerald-600 dark:text-emerald-400' :
-                  group.color === 'amber' ? 'text-amber-600 dark:text-amber-400' :
-                  group.color === 'blue' ? 'text-blue-600 dark:text-blue-400' :
-                  'text-purple-600 dark:text-purple-400'
+                  group.color === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' :
+                  group.color === 'amber' ? 'text-amber-700 dark:text-amber-400' :
+                  group.color === 'blue' ? 'text-blue-700 dark:text-blue-400' :
+                  'text-purple-700 dark:text-purple-400'
                 }`}>
                   {group.name}
                 </h4>
