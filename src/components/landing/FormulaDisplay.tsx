@@ -57,7 +57,7 @@ export function FormulaDisplay({
       }}
     >
       <div className="text-center">
-        <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold mb-2">
+        <div className="inline-flex items-center justify-center px-3 py-1 rounded-full bg-primary/15 text-primary font-bold text-xs mb-2">
           {name}
         </div>
         <p className="text-xs text-muted-foreground mb-2">{description}</p>
