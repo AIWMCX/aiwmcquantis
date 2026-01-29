@@ -178,23 +178,23 @@ File: `src/hooks/useExportQueue.ts`
 ## IMPLEMENTATION CHECKLIST
 
 ### Phase 1: Scenario Tabs (2 days)
-- [ ] Create ScenarioSelector component
-- [ ] Add state management for selected scenario
-- [ ] Update FinancialSummary to receive scenario prop
-- [ ] Update headline metrics based on scenario
+- [x] Create ScenarioSelector component
+- [x] Add state management for selected scenario
+- [x] Update FinancialSummary to receive scenario prop
+- [x] Update headline metrics based on scenario
 - [ ] Test all three scenarios display correctly
 
 ### Phase 2: PDF Export Queue (3 days)
-- [ ] Create queue-export edge function
-- [ ] Implement background processing with waitUntil
-- [ ] Create useExportQueue polling hook
-- [ ] Update AnalysisResults UI for queued exports
-- [ ] Add idempotency key generation
+- [x] Create queue-export edge function
+- [x] Implement background processing with waitUntil
+- [x] Create useExportQueue polling hook
+- [x] Update AnalysisResults UI for queued exports
+- [x] Add idempotency key generation
 - [ ] Test end-to-end export flow
 
 ### Phase 3: Audit Remediation (5 days)
 - [ ] Configure Sentry DSN
-- [ ] Improve TTFB with edge caching hints
+- [x] Improve TTFB with edge caching hints (preconnect added)
 - [ ] Add FCP optimization (critical CSS)
 - [ ] Set up external monitoring
 - [ ] Add Mini-Demo integration tests

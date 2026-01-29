@@ -41,3 +41,6 @@ verify_jwt = false
 
 [functions.analyze-preview]
 verify_jwt = false
+
+[functions.queue-export]
+verify_jwt = true
