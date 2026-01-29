@@ -21,6 +21,9 @@ verify_jwt = false
 [functions.manage-benchmarks]
 verify_jwt = false
 
+[functions.manage-knowledge-base]
+verify_jwt = false
+
 [functions.seed-benchmarks]
 verify_jwt = false
 
