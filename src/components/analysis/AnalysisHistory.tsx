@@ -9,7 +9,7 @@ import type { AnalysisHistoryEntry, BusinessAnalysisResult } from '@/types/analy
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 
 interface AnalysisHistoryProps {
-  onSelect: (result: BusinessAnalysisResult) => void;
+  onSelect: (result: BusinessAnalysisResult, analysisId: string) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -147,7 +147,7 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
             <div
               key={entry.id}
               className="p-4 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors cursor-pointer group haptic-btn relative overflow-hidden"
-              onClick={() => onSelect(entry.result)}
+              onClick={() => onSelect(entry.result, entry.id)}
             >
               <div className="flex items-start justify-between gap-3">
                 <div className="flex-1 min-w-0">

@@ -35,6 +35,7 @@ export default function Index() {
 
   const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
+  const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
 
   const { isAuthenticated } = useAuth();
   const { 
@@ -426,7 +427,14 @@ export default function Index() {
 
               <TabsContent value="analyze">
                 {result ? (
-                  <AnalysisResults result={result} onReset={reset} />
+                  <AnalysisResults 
+                    result={result} 
+                    analysisId={currentAnalysisId || undefined}
+                    onReset={() => {
+                      reset();
+                      setCurrentAnalysisId(null);
+                    }} 
+                  />
                 ) : (
                   <EmptyState />
                 )}
@@ -434,8 +442,9 @@ export default function Index() {
 
               <TabsContent value="history">
                 <AnalysisHistory
-                  onSelect={(selectedResult) => {
+                  onSelect={(selectedResult, analysisId) => {
                     setResult(selectedResult);
+                    setCurrentAnalysisId(analysisId);
                     setActiveTab('analyze');
                   }}
                 />

@@ -245,6 +245,50 @@ export type Database = {
         }
         Relationships: []
       }
+      export_jobs: {
+        Row: {
+          analysis_id: string
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          file_url: string | null
+          id: string
+          idempotency_key: string | null
+          status: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_url?: string | null
+          id?: string
+          idempotency_key?: string | null
+          status?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          file_url?: string | null
+          id?: string
+          idempotency_key?: string | null
+          status?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "export_jobs_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null
@@ -496,6 +540,47 @@ export type Database = {
           user_id?: string | null
         }
         Relationships: []
+      }
+      shared_reports: {
+        Row: {
+          analysis_id: string
+          created_at: string | null
+          expires_at: string
+          id: string
+          is_revoked: boolean | null
+          token: string
+          user_id: string
+          view_count: number | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_revoked?: boolean | null
+          token?: string
+          user_id: string
+          view_count?: number | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          is_revoked?: boolean | null
+          token?: string
+          user_id?: string
+          view_count?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "shared_reports_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       stripe_webhook_events: {
         Row: {
@@ -935,8 +1020,10 @@ export type Database = {
         Returns: Json
       }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
+      cleanup_expired_shares: { Args: never; Returns: undefined }
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_api_logs: { Args: never; Returns: undefined }
+      cleanup_old_export_jobs: { Args: never; Returns: undefined }
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
       cleanup_old_webhook_events: { Args: never; Returns: undefined }
