@@ -4,13 +4,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { EmptyState } from '@/components/layout/EmptyState';
-import { AnalysisForm } from '@/components/analysis/AnalysisForm';
+import { WizardForm } from '@/components/analysis/WizardForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
-import { DraftRecoveryBanner } from '@/components/analysis/DraftRecoveryBanner';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import { useFormDraft } from '@/hooks/useFormDraft';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
@@ -72,29 +70,6 @@ export default function Index() {
     maxFiles,
     allowedExtensions,
   } = useAnalysis();
-
-  // Draft auto-save and recovery
-  const {
-    hasDraft,
-    draftAge,
-    restoreDraft,
-    dismissDraft,
-    clearDraft,
-  } = useFormDraft(
-    idea,
-    location,
-    financialInputs,
-    setIdea,
-    setLocation,
-    setFinancialInputs
-  );
-
-  // Clear draft after successful analysis
-  useEffect(() => {
-    if (result) {
-      clearDraft();
-    }
-  }, [result, clearDraft]);
 
   // Handle checkout success/cancel URL parameters (supports both patterns)
   useEffect(() => {
@@ -368,16 +343,7 @@ export default function Index() {
           {/* Form Column - Appears second on mobile for results-first experience */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <div className="lg:sticky lg:top-24 space-y-4">
-              {/* Draft Recovery Banner */}
-              {hasDraft && (
-                <DraftRecoveryBanner
-                  draftAge={draftAge}
-                  onRestore={restoreDraft}
-                  onDismiss={dismissDraft}
-                />
-              )}
-              
-              <AnalysisForm
+              <WizardForm
                 idea={idea}
                 location={location}
                 financialInputs={financialInputs}
