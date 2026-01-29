@@ -424,6 +424,45 @@ export type Database = {
         }
         Relationships: []
       }
+      launch_checklists: {
+        Row: {
+          confidence_score: number | null
+          created_at: string
+          id: string
+          industry_id: string
+          phases: Json
+          region_requirements: Json
+          template_id: string
+          template_name: string
+          total_estimated_cost: number | null
+          total_estimated_weeks: number | null
+        }
+        Insert: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          industry_id: string
+          phases?: Json
+          region_requirements?: Json
+          template_id: string
+          template_name: string
+          total_estimated_cost?: number | null
+          total_estimated_weeks?: number | null
+        }
+        Update: {
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          industry_id?: string
+          phases?: Json
+          region_requirements?: Json
+          template_id?: string
+          template_name?: string
+          total_estimated_cost?: number | null
+          total_estimated_weeks?: number | null
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           created_at: string | null
@@ -457,6 +496,120 @@ export type Database = {
           source?: string
           status?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      location_data: {
+        Row: {
+          city: string
+          city_id: string
+          confidence_score: number | null
+          country: string
+          created_at: string
+          currency_code: string
+          currency_symbol: string
+          id: string
+          keywords: string[] | null
+          last_updated: string
+          locale_code: string
+          market_maturity: number | null
+          overall_cost_index: number
+          primary_language: string
+          region: string
+          regulatory_complexity: number | null
+          rent_multiplier: number
+          salary_multiplier: number
+          source: string | null
+          tax_burden: number | null
+          timezone: string
+          utility_multiplier: number
+        }
+        Insert: {
+          city: string
+          city_id: string
+          confidence_score?: number | null
+          country: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          id?: string
+          keywords?: string[] | null
+          last_updated?: string
+          locale_code?: string
+          market_maturity?: number | null
+          overall_cost_index?: number
+          primary_language?: string
+          region: string
+          regulatory_complexity?: number | null
+          rent_multiplier?: number
+          salary_multiplier?: number
+          source?: string | null
+          tax_burden?: number | null
+          timezone?: string
+          utility_multiplier?: number
+        }
+        Update: {
+          city?: string
+          city_id?: string
+          confidence_score?: number | null
+          country?: string
+          created_at?: string
+          currency_code?: string
+          currency_symbol?: string
+          id?: string
+          keywords?: string[] | null
+          last_updated?: string
+          locale_code?: string
+          market_maturity?: number | null
+          overall_cost_index?: number
+          primary_language?: string
+          region?: string
+          regulatory_complexity?: number | null
+          rent_multiplier?: number
+          salary_multiplier?: number
+          source?: string | null
+          tax_burden?: number | null
+          timezone?: string
+          utility_multiplier?: number
+        }
+        Relationships: []
+      }
+      marketing_channels: {
+        Row: {
+          benchmarks_by_industry: Json
+          best_practices: string[] | null
+          channel_category: string
+          channel_id: string
+          channel_name: string
+          common_mistakes: string[] | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          tools_recommended: string[] | null
+        }
+        Insert: {
+          benchmarks_by_industry?: Json
+          best_practices?: string[] | null
+          channel_category: string
+          channel_id: string
+          channel_name: string
+          common_mistakes?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          tools_recommended?: string[] | null
+        }
+        Update: {
+          benchmarks_by_industry?: Json
+          best_practices?: string[] | null
+          channel_category?: string
+          channel_id?: string
+          channel_name?: string
+          common_mistakes?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          tools_recommended?: string[] | null
         }
         Relationships: []
       }
@@ -508,6 +661,120 @@ export type Database = {
           request_count?: number | null
           user_id?: string
           window_start?: string
+        }
+        Relationships: []
+      }
+      risk_factors: {
+        Row: {
+          applicable_industries: string[] | null
+          applicable_regions: string[] | null
+          applicable_stages: string[] | null
+          confidence_score: number | null
+          created_at: string
+          description: string
+          financial_impact: string | null
+          id: string
+          mitigation_strategies: Json
+          probability: number | null
+          related_risks: string[] | null
+          risk_category: string
+          risk_id: string
+          risk_name: string
+          time_to_materialize: string | null
+          warning_signs: string[] | null
+        }
+        Insert: {
+          applicable_industries?: string[] | null
+          applicable_regions?: string[] | null
+          applicable_stages?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          description: string
+          financial_impact?: string | null
+          id?: string
+          mitigation_strategies?: Json
+          probability?: number | null
+          related_risks?: string[] | null
+          risk_category: string
+          risk_id: string
+          risk_name: string
+          time_to_materialize?: string | null
+          warning_signs?: string[] | null
+        }
+        Update: {
+          applicable_industries?: string[] | null
+          applicable_regions?: string[] | null
+          applicable_stages?: string[] | null
+          confidence_score?: number | null
+          created_at?: string
+          description?: string
+          financial_impact?: string | null
+          id?: string
+          mitigation_strategies?: Json
+          probability?: number | null
+          related_risks?: string[] | null
+          risk_category?: string
+          risk_id?: string
+          risk_name?: string
+          time_to_materialize?: string | null
+          warning_signs?: string[] | null
+        }
+        Relationships: []
+      }
+      scenario_library: {
+        Row: {
+          business_context: Json
+          business_type: string
+          category: string
+          confidence_score: number | null
+          created_at: string
+          difficulty_level: string | null
+          expert_analysis: Json
+          id: string
+          industry_benchmarks: Json
+          recommendations: Json
+          scenario_id: string
+          source: string | null
+          subcategory: string | null
+          tags: string[] | null
+          urgency: string | null
+          user_query: string
+        }
+        Insert: {
+          business_context?: Json
+          business_type: string
+          category: string
+          confidence_score?: number | null
+          created_at?: string
+          difficulty_level?: string | null
+          expert_analysis?: Json
+          id?: string
+          industry_benchmarks?: Json
+          recommendations?: Json
+          scenario_id: string
+          source?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          urgency?: string | null
+          user_query: string
+        }
+        Update: {
+          business_context?: Json
+          business_type?: string
+          category?: string
+          confidence_score?: number | null
+          created_at?: string
+          difficulty_level?: string | null
+          expert_analysis?: Json
+          id?: string
+          industry_benchmarks?: Json
+          recommendations?: Json
+          scenario_id?: string
+          source?: string | null
+          subcategory?: string | null
+          tags?: string[] | null
+          urgency?: string | null
+          user_query?: string
         }
         Relationships: []
       }
