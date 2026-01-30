@@ -1,268 +1,290 @@
 
 
-# Comprehensive Architecture Review & Accessibility Fixes
+# Pricing Page Conversion Optimization Plan
 
-## Part 1: Accessibility Issues Fix
+## Executive Summary
 
-### Issue 1: Missing `<main>` Landmark on Landing Page
-
-**Problem**: The Landing page (`src/pages/Landing.tsx`) lacks a `<main>` landmark wrapper, causing screen readers to have difficulty identifying the primary content area.
-
-**Current State**: The Landing page uses `<div>` and `<section>` elements without a `<main>` wrapper.
-
-**Solution**: Wrap the main content (from Hero through Footer) in a `<main id="main-content">` element.
-
-**Files to Modify**:
-- `src/pages/Landing.tsx`
+Transform the current simple pricing section into a high-converting pricing page with psychological triggers, value anchoring, and comprehensive A/B testing infrastructure.
 
 ---
 
-### Issue 2: Heading Order Violation
+## Current State Analysis
 
-**Problem**: The heading hierarchy on the landing page is inconsistent. Multiple `<h2>` elements appear with occasional `<h3>` and `<h4>` elements that don't follow proper nesting.
+### Existing Pricing Section (Lines 289-347 in Landing.tsx)
 
-**Current Heading Flow**:
-```
-- <h1> "Know Your Numbers Before You Invest" (MobileHero)
-- <h2> "See Your Numbers in Seconds" (MiniDemo)
-- <h2> "Your Report Preview" (DemoPreview)
-- <h4> "Key Insights" / "Risk Factors" (inside DemoPreview - skips h3!)
-- <h2> "Built for Transparency" (ClientTestimonials)
-- <h3> feature titles (correct)
-- <h2> "Everything You Need..." (Features)
-- <h3> feature titles (correct)
-```
+**Strengths:**
+- Clean 2-column layout
+- 14-day trial badge on Plus
+- "Most Popular" highlight
+- Clear feature lists
 
-**Solution**: Change `<h4>` elements in `DemoPreview.tsx` to `<h3>` for proper heading hierarchy.
-
-**Files to Modify**:
-- `src/components/landing/DemoPreview.tsx`
-
----
-
-### Issue 3: Label Content Mismatch (Already Fixed)
-
-The `MiniDemo.tsx` labels properly use `htmlFor` matching `id` attributes. No changes needed.
+**Weaknesses:**
+- No price anchoring (consultant cost comparison)
+- No urgency elements
+- No money-back guarantee prominence
+- No annual/monthly toggle (potential 20%+ revenue boost)
+- No social proof on pricing
+- Weak FAQ integration with pricing objections
+- No value stacking or ROI comparison
+- CTAs not optimized (generic "Start Free Trial")
 
 ---
 
-## Part 2: Architecture Review for 10,000+ Daily Users
+## Implementation Plan
 
-### Current Architecture Analysis
+### Phase 1: New Dedicated Pricing Section Component
+
+Create `src/components/landing/PricingSection.tsx` with the following structure:
 
 ```text
-+-------------------+       +----------------------+       +------------------+
-|   React SPA       | ----> | Supabase Edge Funcs  | ----> |  PostgreSQL DB   |
-|   (Vite/Lovable)  |       |   (Deno Runtime)     |       |  (Supabase)      |
-+-------------------+       +----------------------+       +------------------+
-        |                           |                            |
-        v                           v                            v
-   Lovable CDN              Lovable AI API              Row-Level Security
-  (Static Assets)          (Claude Models)                    RLS
++--------------------------------------------------+
+|            CONSULTANT COST ANCHOR                |
+|  "Typical business plan: $2,000-$5,000"          |
+|  "AIWMC Quantis: From $0"                        |
++--------------------------------------------------+
+|                                                  |
+|    [Monthly]  [ Annual - Save 17% ]              |
+|                                                  |
++--------------------------------------------------+
+|  FREE               |        PLUS                |
+|  $0/forever         |   $17/mo ($14/mo annual)   |
+|                     |     "Most Popular"         |
+|  - 3 analyses/mo    |   - Unlimited analyses     |
+|  - Basic projections|   - Document Intelligence  |
+|  - Email support    |   - PDF Export             |
+|                     |   - Custom branding        |
+|                     |                            |
+|  [Get Started]      |   [Start 14-Day Trial →]  |
+|                     |   "No credit card needed"  |
++--------------------------------------------------+
+|         MONEY-BACK GUARANTEE BANNER              |
+|  [Shield] 14-Day Money-Back Guarantee            |
++--------------------------------------------------+
+|         FEATURE COMPARISON TABLE                 |
++--------------------------------------------------+
+|         PRICING FAQ (Objection Handling)         |
++--------------------------------------------------+
+```
+
+### Phase 2: Price Anchoring Section
+
+Create a new component that shows the value comparison:
+
+| Approach | Cost | Time | Output |
+|----------|------|------|--------|
+| Hire Consultant | $2,000-$5,000 | 2-4 weeks | Business plan PDF |
+| DIY Research | $0 (your time) | 20+ hours | Spreadsheet estimates |
+| **AIWMC Quantis** | **$0-$17/mo** | **<2 minutes** | **Complete analysis + PDF** |
+
+### Phase 3: Annual/Monthly Toggle
+
+- Monthly: $17/month ($204/year)
+- Annual: $14/month ($168/year) - Save $36 (17%)
+- Use `useState` to toggle pricing display
+- Track toggle interactions via analytics
+
+### Phase 4: Value Stacking
+
+Transform feature list into quantified benefits:
+
+| Current | Optimized |
+|---------|-----------|
+| "Unlimited analyses" | "Unlimited analyses (worth $2,000+ in consultant fees)" |
+| "Document intelligence" | "AI Document Intelligence - extract data from any PDF/Excel" |
+| "PDF export" | "Bank-ready PDF reports for investors" |
+| "Custom branding" | "White-label reports with your logo" |
+
+### Phase 5: Urgency & Scarcity Elements
+
+Add subtle, truthful urgency:
+- "14-day free trial" with countdown timer (optional A/B test)
+- "Lock in current pricing" messaging for annual
+- Limited capacity messaging: "Analysis queue: Normal" (based on real system load)
+
+### Phase 6: A/B Testing Variants
+
+Extend existing A/B testing infrastructure with new pricing experiments:
+
+```typescript
+// In src/lib/abTesting.ts
+pricing_page: {
+  id: 'pricing_page_v1',
+  variants: ['control', 'value_anchor', 'comparison_table', 'annual_first'] as const,
+  weights: [0.25, 0.25, 0.25, 0.25],
+  trackExposure: true,
+}
+```
+
+**Variant Descriptions:**
+1. **Control**: Current simple pricing cards
+2. **Value Anchor**: Add consultant cost comparison header
+3. **Comparison Table**: Full feature comparison with checkmarks
+4. **Annual First**: Show annual pricing as default with savings highlighted
+
+### Phase 7: Conversion Tracking Enhancement
+
+Add granular tracking events:
+
+```typescript
+// New analytics events
+trackEvent('pricing_section_viewed', { variant, source });
+trackEvent('pricing_toggle_clicked', { from: 'monthly', to: 'annual' });
+trackEvent('pricing_faq_expanded', { question_id });
+trackEvent('pricing_cta_clicked', { plan, variant, billing_period });
 ```
 
 ---
 
-### Identified Bottlenecks & Solutions
+## Component Architecture
 
-#### 1. Single Point of Failure: `analyze-business` Monolith
+### New Files to Create
 
-**Current State**: One 3,676-line edge function handles:
-- Input validation
-- Benchmark lookup
-- Financial calculations
-- AI narration
-- Rate limiting
-- Usage tracking
+1. **`src/components/landing/PricingSection.tsx`** - Main optimized pricing section
+2. **`src/components/landing/PricingCard.tsx`** - Individual pricing card with A/B variants
+3. **`src/components/landing/ValueAnchor.tsx`** - Consultant cost comparison banner
+4. **`src/components/landing/PricingFAQ.tsx`** - Objection-handling FAQ subset
+5. **`src/components/landing/GuaranteeBanner.tsx`** - Money-back guarantee component
 
-**Risk at Scale**: Single cold start can cause 5-10s delays. Any crash affects all users.
+### Files to Modify
 
-**Solution**: Split into microservices
-
-| Service | Responsibility | Priority |
-|---------|---------------|----------|
-| `validate-input` | Input sanitization & validation | High |
-| `calculate-financials` | Deterministic calculations | High |
-| `ai-narrator` | GPT narration (isolate failures) | High |
-| `benchmark-lookup` | Database queries + caching | Medium |
-| `rate-limiter` | Centralized rate limiting | Medium |
+1. **`src/pages/Landing.tsx`** - Replace inline pricing with new PricingSection
+2. **`src/lib/abTesting.ts`** - Add new pricing experiments
+3. **`src/lib/analytics.ts`** - Add pricing-specific tracking events
 
 ---
 
-#### 2. Database Design Optimization
+## Optimized Copy
 
-**Current Issues**:
-- No indexes on frequently queried columns
-- `analyses.result` stores full JSON (~50KB per record)
-- No table partitioning for high-volume tables
+### Headlines
 
-**Recommendations**:
+| Element | Current | Optimized |
+|---------|---------|-----------|
+| Section Title | "Simple, Transparent Pricing" | "Know Exactly What You're Getting" |
+| Subtitle | "Start free and upgrade as you grow" | "Business analysis that costs less than a single consultant hour" |
 
-```sql
--- Add indexes for common queries
-CREATE INDEX idx_analyses_user_created ON analyses(user_id, created_at DESC);
-CREATE INDEX idx_analyses_team ON analyses(team_id) WHERE team_id IS NOT NULL;
-CREATE INDEX idx_benchmarks_industry ON industry_benchmarks(industry_id);
-CREATE INDEX idx_anonymous_usage_device ON anonymous_usage(device_id, created_at);
+### CTAs
 
--- Add table partitioning for anonymous_usage (expected high volume)
--- Archive analyses older than 1 year to cold storage
-```
+| Plan | Current | A/B Variants |
+|------|---------|--------------|
+| Free | "Get Started" | "Start Free Analysis" / "See My Numbers" |
+| Plus | "Start Free Trial" | "Start 14-Day Free Trial →" / "Try Plus Risk-Free" / "Unlock Full Analysis" |
 
----
+### Guarantee Copy
 
-#### 3. Caching Strategy (Currently Missing)
+**Banner Text:**
+"14-Day Money-Back Guarantee. Not satisfied? Get a full refund, no questions asked."
 
-**Current State**: Every benchmark lookup hits the database.
+### Social Proof (Verifiable Only)
 
-**Solution**: Multi-layer caching
-
-| Layer | What to Cache | TTL | Technology |
-|-------|---------------|-----|------------|
-| Edge | Industry benchmarks | 1 hour | Deno KV / in-memory |
-| Edge | Location multipliers | 24 hours | Deno KV |
-| Client | Analysis results | Session | React Query (already configured) |
-| CDN | Static assets | 1 year | Lovable CDN headers |
+Based on the marketing accuracy policy, only include verifiable statements:
+- "Powered by 1,000+ industry benchmarks"
+- "12-variable financial engine"
+- "Bank-grade encryption"
 
 ---
 
-#### 4. Connection Pooling
+## Pricing FAQ (Objection Handling)
 
-**Current State**: Each edge function creates new Supabase client connections.
+Separate objection-focused FAQ for pricing section:
 
-**Risk**: Connection exhaustion at 100+ concurrent users (Supabase default: 60 direct connections).
+1. **"Is the 14-day trial really free?"**
+   Yes, completely free. We don't charge your card until day 15, and you can cancel anytime before that.
 
-**Solution**:
-- Use Supabase's built-in pooler (already available)
-- Switch from direct connections to pooled connections in edge functions
-- Implement connection reuse patterns
+2. **"Can I downgrade after upgrading?"**
+   Absolutely. Cancel anytime and you'll automatically switch to the Free plan at the end of your billing period.
 
----
+3. **"Why is Plus so much cheaper than consultants?"**
+   Our AI does in 2 minutes what takes consultants weeks. We pass those savings to you.
 
-#### 5. Queue System for Heavy Operations
+4. **"What payment methods do you accept?"**
+   All major credit cards via Stripe. Your payment is encrypted and secure.
 
-**Current State**: PDF export runs synchronously, blocking user.
-
-**Recommendation**: Already have `export_jobs` table - ensure queue-export function handles:
-- Retry logic with exponential backoff
-- Dead letter queue for failed jobs
-- Status webhooks for completion
+5. **"Is there a contract or commitment?"**
+   No contracts. Cancel anytime with one click.
 
 ---
 
-#### 6. CDN Utilization
+## A/B Test Measurement Plan
 
-**Current State**: Static assets served from Lovable CDN without optimal cache headers.
+### Primary Metrics
 
-**Recommendations**:
-- Contact Lovable support to configure `Cache-Control: max-age=31536000, immutable` for `/assets/*`
-- Ensure content-hashed filenames (already done via Vite)
+| Metric | Description | Target |
+|--------|-------------|--------|
+| Pricing Section View Rate | % of landing visitors who scroll to pricing | Baseline: measure |
+| Plan Click Rate | Clicks on any pricing CTA / Section views | Improve 20%+ |
+| Trial Conversion Rate | Started trials / Pricing CTA clicks | Improve 15%+ |
+| Annual vs Monthly Mix | % choosing annual when visible | Target: 30% annual |
 
----
+### Secondary Metrics
 
-### Cost Projection at Scale
-
-| Daily Users | Analyses/Day | Est. Monthly Cost | Notes |
-|------------|--------------|-------------------|-------|
-| 1,000 | 500 | ~$50-100 | Current baseline |
-| 10,000 | 5,000 | ~$300-600 | Need caching layer |
-| 100,000 | 50,000 | ~$2,000-5,000 | Need microservices + dedicated pooler |
-
-**Cost Drivers**:
-- Lovable AI API usage (primary cost)
-- Supabase compute (edge function invocations)
-- Database storage and bandwidth
-- Stripe transaction fees (3% + 30¢)
-
----
-
-### Scaling Roadmap with Thresholds
-
-| Phase | Threshold | Actions Required | Timeline |
-|-------|-----------|-----------------|----------|
-| **Current** | <1K DAU | Monitor & observe | Now |
-| **Phase 1** | 1K-5K DAU | Add caching layer, DB indexes | Week 1-2 |
-| **Phase 2** | 5K-10K DAU | Split edge functions, connection pooling | Week 3-4 |
-| **Phase 3** | 10K-50K DAU | Dedicated compute, regional edge deployment | Month 2 |
-| **Phase 4** | 50K+ DAU | Multi-region DB, CDN optimization | Month 3+ |
-
----
-
-### Priority Implementation Order
-
-| # | Task | Impact | Effort | Risk if Skipped |
-|---|------|--------|--------|-----------------|
-| 1 | Add `<main>` landmark to Landing | Low | 5 min | Accessibility failures |
-| 2 | Fix heading hierarchy | Low | 10 min | WCAG violations |
-| 3 | Add database indexes | High | 30 min | Slow queries at scale |
-| 4 | Implement benchmark caching | High | 2 hours | DB overload |
-| 5 | Split analyze-business function | Medium | 1 day | Cold start issues |
-| 6 | Connection pooling | High | 1 hour | Connection exhaustion |
-| 7 | CDN cache headers | Medium | Support ticket | Repeated asset downloads |
+- FAQ expansion rate by question
+- Toggle interaction rate (monthly ↔ annual)
+- Scroll depth to guarantee banner
+- Time on pricing section
 
 ---
 
 ## Technical Implementation Details
 
-### Accessibility Fixes (Immediate)
+### PricingSection.tsx Structure
 
-**Landing.tsx Changes**:
 ```tsx
-// Wrap content after nav in <main>
-<main id="main-content" role="main">
-  <MobileHero />
-  {/* ... rest of content ... */}
-</main>
-```
-
-**DemoPreview.tsx Changes**:
-```tsx
-// Change h4 to h3 for proper hierarchy
-<h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
-  <CheckCircle2 className="w-4 h-4 text-success" />
-  Key Insights
-</h3>
-```
-
-### Database Index Migration
-```sql
--- Migration: add_performance_indexes
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analyses_user_created 
-  ON analyses(user_id, created_at DESC);
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_benchmarks_industry_keywords
-  ON industry_benchmarks USING gin(keywords);
-
-CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_anonymous_usage_device_time
-  ON anonymous_usage(device_id, created_at DESC);
-```
-
-### Edge Function Caching Pattern
-```typescript
-// In-memory cache for benchmarks (in edge function)
-const benchmarkCache = new Map<string, { data: any; expiry: number }>();
-const CACHE_TTL = 60 * 60 * 1000; // 1 hour
-
-function getCachedBenchmark(industryId: string) {
-  const cached = benchmarkCache.get(industryId);
-  if (cached && cached.expiry > Date.now()) {
-    return cached.data;
-  }
-  return null;
+export function PricingSection() {
+  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
+  const pricingVariant = useExperiment('pricing_display');
+  
+  useEffect(() => {
+    trackEvent('pricing_section_viewed', { variant: pricingVariant });
+  }, []);
+  
+  return (
+    <section id="pricing" className="...">
+      <ValueAnchor variant={pricingVariant} />
+      <BillingToggle value={billingPeriod} onChange={setBillingPeriod} />
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <PricingCard plan="free" billingPeriod={billingPeriod} />
+        <PricingCard plan="plus" billingPeriod={billingPeriod} highlighted />
+      </div>
+      <GuaranteeBanner />
+      <FeatureComparisonTable />
+      <PricingFAQ />
+    </section>
+  );
 }
+```
+
+### Annual Pricing Logic
+
+```typescript
+const PRICING = {
+  plus: {
+    monthly: { price: 17, period: 'mo' },
+    annual: { price: 14, period: 'mo', totalYear: 168, savings: 36 },
+  }
+};
 ```
 
 ---
 
-## Summary
+## Implementation Priority
 
-This plan addresses:
+| Priority | Task | Effort | Expected Impact |
+|----------|------|--------|-----------------|
+| 1 | Create PricingSection component with value anchor | 2h | High |
+| 2 | Add annual/monthly billing toggle | 1h | Medium-High |
+| 3 | Implement guarantee banner | 30m | Medium |
+| 4 | Add pricing-specific FAQ section | 1h | Medium |
+| 5 | Set up A/B testing variants | 1h | High (data) |
+| 6 | Add conversion tracking | 30m | High (measurement) |
+| 7 | Feature comparison table | 1h | Medium |
 
-1. **Accessibility**: 2 quick fixes for WCAG compliance
-2. **Scalability**: 7-step roadmap from 1K to 100K DAU
-3. **Performance**: Caching, indexing, and connection pooling
-4. **Architecture**: Microservice extraction plan for the monolith
-5. **Cost**: Projected costs at different scale points
+---
 
-The current architecture is solid for MVP scale (~1K DAU). Implementing the Phase 1 changes (caching + indexes) will support 5K+ DAU. The microservice split in Phase 2 prepares for 10K+ DAU.
+## Success Criteria
+
+After 2 weeks of A/B testing:
+- Identify winning variant with statistical significance (p<0.05)
+- Achieve 15%+ improvement in trial start rate
+- Achieve 25%+ of Plus subscribers choosing annual billing
+- Reduce pricing-related support tickets by tracking FAQ engagement
 
