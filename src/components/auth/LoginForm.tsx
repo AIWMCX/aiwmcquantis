@@ -88,16 +88,10 @@ export function LoginForm({ onSuccess, onForgotPassword, returnUrl, className }:
       const { error } = await signIn(data.email, data.password);
 
       if (error) {
-        if (error.message.includes('Invalid login credentials')) {
-          toast.error('Invalid email or password');
-          trackEvent('login_error', { reason: 'invalid_credentials' });
-        } else if (error.message.includes('Email not confirmed')) {
-          toast.error('Please verify your email first');
-          trackEvent('login_error', { reason: 'email_not_confirmed' });
-        } else {
-          toast.error(error.message || 'Failed to sign in');
-          trackEvent('login_error', { reason: 'unknown', message: error.message });
-        }
+        // SECURITY: Generic message prevents user enumeration attacks
+        // Attackers cannot determine if an email is registered
+        toast.error('Unable to sign in. Please check your credentials.');
+        trackEvent('login_error', { reason: 'auth_failed' });
         setIsLoading(false);
         return;
       }
