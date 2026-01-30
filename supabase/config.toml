@@ -56,3 +56,9 @@ verify_jwt = false
 
 [functions.send-lead-magnet]
 verify_jwt = false
+
+[functions.send-lifecycle-email]
+verify_jwt = false
+
+[functions.check-churn-signals]
+verify_jwt = false

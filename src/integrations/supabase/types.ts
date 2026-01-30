@@ -245,6 +245,84 @@ export type Database = {
         }
         Relationships: []
       }
+      email_sequence_log: {
+        Row: {
+          id: string
+          sent_at: string
+          sequence_name: string
+          step_number: number
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          sent_at?: string
+          sequence_name: string
+          step_number: number
+          user_id: string
+        }
+        Update: {
+          id?: string
+          sent_at?: string
+          sequence_name?: string
+          step_number?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "email_sequence_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "email_sequence_log_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      email_sequences: {
+        Row: {
+          created_at: string
+          delay_hours: number
+          id: string
+          is_active: boolean
+          sequence_name: string
+          skip_if_conditions: Json | null
+          step_number: number
+          subject: string
+          template_key: string
+          trigger_condition: Json | null
+        }
+        Insert: {
+          created_at?: string
+          delay_hours: number
+          id?: string
+          is_active?: boolean
+          sequence_name: string
+          skip_if_conditions?: Json | null
+          step_number: number
+          subject: string
+          template_key: string
+          trigger_condition?: Json | null
+        }
+        Update: {
+          created_at?: string
+          delay_hours?: number
+          id?: string
+          is_active?: boolean
+          sequence_name?: string
+          skip_if_conditions?: Json | null
+          step_number?: number
+          subject?: string
+          template_key?: string
+          trigger_condition?: Json | null
+        }
+        Relationships: []
+      }
       export_jobs: {
         Row: {
           analysis_id: string
@@ -1135,6 +1213,135 @@ export type Database = {
         }
         Relationships: []
       }
+      user_engagement: {
+        Row: {
+          activity_score: number
+          churn_risk_score: number
+          created_at: string
+          current_streak: number
+          email_frequency: string
+          engagement_tier: string
+          id: string
+          last_active_date: string | null
+          last_digest_sent: string | null
+          longest_streak: number
+          milestones_achieved: Json
+          total_analyses: number
+          total_exports: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          activity_score?: number
+          churn_risk_score?: number
+          created_at?: string
+          current_streak?: number
+          email_frequency?: string
+          engagement_tier?: string
+          id?: string
+          last_active_date?: string | null
+          last_digest_sent?: string | null
+          longest_streak?: number
+          milestones_achieved?: Json
+          total_analyses?: number
+          total_exports?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          activity_score?: number
+          churn_risk_score?: number
+          created_at?: string
+          current_streak?: number
+          email_frequency?: string
+          engagement_tier?: string
+          id?: string
+          last_active_date?: string | null
+          last_digest_sent?: string | null
+          longest_streak?: number
+          milestones_achieved?: Json
+          total_analyses?: number
+          total_exports?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_engagement_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_notifications: {
+        Row: {
+          action_label: string | null
+          action_url: string | null
+          created_at: string
+          expires_at: string | null
+          icon: string | null
+          id: string
+          is_dismissed: boolean
+          is_read: boolean
+          message: string
+          notification_type: string
+          title: string
+          user_id: string
+        }
+        Insert: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          icon?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message: string
+          notification_type: string
+          title: string
+          user_id: string
+        }
+        Update: {
+          action_label?: string | null
+          action_url?: string | null
+          created_at?: string
+          expires_at?: string | null
+          icon?: string | null
+          id?: string
+          is_dismissed?: boolean
+          is_read?: boolean
+          message?: string
+          notification_type?: string
+          title?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "user_notifications_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null
@@ -1366,6 +1573,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -1375,6 +1583,10 @@ export type Database = {
       }
       increment_api_key_usage: {
         Args: { p_key_id: string }
+        Returns: undefined
+      }
+      increment_export_count: {
+        Args: { p_user_id: string }
         Returns: undefined
       }
       increment_usage: {
