@@ -1,144 +1,65 @@
-# Implementation Plan: Cron Jobs, Notification Testing & Weekly Insights Newsletter
 
-## Status: READY FOR IMPLEMENTATION
+# Implementation Ready: CRON_SECRET Confirmed
 
-**CRON_SECRET has been added** - Confirmed in project secrets.
+The `CRON_SECRET` has been successfully added to your project secrets. Now I'm ready to implement the complete solution.
 
 ---
 
-## Implementation Summary
+## What I'll Build
 
-### Files to Create
+### 1. Database Migration
+Create the `newsletter_sends` table to track email sends and add `unsubscribed_at` column to leads for compliance.
 
-#### 1. `supabase/functions/send-weekly-insights/index.ts`
-
-Weekly insights newsletter Edge Function that:
-- Validates CRON_SECRET for authentication
-- Queries newsletter subscribers from leads table
-- Sends curated AI & business insights via Resend
+### 2. Edge Function: `send-weekly-insights`
+Weekly newsletter that runs every Saturday at 12:00 PM UTC:
+- Fetches subscribers from leads table (`offer = 'newsletter'`)
+- Decrypts emails using existing `decrypt_pii` function
+- Sends curated industry-specific content (no generic filler)
 - Tracks sends to prevent duplicates
-- Includes professional unsubscribe links
+- Includes proper unsubscribe links for compliance
 
-#### 2. `supabase/functions/newsletter-unsubscribe/index.ts`
-
-Unsubscribe handler that:
+### 3. Edge Function: `newsletter-unsubscribe`
+Handles one-click unsubscribe:
 - Marks leads as unsubscribed
-- Shows a confirmation page
-- Complies with email regulations
+- Shows a styled confirmation page
+- Complies with email regulations (List-Unsubscribe header)
 
-### Database Migration Required
+### 4. Config Updates
+Register both new functions in `supabase/config.toml`
 
-```sql
--- Add newsletter tracking table
-CREATE TABLE IF NOT EXISTS public.newsletter_sends (
-  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  lead_id uuid REFERENCES public.leads(id) ON DELETE CASCADE,
-  send_date date NOT NULL,
-  email_id text,
-  created_at timestamptz DEFAULT now(),
-  UNIQUE(lead_id, send_date)
-);
+### 5. Notification Bell Testing
+Test the in-app notification system by inserting a test notification
 
--- Enable RLS
-ALTER TABLE public.newsletter_sends ENABLE ROW LEVEL SECURITY;
+---
 
--- Service role access only
-CREATE POLICY "Service role manages newsletter_sends"
-  ON public.newsletter_sends FOR ALL
-  USING (public.is_service_role())
-  WITH CHECK (public.is_service_role());
+## Email Content Preview
 
--- Deny anonymous access
-CREATE POLICY "Deny anonymous access to newsletter_sends"
-  ON public.newsletter_sends FOR ALL
-  TO anon
-  USING (false);
+Each Saturday email includes:
 
--- Add index for efficient queries
-CREATE INDEX IF NOT EXISTS idx_newsletter_sends_date 
-  ON public.newsletter_sends(send_date);
+| Section | Content Type |
+|---------|-------------|
+| AI Spotlight | Industry-specific AI developments |
+| Business Tip | Actionable financial/operational advice |
+| Platform Update | New features in Quantis |
+| Free Resource | Downloadable templates (rotating) |
 
-CREATE INDEX IF NOT EXISTS idx_newsletter_sends_lead 
-  ON public.newsletter_sends(lead_id);
-
--- Add unsubscribe tracking to leads table
-ALTER TABLE public.leads 
-  ADD COLUMN IF NOT EXISTS unsubscribed_at timestamptz DEFAULT NULL;
-```
-
-### Config.toml Updates
-
-Add to `supabase/config.toml`:
-```toml
-[functions.send-weekly-insights]
-verify_jwt = false
-
-[functions.newsletter-unsubscribe]
-verify_jwt = false
-```
+**Sample Subject**: "Week 5: Agentic AI in Small Business"
 
 ---
 
 ## Cron Schedule
 
-| Function | Schedule | Time (UTC) | Purpose |
-|----------|----------|------------|---------|
-| `check-churn-signals` | Daily | 8:00 AM | Churn detection & interventions |
-| `send-weekly-insights` | Weekly | Saturday 12:00 PM | Newsletter to subscribers |
-
-### Setting Up Cron Jobs
-
-Use pg_cron with these schedules:
-
-```sql
--- Daily churn check at 8:00 AM UTC
-SELECT cron.schedule(
-  'daily-churn-check',
-  '0 8 * * *',
-  $$
-  SELECT net.http_post(
-    url := 'https://gafxacjhkqsdzwwzhbor.supabase.co/functions/v1/check-churn-signals',
-    headers := '{"Content-Type": "application/json", "x-cron-secret": "YOUR_CRON_SECRET"}'::jsonb,
-    body := '{}'::jsonb
-  ) AS request_id;
-  $$
-);
-
--- Weekly newsletter on Saturday at 12:00 PM UTC
-SELECT cron.schedule(
-  'weekly-insights-newsletter',
-  '0 12 * * 6',
-  $$
-  SELECT net.http_post(
-    url := 'https://gafxacjhkqsdzwwzhbor.supabase.co/functions/v1/send-weekly-insights',
-    headers := '{"Content-Type": "application/json", "x-cron-secret": "YOUR_CRON_SECRET"}'::jsonb,
-    body := '{}'::jsonb
-  ) AS request_id;
-  $$
-);
-```
+| Function | Schedule | Purpose |
+|----------|----------|---------|
+| `check-churn-signals` | Daily 8:00 AM UTC | Automated retention |
+| `send-weekly-insights` | Saturday 12:00 PM UTC | Newsletter delivery |
 
 ---
 
-## Testing Checklist
+## Next Steps After Approval
 
-- [ ] Deploy send-weekly-insights function
-- [ ] Deploy newsletter-unsubscribe function
-- [ ] Run database migration
-- [ ] Test notification bell in header
-- [ ] Manually test weekly insights function
-- [ ] Verify unsubscribe link works
-
----
-
-## Email Content Strategy
-
-The weekly insights email includes:
-
-1. **AI Spotlight** - Industry-specific AI developments
-2. **Business Tip** - Actionable business advice
-3. **Platform Update** - New features and improvements
-4. **Free Resource** (rotating) - Downloadable templates or guides
-
-**NO generic "thank you" content** - only valuable insights.
-
+1. Run database migration
+2. Create both Edge Functions
+3. Update config.toml
+4. Deploy and test
+5. Verify notification bell works
