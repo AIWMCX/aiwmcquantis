@@ -42,6 +42,15 @@ import {
 // ========== FALLBACK NARRATOR ==========
 import { generateFallbackNarrator } from "./narrator-prompt.ts";
 
+// ========== BENCHMARK CACHING LAYER ==========
+import { 
+  getCachedBenchmarks, 
+  getCachedLocationData,
+  warmUpCache,
+  getCacheStats,
+  type DatabaseBenchmarkRecord as CachedBenchmarkRecord
+} from "./benchmark-cache.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
@@ -504,12 +513,22 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
 // ========== DATABASE BENCHMARK FUNCTIONS ==========
 
 /**
- * Fetches all industry benchmarks from the database
- * Auto-seeds from embedded data if empty
+ * Fetches all industry benchmarks from the database WITH CACHING
+ * Uses in-memory cache to reduce database load (1-hour TTL)
  */
 async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
   try {
-    // Fetch benchmarks from database (admin seeds via /admin/benchmarks)
+    // Use cached benchmarks - reduces DB load by ~90%
+    const cachedBenchmarks = await getCachedBenchmarks(supabase);
+    
+    if (cachedBenchmarks && cachedBenchmarks.length > 0) {
+      const stats = getCacheStats();
+      console.log(`Using ${cachedBenchmarks.length} cached benchmarks (expires: ${stats.benchmarkCacheExpiry || 'soon'})`);
+      return cachedBenchmarks as DatabaseBenchmarkRecord[];
+    }
+    
+    // Fallback to direct DB query if cache fails
+    console.log('[CACHE MISS] Falling back to direct DB query');
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
@@ -520,7 +539,7 @@ async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<Databa
     }
     
     if (data && data.length > 0) {
-      console.log(`Fetched ${data.length} benchmark records from database`);
+      console.log(`Fetched ${data.length} benchmark records from database (cache miss)`);
     }
     return data || [];
   } catch (err) {

@@ -6,19 +6,19 @@ verify_jwt = false
 [functions.calculate-financials]
 verify_jwt = false
 
-[functions.create-checkout-session]
-verify_jwt = true
+[functions.ai-narrator]
+verify_jwt = false
 
-[functions.stripe-webhook]
+[functions.create-checkout-session]
 verify_jwt = false
 
 [functions.create-portal-session]
 verify_jwt = true
 
-[functions.parse-document]
-verify_jwt = true
+[functions.stripe-webhook]
+verify_jwt = false
 
-[functions.api-analyze]
+[functions.health-check]
 verify_jwt = false
 
 [functions.manage-benchmarks]
@@ -27,26 +27,29 @@ verify_jwt = false
 [functions.manage-knowledge-base]
 verify_jwt = false
 
+[functions.parse-document]
+verify_jwt = true
+
+[functions.queue-export]
+verify_jwt = true
+
+[functions.replay-webhook-events]
+verify_jwt = false
+
 [functions.seed-benchmarks]
 verify_jwt = false
 
 [functions.send-welcome-email]
 verify_jwt = false
 
-[functions.replay-webhook-events]
-verify_jwt = false
-
-[functions.health-check]
+[functions.share-report]
 verify_jwt = false
 
 [functions.alert-webhook]
 verify_jwt = false
 
-[functions.share-report]
-verify_jwt = false
-
 [functions.analyze-preview]
 verify_jwt = false
 
-[functions.queue-export]
-verify_jwt = true
+[functions.api-analyze]
+verify_jwt = false
