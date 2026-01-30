@@ -1,290 +1,357 @@
 
-
-# Pricing Page Conversion Optimization Plan
-
-## Executive Summary
-
-Transform the current simple pricing section into a high-converting pricing page with psychological triggers, value anchoring, and comprehensive A/B testing infrastructure.
-
----
+# Strategic Email Capture System Implementation Plan
 
 ## Current State Analysis
 
-### Existing Pricing Section (Lines 289-347 in Landing.tsx)
+### Existing Infrastructure
 
-**Strengths:**
-- Clean 2-column layout
-- 14-day trial badge on Plus
-- "Most Popular" highlight
-- Clear feature lists
+**Already Implemented:**
+- Exit intent popup (`ExitIntentPopup.tsx`) with validated email capture
+- `leads` table with AES-256 encrypted email storage and SHA-256 hashing for deduplication
+- `capture_lead` RPC function with 24-hour duplicate prevention
+- `useExitIntent` hook with desktop mouse-leave and mobile scroll-back detection
+- `send-welcome-email` edge function for automated email delivery
+- Lead memory system (`leadMemory.ts`) for auth form prefilling
+- Basic analytics tracking for popup events
 
-**Weaknesses:**
-- No price anchoring (consultant cost comparison)
-- No urgency elements
-- No money-back guarantee prominence
-- No annual/monthly toggle (potential 20%+ revenue boost)
-- No social proof on pricing
-- Weak FAQ integration with pricing objections
-- No value stacking or ROI comparison
-- CTAs not optimized (generic "Start Free Trial")
+**Current Lead Sources:**
+- Only `exit_intent_popup` with offer `free_analysis` (3 leads captured so far)
 
 ---
 
-## Implementation Plan
+## Proposed Email Capture System
 
-### Phase 1: New Dedicated Pricing Section Component
-
-Create `src/components/landing/PricingSection.tsx` with the following structure:
+### Architecture Overview
 
 ```text
-+--------------------------------------------------+
-|            CONSULTANT COST ANCHOR                |
-|  "Typical business plan: $2,000-$5,000"          |
-|  "AIWMC Quantis: From $0"                        |
-+--------------------------------------------------+
-|                                                  |
-|    [Monthly]  [ Annual - Save 17% ]              |
-|                                                  |
-+--------------------------------------------------+
-|  FREE               |        PLUS                |
-|  $0/forever         |   $17/mo ($14/mo annual)   |
-|                     |     "Most Popular"         |
-|  - 3 analyses/mo    |   - Unlimited analyses     |
-|  - Basic projections|   - Document Intelligence  |
-|  - Email support    |   - PDF Export             |
-|                     |   - Custom branding        |
-|                     |                            |
-|  [Get Started]      |   [Start 14-Day Trial →]  |
-|                     |   "No credit card needed"  |
-+--------------------------------------------------+
-|         MONEY-BACK GUARANTEE BANNER              |
-|  [Shield] 14-Day Money-Back Guarantee            |
-+--------------------------------------------------+
-|         FEATURE COMPARISON TABLE                 |
-+--------------------------------------------------+
-|         PRICING FAQ (Objection Handling)         |
-+--------------------------------------------------+
++---------------------------+       +------------------------+       +------------------+
+|    Capture Components     |       |   Unified Lead Hook    |       |   Backend        |
++---------------------------+       +------------------------+       +------------------+
+| ExitIntentPopup (existing)|       |                        |       |                  |
+| ScrollTriggerPopup (new)  | ----> | useLeadCapture hook    | ----> | capture_lead RPC |
+| TimeDelayPopup (new)      |       | - Unified state        |       | send-welcome-    |
+| FooterNewsletterForm      |       | - Cooldown management  |       |   email          |
+| FeatureWaitlist (new)     |       | - Analytics tracking   |       | send-lead-magnet |
+| ResourceDownload (new)    |       +------------------------+       +------------------+
++---------------------------+               |
+                                            v
+                                   +------------------+
+                                   | PopupManager     |
+                                   | - Priority queue |
+                                   | - Prevents spam  |
+                                   +------------------+
 ```
 
-### Phase 2: Price Anchoring Section
+---
 
-Create a new component that shows the value comparison:
+## New Components to Create
 
-| Approach | Cost | Time | Output |
-|----------|------|------|--------|
-| Hire Consultant | $2,000-$5,000 | 2-4 weeks | Business plan PDF |
-| DIY Research | $0 (your time) | 20+ hours | Spreadsheet estimates |
-| **AIWMC Quantis** | **$0-$17/mo** | **<2 minutes** | **Complete analysis + PDF** |
+### 1. Unified Lead Capture Hook
 
-### Phase 3: Annual/Monthly Toggle
+**File:** `src/hooks/useLeadCapture.ts`
 
-- Monthly: $17/month ($204/year)
-- Annual: $14/month ($168/year) - Save $36 (17%)
-- Use `useState` to toggle pricing display
-- Track toggle interactions via analytics
+Consolidates all lead capture logic with:
+- Centralized state management for all popup types
+- Priority system (only show 1 popup at a time)
+- Cooldown tracking per offer type
+- Unified analytics events
+- Lead magnet fulfillment tracking
 
-### Phase 4: Value Stacking
+### 2. Popup Manager Component
 
-Transform feature list into quantified benefits:
+**File:** `src/components/marketing/PopupManager.tsx`
 
-| Current | Optimized |
-|---------|-----------|
-| "Unlimited analyses" | "Unlimited analyses (worth $2,000+ in consultant fees)" |
-| "Document intelligence" | "AI Document Intelligence - extract data from any PDF/Excel" |
-| "PDF export" | "Bank-ready PDF reports for investors" |
-| "Custom branding" | "White-label reports with your logo" |
+- Renders active popup based on priority queue
+- Prevents multiple simultaneous popups
+- Coordinates between exit intent, scroll, and time triggers
 
-### Phase 5: Urgency & Scarcity Elements
+### 3. Scroll-Triggered Popup
 
-Add subtle, truthful urgency:
-- "14-day free trial" with countdown timer (optional A/B test)
-- "Lock in current pricing" messaging for annual
-- Limited capacity messaging: "Analysis queue: Normal" (based on real system load)
+**File:** `src/components/marketing/ScrollTriggerPopup.tsx`
 
-### Phase 6: A/B Testing Variants
+- Triggers at 50% scroll depth
+- Different offer: "Business Validation Checklist"
+- Uses existing popup styling for consistency
 
-Extend existing A/B testing infrastructure with new pricing experiments:
+### 4. Time-Delayed Popup
+
+**File:** `src/components/marketing/TimeDelayPopup.tsx`
+
+- Triggers after 30 seconds on page
+- Offer: "Financial Projection Template"
+- Lower priority than exit intent
+
+### 5. Footer Newsletter Signup
+
+**File:** `src/components/layout/FooterEmailSignup.tsx`
+
+- Inline form in footer (replaces current static footer)
+- Offer: "Weekly Business Insights"
+- Always visible, non-intrusive
+
+### 6. Feature Waitlist Component
+
+**File:** `src/components/marketing/FeatureWaitlist.tsx`
+
+- Modal for early access to new features
+- Triggered from pricing page or feature announcements
+- Offer: "early_access"
+
+### 7. Resource Download Gate
+
+**File:** `src/components/marketing/ResourceDownload.tsx`
+
+- Email-gated PDF downloads
+- Multiple offers: `business_guide`, `validation_questions`, `projection_template`
+
+---
+
+## Lead Magnet System
+
+### New Storage Bucket
+
+Create `lead-magnets` public bucket for PDF resources.
+
+### Lead Magnet Edge Function
+
+**File:** `supabase/functions/send-lead-magnet/index.ts`
+
+Sends appropriate PDF based on `offer` type:
+- `free_analysis` - Welcome + CTA to app
+- `business_guide` - Business Analysis Guide PDF
+- `validation_questions` - 10 Questions PDF
+- `projection_template` - Financial Template PDF
+- `newsletter` - Weekly digest signup confirmation
+- `early_access` - Feature waitlist confirmation
+
+### Lead Magnet PDFs
+
+| Lead Magnet | Filename | Purpose |
+|-------------|----------|---------|
+| Business Analysis Guide | `business-analysis-guide.pdf` | Comprehensive PDF on evaluating business ideas |
+| 10 Validation Questions | `10-validation-questions.pdf` | Checklist for idea validation |
+| Financial Template | `financial-projection-template.pdf` | Spreadsheet-style template |
+
+---
+
+## Database Optimizations
+
+### Add New Source Types
+
+Extend `capture_lead` function to support new sources:
+
+```sql
+-- Valid sources for tracking
+-- exit_intent_popup (existing)
+-- scroll_popup
+-- time_delay_popup
+-- footer_newsletter
+-- resource_download
+-- feature_waitlist
+-- blog_cta
+```
+
+### Add Lead Scoring Column
+
+```sql
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS score integer DEFAULT 0;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS converted_at timestamptz;
+ALTER TABLE leads ADD COLUMN IF NOT EXISTS conversion_type text;
+```
+
+**Scoring Logic:**
+- +10: Email captured
+- +20: Opened welcome email (requires email tracking pixel)
+- +50: Created account
+- +100: Started trial
+- +200: Converted to paid
+
+### Add Indexes for Analytics
+
+```sql
+CREATE INDEX idx_leads_source_offer ON leads(source, offer);
+CREATE INDEX idx_leads_score ON leads(score DESC) WHERE converted_at IS NULL;
+```
+
+---
+
+## Trigger Configuration
+
+### Priority System
+
+| Priority | Trigger | Delay | Scroll Depth | Cooldown |
+|----------|---------|-------|--------------|----------|
+| 1 (High) | Exit Intent | 0s | N/A | 14 days (submit) / 4 hours (dismiss) |
+| 2 | Scroll Trigger | N/A | 50% | 24 hours |
+| 3 | Time Delay | 30s | N/A | 48 hours |
+| N/A | Footer Signup | Always visible | N/A | None (inline) |
+| N/A | Resource Download | On click | N/A | Per resource |
+
+### Popup Suppression Rules
+
+- Never show popup to authenticated users
+- Never show popup if user has converted (signed up)
+- Maximum 1 popup per session
+- Respect individual cooldowns per trigger type
+
+---
+
+## Email Sequence Outline
+
+### Sequence 1: Lead Magnet Delivery
+
+**Day 0 - Immediate:**
+- Subject: "Your [Lead Magnet Name] is Ready!"
+- Content: Download link + brief intro to AIWMC Quantis
+- CTA: "Start Your Free Analysis"
+
+**Day 2 - Value Add:**
+- Subject: "3 Mistakes That Kill Business Ideas"
+- Content: Educational content related to their lead magnet
+- CTA: "Analyze Your Idea in 2 Minutes"
+
+**Day 5 - Social Proof:**
+- Subject: "How [Anonymous Industry] Analyzed Their Idea"
+- Content: Case study / success story
+- CTA: "See What Your Numbers Look Like"
+
+**Day 10 - Urgency:**
+- Subject: "Your free analyses are waiting"
+- Content: Reminder of free tier benefits
+- CTA: "Use Your 3 Free Analyses"
+
+### Sequence 2: Newsletter Subscribers
+
+Weekly digest with:
+- 1 business tip
+- 1 industry insight
+- 1 product update
+- CTA to analyze a business idea
+
+---
+
+## Analytics Tracking
+
+### New Events
 
 ```typescript
-// In src/lib/abTesting.ts
-pricing_page: {
-  id: 'pricing_page_v1',
-  variants: ['control', 'value_anchor', 'comparison_table', 'annual_first'] as const,
-  weights: [0.25, 0.25, 0.25, 0.25],
-  trackExposure: true,
-}
-```
+// Popup events
+trackEvent('popup_triggered', { type, source, offer });
+trackEvent('popup_viewed', { type, source, offer });
+trackEvent('popup_dismissed', { type, source, offer, time_on_popup });
+trackEvent('popup_converted', { type, source, offer, email_domain });
 
-**Variant Descriptions:**
-1. **Control**: Current simple pricing cards
-2. **Value Anchor**: Add consultant cost comparison header
-3. **Comparison Table**: Full feature comparison with checkmarks
-4. **Annual First**: Show annual pricing as default with savings highlighted
+// Lead magnet events
+trackEvent('lead_magnet_requested', { offer, source });
+trackEvent('lead_magnet_downloaded', { offer, source });
 
-### Phase 7: Conversion Tracking Enhancement
+// Newsletter events
+trackEvent('newsletter_subscribed', { source });
+trackEvent('newsletter_unsubscribed', { reason });
 
-Add granular tracking events:
-
-```typescript
-// New analytics events
-trackEvent('pricing_section_viewed', { variant, source });
-trackEvent('pricing_toggle_clicked', { from: 'monthly', to: 'annual' });
-trackEvent('pricing_faq_expanded', { question_id });
-trackEvent('pricing_cta_clicked', { plan, variant, billing_period });
-```
-
----
-
-## Component Architecture
-
-### New Files to Create
-
-1. **`src/components/landing/PricingSection.tsx`** - Main optimized pricing section
-2. **`src/components/landing/PricingCard.tsx`** - Individual pricing card with A/B variants
-3. **`src/components/landing/ValueAnchor.tsx`** - Consultant cost comparison banner
-4. **`src/components/landing/PricingFAQ.tsx`** - Objection-handling FAQ subset
-5. **`src/components/landing/GuaranteeBanner.tsx`** - Money-back guarantee component
-
-### Files to Modify
-
-1. **`src/pages/Landing.tsx`** - Replace inline pricing with new PricingSection
-2. **`src/lib/abTesting.ts`** - Add new pricing experiments
-3. **`src/lib/analytics.ts`** - Add pricing-specific tracking events
-
----
-
-## Optimized Copy
-
-### Headlines
-
-| Element | Current | Optimized |
-|---------|---------|-----------|
-| Section Title | "Simple, Transparent Pricing" | "Know Exactly What You're Getting" |
-| Subtitle | "Start free and upgrade as you grow" | "Business analysis that costs less than a single consultant hour" |
-
-### CTAs
-
-| Plan | Current | A/B Variants |
-|------|---------|--------------|
-| Free | "Get Started" | "Start Free Analysis" / "See My Numbers" |
-| Plus | "Start Free Trial" | "Start 14-Day Free Trial →" / "Try Plus Risk-Free" / "Unlock Full Analysis" |
-
-### Guarantee Copy
-
-**Banner Text:**
-"14-Day Money-Back Guarantee. Not satisfied? Get a full refund, no questions asked."
-
-### Social Proof (Verifiable Only)
-
-Based on the marketing accuracy policy, only include verifiable statements:
-- "Powered by 1,000+ industry benchmarks"
-- "12-variable financial engine"
-- "Bank-grade encryption"
-
----
-
-## Pricing FAQ (Objection Handling)
-
-Separate objection-focused FAQ for pricing section:
-
-1. **"Is the 14-day trial really free?"**
-   Yes, completely free. We don't charge your card until day 15, and you can cancel anytime before that.
-
-2. **"Can I downgrade after upgrading?"**
-   Absolutely. Cancel anytime and you'll automatically switch to the Free plan at the end of your billing period.
-
-3. **"Why is Plus so much cheaper than consultants?"**
-   Our AI does in 2 minutes what takes consultants weeks. We pass those savings to you.
-
-4. **"What payment methods do you accept?"**
-   All major credit cards via Stripe. Your payment is encrypted and secure.
-
-5. **"Is there a contract or commitment?"**
-   No contracts. Cancel anytime with one click.
-
----
-
-## A/B Test Measurement Plan
-
-### Primary Metrics
-
-| Metric | Description | Target |
-|--------|-------------|--------|
-| Pricing Section View Rate | % of landing visitors who scroll to pricing | Baseline: measure |
-| Plan Click Rate | Clicks on any pricing CTA / Section views | Improve 20%+ |
-| Trial Conversion Rate | Started trials / Pricing CTA clicks | Improve 15%+ |
-| Annual vs Monthly Mix | % choosing annual when visible | Target: 30% annual |
-
-### Secondary Metrics
-
-- FAQ expansion rate by question
-- Toggle interaction rate (monthly ↔ annual)
-- Scroll depth to guarantee banner
-- Time on pricing section
-
----
-
-## Technical Implementation Details
-
-### PricingSection.tsx Structure
-
-```tsx
-export function PricingSection() {
-  const [billingPeriod, setBillingPeriod] = useState<'monthly' | 'annual'>('monthly');
-  const pricingVariant = useExperiment('pricing_display');
-  
-  useEffect(() => {
-    trackEvent('pricing_section_viewed', { variant: pricingVariant });
-  }, []);
-  
-  return (
-    <section id="pricing" className="...">
-      <ValueAnchor variant={pricingVariant} />
-      <BillingToggle value={billingPeriod} onChange={setBillingPeriod} />
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <PricingCard plan="free" billingPeriod={billingPeriod} />
-        <PricingCard plan="plus" billingPeriod={billingPeriod} highlighted />
-      </div>
-      <GuaranteeBanner />
-      <FeatureComparisonTable />
-      <PricingFAQ />
-    </section>
-  );
-}
-```
-
-### Annual Pricing Logic
-
-```typescript
-const PRICING = {
-  plus: {
-    monthly: { price: 17, period: 'mo' },
-    annual: { price: 14, period: 'mo', totalYear: 168, savings: 36 },
-  }
-};
+// Waitlist events
+trackEvent('waitlist_joined', { feature, source });
 ```
 
 ---
 
 ## Implementation Priority
 
-| Priority | Task | Effort | Expected Impact |
-|----------|------|--------|-----------------|
-| 1 | Create PricingSection component with value anchor | 2h | High |
-| 2 | Add annual/monthly billing toggle | 1h | Medium-High |
-| 3 | Implement guarantee banner | 30m | Medium |
-| 4 | Add pricing-specific FAQ section | 1h | Medium |
-| 5 | Set up A/B testing variants | 1h | High (data) |
-| 6 | Add conversion tracking | 30m | High (measurement) |
-| 7 | Feature comparison table | 1h | Medium |
+| Phase | Component | Effort | Impact |
+|-------|-----------|--------|--------|
+| 1 | `useLeadCapture` unified hook | 2h | Foundation |
+| 1 | Footer email signup form | 1h | High (always visible) |
+| 1 | Database indexes + score column | 30m | Analytics |
+| 2 | Scroll-triggered popup | 1.5h | Medium |
+| 2 | Time-delayed popup | 1h | Medium |
+| 2 | PopupManager coordinator | 1h | Prevents conflicts |
+| 3 | Resource download gate | 2h | High (lead magnets) |
+| 3 | `send-lead-magnet` edge function | 1.5h | Delivery |
+| 3 | Lead magnet PDFs storage setup | 30m | Content |
+| 4 | Feature waitlist component | 1h | Feature launches |
+| 4 | A/B testing for popup copy | 1h | Optimization |
 
 ---
 
-## Success Criteria
+## Files to Create/Modify
 
-After 2 weeks of A/B testing:
-- Identify winning variant with statistical significance (p<0.05)
-- Achieve 15%+ improvement in trial start rate
-- Achieve 25%+ of Plus subscribers choosing annual billing
-- Reduce pricing-related support tickets by tracking FAQ engagement
+### New Files (11)
 
+1. `src/hooks/useLeadCapture.ts`
+2. `src/hooks/usePopupManager.ts`
+3. `src/components/marketing/PopupManager.tsx`
+4. `src/components/marketing/ScrollTriggerPopup.tsx`
+5. `src/components/marketing/TimeDelayPopup.tsx`
+6. `src/components/marketing/ResourceDownload.tsx`
+7. `src/components/marketing/FeatureWaitlist.tsx`
+8. `src/components/layout/FooterEmailSignup.tsx`
+9. `supabase/functions/send-lead-magnet/index.ts`
+10. `src/lib/leadMagnets.ts` (constants and types)
+11. Database migration for indexes and scoring
+
+### Modified Files (5)
+
+1. `src/pages/Landing.tsx` - Integrate PopupManager and FooterEmailSignup
+2. `src/components/layout/Footer.tsx` - Add inline email capture
+3. `src/lib/analytics.ts` - Add new tracking events
+4. `src/lib/leadMemory.ts` - Extend source types
+5. `supabase/config.toml` - Register new edge function
+
+---
+
+## Technical Details
+
+### useLeadCapture Hook Interface
+
+```typescript
+interface LeadCaptureConfig {
+  source: LeadSource;
+  offer: LeadOffer;
+  cooldownHours?: number;
+  requiresAuth?: boolean;
+}
+
+interface UseLeadCaptureReturn {
+  captureLead: (email: string) => Promise<{ success: boolean; error?: string }>;
+  isSubmitting: boolean;
+  isSuccess: boolean;
+  cooldownRemaining: number | null;
+}
+
+type LeadSource = 
+  | 'exit_intent_popup'
+  | 'scroll_popup'
+  | 'time_delay_popup'
+  | 'footer_newsletter'
+  | 'resource_download'
+  | 'feature_waitlist'
+  | 'blog_cta';
+
+type LeadOffer = 
+  | 'free_analysis'
+  | 'business_guide'
+  | 'validation_questions'
+  | 'projection_template'
+  | 'newsletter'
+  | 'early_access';
+```
+
+### PopupManager Priority Logic
+
+```typescript
+const POPUP_PRIORITY: Record<string, number> = {
+  exit_intent: 1,    // Highest - user leaving
+  scroll: 2,         // Medium - engaged user
+  time_delay: 3,     // Low - passive trigger
+};
+
+// Only show highest priority popup that hasn't been dismissed
+```
+
+### Footer Email Form Design
+
+Simple inline form:
+- Input placeholder: "Enter your email for weekly insights"
+- Button: "Subscribe"
+- Trust text: "Join 500+ entrepreneurs. Unsubscribe anytime."
+- Success state: "Check your inbox!"
