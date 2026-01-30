@@ -1,0 +1,192 @@
+/**
+ * Lead Magnet System - Types, Constants, and Configuration
+ * 
+ * Centralized definition of all lead sources, offers, and configurations
+ * for the strategic email capture system.
+ */
+
+// ============================================
+// Lead Source Types
+// ============================================
+
+export type LeadSource = 
+  | 'exit_intent_popup'
+  | 'scroll_popup'
+  | 'time_delay_popup'
+  | 'footer_newsletter'
+  | 'resource_download'
+  | 'feature_waitlist'
+  | 'blog_cta';
+
+export type LeadOffer = 
+  | 'free_analysis'
+  | 'business_guide'
+  | 'validation_questions'
+  | 'projection_template'
+  | 'newsletter'
+  | 'early_access';
+
+// ============================================
+// Popup Priority Configuration
+// ============================================
+
+export const POPUP_PRIORITY: Record<string, number> = {
+  exit_intent: 1,    // Highest - user leaving
+  scroll: 2,         // Medium - engaged user
+  time_delay: 3,     // Low - passive trigger
+};
+
+// ============================================
+// Cooldown Configuration (in hours)
+// ============================================
+
+export const COOLDOWN_CONFIG: Record<LeadSource, { submit: number; dismiss: number }> = {
+  exit_intent_popup: { submit: 336, dismiss: 4 },    // 14 days submit, 4 hours dismiss
+  scroll_popup: { submit: 168, dismiss: 24 },        // 7 days submit, 24 hours dismiss
+  time_delay_popup: { submit: 168, dismiss: 48 },    // 7 days submit, 48 hours dismiss
+  footer_newsletter: { submit: 720, dismiss: 0 },    // 30 days submit, no dismiss
+  resource_download: { submit: 720, dismiss: 0 },    // 30 days submit, no dismiss
+  feature_waitlist: { submit: 720, dismiss: 0 },     // 30 days submit, no dismiss
+  blog_cta: { submit: 168, dismiss: 0 },             // 7 days submit, no dismiss
+};
+
+// ============================================
+// Lead Magnet Content Configuration
+// ============================================
+
+export interface LeadMagnetContent {
+  offer: LeadOffer;
+  headline: string;
+  subheadline: string;
+  benefits: string[];
+  ctaText: string;
+  successMessage: string;
+  pdfFilename?: string;
+}
+
+export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
+  free_analysis: {
+    offer: 'free_analysis',
+    headline: "Wait! Don't Miss This...",
+    subheadline: 'Get a FREE AI Business Analysis worth $500',
+    benefits: [
+      'Personalized AI Strategy - Custom recommendations for your business',
+      'ROI Calculator - See exactly how much you could save',
+      'Implementation Roadmap - Step-by-step guide to get started',
+    ],
+    ctaText: 'Get My Free Analysis',
+    successMessage: 'Check your inbox for your free AI analysis report.',
+  },
+  business_guide: {
+    offer: 'business_guide',
+    headline: 'Free Business Analysis Guide',
+    subheadline: 'The complete framework for evaluating any business idea',
+    benefits: [
+      '47-page comprehensive guide',
+      'Real-world case studies',
+      'Evaluation frameworks used by VCs',
+    ],
+    ctaText: 'Download Free Guide',
+    successMessage: 'Your guide is on its way to your inbox!',
+    pdfFilename: 'business-analysis-guide.pdf',
+  },
+  validation_questions: {
+    offer: 'validation_questions',
+    headline: '10 Questions to Validate Your Idea',
+    subheadline: 'The exact questions investors ask before funding',
+    benefits: [
+      'Proven validation framework',
+      'Red flags to watch for',
+      'Scoring rubric included',
+    ],
+    ctaText: 'Get the Checklist',
+    successMessage: 'Your validation checklist is on its way!',
+    pdfFilename: '10-validation-questions.pdf',
+  },
+  projection_template: {
+    offer: 'projection_template',
+    headline: 'Financial Projection Template',
+    subheadline: 'Bank-ready financial model in Excel format',
+    benefits: [
+      'Pre-built formulas',
+      '5-year projection model',
+      'Investor-ready formatting',
+    ],
+    ctaText: 'Download Template',
+    successMessage: 'Your template is on its way!',
+    pdfFilename: 'financial-projection-template.pdf',
+  },
+  newsletter: {
+    offer: 'newsletter',
+    headline: 'Weekly Business Insights',
+    subheadline: 'Join 500+ entrepreneurs getting smarter about business',
+    benefits: [
+      'Weekly tips from industry experts',
+      'Market trend analysis',
+      'Exclusive feature previews',
+    ],
+    ctaText: 'Subscribe',
+    successMessage: 'Welcome! Check your inbox to confirm.',
+  },
+  early_access: {
+    offer: 'early_access',
+    headline: 'Get Early Access',
+    subheadline: 'Be first to try our newest features',
+    benefits: [
+      'Priority access to new features',
+      'Direct feedback channel to team',
+      'Exclusive beta testing opportunities',
+    ],
+    ctaText: 'Join Waitlist',
+    successMessage: "You're on the list! We'll be in touch soon.",
+  },
+};
+
+// ============================================
+// Popup Trigger Configuration
+// ============================================
+
+export interface PopupTriggerConfig {
+  type: 'exit_intent' | 'scroll' | 'time_delay';
+  source: LeadSource;
+  offer: LeadOffer;
+  priority: number;
+  scrollDepth?: number;     // For scroll trigger (percentage)
+  delaySeconds?: number;    // For time delay trigger
+}
+
+export const POPUP_TRIGGERS: PopupTriggerConfig[] = [
+  {
+    type: 'exit_intent',
+    source: 'exit_intent_popup',
+    offer: 'free_analysis',
+    priority: 1,
+  },
+  {
+    type: 'scroll',
+    source: 'scroll_popup',
+    offer: 'validation_questions',
+    priority: 2,
+    scrollDepth: 50,
+  },
+  {
+    type: 'time_delay',
+    source: 'time_delay_popup',
+    offer: 'projection_template',
+    priority: 3,
+    delaySeconds: 30,
+  },
+];
+
+// ============================================
+// Storage Keys
+// ============================================
+
+export const STORAGE_KEYS = {
+  POPUP_STATE: 'quantis_popup_state',
+  SESSION_POPUP_SHOWN: 'quantis_session_popup_shown',
+  LEAD_EMAIL: 'quantis_lead_email',
+  LEAD_NAME: 'quantis_lead_name',
+  LEAD_SOURCE: 'quantis_lead_source',
+  LEAD_TIMESTAMP: 'quantis_lead_timestamp',
+} as const;
