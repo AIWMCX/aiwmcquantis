@@ -55,11 +55,112 @@ export interface FinancialsInput {
   startup_investment: number;
   cac?: number;
   average_check?: number;
-  benchmarks: IndustryBenchmarks;
-  location_multipliers: LocationMultipliers;
+  benchmarks?: IndustryBenchmarks;
+  location_multipliers?: LocationMultipliers;
+  industry?: string;
+  location?: string;
   user_provided_costs?: number;
   user_provided_churn_rate?: number;
   user_provided_customers?: number;
+}
+
+// ========== DEFAULT BENCHMARKS ==========
+// Fallback benchmarks for when none are provided
+
+const DEFAULT_BENCHMARKS: Record<string, IndustryBenchmarks> = {
+  saas: {
+    id: 'saas',
+    name: 'SaaS / Software',
+    cogs_percent: 20,
+    salaries_fixed: 8000,
+    rent_fixed: 500,
+    utilities_fixed: 200,
+    other_fixed: 1000,
+    cac_min: 50,
+    cac_max: 500,
+    cac_typical: 150,
+    average_check_min: 20,
+    average_check_max: 500,
+    orders_per_client: 1,
+    client_lifetime_months: 24,
+    ltv_cac_min: 3,
+    ltv_cac_max: 8,
+    net_margin_min: 15,
+    net_margin_max: 40,
+    keywords: ['saas', 'software', 'app', 'platform', 'subscription']
+  },
+  ecommerce: {
+    id: 'ecommerce',
+    name: 'E-commerce / Retail',
+    cogs_percent: 55,
+    salaries_fixed: 4000,
+    rent_fixed: 1500,
+    utilities_fixed: 300,
+    other_fixed: 800,
+    cac_min: 15,
+    cac_max: 80,
+    cac_typical: 35,
+    average_check_min: 30,
+    average_check_max: 200,
+    orders_per_client: 3,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 5,
+    net_margin_max: 15,
+    keywords: ['store', 'shop', 'ecommerce', 'retail']
+  },
+  general: {
+    id: 'general',
+    name: 'General Business',
+    cogs_percent: 35,
+    salaries_fixed: 5000,
+    rent_fixed: 1500,
+    utilities_fixed: 300,
+    other_fixed: 1000,
+    cac_min: 30,
+    cac_max: 150,
+    cac_typical: 60,
+    average_check_min: 30,
+    average_check_max: 300,
+    orders_per_client: 2,
+    client_lifetime_months: 12,
+    ltv_cac_min: 3,
+    ltv_cac_max: 6,
+    net_margin_min: 10,
+    net_margin_max: 25,
+    keywords: []
+  }
+};
+
+const DEFAULT_LOCATION_MULTIPLIERS: LocationMultipliers = {
+  salary: 1.0,
+  rent: 1.0,
+  utility: 1.0,
+  marketing: 1.0,
+  overall: 1.0
+};
+
+function detectBenchmarkFromIndustry(industry?: string): IndustryBenchmarks {
+  if (!industry) return DEFAULT_BENCHMARKS.general;
+  
+  const lower = industry.toLowerCase();
+  
+  if (lower.includes('saas') || lower.includes('software') || lower.includes('app')) {
+    return DEFAULT_BENCHMARKS.saas;
+  }
+  if (lower.includes('ecommerce') || lower.includes('retail') || lower.includes('store')) {
+    return DEFAULT_BENCHMARKS.ecommerce;
+  }
+  
+  // Search in benchmark keywords
+  for (const [key, benchmark] of Object.entries(DEFAULT_BENCHMARKS)) {
+    if (benchmark.keywords.some(kw => lower.includes(kw))) {
+      return benchmark;
+    }
+  }
+  
+  return DEFAULT_BENCHMARKS.general;
 }
 
 export interface CalculationAudit {
@@ -145,12 +246,14 @@ function computeFinancials(input: FinancialsInput): FinancialsOutput {
   const { 
     mrr, 
     startup_investment: startupInvestment, 
-    benchmarks,
-    location_multipliers: locationMultiplier,
     user_provided_costs: userProvidedCosts,
     user_provided_churn_rate: userProvidedChurnRate,
     user_provided_customers: userProvidedCustomers,
   } = input;
+  
+  // Resolve benchmarks - use provided or detect from industry
+  const benchmarks: IndustryBenchmarks = input.benchmarks || detectBenchmarkFromIndustry(input.industry);
+  const locationMultiplier: LocationMultipliers = input.location_multipliers || DEFAULT_LOCATION_MULTIPLIERS;
   
   let rawCac = input.cac ?? benchmarks.cac_typical;
   let rawAvgCheck = input.average_check ?? 
@@ -549,27 +652,22 @@ serve(async (req: Request) => {
 
     const body = await req.json() as FinancialsInput;
 
-    // Validate required fields
-    if (!body.benchmarks) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'benchmarks is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    if (!body.location_multipliers) {
-      return new Response(
-        JSON.stringify({ success: false, error: 'location_multipliers is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
+    // Validate required field: mrr
     if (typeof body.mrr !== 'number' || body.mrr < 0) {
       return new Response(
         JSON.stringify({ success: false, error: 'mrr must be a non-negative number' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Startup investment defaults to 0 if not provided
+    if (body.startup_investment === undefined) {
+      body.startup_investment = 0;
+    }
+
+    // Log what we're using
+    const resolvedBenchmarks = body.benchmarks || detectBenchmarkFromIndustry(body.industry);
+    console.log(`Using benchmarks: ${resolvedBenchmarks.name} (${body.benchmarks ? 'provided' : 'auto-detected'})`);
 
     // Run calculations
     const result = computeFinancials(body);
