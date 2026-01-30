@@ -1,522 +1,268 @@
 
-# AIWMC Quantis Knowledge Base - Implementation Status
 
-## ✅ COMPLETED
+# Comprehensive Architecture Review & Accessibility Fixes
 
-### Database Tables Created
-- `location_data` - 100+ cities with cost indices
-- `scenario_library` - AI training scenarios  
-- `risk_factors` - Business risk templates
-- `launch_checklists` - Industry-specific launch steps
-- `marketing_channels` - Channel performance benchmarks
+## Part 1: Accessibility Issues Fix
 
-### TypeScript Interfaces
-- `src/types/knowledgeBase.ts` - Full type definitions for all 6 dataset types
+### Issue 1: Missing `<main>` Landmark on Landing Page
 
-### Edge Functions
-- `manage-knowledge-base` - CRUD operations for all knowledge base tables
+**Problem**: The Landing page (`src/pages/Landing.tsx`) lacks a `<main>` landmark wrapper, causing screen readers to have difficulty identifying the primary content area.
 
-### Security
-- RLS policies: Anonymous denied, Service role manages, Plus users can read
-- Performance indexes on all key columns
+**Current State**: The Landing page uses `<div>` and `<section>` elements without a `<main>` wrapper.
+
+**Solution**: Wrap the main content (from Hero through Footer) in a `<main id="main-content">` element.
+
+**Files to Modify**:
+- `src/pages/Landing.tsx`
 
 ---
 
+### Issue 2: Heading Order Violation
 
+**Problem**: The heading hierarchy on the landing page is inconsistent. Multiple `<h2>` elements appear with occasional `<h3>` and `<h4>` elements that don't follow proper nesting.
 
-## PROMPT FOR KNOWLEDGE BASE CONSTRUCTION
-
+**Current Heading Flow**:
 ```
-You are building a comprehensive Knowledge Base for AIWMC Quantis - a 2-minute business analysis SaaS platform. This knowledge base must power deterministic financial calculations, AI-enhanced business recommendations, and location-specific cost adjustments.
-
-## CONTEXT
-
-The platform analyzes business ideas by combining:
-1. User input (idea, location, financial projections)
-2. Industry benchmarks (margins, CAC, LTV, churn rates)
-3. Location intelligence (cost multipliers for 50+ cities)
-4. AI-generated qualitative insights
-
-Current data sources:
-- Kerry Dataset: 1,000 business scenarios (see structure below)
-- Embedded benchmarks: 50+ industry types
-- Location database: 50+ global cities with cost indices
-- AI safety guardrails: 7-layer validation system
-
-## KNOWLEDGE BASE STRUCTURE
-
-### Dataset 1: Industry Benchmarks (Required)
-
-Create records for 100+ industries following this schema:
-
-```json
-{
-  "industry_id": "string (snake_case, unique)",
-  "industry_name": "string (human readable)",
-  "region": "global | north_america | europe | asia_pacific | latin_america | middle_east | africa | cis",
-  
-  "margins": {
-    "gross_margin_min": "number (0-100%)",
-    "gross_margin_max": "number (0-100%)",
-    "gross_margin_avg": "number (0-100%)",
-    "net_margin_min": "number (-50 to 80%)",
-    "net_margin_max": "number (-50 to 80%)",
-    "net_margin_avg": "number (-50 to 80%)",
-    "cogs_percent_avg": "number (0-100%)"
-  },
-  
-  "unit_economics": {
-    "cac_min": "number (USD, typical customer acquisition cost floor)",
-    "cac_max": "number (USD, typical CAC ceiling)",
-    "cac_typical": "number (USD, median CAC)",
-    "ltv_min": "number (USD, lifetime value floor)",
-    "ltv_max": "number (USD, LTV ceiling)",
-    "ltv_typical": "number (USD, median LTV)",
-    "ltv_cac_ratio_min": "number (healthy minimum, typically 2-3)",
-    "ltv_cac_ratio_max": "number (excellent, typically 5-10)"
-  },
-  
-  "transaction_metrics": {
-    "average_check_min": "number (USD, minimum transaction value)",
-    "average_check_max": "number (USD, maximum transaction value)",
-    "orders_per_client": "number (annual average)",
-    "client_lifetime_months": "number (average retention period)"
-  },
-  
-  "fixed_costs": {
-    "salaries_fixed": "number (USD/month, baseline staffing)",
-    "rent_fixed": "number (USD/month, typical commercial rent)",
-    "utilities_fixed": "number (USD/month)",
-    "other_fixed": "number (USD/month, insurance, software, etc.)"
-  },
-  
-  "market_context": {
-    "market_size_usd": "number (total addressable market)",
-    "growth_rate_percent": "number (annual industry growth)",
-    "competition_level": "low | medium | high | very_high"
-  },
-  
-  "churn_metrics": {
-    "churn_rate_monthly": "number (0-30%)",
-    "churn_rate_annual": "number (0-100%)"
-  },
-  
-  "seasonality": {
-    "jan": "number (1.0 = baseline, 1.2 = 20% above)",
-    "feb": "number",
-    "...": "...",
-    "dec": "number"
-  },
-  
-  "keywords": ["array", "of", "matching", "terms"],
-  "sample_size": "number (data points used)",
-  "confidence_score": "number (0-100)",
-  "source": "kerry_dataset | industry_report | government_data | proprietary"
-}
+- <h1> "Know Your Numbers Before You Invest" (MobileHero)
+- <h2> "See Your Numbers in Seconds" (MiniDemo)
+- <h2> "Your Report Preview" (DemoPreview)
+- <h4> "Key Insights" / "Risk Factors" (inside DemoPreview - skips h3!)
+- <h2> "Built for Transparency" (ClientTestimonials)
+- <h3> feature titles (correct)
+- <h2> "Everything You Need..." (Features)
+- <h3> feature titles (correct)
 ```
 
-### Dataset 2: Location Intelligence (Required)
+**Solution**: Change `<h4>` elements in `DemoPreview.tsx` to `<h3>` for proper heading hierarchy.
 
-Create records for 100+ cities following this schema:
-
-```json
-{
-  "city_id": "string (snake_case)",
-  "city": "string (human readable)",
-  "country": "string",
-  "region": "north_america | europe | asia_pacific | middle_east | latin_america | africa | cis",
-  
-  "cost_indices": {
-    "overall_cost_index": "number (1.0 = US average)",
-    "salary_multiplier": "number (1.0 = US average)",
-    "rent_multiplier": "number (1.0 = US average)",
-    "utility_multiplier": "number (1.0 = US average)"
-  },
-  
-  "business_environment": {
-    "tax_burden": "number (0-1, effective rate)",
-    "regulatory_complexity": "number (1-5, 1=easy, 5=complex)",
-    "market_maturity": "number (1-5, 1=emerging, 5=saturated)"
-  },
-  
-  "locale": {
-    "currency_code": "string (ISO 4217)",
-    "currency_symbol": "string",
-    "locale_code": "string (BCP 47)",
-    "timezone": "string (IANA)",
-    "primary_language": "string"
-  }
-}
-```
-
-### Dataset 3: Business Scenarios (Training Data)
-
-Expand Kerry dataset format for AI training:
-
-```json
-{
-  "scenario_id": "string (unique identifier)",
-  "category": "financial_planning | growth_strategy | operations | marketing | product",
-  "subcategory": "string",
-  "business_type": "string (maps to industry_id)",
-  
-  "business_context": {
-    "type": "string",
-    "mrr": "number (monthly recurring revenue)",
-    "growth_rate": "number (MoM percentage)",
-    "churn_rate": "number (monthly percentage)",
-    "customers": "number",
-    "team_size": "number",
-    "stage": "pre_seed | seed | series_a | series_b | growth | mature"
-  },
-  
-  "user_query": "string (sample business question)",
-  
-  "expert_analysis": {
-    "situation_assessment": "string (2-3 paragraphs)",
-    "key_insights": ["string", "string", "string"],
-    "priority_level": "low | medium | high | critical"
-  },
-  
-  "recommendations": [
-    {
-      "priority": "number (1-5)",
-      "category": "string",
-      "action": "string (specific action item)",
-      "expected_impact": "string (quantified outcome)",
-      "implementation": "string (how to execute)",
-      "timeline": "string (e.g., '2-3 months')"
-    }
-  ],
-  
-  "industry_benchmarks": {
-    "healthy_growth_rate": "string (e.g., '15-20% MoM')",
-    "acceptable_churn": "string (e.g., '3-5% monthly')",
-    "target_ltv_cac_ratio": "string (e.g., '3:1 minimum')",
-    "gross_margin_target": "string (e.g., '70-80%')"
-  },
-  
-  "tags": ["array", "of", "keywords"],
-  "difficulty_level": "beginner | intermediate | advanced | expert",
-  "urgency": "low | medium | high | critical"
-}
-```
-
-### Dataset 4: Risk Factors (New)
-
-Create a comprehensive risk database:
-
-```json
-{
-  "risk_id": "string",
-  "risk_category": "market | financial | operational | regulatory | competitive | technology",
-  "risk_name": "string",
-  "description": "string (100-200 words)",
-  
-  "applicability": {
-    "industries": ["array of industry_ids or 'all'"],
-    "business_stages": ["pre_seed", "seed", "growth", "mature"],
-    "regions": ["array of region codes or 'global'"]
-  },
-  
-  "impact_assessment": {
-    "probability": "number (0-100%)",
-    "financial_impact": "low | medium | high | critical",
-    "time_to_materialize": "immediate | short_term | medium_term | long_term"
-  },
-  
-  "mitigation_strategies": [
-    {
-      "strategy": "string",
-      "cost_estimate": "number (USD)",
-      "effectiveness": "number (0-100%)",
-      "implementation_time": "string"
-    }
-  ],
-  
-  "warning_signs": ["string", "string"],
-  "related_risks": ["risk_id", "risk_id"]
-}
-```
-
-### Dataset 5: Launch Checklist Templates (New)
-
-Industry-specific launch requirements:
-
-```json
-{
-  "template_id": "string",
-  "industry_id": "string (foreign key)",
-  "template_name": "string",
-  
-  "phases": [
-    {
-      "phase_number": 1,
-      "phase_name": "Pre-Launch",
-      "duration_weeks": 4,
-      "tasks": [
-        {
-          "task_id": "string",
-          "task_name": "string",
-          "description": "string",
-          "estimated_cost": "number (USD)",
-          "required_time_hours": "number",
-          "dependencies": ["task_id"],
-          "regulatory_requirement": "boolean",
-          "priority": "must_have | should_have | nice_to_have"
-        }
-      ]
-    }
-  ],
-  
-  "region_specific_requirements": {
-    "us": ["task_ids requiring US compliance"],
-    "eu": ["task_ids requiring EU compliance"],
-    "global": ["universally applicable task_ids"]
-  },
-  
-  "total_estimated_cost": "number (USD)",
-  "total_estimated_weeks": "number"
-}
-```
-
-### Dataset 6: Marketing Channel Benchmarks (New)
-
-```json
-{
-  "channel_id": "string",
-  "channel_name": "string",
-  "channel_category": "paid | organic | referral | partnerships | outbound",
-  
-  "benchmarks_by_industry": [
-    {
-      "industry_id": "string",
-      "cac_range": {"min": "number", "max": "number"},
-      "conversion_rate": {"min": "number", "max": "number"},
-      "time_to_first_conversion_days": "number",
-      "scalability": "low | medium | high",
-      "recommended_budget_percent": "number (0-100%)"
-    }
-  ],
-  
-  "best_practices": ["string", "string"],
-  "common_mistakes": ["string", "string"],
-  "tools_recommended": ["string", "string"]
-}
-```
+**Files to Modify**:
+- `src/components/landing/DemoPreview.tsx`
 
 ---
 
-## DATA QUALITY REQUIREMENTS
+### Issue 3: Label Content Mismatch (Already Fixed)
 
-### Accuracy Standards
-- All financial figures must be sourced from verifiable data
-- Confidence scores required for each record
-- Update frequency noted for time-sensitive data
-
-### Coverage Requirements
-- 100+ industries with full benchmark data
-- 100+ cities with cost indices
-- 1,000+ business scenarios for AI training
-- 50+ risk factor templates
-- 25+ launch checklist templates
-- 15+ marketing channel benchmarks
-
-### Validation Rules
-- Margins must sum correctly (gross_margin = revenue - cogs)
-- LTV must exceed CAC for healthy businesses (ratio > 1)
-- Location multipliers must be relative to a consistent baseline
-- All percentages must be 0-100 (or -100 to +100 for net margins)
+The `MiniDemo.tsx` labels properly use `htmlFor` matching `id` attributes. No changes needed.
 
 ---
 
-## OUTPUT FORMAT
+## Part 2: Architecture Review for 10,000+ Daily Users
 
-Deliver datasets as:
-1. JSON files (one per dataset type)
-2. SQL migration scripts for Supabase
-3. TypeScript interfaces for type safety
-4. Validation test suite
-
----
-
-## INTEGRATION POINTS
-
-The knowledge base must integrate with:
-
-1. **Financial Engine** (`financial-engine.ts`)
-   - Consumes industry benchmarks for margin validation
-   - Uses location multipliers for cost adjustments
-   - References churn/LTV data for projections
-
-2. **AI Narrator** (`narrator-prompt.ts`)
-   - References scenarios for recommendation patterns
-   - Uses risk factors for warning generation
-   - Follows launch checklists for action items
-
-3. **Industry Matching** (`embedded-benchmarks.ts`)
-   - Keyword-based industry detection
-   - Confidence scoring for match quality
-   - Fallback hierarchy when exact match not found
-
-4. **Location Intelligence** (`location-intelligence.ts`)
-   - City/region matching from user input
-   - Cost adjustment calculations
-   - Currency and locale handling
-
----
-
-## PRIORITY ORDER
-
-1. **Critical (Week 1)**: Industry benchmarks + Location data
-2. **High (Week 2)**: Business scenarios + Risk factors
-3. **Medium (Week 3)**: Launch checklists + Marketing channels
-4. **Enhancement (Week 4)**: Seasonality data + Sub-industry variations
-
----
-
-## EXISTING DATA TO EXPAND
-
-### Current Kerry Dataset Structure (1,000 records)
-Located at: `public/data/kerry_full_dataset_1000.json`
-
-Sample record:
-- scenario_id, category, subcategory, business_type
-- business_context (MRR, growth, churn, customers, team size)
-- industry_benchmarks (growth targets, margin targets, LTV:CAC ratios)
-- recommendations with priority, action, impact, timeline
-- tags for keyword matching
-
-### Current Embedded Benchmarks (50+ industries)
-Located at: `supabase/functions/analyze-business/embedded-benchmarks.ts`
-
-Covers: SaaS, E-commerce, Restaurants, Consulting, Fitness, Education, Healthcare, Real Estate, and more.
-
-### Current Location Database (50+ cities)
-Located at: `supabase/functions/analyze-business/location-intelligence.ts`
-
-Covers: North America (11), Europe (15), Asia-Pacific (12), CIS (5), Middle East (4), Latin America (3), Africa (2)
-
----
-
-## SUCCESS CRITERIA
-
-1. Zero hardcoded magic numbers in financial calculations
-2. Every metric traceable to a knowledge base source
-3. Confidence scoring for all AI-influenced outputs
-4. <3 second lookup time for any benchmark query
-5. 95%+ industry match rate for common business types
-6. 90%+ city match rate for major global markets
-```
-
----
-
-## Implementation Architecture
+### Current Architecture Analysis
 
 ```text
-┌─────────────────────────────────────────────────────────────────┐
-│                    KNOWLEDGE BASE ARCHITECTURE                   │
-├─────────────────────────────────────────────────────────────────┤
-│                                                                 │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │             PRIMARY DATA SOURCES                         │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ Kerry       │ │ Industry    │ │ Government/Public   ││   │
-│  │  │ Dataset     │ │ Reports     │ │ Economic Data       ││   │
-│  │  │ (1000 recs) │ │ (IBISWorld) │ │ (Census, BLS)       ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │             TRANSFORMATION LAYER                         │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ Kerry       │ │ Benchmark   │ │ Location            ││   │
-│  │  │ Transformer │ │ Normalizer  │ │ Geocoder            ││   │
-│  │  │ (TS util)   │ │             │ │                     ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │             STORAGE LAYER (Supabase)                     │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ industry_   │ │ location_   │ │ scenario_           ││   │
-│  │  │ benchmarks  │ │ data        │ │ library             ││   │
-│  │  │ (100+ recs) │ │ (100+ recs) │ │ (1000+ recs)        ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ risk_       │ │ launch_     │ │ marketing_          ││   │
-│  │  │ factors     │ │ checklists  │ │ channels            ││   │
-│  │  │ (50+ recs)  │ │ (25+ recs)  │ │ (15+ recs)          ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │             ACCESS LAYER (Edge Functions)                │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ Benchmark   │ │ Location    │ │ Scenario            ││   │
-│  │  │ Resolver    │ │ Matcher     │ │ Recommender         ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                              │                                  │
-│                              ▼                                  │
-│  ┌─────────────────────────────────────────────────────────┐   │
-│  │             CONSUMER LAYER                               │   │
-│  │  ┌─────────────┐ ┌─────────────┐ ┌─────────────────────┐│   │
-│  │  │ Financial   │ │ AI Narrator │ │ Report              ││   │
-│  │  │ Engine      │ │ Prompt      │ │ Generator           ││   │
-│  │  └─────────────┘ └─────────────┘ └─────────────────────┘│   │
-│  └─────────────────────────────────────────────────────────┘   │
-│                                                                 │
-└─────────────────────────────────────────────────────────────────┘
++-------------------+       +----------------------+       +------------------+
+|   React SPA       | ----> | Supabase Edge Funcs  | ----> |  PostgreSQL DB   |
+|   (Vite/Lovable)  |       |   (Deno Runtime)     |       |  (Supabase)      |
++-------------------+       +----------------------+       +------------------+
+        |                           |                            |
+        v                           v                            v
+   Lovable CDN              Lovable AI API              Row-Level Security
+  (Static Assets)          (Claude Models)                    RLS
 ```
 
 ---
 
-## Database Tables to Create
+### Identified Bottlenecks & Solutions
 
-| Table | Purpose | Record Count |
-|-------|---------|--------------|
-| `industry_benchmarks` | Financial metrics by industry | 100+ |
-| `location_data` | City-level cost indices | 100+ |
-| `scenario_library` | AI training scenarios | 1,000+ |
-| `risk_factors` | Business risk templates | 50+ |
-| `launch_checklists` | Industry-specific launch steps | 25+ |
-| `marketing_channels` | Channel performance benchmarks | 15+ |
-| `seasonality_patterns` | Monthly adjustment factors | 50+ |
-| `compliance_requirements` | Regional regulatory needs | 100+ |
+#### 1. Single Point of Failure: `analyze-business` Monolith
+
+**Current State**: One 3,676-line edge function handles:
+- Input validation
+- Benchmark lookup
+- Financial calculations
+- AI narration
+- Rate limiting
+- Usage tracking
+
+**Risk at Scale**: Single cold start can cause 5-10s delays. Any crash affects all users.
+
+**Solution**: Split into microservices
+
+| Service | Responsibility | Priority |
+|---------|---------------|----------|
+| `validate-input` | Input sanitization & validation | High |
+| `calculate-financials` | Deterministic calculations | High |
+| `ai-narrator` | GPT narration (isolate failures) | High |
+| `benchmark-lookup` | Database queries + caching | Medium |
+| `rate-limiter` | Centralized rate limiting | Medium |
 
 ---
 
-## Deliverables
+#### 2. Database Design Optimization
 
-1. **Data Files**
-   - `datasets/industry_benchmarks_v2.json` (100+ industries)
-   - `datasets/location_intelligence_v2.json` (100+ cities)
-   - `datasets/scenario_library.json` (1,000+ scenarios)
-   - `datasets/risk_factors.json` (50+ risks)
-   - `datasets/launch_checklists.json` (25+ templates)
-   - `datasets/marketing_channels.json` (15+ channels)
+**Current Issues**:
+- No indexes on frequently queried columns
+- `analyses.result` stores full JSON (~50KB per record)
+- No table partitioning for high-volume tables
 
-2. **Database Migrations**
-   - SQL scripts for all new tables
-   - Seed data for initial population
-   - Indexes for performance
+**Recommendations**:
 
-3. **TypeScript Types**
-   - Interface definitions for all datasets
-   - Zod schemas for runtime validation
-   - Type guards for safe parsing
+```sql
+-- Add indexes for common queries
+CREATE INDEX idx_analyses_user_created ON analyses(user_id, created_at DESC);
+CREATE INDEX idx_analyses_team ON analyses(team_id) WHERE team_id IS NOT NULL;
+CREATE INDEX idx_benchmarks_industry ON industry_benchmarks(industry_id);
+CREATE INDEX idx_anonymous_usage_device ON anonymous_usage(device_id, created_at);
 
-4. **Documentation**
-   - Data dictionary with field descriptions
-   - Source attribution for all data
-   - Update procedures and schedules
+-- Add table partitioning for anonymous_usage (expected high volume)
+-- Archive analyses older than 1 year to cold storage
+```
 
-5. **Admin Tools**
-   - Bulk upload endpoint for each dataset
-   - Validation reports
-   - Data quality dashboard
+---
+
+#### 3. Caching Strategy (Currently Missing)
+
+**Current State**: Every benchmark lookup hits the database.
+
+**Solution**: Multi-layer caching
+
+| Layer | What to Cache | TTL | Technology |
+|-------|---------------|-----|------------|
+| Edge | Industry benchmarks | 1 hour | Deno KV / in-memory |
+| Edge | Location multipliers | 24 hours | Deno KV |
+| Client | Analysis results | Session | React Query (already configured) |
+| CDN | Static assets | 1 year | Lovable CDN headers |
+
+---
+
+#### 4. Connection Pooling
+
+**Current State**: Each edge function creates new Supabase client connections.
+
+**Risk**: Connection exhaustion at 100+ concurrent users (Supabase default: 60 direct connections).
+
+**Solution**:
+- Use Supabase's built-in pooler (already available)
+- Switch from direct connections to pooled connections in edge functions
+- Implement connection reuse patterns
+
+---
+
+#### 5. Queue System for Heavy Operations
+
+**Current State**: PDF export runs synchronously, blocking user.
+
+**Recommendation**: Already have `export_jobs` table - ensure queue-export function handles:
+- Retry logic with exponential backoff
+- Dead letter queue for failed jobs
+- Status webhooks for completion
+
+---
+
+#### 6. CDN Utilization
+
+**Current State**: Static assets served from Lovable CDN without optimal cache headers.
+
+**Recommendations**:
+- Contact Lovable support to configure `Cache-Control: max-age=31536000, immutable` for `/assets/*`
+- Ensure content-hashed filenames (already done via Vite)
+
+---
+
+### Cost Projection at Scale
+
+| Daily Users | Analyses/Day | Est. Monthly Cost | Notes |
+|------------|--------------|-------------------|-------|
+| 1,000 | 500 | ~$50-100 | Current baseline |
+| 10,000 | 5,000 | ~$300-600 | Need caching layer |
+| 100,000 | 50,000 | ~$2,000-5,000 | Need microservices + dedicated pooler |
+
+**Cost Drivers**:
+- Lovable AI API usage (primary cost)
+- Supabase compute (edge function invocations)
+- Database storage and bandwidth
+- Stripe transaction fees (3% + 30¢)
+
+---
+
+### Scaling Roadmap with Thresholds
+
+| Phase | Threshold | Actions Required | Timeline |
+|-------|-----------|-----------------|----------|
+| **Current** | <1K DAU | Monitor & observe | Now |
+| **Phase 1** | 1K-5K DAU | Add caching layer, DB indexes | Week 1-2 |
+| **Phase 2** | 5K-10K DAU | Split edge functions, connection pooling | Week 3-4 |
+| **Phase 3** | 10K-50K DAU | Dedicated compute, regional edge deployment | Month 2 |
+| **Phase 4** | 50K+ DAU | Multi-region DB, CDN optimization | Month 3+ |
+
+---
+
+### Priority Implementation Order
+
+| # | Task | Impact | Effort | Risk if Skipped |
+|---|------|--------|--------|-----------------|
+| 1 | Add `<main>` landmark to Landing | Low | 5 min | Accessibility failures |
+| 2 | Fix heading hierarchy | Low | 10 min | WCAG violations |
+| 3 | Add database indexes | High | 30 min | Slow queries at scale |
+| 4 | Implement benchmark caching | High | 2 hours | DB overload |
+| 5 | Split analyze-business function | Medium | 1 day | Cold start issues |
+| 6 | Connection pooling | High | 1 hour | Connection exhaustion |
+| 7 | CDN cache headers | Medium | Support ticket | Repeated asset downloads |
+
+---
+
+## Technical Implementation Details
+
+### Accessibility Fixes (Immediate)
+
+**Landing.tsx Changes**:
+```tsx
+// Wrap content after nav in <main>
+<main id="main-content" role="main">
+  <MobileHero />
+  {/* ... rest of content ... */}
+</main>
+```
+
+**DemoPreview.tsx Changes**:
+```tsx
+// Change h4 to h3 for proper hierarchy
+<h3 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+  <CheckCircle2 className="w-4 h-4 text-success" />
+  Key Insights
+</h3>
+```
+
+### Database Index Migration
+```sql
+-- Migration: add_performance_indexes
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_analyses_user_created 
+  ON analyses(user_id, created_at DESC);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_benchmarks_industry_keywords
+  ON industry_benchmarks USING gin(keywords);
+
+CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_anonymous_usage_device_time
+  ON anonymous_usage(device_id, created_at DESC);
+```
+
+### Edge Function Caching Pattern
+```typescript
+// In-memory cache for benchmarks (in edge function)
+const benchmarkCache = new Map<string, { data: any; expiry: number }>();
+const CACHE_TTL = 60 * 60 * 1000; // 1 hour
+
+function getCachedBenchmark(industryId: string) {
+  const cached = benchmarkCache.get(industryId);
+  if (cached && cached.expiry > Date.now()) {
+    return cached.data;
+  }
+  return null;
+}
+```
+
+---
+
+## Summary
+
+This plan addresses:
+
+1. **Accessibility**: 2 quick fixes for WCAG compliance
+2. **Scalability**: 7-step roadmap from 1K to 100K DAU
+3. **Performance**: Caching, indexing, and connection pooling
+4. **Architecture**: Microservice extraction plan for the monolith
+5. **Cost**: Projected costs at different scale points
+
+The current architecture is solid for MVP scale (~1K DAU). Implementing the Phase 1 changes (caching + indexes) will support 5K+ DAU. The microservice split in Phase 2 prepares for 10K+ DAU.
 
