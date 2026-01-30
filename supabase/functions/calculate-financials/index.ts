@@ -1,0 +1,602 @@
+/**
+ * CALCULATE-FINANCIALS EDGE FUNCTION
+ * 
+ * Extracted microservice from analyze-business monolith
+ * Handles all deterministic financial calculations
+ * 
+ * Benefits:
+ * - Independent scaling
+ * - Faster cold starts (~100ms vs 1s+ for monolith)
+ * - Can be reused by other functions
+ * - Isolated failure domain
+ */
+
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
+// ========== TYPES ==========
+
+export interface IndustryBenchmarks {
+  id: string;
+  name: string;
+  cogs_percent: number;
+  salaries_fixed: number;
+  rent_fixed: number;
+  utilities_fixed: number;
+  other_fixed: number;
+  cac_min: number;
+  cac_max: number;
+  cac_typical: number;
+  average_check_min: number;
+  average_check_max: number;
+  orders_per_client: number;
+  client_lifetime_months: number;
+  ltv_cac_min: number;
+  ltv_cac_max: number;
+  net_margin_min: number;
+  net_margin_max: number;
+  keywords: string[];
+}
+
+export interface LocationMultipliers {
+  salary: number;
+  rent: number;
+  utility: number;
+  marketing: number;
+  overall: number;
+}
+
+export interface FinancialsInput {
+  mrr: number;
+  startup_investment: number;
+  cac?: number;
+  average_check?: number;
+  benchmarks: IndustryBenchmarks;
+  location_multipliers: LocationMultipliers;
+  user_provided_costs?: number;
+  user_provided_churn_rate?: number;
+  user_provided_customers?: number;
+}
+
+export interface CalculationAudit {
+  formula: string;
+  inputs: Record<string, number | string>;
+  result: number;
+  isValid: boolean;
+  notes?: string;
+}
+
+export interface ValidationIssue {
+  code: string;
+  field: string;
+  message: string;
+  severity: 'info' | 'warning' | 'error';
+  originalValue?: number;
+  correctedValue?: number;
+  fix?: string;
+}
+
+export interface ScenarioMetrics {
+  revenue: number;
+  profit: number;
+  margin: number;
+  label: string;
+}
+
+export interface FinancialsOutput {
+  success: boolean;
+  metrics: {
+    mrr: number;
+    arr: number;
+    grossProfit: number;
+    grossMarginPercent: number;
+    netProfit: number;
+    netMarginPercent: number;
+    totalExpenses: number;
+    expenses: {
+      cogs: number;
+      salaries: number;
+      rent: number;
+      utilities: number;
+      marketing: number;
+      other: number;
+    };
+    cac: number;
+    ltv: number;
+    ltvCacRatio: number;
+    cacPaybackMonths: number;
+    averageCheck: number;
+    clientsActive: number;
+    newClientsNeeded: number;
+    ordersMonthly: number;
+    startupInvestment: number;
+    paybackMonths: number;
+    roiYear1Percent: number;
+    roiYear3Percent: number;
+    npv3Years: number;
+    breakEvenRevenue: number;
+    breakEvenUnits: number;
+    revenueFor45kProfit: number;
+    isProfitable: boolean;
+    industryDetected: string;
+    scenarios: {
+      pessimistic: ScenarioMetrics;
+      base: ScenarioMetrics;
+      optimistic: ScenarioMetrics;
+    };
+  };
+  validation: {
+    isValid: boolean;
+    hasHardErrors: boolean;
+    issues: ValidationIssue[];
+  };
+  audit: CalculationAudit[];
+  calculatedAt: string;
+  engineVersion: string;
+}
+
+// ========== CORE CALCULATION ENGINE ==========
+
+function computeFinancials(input: FinancialsInput): FinancialsOutput {
+  const { 
+    mrr, 
+    startup_investment: startupInvestment, 
+    benchmarks,
+    location_multipliers: locationMultiplier,
+    user_provided_costs: userProvidedCosts,
+    user_provided_churn_rate: userProvidedChurnRate,
+    user_provided_customers: userProvidedCustomers,
+  } = input;
+  
+  let rawCac = input.cac ?? benchmarks.cac_typical;
+  let rawAvgCheck = input.average_check ?? 
+    (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  
+  const issues: ValidationIssue[] = [];
+  const audit: CalculationAudit[] = [];
+  
+  // ===== STEP 1: Apply location adjustments to fixed costs =====
+  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultiplier.salary);
+  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultiplier.rent);
+  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultiplier.utility);
+  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultiplier.overall);
+  
+  audit.push({
+    formula: 'Location_Adjusted_Costs = Base_Costs × Location_Multiplier',
+    inputs: {
+      'Base Salaries': benchmarks.salaries_fixed,
+      'Location Multiplier': locationMultiplier.salary,
+    },
+    result: adjustedSalaries,
+    isValid: true,
+    notes: `$${benchmarks.salaries_fixed} × ${locationMultiplier.salary} = $${adjustedSalaries}`,
+  });
+  
+  // ===== STEP 2: Validate and correct average check =====
+  let avgCheck = rawAvgCheck;
+  if (avgCheck < benchmarks.average_check_min) {
+    issues.push({
+      code: 'AVG_CHECK_BELOW_MIN',
+      field: 'averageCheck',
+      message: `Average check $${avgCheck} is below market minimum $${benchmarks.average_check_min} for ${benchmarks.name}`,
+      severity: 'warning',
+      originalValue: avgCheck,
+      correctedValue: benchmarks.average_check_min,
+      fix: `Using industry minimum of $${benchmarks.average_check_min}`,
+    });
+    avgCheck = benchmarks.average_check_min;
+  } else if (avgCheck > benchmarks.average_check_max * 2) {
+    issues.push({
+      code: 'AVG_CHECK_ABOVE_MAX',
+      field: 'averageCheck',
+      message: `Average check $${avgCheck} exceeds 2x market maximum for ${benchmarks.name}`,
+      severity: 'warning',
+      originalValue: avgCheck,
+      correctedValue: benchmarks.average_check_max,
+      fix: `Using industry maximum of $${benchmarks.average_check_max}`,
+    });
+    avgCheck = benchmarks.average_check_max;
+  }
+  
+  // ===== STEP 3: Validate and correct CAC =====
+  let cac = rawCac;
+  // Apply location marketing multiplier
+  cac = Math.round(cac * locationMultiplier.marketing);
+  
+  if (cac < benchmarks.cac_min * 0.5) {
+    issues.push({
+      code: 'CAC_UNREALISTICALLY_LOW',
+      field: 'cac',
+      message: `CAC $${cac} is unrealistically low. Minimum is $${benchmarks.cac_min} for ${benchmarks.name}`,
+      severity: 'warning',
+      originalValue: cac,
+      correctedValue: benchmarks.cac_typical,
+      fix: `Using industry typical of $${benchmarks.cac_typical}`,
+    });
+    cac = benchmarks.cac_typical;
+  } else if (cac > benchmarks.cac_max * 2) {
+    issues.push({
+      code: 'CAC_TOO_HIGH',
+      field: 'cac',
+      message: `CAC $${cac} is very high for ${benchmarks.name}. Maximum is typically $${benchmarks.cac_max}`,
+      severity: 'warning',
+      originalValue: cac,
+      correctedValue: benchmarks.cac_max,
+      fix: `Capping at industry maximum of $${benchmarks.cac_max}`,
+    });
+    cac = benchmarks.cac_max;
+  }
+  
+  // ===== STEP 4: Calculate LTV (deterministic formula) =====
+  const ltv = avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months;
+  
+  audit.push({
+    formula: 'LTV = Average_Check × Orders_per_Month × Client_Lifetime_Months',
+    inputs: {
+      'Average Check': avgCheck,
+      'Orders/Month': benchmarks.orders_per_client,
+      'Lifetime (months)': benchmarks.client_lifetime_months,
+    },
+    result: ltv,
+    isValid: true,
+    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${ltv}`,
+  });
+  
+  // ===== STEP 5: Calculate LTV:CAC ratio =====
+  const ltvCacRatio = cac > 0 ? Math.round((ltv / cac) * 10) / 10 : 0;
+  
+  audit.push({
+    formula: 'LTV_CAC_Ratio = LTV / CAC',
+    inputs: { LTV: ltv, CAC: cac },
+    result: ltvCacRatio,
+    isValid: ltvCacRatio >= 2 && ltvCacRatio <= 10,
+    notes: `$${ltv} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`,
+  });
+  
+  // Validate LTV:CAC
+  if (ltvCacRatio < 2) {
+    issues.push({
+      code: 'LTV_CAC_WEAK',
+      field: 'ltvCacRatio',
+      message: `LTV:CAC ratio of ${ltvCacRatio}x is below healthy threshold of 3x`,
+      severity: ltvCacRatio < 1.5 ? 'error' : 'warning',
+      fix: 'Reduce CAC through organic channels or increase customer lifetime value',
+    });
+  } else if (ltvCacRatio > 10) {
+    issues.push({
+      code: 'LTV_CAC_SUSPICIOUSLY_HIGH',
+      field: 'ltvCacRatio',
+      message: `LTV:CAC ratio of ${ltvCacRatio}x is unusually high - verify inputs`,
+      severity: 'warning',
+      fix: 'This may indicate underinvestment in growth or optimistic assumptions',
+    });
+  }
+  
+  // ===== STEP 6: Calculate expense structure =====
+  const cogs = Math.round(mrr * (benchmarks.cogs_percent / 100));
+  
+  audit.push({
+    formula: 'COGS = MRR × COGS_Percent',
+    inputs: { MRR: mrr, 'COGS%': benchmarks.cogs_percent },
+    result: cogs,
+    isValid: true,
+    notes: `$${mrr} × ${benchmarks.cogs_percent}% = $${cogs}`,
+  });
+  
+  const fixedCosts = adjustedSalaries + adjustedRent + adjustedUtilities + adjustedOther;
+  
+  // Calculate active clients and marketing spend
+  const revenuePerClient = avgCheck * benchmarks.orders_per_client;
+  const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
+    ? userProvidedCustomers 
+    : Math.max(1, Math.ceil(mrr / Math.max(revenuePerClient, 1)));
+  
+  const churnRate = userProvidedChurnRate && userProvidedChurnRate > 0 
+    ? userProvidedChurnRate / 100 
+    : 1 / benchmarks.client_lifetime_months;
+  
+  const newClientsNeeded = Math.ceil(clientsActive * churnRate);
+  const marketing = newClientsNeeded * cac;
+  
+  audit.push({
+    formula: 'Marketing_Cost = New_Clients_Needed × CAC',
+    inputs: {
+      'Active Clients': clientsActive,
+      'Churn Rate': Math.round(churnRate * 100) + '%',
+      'New Clients Needed': newClientsNeeded,
+      CAC: cac,
+    },
+    result: marketing,
+    isValid: true,
+    notes: `${newClientsNeeded} clients × $${cac} = $${marketing}`,
+  });
+  
+  // Total expenses
+  let totalExpenses: number;
+  
+  if (userProvidedCosts && userProvidedCosts > 0) {
+    totalExpenses = userProvidedCosts;
+    audit.push({
+      formula: 'Total_Expenses = User_Provided_Costs',
+      inputs: { 'User Monthly Costs': userProvidedCosts },
+      result: totalExpenses,
+      isValid: true,
+      notes: `Using user-provided monthly costs: $${userProvidedCosts.toLocaleString()}`,
+    });
+  } else {
+    totalExpenses = cogs + fixedCosts + marketing;
+    audit.push({
+      formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
+      inputs: {
+        COGS: cogs,
+        Salaries: adjustedSalaries,
+        Rent: adjustedRent,
+        Utilities: adjustedUtilities,
+        Other: adjustedOther,
+        Marketing: marketing,
+      },
+      result: totalExpenses,
+      isValid: true,
+      notes: `$${cogs} + $${fixedCosts} + $${marketing} = $${totalExpenses}`,
+    });
+  }
+  
+  // ===== STEP 7: Calculate profit metrics =====
+  const grossProfit = mrr - cogs;
+  const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
+  
+  const netProfit = mrr - totalExpenses;
+  const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  const isProfitable = netProfit > 0;
+  
+  audit.push({
+    formula: 'Net_Profit = MRR - Total_Expenses',
+    inputs: { MRR: mrr, Expenses: totalExpenses },
+    result: netProfit,
+    isValid: isProfitable,
+    notes: `$${mrr} - $${totalExpenses} = $${netProfit} ${isProfitable ? '✓' : '❌ LOSS'}`,
+  });
+  
+  // Validate profitability
+  if (isProfitable && netMarginPercent < benchmarks.net_margin_min) {
+    issues.push({
+      code: 'NET_MARGIN_BELOW_INDUSTRY',
+      field: 'netMarginPercent',
+      message: `Net margin ${netMarginPercent}% is below industry minimum of ${benchmarks.net_margin_min}%`,
+      severity: 'warning',
+      fix: `Target ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}% net margin for this industry`,
+    });
+  }
+  
+  if (!isProfitable) {
+    issues.push({
+      code: 'UNPROFITABLE',
+      field: 'netProfit',
+      message: `Business is unprofitable with monthly loss of $${Math.abs(netProfit).toLocaleString()}`,
+      severity: 'error',
+      fix: 'Increase revenue or reduce costs to reach profitability',
+    });
+  }
+  
+  // ===== STEP 8: Calculate investment returns =====
+  let paybackMonths = 0;
+  if (startupInvestment > 0) {
+    if (netProfit > 0) {
+      paybackMonths = Math.ceil(startupInvestment / netProfit);
+    } else {
+      paybackMonths = 999;
+    }
+  }
+  
+  audit.push({
+    formula: 'Payback_Months = Startup_Investment / Monthly_Net_Profit',
+    inputs: { Investment: startupInvestment, 'Monthly Profit': netProfit },
+    result: paybackMonths,
+    isValid: paybackMonths > 0 && paybackMonths < 48,
+    notes: paybackMonths === 999 
+      ? 'Business is unprofitable - payback impossible' 
+      : `$${startupInvestment} / $${netProfit} = ${paybackMonths} months`,
+  });
+  
+  if (paybackMonths > 36 && paybackMonths < 999) {
+    issues.push({
+      code: 'PAYBACK_TOO_LONG',
+      field: 'paybackMonths',
+      message: `Payback period of ${paybackMonths} months exceeds typical threshold of 24-36 months`,
+      severity: 'warning',
+      fix: 'Consider reducing initial investment or increasing monthly profitability',
+    });
+  }
+  
+  const roiYear1Percent = startupInvestment > 0 
+    ? Math.round((netProfit * 12 / startupInvestment) * 100) 
+    : 0;
+  
+  const roiYear3Percent = startupInvestment > 0 
+    ? Math.round((netProfit * 36 / startupInvestment) * 100) 
+    : 0;
+  
+  const npv3Years = Math.round(netProfit * 36 - startupInvestment);
+  
+  // ===== STEP 9: Calculate break-even points =====
+  const variableCostRatio = benchmarks.cogs_percent / 100 + (mrr > 0 ? marketing / mrr : 0);
+  const contributionMargin = 1 - variableCostRatio;
+  
+  const breakEvenRevenue = contributionMargin > 0 
+    ? Math.round(fixedCosts / contributionMargin) 
+    : 0;
+  
+  const breakEvenUnits = avgCheck > 0 
+    ? Math.ceil(breakEvenRevenue / avgCheck) 
+    : 0;
+  
+  const targetProfit = 45000;
+  const revenueFor45kProfit = contributionMargin > 0 
+    ? Math.round((fixedCosts + targetProfit) / contributionMargin) 
+    : 0;
+  
+  // ===== STEP 10: Calculate CAC payback months =====
+  const contributionPerCustomer = avgCheck * (1 - benchmarks.cogs_percent / 100);
+  const cacPaybackMonths = contributionPerCustomer > 0 
+    ? Math.ceil(cac / contributionPerCustomer) 
+    : 999;
+  
+  if (cacPaybackMonths > benchmarks.client_lifetime_months) {
+    issues.push({
+      code: 'CAC_PAYBACK_EXCEEDS_LIFETIME',
+      field: 'cacPaybackMonths',
+      message: `CAC payback (${cacPaybackMonths} months) exceeds customer lifetime (${benchmarks.client_lifetime_months} months)`,
+      severity: 'error',
+      fix: 'Reduce CAC or increase customer lifetime value',
+    });
+  }
+  
+  // ===== STEP 11: Generate scenario analysis =====
+  const scenarios = {
+    pessimistic: {
+      revenue: Math.round(mrr * 0.7),
+      profit: Math.round((mrr * 0.7) - totalExpenses),
+      margin: Math.round((((mrr * 0.7) - totalExpenses) / (mrr * 0.7)) * 100) || 0,
+      label: 'Pessimistic (-30%)',
+    },
+    base: {
+      revenue: mrr,
+      profit: netProfit,
+      margin: netMarginPercent,
+      label: 'Base Case',
+    },
+    optimistic: {
+      revenue: Math.round(mrr * 1.3),
+      profit: Math.round((mrr * 1.3) - totalExpenses),
+      margin: Math.round((((mrr * 1.3) - totalExpenses) / (mrr * 1.3)) * 100) || 0,
+      label: 'Optimistic (+30%)',
+    },
+  };
+  
+  const hasHardErrors = issues.some(i => i.severity === 'error');
+  
+  return {
+    success: true,
+    metrics: {
+      mrr,
+      arr: mrr * 12,
+      grossProfit,
+      grossMarginPercent,
+      netProfit,
+      netMarginPercent,
+      totalExpenses,
+      expenses: {
+        cogs,
+        salaries: adjustedSalaries,
+        rent: adjustedRent,
+        utilities: adjustedUtilities,
+        marketing,
+        other: adjustedOther,
+      },
+      cac,
+      ltv,
+      ltvCacRatio,
+      cacPaybackMonths,
+      averageCheck: avgCheck,
+      clientsActive,
+      newClientsNeeded,
+      ordersMonthly: Math.round(mrr / avgCheck),
+      startupInvestment,
+      paybackMonths,
+      roiYear1Percent,
+      roiYear3Percent,
+      npv3Years,
+      breakEvenRevenue,
+      breakEvenUnits,
+      revenueFor45kProfit,
+      isProfitable,
+      industryDetected: benchmarks.name,
+      scenarios,
+    },
+    validation: {
+      isValid: !hasHardErrors,
+      hasHardErrors,
+      issues,
+    },
+    audit,
+    calculatedAt: new Date().toISOString(),
+    engineVersion: '2.1.0',
+  };
+}
+
+// ========== REQUEST HANDLER ==========
+
+serve(async (req: Request) => {
+  // CORS preflight
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders });
+  }
+
+  try {
+    const startTime = Date.now();
+    
+    // Validate request
+    if (req.method !== 'POST') {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Method not allowed' }),
+        { status: 405, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const body = await req.json() as FinancialsInput;
+
+    // Validate required fields
+    if (!body.benchmarks) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'benchmarks is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (!body.location_multipliers) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'location_multipliers is required' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof body.mrr !== 'number' || body.mrr < 0) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'mrr must be a non-negative number' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Run calculations
+    const result = computeFinancials(body);
+    
+    const latencyMs = Date.now() - startTime;
+    console.log(`calculate-financials completed in ${latencyMs}ms`);
+
+    return new Response(
+      JSON.stringify(result),
+      { 
+        status: 200, 
+        headers: { 
+          ...corsHeaders, 
+          'Content-Type': 'application/json',
+          'X-Latency-Ms': String(latencyMs),
+        } 
+      }
+    );
+
+  } catch (error) {
+    console.error('calculate-financials error:', error);
+    return new Response(
+      JSON.stringify({ 
+        success: false, 
+        error: error instanceof Error ? error.message : 'Internal server error' 
+      }),
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+    );
+  }
+});
