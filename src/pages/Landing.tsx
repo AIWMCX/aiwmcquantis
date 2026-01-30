@@ -10,9 +10,8 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
-import { useExitIntent } from '@/hooks/useExitIntent';
-import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
-import { PopupErrorBoundary } from '@/components/marketing/PopupErrorBoundary';
+import { PopupManager } from '@/components/marketing/PopupManager';
+import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 
 // Lazy load below-fold components for faster LCP
@@ -43,20 +42,6 @@ export default function Landing() {
   const testimonialsSection = useLazySection({ rootMargin: '200px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
 
-  // Exit Intent Hook
-  const { shouldShow: showExitPopup, close: closeExitPopup, markSubmitted: markExitSubmitted } = useExitIntent({
-    enabled: true,
-    threshold: 20,
-    delay: 500,
-    cooldownDays: 14,
-    dismissCooldownHours: 4,
-  });
-
-  useEffect(() => {
-    if (showExitPopup) {
-      trackEvent('exit_intent_shown', { page: 'landing' });
-    }
-  }, [showExitPopup]);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -286,24 +271,8 @@ export default function Landing() {
       </section>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-border py-8 md:py-12">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6">
-            <div className="flex items-center gap-2">
-              <span className="text-lg font-bold text-foreground">AIWMC Quantis™</span>
-            </div>
-            <div className="flex items-center gap-4 md:gap-6 text-sm text-muted-foreground">
-              <Link to="/privacy" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Privacy Policy</Link>
-              <Link to="/terms" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Terms of Service</Link>
-              <a href="mailto:support@aiwmcquantis.com" className="hover:text-foreground transition-colors min-h-[44px] flex items-center">Contact</a>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
-            </p>
-          </div>
-        </div>
-      </footer>
+      {/* Footer with Email Capture */}
+      <Footer />
 
       {/* Mobile Sticky CTA - Enhanced with trust indicator */}
       <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
@@ -322,10 +291,8 @@ export default function Landing() {
       {/* Bottom padding for mobile sticky CTA */}
       <div className="h-28 md:hidden" />
 
-      {/* Exit Intent Popup */}
-      <PopupErrorBoundary>
-        <ExitIntentPopup isOpen={showExitPopup} onClose={closeExitPopup} onSubmitSuccess={markExitSubmitted} />
-      </PopupErrorBoundary>
+      {/* Popup Manager - Handles all email capture popups */}
+      <PopupManager />
     </div>
   );
 }

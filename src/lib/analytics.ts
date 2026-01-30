@@ -333,6 +333,76 @@ export function trackError(errorType: string, errorMessage: string): void {
   }
 }
 
+// ============================================
+// Email Capture & Lead Magnet Tracking
+// ============================================
+
+/**
+ * Track popup trigger event
+ */
+export function trackPopupTriggered(type: string, source: string, offer: string): void {
+  trackEvent('popup_triggered', { type, source, offer });
+}
+
+/**
+ * Track popup view event
+ */
+export function trackPopupViewed(type: string, source: string, offer: string): void {
+  trackEvent('popup_viewed', { type, source, offer });
+}
+
+/**
+ * Track popup dismissal
+ */
+export function trackPopupDismissed(type: string, source: string, offer: string, timeOnPopupMs?: number): void {
+  trackEvent('popup_dismissed', { 
+    type, 
+    source, 
+    offer,
+    time_on_popup_ms: timeOnPopupMs,
+  });
+}
+
+/**
+ * Track popup conversion (email submitted)
+ */
+export function trackPopupConverted(type: string, source: string, offer: string, emailDomain?: string): void {
+  trackEvent('popup_converted', { 
+    type, 
+    source, 
+    offer,
+    email_domain: emailDomain,
+  });
+}
+
+/**
+ * Track lead magnet request
+ */
+export function trackLeadMagnetRequested(offer: string, source: string): void {
+  trackEvent('lead_magnet_requested', { offer, source });
+}
+
+/**
+ * Track lead magnet download
+ */
+export function trackLeadMagnetDownloaded(offer: string, source: string): void {
+  trackEvent('lead_magnet_downloaded', { offer, source });
+}
+
+/**
+ * Track newsletter subscription
+ */
+export function trackNewsletterSubscribed(source: string): void {
+  trackEvent('newsletter_subscribed', { source });
+}
+
+/**
+ * Track waitlist join
+ */
+export function trackWaitlistJoined(feature: string, source: string): void {
+  trackEvent('waitlist_joined', { feature, source });
+}
+
 /**
  * Get session quality info (for debugging)
  */
