@@ -129,10 +129,10 @@ export function DemoPreview() {
               <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 transition-all duration-500 ${animationStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
                 {/* Key Insights */}
                 <div className="p-4 rounded-xl border border-border bg-background">
-                  <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2 text-base">
                     <CheckCircle2 className="w-4 h-4 text-success" />
                     Key Insights
-                  </h4>
+                  </h3>
                   <ul className="space-y-2">
                     {demoInsights.map((insight, i) => (
                       <li 
@@ -152,10 +152,10 @@ export function DemoPreview() {
 
                 {/* Risks */}
                 <div className="p-4 rounded-xl border border-border bg-background">
-                  <h4 className="font-semibold text-foreground mb-3 flex items-center gap-2">
+                  <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2 text-base">
                     <AlertTriangle className="w-4 h-4 text-warning" />
                     Risk Factors
-                  </h4>
+                  </h3>
                   <ul className="space-y-2">
                     {demoRisks.map((risk, i) => (
                       <li 
