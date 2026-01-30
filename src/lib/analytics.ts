@@ -468,6 +468,38 @@ export function trackPasswordValidationPassed(passwordLength: number): void {
 }
 
 // ============================================
+// Retention & Engagement Tracking
+// ============================================
+
+/**
+ * Track streak achievement
+ */
+export function trackStreakAchieved(days: number, badge: string): void {
+  trackEvent('streak_achieved', { days, badge });
+}
+
+/**
+ * Track milestone reached
+ */
+export function trackMilestoneReached(milestone: string): void {
+  trackEvent('milestone_reached', { milestone });
+}
+
+/**
+ * Track notification clicked
+ */
+export function trackNotificationClicked(type: string, notificationId: string): void {
+  trackEvent('notification_clicked', { type, notification_id: notificationId });
+}
+
+/**
+ * Track churn risk elevation
+ */
+export function trackChurnRiskElevated(previous: number, current: number, tier: string): void {
+  trackEvent('churn_risk_elevated', { previous, current, user_tier: tier });
+}
+
+// ============================================
 // Helper Functions
 // ============================================
 

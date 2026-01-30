@@ -6,6 +6,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from './MobileNav';
+import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
 
 interface HeaderProps {
@@ -65,11 +66,11 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
             </MobileNav>
           )}
 
-          {/* Desktop navigation */}
           {!isMobile && !isLoading && (
             <>
               {isAuthenticated ? (
                 <div className="flex items-center gap-2">
+                  <NotificationCenter />
                   {isAdmin && (
                     <Button asChild variant="ghost" size="sm">
                       <Link to="/admin" className="flex items-center gap-1.5">
