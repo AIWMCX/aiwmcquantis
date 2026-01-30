@@ -2,10 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
+import { StructuredData } from '@/components/seo/StructuredData';
 
 export default function Terms() {
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: 'Terms of Service', url: '/terms' }
+  ];
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PageSEO
+        title="Terms of Service | AIWMC Quantis™"
+        description="Read the terms of service for AIWMC Quantis, including subscription plans, acceptable use, and liability limitations."
+        canonical="/terms"
+      />
+      <StructuredData includeBreadcrumbs breadcrumbs={breadcrumbs} />
       <div className="container max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <Link to="/">
           <Button variant="ghost" className="mb-8 gap-2">

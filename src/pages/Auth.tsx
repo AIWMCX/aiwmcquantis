@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { SignupForm, LoginForm, ForgotPasswordForm } from '@/components/auth';
 import { trackPageView, trackEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -117,6 +118,11 @@ export default function Auth() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PageSEO
+        title="Sign In | AIWMC Quantis™"
+        description="Sign in or create an account to access AI-powered business analysis with financial projections and market insights."
+        canonical="/auth"
+      />
       <div className="container max-w-lg mx-auto flex-1 flex flex-col items-center justify-center px-4 py-8">
         <Button
           variant="ghost"

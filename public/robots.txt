@@ -1,16 +1,37 @@
+# AIWMC Quantis robots.txt
+# Last updated: 2026-01-30
+
+# Default rules for all crawlers
+User-agent: *
+Allow: /
+Disallow: /app
+Disallow: /app/
+Disallow: /admin
+Disallow: /admin/
+Disallow: /plus-settings
+Disallow: /thank-you
+Disallow: /reset-password
+Disallow: /api/
+
+# Google
 User-agent: Googlebot
 Allow: /
 
+# Bing
 User-agent: Bingbot
 Allow: /
 
+# Twitter/X
 User-agent: Twitterbot
 Allow: /
 
+# Facebook
 User-agent: facebookexternalhit
 Allow: /
 
-User-agent: *
+# LinkedIn
+User-agent: LinkedInBot
 Allow: /
 
+# Sitemap location
 Sitemap: https://aiwmcquantis.com/sitemap.xml

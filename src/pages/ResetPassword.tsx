@@ -13,6 +13,7 @@ import { toast } from 'sonner';
 import { trackEvent, trackPageView } from '@/lib/analytics';
 import { PasswordStrengthMeter, checkPasswordStrength } from '@/components/auth/PasswordStrengthMeter';
 import { cn } from '@/lib/utils';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 const resetPasswordSchema = z.object({
   password: z.string()
@@ -188,6 +189,12 @@ export default function ResetPassword() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PageSEO
+        title="Reset Password | AIWMC Quantis™"
+        description="Set a new password for your AIWMC Quantis account."
+        canonical="/reset-password"
+        noindex={true}
+      />
       <div className="container max-w-lg mx-auto flex-1 flex flex-col items-center justify-center px-4 py-8">
         <div className="flex items-center gap-3 mb-8">
           <div className="p-2 rounded-lg bg-primary/10">

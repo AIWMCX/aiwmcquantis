@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
@@ -16,7 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -255,6 +255,12 @@ export default function Index() {
 
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <PageSEO
+        title="Dashboard | AIWMC Quantis™"
+        description="Access your AI-powered business analyses, financial projections, and business plans."
+        canonical="/app"
+        noindex={true}
+      />
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
 
       <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
