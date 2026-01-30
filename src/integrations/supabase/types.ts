@@ -465,34 +465,43 @@ export type Database = {
       }
       leads: {
         Row: {
+          conversion_type: string | null
+          converted_at: string | null
           created_at: string | null
           email_encrypted: string
           email_hash: string | null
           id: string
           metadata: Json | null
           offer: string
+          score: number | null
           source: string
           status: string | null
           updated_at: string | null
         }
         Insert: {
+          conversion_type?: string | null
+          converted_at?: string | null
           created_at?: string | null
           email_encrypted: string
           email_hash?: string | null
           id?: string
           metadata?: Json | null
           offer: string
+          score?: number | null
           source: string
           status?: string | null
           updated_at?: string | null
         }
         Update: {
+          conversion_type?: string | null
+          converted_at?: string | null
           created_at?: string | null
           email_encrypted?: string
           email_hash?: string | null
           id?: string
           metadata?: Json | null
           offer?: string
+          score?: number | null
           source?: string
           status?: string | null
           updated_at?: string | null

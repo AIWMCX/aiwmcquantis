@@ -53,3 +53,6 @@ verify_jwt = false
 
 [functions.api-analyze]
 verify_jwt = false
+
+[functions.send-lead-magnet]
+verify_jwt = false

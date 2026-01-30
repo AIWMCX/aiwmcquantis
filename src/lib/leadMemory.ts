@@ -14,7 +14,16 @@ const LEAD_EXPIRY_DAYS = 30; // Remember lead for 30 days
 export interface LeadData {
   email: string;
   name: string;
-  source: 'exit_intent_popup' | 'landing_page' | 'other';
+  source: 
+    | 'exit_intent_popup' 
+    | 'scroll_popup'
+    | 'time_delay_popup'
+    | 'footer_newsletter'
+    | 'resource_download'
+    | 'feature_waitlist'
+    | 'blog_cta'
+    | 'landing_page' 
+    | 'other';
   timestamp: string;
 }
 
