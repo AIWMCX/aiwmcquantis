@@ -2,19 +2,18 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, CheckCircle2, ArrowRight, Building2, Moon, Sun, Loader2, Play, Menu } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
+import { PricingSection } from '@/components/landing/PricingSection';
 import { useAuth } from '@/hooks/useAuth';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { useExitIntent } from '@/hooks/useExitIntent';
 import { ExitIntentPopup } from '@/components/marketing/ExitIntentPopup';
 import { PopupErrorBoundary } from '@/components/marketing/PopupErrorBoundary';
 import { useLazySection } from '@/hooks/useLazySection';
-import { useIsMobile } from '@/hooks/use-mobile';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
@@ -30,11 +29,7 @@ const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
 );
 
 export default function Landing() {
-  const navigate = useNavigate();
   const { user } = useAuth();
-  const { redirectToPayment, isLoading: checkoutLoading } = usePaymentLinks();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const isMobile = useIsMobile();
   const [darkMode, setDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('theme') === 'dark' || !localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -74,21 +69,6 @@ export default function Landing() {
     }
   }, [darkMode]);
 
-  const handlePlanClick = (planName: string) => {
-    if (planName === 'Free') {
-      navigate('/app');
-      return;
-    }
-    const plan = 'plus' as const;
-    setLoadingPlan(planName);
-    if (user) {
-      redirectToPayment(plan, user.id, user.email || undefined);
-    } else {
-      localStorage.setItem('pending_checkout_plan', plan);
-      navigate('/auth');
-    }
-  };
-
   const features = [{
     icon: BarChart3,
     title: 'Financial Projections',
@@ -115,26 +95,7 @@ export default function Landing() {
     description: 'Analysis tailored to your specific geographic market and demographics.'
   }];
 
-  const pricingPlans = [{
-    name: 'Free',
-    price: '$0',
-    period: 'forever',
-    description: 'Perfect for trying out the platform',
-    features: ['3 analyses per month', 'Basic financial projections', 'Business plan outline', 'Email support'],
-    cta: 'Get Started',
-    highlighted: false
-  }, {
-    name: 'Plus',
-    price: '$17',
-    period: 'per month',
-    description: 'For serious entrepreneurs',
-    features: ['14-day free trial', 'Unlimited analyses', 'Advanced financial modeling', 'Complete business plans', 'Marketing strategy', 'Document intelligence', 'PDF export', 'Custom branding', 'Priority support'],
-    cta: 'Start Free Trial',
-    highlighted: true,
-    hasTrial: true
-  }];
-
-  // Real stats
+  // Stats for social proof
   const stats = [{
     value: '1,000+',
     label: 'Industry Benchmarks'
@@ -286,65 +247,8 @@ export default function Landing() {
       {/* How It Works Section */}
       <HowItWorksSection />
 
-      {/* Pricing Section */}
-      <section id="pricing" className="py-16 md:py-24 bg-muted/30">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-              Simple, Transparent Pricing
-            </h2>
-            <p className="text-base md:text-lg text-muted-foreground">
-              Start free and upgrade as you grow. No hidden fees.
-            </p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
-            {pricingPlans.map(plan => (
-              <div key={plan.name} className={`relative p-6 md:p-8 rounded-2xl border ${plan.highlighted ? 'border-primary bg-card shadow-xl md:scale-105' : 'border-border bg-card'}`}>
-                {plan.highlighted && (
-                  <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium">
-                    Most Popular
-                  </div>
-                )}
-                <div className="text-center mb-6">
-                  <h3 className="text-xl font-semibold text-foreground mb-2">{plan.name}</h3>
-                  {'hasTrial' in plan && plan.hasTrial && (
-                    <span className="inline-block px-3 py-1 text-xs font-medium bg-success/10 text-success rounded-full mb-2">
-                      14-day free trial
-                    </span>
-                  )}
-                  <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-3xl md:text-4xl font-bold text-foreground">{plan.price}</span>
-                    <span className="text-muted-foreground">/{plan.period}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">{plan.description}</p>
-                </div>
-                <ul className="space-y-3 mb-6 md:mb-8">
-                  {plan.features.map(feature => (
-                    <li key={feature} className="flex items-center gap-3 text-sm md:text-base text-foreground">
-                      <CheckCircle2 className="w-5 h-5 text-success flex-shrink-0" />
-                      <span>{feature}</span>
-                    </li>
-                  ))}
-                </ul>
-                <Button 
-                  className="w-full min-h-[48px]" 
-                  variant={plan.highlighted ? 'default' : 'outline'} 
-                  size="lg" 
-                  onClick={() => handlePlanClick(plan.name)} 
-                  disabled={loadingPlan !== null}
-                >
-                  {loadingPlan === plan.name ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Processing...
-                    </>
-                  ) : plan.cta}
-                </Button>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* Pricing Section - Optimized for conversion */}
+      <PricingSection />
 
       {/* FAQ Section - Progressive hydration */}
       <div ref={faqSection.ref}>

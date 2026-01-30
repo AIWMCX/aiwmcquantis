@@ -1,0 +1,231 @@
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useExperiment, trackExperimentConversion } from '@/lib/abTesting';
+import { trackEvent } from '@/lib/analytics';
+import { ValueAnchor } from './ValueAnchor';
+import { PricingCard } from './PricingCard';
+import { GuaranteeBanner } from './GuaranteeBanner';
+import { PricingFAQ } from './PricingFAQ';
+import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+
+type BillingPeriod = 'monthly' | 'annual';
+
+const PRICING = {
+  free: {
+    monthly: { price: 0, period: 'forever' },
+    annual: { price: 0, period: 'forever' },
+  },
+  plus: {
+    monthly: { price: 17, period: 'mo', totalYear: 204 },
+    annual: { price: 14, period: 'mo', totalYear: 168, savings: 36, savingsPercent: 17 },
+  },
+};
+
+const FREE_FEATURES = [
+  { text: '3 analyses per month', highlight: false },
+  { text: 'Basic financial projections', highlight: false },
+  { text: 'Business plan outline', highlight: false },
+  { text: 'Email support', highlight: false },
+];
+
+const PLUS_FEATURES = [
+  { text: '14-day free trial', highlight: true, badge: 'Try Free' },
+  { text: 'Unlimited analyses', highlight: true, subtext: 'Worth $2,000+ in consultant fees' },
+  { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF/Excel' },
+  { text: 'Bank-ready PDF exports', highlight: false, subtext: 'Professional reports for investors' },
+  { text: 'Custom branding', highlight: false, subtext: 'White-label with your logo' },
+  { text: 'Priority support', highlight: false },
+];
+
+export function PricingSection() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const { redirectToPayment } = usePaymentLinks();
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  const pricingVariant = useExperiment('pricing_display');
+
+  useEffect(() => {
+    trackEvent('pricing_section_viewed', { 
+      variant: pricingVariant,
+      billing_period: billingPeriod,
+    });
+  }, [pricingVariant]);
+
+  const handleBillingToggle = (value: string) => {
+    if (value === 'monthly' || value === 'annual') {
+      const from = billingPeriod;
+      setBillingPeriod(value);
+      trackEvent('pricing_toggle_clicked', { 
+        from, 
+        to: value,
+        variant: pricingVariant,
+      });
+    }
+  };
+
+  const handlePlanClick = (planName: 'free' | 'plus') => {
+    trackEvent('pricing_cta_clicked', {
+      plan: planName,
+      variant: pricingVariant,
+      billing_period: billingPeriod,
+    });
+    
+    trackExperimentConversion('pricing_display', 'cta_click', planName === 'plus' ? 1 : 0);
+
+    if (planName === 'free') {
+      navigate('/app');
+      return;
+    }
+
+    setLoadingPlan(planName);
+    if (user) {
+      redirectToPayment('plus', user.id, user.email || undefined);
+    } else {
+      localStorage.setItem('pending_checkout_plan', 'plus');
+      navigate('/auth');
+    }
+  };
+
+  const plusPricing = billingPeriod === 'annual' ? PRICING.plus.annual : PRICING.plus.monthly;
+  const showValueAnchor = pricingVariant !== 'control';
+  const showAnnualFirst = pricingVariant === 'annual_first';
+
+  // If annual_first variant, default to annual
+  useEffect(() => {
+    if (showAnnualFirst && billingPeriod === 'monthly') {
+      setBillingPeriod('annual');
+    }
+  }, [showAnnualFirst]);
+
+  return (
+    <section id="pricing" className="py-16 md:py-24 bg-muted/30">
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6">
+        {/* Section Header */}
+        <div className="text-center max-w-3xl mx-auto mb-8">
+          <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
+            Know Exactly What You're Getting
+          </h2>
+          <p className="text-base md:text-lg text-muted-foreground">
+            Business analysis that costs less than a single consultant hour
+          </p>
+        </div>
+
+        {/* Value Anchor - Consultant Cost Comparison */}
+        {showValueAnchor && <ValueAnchor />}
+
+        {/* Billing Period Toggle */}
+        <div className="flex justify-center mb-8">
+          <div className="bg-muted p-1 rounded-lg">
+            <ToggleGroup 
+              type="single" 
+              value={billingPeriod} 
+              onValueChange={handleBillingToggle}
+              className="gap-0"
+            >
+              <ToggleGroupItem 
+                value="monthly" 
+                className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all"
+              >
+                Monthly
+              </ToggleGroupItem>
+              <ToggleGroupItem 
+                value="annual" 
+                className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all relative"
+              >
+                Annual
+                <span className="ml-2 text-xs font-semibold text-success">
+                  Save 17%
+                </span>
+              </ToggleGroupItem>
+            </ToggleGroup>
+          </div>
+        </div>
+
+        {/* Pricing Cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10">
+          <PricingCard
+            name="Free"
+            price={0}
+            period="forever"
+            description="Perfect for trying out the platform"
+            features={FREE_FEATURES}
+            ctaText="Start Free Analysis"
+            onCtaClick={() => handlePlanClick('free')}
+            isLoading={loadingPlan === 'free'}
+            disabled={loadingPlan !== null}
+          />
+          <PricingCard
+            name="Plus"
+            price={plusPricing.price}
+            period={plusPricing.period}
+            description="For serious entrepreneurs"
+            features={PLUS_FEATURES}
+            ctaText="Start 14-Day Free Trial →"
+            onCtaClick={() => handlePlanClick('plus')}
+            isLoading={loadingPlan === 'plus'}
+            disabled={loadingPlan !== null}
+            highlighted
+            badge="Most Popular"
+            annualSavings={billingPeriod === 'annual' ? PRICING.plus.annual.savings : undefined}
+            totalYear={plusPricing.totalYear}
+          />
+        </div>
+
+        {/* Money-Back Guarantee */}
+        <GuaranteeBanner />
+
+        {/* Feature Comparison Table (for comparison_table variant) */}
+        {pricingVariant === 'comparison_table' && (
+          <FeatureComparisonTable />
+        )}
+
+        {/* Pricing FAQ */}
+        <PricingFAQ />
+      </div>
+    </section>
+  );
+}
+
+function FeatureComparisonTable() {
+  const features = [
+    { name: 'Monthly analyses', free: '3', plus: 'Unlimited' },
+    { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
+    { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
+    { name: 'Marketing strategy', free: '—', plus: '✓' },
+    { name: 'Document Intelligence', free: '—', plus: '✓' },
+    { name: 'PDF export', free: '—', plus: '✓' },
+    { name: 'Custom branding', free: '—', plus: '✓' },
+    { name: 'Support', free: 'Email', plus: 'Priority' },
+  ];
+
+  return (
+    <div className="mt-12 max-w-2xl mx-auto">
+      <h3 className="text-xl font-semibold text-center text-foreground mb-6">
+        Feature Comparison
+      </h3>
+      <div className="rounded-xl border border-border overflow-hidden bg-card">
+        <table className="w-full">
+          <thead>
+            <tr className="border-b border-border bg-muted/50">
+              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Feature</th>
+              <th className="text-center p-4 text-sm font-medium text-muted-foreground">Free</th>
+              <th className="text-center p-4 text-sm font-medium text-foreground bg-primary/5">Plus</th>
+            </tr>
+          </thead>
+          <tbody>
+            {features.map((feature, idx) => (
+              <tr key={feature.name} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
+                <td className="p-4 text-sm text-foreground">{feature.name}</td>
+                <td className="p-4 text-sm text-center text-muted-foreground">{feature.free}</td>
+                <td className="p-4 text-sm text-center text-foreground font-medium bg-primary/5">{feature.plus}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
