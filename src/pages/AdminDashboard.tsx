@@ -8,9 +8,10 @@ import { EngagementMetricsCard } from '@/components/admin/EngagementMetricsCard'
 import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, FileText, Activity } from 'lucide-react';
+import { Shield, Database, ArrowLeft, Activity } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 // Note: Authentication and admin role checks are handled by ProtectedRoute in App.tsx
 
@@ -29,6 +30,12 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
+      <PageSEO
+        title="Admin Dashboard | AIWMC Quantis™"
+        description="Admin dashboard for monitoring metrics and system health."
+        canonical="/admin"
+        noindex={true}
+      />
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
       
       <main className="flex-1 container max-w-7xl mx-auto px-4 py-8">

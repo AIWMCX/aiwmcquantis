@@ -2,10 +2,22 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
+import { PageSEO } from '@/components/seo/PageSEO';
+import { StructuredData } from '@/components/seo/StructuredData';
 
 export default function Privacy() {
+  const breadcrumbs = [
+    { name: 'Home', url: '/' },
+    { name: 'Privacy Policy', url: '/privacy' }
+  ];
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PageSEO
+        title="Privacy Policy | AIWMC Quantis™"
+        description="Learn how AIWMC Quantis protects your data. Our privacy policy covers data collection, security measures, and your GDPR/CCPA rights."
+        canonical="/privacy"
+      />
+      <StructuredData includeBreadcrumbs breadcrumbs={breadcrumbs} />
       <div className="container max-w-4xl mx-auto px-4 sm:px-6 py-12">
         <Link to="/">
           <Button variant="ghost" className="mb-8 gap-2">

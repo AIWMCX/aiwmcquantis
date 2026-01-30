@@ -11,6 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { 
   Palette, 
   Zap, 
@@ -146,6 +147,12 @@ export default function PlusSettings() {
   // Plus subscriber - show settings
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
+      <PageSEO
+        title="Plus Settings | AIWMC Quantis™"
+        description="Manage your Plus subscription settings and custom branding."
+        canonical="/plus-settings"
+        noindex={true}
+      />
       <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
       
       <main className="flex-1 container max-w-4xl px-4 sm:px-6 py-8">

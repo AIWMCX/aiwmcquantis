@@ -1,13 +1,28 @@
 import { useEffect } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const SITE_URL = 'https://aiwmcquantis.com';
+
+interface BreadcrumbItem {
+  name: string;
+  url: string;
+}
 
 interface StructuredDataProps {
   includeFAQ?: boolean;
   faqItems?: Array<{ question: string; answer: string }>;
+  includeBreadcrumbs?: boolean;
+  breadcrumbs?: BreadcrumbItem[];
 }
 
-export function StructuredData({ includeFAQ = false, faqItems = [] }: StructuredDataProps) {
+export function StructuredData({ 
+  includeFAQ = false, 
+  faqItems = [],
+  includeBreadcrumbs = false,
+  breadcrumbs = []
+}: StructuredDataProps) {
+  const location = useLocation();
+
   useEffect(() => {
     // Organization Schema
     const organizationSchema = {
@@ -22,7 +37,7 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
       sameAs: []
     };
 
-    // SoftwareApplication Schema - Pro tier removed
+    // SoftwareApplication Schema - Without unverified ratings
     const softwareSchema = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
@@ -47,13 +62,6 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
           description: 'Unlimited analyses with advanced financial modeling, document intelligence, PDF export, and custom branding'
         }
       ],
-      aggregateRating: {
-        '@type': 'AggregateRating',
-        ratingValue: '4.8',
-        ratingCount: '50',
-        bestRating: '5',
-        worstRating: '1'
-      },
       featureList: [
         'Financial Projections',
         'Market Analysis',
@@ -119,11 +127,26 @@ export function StructuredData({ includeFAQ = false, faqItems = [] }: Structured
       injectSchema(faqSchema, 'schema-faq');
     }
 
+    // BreadcrumbList Schema if provided
+    if (includeBreadcrumbs && breadcrumbs.length > 0) {
+      const breadcrumbSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BreadcrumbList',
+        itemListElement: breadcrumbs.map((item, index) => ({
+          '@type': 'ListItem',
+          position: index + 1,
+          name: item.name,
+          item: item.url.startsWith('http') ? item.url : `${SITE_URL}${item.url}`
+        }))
+      };
+      injectSchema(breadcrumbSchema, 'schema-breadcrumb');
+    }
+
     // Cleanup on unmount
     return () => {
       scripts.forEach(script => script.remove());
     };
-  }, [includeFAQ, faqItems]);
+  }, [includeFAQ, faqItems, includeBreadcrumbs, breadcrumbs, location.pathname]);
 
   return null;
 }

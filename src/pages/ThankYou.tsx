@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { useAuth } from '@/hooks/useAuth';
 import { trackSignupConversion } from '@/lib/analytics';
+import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function ThankYou() {
   const navigate = useNavigate();
@@ -20,6 +21,12 @@ export default function ThankYou() {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
+      <PageSEO
+        title="Welcome! | AIWMC Quantis™"
+        description="Your account is ready. Start analyzing your business ideas."
+        canonical="/thank-you"
+        noindex={true}
+      />
       <div className="max-w-md w-full text-center">
         {/* Success Animation */}
         <div className="relative mb-8">
