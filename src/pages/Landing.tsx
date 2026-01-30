@@ -219,8 +219,10 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
-      <MobileHero />
+      {/* Main Content Area - Accessibility Landmark */}
+      <main id="main-content" role="main">
+        {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
+        <MobileHero />
 
       {/* Mini Demo - Interactive preview with real calculations */}
       <div ref={miniDemoSection.ref} id="try-it">
@@ -378,6 +380,7 @@ export default function Landing() {
           </div>
         </div>
       </section>
+      </main>
 
       {/* Footer */}
       <footer className="border-t border-border py-8 md:py-12">
