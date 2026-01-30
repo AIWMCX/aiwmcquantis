@@ -272,6 +272,51 @@ export function trackCtaClick(ctaName: string, location: string): void {
   });
 }
 
+// ============================================
+// Pricing Page Conversion Tracking
+// ============================================
+
+/**
+ * Track pricing section viewed
+ */
+export function trackPricingSectionViewed(variant: string, billingPeriod: string): void {
+  trackEvent('pricing_section_viewed', {
+    variant,
+    billing_period: billingPeriod,
+  });
+}
+
+/**
+ * Track billing toggle interaction
+ */
+export function trackPricingToggle(from: string, to: string, variant: string): void {
+  trackEvent('pricing_toggle_clicked', {
+    from,
+    to,
+    variant,
+  });
+}
+
+/**
+ * Track pricing FAQ expansion
+ */
+export function trackPricingFaqExpanded(questionId: string): void {
+  trackEvent('pricing_faq_expanded', {
+    question_id: questionId,
+  });
+}
+
+/**
+ * Track pricing CTA click
+ */
+export function trackPricingCtaClick(plan: string, variant: string, billingPeriod: string): void {
+  trackEvent('pricing_cta_clicked', {
+    plan,
+    variant,
+    billing_period: billingPeriod,
+  });
+}
+
 /**
  * Track errors (always tracked, even from bots for debugging)
  */

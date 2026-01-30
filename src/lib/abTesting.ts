@@ -43,8 +43,8 @@ export const EXPERIMENTS = {
   },
   pricing_display: {
     id: 'pricing_display_v1',
-    variants: ['standard', 'monthly_emphasis', 'savings_highlight'] as const,
-    weights: [0.34, 0.33, 0.33],
+    variants: ['control', 'value_anchor', 'comparison_table', 'annual_first'] as const,
+    weights: [0.25, 0.25, 0.25, 0.25],
     trackExposure: true,
   },
   demo_preview_style: {
