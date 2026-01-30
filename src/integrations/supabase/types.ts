@@ -554,6 +554,7 @@ export type Database = {
           score: number | null
           source: string
           status: string | null
+          unsubscribed_at: string | null
           updated_at: string | null
         }
         Insert: {
@@ -568,6 +569,7 @@ export type Database = {
           score?: number | null
           source: string
           status?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Update: {
@@ -582,6 +584,7 @@ export type Database = {
           score?: number | null
           source?: string
           status?: string | null
+          unsubscribed_at?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -699,6 +702,44 @@ export type Database = {
           tools_recommended?: string[] | null
         }
         Relationships: []
+      }
+      newsletter_sends: {
+        Row: {
+          created_at: string
+          email_id: string | null
+          id: string
+          lead_id: string
+          send_date: string
+          week_number: number
+          year: number
+        }
+        Insert: {
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          lead_id: string
+          send_date: string
+          week_number: number
+          year: number
+        }
+        Update: {
+          created_at?: string
+          email_id?: string | null
+          id?: string
+          lead_id?: string
+          send_date?: string
+          week_number?: number
+          year?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "newsletter_sends_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       profiles: {
         Row: {

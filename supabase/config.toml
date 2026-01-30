@@ -62,3 +62,9 @@ verify_jwt = false
 
 [functions.check-churn-signals]
 verify_jwt = false
+
+[functions.send-weekly-insights]
+verify_jwt = false
+
+[functions.newsletter-unsubscribe]
+verify_jwt = false
