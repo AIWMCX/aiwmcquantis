@@ -1,78 +1,61 @@
 
-# Annual Billing Implementation Plan
 
-## Overview
-Add support for annual billing ($168/year with 14-day trial) alongside the existing monthly option ($17/mo).
+# Fix Annual Stripe Payment Link Configuration
 
-## Current State
-- `useStripeCheckout.ts` has a single `plus` Payment Link (monthly only)
-- `PricingSection.tsx` has a billing toggle but always redirects to monthly
-- `Auth.tsx` stores `pending_checkout_plan` as just `'plus'` without billing period
-- The `stripe-webhook` already treats all paid subscriptions as `'plus'` plan, so no changes needed there
+## Root Cause Analysis
 
-## Files to Modify
+The code implementation is correct - it properly passes `plus_annual` when Annual billing is selected. However, the **Stripe Payment Link itself** is misconfigured.
 
-### 1. `src/hooks/useStripeCheckout.ts`
-**Changes:**
-- Update `Plan` type from `'plus'` to `'plus_monthly' | 'plus_annual'`
-- Add annual Payment Link to `PAYMENT_LINKS` object:
-  ```typescript
-  const PAYMENT_LINKS = {
-    plus_monthly: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
-    plus_annual: 'https://buy.stripe.com/aFa9AUfzN0ug4Eu9wpe7m02',
-  };
-  ```
-- Update `redirectToPayment`, `redirectToPaymentLink`, and legacy functions to accept new plan types
+Looking at your Stripe checkout screenshot:
+- It shows "17,00 $ в месяц" (17$/month)
+- This confirms the Payment Link `aFa9AUfzN0ug4Eu9wpe7m02` is pointing to the monthly price, NOT the annual price
 
-### 2. `src/components/landing/PricingSection.tsx`
-**Changes:**
-- Update `handlePlanClick` to pass the correct plan key based on `billingPeriod`:
-  ```typescript
-  const planKey = billingPeriod === 'annual' ? 'plus_annual' : 'plus_monthly';
-  redirectToPayment(planKey, user.id, user.email || undefined);
-  localStorage.setItem('pending_checkout_plan', planKey);
-  ```
-- Track billing period in analytics events
+## Solution
 
-### 3. `src/pages/Auth.tsx`
-**Changes:**
-- Update type annotation to accept both monthly and annual:
-  ```typescript
-  const storedPlan = localStorage.getItem('pending_checkout_plan') as 'plus_monthly' | 'plus_annual' | 'plus' | null;
-  ```
-- Handle legacy `'plus'` value by mapping it to `'plus_monthly'` for backwards compatibility
+### Step 1: Fix in Stripe Dashboard (YOU must do this)
 
-### 4. `src/components/UpgradePrompt.tsx`
-**Changes:**
-- Add billing toggle or default to monthly (simpler UX in upgrade prompt)
-- Update `handleUpgrade` to pass `'plus_monthly'` by default (users can see annual option on pricing page)
+1. Go to **Stripe Dashboard** → **Payment Links**
+2. Find the link ending in `9wpe7m02` OR create a NEW annual payment link
+3. Verify it uses the **annual price** ($168/year or $14/mo billed annually)
+4. The correct annual price should show:
+   - Amount: $168.00
+   - Billing: Yearly (or $14/mo billed annually)
+   - Trial: 14 days
+5. Copy the correct Payment Link URL
 
-## Technical Notes
+### Step 2: Code Update (I will do this)
 
-### Stripe Webhook (No Changes Needed)
-The webhook already maps all paid subscriptions to `'plus'` plan status regardless of price:
+Once you confirm the correct Annual Payment Link URL, I'll update:
+
+**File: `src/hooks/useStripeCheckout.ts`**
 ```typescript
-// All paid subscriptions are now 'plus' (Pro tier removed)
-const plan = "plus";
+const PAYMENT_LINKS = {
+  plus_monthly: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
+  plus_annual: 'YOUR_CORRECT_ANNUAL_LINK_HERE',  // Update with correct link
+};
 ```
-This means both monthly and annual subscriptions will correctly activate Plus features.
 
-### Backwards Compatibility
-- Legacy `'plus'` values in localStorage will be treated as monthly
-- Existing subscribers are unaffected
+### Verification Checklist
 
-## Testing Checklist
-1. Click "Monthly" toggle, click Plus CTA -> redirects to monthly Stripe checkout
-2. Click "Annual" toggle, click Plus CTA -> redirects to annual Stripe checkout
-3. Unauthenticated user clicks annual Plus -> localStorage stores `plus_annual` -> after auth, redirects to annual checkout
-4. Upgrade prompt in app -> redirects to monthly checkout (default)
-5. Complete annual subscription -> webhook processes correctly -> user gets Plus access
+After the fix:
+1. Select "Annual" on pricing page
+2. Click "Start 14-Day Free Trial"
+3. Stripe checkout should show:
+   - "168 $ в год" (or "$14/mo billed annually")
+   - 14-day trial
+   - Then $168/year after trial
 
-## Summary of Changes
+## Action Required
 
-| File | Change Description |
-|------|-------------------|
-| `useStripeCheckout.ts` | Add annual Payment Link, update Plan type |
-| `PricingSection.tsx` | Pass billing period to checkout |
-| `Auth.tsx` | Handle annual plan from localStorage |
-| `UpgradePrompt.tsx` | Default to monthly in upgrade modal |
+Please verify in Stripe Dashboard:
+1. Do you have TWO separate Payment Links?
+   - One for Monthly ($17/mo)
+   - One for Annual ($168/year)
+2. What is the correct Annual Payment Link URL?
+
+If you only created ONE Payment Link and attached it to the wrong price, you need to either:
+- Edit the existing link to use the annual price, OR
+- Create a NEW Payment Link attached to the $168/year price
+
+Once you provide the correct Annual Payment Link URL, I'll update the code immediately.
+
