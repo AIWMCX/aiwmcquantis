@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
@@ -43,21 +43,38 @@ export function PricingSection() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { redirectToPayment } = usePaymentLinks();
-  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('monthly');
+  
+  // Get experiment variant FIRST so we can use it for initial state
   const pricingVariant = useExperiment('pricing_display');
+  const showAnnualFirst = pricingVariant === 'annual_first';
+  
+  // Initialize billing period based on experiment variant (fixes race condition)
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(() => 
+    showAnnualFirst ? 'annual' : 'monthly'
+  );
+  const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
+  
+  // Ref to always have the current billing period (eliminates stale state on quick clicks)
+  const billingPeriodRef = useRef<BillingPeriod>(billingPeriod);
 
+  // Keep ref in sync with state
+  useEffect(() => {
+    billingPeriodRef.current = billingPeriod;
+  }, [billingPeriod]);
+
+  // Track pricing section viewed (now includes billingPeriod in deps)
   useEffect(() => {
     trackEvent('pricing_section_viewed', { 
       variant: pricingVariant,
       billing_period: billingPeriod,
     });
-  }, [pricingVariant]);
+  }, [pricingVariant, billingPeriod]);
 
   const handleBillingToggle = (value: string) => {
     if (value === 'monthly' || value === 'annual') {
-      const from = billingPeriod;
+      const from = billingPeriodRef.current;
       setBillingPeriod(value);
+      billingPeriodRef.current = value; // Update ref immediately
       trackEvent('pricing_toggle_clicked', { 
         from, 
         to: value,
@@ -67,10 +84,13 @@ export function PricingSection() {
   };
 
   const handlePlanClick = (planName: 'free' | 'plus') => {
+    // Use ref for guaranteed current value (fixes race condition)
+    const currentBilling = billingPeriodRef.current;
+    
     trackEvent('pricing_cta_clicked', {
       plan: planName,
       variant: pricingVariant,
-      billing_period: billingPeriod,
+      billing_period: currentBilling,
     });
     
     trackExperimentConversion('pricing_display', 'cta_click', planName === 'plus' ? 1 : 0);
@@ -80,8 +100,15 @@ export function PricingSection() {
       return;
     }
 
-    // Determine which plan key to use based on billing period
-    const planKey = billingPeriod === 'annual' ? 'plus_annual' : 'plus_monthly';
+    // Determine which plan key to use based on CURRENT billing period from ref
+    const planKey = currentBilling === 'annual' ? 'plus_annual' : 'plus_monthly';
+    
+    // Debug logging (can remove after confirming fix)
+    console.log('[Pricing] CTA clicked:', { 
+      selectedBilling: currentBilling, 
+      planKey, 
+      isAnnual: planKey === 'plus_annual' 
+    });
     
     setLoadingPlan(planName);
     if (user) {
@@ -94,14 +121,14 @@ export function PricingSection() {
 
   const plusPricing = billingPeriod === 'annual' ? PRICING.plus.annual : PRICING.plus.monthly;
   const showValueAnchor = pricingVariant !== 'control';
-  const showAnnualFirst = pricingVariant === 'annual_first';
 
-  // If annual_first variant, default to annual
+  // Safety: ensure annual_first variant stays on annual if somehow reverted
   useEffect(() => {
     if (showAnnualFirst && billingPeriod === 'monthly') {
       setBillingPeriod('annual');
+      billingPeriodRef.current = 'annual';
     }
-  }, [showAnnualFirst]);
+  }, [showAnnualFirst, billingPeriod]);
 
   return (
     <section id="pricing" className="py-16 md:py-24 bg-muted/30">
