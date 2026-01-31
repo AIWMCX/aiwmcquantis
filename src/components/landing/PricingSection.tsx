@@ -80,11 +80,14 @@ export function PricingSection() {
       return;
     }
 
+    // Determine which plan key to use based on billing period
+    const planKey = billingPeriod === 'annual' ? 'plus_annual' : 'plus_monthly';
+    
     setLoadingPlan(planName);
     if (user) {
-      redirectToPayment('plus', user.id, user.email || undefined);
+      redirectToPayment(planKey, user.id, user.email || undefined);
     } else {
-      localStorage.setItem('pending_checkout_plan', 'plus');
+      localStorage.setItem('pending_checkout_plan', planKey);
       navigate('/auth');
     }
   };

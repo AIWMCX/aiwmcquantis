@@ -31,8 +31,9 @@ export function UpgradePrompt({
       // Close dialog first to avoid redirect issues from modal context
       onOpenChange(false);
       // Small delay to let dialog close, then redirect
+      // Default to monthly - users can see annual option on pricing page
       setTimeout(() => {
-        redirectToPayment('plus', user.id, user.email || undefined);
+        redirectToPayment('plus_monthly', user.id, user.email || undefined);
       }, 100);
     }
   };
