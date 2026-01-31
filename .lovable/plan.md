@@ -1,173 +1,78 @@
 
+# Annual Billing Implementation Plan
 
-# Security Hardening Plan: Fix Permissions & Professional Security
+## Overview
+Add support for annual billing ($168/year with 14-day trial) alongside the existing monthly option ($17/mo).
 
-## Issues Identified
+## Current State
+- `useStripeCheckout.ts` has a single `plus` Payment Link (monthly only)
+- `PricingSection.tsx` has a billing toggle but always redirects to monthly
+- `Auth.tsx` stores `pending_checkout_plan` as just `'plus'` without billing period
+- The `stripe-webhook` already treats all paid subscriptions as `'plus'` plan, so no changes needed there
 
-### 1. CRITICAL: Conflicting RLS Policy Causing Permission Errors
-**Root Cause of "Missing Permissions" Dialog**
+## Files to Modify
 
-The `user_notifications` table has a conflicting policy structure:
+### 1. `src/hooks/useStripeCheckout.ts`
+**Changes:**
+- Update `Plan` type from `'plus'` to `'plus_monthly' | 'plus_annual'`
+- Add annual Payment Link to `PAYMENT_LINKS` object:
+  ```typescript
+  const PAYMENT_LINKS = {
+    plus_monthly: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
+    plus_annual: 'https://buy.stripe.com/aFa9AUfzN0ug4Eu9wpe7m02',
+  };
+  ```
+- Update `redirectToPayment`, `redirectToPaymentLink`, and legacy functions to accept new plan types
 
-```
-Current Problem:
-- "Deny anonymous access to user_notifications" → roles: {public}, cmd: ALL, qual: false
-```
+### 2. `src/components/landing/PricingSection.tsx`
+**Changes:**
+- Update `handlePlanClick` to pass the correct plan key based on `billingPeriod`:
+  ```typescript
+  const planKey = billingPeriod === 'annual' ? 'plus_annual' : 'plus_monthly';
+  redirectToPayment(planKey, user.id, user.email || undefined);
+  localStorage.setItem('pending_checkout_plan', planKey);
+  ```
+- Track billing period in analytics events
 
-This policy applies to ALL roles (including `authenticated`), not just `anon`. This causes authenticated users to receive permission denied errors when accessing notifications.
+### 3. `src/pages/Auth.tsx`
+**Changes:**
+- Update type annotation to accept both monthly and annual:
+  ```typescript
+  const storedPlan = localStorage.getItem('pending_checkout_plan') as 'plus_monthly' | 'plus_annual' | 'plus' | null;
+  ```
+- Handle legacy `'plus'` value by mapping it to `'plus_monthly'` for backwards compatibility
 
-**Same issue exists for:**
-- `user_engagement` table
-- `email_sequence_log` table  
-- `subscription_audit_log` table
+### 4. `src/components/UpgradePrompt.tsx`
+**Changes:**
+- Add billing toggle or default to monthly (simpler UX in upgrade prompt)
+- Update `handleUpgrade` to pass `'plus_monthly'` by default (users can see annual option on pricing page)
 
-### 2. CRITICAL: Orphaned Pro Subscription Checks
-The `verify_pro_subscription()` function now always returns `false` (Pro tier removed), but policies still reference it:
+## Technical Notes
 
-```sql
--- branding_settings INSERT policy for "Pro users can insert branding"
-with_check: verify_pro_subscription(auth.uid())  -- Always returns false!
-
--- api_keys INSERT policy for "Pro users can insert api keys"  
-with_check: verify_pro_subscription(auth.uid())  -- Always returns false!
-```
-
-This causes silent failures for Plus users trying to insert branding or API keys.
-
-### 3. MEDIUM: Authentication Error Message Leaks User Enumeration
-Current implementation in `LoginForm.tsx`:
+### Stripe Webhook (No Changes Needed)
+The webhook already maps all paid subscriptions to `'plus'` plan status regardless of price:
 ```typescript
-if (error.message.includes('Invalid login credentials')) {
-  toast.error('Invalid email or password');
-} else if (error.message.includes('Email not confirmed')) {
-  toast.error('Please verify your email first');  // Reveals account exists!
-}
+// All paid subscriptions are now 'plus' (Pro tier removed)
+const plan = "plus";
 ```
+This means both monthly and annual subscriptions will correctly activate Plus features.
 
-Attackers can determine if an email is registered by trying to log in.
+### Backwards Compatibility
+- Legacy `'plus'` values in localStorage will be treated as monthly
+- Existing subscribers are unaffected
 
-### 4. LOW: Extension in Public Schema
-`pg_net` extension is installed in the `public` schema instead of a dedicated schema, which is a security linter warning.
+## Testing Checklist
+1. Click "Monthly" toggle, click Plus CTA -> redirects to monthly Stripe checkout
+2. Click "Annual" toggle, click Plus CTA -> redirects to annual Stripe checkout
+3. Unauthenticated user clicks annual Plus -> localStorage stores `plus_annual` -> after auth, redirects to annual checkout
+4. Upgrade prompt in app -> redirects to monthly checkout (default)
+5. Complete annual subscription -> webhook processes correctly -> user gets Plus access
 
----
+## Summary of Changes
 
-## Remediation Plan
-
-### Phase 1: Database Migration (Critical RLS Fixes)
-
-**A. Fix user_notifications RLS policies:**
-- Drop the problematic `Deny anonymous access to user_notifications` policy (applies to all roles)
-- Create proper RESTRICTIVE policy for anon role only
-
-**B. Fix user_engagement RLS policies:**
-- Same pattern as above
-
-**C. Fix email_sequence_log RLS policies:**
-- Same pattern as above  
-
-**D. Fix subscription_audit_log RLS policies:**
-- Same pattern as above
-
-**E. Remove orphaned Pro policies:**
-- Drop `Pro users can insert branding` policy (references deprecated function)
-- Drop `Pro users can insert api keys` policy (references deprecated function)
-
-**SQL Migration:**
-```sql
--- Fix user_notifications: Drop overly broad policy, add restrictive anon-only
-DROP POLICY IF EXISTS "Deny anonymous access to user_notifications" 
-  ON public.user_notifications;
-CREATE POLICY "Deny anon access to user_notifications"
-  ON public.user_notifications
-  AS RESTRICTIVE
-  FOR ALL TO anon
-  USING (false)
-  WITH CHECK (false);
-
--- Fix user_engagement: Same pattern
-DROP POLICY IF EXISTS "Deny anonymous access to user_engagement" 
-  ON public.user_engagement;
-CREATE POLICY "Deny anon access to user_engagement"
-  ON public.user_engagement
-  AS RESTRICTIVE
-  FOR ALL TO anon
-  USING (false)
-  WITH CHECK (false);
-
--- Fix email_sequence_log
-DROP POLICY IF EXISTS "Deny anonymous access to email_sequence_log" 
-  ON public.email_sequence_log;
-DROP POLICY IF EXISTS "Deny authenticated access to email_sequence_log" 
-  ON public.email_sequence_log;
-CREATE POLICY "Only service role manages email_sequence_log"
-  ON public.email_sequence_log
-  FOR ALL
-  USING (is_service_role())
-  WITH CHECK (is_service_role());
-
--- Fix subscription_audit_log  
-DROP POLICY IF EXISTS "Deny anonymous access to audit logs" 
-  ON public.subscription_audit_log;
-CREATE POLICY "Deny anon access to subscription_audit_log"
-  ON public.subscription_audit_log
-  AS RESTRICTIVE
-  FOR ALL TO anon
-  USING (false);
-
--- Remove orphaned Pro policies (Pro tier removed)
-DROP POLICY IF EXISTS "Pro users can insert branding" 
-  ON public.branding_settings;
-DROP POLICY IF EXISTS "Pro users can insert api keys" 
-  ON public.api_keys;
-```
-
-### Phase 2: Frontend Security Hardening
-
-**A. Fix User Enumeration in LoginForm.tsx:**
-
-Update error handling to use generic messages:
-```typescript
-if (error) {
-  // Generic message prevents user enumeration
-  toast.error('Unable to sign in. Please check your credentials.');
-  trackEvent('login_error', { reason: 'auth_failed' });
-  // Note: If email needs confirmation, Supabase sends reminder server-side
-}
-```
-
-**B. Fix ForgotPasswordForm.tsx (if not already fixed):**
-Ensure password reset uses generic "If this email exists..." message.
-
-### Phase 3: Security Verification
-
-**A. Run security scan to verify fixes**
-
-**B. Test notification bell functionality post-fix**
-
-**C. Verify Plus users can save branding settings**
-
----
-
-## Technical Details
-
-### Files to Modify:
-
-| File | Change |
-|------|--------|
-| `src/components/auth/LoginForm.tsx` | Standardize auth error messages |
-| Database migration | Fix 6 RLS policies |
-
-### Expected Outcome:
-- No more "missing permissions" errors for authenticated users
-- User enumeration attack vector closed
-- Plus subscribers can properly insert branding/API keys
-- Security scan passes with no critical issues
-
-### Testing Checklist:
-1. Log in as authenticated user → notifications load without error
-2. Update user engagement → no permission error
-3. Log in with wrong password → generic error (no account existence hint)
-4. Log in with unconfirmed email → generic error (no enumeration)
-5. Plus user saves branding → succeeds without error
-6. Run security linter → no critical findings
-
+| File | Change Description |
+|------|-------------------|
+| `useStripeCheckout.ts` | Add annual Payment Link, update Plan type |
+| `PricingSection.tsx` | Pass billing period to checkout |
+| `Auth.tsx` | Handle annual plan from localStorage |
+| `UpgradePrompt.tsx` | Default to monthly in upgrade modal |
