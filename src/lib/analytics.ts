@@ -35,6 +35,19 @@ const SPAM_REFERRER_PATTERNS = [
   /kambasoft\.com/i,
   /lumb\.co/i,
   /humanoithemes\.com/i,
+  // Additional Indonesian spam domains
+  /\.id$/i, // Indonesian TLD - common source of spam traffic
+  /konsultan.*\.com/i, // Indonesian consulting spam
+  /pajak.*online/i, // Tax-related spam
+  /jasa.*\.com/i, // Service-related Indonesian spam
+  // Additional global spam patterns
+  /free-share-buttons\.com/i,
+  /social-buttons\.com/i,
+  /event-tracking\.com/i,
+  /get-free-traffic\.com/i,
+  /trafficmonetize\.org/i,
+  /adcash\.com/i,
+  /popcash\.net/i,
 ];
 
 // Known bot user agent patterns

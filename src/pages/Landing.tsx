@@ -37,7 +37,6 @@ export default function Landing() {
   });
 
   // Progressive hydration for below-fold sections
-  const miniDemoSection = useLazySection({ rootMargin: '300px' });
   const demoSection = useLazySection({ rootMargin: '300px' });
   const testimonialsSection = useLazySection({ rootMargin: '200px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
@@ -170,27 +169,23 @@ export default function Landing() {
         {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
         <MobileHero />
 
-      {/* Mini Demo - Interactive preview with real calculations */}
-      <div ref={miniDemoSection.ref} id="try-it">
-        {miniDemoSection.isVisible ? (
+        {/* Mini Demo - Positioned immediately after hero for instant value */}
+        <div id="mini-demo" className="scroll-mt-20">
           <Suspense fallback={<SectionSkeleton height={500} />}>
             <MiniDemo />
           </Suspense>
-        ) : (
-          <SectionSkeleton height={500} />
-        )}
-      </div>
+        </div>
 
-      {/* Demo Preview - No gap, immediate visibility */}
-      <div ref={demoSection.ref} id="demo-preview" className="-mt-2">
-        {demoSection.isVisible ? (
-          <Suspense fallback={<SectionSkeleton height={400} />}>
-            <DemoPreview />
-          </Suspense>
-        ) : (
-          <SectionSkeleton height={400} />
-        )}
-      </div>
+        {/* Demo Preview - Complementary visual demo */}
+        <div ref={demoSection.ref} id="demo-preview">
+          {demoSection.isVisible ? (
+            <Suspense fallback={<SectionSkeleton height={400} />}>
+              <DemoPreview />
+            </Suspense>
+          ) : (
+            <SectionSkeleton height={400} />
+          )}
+        </div>
 
       {/* Client Testimonials - Progressive hydration */}
       <div ref={testimonialsSection.ref}>
