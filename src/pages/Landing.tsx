@@ -7,6 +7,9 @@ import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { PricingSection } from '@/components/landing/PricingSection';
+import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
+import { TrustLogos } from '@/components/landing/TrustLogos';
+import { Testimonials } from '@/components/landing/Testimonials';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
@@ -99,6 +102,9 @@ export default function Landing() {
       {/* Structured Data for SEO */}
       <StructuredData />
       
+      {/* Urgency Banner */}
+      <UrgencyBanner />
+      
       {/* Navigation - Mobile optimized with hamburger menu */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
@@ -164,10 +170,12 @@ export default function Landing() {
         </div>
       </nav>
 
-      {/* Main Content Area - Accessibility Landmark */}
       <main id="main-content" role="main">
         {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
         <MobileHero />
+
+        {/* Trust Logos - Social proof */}
+        <TrustLogos />
 
         {/* Mini Demo - Positioned immediately after hero for instant value */}
         <div id="mini-demo" className="scroll-mt-20">
@@ -175,6 +183,9 @@ export default function Landing() {
             <MiniDemo />
           </Suspense>
         </div>
+
+        {/* Testimonials - Social proof */}
+        <Testimonials />
 
         {/* Demo Preview - Complementary visual demo */}
         <div ref={demoSection.ref} id="demo-preview">

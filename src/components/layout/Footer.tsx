@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Heart, Mail } from 'lucide-react';
+import { Brain, Heart, Mail, Twitter, Linkedin, Github } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
 
 export function Footer() {
@@ -10,7 +10,7 @@ export function Footer() {
         <div className="flex flex-col gap-8">
           {/* Top Row: Branding + Newsletter */}
           <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
-            <div className="flex flex-col items-center lg:items-start gap-2">
+            <div className="flex flex-col items-center lg:items-start gap-3">
               <div className="flex items-center gap-2">
                 <Brain className="w-5 h-5 text-primary" />
                 <span className="font-semibold text-foreground">AIWMC Quantis™</span>
@@ -18,6 +18,40 @@ export function Footer() {
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
                 AI-powered business idea analysis in under 2 minutes
               </p>
+              <p className="text-xs text-muted-foreground">
+                A product of <span className="font-medium">AIWMC AI Agency LLC</span>
+              </p>
+              
+              {/* Social Links */}
+              <div className="flex items-center gap-3 mt-2">
+                <a 
+                  href="https://twitter.com/aiwmcquantis" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="Twitter"
+                >
+                  <Twitter className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://linkedin.com/company/aiwmc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="LinkedIn"
+                >
+                  <Linkedin className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://github.com/aiwmc" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="GitHub"
+                >
+                  <Github className="w-4 h-4" />
+                </a>
+              </div>
             </div>
             
             {/* Newsletter Signup */}
@@ -41,10 +75,14 @@ export function Footer() {
             </a>
           </div>
           
-          {/* Bottom Row: Copyright */}
-          <div className="flex items-center justify-center">
+          {/* Bottom Row: Copyright + Compliance */}
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              © {new Date().getFullYear()} AIWMC Quantis™ • Made with <Heart className="w-3 h-3 text-destructive" /> 
+              © {new Date().getFullYear()} AIWMC AI Agency LLC • Made with <Heart className="w-3 h-3 text-destructive" /> 
+            </p>
+            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
+            <p className="text-xs text-muted-foreground">
+              GDPR & CCPA Compliant
             </p>
           </div>
         </div>
