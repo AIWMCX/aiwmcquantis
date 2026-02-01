@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Brain, MapPin, Sparkles, Loader2, TrendingUp, Clock, Gauge, ArrowRight, Lock } from 'lucide-react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
+import { Brain, MapPin, Sparkles, Loader2, TrendingUp, Clock, Gauge, ArrowRight, Lock, FileText, Users, DollarSign } from 'lucide-react';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -19,13 +19,58 @@ interface PreviewResult {
 
 export function MiniDemo() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [idea, setIdea] = useState('');
   const [location, setLocation] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const hasAutoSubmitted = useRef(false);
 
   const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2;
+
+  // Handle hero form prefill
+  const handleHeroPrefill = useCallback(() => {
+    const prefillData = sessionStorage.getItem('hero_prefill');
+    if (prefillData && !hasAutoSubmitted.current) {
+      try {
+        const { idea: prefillIdea, location: prefillLocation, autoSubmit } = JSON.parse(prefillData);
+        if (prefillIdea && prefillLocation) {
+          setIdea(prefillIdea);
+          setLocation(prefillLocation);
+          
+          // Clear the prefill data
+          sessionStorage.removeItem('hero_prefill');
+          
+          // Auto-submit if requested and form is valid
+          if (autoSubmit && prefillIdea.trim().length >= 10 && prefillLocation.trim().length >= 2) {
+            hasAutoSubmitted.current = true;
+            // Small delay to ensure state is set
+            setTimeout(() => {
+              const form = document.getElementById('mini-demo-form') as HTMLFormElement;
+              if (form) {
+                form.requestSubmit();
+              }
+            }, 100);
+          }
+        }
+      } catch (e) {
+        console.error('Error parsing hero prefill:', e);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    // Listen for hero prefill event
+    window.addEventListener('hero-prefill-ready', handleHeroPrefill);
+    
+    // Also check on mount in case event already fired
+    handleHeroPrefill();
+    
+    return () => {
+      window.removeEventListener('hero-prefill-ready', handleHeroPrefill);
+    };
+  }, [handleHeroPrefill]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -99,7 +144,7 @@ export function MiniDemo() {
         {/* Demo Card */}
         <div className="bg-card rounded-2xl border border-border shadow-xl overflow-hidden">
           {/* Form Section */}
-          <form onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5">
+          <form id="mini-demo-form" onSubmit={handleSubmit} className="p-6 md:p-8 space-y-5">
             {/* Business Idea */}
             <div className="space-y-2">
               <Label htmlFor="demo-idea" className="flex items-center gap-2 text-sm font-medium">
@@ -217,19 +262,52 @@ export function MiniDemo() {
                   Industry detected: <span className="font-medium text-foreground">{result.industry_detected}</span>
                 </div>
 
-                {/* Gated Content Notice */}
+                {/* Locked Feature Teasers - Visual upsell cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium text-foreground">90-Day Action Plan</p>
+                    <p className="text-xs text-muted-foreground">Step-by-step launch roadmap</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium text-foreground">Competitor Analysis</p>
+                    <p className="text-xs text-muted-foreground">Market positioning insights</p>
+                  </div>
+                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
+                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
+                    <p className="text-sm font-medium text-foreground">Marketing Budget</p>
+                    <p className="text-xs text-muted-foreground">CAC/LTV calculations</p>
+                  </div>
+                </div>
+
+                {/* Full Report Benefits */}
                 <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-6">
                   <div className="flex items-start gap-3">
-                    <Lock className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
+                    <FileText className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                     <div>
-                      <p className="font-medium text-foreground mb-1">Full Report Includes:</p>
-                      <ul className="text-sm text-muted-foreground space-y-1">
-                        <li>• Complete business plan with launch steps</li>
-                        <li>• Marketing strategy & customer acquisition</li>
-                        <li>• 3 scenario analysis (conservative/base/optimistic)</li>
-                        <li>• Risk assessment & mitigation strategies</li>
-                        <li>• PDF export & shareable links</li>
-                      </ul>
+                      <p className="font-medium text-foreground mb-2">Unlock Your Complete Business Report</p>
+                      <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <DollarSign className="w-3.5 h-3.5 text-success" />
+                          <span>3 scenario projections</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <Users className="w-3.5 h-3.5 text-primary" />
+                          <span>Marketing strategy</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <FileText className="w-3.5 h-3.5 text-amber-500" />
+                          <span>PDF export</span>
+                        </div>
+                        <div className="flex items-center gap-1.5">
+                          <ArrowRight className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>Shareable links</span>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
