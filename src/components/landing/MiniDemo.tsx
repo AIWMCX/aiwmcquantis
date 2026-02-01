@@ -1,14 +1,41 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Sparkles, Loader2, TrendingUp, Clock, Gauge, ArrowRight, Lock, FileText, Users, DollarSign } from 'lucide-react';
+import { Brain, MapPin, Sparkles, Loader2, TrendingUp, Clock, Gauge, ArrowRight, Lock, FileText, Users, DollarSign, BarChart3, AlertTriangle, Calculator, LineChart, Database, CheckCircle2 } from 'lucide-react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { trackEvent, trackCtaClick } from '@/lib/analytics';
+
+// Industry categories
+const INDUSTRIES = [
+  { value: 'saas', label: 'SaaS / Software' },
+  { value: 'ecommerce', label: 'E-commerce' },
+  { value: 'consulting', label: 'Services / Agency' },
+  { value: 'retail', label: 'Retail / Physical Store' },
+  { value: 'restaurant', label: 'Restaurant / Food Service' },
+  { value: 'healthcare', label: 'Healthcare / Wellness' },
+  { value: 'education', label: 'Education / Training' },
+  { value: 'real_estate', label: 'Real Estate' },
+  { value: 'manufacturing', label: 'Manufacturing' },
+  { value: 'marketplace', label: 'Marketplace' },
+  { value: 'fintech', label: 'FinTech' },
+  { value: 'other', label: 'Other' },
+];
+
+// Locked features to tease
+const LOCKED_FEATURES = [
+  { icon: BarChart3, title: '3 Scenario Modeling', desc: 'Pessimistic/Base/Optimistic' },
+  { icon: AlertTriangle, title: 'Risk Analysis', desc: 'Identify threats early' },
+  { icon: Calculator, title: 'Unit Economics', desc: 'CAC, LTV, margins' },
+  { icon: LineChart, title: 'Break-even Calculator', desc: 'Timeline to profitability' },
+  { icon: FileText, title: 'PDF Business Plan', desc: 'Investor-ready reports' },
+  { icon: Database, title: 'Industry Benchmarks', desc: 'Compare vs 10,000+ businesses' },
+];
 
 interface PreviewResult {
   monthly_profit: number;
@@ -26,6 +53,9 @@ export function MiniDemo() {
   const [result, setResult] = useState<PreviewResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const hasAutoSubmitted = useRef(false);
+
+  // State for industry selector
+  const [industry, setIndustry] = useState('');
 
   const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2;
 
@@ -118,6 +148,13 @@ export function MiniDemo() {
     navigate('/app');
   };
 
+  // Get verdict based on profit
+  const getVerdict = (profit: number) => {
+    if (profit >= 10000) return { label: 'Promising', color: 'text-success', bg: 'bg-success/10' };
+    if (profit >= 3000) return { label: 'Moderate', color: 'text-amber-500', bg: 'bg-amber-500/10' };
+    return { label: 'Needs Work', color: 'text-destructive', bg: 'bg-destructive/10' };
+  };
+
   const formatCurrency = (value: number) => {
     if (value >= 1000000) return `$${(value / 1000000).toFixed(1)}M`;
     if (value >= 1000) return `$${(value / 1000).toFixed(1)}K`;
@@ -183,6 +220,26 @@ export function MiniDemo() {
               />
             </div>
 
+            {/* Industry Selector (Optional) */}
+            <div className="space-y-2">
+              <Label className="flex items-center gap-2 text-sm font-medium">
+                <BarChart3 className="w-4 h-4 text-muted-foreground" />
+                Industry (Optional)
+              </Label>
+              <Select value={industry} onValueChange={setIndustry} disabled={isLoading || !!result}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select your industry..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {INDUSTRIES.map((ind) => (
+                    <SelectItem key={ind.value} value={ind.value}>
+                      {ind.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
             {/* Error Display */}
             {error && (
               <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
@@ -217,9 +274,21 @@ export function MiniDemo() {
             <div className="border-t border-border">
               {/* Preview Metrics */}
               <div className="p-6 md:p-8 bg-muted/30">
+                {/* Verdict Badge */}
+                {(() => {
+                  const verdict = getVerdict(result.monthly_profit);
+                  return (
+                    <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full mb-4", verdict.bg)}>
+                      <Sparkles className={cn("w-4 h-4", verdict.color)} />
+                      <span className={cn("text-sm font-semibold", verdict.color)}>
+                        {verdict.label} Business Model
+                      </span>
+                    </div>
+                  );
+                })()}
+
                 <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-primary" />
-                  Preview Results
+                  Quick Analysis Results
                 </h3>
                 
                 <div className="grid grid-cols-3 gap-4 mb-6">
@@ -229,7 +298,7 @@ export function MiniDemo() {
                       <TrendingUp className="w-4 h-4 text-success" />
                       <span className="text-xs text-muted-foreground">Est. Profit/mo</span>
                     </div>
-                    <p className="text-xl md:text-2xl font-bold text-success">
+                    <p className={cn("text-xl md:text-2xl font-bold", result.monthly_profit >= 0 ? "text-success" : "text-destructive")}>
                       {formatCurrency(result.monthly_profit)}
                     </p>
                   </div>
@@ -262,34 +331,26 @@ export function MiniDemo() {
                   Industry detected: <span className="font-medium text-foreground">{result.industry_detected}</span>
                 </div>
 
-                {/* Locked Feature Teasers - Visual upsell cards */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
-                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium text-foreground">90-Day Action Plan</p>
-                    <p className="text-xs text-muted-foreground">Step-by-step launch roadmap</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium text-foreground">Competitor Analysis</p>
-                    <p className="text-xs text-muted-foreground">Market positioning insights</p>
-                  </div>
-                  <div className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group">
-                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                    <Lock className="w-4 h-4 text-muted-foreground mb-2" />
-                    <p className="text-sm font-medium text-foreground">Marketing Budget</p>
-                    <p className="text-xs text-muted-foreground">CAC/LTV calculations</p>
-                  </div>
+                {/* Locked Feature Teasers - Enhanced grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
+                  {LOCKED_FEATURES.map(({ icon: Icon, title, desc }) => (
+                    <div key={title} className="p-4 rounded-xl bg-muted/50 border border-border relative overflow-hidden group hover:border-primary/30 transition-colors">
+                      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                      <Lock className="w-4 h-4 text-muted-foreground mb-2" />
+                      <p className="text-sm font-medium text-foreground">{title}</p>
+                      <p className="text-xs text-muted-foreground">{desc}</p>
+                    </div>
+                  ))}
                 </div>
 
-                {/* Full Report Benefits */}
-                <div className="p-4 rounded-xl bg-primary/5 border border-primary/20 mb-6">
+                {/* Prominent CTA Card */}
+                <div className="p-5 rounded-xl bg-primary/5 border border-primary/20 mb-6">
                   <div className="flex items-start gap-3">
-                    <FileText className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-                    <div>
-                      <p className="font-medium text-foreground mb-2">Unlock Your Complete Business Report</p>
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <CheckCircle2 className="w-5 h-5 text-primary" />
+                    </div>
+                    <div className="flex-1">
+                      <p className="font-semibold text-foreground mb-2">Unlock Your Complete Business Report</p>
                       <div className="grid grid-cols-2 gap-2 text-sm text-muted-foreground">
                         <div className="flex items-center gap-1.5">
                           <DollarSign className="w-3.5 h-3.5 text-success" />
@@ -318,7 +379,7 @@ export function MiniDemo() {
                     onClick={handleGetFullReport}
                     className="flex-1 h-12 text-base font-semibold gap-2"
                   >
-                    Get Full Report Free
+                    Sign Up Free & See Full Analysis
                     <ArrowRight className="w-4 h-4" />
                   </Button>
                   <Link to="/auth" className="flex-1">
@@ -328,16 +389,22 @@ export function MiniDemo() {
                   </Link>
                 </div>
 
+                {/* Reassurance */}
+                <p className="text-center text-xs text-muted-foreground mt-4">
+                  Your data is saved • Continue exactly where you left off
+                </p>
+
                 {/* Try Another */}
                 <button
                   onClick={() => {
                     setResult(null);
                     setIdea('');
                     setLocation('');
+                    setIndustry('');
                   }}
                   className="w-full mt-4 text-sm text-muted-foreground hover:text-foreground transition-colors"
                 >
-                  Try another idea
+                  ← Try different numbers
                 </button>
               </div>
             </div>

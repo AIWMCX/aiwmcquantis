@@ -160,12 +160,12 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
 
               {/* Headline */}
               <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-2">
-                Wait! Don't Miss This...
+                🎁 Wait! Get 3 Free Pro Analyses
               </h2>
 
               {/* Subheadline */}
-              <p className="text-center text-primary font-semibold text-lg mb-6">
-                Get a FREE AI Business Analysis worth $500
+              <p className="text-center text-muted-foreground text-sm mb-6">
+                Enter your email and unlock 3 complete business analyses with all Pro features — free.
               </p>
 
               {/* Benefits */}
@@ -173,19 +173,19 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Personalized AI Strategy</span> - Custom recommendations for your business
+                    <span className="font-medium text-foreground">Full Industry Benchmarks</span> - Compare against 10,000+ similar businesses
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">ROI Calculator</span> - See exactly how much you could save
+                    <span className="font-medium text-foreground">Complete Risk Analysis</span> - Identify threats before they happen
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Implementation Roadmap</span> - Step-by-step guide to get started
+                    <span className="font-medium text-foreground">Investor-Ready PDF Report</span> - Professional exports for pitch decks
                   </p>
                 </div>
               </div>
