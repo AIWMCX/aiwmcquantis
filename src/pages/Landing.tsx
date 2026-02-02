@@ -19,7 +19,6 @@ import { useLazySection } from '@/hooks/useLazySection';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
-const MiniDemo = lazy(() => import('@/components/landing/MiniDemo').then(m => ({ default: m.MiniDemo })));
 const ClientTestimonials = lazy(() => import('@/components/landing/ClientTestimonials').then(m => ({ default: m.ClientTestimonials })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
 
@@ -176,13 +175,6 @@ export default function Landing() {
 
         {/* Trust Logos - Social proof */}
         <TrustLogos />
-
-        {/* Mini Demo - Positioned immediately after hero for instant value */}
-        <div id="mini-demo" className="scroll-mt-20">
-          <Suspense fallback={<SectionSkeleton height={500} />}>
-            <MiniDemo />
-          </Suspense>
-        </div>
 
         {/* Testimonials - Social proof */}
         <Testimonials />

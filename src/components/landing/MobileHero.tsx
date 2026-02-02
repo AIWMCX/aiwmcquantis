@@ -34,21 +34,14 @@ export function MobileHero() {
     });
     trackCtaClick('see_preview_numbers', 'hero_form');
 
-    // Navigate to mini-demo section with pre-filled data
-    const miniDemoSection = document.getElementById('mini-demo');
-    if (miniDemoSection) {
-      // Store in sessionStorage for MiniDemo to pick up
-      sessionStorage.setItem('hero_prefill', JSON.stringify({
-        idea: quickIdea.trim(),
-        location: quickLocation.trim(),
-        autoSubmit: true,
-      }));
-      
-      miniDemoSection.scrollIntoView({ behavior: 'smooth' });
-      
-      // Trigger a custom event for MiniDemo to react to
-      window.dispatchEvent(new CustomEvent('hero-prefill-ready'));
-    }
+    // Store in sessionStorage for the app to pick up
+    sessionStorage.setItem('hero_prefill', JSON.stringify({
+      idea: quickIdea.trim(),
+      location: quickLocation.trim(),
+    }));
+    
+    // Navigate to the app
+    navigate('/app');
   };
 
   const isFormValid = quickIdea.trim().length >= 5 && quickLocation.trim().length >= 2;
