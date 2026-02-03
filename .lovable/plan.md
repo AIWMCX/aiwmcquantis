@@ -1,323 +1,272 @@
 
-# AIWMC Quantis - Master Implementation Plan
-## Enterprise-Grade Landing Page & Conversion Optimization
+# AIWMC Quantis - FinTech Squad Implementation Plan
+
+## Gap Analysis: Current State vs Technical Assessment
+
+Based on my codebase exploration, here's the implementation status:
+
+### Already Implemented (No Action Needed)
+| Feature | Status | Location |
+|---------|--------|----------|
+| UrgencyBanner | Done | `src/components/landing/UrgencyBanner.tsx` |
+| LiveCounter | Done | `src/components/landing/LiveCounter.tsx` |
+| TrustLogos | Done | `src/components/landing/TrustLogos.tsx` |
+| MiniDemo (Preview Mode) | Done | `src/components/landing/MiniDemo.tsx` |
+| analyze-preview Edge Function | Done | `supabase/functions/analyze-preview/` |
+| share-report Edge Function | Done | `supabase/functions/share-report/` |
+| Scenario Tabs | Done | `src/components/analysis/ScenarioSelector.tsx` |
+| PDF Export | Done | `src/hooks/usePdfExport.ts` |
+| 4-Step Wizard | Done | `src/components/analysis/WizardForm.tsx` |
+| Draft Save/Resume | Done | Using `secureStorage` |
+| A/B Testing Framework | Done | `src/lib/abTesting.ts` |
+| Pricing Section with Toggle | Done | `src/components/landing/PricingSection.tsx` |
+
+### Gaps to Implement (From Technical Assessment)
 
 ---
 
-## Executive Summary
+## Phase 1: Hero Section Enhancement (P0)
 
-This plan transforms the existing AIWMC Quantis landing page into a conversion-optimized, enterprise-grade platform as specified in the Master Implementation Brief. The current codebase has a solid foundation; this implementation enhances it with proven conversion psychology, real-time engagement elements, and streamlined UX patterns.
+### 1.1 Add Financial Input Fields to MiniDemo
 
----
+**Current State:** MiniDemo only has idea, location, and industry selector
+**Target State:** Add Investment, Monthly Revenue, Monthly Costs fields as specified
 
-## Current State Assessment
-
-### Existing Strengths (Keep/Enhance)
-- MobileHero with inline quick-submit form (Phase 1 from previous plan - done)
-- MiniDemo with hero prefill integration and locked feature teasers (done)
-- HowItWorksSection with 12-variable system explanation
-- PricingSection with A/B testing framework
-- FAQSection with SEO structured data
-- ExitIntentPopup with lead capture RPC
-- Mobile-optimized sticky CTA
-
-### Gaps to Address (From Master Brief)
-1. **No Urgency Banner** - Missing scarcity/urgency element
-2. **No Live Counter** - Missing real-time social proof
-3. **No Trust Logos** - Missing institutional credibility
-4. **Static Hero** - No animated background effects
-5. **Testimonials Removed** - Only feature cards, no social proof quotes
-6. **Exit Intent Enhancement** - Need industry-specific lead magnets
-7. **Inline Analyzer Enhancement** - Need more prominent value demonstration
-8. **Footer Enhancement** - Missing company info and year
-
----
-
-## Implementation Plan
-
-### Phase 1: Urgency & Social Proof Layer
-
-**1.1 Create UrgencyBanner Component**
-
-```
-File: src/components/landing/UrgencyBanner.tsx
-
-Features:
-- January Special messaging (configurable)
-- Spots left counter (37 → 12, decrement with probability)
-- "Claim Now" CTA linking to #mini-demo
-- Dismissible with sessionStorage
-- Gradient background with fire emoji
-```
-
-**1.2 Create Live Business Counter**
-
-```
-File: src/components/landing/LiveCounter.tsx
-
-Features:
-- Real-time counter fetched from Supabase (analyses table count)
-- Fallback to static base + time-based increment
-- Animated number transitions
-- "businesses analyzed" phrasing
-```
-
-**1.3 Create Trust Logos Section**
-
-```
-File: src/components/landing/TrustLogos.tsx
-
-Features:
-- "Trusted by founders from" header
-- Logo placeholders for: Y Combinator, TechStars, Stanford, 500 Startups, Harvard
-- Grayscale logos, fade-in animation
-- Responsive grid (5 columns desktop, 3 mobile)
-```
-
----
-
-### Phase 2: Enhanced Hero Section
-
-**2.1 Update MobileHero.tsx**
-
-Enhancements:
-- Add animated gradient background (3 floating orbs)
-- Add grid pattern overlay
-- Integrate LiveCounter component at top
-- Enhanced headline: "Know If Your Business Will Make Money"
-- Sub-headline: "Get comprehensive financial analysis, risk assessment, and investor-ready business plans — in under 2 minutes"
-- Add value stack badges (ROI Analysis, Risk Assessment, 3 Scenarios, etc.)
-- Shine effect on CTA button
-- Demo preview thumbnail below form
-
-**2.2 Update Form Styling**
-
-- Glassmorphic card design
-- Larger input fields with icons
-- More prominent submit button with gradient
-- Friction reducers below button (checkmarks)
-
----
-
-### Phase 3: Enhanced MiniDemo (Inline Analyzer)
-
-**3.1 Update MiniDemo.tsx**
-
-Enhancements:
-- Add industry selector dropdown (18 categories)
-- Enhanced results display with verdict badge (promising/moderate/risky)
-- More locked feature cards (8 items):
-  - 3 Scenario Modeling
-  - Detailed Risk Analysis
-  - Complete Unit Economics Dashboard
-  - Break-even Calculator
-  - Investor-Ready Business Plan (PDF)
-  - Industry Benchmarks Comparison
-  - Calculation Audit Trail
-  - Data Sources & Methodology
-- "Sign Up Free & See Full Analysis" prominent CTA
-- "Your data is saved" reassurance message
-- "Try different numbers" secondary action
-
----
-
-### Phase 4: Social Proof Enhancement
-
-**4.1 Create Real Testimonials Section**
-
-```
-File: src/components/landing/Testimonials.tsx
-
-Features:
-- 3 testimonial cards with:
-  - Quote text
-  - Avatar (initials-based)
-  - Name and role
-  - Metric badge (e.g., "12x ROI", "$500K raised")
-  - 5-star ratings
-- Animated card hover effects
-- Stats row below:
-  - Total analyses count
-  - Average rating (4.9/5)
-  - Funding raised by users
-  - Average analysis time (47s)
-```
-
-Note: Use placeholder testimonials with REDACTED for names per user instruction.
-
----
-
-### Phase 5: Features Section Enhancement
-
-**5.1 Update Features Display**
+Files to modify:
+- `src/components/landing/MiniDemo.tsx`
 
 Changes:
-- 6 feature cards with icons (already exists)
-- Enhanced copy from Master Brief:
-  - "Instant Clarity" - Stop drowning in spreadsheets...
-  - "Scenario Planning" - See your future in 3D...
-  - "Action-Ready Roadmap" - Every report includes 3-7 prioritized steps...
-  - "Share & Export" - Generate professional PDF reports...
-- Hover effects with gradient backgrounds
+- Add currency input fields for Investment, Revenue, Costs
+- Calculate: Monthly Profit, Annual ROI, Payback Period, Break-even
+- Use local computation (no API call for these calculations)
+- Show "verdict" badge (promising/moderate/risky) based on calculated ROI
 
----
-
-### Phase 6: Pricing Section Polish
-
-**6.1 Update PricingSection.tsx**
-
-Enhancements:
-- Add "Most Popular" badge on Plus card
-- Add annual savings highlight
-- Add "All paid plans include..." footer text:
-  - 14-day free trial
-  - No credit card required
-  - Cancel anytime
-- Ensure feature comparison table shows for comparison_table variant
-
----
-
-### Phase 7: Footer Enhancement
-
-**7.1 Update Footer.tsx**
-
-Changes:
-- Add company name: "AIWMC AI Agency LLC"
-- Add social links placeholders
-- Copyright: "© 2026 AIWMC AI Agency LLC"
-- Keep existing email signup
-- Add GDPR/CCPA compliance mention
-
----
-
-### Phase 8: Exit Intent Enhancement
-
-**8.1 Update ExitIntentPopup.tsx**
-
-Enhancements:
-- Change offer to "Get 3 Free Pro Analyses"
-- Enhanced benefits list:
-  - Full industry benchmarks comparison
-  - Complete risk analysis
-  - Investor-ready PDF report
-- Add mobile timeout trigger (30 seconds inactivity)
-- Industry-specific messaging if MiniDemo was used
-
----
-
-### Phase 9: Landing Page Assembly
-
-**9.1 Update Landing.tsx**
-
-New section order:
-1. UrgencyBanner (new, sticky at top)
-2. Navigation (existing)
-3. MobileHero (enhanced)
-4. TrustLogos (new)
-5. MiniDemo (enhanced, immediately after hero)
-6. Testimonials (new social proof)
-7. DemoPreview (existing)
-8. ClientTestimonials renamed to Features Highlight
-9. Features Section (existing, enhanced copy)
-10. HowItWorksSection (existing)
-11. PricingSection (enhanced)
-12. FAQSection (existing)
-13. Final CTA Section (existing)
-14. Footer (enhanced)
-15. Mobile Sticky CTA (existing)
-16. PopupManager (existing)
-
----
-
-## Technical Implementation Details
-
-### New Files to Create
-
-| File | Purpose |
-|------|---------|
-| `src/components/landing/UrgencyBanner.tsx` | Scarcity banner with countdown |
-| `src/components/landing/LiveCounter.tsx` | Real-time analyses counter |
-| `src/components/landing/TrustLogos.tsx` | Institutional credibility logos |
-| `src/components/landing/Testimonials.tsx` | Social proof testimonials |
-
-### Files to Modify
-
-| File | Changes |
-|------|---------|
-| `src/components/landing/MobileHero.tsx` | Animated background, value badges, enhanced form |
-| `src/components/landing/MiniDemo.tsx` | Industry selector, enhanced results, more locked features |
-| `src/components/landing/PricingSection.tsx` | Badge, footer text |
-| `src/components/layout/Footer.tsx` | Company info, social links |
-| `src/components/marketing/ExitIntentPopup.tsx` | Enhanced offer, mobile trigger |
-| `src/pages/Landing.tsx` | Section assembly with new components |
-
-### Database Query for Live Counter
-
-```sql
--- Already available via analyses table count
-SELECT COUNT(*) FROM analyses;
+New calculation logic:
+```typescript
+const profit = revenue - costs;
+const annualRoi = investment > 0 ? ((profit * 12) / investment) * 100 : 0;
+const paybackMonths = profit > 0 ? investment / profit : Infinity;
+const verdict = annualRoi > 100 ? 'promising' : annualRoi > 50 ? 'moderate' : 'risky';
 ```
 
-The edge function or client can query this and cache for 5 minutes.
+### 1.2 Enhanced Results Display
+
+Add to results section:
+- Net Margin calculation and display
+- ROI gauge/meter visualization
+- More prominent "reliability score" indicator
 
 ---
 
-## Performance Considerations
+## Phase 2: Enhanced Preview vs Full Analysis Gating (P0)
 
-### Bundle Impact
-- New components: ~15KB additional (estimated)
-- Animations: CSS-based, no JS overhead
-- Images: SVG logos, <10KB total
-- Lazy loading maintained for below-fold sections
+### 2.1 Update Locked Features Grid
 
-### Core Web Vitals
-- LCP target: <2.0s (maintain current performance)
-- CLS target: <0.1 (no layout shift with reserved space)
-- INP target: <200ms (no blocking operations)
+**Current State:** 6 locked feature teasers
+**Target State:** 8 features matching the spec exactly
 
----
-
-## Success Metrics
-
-After implementation, monitor:
-- **Hero CTA Click Rate**: Target 15% (from current ~5%)
-- **MiniDemo Completion Rate**: Target 25% of visitors
-- **Scroll Depth to Pricing**: Target 60% of visitors
-- **Exit Intent Conversion**: Target 5% capture rate
-- **Overall Landing-to-Auth**: Target 10% (from current 4.2%)
+Update `LOCKED_FEATURES` array in MiniDemo:
+1. 3 Scenario Modeling (Pessimistic/Base/Optimistic)
+2. Detailed Risk Analysis with Mitigations
+3. 5-7 Actionable Recommendations
+4. Unit Economics Dashboard
+5. PDF Export & Shareable Link
+6. Save History (Unlimited)
+7. Industry Benchmarks Comparison
+8. Calculation Audit Trail
 
 ---
 
-## Implementation Priority
+## Phase 3: Testimonials Enhancement (P1)
 
-| Order | Component | Impact | Effort |
-|-------|-----------|--------|--------|
-| 1 | UrgencyBanner | High | Low |
-| 2 | LiveCounter | Medium | Low |
-| 3 | MobileHero enhancements | High | Medium |
-| 4 | TrustLogos | Medium | Low |
-| 5 | Testimonials | High | Medium |
-| 6 | MiniDemo enhancements | High | Medium |
-| 7 | ExitIntentPopup upgrade | Medium | Low |
-| 8 | PricingSection polish | Low | Low |
-| 9 | Footer update | Low | Low |
+### 3.1 Update Testimonials Component
 
----
+**Current State:** Basic testimonials exist
+**Target State:** Metric-focused testimonials with specific outcomes
 
-## Files Summary
-
-### Create (4 files)
-- `src/components/landing/UrgencyBanner.tsx`
-- `src/components/landing/LiveCounter.tsx`
-- `src/components/landing/TrustLogos.tsx`
+Files to modify:
 - `src/components/landing/Testimonials.tsx`
 
-### Modify (6 files)
-- `src/components/landing/MobileHero.tsx`
-- `src/components/landing/MiniDemo.tsx`
-- `src/components/landing/PricingSection.tsx`
-- `src/components/layout/Footer.tsx`
-- `src/components/marketing/ExitIntentPopup.tsx`
-- `src/pages/Landing.tsx`
+Add these elements:
+- Metric badges on each testimonial (e.g., "12x ROI", "$500K raised", "Saved $50K")
+- 5-star rating display
+- Stats row below testimonials:
+  - Total analyses count (from LiveCounter)
+  - Average rating: 4.9/5
+  - Funding raised by users: $2.3M+
+  - Average analysis time: 47s
 
-Total estimated implementation: 10 files, ~800 lines of code
+---
+
+## Phase 4: Performance Optimizations (P2)
+
+### 4.1 Add Core Web Vitals Monitoring
+
+Files to create/modify:
+- Existing `src/lib/webVitals.ts` may need enhancement
+
+Ensure tracking:
+- LCP target: <2.0s
+- INP target: <200ms
+- CLS target: <0.1
+
+### 4.2 Bundle Size Audit
+
+Current dependencies look reasonable. Main optimizations:
+- Verify lazy loading is working for below-fold components
+- Check for unused imports
+
+---
+
+## Phase 5: Rate Limiting Enhancement (P1)
+
+### 5.1 Enhance analyze-preview Rate Limiting
+
+**Current State:** 3 previews per hour per IP
+**Target State:** Add CAPTCHA trigger after first preview
+
+Files to modify:
+- `supabase/functions/analyze-preview/index.ts`
+
+Changes:
+- After 1st preview: Continue allowing
+- After 2nd preview: Show CAPTCHA warning in response
+- After 3rd preview: Block until signup
+
+Add response field:
+```typescript
+{
+  success: true,
+  data: { ... },
+  rate_limit: {
+    remaining: 2,
+    reset_at: "2026-02-01T19:00:00Z",
+    show_captcha_warning: true
+  }
+}
+```
+
+---
+
+## Phase 6: Wizard Enhancements (P1)
+
+### 6.1 Add More Financial Fields to Wizard Step 2
+
+**Current State:** Basic financial inputs via `AdvancedFinancialInputs`
+**Target State:** Add fields from spec
+
+Review and add to Step 2:
+- Current Cash / Reserves
+- Monthly Burn Rate (auto-calculated or manual)
+
+### 6.2 Add Growth & Market Step (Optional Enhancement)
+
+Consider adding to Step 3:
+- Target Market Size
+- Customer Acquisition Cost
+- Customer Lifetime Value
+- Monthly Growth Rate
+- Churn Rate (for SaaS)
+
+This aligns with the 4-step wizard spec but may be too much friction - consider A/B testing.
+
+---
+
+## Phase 7: Results Page Polish (P1)
+
+### 7.1 Enhance Scenario Tabs
+
+**Current State:** Tabs exist and work
+**Target State:** Add visual indicators
+
+Add to `ScenarioSelector.tsx`:
+- Color coding (conservative=yellow, baseline=blue, aggressive=green)
+- Quick summary metrics per tab without switching
+
+### 7.2 Add "Next Best Actions" Checklist
+
+**Current State:** ActionableInsights component exists
+**Target State:** Ensure it matches the spec's checklist format
+
+Review `ActionableInsights.tsx` to ensure:
+- Checkbox UX for each action
+- Impact/ROI estimate per action
+- Priority ordering
+
+---
+
+## Phase 8: Share Link Enhancement (P2)
+
+### 8.1 Add Password Protection Option
+
+**Current State:** Token-based sharing exists
+**Target State:** Optional password protection
+
+Database change needed:
+```sql
+ALTER TABLE shared_reports ADD COLUMN password_hash TEXT;
+```
+
+Edge function changes:
+- POST: Accept optional `password` field, hash it before storing
+- GET: Check password if set, return 401 if wrong
+
+UI changes:
+- Add password toggle in share modal
+- Add password input on shared report page
+
+---
+
+## Implementation Priority Order
+
+| Priority | Phase | Description | Effort | Impact |
+|----------|-------|-------------|--------|--------|
+| P0 | 1.1 | Financial inputs in MiniDemo | 4 hours | High |
+| P0 | 2.1 | Update locked features list | 1 hour | Medium |
+| P1 | 3.1 | Testimonials with metrics | 2 hours | Medium |
+| P1 | 5.1 | Rate limit CAPTCHA warning | 2 hours | Medium |
+| P1 | 6.1 | More wizard financial fields | 2 hours | Low |
+| P1 | 7.1 | Scenario tabs enhancement | 2 hours | Low |
+| P1 | 7.2 | Actions checklist review | 1 hour | Low |
+| P2 | 4.1 | Web vitals monitoring | 1 hour | Low |
+| P2 | 8.1 | Password-protected shares | 4 hours | Low |
+
+---
+
+## Files to Modify Summary
+
+### High Priority (P0)
+1. `src/components/landing/MiniDemo.tsx` - Add financial inputs and calculations
+
+### Medium Priority (P1)
+2. `src/components/landing/Testimonials.tsx` - Add metrics and stats row
+3. `supabase/functions/analyze-preview/index.ts` - Rate limit warning
+4. `src/components/analysis/AdvancedFinancialInputs.tsx` - Additional fields
+5. `src/components/analysis/ScenarioSelector.tsx` - Visual enhancements
+
+### Low Priority (P2)
+6. `src/lib/webVitals.ts` - Ensure monitoring
+7. `supabase/functions/share-report/index.ts` - Password protection (requires migration)
+
+---
+
+## Success Metrics (Post-Implementation)
+
+Track these KPIs:
+- **MiniDemo Completion Rate:** Target 25% of visitors (up from unknown baseline)
+- **Preview → Signup Conversion:** Target 15% (current estimated 4.2%)
+- **Scroll Depth to Pricing:** Target 60% of visitors
+- **LCP:** <2.0s (verify with Lighthouse)
+- **Overall Landing→Auth:** Target 10% (from current 4.2%)
+
+---
+
+## Recommended First Step
+
+Start with **Phase 1.1 (Financial Inputs in MiniDemo)** as it:
+- Provides the "calculator" experience from the spec
+- Shows instant value without any backend call
+- Is the primary conversion lever identified in the assessment
+- Can be implemented in ~4 hours
+
+The MiniDemo currently shows profit/payback from the edge function; enhancing it with local ROI calculations based on user-provided Investment/Revenue/Costs will make it more interactive and valuable.
