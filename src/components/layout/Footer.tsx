@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Heart, Mail, Twitter, Linkedin, Github } from 'lucide-react';
+import { Brain, Heart, Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
 
 export function Footer() {
@@ -25,16 +25,7 @@ export function Footer() {
               {/* Social Links */}
               <div className="flex items-center gap-3 mt-2">
                 <a 
-                  href="https://twitter.com/aiwmcquantis" 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                  aria-label="Twitter"
-                >
-                  <Twitter className="w-4 h-4" />
-                </a>
-                <a 
-                  href="https://linkedin.com/company/aiwmc" 
+                  href="https://www.linkedin.com/in/bogdan-jeltov-6218b9324" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
@@ -43,7 +34,16 @@ export function Footer() {
                   <Linkedin className="w-4 h-4" />
                 </a>
                 <a 
-                  href="https://github.com/aiwmc" 
+                  href="https://www.instagram.com/wmc.ai" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
+                  aria-label="Instagram"
+                >
+                  <Instagram className="w-4 h-4" />
+                </a>
+                <a 
+                  href="https://github.com/AIWMCX" 
                   target="_blank" 
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
