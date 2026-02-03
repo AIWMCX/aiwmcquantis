@@ -486,6 +486,14 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   };
 }
 
+// ========== SCENARIO MULTIPLIERS (FinTech Squad v2.0) ==========
+
+const SCENARIO_MULTIPLIERS = {
+  conservative: { revenue: 0.80, costs: 1.10, growth: 0.50 },
+  baseline: { revenue: 1.00, costs: 1.00, growth: 1.00 },
+  aggressive: { revenue: 1.25, costs: 0.90, growth: 1.50 },
+} as const;
+
 // ========== SCENARIO GENERATION ==========
 
 function generateScenarios(
@@ -499,31 +507,37 @@ function generateScenarios(
   netMarginPercent: number
 ): { pessimistic: ScenarioMetrics; base: ScenarioMetrics; optimistic: ScenarioMetrics } {
   
-  // Pessimistic: 20% revenue drop, costs stay mostly same
-  const pessimisticRevenue = Math.round(mrr * 0.8);
-  const pessimisticCogs = Math.round(cogs * 0.8);
-  const pessimisticTotal = pessimisticCogs + fixedCosts + Math.round(marketing * 0.9);
+  const mult = SCENARIO_MULTIPLIERS;
+  
+  // Pessimistic (Conservative): Revenue drops, costs increase
+  const pessimisticRevenue = Math.round(mrr * mult.conservative.revenue);
+  const pessimisticCogs = Math.round(cogs * mult.conservative.revenue); // COGS scales with revenue
+  const pessimisticMarketing = Math.round(marketing * mult.conservative.costs);
+  const pessimisticFixed = Math.round(fixedCosts * mult.conservative.costs);
+  const pessimisticTotal = pessimisticCogs + pessimisticFixed + pessimisticMarketing;
   const pessimisticNetProfit = pessimisticRevenue - pessimisticTotal;
   const pessimisticGrossProfit = pessimisticRevenue - pessimisticCogs;
   
-  // Base case: current projections
+  // Base case: current projections (multiplier = 1.0)
   const baseTotal = cogs + fixedCosts + marketing;
   
-  // Optimistic: 25% revenue growth, costs grow 10%
-  const optimisticRevenue = Math.round(mrr * 1.25);
-  const optimisticCogs = Math.round(cogs * 1.25);
-  const optimisticTotal = optimisticCogs + fixedCosts + Math.round(marketing * 1.1);
+  // Optimistic (Aggressive): Revenue grows, costs controlled
+  const optimisticRevenue = Math.round(mrr * mult.aggressive.revenue);
+  const optimisticCogs = Math.round(cogs * mult.aggressive.revenue); // COGS scales with revenue
+  const optimisticMarketing = Math.round(marketing * mult.aggressive.costs);
+  const optimisticFixed = Math.round(fixedCosts * mult.aggressive.costs);
+  const optimisticTotal = optimisticCogs + optimisticFixed + optimisticMarketing;
   const optimisticNetProfit = optimisticRevenue - optimisticTotal;
   const optimisticGrossProfit = optimisticRevenue - optimisticCogs;
   
   return {
     pessimistic: {
       revenue: pessimisticRevenue,
-      variableCosts: pessimisticCogs + Math.round(marketing * 0.9),
-      fixedCosts,
+      variableCosts: pessimisticCogs + pessimisticMarketing,
+      fixedCosts: pessimisticFixed,
       grossProfit: pessimisticGrossProfit,
       netProfit: pessimisticNetProfit,
-      grossMargin: grossMarginPercent,
+      grossMargin: pessimisticRevenue > 0 ? Math.round((pessimisticGrossProfit / pessimisticRevenue) * 100) : 0,
       netMargin: pessimisticRevenue > 0 ? Math.round((pessimisticNetProfit / pessimisticRevenue) * 100) : 0,
     },
     base: {
@@ -537,14 +551,210 @@ function generateScenarios(
     },
     optimistic: {
       revenue: optimisticRevenue,
-      variableCosts: optimisticCogs + Math.round(marketing * 1.1),
-      fixedCosts,
+      variableCosts: optimisticCogs + optimisticMarketing,
+      fixedCosts: optimisticFixed,
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
-      grossMargin: grossMarginPercent,
+      grossMargin: optimisticRevenue > 0 ? Math.round((optimisticGrossProfit / optimisticRevenue) * 100) : 0,
       netMargin: optimisticRevenue > 0 ? Math.round((optimisticNetProfit / optimisticRevenue) * 100) : 0,
     },
   };
+}
+
+// ========== 12-MONTH PROJECTIONS (FinTech Squad v2.0) ==========
+
+export interface MonthlyProjection {
+  month: number;
+  revenue: number;
+  costs: number;
+  profit: number;
+  cumulativeProfit: number;
+  cash: number;
+}
+
+export function generate12MonthProjections(
+  mrr: number,
+  totalExpenses: number,
+  startupInvestment: number,
+  currentCash: number,
+  monthlyGrowthRate: number = 0.05 // Default 5% growth
+): MonthlyProjection[] {
+  const projections: MonthlyProjection[] = [];
+  
+  let revenue = mrr;
+  let costs = totalExpenses;
+  let cash = currentCash || 0;
+  let cumulativeProfit = -startupInvestment;
+  
+  for (let month = 1; month <= 12; month++) {
+    if (month > 1) {
+      // Revenue grows at specified rate, costs grow at half the rate
+      revenue = Math.round(revenue * (1 + monthlyGrowthRate));
+      costs = Math.round(costs * (1 + monthlyGrowthRate * 0.5));
+    }
+    
+    const profit = revenue - costs;
+    cumulativeProfit += profit;
+    cash += profit;
+    
+    projections.push({
+      month,
+      revenue: Math.round(revenue),
+      costs: Math.round(costs),
+      profit: Math.round(profit),
+      cumulativeProfit: Math.round(cumulativeProfit),
+      cash: Math.round(Math.max(0, cash)),
+    });
+  }
+  
+  return projections;
+}
+
+// ========== RISK FLAG ANALYSIS (FinTech Squad v2.0) ==========
+
+export interface RiskFlag {
+  id: string;
+  severity: 'low' | 'medium' | 'high' | 'critical';
+  title: string;
+  description: string;
+  profitImpact?: number;
+  mitigation: string;
+}
+
+export function analyzeRisks(
+  metrics: ComputedMetrics,
+  currentCash: number = 0,
+  currentCustomers: number = 0,
+  churnRate: number = 0
+): { risks: RiskFlag[]; overallLevel: 'low' | 'medium' | 'high' | 'critical' } {
+  const risks: RiskFlag[] = [];
+  
+  // Risk 1: Negative profit
+  if (metrics.netProfit < 0) {
+    risks.push({
+      id: 'negative-profit',
+      severity: 'high',
+      title: 'Negative Monthly Profit',
+      description: `Costs exceed revenue by $${Math.abs(metrics.netProfit).toLocaleString()}/month`,
+      profitImpact: metrics.netProfit * 12,
+      mitigation: 'Reduce costs or increase pricing',
+    });
+  }
+  
+  // Risk 2: Limited runway
+  if (metrics.netProfit < 0 && currentCash > 0) {
+    const runwayMonths = currentCash / Math.abs(metrics.netProfit);
+    if (runwayMonths < 6) {
+      risks.push({
+        id: 'low-runway',
+        severity: runwayMonths < 3 ? 'critical' : 'high',
+        title: 'Limited Cash Runway',
+        description: `Only ${runwayMonths.toFixed(1)} months of runway`,
+        mitigation: 'Secure funding or reduce burn rate immediately',
+      });
+    }
+  }
+  
+  // Risk 3: Long payback period
+  if (metrics.paybackMonths > 24 && metrics.paybackMonths < 999) {
+    risks.push({
+      id: 'long-payback',
+      severity: metrics.paybackMonths > 36 ? 'high' : 'medium',
+      title: 'Extended Payback Period',
+      description: `${metrics.paybackMonths} months exceeds 2-year threshold`,
+      mitigation: 'Increase margins or reduce initial investment',
+    });
+  }
+  
+  // Risk 4: Poor LTV:CAC ratio
+  if (metrics.ltvCacRatio < 3 && metrics.ltvCacRatio > 0) {
+    risks.push({
+      id: 'low-ltv-cac',
+      severity: metrics.ltvCacRatio < 1.5 ? 'critical' : 'high',
+      title: 'Poor Unit Economics',
+      description: `LTV:CAC ratio of ${metrics.ltvCacRatio}x is below 3x threshold`,
+      mitigation: 'Reduce CAC or increase customer lifetime value',
+    });
+  }
+  
+  // Risk 5: High churn
+  if (churnRate > 10) {
+    risks.push({
+      id: 'high-churn',
+      severity: churnRate > 20 ? 'high' : 'medium',
+      title: 'Elevated Churn Rate',
+      description: `${churnRate}% monthly churn impacts growth sustainability`,
+      mitigation: 'Implement customer retention programs',
+    });
+  }
+  
+  // Risk 6: Customer concentration
+  if (currentCustomers > 0 && currentCustomers < 10 && metrics.mrr > 10000) {
+    risks.push({
+      id: 'customer-concentration',
+      severity: 'medium',
+      title: 'Customer Concentration Risk',
+      description: `Revenue dependent on only ${currentCustomers} customers`,
+      mitigation: 'Diversify customer base to reduce dependency',
+    });
+  }
+  
+  // Calculate overall risk level
+  const criticalCount = risks.filter(r => r.severity === 'critical').length;
+  const highCount = risks.filter(r => r.severity === 'high').length;
+  
+  let overallLevel: 'low' | 'medium' | 'high' | 'critical';
+  if (criticalCount > 0) overallLevel = 'critical';
+  else if (highCount >= 2) overallLevel = 'high';
+  else if (highCount === 1 || risks.length >= 3) overallLevel = 'medium';
+  else overallLevel = 'low';
+  
+  return { risks, overallLevel };
+}
+
+// ========== VERDICT CALCULATION (FinTech Squad v2.0) ==========
+
+export type Verdict = 'promising' | 'moderate' | 'risky' | 'critical';
+
+export function calculateVerdict(
+  roiPercent: number, 
+  netProfit: number, 
+  paybackMonths: number
+): Verdict {
+  if (netProfit < 0 && roiPercent < -50) return 'critical';
+  if (netProfit < 0 || paybackMonths > 36) return 'risky';
+  if (roiPercent < 50 || paybackMonths > 18) return 'moderate';
+  return 'promising';
+}
+
+// ========== RELIABILITY SCORE (FinTech Squad v2.0) ==========
+
+export function calculateReliabilityScore(
+  hasRevenue: boolean,
+  hasInvestment: boolean,
+  hasCosts: boolean,
+  hasIndustry: boolean,
+  hasLocation: boolean,
+  hasCAC: boolean,
+  hasLTV: boolean,
+  hasGrowthRate: boolean,
+  hasChurnRate: boolean,
+  hasCustomerCount: boolean
+): number {
+  let score = 0;
+  
+  if (hasRevenue) score += 15;
+  if (hasInvestment) score += 15;
+  if (hasCosts) score += 15;
+  if (hasIndustry) score += 10;
+  if (hasLocation) score += 10;
+  if (hasCAC) score += 10;
+  if (hasLTV) score += 10;
+  if (hasGrowthRate) score += 5;
+  if (hasChurnRate) score += 5;
+  if (hasCustomerCount) score += 5;
+  
+  return Math.min(score, 100);
 }
 
 // ========== INVESTMENT BREAKDOWN GENERATOR ==========
