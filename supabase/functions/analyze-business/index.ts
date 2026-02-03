@@ -2986,19 +2986,22 @@ market_json:
 
 Provide comprehensive, actionable analysis suitable for a professional investor presentation. Call submit_analysis with all sections in English.`;
 
-    // ========== AI REQUEST WITH RETRY LOGIC ==========
-    const MAX_RETRIES = 3;
-    const INITIAL_DELAY_MS = 1000;
+    // ========== AI REQUEST WITH FAST TIMEOUT ==========
+    // CRITICAL: Use short timeout (25s) with minimal retries (2) to prevent client disconnection
+    // Total worst-case: 25s + 500ms + 25s = ~50s which fits within edge function limits
+    const MAX_RETRIES = 2;
+    const AI_TIMEOUT_MS = 25000; // 25 seconds - fast fail for responsive UX
+    const RETRY_DELAY_MS = 500; // Short delay between retries
     
     let response: Response | null = null;
     let lastError: string | null = null;
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        console.log(`AI request attempt ${attempt}/${MAX_RETRIES}`);
+        console.log(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
         
         const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), 60000); // 60s timeout
+        const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
         
         response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
           method: "POST",
@@ -3031,24 +3034,23 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           break;
         }
         
-        // Exponential backoff for retryable errors
+        // Short delay before retry
         if (attempt < MAX_RETRIES) {
-          const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
         console.error(`Fetch error on attempt ${attempt}: ${lastError}`);
         
         if (lastError.includes('abort')) {
-          lastError = 'Request timed out after 60 seconds';
+          lastError = `Request timed out after ${AI_TIMEOUT_MS / 1000} seconds`;
         }
         
+        // Short delay before retry - fail fast to fallback
         if (attempt < MAX_RETRIES) {
-          const delay = INITIAL_DELAY_MS * Math.pow(2, attempt - 1);
-          console.log(`Retrying in ${delay}ms...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
+          console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       }
     }

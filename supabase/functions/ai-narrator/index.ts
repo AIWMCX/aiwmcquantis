@@ -272,9 +272,9 @@ ${userFinancialContext}${calculatedContext}
 
 Provide comprehensive, actionable analysis. Call submit_analysis with all sections in English.`;
 
-    // Make AI request with timeout
+    // Make AI request with fast timeout to prevent client disconnection
     const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 45000); // 45s timeout
+    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for fast fallback
 
     try {
       console.log("Making AI narrator request...");
