@@ -38,27 +38,22 @@ export default function SharedReport() {
 
   useEffect(() => {
     async function fetchSharedReport() {
-      if (!token) {
+      if (!token || token === ':token') {
         setError('Invalid share link');
         setIsLoading(false);
         return;
       }
 
-      try {
-        const { data: responseData, error: fetchError } = await supabase.functions.invoke(
-          'share-report',
-          {
-            method: 'GET',
-            body: null,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          }
-        );
+      // Validate token format (64-char hex)
+      if (!/^[a-f0-9]{64}$/i.test(token)) {
+        setError('Invalid share link format');
+        setIsLoading(false);
+        return;
+      }
 
-        // The invoke method doesn't support query params directly, so we'll use fetch
+      try {
         const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/share-report?token=${token}`,
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/share-report?token=${encodeURIComponent(token)}`,
           {
             method: 'GET',
             headers: {
