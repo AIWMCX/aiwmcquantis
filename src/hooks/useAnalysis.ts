@@ -95,9 +95,9 @@ export function useAnalysis() {
         
       toast.error(message, {
         duration: 5000,
-        description: error.message.includes('RATE_LIMIT') 
-          ? 'Upgrade to Pro for higher rate limits.'
-          : undefined
+        description: error.message.includes('RATE_LIMIT')
+          ? 'Please wait a bit, or sign in / upgrade to Plus for higher limits.'
+          : undefined,
       });
     },
   });
