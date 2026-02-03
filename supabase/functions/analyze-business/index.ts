@@ -53,7 +53,10 @@ import {
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint",
+  // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
+  // If we don't, the browser will complete OPTIONS but block the actual POST, appearing as a “hung” analysis.
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
 // ========== SECURITY UTILITIES ==========
@@ -2348,7 +2351,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response("ok", { status: 204, headers: corsHeaders });
   }
 
   try {
