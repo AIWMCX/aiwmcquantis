@@ -8,6 +8,7 @@ import { WizardForm } from '@/components/analysis/WizardForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
@@ -69,6 +70,8 @@ export default function Index() {
     removeFile,
     maxFiles,
     allowedExtensions,
+    rateLimitError,
+    clearRateLimitError,
   } = useAnalysis();
 
   // Handle checkout success/cancel URL parameters (supports both patterns)
@@ -349,6 +352,15 @@ export default function Index() {
           {/* Form Column - Appears second on mobile for results-first experience */}
           <div className="lg:col-span-1 order-2 lg:order-1">
             <div className="lg:sticky lg:top-24 space-y-4">
+              {/* Rate-limit banner when hit */}
+              {rateLimitError && (
+                <RateLimitBanner
+                  message={rateLimitError}
+                  isAuthenticated={isAuthenticated}
+                  onDismiss={clearRateLimitError}
+                />
+              )}
+
               <WizardForm
                 idea={idea}
                 location={location}

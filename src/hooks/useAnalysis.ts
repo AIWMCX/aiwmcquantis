@@ -21,6 +21,7 @@ export function useAnalysis() {
   const [financialInputs, setFinancialInputs] = useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
   
   const { addEntry } = useAnalysisHistory();
   const { user, isAuthenticated } = useAuth();
@@ -79,23 +80,30 @@ export function useAnalysis() {
     },
     onError: (error: Error) => {
       console.error('Analysis error:', error);
-      
+
       let message: string;
-      
-      if (error.message.includes('RATE_LIMIT_EXCEEDED')) {
-        // Extract the user-friendly message from the error
+      const isRateLimit =
+        error.message.includes('RATE_LIMIT_EXCEEDED') ||
+        error.message.includes('429') ||
+        error.message.includes('RATE_LIMIT');
+
+      if (isRateLimit) {
+        // Set the banner state so the UI can show a persistent prompt
+        setRateLimitError(error.message);
         message = error.message.replace('RATE_LIMIT_EXCEEDED: ', '');
-      } else if (error.message.includes('429') || error.message.includes('RATE_LIMIT')) {
-        message = 'Too many requests. Please wait a minute and try again.';
-      } else if (error.message.includes('402') || error.message.includes('PAYMENT') || error.message.includes('USAGE_LIMIT')) {
+      } else if (
+        error.message.includes('402') ||
+        error.message.includes('PAYMENT') ||
+        error.message.includes('USAGE_LIMIT')
+      ) {
         message = 'Monthly analysis limit reached. Upgrade your plan for more analyses.';
       } else {
         message = error.message || 'An error occurred during analysis';
       }
-        
+
       toast.error(message, {
         duration: 5000,
-        description: error.message.includes('RATE_LIMIT')
+        description: isRateLimit
           ? 'Please wait a bit, or sign in / upgrade to Plus for higher limits.'
           : undefined,
       });
@@ -175,9 +183,12 @@ export function useAnalysis() {
     setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
     setErrors({});
     setResult(null);
+    setRateLimitError(null);
     fileUpload.clearFiles();
     mutation.reset();
   }, [mutation, fileUpload]);
+
+  const clearRateLimitError = useCallback(() => setRateLimitError(null), []);
 
   const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
 
@@ -197,6 +208,8 @@ export function useAnalysis() {
     setResult,
     isLoading: mutation.isPending,
     isError: mutation.isError,
+    rateLimitError,
+    clearRateLimitError,
     
     // Actions
     handleSubmit,

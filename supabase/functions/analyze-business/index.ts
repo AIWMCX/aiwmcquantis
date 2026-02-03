@@ -2439,7 +2439,7 @@ serve(async (req) => {
             console.log(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
             return new Response(
               JSON.stringify({ 
-                error: "Monthly analysis limit reached. Upgrade to Pro for unlimited analyses.", 
+                error: "Monthly analysis limit reached. Upgrade to Plus for unlimited analyses.", 
                 code: "USAGE_LIMIT_EXCEEDED",
                 usage: { current: currentUsage, limit: FREE_TIER_LIMIT }
               }),

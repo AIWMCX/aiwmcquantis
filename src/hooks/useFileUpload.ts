@@ -152,8 +152,8 @@ export function useFileUpload(userId: string | undefined) {
       // Handle subscription-related errors from edge function
       if (error instanceof Error) {
         const errorBody = error.message;
-        if (errorBody.includes('SUBSCRIPTION_REQUIRED') || errorBody.includes('Plus or Pro subscription')) {
-          errorMessage = 'Document uploads require Plus or Pro subscription. Please upgrade to continue.';
+        if (errorBody.includes('SUBSCRIPTION_REQUIRED') || errorBody.includes('Plus subscription')) {
+          errorMessage = 'Document uploads require a Plus subscription. Please upgrade to continue.';
         } else if (errorBody.includes('AUTH_REQUIRED') || errorBody.includes('Authentication required')) {
           errorMessage = 'Please sign in to upload documents.';
         }
