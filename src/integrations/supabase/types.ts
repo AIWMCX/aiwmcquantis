@@ -245,6 +245,271 @@ export type Database = {
         }
         Relationships: []
       }
+      doc_templates: {
+        Row: {
+          category: string
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          icon: string | null
+          id: string
+          is_active: boolean | null
+          name: string
+          template_id: string
+          template_json: Json
+          tier: string | null
+          updated_at: string | null
+          usage_count: number | null
+          version: string | null
+        }
+        Insert: {
+          category: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name: string
+          template_id: string
+          template_json: Json
+          tier?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          version?: string | null
+        }
+        Update: {
+          category?: string
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean | null
+          name?: string
+          template_id?: string
+          template_json?: Json
+          tier?: string | null
+          updated_at?: string | null
+          usage_count?: number | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "doc_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_exports: {
+        Row: {
+          completed_at: string | null
+          created_at: string | null
+          document_id: string
+          error_message: string | null
+          file_size_bytes: number | null
+          file_url: string | null
+          format: string
+          id: string
+          idempotency_key: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_id: string
+          error_message?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          format: string
+          id?: string
+          idempotency_key?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string | null
+          document_id?: string
+          error_message?: string | null
+          file_size_bytes?: number | null
+          file_url?: string | null
+          format?: string
+          id?: string
+          idempotency_key?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_exports_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_exports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_exports_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_versions: {
+        Row: {
+          change_description: string | null
+          created_at: string | null
+          created_by: string | null
+          document_id: string
+          id: string
+          snapshot_json: Json
+          version_number: number
+        }
+        Insert: {
+          change_description?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id: string
+          id?: string
+          snapshot_json: Json
+          version_number: number
+        }
+        Update: {
+          change_description?: string | null
+          created_at?: string | null
+          created_by?: string | null
+          document_id?: string
+          id?: string
+          snapshot_json?: Json
+          version_number?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_versions_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      documents: {
+        Row: {
+          analysis_id: string | null
+          created_at: string | null
+          deleted_at: string | null
+          document_json: Json
+          id: string
+          is_shared: boolean | null
+          share_expires_at: string | null
+          share_token: string | null
+          status: string | null
+          template_id: string | null
+          title: string
+          updated_at: string | null
+          user_id: string
+          variables_data: Json | null
+          version: number | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          document_json: Json
+          id?: string
+          is_shared?: boolean | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          status?: string | null
+          template_id?: string | null
+          title: string
+          updated_at?: string | null
+          user_id: string
+          variables_data?: Json | null
+          version?: number | null
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string | null
+          deleted_at?: string | null
+          document_json?: Json
+          id?: string
+          is_shared?: boolean | null
+          share_expires_at?: string | null
+          share_token?: string | null
+          status?: string | null
+          template_id?: string | null
+          title?: string
+          updated_at?: string | null
+          user_id?: string
+          variables_data?: Json | null
+          version?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "documents_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "doc_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "documents_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles_secure"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       email_sequence_log: {
         Row: {
           id: string
@@ -1628,6 +1893,10 @@ export type Database = {
       }
       increment_export_count: {
         Args: { p_user_id: string }
+        Returns: undefined
+      }
+      increment_template_usage: {
+        Args: { p_template_id: string }
         Returns: undefined
       }
       increment_usage: {
