@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { supabase } from '@/integrations/supabase/client';
+import { lovable } from '@/integrations/lovable';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
 
@@ -20,17 +20,14 @@ export function GoogleLoginButton({ mode = 'signup', className, variant = 'outli
     try {
       trackEvent('social_login_attempt', { provider: 'google', mode });
       
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-        },
+      const result = await lovable.auth.signInWithOAuth('google', {
+        redirect_uri: window.location.origin,
       });
 
-      if (error) {
-        console.error('Google OAuth error:', error);
+      if (result.error) {
+        console.error('Google OAuth error:', result.error);
         toast.error('Failed to connect with Google. Please try again.');
-        trackEvent('social_login_error', { provider: 'google', error: error.message });
+        trackEvent('social_login_error', { provider: 'google', error: result.error.message });
       }
     } catch (err) {
       console.error('Unexpected Google OAuth error:', err);
