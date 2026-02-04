@@ -2,8 +2,10 @@ import React, { useState, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTemplates, useTemplate } from '@/hooks/useTemplates';
 import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
+import { useSubscription } from '@/hooks/useSubscription';
 import { DocumentEditor } from '@/components/docs/DocumentEditor';
 import { InvoiceForm, QuarterlySummaryForm, NDAForm } from '@/components/docs/forms';
+import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -20,6 +22,8 @@ import {
   FileSpreadsheet,
   BarChart3,
   Scale,
+  Lock,
+  Loader2,
 } from 'lucide-react';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import type { DocTemplate, Document } from '@/types/document';
@@ -64,11 +68,136 @@ export default function DocsStudio() {
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
+  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   
   const { data: templates, isLoading: templatesLoading } = useTemplates();
   const { data: selectedTemplate } = useTemplate(selectedTemplateId || '');
   const { data: editingDoc } = useDocument(editingDocId || '');
   const { mutate: createDocument, isPending: isCreating } = useCreateDocument();
+  
+  // CRITICAL: Check subscription status
+  const { isPlus, isFree, loading: subscriptionLoading, remainingAnalyses } = useSubscription();
+
+  // Show loading while checking subscription
+  if (subscriptionLoading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="w-8 h-8 animate-spin mx-auto mb-4 text-primary" />
+          <p className="text-sm text-muted-foreground">Loading Docs Studio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // CRITICAL: Gate feature behind Plus subscription
+  if (!isPlus) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-4xl mx-auto p-6">
+          {/* Back button */}
+          <Button variant="ghost" onClick={() => navigate('/app')} className="mb-8 -ml-2">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Dashboard
+          </Button>
+
+          {/* Locked Feature Card */}
+          <Card className="border-2 border-dashed border-primary/30">
+            <CardContent className="py-16">
+              <div className="text-center max-w-md mx-auto">
+                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
+                  <Lock className="w-10 h-10 text-primary" />
+                </div>
+                
+                <Badge variant="secondary" className="mb-4">
+                  <Sparkles className="w-3 h-3 mr-1" />
+                  Plus Feature
+                </Badge>
+                
+                <h1 className="text-3xl font-bold text-foreground mb-4">
+                  Docs Studio
+                </h1>
+                
+                <p className="text-muted-foreground mb-8">
+                  Generate professional business documents instantly with AI-powered templates, 
+                  automatic calculations, and one-click export. Included free with your Plus subscription.
+                </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <FileSpreadsheet className="w-6 h-6 text-blue-600 mb-2" />
+                    <h3 className="font-medium text-sm">Invoices</h3>
+                    <p className="text-xs text-muted-foreground">Auto-calculate totals</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <BarChart3 className="w-6 h-6 text-emerald-600 mb-2" />
+                    <h3 className="font-medium text-sm">Reports</h3>
+                    <p className="text-xs text-muted-foreground">Financial summaries</p>
+                  </div>
+                  <div className="p-4 rounded-lg bg-muted/50">
+                    <Scale className="w-6 h-6 text-purple-600 mb-2" />
+                    <h3 className="font-medium text-sm">Legal Docs</h3>
+                    <p className="text-xs text-muted-foreground">NDAs & contracts</p>
+                  </div>
+                </div>
+
+                <Button 
+                  size="lg" 
+                  onClick={() => setShowUpgradePrompt(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Upgrade to Plus - $17/mo
+                </Button>
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  14-day free trial • Cancel anytime
+                </p>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Feature Highlights */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="p-6 rounded-lg border bg-card">
+              <h3 className="font-semibold mb-2">📄 Professional Templates</h3>
+              <p className="text-sm text-muted-foreground">
+                Pre-built templates for invoices, quarterly reports, NDAs, and more. 
+                All legally reviewed and professionally formatted.
+              </p>
+            </div>
+            <div className="p-6 rounded-lg border bg-card">
+              <h3 className="font-semibold mb-2">⚡ Instant Generation</h3>
+              <p className="text-sm text-muted-foreground">
+                Fill in the details once, get a perfect document. Auto-calculate 
+                totals, taxes, and financial metrics.
+              </p>
+            </div>
+            <div className="p-6 rounded-lg border bg-card">
+              <h3 className="font-semibold mb-2">🔗 Analysis Integration</h3>
+              <p className="text-sm text-muted-foreground">
+                Connect your business analyses to automatically populate 
+                financial projections in your documents.
+              </p>
+            </div>
+            <div className="p-6 rounded-lg border bg-card">
+              <h3 className="font-semibold mb-2">📥 Export Anywhere</h3>
+              <p className="text-sm text-muted-foreground">
+                Download as PDF, DOCX, or Markdown. Share with investors, 
+                partners, or your team.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <UpgradePrompt 
+          open={showUpgradePrompt} 
+          onOpenChange={setShowUpgradePrompt}
+          remainingAnalyses={remainingAnalyses}
+        />
+      </div>
+    );
+  }
 
   const handleTemplateSelect = (templateId: string) => {
     setSelectedTemplateId(templateId);
