@@ -12,18 +12,80 @@ serve(async (req) => {
   }
 
   try {
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    );
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+    
+    // Create service role client for DB operations
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
+    
+    // Create client with user's auth token for subscription verification
+    const authHeader = req.headers.get('Authorization');
+    if (!authHeader) {
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Authorization required',
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
+      global: { headers: { Authorization: authHeader } }
+    });
+
+    // Get user from auth token
+    const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
+    if (authError || !user) {
+      console.error('Auth error:', authError);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Invalid authentication',
+      }), {
+        status: 401,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // CRITICAL: Verify Plus subscription server-side
+    const { data: subscription, error: subError } = await supabaseAdmin
+      .from('subscriptions')
+      .select('plan_id, status, current_period_end')
+      .eq('user_id', user.id)
+      .maybeSingle();
+
+    if (subError) {
+      console.error('Subscription check error:', subError);
+    }
+
+    const isPlus = subscription && 
+      (subscription.plan_id === 'plus' || subscription.plan_id === 'enterprise') &&
+      (subscription.status === 'active' || subscription.status === 'trialing') &&
+      (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
+
+    if (!isPlus) {
+      console.log(`Access denied for user ${user.id}: Not a Plus subscriber`);
+      return new Response(JSON.stringify({
+        success: false,
+        error: 'Plus subscription required',
+        code: 'SUBSCRIPTION_REQUIRED',
+      }), {
+        status: 403,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    console.log(`Plus subscriber ${user.id} exporting document`);
 
     const { document_id, export_id, format } = await req.json();
 
-    // Get document
-    const { data: doc, error: docError } = await supabase
+    // Get document - verify ownership
+    const { data: doc, error: docError } = await supabaseAdmin
       .from('documents')
       .select('*')
       .eq('id', document_id)
+      .eq('user_id', user.id) // Ensure user owns this document
       .single();
 
     if (docError) {
@@ -31,23 +93,28 @@ serve(async (req) => {
     }
 
     // Update export status
-    await supabase
+    await supabaseAdmin
       .from('document_exports')
       .update({ status: 'processing' })
-      .eq('id', export_id);
+      .eq('id', export_id)
+      .eq('user_id', user.id); // Ensure user owns this export
 
     // Generate content based on format
     let content = '';
-    const docJson = doc.document_json as any;
+    const docJson = doc.document_json as Record<string, unknown>;
+    const docContent = (docJson.content as Array<Record<string, unknown>>) || [];
 
     if (format === 'md') {
-      content = docJson.content?.map((node: any) => {
+      content = docContent.map((node) => {
         if (node.type === 'heading') {
-          const level = node.attrs?.level || 1;
-          const text = node.content?.[0]?.text || '';
+          const attrs = node.attrs as Record<string, number> | undefined;
+          const level = attrs?.level || 1;
+          const nodeContent = node.content as Array<Record<string, string>> | undefined;
+          const text = nodeContent?.[0]?.text || '';
           return '#'.repeat(level) + ' ' + text;
         }
-        return node.content?.[0]?.text || '';
+        const nodeContent = node.content as Array<Record<string, string>> | undefined;
+        return nodeContent?.[0]?.text || '';
       }).join('\n\n') || '';
     } else {
       // For PDF/DOCX, return structured content (would need proper rendering)
@@ -55,7 +122,7 @@ serve(async (req) => {
     }
 
     // Mark as completed
-    await supabase
+    await supabaseAdmin
       .from('document_exports')
       .update({ 
         status: 'completed',
@@ -64,7 +131,6 @@ serve(async (req) => {
       .eq('id', export_id);
 
     // For MVP, return markdown content directly
-    const blob = new Blob([content], { type: 'text/markdown' });
     const downloadUrl = `data:text/markdown;base64,${btoa(content)}`;
 
     return new Response(JSON.stringify({
