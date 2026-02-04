@@ -23,6 +23,7 @@ const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const PlusSettings = lazy(() => import("./pages/PlusSettings"));
+const DocsStudio = lazy(() => import("./pages/DocsStudio"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -82,6 +83,11 @@ const App = () => {
                 <Route path="/plus-settings" element={
                   <ProtectedRoute>
                     <PlusSettings />
+                  </ProtectedRoute>
+                } />
+                <Route path="/docs" element={
+                  <ProtectedRoute>
+                    <DocsStudio />
                   </ProtectedRoute>
                 } />
                 

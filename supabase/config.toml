@@ -68,3 +68,9 @@ verify_jwt = false
 
 [functions.newsletter-unsubscribe]
 verify_jwt = false
+
+[functions.generate-document]
+verify_jwt = false
+
+[functions.export-document]
+verify_jwt = false
