@@ -63,6 +63,7 @@ export default function DocsStudio() {
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get('analysis') || undefined;
   
+  // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
   const [step, setStep] = useState<Step>('list');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [editingDocId, setEditingDocId] = useState<string | null>(null);
@@ -76,7 +77,65 @@ export default function DocsStudio() {
   const { mutate: createDocument, isPending: isCreating } = useCreateDocument();
   
   // CRITICAL: Check subscription status
-  const { isPlus, isFree, loading: subscriptionLoading, remainingAnalyses } = useSubscription();
+  const { isPlus, loading: subscriptionLoading, remainingAnalyses } = useSubscription();
+
+  // All useCallback hooks MUST be defined before any conditional returns
+  const handlePreviewUpdate = useCallback((html: string) => {
+    setPreviewHTML(html);
+  }, []);
+
+  const handleGenerate = useCallback((documentData: Record<string, unknown>) => {
+    if (!selectedTemplate) return;
+
+    // Generate initial document JSON from template + user data
+    const documentJson = {
+      type: 'doc',
+      content: [
+        {
+          type: 'paragraph',
+          content: [{ type: 'text', text: 'Document generated from template' }],
+        },
+      ],
+    };
+
+    createDocument({
+      templateId: selectedTemplate.template_id,
+      analysisId,
+      title: `${selectedTemplate.name} - ${new Date().toLocaleDateString()}`,
+      variables: documentData,
+      documentJson,
+    }, {
+      onSuccess: (doc) => {
+        setEditingDocId(doc.id);
+        setStep('edit');
+      },
+    });
+  }, [selectedTemplate, analysisId, createDocument]);
+
+  const handleTemplateSelect = useCallback((templateId: string) => {
+    setSelectedTemplateId(templateId);
+    setStep('generate');
+  }, []);
+
+  const handleEditDocument = useCallback((doc: Document) => {
+    setEditingDocId(doc.id);
+    setStep('edit');
+  }, []);
+
+  const handleBack = useCallback(() => {
+    if (step === 'edit') {
+      setEditingDocId(null);
+      setStep('list');
+    } else if (step === 'generate') {
+      setSelectedTemplateId(null);
+      setPreviewHTML('');
+      setStep('pick-template');
+    } else if (step === 'pick-template') {
+      setStep('list');
+    }
+  }, [step]);
+
+  // NOW we can have conditional returns - after all hooks are defined
 
   // Show loading while checking subscription
   if (subscriptionLoading) {
@@ -125,17 +184,17 @@ export default function DocsStudio() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
                   <div className="p-4 rounded-lg bg-muted/50">
-                    <FileSpreadsheet className="w-6 h-6 text-blue-600 mb-2" />
+                    <FileSpreadsheet className="w-6 h-6 text-primary mb-2" />
                     <h3 className="font-medium text-sm">Invoices</h3>
                     <p className="text-xs text-muted-foreground">Auto-calculate totals</p>
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50">
-                    <BarChart3 className="w-6 h-6 text-emerald-600 mb-2" />
+                    <BarChart3 className="w-6 h-6 text-primary mb-2" />
                     <h3 className="font-medium text-sm">Reports</h3>
                     <p className="text-xs text-muted-foreground">Financial summaries</p>
                   </div>
                   <div className="p-4 rounded-lg bg-muted/50">
-                    <Scale className="w-6 h-6 text-purple-600 mb-2" />
+                    <Scale className="w-6 h-6 text-primary mb-2" />
                     <h3 className="font-medium text-sm">Legal Docs</h3>
                     <p className="text-xs text-muted-foreground">NDAs & contracts</p>
                   </div>
@@ -198,61 +257,6 @@ export default function DocsStudio() {
       </div>
     );
   }
-
-  const handleTemplateSelect = (templateId: string) => {
-    setSelectedTemplateId(templateId);
-    setStep('generate');
-  };
-
-  const handlePreviewUpdate = useCallback((html: string) => {
-    setPreviewHTML(html);
-  }, []);
-
-  const handleGenerate = useCallback((documentData: Record<string, unknown>) => {
-    if (!selectedTemplate) return;
-
-    // Generate initial document JSON from template + user data
-    const documentJson = {
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph',
-          content: [{ type: 'text', text: 'Document generated from template' }],
-        },
-      ],
-    };
-
-    createDocument({
-      templateId: selectedTemplate.template_id,
-      analysisId,
-      title: `${selectedTemplate.name} - ${new Date().toLocaleDateString()}`,
-      variables: documentData,
-      documentJson,
-    }, {
-      onSuccess: (doc) => {
-        setEditingDocId(doc.id);
-        setStep('edit');
-      },
-    });
-  }, [selectedTemplate, analysisId, createDocument]);
-
-  const handleEditDocument = (doc: Document) => {
-    setEditingDocId(doc.id);
-    setStep('edit');
-  };
-
-  const handleBack = () => {
-    if (step === 'edit') {
-      setEditingDocId(null);
-      setStep('list');
-    } else if (step === 'generate') {
-      setSelectedTemplateId(null);
-      setPreviewHTML('');
-      setStep('pick-template');
-    } else if (step === 'pick-template') {
-      setStep('list');
-    }
-  };
 
   // Edit mode - full screen editor
   if (step === 'edit' && editingDoc) {
