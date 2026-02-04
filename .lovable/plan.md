@@ -1,272 +1,540 @@
 
-# AIWMC Quantis - FinTech Squad Implementation Plan
-
-## Gap Analysis: Current State vs Technical Assessment
-
-Based on my codebase exploration, here's the implementation status:
-
-### Already Implemented (No Action Needed)
-| Feature | Status | Location |
-|---------|--------|----------|
-| UrgencyBanner | Done | `src/components/landing/UrgencyBanner.tsx` |
-| LiveCounter | Done | `src/components/landing/LiveCounter.tsx` |
-| TrustLogos | Done | `src/components/landing/TrustLogos.tsx` |
-| MiniDemo (Preview Mode) | Done | `src/components/landing/MiniDemo.tsx` |
-| analyze-preview Edge Function | Done | `supabase/functions/analyze-preview/` |
-| share-report Edge Function | Done | `supabase/functions/share-report/` |
-| Scenario Tabs | Done | `src/components/analysis/ScenarioSelector.tsx` |
-| PDF Export | Done | `src/hooks/usePdfExport.ts` |
-| 4-Step Wizard | Done | `src/components/analysis/WizardForm.tsx` |
-| Draft Save/Resume | Done | Using `secureStorage` |
-| A/B Testing Framework | Done | `src/lib/abTesting.ts` |
-| Pricing Section with Toggle | Done | `src/components/landing/PricingSection.tsx` |
-
-### Gaps to Implement (From Technical Assessment)
+# AIWMC QUANTIS™ — DOCS STUDIO
+## Полный технический план реализации
 
 ---
 
-## Phase 1: Hero Section Enhancement (P0)
+## 1. ЧТО ЭТО ЗА ФИЧА (ПРОСТЫМ ЯЗЫКОМ)
 
-### 1.1 Add Financial Input Fields to MiniDemo
+**Docs Studio** — это новый модуль AIWMC Quantis, который превращает данные анализа в готовые профессиональные документы.
 
-**Current State:** MiniDemo only has idea, location, and industry selector
-**Target State:** Add Investment, Monthly Revenue, Monthly Costs fields as specified
+### Как это работает:
 
-Files to modify:
-- `src/components/landing/MiniDemo.tsx`
-
-Changes:
-- Add currency input fields for Investment, Revenue, Costs
-- Calculate: Monthly Profit, Annual ROI, Payback Period, Break-even
-- Use local computation (no API call for these calculations)
-- Show "verdict" badge (promising/moderate/risky) based on calculated ROI
-
-New calculation logic:
-```typescript
-const profit = revenue - costs;
-const annualRoi = investment > 0 ? ((profit * 12) / investment) * 100 : 0;
-const paybackMonths = profit > 0 ? investment / profit : Infinity;
-const verdict = annualRoi > 100 ? 'promising' : annualRoi > 50 ? 'moderate' : 'risky';
+```text
+┌─────────────────────────────────────────────────────────────────────┐
+│                        ТЕКУЩИЙ FLOW                                  │
+│  Пользователь → Анализ → Результаты → Скачать PDF                   │
+└─────────────────────────────────────────────────────────────────────┘
+                              ↓ НОВЫЙ FLOW ↓
+┌─────────────────────────────────────────────────────────────────────┐
+│                        DOCS STUDIO                                   │
+│  Результаты → Выбрать шаблон → Редактор (как Google Docs)           │
+│            → Экспорт PDF/DOCX/Markdown → Поделиться                 │
+└─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 1.2 Enhanced Results Display
-
-Add to results section:
-- Net Margin calculation and display
-- ROI gauge/meter visualization
-- More prominent "reliability score" indicator
+### 3 главных шага для пользователя:
+1. **Выбери цель** — "Сделать счёт", "Квартальный отчёт", "Техдок", "Договор"
+2. **Заполни форму** — 5-12 умных вопросов (только нужные поля)
+3. **Редактируй и экспортируй** — как в Google Docs
 
 ---
 
-## Phase 2: Enhanced Preview vs Full Analysis Gating (P0)
+## 2. ПОЧЕМУ ЛЮДИ БУДУТ ИСПОЛЬЗОВАТЬ
 
-### 2.1 Update Locked Features Grid
-
-**Current State:** 6 locked feature teasers
-**Target State:** 8 features matching the spec exactly
-
-Update `LOCKED_FEATURES` array in MiniDemo:
-1. 3 Scenario Modeling (Pessimistic/Base/Optimistic)
-2. Detailed Risk Analysis with Mitigations
-3. 5-7 Actionable Recommendations
-4. Unit Economics Dashboard
-5. PDF Export & Shareable Link
-6. Save History (Unlimited)
-7. Industry Benchmarks Comparison
-8. Calculation Audit Trail
+| Проблема | Решение Docs Studio |
+|----------|---------------------|
+| **Время и хаос** — документы делают вручную, путают версии | Один источник данных → документ за минуты → версии сохраняются |
+| **"Не знаю, что написать"** — пустая страница пугает | Guided-формы + готовые блоки + подсказки |
+| **Риск ошибок** — счёт/договор с ошибкой стоит денег | Чеклисты качества, обязательные поля, предупреждения |
 
 ---
 
-## Phase 3: Testimonials Enhancement (P1)
+## 3. MVP ШАБЛОНЫ (ПЕРВАЯ ОЧЕРЕДЬ)
 
-### 3.1 Update Testimonials Component
+### Финансы (идеально подходит к Quantis):
+- **Invoice** — счёт клиенту с таблицей услуг
+- **Quarterly Summary** — отчёт для инвестора
+- **Cashflow Snapshot** — вход/выход/бёрн/ранвей
 
-**Current State:** Basic testimonials exist
-**Target State:** Metric-focused testimonials with specific outcomes
+### Операционка/Стартап:
+- **Founder Agreement** — соглашение основателей
+- **NDA** — соглашение о неразглашении
+- **Contractor Agreement** — договор подряда
 
-Files to modify:
-- `src/components/landing/Testimonials.tsx`
+### Техдок (для SaaS):
+- **Technical Architecture Overview** — обзор архитектуры
 
-Add these elements:
-- Metric badges on each testimonial (e.g., "12x ROI", "$500K raised", "Saved $50K")
-- 5-star rating display
-- Stats row below testimonials:
-  - Total analyses count (from LiveCounter)
-  - Average rating: 4.9/5
-  - Funding raised by users: $2.3M+
-  - Average analysis time: 47s
-
----
-
-## Phase 4: Performance Optimizations (P2)
-
-### 4.1 Add Core Web Vitals Monitoring
-
-Files to create/modify:
-- Existing `src/lib/webVitals.ts` may need enhancement
-
-Ensure tracking:
-- LCP target: <2.0s
-- INP target: <200ms
-- CLS target: <0.1
-
-### 4.2 Bundle Size Audit
-
-Current dependencies look reasonable. Main optimizations:
-- Verify lazy loading is working for below-fold components
-- Check for unused imports
+### Legal-light:
+- **DMCA Notice** — шаблон уведомления
 
 ---
 
-## Phase 5: Rate Limiting Enhancement (P1)
+## 4. АРХИТЕКТУРА РЕШЕНИЯ
 
-### 5.1 Enhance analyze-preview Rate Limiting
+### 4.1 Новые компоненты
 
-**Current State:** 3 previews per hour per IP
-**Target State:** Add CAPTCHA trigger after first preview
+```text
+┌────────────────────────────────────────────────────────────────────┐
+│                         FRONTEND                                    │
+├────────────────────────────────────────────────────────────────────┤
+│  TemplatePicker     │ Каталог шаблонов с категориями и поиском     │
+│  IntakeForm         │ Динамическая форма с авто-заполнением        │
+│  DocumentEditor     │ Tiptap редактор (ProseMirror) как Notion     │
+│  ExportPanel        │ PDF/DOCX/MD + share link                     │
+│  VersionHistory     │ История изменений                            │
+└────────────────────────────────────────────────────────────────────┘
 
-Files to modify:
-- `supabase/functions/analyze-preview/index.ts`
+┌────────────────────────────────────────────────────────────────────┐
+│                         BACKEND                                     │
+├────────────────────────────────────────────────────────────────────┤
+│  generate-document  │ Edge function: template + data → document    │
+│  export-document    │ Edge function: document → PDF/DOCX (async)   │
+│  template-engine    │ Обработка условий, переменных, валидации     │
+└────────────────────────────────────────────────────────────────────┘
 
-Changes:
-- After 1st preview: Continue allowing
-- After 2nd preview: Show CAPTCHA warning in response
-- After 3rd preview: Block until signup
+┌────────────────────────────────────────────────────────────────────┐
+│                         DATABASE                                    │
+├────────────────────────────────────────────────────────────────────┤
+│  doc_templates      │ Библиотека шаблонов                          │
+│  documents          │ Созданные документы (ProseMirror JSON)       │
+│  document_versions  │ История версий                               │
+│  document_exports   │ Экспортированные файлы                       │
+└────────────────────────────────────────────────────────────────────┘
+```
 
-Add response field:
-```typescript
+### 4.2 Структура шаблона (Template Engine)
+
+```json
 {
-  success: true,
-  data: { ... },
-  rate_limit: {
-    remaining: 2,
-    reset_at: "2026-02-01T19:00:00Z",
-    show_captcha_warning: true
-  }
+  "meta": {
+    "id": "invoice_v1",
+    "version": "1.0.0",
+    "category": "finance",
+    "tier": "free",
+    "name": "Professional Invoice",
+    "description": "Generate client invoices in seconds"
+  },
+  "variables": [
+    { "key": "company_name", "type": "string", "required": true, "autofill": "user.company_name" },
+    { "key": "client_name", "type": "string", "required": true },
+    { "key": "items", "type": "table", "required": true, "columns": ["description", "qty", "price"] },
+    { "key": "tax_rate", "type": "number", "required": false, "default": 0 },
+    { "key": "due_date", "type": "date", "required": true }
+  ],
+  "blocks": [
+    { "id": "header", "type": "heading", "level": 1, "content": "{{company_name}} Invoice" },
+    { "id": "client", "type": "paragraph", "content": "Bill to: {{client_name}}" },
+    { "id": "items_table", "type": "table", "bind": "items" },
+    { "id": "tax_block", "type": "paragraph", "content": "Tax ({{tax_rate}}%): {{calculated.tax_amount}}" },
+    { "id": "total", "type": "paragraph", "content": "**Total: {{calculated.total}}**" }
+  ],
+  "conditions": [
+    { "if": "tax_rate > 0", "include_blocks": ["tax_block"] }
+  ],
+  "calculations": [
+    { "key": "subtotal", "formula": "SUM(items.price * items.qty)" },
+    { "key": "tax_amount", "formula": "subtotal * (tax_rate / 100)" },
+    { "key": "total", "formula": "subtotal + tax_amount" }
+  ],
+  "validation": [
+    { "rule": "items.length > 0", "message": "At least one item required" },
+    { "rule": "total > 0", "message": "Total must be positive" }
+  ]
 }
 ```
 
 ---
 
-## Phase 6: Wizard Enhancements (P1)
+## 5. СХЕМА БАЗЫ ДАННЫХ
 
-### 6.1 Add More Financial Fields to Wizard Step 2
+### 5.1 Новые таблицы
 
-**Current State:** Basic financial inputs via `AdvancedFinancialInputs`
-**Target State:** Add fields from spec
-
-Review and add to Step 2:
-- Current Cash / Reserves
-- Monthly Burn Rate (auto-calculated or manual)
-
-### 6.2 Add Growth & Market Step (Optional Enhancement)
-
-Consider adding to Step 3:
-- Target Market Size
-- Customer Acquisition Cost
-- Customer Lifetime Value
-- Monthly Growth Rate
-- Churn Rate (for SaaS)
-
-This aligns with the 4-step wizard spec but may be too much friction - consider A/B testing.
-
----
-
-## Phase 7: Results Page Polish (P1)
-
-### 7.1 Enhance Scenario Tabs
-
-**Current State:** Tabs exist and work
-**Target State:** Add visual indicators
-
-Add to `ScenarioSelector.tsx`:
-- Color coding (conservative=yellow, baseline=blue, aggressive=green)
-- Quick summary metrics per tab without switching
-
-### 7.2 Add "Next Best Actions" Checklist
-
-**Current State:** ActionableInsights component exists
-**Target State:** Ensure it matches the spec's checklist format
-
-Review `ActionableInsights.tsx` to ensure:
-- Checkbox UX for each action
-- Impact/ROI estimate per action
-- Priority ordering
-
----
-
-## Phase 8: Share Link Enhancement (P2)
-
-### 8.1 Add Password Protection Option
-
-**Current State:** Token-based sharing exists
-**Target State:** Optional password protection
-
-Database change needed:
 ```sql
-ALTER TABLE shared_reports ADD COLUMN password_hash TEXT;
+-- Библиотека шаблонов документов
+CREATE TABLE doc_templates (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  
+  -- Метаданные
+  template_id TEXT NOT NULL UNIQUE, -- 'invoice_v1', 'nda_basic'
+  name TEXT NOT NULL,
+  description TEXT,
+  category TEXT NOT NULL, -- 'finance', 'legal', 'operations', 'tech'
+  tier TEXT DEFAULT 'free', -- 'free', 'plus', 'enterprise'
+  icon TEXT, -- Lucide icon name
+  
+  -- Структура шаблона
+  template_json JSONB NOT NULL, -- Полная структура шаблона
+  
+  -- Использование
+  usage_count INTEGER DEFAULT 0,
+  rating_average DECIMAL(3,2) DEFAULT 0,
+  rating_count INTEGER DEFAULT 0,
+  
+  -- Версионирование
+  version TEXT DEFAULT '1.0.0',
+  is_active BOOLEAN DEFAULT TRUE,
+  
+  -- Метаданные
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Созданные документы
+CREATE TABLE documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE,
+  workspace_id UUID, -- Для team-функционала (Phase 2)
+  
+  -- Связь с шаблоном и анализом
+  template_id UUID REFERENCES doc_templates(id),
+  analysis_id UUID REFERENCES analyses(id), -- Источник данных
+  
+  -- Содержимое
+  title TEXT NOT NULL,
+  document_json JSONB NOT NULL, -- ProseMirror/Tiptap JSON
+  variables_data JSONB DEFAULT '{}', -- Заполненные переменные
+  
+  -- Статус
+  status TEXT DEFAULT 'draft', -- 'draft', 'review', 'final'
+  
+  -- Версионирование
+  version INTEGER DEFAULT 1,
+  
+  -- Совместный доступ
+  is_shared BOOLEAN DEFAULT FALSE,
+  share_token TEXT UNIQUE,
+  share_expires_at TIMESTAMPTZ,
+  
+  -- Метаданные
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
+  deleted_at TIMESTAMPTZ
+);
+
+-- История версий документов
+CREATE TABLE document_versions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  
+  version_number INTEGER NOT NULL,
+  snapshot_json JSONB NOT NULL, -- Полный snapshot документа
+  
+  -- Кто и когда
+  created_by UUID REFERENCES profiles(id),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  
+  -- Описание изменений
+  change_description TEXT,
+  
+  UNIQUE(document_id, version_number)
+);
+
+-- Экспорты документов
+CREATE TABLE document_exports (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  document_id UUID NOT NULL REFERENCES documents(id) ON DELETE CASCADE,
+  user_id UUID NOT NULL REFERENCES profiles(id),
+  
+  -- Формат и файл
+  format TEXT NOT NULL, -- 'pdf', 'docx', 'md', 'html'
+  file_url TEXT, -- URL в storage
+  file_size_bytes BIGINT,
+  
+  -- Статус генерации
+  status TEXT DEFAULT 'pending', -- 'pending', 'processing', 'completed', 'failed'
+  error_message TEXT,
+  
+  -- Метаданные
+  idempotency_key TEXT UNIQUE,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  completed_at TIMESTAMPTZ
+);
+
+-- Индексы
+CREATE INDEX idx_doc_templates_category ON doc_templates(category) WHERE is_active = TRUE;
+CREATE INDEX idx_doc_templates_tier ON doc_templates(tier) WHERE is_active = TRUE;
+CREATE INDEX idx_documents_user ON documents(user_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_documents_analysis ON documents(analysis_id) WHERE deleted_at IS NULL;
+CREATE INDEX idx_document_versions_doc ON document_versions(document_id, version_number DESC);
 ```
 
-Edge function changes:
-- POST: Accept optional `password` field, hash it before storing
-- GET: Check password if set, return 401 if wrong
+### 5.2 RLS Политики
 
-UI changes:
-- Add password toggle in share modal
-- Add password input on shared report page
+```sql
+-- doc_templates: публичные шаблоны + tier-gating
+ALTER TABLE doc_templates ENABLE ROW LEVEL SECURITY;
 
----
+CREATE POLICY "Anyone can view free templates"
+  ON doc_templates FOR SELECT
+  USING (is_active = TRUE AND tier = 'free');
 
-## Implementation Priority Order
+CREATE POLICY "Plus users can view plus templates"
+  ON doc_templates FOR SELECT
+  USING (is_active = TRUE AND tier = 'plus' AND verify_plus_subscription(auth.uid()));
 
-| Priority | Phase | Description | Effort | Impact |
-|----------|-------|-------------|--------|--------|
-| P0 | 1.1 | Financial inputs in MiniDemo | 4 hours | High |
-| P0 | 2.1 | Update locked features list | 1 hour | Medium |
-| P1 | 3.1 | Testimonials with metrics | 2 hours | Medium |
-| P1 | 5.1 | Rate limit CAPTCHA warning | 2 hours | Medium |
-| P1 | 6.1 | More wizard financial fields | 2 hours | Low |
-| P1 | 7.1 | Scenario tabs enhancement | 2 hours | Low |
-| P1 | 7.2 | Actions checklist review | 1 hour | Low |
-| P2 | 4.1 | Web vitals monitoring | 1 hour | Low |
-| P2 | 8.1 | Password-protected shares | 4 hours | Low |
+CREATE POLICY "Service role manages templates"
+  ON doc_templates FOR ALL
+  USING (is_service_role());
 
----
+-- documents: только владелец
+ALTER TABLE documents ENABLE ROW LEVEL SECURITY;
 
-## Files to Modify Summary
+CREATE POLICY "Users can view own documents"
+  ON documents FOR SELECT
+  USING (auth.uid() = user_id AND deleted_at IS NULL);
 
-### High Priority (P0)
-1. `src/components/landing/MiniDemo.tsx` - Add financial inputs and calculations
+CREATE POLICY "Users can create documents"
+  ON documents FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
 
-### Medium Priority (P1)
-2. `src/components/landing/Testimonials.tsx` - Add metrics and stats row
-3. `supabase/functions/analyze-preview/index.ts` - Rate limit warning
-4. `src/components/analysis/AdvancedFinancialInputs.tsx` - Additional fields
-5. `src/components/analysis/ScenarioSelector.tsx` - Visual enhancements
+CREATE POLICY "Users can update own documents"
+  ON documents FOR UPDATE
+  USING (auth.uid() = user_id);
 
-### Low Priority (P2)
-6. `src/lib/webVitals.ts` - Ensure monitoring
-7. `supabase/functions/share-report/index.ts` - Password protection (requires migration)
+CREATE POLICY "Users can delete own documents"
+  ON documents FOR DELETE
+  USING (auth.uid() = user_id);
+```
 
 ---
 
-## Success Metrics (Post-Implementation)
+## 6. EDGE FUNCTIONS
 
-Track these KPIs:
-- **MiniDemo Completion Rate:** Target 25% of visitors (up from unknown baseline)
-- **Preview → Signup Conversion:** Target 15% (current estimated 4.2%)
-- **Scroll Depth to Pricing:** Target 60% of visitors
-- **LCP:** <2.0s (verify with Lighthouse)
-- **Overall Landing→Auth:** Target 10% (from current 4.2%)
+### 6.1 generate-document
+
+```typescript
+// supabase/functions/generate-document/index.ts
+// Генерация документа из шаблона + данных анализа
+
+POST /generate-document
+Body: {
+  template_id: string,
+  analysis_id?: string,      // Опционально: подтянуть данные из анализа
+  variables: Record<string, any>,
+  title: string
+}
+
+Response: {
+  success: true,
+  document_id: string,
+  document_json: ProseMirrorJSON
+}
+```
+
+### 6.2 export-document
+
+```typescript
+// supabase/functions/export-document/index.ts
+// Асинхронный экспорт в PDF/DOCX
+
+POST /export-document
+Body: {
+  document_id: string,
+  format: 'pdf' | 'docx' | 'md',
+  idempotency_key?: string
+}
+
+Response: {
+  success: true,
+  export_id: string,
+  status: 'pending'
+}
+
+// Polling:
+GET /export-document?export_id=xxx
+Response: {
+  status: 'completed',
+  download_url: string
+}
+```
 
 ---
 
-## Recommended First Step
+## 7. FRONTEND КОМПОНЕНТЫ
 
-Start with **Phase 1.1 (Financial Inputs in MiniDemo)** as it:
-- Provides the "calculator" experience from the spec
-- Shows instant value without any backend call
-- Is the primary conversion lever identified in the assessment
-- Can be implemented in ~4 hours
+### 7.1 Структура файлов
 
-The MiniDemo currently shows profit/payback from the edge function; enhancing it with local ROI calculations based on user-provided Investment/Revenue/Costs will make it more interactive and valuable.
+```
+src/
+├── components/
+│   └── docs/
+│       ├── TemplatePicker.tsx      # Каталог шаблонов
+│       ├── TemplateCard.tsx        # Карточка шаблона
+│       ├── IntakeForm.tsx          # Динамическая форма
+│       ├── DocumentEditor.tsx      # Tiptap редактор
+│       ├── EditorToolbar.tsx       # Панель инструментов
+│       ├── BlockMenu.tsx           # Меню блоков (Notion-style)
+│       ├── VariableChip.tsx        # Переменная в тексте
+│       ├── ExportPanel.tsx         # Панель экспорта
+│       ├── VersionHistory.tsx      # История версий
+│       └── DocumentPreview.tsx     # Предпросмотр
+├── hooks/
+│   ├── useDocumentEditor.ts        # Состояние редактора
+│   ├── useTemplates.ts             # Загрузка шаблонов
+│   ├── useDocumentExport.ts        # Экспорт документов
+│   └── useDocumentVersions.ts      # Работа с версиями
+├── pages/
+│   ├── DocsStudio.tsx              # Главная страница Docs
+│   ├── DocumentEditor.tsx          # Страница редактирования
+│   └── TemplateLibrary.tsx         # Библиотека шаблонов
+└── types/
+    └── document.ts                 # Типы документов
+```
+
+### 7.2 Основной компонент редактора
+
+```tsx
+// DocumentEditor.tsx - упрощённая структура
+import { useEditor, EditorContent } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import Table from '@tiptap/extension-table';
+import Placeholder from '@tiptap/extension-placeholder';
+
+export function DocumentEditor({ documentId }: { documentId: string }) {
+  const { document, updateDocument, isLoading } = useDocument(documentId);
+  const { exportDocument, isExporting } = useDocumentExport();
+  
+  const editor = useEditor({
+    extensions: [
+      StarterKit,
+      Table.configure({ resizable: true }),
+      Placeholder.configure({ placeholder: 'Start typing...' }),
+      // Кастомные расширения для переменных
+      VariableExtension,
+    ],
+    content: document?.document_json,
+    onUpdate: ({ editor }) => {
+      // Autosave каждые 3 секунды
+      debouncedSave(editor.getJSON());
+    },
+  });
+
+  return (
+    <div className="flex flex-col h-full">
+      <EditorToolbar editor={editor} />
+      <EditorContent editor={editor} className="flex-1 prose max-w-none" />
+      <ExportPanel 
+        onExport={(format) => exportDocument(documentId, format)}
+        isExporting={isExporting}
+      />
+    </div>
+  );
+}
+```
+
+---
+
+## 8. ИНТЕГРАЦИЯ С СУЩЕСТВУЮЩИМ QUANTIS
+
+### 8.1 Кнопка "Create Document" в результатах анализа
+
+```tsx
+// В AnalysisResults.tsx добавить:
+<Button onClick={() => navigate(`/docs/new?analysis=${analysisId}`)}>
+  <FileText className="w-4 h-4 mr-2" />
+  Create Document
+</Button>
+```
+
+### 8.2 Автозаполнение из анализа
+
+Когда пользователь создаёт документ из анализа, система автоматически подтягивает:
+
+- **Quarterly Summary**: MRR, ARR, расходы, маржа, выводы
+- **Invoice**: название компании, локация, дата
+- **Tech Doc**: industry detected, data sources
+
+---
+
+## 9. ФАЗЫ РЕАЛИЗАЦИИ
+
+### Phase 1: MVP (2-3 недели)
+- [ ] Таблицы БД + RLS
+- [ ] 3 шаблона (Invoice, Quarterly Summary, NDA)
+- [ ] TemplatePicker + IntakeForm
+- [ ] Базовый редактор (Tiptap)
+- [ ] Экспорт в PDF
+- [ ] Интеграция в /app
+
+### Phase 2: Enhanced Editor (2 недели)
+- [ ] Все 8 MVP шаблонов
+- [ ] История версий
+- [ ] DOCX экспорт
+- [ ] Drag-and-drop блоков
+- [ ] AI-команды ("переформулируй", "укороти")
+
+### Phase 3: Collaboration (2 недели)
+- [ ] Share links
+- [ ] Кастомные шаблоны пользователей
+- [ ] Workspace folders
+- [ ] Аудит лог
+
+---
+
+## 10. ТЕХНИЧЕСКИЕ ЗАВИСИМОСТИ
+
+### Новые пакеты:
+```json
+{
+  "@tiptap/react": "^2.x",
+  "@tiptap/starter-kit": "^2.x",
+  "@tiptap/extension-table": "^2.x",
+  "@tiptap/extension-placeholder": "^2.x",
+  "docx": "^8.x"  // Для DOCX генерации на сервере
+}
+```
+
+### Lovable AI модели для AI-команд:
+- `google/gemini-2.5-flash` — быстрые переформулировки
+- `openai/gpt-5-mini` — сложные редактуры
+
+---
+
+## 11. БЕЗОПАСНОСТЬ
+
+1. **RLS**: Документы доступны только владельцу
+2. **Tier-gating**: Plus шаблоны только для Plus подписчиков
+3. **Валидация**: Zod схемы на входе
+4. **Rate-limiting**: 10 экспортов/час для Free
+5. **Аудит**: Логирование создания/экспорта
+
+---
+
+## 12. README ДЛЯ РАЗРАБОТЧИКОВ
+
+```markdown
+# AIWMC Quantis Docs Studio
+
+## Что это
+Модуль генерации профессиональных документов на основе шаблонов.
+Пользователь выбирает шаблон → заполняет данные → редактирует как в Google Docs → экспортирует.
+
+## Быстрый старт
+1. Перейти в /docs
+2. Выбрать шаблон
+3. Заполнить форму (данные могут подтягиваться из анализа)
+4. Редактировать документ
+5. Экспортировать в PDF/DOCX
+
+## Архитектура
+- Frontend: React + Tiptap (ProseMirror)
+- Backend: Supabase Edge Functions
+- Storage: Supabase Storage для экспортов
+- DB: PostgreSQL с RLS
+
+## Шаблоны
+Шаблоны хранятся как JSON с:
+- `variables` — типизированные поля
+- `blocks` — структура документа
+- `conditions` — логика включения блоков
+- `validation` — правила перед экспортом
+
+## Безопасность
+- RLS на всех таблицах
+- Tier-gating для Premium шаблонов
+- Rate-limiting экспортов
+```
+
+---
+
+## ИТОГО
+
+Docs Studio превращает AIWMC Quantis из "анализатора" в **полноценный бизнес-инструмент**:
+- Анализ → Документ → Действие
+- Никаких "пустых страниц" — всё через guided flow
+- Профессиональный редактор уровня Google Docs
+- Экспорт в любом формате
+
+**Ключевая ценность**: Пользователь не выходит в сторонние сервисы, а закрывает задачу быстрее и дешевле прямо в Quantis.
