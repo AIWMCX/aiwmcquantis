@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -121,10 +122,14 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
 
   // Generate preview HTML
   useEffect(() => {
+    // SECURITY: Escape all form values before template interpolation to prevent XSS
+    const safeValues = escapeFormValues(formValues);
+    const safeLineItems = (safeValues.line_items || []) as typeof formValues.line_items;
+    
     const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
-    const previewHTML = `
+    const rawHTML = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
         <!-- Header -->
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
@@ -135,21 +140,21 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
             <p style="color: #6b7280; margin: 4px 0;">Due: ${dueDate}</p>
           </div>
           <div style="text-align: right;">
-            <p style="font-weight: 600; font-size: 18px; margin: 0;">${formValues.company_name || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${formValues.company_address || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${formValues.company_city || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${formValues.company_email || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${formValues.company_phone || ''}</p>
+            <p style="font-weight: 600; font-size: 18px; margin: 0;">${safeValues.company_name || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_address || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_city || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_email || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_phone || ''}</p>
           </div>
         </div>
         
         <!-- Bill To -->
         <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
           <p style="font-weight: 600; color: #374151; margin: 0 0 8px 0;">Bill To:</p>
-          <p style="font-weight: 600; margin: 0;">${formValues.client_name || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${formValues.client_company || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${formValues.client_address || ''}, ${formValues.client_city || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${formValues.client_email || ''}</p>
+          <p style="font-weight: 600; margin: 0;">${safeValues.client_name || ''}</p>
+          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_company || ''}</p>
+          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_address || ''}, ${safeValues.client_city || ''}</p>
+          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_email || ''}</p>
         </div>
         
         <!-- Line Items -->
@@ -163,7 +168,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
             </tr>
           </thead>
           <tbody>
-            ${(formValues.line_items || []).map((item, i) => `
+            ${safeLineItems.map((item, i) => `
               <tr style="border-bottom: 1px solid #e5e7eb; ${i % 2 === 1 ? 'background: #f9fafb;' : ''}">
                 <td style="padding: 12px;">${item.description || ''}</td>
                 <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
@@ -182,7 +187,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
               <span style="font-weight: 500;">$${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-              <span style="color: #6b7280;">Tax (${formValues.tax_rate || 0}%):</span>
+              <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
               <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
             </div>
             <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
@@ -193,21 +198,22 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         </div>
         
         <!-- Notes -->
-        ${formValues.notes ? `
+        ${safeValues.notes ? `
           <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0;">
             <p style="font-weight: 600; margin: 0 0 8px 0; color: #92400e;">Notes</p>
-            <p style="margin: 0; color: #78350f;">${formValues.notes}</p>
+            <p style="margin: 0; color: #78350f;">${safeValues.notes}</p>
           </div>
         ` : ''}
         
         <!-- Footer -->
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>Payment Terms: ${formValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
+          <p>Payment Terms: ${safeValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
         </div>
       </div>
     `;
     
-    onPreviewUpdate(previewHTML);
+    // SECURITY: Final sanitization pass to catch any edge cases
+    onPreviewUpdate(sanitizePreviewHTML(rawHTML));
   }, [formValues, calculations, onPreviewUpdate]);
 
   const onSubmit = (data: InvoiceFormData) => {
