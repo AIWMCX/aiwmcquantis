@@ -26,7 +26,7 @@ interface ConfidenceIndicatorProps {
   suggestions?: string[];
 }
 
-export function ConfidenceIndicator({ score, breakdown, suggestions }: ConfidenceIndicatorProps) {
+export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ score, breakdown, suggestions }: ConfidenceIndicatorProps) {
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   const getScoreConfig = (s: number) => {
@@ -176,4 +176,4 @@ export function ConfidenceIndicator({ score, breakdown, suggestions }: Confidenc
       </Collapsible>
     </Card>
   );
-}
+});

@@ -26,7 +26,7 @@ interface PricingCardProps {
   totalYear?: number;
 }
 
-export function PricingCard({
+export const PricingCard = React.memo(function PricingCard({
   name,
   price,
   period,
@@ -151,4 +151,4 @@ export function PricingCard({
       )}
     </div>
   );
-}
+});

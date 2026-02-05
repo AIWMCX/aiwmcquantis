@@ -524,3 +524,132 @@ function getProfitRange(profit: number): string {
   if (profit < 50000) return '25k_50k';
   return 'over_50k';
 }
+
+// ============================================
+// Enhanced Engagement Tracking (Phase 5)
+// ============================================
+
+// Scroll depth tracking state
+let scrollDepthTracked = new Set<number>();
+
+/**
+ * Track scroll depth milestones (25%, 50%, 75%, 100%)
+ */
+export function initScrollDepthTracking(): void {
+  if (typeof window === 'undefined') return;
+  
+  const trackScrollDepth = () => {
+    const scrollTop = window.scrollY;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const scrollPercent = Math.round((scrollTop / docHeight) * 100);
+    
+    const milestones = [25, 50, 75, 100];
+    milestones.forEach(milestone => {
+      if (scrollPercent >= milestone && !scrollDepthTracked.has(milestone)) {
+        scrollDepthTracked.add(milestone);
+        trackEvent('scroll_depth', { depth: milestone });
+      }
+    });
+  };
+  
+  // Debounce scroll events
+  let scrollTimeout: ReturnType<typeof setTimeout>;
+  window.addEventListener('scroll', () => {
+    clearTimeout(scrollTimeout);
+    scrollTimeout = setTimeout(trackScrollDepth, 150);
+  }, { passive: true });
+}
+
+/**
+ * Reset scroll depth tracking (for SPA navigation)
+ */
+export function resetScrollDepthTracking(): void {
+  scrollDepthTracked = new Set();
+}
+
+// Time on page tracking state
+let pageLoadTime: number | null = null;
+let timeOnPageTracked = new Set<number>();
+
+/**
+ * Track time on page milestones (5s, 10s, 30s, 60s)
+ */
+export function initTimeOnPageTracking(): void {
+  if (typeof window === 'undefined') return;
+  
+  pageLoadTime = Date.now();
+  const milestones = [5, 10, 30, 60]; // seconds
+  
+  milestones.forEach(seconds => {
+    setTimeout(() => {
+      if (!timeOnPageTracked.has(seconds)) {
+        timeOnPageTracked.add(seconds);
+        trackEvent('time_on_page', { seconds });
+      }
+    }, seconds * 1000);
+  });
+}
+
+/**
+ * Reset time on page tracking (for SPA navigation)
+ */
+export function resetTimeOnPageTracking(): void {
+  pageLoadTime = null;
+  timeOnPageTracked = new Set();
+}
+
+/**
+ * Track CTA visibility using Intersection Observer
+ */
+export function trackCtaVisibility(ctaId: string, element: Element): () => void {
+  if (typeof window === 'undefined' || !('IntersectionObserver' in window)) {
+    return () => {};
+  }
+  
+  const observer = new IntersectionObserver(
+    (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          trackEvent('cta_visible', { cta_id: ctaId });
+          observer.disconnect();
+        }
+      });
+    },
+    { threshold: 0.5 }
+  );
+  
+  observer.observe(element);
+  
+  return () => observer.disconnect();
+}
+
+// ============================================
+// Analysis Funnel Tracking
+// ============================================
+
+type FunnelStep = 'started' | 'input_complete' | 'processing' | 'completed' | 'exported';
+
+/**
+ * Track analysis funnel progression
+ */
+export function trackAnalysisFunnel(step: FunnelStep, metadata?: Record<string, unknown>): void {
+  trackEvent('analysis_funnel', {
+    step,
+    ...metadata,
+    timestamp: new Date().toISOString(),
+  });
+}
+
+/**
+ * Track feature discovery (for onboarding optimization)
+ */
+export function trackFeatureDiscovery(feature: string, source: string): void {
+  trackEvent('feature_discovery', { feature, source });
+}
+
+/**
+ * Track onboarding step completion
+ */
+export function trackOnboardingStep(step: number, stepName: string, completed: boolean): void {
+  trackEvent('onboarding_step', { step, step_name: stepName, completed });
+}
