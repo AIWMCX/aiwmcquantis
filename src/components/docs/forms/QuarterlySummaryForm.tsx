@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -112,31 +113,36 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
 
   // Generate preview HTML
   useEffect(() => {
+    // SECURITY: Escape all form values before template interpolation to prevent XSS
+    const safeValues = escapeFormValues(formValues);
+    const safeHighlights = (safeValues.key_highlights || []) as string[];
+    const safeAchievements = (safeValues.achievements || []) as typeof formValues.achievements;
+    
     const prepDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
     
     const formatCurrency = (num: number) => `$${(num || 0).toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
     const formatPercent = (num: number) => `${(num || 0).toFixed(1)}%`;
 
-    const previewHTML = `
+    const rawHTML = `
       <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #2563eb;">
           <p style="color: #dc2626; font-weight: 600; font-size: 12px; letter-spacing: 2px; margin: 0 0 8px 0;">CONFIDENTIAL</p>
           <h1 style="font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0;">QUARTERLY BUSINESS SUMMARY</h1>
-          <p style="font-size: 18px; color: #2563eb; font-weight: 600; margin: 0;">${formValues.company_name || ''}</p>
-          <p style="color: #6b7280; margin: 8px 0 0 0;">${formValues.quarter || ''} | Prepared by ${formValues.prepared_by || ''}</p>
+          <p style="font-size: 18px; color: #2563eb; font-weight: 600; margin: 0;">${safeValues.company_name || ''}</p>
+          <p style="color: #6b7280; margin: 8px 0 0 0;">${safeValues.quarter || ''} | Prepared by ${safeValues.prepared_by || ''}</p>
           <p style="color: #9ca3af; font-size: 12px; margin: 4px 0 0 0;">Report Date: ${prepDate}</p>
         </div>
 
         <!-- Executive Summary -->
         <div style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Executive Summary</h2>
-          <p style="line-height: 1.6; color: #374151;">${formValues.overview || ''}</p>
+          <p style="line-height: 1.6; color: #374151;">${safeValues.overview || ''}</p>
           
           <div style="margin-top: 16px; background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; border-radius: 0 8px 8px 0;">
             <p style="font-weight: 600; color: #166534; margin: 0 0 12px 0;">Key Highlights</p>
             <ul style="margin: 0; padding-left: 20px;">
-              ${(formValues.key_highlights || []).map(h => `<li style="color: #166534; margin: 4px 0;">${h}</li>`).join('')}
+              ${safeHighlights.map(h => `<li style="color: #166534; margin: 4px 0;">${h}</li>`).join('')}
             </ul>
           </div>
         </div>
@@ -200,10 +206,10 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
         </div>
 
         <!-- Key Achievements -->
-        ${(formValues.achievements || []).length > 0 ? `
+        ${safeAchievements.length > 0 ? `
           <div style="margin-bottom: 32px;">
             <h2 style="font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Key Achievements</h2>
-            ${formValues.achievements.map(a => `
+            ${safeAchievements.map(a => `
               <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2563eb;">
                 <p style="font-weight: 600; color: #2563eb; margin: 0 0 4px 0;">${a.area}</p>
                 <p style="margin: 0 0 8px 0;">${a.achievement}</p>
@@ -230,12 +236,13 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
 
         <!-- Footer -->
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
-          <p>CONFIDENTIAL - For Internal Use Only | ${formValues.company_name}</p>
+          <p>CONFIDENTIAL - For Internal Use Only | ${safeValues.company_name}</p>
         </div>
       </div>
     `;
     
-    onPreviewUpdate(previewHTML);
+    // SECURITY: Final sanitization pass to catch any edge cases
+    onPreviewUpdate(sanitizePreviewHTML(rawHTML));
   }, [formValues, calculations, onPreviewUpdate]);
 
   const onSubmit = (data: QuarterlyFormData) => {

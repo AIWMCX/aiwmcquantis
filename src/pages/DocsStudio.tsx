@@ -28,6 +28,7 @@ import {
 } from 'lucide-react';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import type { DocTemplate, Document } from '@/types/document';
+import { sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 
 type Step = 'list' | 'pick-template' | 'generate' | 'edit';
 
@@ -385,7 +386,7 @@ export default function DocsStudio() {
                       <div 
                         className="bg-white overflow-auto max-h-[calc(100vh-200px)]"
                         style={{ minHeight: '600px' }}
-                        dangerouslySetInnerHTML={{ __html: previewHTML }}
+                        dangerouslySetInnerHTML={{ __html: sanitizePreviewHTML(previewHTML) }}
                       />
                     ) : (
                       <div className="flex items-center justify-center h-96 text-muted-foreground">

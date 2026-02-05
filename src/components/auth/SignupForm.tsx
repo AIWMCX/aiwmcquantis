@@ -133,14 +133,16 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       );
 
       if (error) {
+        // SECURITY: Use generic error message to prevent email enumeration attacks
+        // Log specific reason internally for debugging, but don't expose to user
+        toast.error('Unable to create account. Please check your information and try again.');
+        
+        // Track specific error reason internally only
         if (error.message.includes('already registered') || error.message.includes('already been registered')) {
-          toast.error('This email is already registered. Please sign in instead.');
           trackEvent('signup_error', { reason: 'email_exists' });
         } else if (error.message.includes('password')) {
-          toast.error('Password must be at least 8 characters');
           trackEvent('signup_error', { reason: 'weak_password' });
         } else {
-          toast.error(error.message || 'Failed to create account');
           trackEvent('signup_error', { reason: 'unknown', message: error.message });
         }
         setIsLoading(false);

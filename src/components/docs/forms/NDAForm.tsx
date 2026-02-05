@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo } from 'react';
+import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -78,11 +79,14 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
 
   // Generate preview HTML
   useEffect(() => {
+    // SECURITY: Escape all form values before template interpolation to prevent XSS
+    const safeValues = escapeFormValues(formValues);
+    
     const effectiveDate = formValues.effective_date 
       ? new Date(formValues.effective_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
       : '[Date]';
 
-    const previewHTML = `
+    const rawHTML = `
       <div style="font-family: 'Times New Roman', Georgia, serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937; line-height: 1.8;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 40px;">
@@ -100,19 +104,19 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         <div style="margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
           <div style="margin-bottom: 16px;">
             <p style="margin: 0; font-weight: 600; color: #2563eb;">PARTY A:</p>
-            <p style="margin: 4px 0 0 0;"><strong>${formValues.party_a_name || '[Company Name]'}</strong></p>
-            <p style="margin: 2px 0; color: #6b7280;">${formValues.party_a_address || '[Address]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">${formValues.party_a_city || '[City, State ZIP]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${formValues.party_a_rep || '[Representative]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Email: ${formValues.party_a_email || '[Email]'}</p>
+            <p style="margin: 4px 0 0 0;"><strong>${safeValues.party_a_name || '[Company Name]'}</strong></p>
+            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_a_address || '[Address]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_a_city || '[City, State ZIP]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${safeValues.party_a_rep || '[Representative]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">Email: ${safeValues.party_a_email || '[Email]'}</p>
           </div>
           <div>
             <p style="margin: 0; font-weight: 600; color: #2563eb;">PARTY B:</p>
-            <p style="margin: 4px 0 0 0;"><strong>${formValues.party_b_name || '[Company Name]'}</strong></p>
-            <p style="margin: 2px 0; color: #6b7280;">${formValues.party_b_address || '[Address]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">${formValues.party_b_city || '[City, State ZIP]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${formValues.party_b_rep || '[Representative]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Email: ${formValues.party_b_email || '[Email]'}</p>
+            <p style="margin: 4px 0 0 0;"><strong>${safeValues.party_b_name || '[Company Name]'}</strong></p>
+            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_b_address || '[Address]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_b_city || '[City, State ZIP]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${safeValues.party_b_rep || '[Representative]'}</p>
+            <p style="margin: 2px 0; color: #6b7280;">Email: ${safeValues.party_b_email || '[Email]'}</p>
           </div>
         </div>
 
@@ -120,7 +124,7 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         <div style="margin-bottom: 24px;">
           <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">RECITALS</h2>
           <p style="text-align: justify; margin-bottom: 12px;">
-            <strong>WHEREAS,</strong> ${formValues.purpose || '[Purpose]'}
+            <strong>WHEREAS,</strong> ${safeValues.purpose || '[Purpose]'}
           </p>
           <p style="text-align: justify;">
             <strong>WHEREAS,</strong> the Parties desire to protect the confidentiality of such information and to define the terms and conditions under which Confidential Information may be disclosed and used;
@@ -162,14 +166,14 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         <div style="margin-bottom: 24px;">
           <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">3. TERM</h2>
           <p style="text-align: justify;">
-            This Agreement shall remain in effect for a period of <strong>${formValues.term_years} (${formValues.term_years === 1 ? 'one' : formValues.term_years === 2 ? 'two' : formValues.term_years === 3 ? 'three' : formValues.term_years}) year${formValues.term_years > 1 ? 's' : ''}</strong> from the Effective Date. The obligations of the Receiving Party shall survive for a period of <strong>${formValues.confidentiality_years} (${formValues.confidentiality_years === 1 ? 'one' : formValues.confidentiality_years === 2 ? 'two' : formValues.confidentiality_years === 3 ? 'three' : formValues.confidentiality_years === 4 ? 'four' : formValues.confidentiality_years === 5 ? 'five' : formValues.confidentiality_years}) year${formValues.confidentiality_years > 1 ? 's' : ''}</strong> from the date of disclosure.
+            This Agreement shall remain in effect for a period of <strong>${safeValues.term_years} (${formValues.term_years === 1 ? 'one' : formValues.term_years === 2 ? 'two' : formValues.term_years === 3 ? 'three' : formValues.term_years}) year${formValues.term_years > 1 ? 's' : ''}</strong> from the Effective Date. The obligations of the Receiving Party shall survive for a period of <strong>${safeValues.confidentiality_years} (${formValues.confidentiality_years === 1 ? 'one' : formValues.confidentiality_years === 2 ? 'two' : formValues.confidentiality_years === 3 ? 'three' : formValues.confidentiality_years === 4 ? 'four' : formValues.confidentiality_years === 5 ? 'five' : formValues.confidentiality_years}) year${formValues.confidentiality_years > 1 ? 's' : ''}</strong> from the date of disclosure.
           </p>
         </div>
 
         <div style="margin-bottom: 24px;">
           <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">4. GOVERNING LAW</h2>
           <p style="text-align: justify;">
-            This Agreement shall be governed by and construed in accordance with the laws of <strong>${formValues.jurisdiction || '[Jurisdiction]'}</strong>, without regard to its conflicts of law provisions.
+            This Agreement shall be governed by and construed in accordance with the laws of <strong>${safeValues.jurisdiction || '[Jurisdiction]'}</strong>, without regard to its conflicts of law provisions.
           </p>
         </div>
 
@@ -197,17 +201,17 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
           
           <div style="display: flex; justify-content: space-between; gap: 48px;">
             <div style="flex: 1;">
-              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${formValues.party_a_name || 'PARTY A'}</p>
+              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${safeValues.party_a_name || 'PARTY A'}</p>
               <div style="border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px;"></div>
-              <p style="margin: 4px 0; font-size: 14px;">By: ${formValues.party_a_rep || '[Name]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Title: ${formValues.party_a_rep?.split(',')[1]?.trim() || '[Title]'}</p>
+              <p style="margin: 4px 0; font-size: 14px;">By: ${safeValues.party_a_rep || '[Name]'}</p>
+              <p style="margin: 4px 0; font-size: 14px;">Title: ${(safeValues.party_a_rep as string)?.split(',')[1]?.trim() || '[Title]'}</p>
               <p style="margin: 4px 0; font-size: 14px;">Date: _______________________</p>
             </div>
             <div style="flex: 1;">
-              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${formValues.party_b_name || 'PARTY B'}</p>
+              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${safeValues.party_b_name || 'PARTY B'}</p>
               <div style="border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px;"></div>
-              <p style="margin: 4px 0; font-size: 14px;">By: ${formValues.party_b_rep || '[Name]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Title: ${formValues.party_b_rep?.split(',')[1]?.trim() || '[Title]'}</p>
+              <p style="margin: 4px 0; font-size: 14px;">By: ${safeValues.party_b_rep || '[Name]'}</p>
+              <p style="margin: 4px 0; font-size: 14px;">Title: ${(safeValues.party_b_rep as string)?.split(',')[1]?.trim() || '[Title]'}</p>
               <p style="margin: 4px 0; font-size: 14px;">Date: _______________________</p>
             </div>
           </div>
@@ -221,7 +225,8 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
       </div>
     `;
     
-    onPreviewUpdate(previewHTML);
+    // SECURITY: Final sanitization pass to catch any edge cases
+    onPreviewUpdate(sanitizePreviewHTML(rawHTML));
   }, [formValues, onPreviewUpdate]);
 
   const onSubmit = (data: NDAFormData) => {
