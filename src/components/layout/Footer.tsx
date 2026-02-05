@@ -16,7 +16,7 @@ export function Footer() {
                 <img 
                   src={aiwmcLogoDark} 
                   alt="AIWMC Quantis" 
-                  className="h-8 w-auto object-contain rounded"
+                className="h-10 w-auto object-contain"
                 />
               </Link>
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
