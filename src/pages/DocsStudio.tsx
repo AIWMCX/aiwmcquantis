@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTemplates, useTemplate } from '@/hooks/useTemplates';
 import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
 import { useSubscription } from '@/hooks/useSubscription';
+import { useAuth } from '@/hooks/useAuth';
 import { DocumentEditor } from '@/components/docs/DocumentEditor';
 import { InvoiceForm, QuarterlySummaryForm, NDAForm } from '@/components/docs/forms';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
@@ -78,6 +79,13 @@ export default function DocsStudio() {
   
   // CRITICAL: Check subscription status
   const { isPlus, loading: subscriptionLoading, remainingAnalyses } = useSubscription();
+  
+  // Get current user for email check
+  const { user } = useAuth();
+  
+  // TEMPORARY: Only allow specific user during beta testing
+  const ALLOWED_BETA_EMAILS = ['beltovbogdan@gmail.com'];
+  const isAllowedBetaUser = user?.email && ALLOWED_BETA_EMAILS.includes(user.email.toLowerCase());
 
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
@@ -150,7 +158,8 @@ export default function DocsStudio() {
   }
 
   // CRITICAL: Gate feature behind Plus subscription
-  if (!isPlus) {
+  // Also restrict to allowed beta users during testing
+  if (!isPlus || !isAllowedBetaUser) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto p-6">
@@ -177,10 +186,16 @@ export default function DocsStudio() {
                   Docs Studio
                 </h1>
                 
-                <p className="text-muted-foreground mb-8">
-                  Generate professional business documents instantly with AI-powered templates, 
-                  automatic calculations, and one-click export. Included free with your Plus subscription.
-                </p>
+                {isPlus && !isAllowedBetaUser ? (
+                  <p className="text-muted-foreground mb-8">
+                    Docs Studio is currently in beta testing. Access will be available soon for all Plus subscribers.
+                  </p>
+                ) : (
+                  <p className="text-muted-foreground mb-8">
+                    Generate professional business documents instantly with AI-powered templates, 
+                    automatic calculations, and one-click export. Included free with your Plus subscription.
+                  </p>
+                )}
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
                   <div className="p-4 rounded-lg bg-muted/50">
@@ -200,18 +215,26 @@ export default function DocsStudio() {
                   </div>
                 </div>
 
-                <Button 
-                  size="lg" 
-                  onClick={() => setShowUpgradePrompt(true)}
-                  className="gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Upgrade to Plus - $17/mo
-                </Button>
-                
-                <p className="text-xs text-muted-foreground mt-4">
-                  14-day free trial • Cancel anytime
-                </p>
+                {isPlus && !isAllowedBetaUser ? (
+                  <p className="text-sm text-muted-foreground">
+                    You have Plus access. Beta access coming soon!
+                  </p>
+                ) : (
+                  <>
+                    <Button 
+                      size="lg" 
+                      onClick={() => setShowUpgradePrompt(true)}
+                      className="gap-2"
+                    >
+                      <Sparkles className="w-4 h-4" />
+                      Upgrade to Plus - $17/mo
+                    </Button>
+                    
+                    <p className="text-xs text-muted-foreground mt-4">
+                      14-day free trial • Cancel anytime
+                    </p>
+                  </>
+                )}
               </div>
             </CardContent>
           </Card>
