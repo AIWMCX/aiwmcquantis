@@ -72,13 +72,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "analyses_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       anonymous_usage: {
@@ -302,13 +295,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "doc_templates_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       document_exports: {
@@ -366,13 +352,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "document_exports_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       document_versions: {
@@ -409,13 +388,6 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "document_versions_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
           {
@@ -501,13 +473,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "documents_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       email_sequence_log: {
@@ -538,13 +503,6 @@ export type Database = {
             columns: ["user_id"]
             isOneToOne: false
             referencedRelation: "profiles"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "email_sequence_log_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
             referencedColumns: ["id"]
           },
         ]
@@ -1335,13 +1293,6 @@ export type Database = {
             referencedRelation: "subscriptions"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "subscription_audit_log_subscription_id_fkey"
-            columns: ["subscription_id"]
-            isOneToOne: false
-            referencedRelation: "subscriptions_public"
-            referencedColumns: ["id"]
-          },
         ]
       }
       subscriptions: {
@@ -1579,13 +1530,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_engagement_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_notifications: {
@@ -1639,13 +1583,6 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "user_notifications_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles_secure"
-            referencedColumns: ["id"]
-          },
         ]
       }
       user_roles: {
@@ -1671,75 +1608,7 @@ export type Database = {
       }
     }
     Views: {
-      admin_metrics: {
-        Row: {
-          free_users: number | null
-          monthly_analyses: number | null
-          monthly_signups: number | null
-          plus_subscribers: number | null
-          total_analyses: number | null
-          total_users: number | null
-          weekly_signups: number | null
-        }
-        Relationships: []
-      }
-      profiles_secure: {
-        Row: {
-          created_at: string | null
-          full_name: string | null
-          id: string | null
-          phone: string | null
-          updated_at: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          full_name?: string | null
-          id?: string | null
-          phone?: never
-          updated_at?: string | null
-        }
-        Relationships: []
-      }
-      subscriptions_public: {
-        Row: {
-          created_at: string | null
-          current_period_end: string | null
-          current_period_start: string | null
-          id: string | null
-          plan_id: string | null
-          status: string | null
-          updated_at: string | null
-          user_id: string | null
-        }
-        Insert: {
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string | null
-          plan_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Update: {
-          created_at?: string | null
-          current_period_end?: string | null
-          current_period_start?: string | null
-          id?: string | null
-          plan_id?: string | null
-          status?: string | null
-          updated_at?: string | null
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Functions: {
       admin_force_sync_subscription: {
@@ -1868,6 +1737,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_subscription_summary: { Args: { p_user_id?: string }; Returns: Json }
       get_todays_activity: {
         Args: never
         Returns: {
