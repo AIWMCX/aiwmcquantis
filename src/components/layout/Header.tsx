@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Moon, Sun, LogOut, User, Shield, Menu } from 'lucide-react';
+import { Moon, Sun, LogOut, User, Shield, Menu } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
@@ -8,6 +8,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from './MobileNav';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
+import aiwmcLogo from '@/assets/aiwmc-quantis-logo.jpg';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -31,14 +32,13 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
-        <Link to="/" className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Brain className="w-6 h-6 text-primary" />
-          </div>
-          <div>
-            <h1 className="text-lg font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></h1>
-            <p className="text-xs text-muted-foreground hidden sm:block">AI Business Intelligence Platform</p>
-          </div>
+        <Link to="/" className="flex items-center gap-2">
+          <img 
+            src={aiwmcLogo} 
+            alt="AIWMC Quantis" 
+            className="h-10 sm:h-12 w-auto object-contain"
+            style={{ filter: 'none' }}
+          />
         </Link>
 
         <div className="flex items-center gap-2">
