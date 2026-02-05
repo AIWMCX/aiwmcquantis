@@ -314,10 +314,16 @@ export default function Index() {
                       ) : (
                         <div className="flex items-center gap-2">
                           {isPlus && (
+                            <>
+                            <Button size="sm" variant="outline" onClick={() => navigate('/docs')} className="gap-1">
+                              <FileText className="w-3 h-3" />
+                              Docs Studio
+                            </Button>
                             <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1">
                               <Settings className="w-3 h-3" />
                               Plus Settings
                             </Button>
+                            </>
                           )}
                           <Button size="sm" variant="outline" onClick={openPortal} className="gap-1">
                             <CreditCard className="w-3 h-3" />
