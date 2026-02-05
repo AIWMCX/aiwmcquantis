@@ -1,7 +1,8 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Brain, Heart, Mail, Linkedin, Github, Instagram } from 'lucide-react';
+import { Heart, Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
+import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
 
 export function Footer() {
   return (
@@ -11,10 +12,13 @@ export function Footer() {
           {/* Top Row: Branding + Newsletter */}
           <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
             <div className="flex flex-col items-center lg:items-start gap-3">
-              <div className="flex items-center gap-2">
-                <Brain className="w-5 h-5 text-primary" />
-                <span className="font-semibold text-foreground">AIWMC Quantis™</span>
-              </div>
+              <Link to="/" className="flex items-center">
+                <img 
+                  src={aiwmcLogoDark} 
+                  alt="AIWMC Quantis" 
+                  className="h-8 w-auto object-contain rounded"
+                />
+              </Link>
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
                 AI-powered business idea analysis in under 2 minutes
               </p>

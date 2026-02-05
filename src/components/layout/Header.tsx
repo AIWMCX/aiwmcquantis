@@ -37,7 +37,7 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
           <img 
             src={aiwmcLogoDark} 
             alt="AIWMC Quantis" 
-            className="h-10 sm:h-12 w-auto object-contain rounded"
+            className="h-12 sm:h-14 w-auto object-contain rounded-md shadow-sm"
           />
         </Link>
 
