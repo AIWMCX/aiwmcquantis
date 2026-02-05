@@ -35,9 +35,9 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <img 
-            src={aiwmcLogoDark} 
-            alt="AIWMC Quantis" 
-            className="h-12 sm:h-14 w-auto object-contain rounded-md shadow-sm"
+            src={aiwmcLogoDark}
+            alt="AIWMC Quantis"
+            className="h-14 sm:h-16 w-auto object-contain rounded-lg shadow-md"
           />
         </Link>
 
