@@ -8,8 +8,8 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from './MobileNav';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
- import aiwmcLogoLight from '@/assets/aiwmc-quantis-logo-light.png';
- import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
+import aiwmcLogo from '@/assets/aiwmc-quantis-logo.jpg';
+import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
 
 interface HeaderProps {
   darkMode: boolean;
@@ -35,9 +35,9 @@ export function Header({ darkMode, onToggleTheme }: HeaderProps) {
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <img 
-            src={darkMode ? aiwmcLogoLight : aiwmcLogoDark}
+            src={aiwmcLogoDark}
             alt="AIWMC Quantis"
-            className="h-14 sm:h-16 w-auto object-contain transition-opacity hover:opacity-90"
+            className="h-14 sm:h-16 w-auto object-contain rounded-lg shadow-md"
           />
         </Link>
 

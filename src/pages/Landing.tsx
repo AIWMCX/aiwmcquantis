@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
- import { BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -16,8 +16,6 @@ import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
- import aiwmcLogoLight from '@/assets/aiwmc-quantis-logo-light.png';
- import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
@@ -123,11 +121,7 @@ export default function Landing() {
             </div>
             
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
-              <img 
-                src={darkMode ? aiwmcLogoLight : aiwmcLogoDark}
-                alt="AIWMC Quantis"
-                className="h-10 sm:h-12 w-auto object-contain transition-opacity hover:opacity-90"
-              />
+              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>

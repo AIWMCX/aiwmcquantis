@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
- import { Loader2, ArrowLeft } from 'lucide-react';
+import { Brain, Loader2, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -12,7 +12,6 @@ import { SignupForm, LoginForm, ForgotPasswordForm } from '@/components/auth';
 import { trackPageView, trackEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { PageSEO } from '@/components/seo/PageSEO';
- import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
 
 export default function Auth() {
   const navigate = useNavigate();
@@ -137,11 +136,10 @@ export default function Auth() {
         </Button>
 
         <div className="flex items-center gap-3 mb-8">
-          <img 
-            src={aiwmcLogoDark}
-            alt="AIWMC Quantis"
-            className="h-12 w-auto object-contain"
-          />
+          <div className="p-2 rounded-lg bg-primary/10">
+            <Brain className="w-8 h-8 text-primary" />
+          </div>
+          <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></h1>
         </div>
 
         <Card className="w-full">

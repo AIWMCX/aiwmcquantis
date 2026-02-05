@@ -1,155 +1,59 @@
 
-
-# Professional Logo Integration Plan
+# Professional Logo Enhancement Plan
 
 ## Current Issue
+The current dark-themed logo has visibility problems with letters blending into the background, and you need a larger, professionally designed logo with clear, crisp text that has no visible color boundary artifacts.
 
-The logo in your screenshot shows "AIWMC™ / QUANTIS" with black text that appears inside a white rectangular background. This creates a visual disconnect with the dark navy site theme. The logo needs to be:
+## Design Approach
 
-1. Optimized with white/light text for dark mode compatibility
-2. Transparent background (no white box)
-3. Properly sized and positioned across all touchpoints
-4. Commercially polished for investor-grade presentation
+### 1. Generate Professional High-Quality Logo
+Using AI image generation to create a refined version with:
+- **Clear, bold typography** - All letters fully visible with high contrast
+- **Seamless color integration** - No visible edges or boundary artifacts
+- **Dark navy background** matching the site palette (`#0a0d14` / `hsl(222, 47%, 6%)`)
+- **Pure white text** for maximum readability
+- **Clean, minimal design** - Professional SaaS aesthetic
+- **Higher resolution** for crisp display at larger sizes
 
-## Design Solution
+### 2. Increase Logo Size in Header
+Update the Header component to display a larger logo:
+- Mobile: `h-12` (48px) - up from `h-10` (40px)
+- Desktop: `h-14` (56px) - up from `h-12` (48px)
+- Add subtle shadow for depth and professional polish
 
-### 1. Generate Dual-Theme Logo Assets
+### 3. Update Footer Branding (Optional Enhancement)
+Replace the Brain icon + text in the Footer with the same professional logo for consistent branding across the site.
 
-Create TWO separate logo files optimized for each theme:
+## Files to Modify
 
-| Asset | Description | Use Case |
-|-------|-------------|----------|
-| `aiwmc-quantis-logo-light.png` | White/silver text on transparent background | Dark mode header, footer, mobile nav |
-| `aiwmc-quantis-logo-dark.png` | Black/charcoal text on transparent background | Light mode, PDF exports, emails |
-
-Typography hierarchy:
-- "AIWMC™" - Smaller, refined gray/silver (parent brand)
-- "QUANTIS" - Large, bold, dominant (product identity)
-
-### 2. Update Header Component
-
-Implement theme-aware logo switching:
-
-```tsx
-// Header.tsx
-import aiwmcLogoLight from '@/assets/aiwmc-quantis-logo-light.png';
-import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
-
-// Inside component:
-<img 
-  src={darkMode ? aiwmcLogoLight : aiwmcLogoDark}
-  alt="AIWMC Quantis"
-  className="h-14 sm:h-16 w-auto object-contain transition-opacity hover:opacity-90"
-/>
-```
-
-### 3. Update Footer Component
-
-Same theme-aware approach with slightly smaller sizing:
-
-```tsx
-// Footer.tsx - add darkMode prop or detect via CSS class
-<img 
-  src={aiwmcLogoLight}  // Footer is always on dark bg in current design
-  alt="AIWMC Quantis" 
-  className="h-10 w-auto object-contain"
-/>
-```
-
-### 4. Update Landing Page Navigation
-
-Replace text-based branding with the actual logo image:
-
-```tsx
-// Landing.tsx nav section
-<Link to={user ? '/app' : '/'} className="flex items-center">
-  <img 
-    src={darkMode ? aiwmcLogoLight : aiwmcLogoDark}
-    alt="AIWMC Quantis"
-    className="h-10 sm:h-12 w-auto object-contain"
-  />
-</Link>
-```
-
-### 5. Update Auth Page
-
-Replace Brain icon + text with proper logo:
-
-```tsx
-// Auth.tsx
-<div className="flex items-center gap-3 mb-8">
-  <img 
-    src={aiwmcLogoDark} // Auth page has light background
-    alt="AIWMC Quantis"
-    className="h-12 w-auto object-contain"
-  />
-</div>
-```
-
-### 6. Update Mobile Navigation Drawer
-
-Replace Brain icon with logo in drawer header:
-
-```tsx
-// MobileNav.tsx
-<div className="flex items-center gap-3">
-  <img 
-    src={aiwmcLogoLight} // Drawer uses dark background
-    alt="AIWMC Quantis"
-    className="h-8 w-auto object-contain"
-  />
-</div>
-```
-
-### 7. PDF Report Branding
-
-Keep text-based approach for PDF compatibility, but ensure styling matches brand identity.
-
-## Files to Create/Modify
-
-| File | Action |
+| File | Change |
 |------|--------|
-| `src/assets/aiwmc-quantis-logo-light.png` | CREATE - White text logo for dark backgrounds |
-| `src/assets/aiwmc-quantis-logo-dark.png` | UPDATE - Clean black text logo for light backgrounds |
-| `src/components/layout/Header.tsx` | Modify - Theme-aware logo, proper sizing |
-| `src/components/layout/Footer.tsx` | Modify - Use light logo, proper sizing |
-| `src/components/layout/MobileNav.tsx` | Modify - Replace Brain icon with logo |
-| `src/pages/Landing.tsx` | Modify - Replace text with logo image in nav |
-| `src/pages/Auth.tsx` | Modify - Replace Brain icon + text with logo |
+| `src/assets/aiwmc-quantis-logo-dark.png` | Replace with professionally generated high-quality logo |
+| `src/components/layout/Header.tsx` | Increase logo size classes and add shadow styling |
+| `src/components/layout/Footer.tsx` | (Optional) Replace Brain icon with logo image |
 
-## Logo Specifications
+## Technical Details
 
-### Light Version (for dark backgrounds)
-- Text color: Pure white `#FFFFFF` with subtle silver tones
-- "AIWMC™": 30% smaller, silver-gray `#B0B8C4`
-- "QUANTIS": Bold, clean white with minimal glow
-- Background: Fully transparent
-- Format: PNG, high resolution
+### Logo Specifications
+- Format: PNG with transparency
+- Background: Dark navy `#0a0d14`
+- Text: Pure white `#FFFFFF` with slight glow/shadow for separation
+- Typography: Clean sans-serif, bold weight
+- Content: "AIWMC Quantis" with AI/brain subtle element
+- Aspect ratio: Horizontal/landscape for header placement
 
-### Dark Version (for light backgrounds)  
-- Text color: Rich charcoal-black `#1a1f2e`
-- "AIWMC™": 30% smaller, dark gray `#4a5568`
-- "QUANTIS": Bold, professional black
-- Background: Fully transparent
-- Format: PNG, high resolution
-
-## Size Specifications
-
-| Location | Mobile | Desktop |
-|----------|--------|---------|
-| Header | 56px (h-14) | 64px (h-16) |
-| Footer | 40px (h-10) | 40px (h-10) |
-| Landing Nav | 40px (h-10) | 48px (h-12) |
-| Auth Page | 48px (h-12) | 48px (h-12) |
-| Mobile Nav | 32px (h-8) | - |
+### Header Styling Update
+```tsx
+<img 
+  src={aiwmcLogoDark} 
+  alt="AIWMC Quantis" 
+  className="h-12 sm:h-14 w-auto object-contain rounded-md shadow-sm"
+/>
+```
 
 ## Expected Result
-
-After implementation:
-
-1. Logo seamlessly blends with both light and dark themes
-2. No visible white box or background artifacts
-3. Professional, institutional appearance matching financial SaaS standards
-4. Consistent branding across all pages and components
-5. Commercially ready for investor presentations
-
+A crisp, professional logo that:
+- Has perfectly readable text with no color bleeding
+- Scales beautifully at larger sizes
+- Integrates seamlessly with the dark site theme
+- Maintains consistent branding across header and footer
