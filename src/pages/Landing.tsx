@@ -2,7 +2,7 @@ import React, { useState, useEffect, lazy, Suspense } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play } from 'lucide-react';
+import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play, Lock, Shield } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -273,17 +273,22 @@ export default function Landing() {
       <Footer />
 
       {/* Mobile Sticky CTA - Enhanced with trust indicator */}
-      <div className="fixed bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-background via-background/95 to-background/80 backdrop-blur-lg border-t border-border md:hidden z-50 safe-area-pb">
-        <Link to="/app" className="block" onClick={() => trackCtaClick('see_my_numbers', 'mobile_sticky')}>
-          <Button size="lg" className="w-full gap-2 text-base py-7 shadow-2xl min-h-[60px] transition-all duration-300">
+      <div className="fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-xl border-t border-border md:hidden z-50 safe-area-pb">
+        <Link to="/app" className="block" onClick={() => {
+          trackCtaClick('see_my_numbers', 'mobile_sticky');
+          trackEvent('mobile_cta_clicked');
+        }}>
+          <Button size="lg" className="w-full gap-2 py-6 text-base font-semibold shadow-2xl min-h-[56px] btn-press animate-pulse-subtle">
             <Play className="w-5 h-5" />
             See My Numbers Free
           </Button>
         </Link>
-        <p className="text-center text-xs text-muted-foreground mt-2 flex items-center justify-center gap-2">
-          <Zap className="w-3 h-3" />
-          Results in 2 min • Free to start
-        </p>
+        <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">
+          <Lock className="w-3 h-3" />
+          <span>Bank-level security</span>
+          <span className="text-muted-foreground/50">•</span>
+          <span>2 min analysis</span>
+        </div>
       </div>
 
       {/* Bottom padding for mobile sticky CTA */}

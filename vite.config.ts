@@ -19,6 +19,10 @@ export default defineConfig(({ mode }) => ({
       "@": path.resolve(__dirname, "./src"),
     },
   },
+  esbuild: {
+    // Remove console.log and debugger in production for smaller bundles
+    drop: mode === 'production' ? ['console', 'debugger'] : [],
+  },
   build: {
     rollupOptions: {
       output: {
@@ -68,6 +72,12 @@ export default defineConfig(({ mode }) => ({
     cssCodeSplit: true,
     // Optimize asset inlining
     assetsInlineLimit: 4096,
+    // Faster builds - skip compressed size calculation
+    reportCompressedSize: false,
+    // Better handling of mixed ES/CJS modules
+    commonjsOptions: {
+      transformMixedEsModules: true,
+    },
   },
   optimizeDeps: {
     include: ['react', 'react-dom', 'react-router-dom', '@tanstack/react-query'],

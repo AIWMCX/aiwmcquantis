@@ -53,6 +53,25 @@ export const EXPERIMENTS = {
     weights: [0.34, 0.33, 0.33],
     trackExposure: true,
   },
+  // Phase 5: New experiments
+  onboarding_flow: {
+    id: 'onboarding_flow_v1',
+    variants: ['control', 'wizard', 'quick_start'] as const,
+    weights: [0.34, 0.33, 0.33],
+    trackExposure: true,
+  },
+  mobile_cta_style: {
+    id: 'mobile_cta_v1',
+    variants: ['control', 'trust_focused', 'urgency'] as const,
+    weights: [0.34, 0.33, 0.33],
+    trackExposure: true,
+  },
+  signup_form: {
+    id: 'signup_form_v1',
+    variants: ['control', 'social_first', 'benefits_shown'] as const,
+    weights: [0.34, 0.33, 0.33],
+    trackExposure: true,
+  },
 } as const;
 
 type ExperimentKey = keyof typeof EXPERIMENTS;

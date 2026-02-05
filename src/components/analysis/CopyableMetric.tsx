@@ -20,7 +20,7 @@ interface CopyableMetricProps {
   className?: string;
 }
 
-export function CopyableMetric({
+export const CopyableMetric = React.memo(function CopyableMetric({
   label,
   value,
   rawValue,
@@ -96,4 +96,4 @@ export function CopyableMetric({
       )}
     </div>
   );
-}
+});

@@ -30,7 +30,7 @@ const colorClasses = {
   },
 };
 
-export function VariableCard({ code, name, description, color }: VariableCardProps) {
+export const VariableCard = React.memo(function VariableCard({ code, name, description, color }: VariableCardProps) {
   const classes = colorClasses[color];
 
   return (
@@ -48,4 +48,4 @@ export function VariableCard({ code, name, description, color }: VariableCardPro
       </div>
     </div>
   );
-}
+});
