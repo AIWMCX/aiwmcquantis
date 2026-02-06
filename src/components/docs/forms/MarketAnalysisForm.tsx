@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, TrendingUp, Target, Users, Building2, BarChart3, Lightbulb, AlertTriangle } from 'lucide-react';
 import { AutoFillButton } from '../AutoFillButton';
 import { AISuggestionButton } from '../AISuggestionButton';
+import { DocDraftBanner } from '../DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { DocTemplate } from '@/types/document';
 
 const marketAnalysisSchema = z.object({
@@ -104,6 +106,20 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
       recommendations: '',
       sources: '',
     },
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'market-analysis',
   });
 
   const { watch, setValue, handleSubmit, formState: { errors } } = form;

@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, CheckCircle, Scale, Building2, User } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -75,6 +77,20 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
   const form = useForm<NDAFormData>({
     resolver: zodResolver(NDAFormSchema),
     defaultValues,
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'nda-agreement',
   });
 
   const formValues = form.watch();

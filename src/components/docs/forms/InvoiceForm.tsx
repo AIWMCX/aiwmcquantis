@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, FileText } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -102,6 +104,20 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
   const form = useForm<InvoiceFormData>({
     resolver: zodResolver(InvoiceFormSchema),
     defaultValues,
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'professional-invoice',
   });
 
   const { fields, append, remove } = useFieldArray({
@@ -220,6 +236,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
   }, [formValues, calculations, onPreviewUpdate]);
 
   const onSubmit = (data: InvoiceFormData) => {
+    clearDraft(); // Clear draft on successful submit
     onGenerate({
       header: {
         company_name: data.company_name,
@@ -256,6 +273,16 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Draft Recovery Banner */}
+      <DocDraftBanner
+        hasDraft={hasDraft}
+        draftAge={draftAge}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        onRestore={restoreDraft}
+        onDismiss={dismissDraft}
+      />
+
       {/* Auto-fill from Quantis Analysis */}
       <div className="flex items-center justify-between">
         <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />

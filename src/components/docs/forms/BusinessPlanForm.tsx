@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { Loader2, CheckCircle, FileText, Target, Users, TrendingUp, DollarSign, AlertTriangle } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { AISuggestionButton } from '@/components/docs/AISuggestionButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -118,6 +120,20 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
   const form = useForm<BusinessPlanFormData>({
     resolver: zodResolver(BusinessPlanFormSchema),
     defaultValues,
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'business-plan',
   });
 
   const formValues = form.watch();
@@ -300,6 +316,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
   }, [formValues, onPreviewUpdate]);
 
   const onSubmit = (data: BusinessPlanFormData) => {
+    clearDraft(); // Clear draft on successful submit
     onGenerate(data);
   };
 
@@ -316,6 +333,16 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" aria-label="Business Plan Generator Form">
+      {/* Draft Recovery Banner */}
+      <DocDraftBanner
+        hasDraft={hasDraft}
+        draftAge={draftAge}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        onRestore={restoreDraft}
+        onDismiss={dismissDraft}
+      />
+
       {/* Auto-fill from Quantis Analysis */}
       <div className="flex items-center justify-between">
         <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
