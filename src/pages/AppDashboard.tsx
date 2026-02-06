@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
@@ -9,9 +9,12 @@ import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
+import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
+import { FirstAnalysisCelebration } from '@/components/onboarding/FirstAnalysisCelebration';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
+import { useOnboarding } from '@/hooks/useOnboarding';
 import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -35,8 +38,18 @@ export default function Index() {
   const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+  const [showCelebration, setShowCelebration] = useState(false);
 
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, user } = useAuth();
+  
+  // Onboarding state
+  const {
+    shouldShowQuickStart,
+    shouldShowFirstAnalysisCelebration,
+    markQuickStartComplete,
+    markFirstAnalysisCelebrationSeen,
+    incrementAnalysisCount,
+  } = useOnboarding();
   const { 
     isPlus,
     isFree, 
@@ -74,7 +87,23 @@ export default function Index() {
     clearRateLimitError,
   } = useAnalysis();
 
-  // Handle checkout success/cancel URL parameters (supports both patterns)
+  // Handle QuickStart wizard completion - pre-fill form if sample chosen
+  const handleQuickStartComplete = useCallback((sampleIdea?: string, sampleLocation?: string) => {
+    markQuickStartComplete();
+    if (sampleIdea && sampleLocation) {
+      setIdea(sampleIdea);
+      setLocation(sampleLocation);
+    }
+  }, [markQuickStartComplete, setIdea, setLocation]);
+
+  // Show celebration after first analysis completes
+  useEffect(() => {
+    if (result && shouldShowFirstAnalysisCelebration) {
+      setShowCelebration(true);
+      incrementAnalysisCount();
+    }
+  }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
+
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
     const successStatus = searchParams.get('success');
@@ -477,6 +506,27 @@ export default function Index() {
           // Don't close dialog - let redirect happen
           await createCheckout(plan);
         }}
+      />
+
+      {/* Onboarding Wizard - shows for new users */}
+      {isAuthenticated && (
+        <QuickStartWizard
+          open={shouldShowQuickStart}
+          onClose={markQuickStartComplete}
+          onComplete={handleQuickStartComplete}
+          userName={user?.user_metadata?.full_name}
+        />
+      )}
+
+      {/* First Analysis Celebration */}
+      <FirstAnalysisCelebration
+        open={showCelebration}
+        onClose={() => {
+          setShowCelebration(false);
+          markFirstAnalysisCelebrationSeen();
+        }}
+        analysisCount={1}
+        remainingFreeAnalyses={remainingAnalyses}
       />
     </div>
   );
