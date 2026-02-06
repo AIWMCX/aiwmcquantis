@@ -1,8 +1,8 @@
-import React, { useState, useEffect, lazy, Suspense } from 'react';
+import React, { useState, useEffect, lazy, Suspense, useRef } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu, Play, Lock, Shield } from 'lucide-react';
+import { BarChart3, FileText, TrendingUp, Target, Zap, ArrowRight, Building2, Moon, Sun, Menu } from 'lucide-react';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -16,6 +16,7 @@ import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
+import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
@@ -42,7 +43,10 @@ export default function Landing() {
   const demoSection = useLazySection({ rootMargin: '300px' });
   const testimonialsSection = useLazySection({ rootMargin: '200px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
-
+  
+  // Refs for sticky CTA observer
+  const heroRef = useRef<HTMLDivElement>(null);
+  const pricingRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -171,8 +175,9 @@ export default function Landing() {
 
       <main id="main-content" role="main">
         {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
-        <MobileHero />
-
+        <div ref={heroRef} id="mobile-hero" data-hero-form>
+          <MobileHero />
+        </div>
         {/* Trust Logos - Social proof */}
         <TrustLogos />
 
@@ -231,8 +236,9 @@ export default function Landing() {
       <HowItWorksSection />
 
       {/* Pricing Section - Optimized for conversion */}
-      <PricingSection />
-
+      <div ref={pricingRef}>
+        <PricingSection />
+      </div>
       {/* FAQ Section - Progressive hydration */}
       <div ref={faqSection.ref}>
         {faqSection.isVisible ? (
@@ -272,28 +278,14 @@ export default function Landing() {
       {/* Footer with Email Capture */}
       <Footer />
 
-      {/* Mobile Sticky CTA - Enhanced with trust indicator */}
-      <div className="fixed bottom-0 left-0 right-0 p-3 bg-background/95 backdrop-blur-xl border-t border-border md:hidden z-50 safe-area-pb">
-        <Link to="/app" className="block" onClick={() => {
-          trackCtaClick('see_my_numbers', 'mobile_sticky');
-          trackEvent('mobile_cta_clicked');
-        }}>
-          <Button size="lg" className="w-full gap-2 py-6 text-base font-semibold shadow-2xl min-h-[56px] btn-press animate-pulse-subtle">
-            <Play className="w-5 h-5" />
-            See My Numbers Free
-          </Button>
-        </Link>
-        <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">
-          <Lock className="w-3 h-3" />
-          <span>Bank-level security</span>
-          <span className="text-muted-foreground/50">•</span>
-          <span>2 min analysis</span>
-        </div>
-      </div>
+      {/* Smart Mobile Sticky CTA */}
+      <StickyMobileCTA 
+        heroFormRef={heroRef as React.RefObject<HTMLElement>} 
+        pricingRef={pricingRef as React.RefObject<HTMLElement>} 
+      />
 
       {/* Bottom padding for mobile sticky CTA */}
-      <div className="h-28 md:hidden" />
-
+      <div className="h-24 md:hidden" />
       {/* Popup Manager - Handles all email capture popups */}
       <PopupManager />
     </div>

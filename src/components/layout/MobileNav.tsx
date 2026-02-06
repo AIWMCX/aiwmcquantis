@@ -1,5 +1,5 @@
 import React from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { 
   Brain, 
   Home, 
@@ -10,9 +10,12 @@ import {
   User,
   FileText,
   Lock,
-  X
+  X,
+  Sparkles,
+  Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
 import {
   Drawer,
   DrawerClose,
@@ -25,6 +28,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { useAdmin } from '@/hooks/useAdmin';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
+import { trackEvent } from '@/lib/analytics';
 
 interface MobileNavProps {
   children: React.ReactNode;
@@ -35,7 +39,10 @@ export function MobileNav({ children }: MobileNavProps) {
   const { user, isAuthenticated, signOut } = useAuth();
   const { isAdmin } = useAdmin();
   const location = useLocation();
-
+  const navigate = useNavigate();
+  
+  // Check if user is Plus subscriber (simplified check)
+  const isPlusUser = false; // This would come from user metadata/subscription status
   const handleSignOut = async () => {
     setOpen(false);
     const { error } = await signOut();
@@ -50,6 +57,11 @@ export function MobileNav({ children }: MobileNavProps) {
     setOpen(false);
   };
 
+  const handleNewAnalysis = () => {
+    trackEvent('mobile_nav_new_analysis');
+    setOpen(false);
+    navigate('/app');
+  };
   const isActive = (path: string) => location.pathname === path;
 
   const navItems = [
@@ -87,6 +99,15 @@ export function MobileNav({ children }: MobileNavProps) {
         </DrawerHeader>
 
         <div className="px-4 py-4">
+          {/* Quick Analysis CTA - Top of drawer */}
+          <Button 
+            onClick={handleNewAnalysis}
+            className="w-full gap-2 h-12 mb-4 font-semibold"
+          >
+            <Sparkles className="w-5 h-5" />
+            New Analysis
+          </Button>
+
           {/* User info section */}
           {isAuthenticated && user && (
             <div className="flex items-center gap-3 p-3 mb-4 rounded-lg bg-muted">
@@ -97,9 +118,17 @@ export function MobileNav({ children }: MobileNavProps) {
                 <p className="text-sm font-medium text-foreground truncate">
                   {user.email}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {isAdmin ? 'Administrator' : 'Member'}
-                </p>
+                <div className="flex items-center gap-2">
+                  <p className="text-xs text-muted-foreground">
+                    {isAdmin ? 'Administrator' : 'Member'}
+                  </p>
+                  {isPlusUser && (
+                    <Badge variant="secondary" className="text-xs gap-1 px-1.5 py-0">
+                      <Crown className="w-3 h-3" />
+                      Plus
+                    </Badge>
+                  )}
+                </div>
               </div>
             </div>
           )}

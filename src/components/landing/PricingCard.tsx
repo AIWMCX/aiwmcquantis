@@ -50,13 +50,19 @@ export const PricingCard = React.memo(function PricingCard({
           : 'border-border bg-card hover:border-primary/30 hover:shadow-lg'
       )}
     >
-      {/* Badge */}
-      {badge && highlighted && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-sm font-medium shadow-lg">
-          {badge}
+      {/* Trial Banner - Prominent for Plus */}
+      {highlighted && (
+        <div className="absolute -top-4 left-4 right-4 px-4 py-2 rounded-lg bg-success text-white text-sm font-semibold text-center shadow-lg">
+          🎉 14-Day Free Trial — No Credit Card
         </div>
       )}
 
+      {/* Badge */}
+      {badge && highlighted && (
+        <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-lg">
+          {badge}
+        </div>
+      )}
       {/* Header */}
       <div className="text-center mb-6">
         <h3 className="text-xl font-semibold text-foreground mb-2">{name}</h3>
@@ -145,9 +151,11 @@ export const PricingCard = React.memo(function PricingCard({
 
       {/* Trust element for Plus */}
       {highlighted && (
-        <p className="text-center text-xs text-muted-foreground mt-3">
-          No credit card required to start trial
-        </p>
+        <div className="mt-4 p-3 rounded-lg bg-muted/50 border border-border">
+          <p className="text-xs text-center text-muted-foreground">
+            <span className="font-medium text-foreground">Worth $2,000+</span> in consultant fees
+          </p>
+        </div>
       )}
     </div>
   );
