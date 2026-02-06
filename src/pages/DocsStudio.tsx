@@ -25,14 +25,17 @@ import {
   Scale,
   Lock,
   Loader2,
+  Zap,
+  Users,
 } from 'lucide-react';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import type { DocTemplate, Document } from '@/types/document';
 import { sanitizePreviewHTML } from '@/lib/htmlSanitizer';
+import '@/styles/docs-studio.css';
 
 type Step = 'list' | 'pick-template' | 'generate' | 'edit';
 
-// Template configuration for the gallery
+// Template configuration with categories and badges
 const TEMPLATE_CARDS = [
   {
     id: 'professional-invoice',
@@ -40,7 +43,10 @@ const TEMPLATE_CARDS = [
     description: 'Generate invoices instantly with automatic calculations, line items, and tax support.',
     icon: FileSpreadsheet,
     color: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400',
+    category: 'financial',
     popular: true,
+    hasQuantisIntegration: true,
+    usageCount: 1247,
   },
   {
     id: 'quarterly-summary',
@@ -48,7 +54,11 @@ const TEMPLATE_CARDS = [
     description: 'Comprehensive business performance reports with financials, metrics, and outlook.',
     icon: BarChart3,
     color: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400',
+    category: 'financial',
     popular: true,
+    hasQuantisIntegration: true,
+    hasAI: true,
+    usageCount: 892,
   },
   {
     id: 'nda-agreement',
@@ -56,8 +66,20 @@ const TEMPLATE_CARDS = [
     description: 'Professional mutual non-disclosure agreement with full legal clauses.',
     icon: Scale,
     color: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+    category: 'legal',
     popular: true,
+    hasQuantisIntegration: true,
+    usageCount: 634,
   },
+];
+
+// Template categories for filtering
+const TEMPLATE_CATEGORIES = [
+  { id: 'all', name: 'All Templates', icon: '📄' },
+  { id: 'financial', name: 'Financial', icon: '💵' },
+  { id: 'legal', name: 'Legal', icon: '⚖️' },
+  { id: 'planning', name: 'Planning', icon: '📊' },
+  { id: 'fundraising', name: 'Fundraising', icon: '💰' },
 ];
 
 export default function DocsStudio() {
@@ -426,13 +448,13 @@ export default function DocsStudio() {
           </div>
 
           {/* Template Gallery */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="doc-template-gallery">
             {TEMPLATE_CARDS.map((template) => {
               const Icon = template.icon;
               return (
                 <Card
                   key={template.id}
-                  className="cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all group"
+                  className="doc-template-card cursor-pointer group"
                   onClick={() => handleTemplateSelect(template.id)}
                 >
                   <CardHeader>
@@ -440,17 +462,40 @@ export default function DocsStudio() {
                       <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
                         <Icon className="w-7 h-7" />
                       </div>
-                      {template.popular && (
-                        <Badge variant="secondary" className="text-xs">
-                          <Sparkles className="w-3 h-3 mr-1" />
-                          Popular
-                        </Badge>
-                      )}
+                      <div className="flex flex-col items-end gap-1.5">
+                        {template.popular && (
+                          <Badge variant="secondary" className="text-xs">
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Popular
+                          </Badge>
+                        )}
+                        {template.hasAI && (
+                          <span className="doc-ai-badge">
+                            <Zap className="w-3 h-3" />
+                            AI
+                          </span>
+                        )}
+                      </div>
                     </div>
                     <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
+                    <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                    
+                    {/* Feature badges */}
+                    <div className="flex items-center gap-2 mb-4 flex-wrap">
+                      {template.hasQuantisIntegration && (
+                        <span className="doc-quantis-badge">
+                          <Sparkles className="w-3 h-3" />
+                          Auto-fill
+                        </span>
+                      )}
+                      <span className="doc-usage-badge">
+                        <Users className="w-3 h-3" />
+                        {template.usageCount?.toLocaleString() || '0'} created
+                      </span>
+                    </div>
+                    
                     <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground" variant="outline">
                       <Sparkles className="w-4 h-4 mr-2" />
                       Create {template.name.split(' ')[0]}

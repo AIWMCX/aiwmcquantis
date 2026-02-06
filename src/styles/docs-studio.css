@@ -1,0 +1,174 @@
+/* Docs Studio - AIWMC Quantis Branding */
+
+/* Template Card Styling */
+.doc-template-card {
+  @apply relative overflow-hidden transition-all duration-300;
+  @apply hover:shadow-lg hover:border-primary/50 hover:-translate-y-1;
+}
+
+.doc-template-card::before {
+  content: '';
+  @apply absolute top-0 left-0 w-1 h-full bg-primary opacity-0 transition-opacity;
+}
+
+.doc-template-card:hover::before {
+  @apply opacity-100;
+}
+
+/* Preview Container */
+.doc-preview-container {
+  @apply border-l-4 border-primary;
+  box-shadow: 0 8px 24px hsla(var(--primary) / 0.15);
+}
+
+/* Section Cards */
+.doc-section-card {
+  @apply bg-gradient-to-br from-background to-muted/50;
+  @apply border-l-4 border-primary;
+}
+
+/* AI Badge */
+.doc-ai-badge {
+  @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold;
+  background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--success)) 100%);
+  @apply text-primary-foreground;
+}
+
+/* Quantis Badge */
+.doc-quantis-badge {
+  @apply inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs font-medium;
+  @apply bg-primary/10 text-primary border border-primary/20;
+}
+
+/* Category Tabs */
+.doc-category-tabs {
+  @apply flex flex-wrap gap-2 p-1 bg-muted/50 rounded-lg;
+}
+
+.doc-category-tab {
+  @apply px-4 py-2 rounded-md text-sm font-medium transition-colors;
+  @apply text-muted-foreground hover:text-foreground hover:bg-background;
+}
+
+.doc-category-tab[data-state="active"] {
+  @apply bg-background text-foreground shadow-sm;
+}
+
+/* Document Preview Styling */
+.doc-preview-frame {
+  @apply bg-white overflow-auto;
+  min-height: 600px;
+  max-height: calc(100vh - 200px);
+}
+
+/* AIWMC Branded Footer for Documents */
+.doc-branded-footer {
+  @apply mt-8 pt-4 border-t border-border text-center;
+  @apply text-xs text-muted-foreground;
+}
+
+.doc-branded-footer a {
+  @apply text-primary hover:underline;
+}
+
+/* Version History Timeline */
+.doc-version-timeline {
+  @apply relative pl-6;
+}
+
+.doc-version-timeline::before {
+  content: '';
+  @apply absolute left-2 top-2 bottom-2 w-0.5 bg-border;
+}
+
+.doc-version-item {
+  @apply relative pb-6 last:pb-0;
+}
+
+.doc-version-item::before {
+  content: '';
+  @apply absolute left-[-18px] top-1.5 w-3 h-3 rounded-full bg-primary border-2 border-background;
+}
+
+.doc-version-item:not(:first-child)::before {
+  @apply bg-muted;
+}
+
+/* Comments Panel */
+.doc-comment {
+  @apply p-3 rounded-lg bg-muted/50 border border-border;
+}
+
+.doc-comment-ai {
+  @apply border-primary/30 bg-primary/5;
+}
+
+.doc-comment-resolved {
+  @apply opacity-60;
+}
+
+/* Form Section Animations */
+@keyframes slideInFromRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.doc-form-section {
+  animation: slideInFromRight 0.3s ease-out forwards;
+}
+
+.doc-form-section:nth-child(1) { animation-delay: 0ms; }
+.doc-form-section:nth-child(2) { animation-delay: 50ms; }
+.doc-form-section:nth-child(3) { animation-delay: 100ms; }
+.doc-form-section:nth-child(4) { animation-delay: 150ms; }
+.doc-form-section:nth-child(5) { animation-delay: 200ms; }
+
+/* Template Gallery Grid */
+.doc-template-gallery {
+  @apply grid gap-6;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+}
+
+/* Usage Count Badge */
+.doc-usage-badge {
+  @apply inline-flex items-center gap-1 text-xs text-muted-foreground;
+}
+
+/* Export Format Buttons */
+.doc-export-btn {
+  @apply flex items-center gap-2 px-4 py-2 rounded-lg border transition-colors;
+  @apply hover:bg-primary/5 hover:border-primary/50;
+}
+
+.doc-export-btn[data-selected="true"] {
+  @apply bg-primary/10 border-primary text-primary;
+}
+
+/* Mobile Responsive Adjustments */
+@media (max-width: 768px) {
+  .doc-preview-container {
+    @apply hidden;
+  }
+  
+  .doc-form-section {
+    animation: none;
+  }
+}
+
+/* Print Styles */
+@media print {
+  .doc-preview-frame {
+    @apply shadow-none border-none;
+    max-height: none;
+  }
+  
+  .doc-branded-footer {
+    @apply block;
+  }
+}
