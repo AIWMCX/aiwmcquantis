@@ -127,43 +127,43 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
           
           <!-- Vision & Mission -->
           <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">🎯 VISION</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">VISION</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.vision || ''}</p>
           </div>
           
           <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">🚀 MISSION</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">MISSION</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.mission || ''}</p>
           </div>
 
           <!-- Problem & Solution -->
           <div style="padding: 16px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #dc2626;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">⚠️ PROBLEM</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">PROBLEM</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.problem || ''}</p>
           </div>
           
           <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">✅ SOLUTION</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">SOLUTION</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.solution || ''}</p>
           </div>
 
           <!-- Target Market -->
           <div style="padding: 16px; background: #faf5ff; border-radius: 8px; border-left: 4px solid #9333ea;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #9333ea; margin: 0 0 8px 0;">👥 TARGET CUSTOMER</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #9333ea; margin: 0 0 8px 0;">TARGET CUSTOMER</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.target_customer || ''}</p>
             <p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;"><strong>Market:</strong> ${safeValues.market_size || ''}</p>
           </div>
 
           <!-- Value Proposition -->
           <div style="padding: 16px; background: #fefce8; border-radius: 8px; border-left: 4px solid #ca8a04;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #ca8a04; margin: 0 0 8px 0;">💎 VALUE PROPOSITION</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #ca8a04; margin: 0 0 8px 0;">VALUE PROPOSITION</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.value_proposition || ''}</p>
             <p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;"><strong>Differentiator:</strong> ${safeValues.key_differentiator || ''}</p>
           </div>
 
           <!-- Revenue Model -->
           <div style="grid-column: span 2; padding: 16px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #16a34a;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #16a34a; margin: 0 0 8px 0;">💰 REVENUE MODEL</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #16a34a; margin: 0 0 8px 0;">REVENUE MODEL</h3>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
               <p style="font-size: 13px; margin: 0;"><strong>Streams:</strong> ${safeValues.revenue_streams || ''}</p>
               <p style="font-size: 13px; margin: 0;"><strong>Pricing:</strong> ${safeValues.pricing || ''}</p>
@@ -172,7 +172,7 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
 
           <!-- Key Metrics -->
           <div style="grid-column: span 2; padding: 16px; background: #f9fafb; border-radius: 8px;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">📊 KEY METRICS</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">KEY METRICS</h3>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
               <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
                 <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 0;">${safeValues.metric_1_value || '-'}</p>
@@ -191,14 +191,14 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
 
           <!-- Team -->
           <div style="padding: 16px; background: #fff7ed; border-radius: 8px; border-left: 4px solid #ea580c;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #ea580c; margin: 0 0 8px 0;">👤 TEAM</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #ea580c; margin: 0 0 8px 0;">TEAM</h3>
             <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.founders || ''}</p>
             ${safeValues.team_size ? `<p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;">${safeValues.team_size}</p>` : ''}
           </div>
 
           <!-- Goals -->
           <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">🎯 GOALS</h3>
+            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">GOALS</h3>
             <p style="font-size: 12px; margin: 0;"><strong>Short-term:</strong> ${safeValues.short_term_goals || ''}</p>
             <p style="font-size: 12px; margin: 8px 0 0 0;"><strong>Long-term:</strong> ${safeValues.long_term_goals || ''}</p>
           </div>

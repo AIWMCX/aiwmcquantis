@@ -241,7 +241,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         
         <div style="margin-top: 40px; padding: 16px; background: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
           <p style="margin: 0; font-size: 12px; color: #92400E;">
-            <strong>⚠️ Legal Disclaimer:</strong> This template is provided for informational purposes only and does not constitute legal advice. 
+            <strong>LEGAL DISCLAIMER:</strong> This template is provided for informational purposes only and does not constitute legal advice. 
             Consult with a qualified attorney before executing any legal agreement.
           </p>
         </div>
