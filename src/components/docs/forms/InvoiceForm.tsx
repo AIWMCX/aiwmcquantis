@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -60,44 +60,42 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     const prefilled = templateJson?.prefilled_content;
     if (!prefilled) {
       return {
-        company_name: 'AIWMC AI Agency LLC',
-        company_address: '1234 Innovation Drive, Suite 100',
-        company_city: 'Denver, CO 80202',
-        company_email: 'billing@aiwmc.com',
-        company_phone: '+1 (303) 555-0100',
-        client_name: 'Client Name',
-        client_company: 'Client Company Inc.',
-        client_address: '123 Client Street',
-        client_city: 'City, State ZIP',
-        client_email: 'client@example.com',
+        company_name: '',
+        company_address: '',
+        company_city: '',
+        company_email: '',
+        company_phone: '',
+        client_name: '',
+        client_company: '',
+        client_address: '',
+        client_city: '',
+        client_email: '',
         payment_terms: 'Net 30',
         line_items: [
-          { description: 'AI Consulting Services - Strategy Development', quantity: 10, unit_price: 200 },
-          { description: 'Business Intelligence Platform Setup', quantity: 1, unit_price: 1500 },
-          { description: 'Monthly Support & Maintenance', quantity: 1, unit_price: 500 },
+          { description: '', quantity: 1, unit_price: 0 },
         ],
-        tax_rate: 8,
-        notes: 'Thank you for your business! Payment is due within 30 days.',
+        tax_rate: 0,
+        notes: '',
       };
     }
     
     return {
-      company_name: prefilled.header?.company_name || 'AIWMC AI Agency LLC',
-      company_address: prefilled.header?.company_address || '1234 Innovation Drive, Suite 100',
-      company_city: prefilled.header?.company_city || 'Denver, CO 80202',
-      company_email: prefilled.header?.company_email || 'billing@aiwmc.com',
-      company_phone: prefilled.header?.company_phone || '+1 (303) 555-0100',
-      client_name: prefilled.bill_to?.client_name || 'Client Name',
-      client_company: prefilled.bill_to?.client_company || 'Client Company Inc.',
-      client_address: prefilled.bill_to?.client_address || '123 Client Street',
-      client_city: prefilled.bill_to?.client_city || 'City, State ZIP',
-      client_email: prefilled.bill_to?.client_email || 'client@example.com',
+      company_name: prefilled.header?.company_name || '',
+      company_address: prefilled.header?.company_address || '',
+      company_city: prefilled.header?.company_city || '',
+      company_email: prefilled.header?.company_email || '',
+      company_phone: prefilled.header?.company_phone || '',
+      client_name: prefilled.bill_to?.client_name || '',
+      client_company: prefilled.bill_to?.client_company || '',
+      client_address: prefilled.bill_to?.client_address || '',
+      client_city: prefilled.bill_to?.client_city || '',
+      client_email: prefilled.bill_to?.client_email || '',
       payment_terms: prefilled.invoice_details?.payment_terms || 'Net 30',
       line_items: prefilled.line_items || [
-        { description: 'AI Consulting Services', quantity: 1, unit_price: 200 },
+        { description: '', quantity: 1, unit_price: 0 },
       ],
-      tax_rate: (prefilled.tax_rate || 0.08) * 100,
-      notes: prefilled.notes || 'Thank you for your business!',
+      tax_rate: (prefilled.tax_rate || 0) * 100,
+      notes: prefilled.notes || '',
     };
   }, [template]);
 
@@ -125,9 +123,13 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     name: 'line_items',
   });
 
+  // Watch form values for preview and calculations
   const formValues = form.watch();
+  
+  // Ref for debounced preview updates
+  const previewTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Calculate totals
+  // Calculate totals (reactive for UI display)
   const calculations = useMemo(() => {
     const subtotal = formValues.line_items?.reduce(
       (sum, item) => sum + (item.quantity || 0) * (item.unit_price || 0),
@@ -138,101 +140,115 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     return { subtotal, taxAmount, total };
   }, [formValues.line_items, formValues.tax_rate]);
 
-  // Generate preview HTML
+  // Debounced preview update to prevent constant re-renders during typing
   useEffect(() => {
-    // SECURITY: Escape all form values before template interpolation to prevent XSS
-    const safeValues = escapeFormValues(formValues);
-    const safeLineItems = (safeValues.line_items || []) as typeof formValues.line_items;
+    // Clear existing timeout
+    if (previewTimeoutRef.current) {
+      clearTimeout(previewTimeoutRef.current);
+    }
     
-    const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-    
-    const rawHTML = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
-        <!-- Header -->
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
-          <div>
-            <h1 style="font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 8px 0;">INVOICE</h1>
-            <p style="color: #6b7280; margin: 4px 0;">Invoice #: INV-000001</p>
-            <p style="color: #6b7280; margin: 4px 0;">Date: ${invoiceDate}</p>
-            <p style="color: #6b7280; margin: 4px 0;">Due: ${dueDate}</p>
+    // Debounce the preview update (300ms delay)
+    previewTimeoutRef.current = setTimeout(() => {
+      // SECURITY: Escape all form values before template interpolation to prevent XSS
+      const safeValues = escapeFormValues(formValues);
+      const safeLineItems = (safeValues.line_items || []) as typeof formValues.line_items;
+      
+      const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      
+      const rawHTML = `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
+          <!-- Header -->
+          <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
+            <div>
+              <h1 style="font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 8px 0;">INVOICE</h1>
+              <p style="color: #6b7280; margin: 4px 0;">Invoice #: INV-000001</p>
+              <p style="color: #6b7280; margin: 4px 0;">Date: ${invoiceDate}</p>
+              <p style="color: #6b7280; margin: 4px 0;">Due: ${dueDate}</p>
+            </div>
+            <div style="text-align: right;">
+              <p style="font-weight: 600; font-size: 18px; margin: 0;">${safeValues.company_name || ''}</p>
+              <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_address || ''}</p>
+              <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_city || ''}</p>
+              <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_email || ''}</p>
+              <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_phone || ''}</p>
+            </div>
           </div>
-          <div style="text-align: right;">
-            <p style="font-weight: 600; font-size: 18px; margin: 0;">${safeValues.company_name || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_address || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_city || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_email || ''}</p>
-            <p style="color: #6b7280; margin: 4px 0;">${safeValues.company_phone || ''}</p>
+          
+          <!-- Bill To -->
+          <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
+            <p style="font-weight: 600; color: #374151; margin: 0 0 8px 0;">Bill To:</p>
+            <p style="font-weight: 600; margin: 0;">${safeValues.client_name || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_company || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_address || ''}, ${safeValues.client_city || ''}</p>
+            <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_email || ''}</p>
           </div>
-        </div>
-        
-        <!-- Bill To -->
-        <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 24px;">
-          <p style="font-weight: 600; color: #374151; margin: 0 0 8px 0;">Bill To:</p>
-          <p style="font-weight: 600; margin: 0;">${safeValues.client_name || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_company || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_address || ''}, ${safeValues.client_city || ''}</p>
-          <p style="color: #6b7280; margin: 4px 0;">${safeValues.client_email || ''}</p>
-        </div>
-        
-        <!-- Line Items -->
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
-          <thead>
-            <tr style="background: #2563eb; color: white;">
-              <th style="padding: 12px; text-align: left; border-radius: 4px 0 0 0;">Description</th>
-              <th style="padding: 12px; text-align: center; width: 80px;">Qty</th>
-              <th style="padding: 12px; text-align: right; width: 120px;">Unit Price</th>
-              <th style="padding: 12px; text-align: right; width: 120px; border-radius: 0 4px 0 0;">Amount</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${safeLineItems.map((item, i) => `
-              <tr style="border-bottom: 1px solid #e5e7eb; ${i % 2 === 1 ? 'background: #f9fafb;' : ''}">
-                <td style="padding: 12px;">${item.description || ''}</td>
-                <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
-                <td style="padding: 12px; text-align: right;">$${(item.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 500;">$${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+          
+          <!-- Line Items -->
+          <table style="width: 100%; border-collapse: collapse; margin-bottom: 24px;">
+            <thead>
+              <tr style="background: #2563eb; color: white;">
+                <th style="padding: 12px; text-align: left; border-radius: 4px 0 0 0;">Description</th>
+                <th style="padding: 12px; text-align: center; width: 80px;">Qty</th>
+                <th style="padding: 12px; text-align: right; width: 120px;">Unit Price</th>
+                <th style="padding: 12px; text-align: right; width: 120px; border-radius: 0 4px 0 0;">Amount</th>
               </tr>
-            `).join('')}
-          </tbody>
-        </table>
-        
-        <!-- Totals -->
-        <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
-          <div style="width: 280px;">
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-              <span style="color: #6b7280;">Subtotal:</span>
-              <span style="font-weight: 500;">$${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
-              <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
-              <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
-              <span style="font-weight: 600;">Total Due:</span>
-              <span style="font-weight: 700; font-size: 18px;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+            </thead>
+            <tbody>
+              ${safeLineItems.map((item, i) => `
+                <tr style="border-bottom: 1px solid #e5e7eb; ${i % 2 === 1 ? 'background: #f9fafb;' : ''}">
+                  <td style="padding: 12px;">${item.description || ''}</td>
+                  <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
+                  <td style="padding: 12px; text-align: right;">$${(item.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style="padding: 12px; text-align: right; font-weight: 500;">$${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+          
+          <!-- Totals -->
+          <div style="display: flex; justify-content: flex-end; margin-bottom: 24px;">
+            <div style="width: 280px;">
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                <span style="color: #6b7280;">Subtotal:</span>
+                <span style="font-weight: 500;">$${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
+                <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
+                <span style="font-weight: 600;">Total Due:</span>
+                <span style="font-weight: 700; font-size: 18px;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
-        </div>
-        
-        <!-- Notes -->
-        ${safeValues.notes ? `
-          <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0;">
-            <p style="font-weight: 600; margin: 0 0 8px 0; color: #92400e;">Notes</p>
-            <p style="margin: 0; color: #78350f;">${safeValues.notes}</p>
+          
+          <!-- Notes -->
+          ${safeValues.notes ? `
+            <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; border-radius: 0 8px 8px 0;">
+              <p style="font-weight: 600; margin: 0 0 8px 0; color: #92400e;">Notes</p>
+              <p style="margin: 0; color: #78350f;">${safeValues.notes}</p>
+            </div>
+          ` : ''}
+          
+          <!-- Footer -->
+          <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
+            <p>Payment Terms: ${safeValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
+            <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
           </div>
-        ` : ''}
-        
-        <!-- Footer -->
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>Payment Terms: ${safeValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
-          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
         </div>
-      </div>
-    `;
+      `;
+      
+      // SECURITY: Final sanitization pass to catch any edge cases
+      onPreviewUpdate(sanitizePreviewHTML(rawHTML));
+    }, 300);
     
-    // SECURITY: Final sanitization pass to catch any edge cases
-    onPreviewUpdate(sanitizePreviewHTML(rawHTML));
+    return () => {
+      if (previewTimeoutRef.current) {
+        clearTimeout(previewTimeoutRef.current);
+      }
+    };
   }, [formValues, calculations, onPreviewUpdate]);
 
   const onSubmit = (data: InvoiceFormData) => {
