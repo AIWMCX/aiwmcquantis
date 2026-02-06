@@ -180,7 +180,7 @@ serve(async (req) => {
     const suggestions: string[] = [];
     
     for (let i = 0; i < Math.min(count, 3); i++) {
-      const response = await fetch('https://api.lovable.dev/v1/chat/completions', {
+      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
