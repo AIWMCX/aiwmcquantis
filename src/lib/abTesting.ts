@@ -30,9 +30,15 @@ export interface Experiment<T extends string> {
 // Define all experiments here
 export const EXPERIMENTS = {
   hero_headline: {
-    id: 'hero_headline_v1',
+    id: 'hero_headline_v2',
     variants: ['control', 'numbers_first', 'action_focused'] as const,
     weights: [0.34, 0.33, 0.33],
+    trackExposure: true,
+  },
+  hero_cta: {
+    id: 'hero_cta_v1',
+    variants: ['control', 'get_free_analysis', 'start_free_2min', 'analyze_now_free'] as const,
+    weights: [0.25, 0.25, 0.25, 0.25],
     trackExposure: true,
   },
   cta_color: {
@@ -69,6 +75,12 @@ export const EXPERIMENTS = {
   signup_form: {
     id: 'signup_form_v1',
     variants: ['control', 'social_first', 'benefits_shown'] as const,
+    weights: [0.34, 0.33, 0.33],
+    trackExposure: true,
+  },
+  sticky_cta: {
+    id: 'sticky_cta_v1',
+    variants: ['control', 'smart_visibility', 'always_visible'] as const,
     weights: [0.34, 0.33, 0.33],
     trackExposure: true,
   },
@@ -359,4 +371,12 @@ export const CTA_STYLES: Record<(typeof EXPERIMENTS)['cta_color']['variants'][nu
     className: 'bg-gradient-to-r from-primary to-primary/80 hover:from-primary/90 hover:to-primary/70 text-primary-foreground',
     text: 'Analyze My Idea Now',
   },
+};
+
+// Hero CTA text variants for A/B testing
+export const HERO_CTA_TEXT: Record<(typeof EXPERIMENTS)['hero_cta']['variants'][number], string> = {
+  control: 'See My Preview Numbers',
+  get_free_analysis: 'Get My Free Analysis',
+  start_free_2min: 'Start Free → 2 Min',
+  analyze_now_free: 'Analyze Now — Free',
 };

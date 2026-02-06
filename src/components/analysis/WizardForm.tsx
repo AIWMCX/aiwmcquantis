@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Brain, MapPin, Send, Loader2, ArrowLeft, ArrowRight, FileText, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,6 +9,7 @@ import { WizardProgress } from './WizardProgress';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
 import { FileUploader } from './FileUploader';
+import { AnalysisProgress } from './AnalysisProgress';
 import { AnonymousUsageNotice } from './AnonymousUsageNotice';
 import { DraftRecoveryBanner } from './DraftRecoveryBanner';
 import type { OptionalFinancialInputs } from '@/types/analysis';
@@ -46,6 +47,7 @@ interface WizardFormProps {
   onFinancialInputsChange: (inputs: OptionalFinancialInputs) => void;
   onClearError: (field: 'idea' | 'location') => void;
   onSubmit: (e: React.FormEvent) => void;
+  onCancel?: () => void;
   files?: UploadedFile[];
   isUploading?: boolean;
   maxFiles?: number;
@@ -67,6 +69,7 @@ export function WizardForm({
   onFinancialInputsChange,
   onClearError,
   onSubmit,
+  onCancel,
   files = [],
   isUploading = false,
   maxFiles = 5,
@@ -78,6 +81,16 @@ export function WizardForm({
   const [currentStep, setCurrentStep] = useState(1);
   const [hasDraft, setHasDraft] = useState(false);
   const [draftAge, setDraftAge] = useState<string | null>(null);
+  const analysisStartTime = useRef<number | null>(null);
+  
+  // Track when analysis starts
+  useEffect(() => {
+    if (isLoading && !analysisStartTime.current) {
+      analysisStartTime.current = Date.now();
+    } else if (!isLoading) {
+      analysisStartTime.current = null;
+    }
+  }, [isLoading]);
   const [isRestored, setIsRestored] = useState(false);
 
   // Check for prefill from mini-demo
@@ -432,28 +445,21 @@ export function WizardForm({
         )}
       </div>
 
-      {/* Loading Progress */}
+      {/* Loading Progress - Enhanced with real-time stages */}
       {isLoading && (
-        <div className="p-4 rounded-lg bg-primary/5 border border-primary/20">
-          <div className="flex items-center gap-3">
-            <Loader2 className="w-5 h-5 text-primary animate-spin flex-shrink-0" />
-            <div className="space-y-1 text-sm">
-              <p className="font-medium text-foreground">Running AI analysis...</p>
-              <p className="text-muted-foreground text-xs">Usually takes 15-30 seconds</p>
-            </div>
-          </div>
-          <div className="mt-3 space-y-1.5">
-            {['Gathering market data', 'Financial calculations', 'Competitor analysis', 'Building plan'].map((step, i) => (
-              <div key={step} className="flex items-center gap-2 text-xs text-muted-foreground">
-                <div 
-                  className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" 
-                  style={{ animationDelay: `${i * 200}ms` }} 
-                />
-                {step}
-              </div>
-            ))}
-          </div>
-        </div>
+        <AnalysisProgress 
+          isLoading={isLoading}
+          startTime={analysisStartTime.current || undefined}
+          onRetry={() => {
+            analysisStartTime.current = Date.now();
+            // Re-submit the form
+            const form = document.querySelector('form');
+            if (form) {
+              form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }
+          }}
+          onCancel={onCancel}
+        />
       )}
 
       {/* Skip to end button */}
