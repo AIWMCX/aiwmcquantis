@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, TrendingUp, Users, DollarSign } from 'lucide-react';
+import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -237,6 +239,7 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
         <!-- Footer -->
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
           <p>CONFIDENTIAL - For Internal Use Only | ${safeValues.company_name}</p>
+          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
         </div>
       </div>
     `;
@@ -284,8 +287,24 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
     });
   };
 
+  // Handle auto-fill from analysis
+  const handleAutoFill = useCallback((data: AutoFillData) => {
+    if (data.company_name) form.setValue('company_name', data.company_name);
+    if (data.quarterly_revenue) form.setValue('total_revenue', data.quarterly_revenue);
+    if (data.monthly_profit) form.setValue('net_income', data.monthly_profit * 3);
+    if (data.gross_margin) {
+      const expenses = (data.quarterly_revenue || 0) * (1 - (data.gross_margin / 100));
+      form.setValue('total_expenses', expenses);
+    }
+  }, [form]);
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Auto-fill from Quantis Analysis */}
+      <div className="flex items-center justify-between mb-2">
+        <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
+      </div>
+
       {/* Report Header */}
       <Card>
         <CardHeader>

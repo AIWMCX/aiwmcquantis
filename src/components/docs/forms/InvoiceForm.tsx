@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, FileText } from 'lucide-react';
+import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -208,6 +210,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         <!-- Footer -->
         <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
           <p>Payment Terms: ${safeValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
+          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
         </div>
       </div>
     `;
@@ -245,8 +248,19 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     });
   };
 
+  // Handle auto-fill from analysis
+  const handleAutoFill = useCallback((data: AutoFillData) => {
+    if (data.company_name) form.setValue('company_name', data.company_name);
+    if (data.company_city) form.setValue('company_city', data.company_city);
+  }, [form]);
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Auto-fill from Quantis Analysis */}
+      <div className="flex items-center justify-between">
+        <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
+      </div>
+
       {/* Company Information */}
       <Card>
         <CardHeader>

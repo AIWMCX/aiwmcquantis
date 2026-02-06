@@ -1,9 +1,11 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect, useMemo, useCallback } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, CheckCircle, Scale, Building2, User } from 'lucide-react';
+import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -221,6 +223,7 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
           <p style="color: #dc2626; font-weight: 600;">CONFIDENTIAL - Unauthorized distribution is prohibited</p>
           <p>This document is a template and should be reviewed by legal counsel before execution.</p>
+          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
         </div>
       </div>
     `;
@@ -259,8 +262,19 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
     });
   };
 
+  // Handle auto-fill from analysis
+  const handleAutoFill = useCallback((data: AutoFillData) => {
+    if (data.company_name) form.setValue('party_a_name', data.company_name);
+    if (data.company_city) form.setValue('party_a_city', data.company_city);
+  }, [form]);
+
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+      {/* Auto-fill from Quantis Analysis */}
+      <div className="flex items-center justify-between mb-2">
+        <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
+      </div>
+
       <Alert className="border-amber-500/50 bg-amber-50 dark:bg-amber-950/20">
         <Scale className="h-4 w-4 text-amber-600" />
         <AlertDescription className="text-amber-800 dark:text-amber-200">
