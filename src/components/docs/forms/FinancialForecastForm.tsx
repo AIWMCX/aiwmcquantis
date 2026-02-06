@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Loader2, CheckCircle, TrendingUp, DollarSign, Calculator, PieChart } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -95,6 +97,20 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
   const form = useForm<FinancialForecastFormData>({
     resolver: zodResolver(FinancialForecastFormSchema),
     defaultValues,
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'financial-forecast',
   });
 
   const formValues = form.watch();
@@ -277,6 +293,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
   }, [formValues, projections, onPreviewUpdate]);
 
   const onSubmit = (data: FinancialForecastFormData) => {
+    clearDraft();
     onGenerate({ ...data, projections });
   };
 
@@ -294,6 +311,14 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" aria-label="Financial Forecast Form">
+      <DocDraftBanner
+        hasDraft={hasDraft}
+        draftAge={draftAge}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        onRestore={restoreDraft}
+        onDismiss={dismissDraft}
+      />
       <div className="flex items-center justify-between">
         <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
       </div>

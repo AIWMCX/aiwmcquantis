@@ -5,6 +5,8 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, TrendingUp, Users, DollarSign } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -91,6 +93,20 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
   const form = useForm<QuarterlyFormData>({
     resolver: zodResolver(QuarterlyFormSchema),
     defaultValues,
+  });
+
+  // Auto-save draft functionality
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'quarterly-summary',
   });
 
   const { fields: achievementFields, append: appendAchievement, remove: removeAchievement } = useFieldArray({
