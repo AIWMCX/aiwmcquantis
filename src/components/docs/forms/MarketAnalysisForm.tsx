@@ -138,8 +138,8 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </div>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">📊</span> Market Overview
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Market Overview
           </h2>
           <div style="padding: 20px; background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border-radius: 12px; border-left: 4px solid #3B82F6;">
             <p style="line-height: 1.8; margin: 0; color: #334155;">${d.market_description || '[Describe the market]'}</p>
@@ -151,8 +151,8 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">💰</span> Market Size (${d.market_size_year || 'Current'})
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Market Size (${d.market_size_year || 'Current'})
           </h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
             <div style="padding: 24px; background: #EFF6FF; border-radius: 12px; text-align: center;">
@@ -172,15 +172,14 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
             </div>
           </div>
           ${d.market_growth_rate ? `
-          <div style="margin-top: 16px; padding: 12px 16px; background: #F8FAFC; border-radius: 8px; display: flex; align-items: center; gap: 8px;">
-            <span style="font-size: 18px;">📈</span>
+          <div style="margin-top: 16px; padding: 12px 16px; background: #F8FAFC; border-radius: 8px;">
             <span style="font-size: 14px; color: #334155;">Projected annual growth rate: <strong style="color: ${(d.market_growth_rate || 0) > 0 ? '#10B981' : '#EF4444'};">${d.market_growth_rate}%</strong></span>
           </div>` : ''}
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">👥</span> Target Customer
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Target Customer
           </h2>
           <div style="padding: 20px; background: #F8FAFC; border-radius: 12px; border-left: 4px solid #10B981;">
             <h3 style="font-size: 16px; color: #0F172A; margin: 0 0 12px 0;">Customer Profile</h3>
@@ -194,8 +193,8 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">⚔️</span> Competitive Landscape
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Competitive Landscape
           </h2>
           <div style="padding: 16px 20px; background: #F8FAFC; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
             <span style="font-size: 14px; color: #334155;">Competition Level:</span>
@@ -207,14 +206,14 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
             <p style="line-height: 1.7; color: #334155; margin: 0;">${d.main_competitors}</p>
           </div>` : ''}
           <div style="padding: 20px; background: #EFF6FF; border-radius: 12px; border-left: 4px solid #3B82F6;">
-            <h3 style="font-size: 16px; color: #1E40AF; margin: 0 0 12px 0;">🏆 Our Competitive Advantages</h3>
+            <h3 style="font-size: 16px; color: #1E40AF; margin: 0 0 12px 0;">Our Competitive Advantages</h3>
             <p style="line-height: 1.8; margin: 0; color: #334155;">${d.competitive_advantages || '[Describe advantages]'}</p>
           </div>
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">🔮</span> Market Trends
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Market Trends
           </h2>
           <p style="line-height: 1.8; color: #334155;">${d.market_trends || '[Describe market trends]'}</p>
         </section>
@@ -225,15 +224,15 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
             ${d.opportunities ? `
             <div style="padding: 20px; background: #F0FDF4; border-radius: 12px; border-top: 4px solid #10B981;">
-              <h3 style="font-size: 14px; color: #166534; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">
-                <span>💡</span> Opportunities
+              <h3 style="font-size: 14px; color: #166534; margin: 0 0 12px 0;">
+                Opportunities
               </h3>
               <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.opportunities}</p>
             </div>` : ''}
             ${d.threats ? `
             <div style="padding: 20px; background: #FEF2F2; border-radius: 12px; border-top: 4px solid #EF4444;">
-              <h3 style="font-size: 14px; color: #991B1B; margin: 0 0 12px 0; display: flex; align-items: center; gap: 6px;">
-                <span>⚠️</span> Threats
+              <h3 style="font-size: 14px; color: #991B1B; margin: 0 0 12px 0;">
+                Threats
               </h3>
               <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.threats}</p>
             </div>` : ''}
@@ -259,8 +258,8 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         
         ${d.recommendations ? `
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px; display: flex; align-items: center; gap: 8px;">
-            <span style="color: #3B82F6;">🎯</span> Recommendations
+          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+            Recommendations
           </h2>
           <div style="padding: 20px; background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); border-radius: 12px; color: white;">
             <p style="line-height: 1.8; margin: 0;">${d.recommendations}</p>

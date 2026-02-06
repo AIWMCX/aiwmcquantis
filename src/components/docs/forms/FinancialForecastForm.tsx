@@ -132,7 +132,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Current State -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">📊 Current State</h2>
+          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Current State</h2>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Monthly Revenue</p>
@@ -155,7 +155,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- 3-Scenario Projections -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">📈 Revenue Projections (3 Scenarios)</h2>
+          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Revenue Projections (3 Scenarios)</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="background: #374151; color: white;">
@@ -168,21 +168,21 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
             </thead>
             <tbody>
               <tr style="border-bottom: 1px solid #e5e7eb; background: #fef2f2;">
-                <td style="padding: 12px; font-weight: 600; color: #dc2626;">🔴 Pessimistic</td>
+                <td style="padding: 12px; font-weight: 600; color: #dc2626;">Pessimistic</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[0])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[1])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[2])}</td>
                 <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(projections.pessimistic[3])}</td>
               </tr>
               <tr style="border-bottom: 1px solid #e5e7eb; background: #f0f9ff;">
-                <td style="padding: 12px; font-weight: 600; color: #2563eb;">🔵 Base Case</td>
+                <td style="padding: 12px; font-weight: 600; color: #2563eb;">Base Case</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[0])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[1])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[2])}</td>
                 <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(projections.base[3])}</td>
               </tr>
               <tr style="background: #ecfdf5;">
-                <td style="padding: 12px; font-weight: 600; color: #10b981;">🟢 Optimistic</td>
+                <td style="padding: 12px; font-weight: 600; color: #10b981;">Optimistic</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[0])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[1])}</td>
                 <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[2])}</td>
@@ -194,7 +194,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Assumptions -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">🔍 Key Assumptions</h2>
+          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Key Assumptions</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
               <tr style="background: #f9fafb;">
@@ -229,7 +229,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Cost Structure -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">💰 Cost Structure</h2>
+          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Cost Structure</h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #92400e; margin: 0;">Fixed Costs (Monthly)</p>
@@ -248,7 +248,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Target Metrics -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">🎯 Target Metrics</h2>
+          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Target Metrics</h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #065f46; margin: 0;">LTV Target</p>

@@ -140,7 +140,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Executive Summary -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            📋 Executive Summary
+            Executive Summary
           </h2>
           <p style="line-height: 1.8; text-align: justify;">${safeValues.executive_summary || ''}</p>
         </section>
@@ -148,7 +148,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Problem & Solution -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            🎯 Problem & Solution
+            Problem & Solution
           </h2>
           <div style="display: grid; gap: 16px;">
             <div style="padding: 16px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 0 8px 8px 0;">
@@ -168,7 +168,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Market Analysis -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            📊 Market Analysis
+            Market Analysis
           </h2>
           <p style="margin-bottom: 16px; line-height: 1.6;"><strong>Target Market:</strong> ${safeValues.target_market || ''}</p>
           
@@ -193,7 +193,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Business Model -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            💼 Business Model
+            Business Model
           </h2>
           <div style="display: grid; gap: 12px;">
             <div style="padding: 12px; background: #f9fafb; border-radius: 8px;">
@@ -211,7 +211,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Financial Projections -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            💰 Financial Projections
+            Financial Projections
           </h2>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
             <thead>
@@ -250,7 +250,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Team -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            👥 Team
+            Team
           </h2>
           <p style="line-height: 1.6;"><strong>Founders:</strong> ${safeValues.founders || ''}</p>
           <p style="line-height: 1.6;"><strong>Current Team Size:</strong> ${safeValues.team_size} employees</p>
@@ -260,15 +260,15 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Risks & Milestones -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            🎯 Risks & Milestones
+            Risks & Milestones
           </h2>
           <div style="display: grid; gap: 16px;">
             <div style="padding: 16px; background: #fef2f2; border-radius: 8px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">⚠️ Key Risks</h3>
+              <h3 style="font-size: 14px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">Key Risks</h3>
               <p style="margin: 0; white-space: pre-line;">${safeValues.key_risks || ''}</p>
             </div>
             <div style="padding: 16px; background: #ecfdf5; border-radius: 8px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">🎯 Key Milestones</h3>
+              <h3 style="font-size: 14px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">Key Milestones</h3>
               <p style="margin: 0; white-space: pre-line;">${safeValues.milestones || ''}</p>
             </div>
           </div>
@@ -277,7 +277,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         <!-- Funding -->
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            💵 Funding Request
+            Funding Request
           </h2>
           <div style="padding: 24px; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; border-radius: 12px; text-align: center;">
             <p style="font-size: 14px; margin: 0 0 8px 0; opacity: 0.9;">Seeking ${safeValues.funding_stage?.toUpperCase() || 'SEED'} Round</p>
