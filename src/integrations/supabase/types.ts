@@ -1015,6 +1015,161 @@ export type Database = {
         }
         Relationships: []
       }
+      referral_codes: {
+        Row: {
+          code: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          total_clicks: number | null
+          total_conversions: number | null
+          total_rewards_earned: number | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          code: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_rewards_earned?: number | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          code?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          total_clicks?: number | null
+          total_conversions?: number | null
+          total_rewards_earned?: number | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_codes_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_conversions: {
+        Row: {
+          clicked_at: string | null
+          id: string
+          ip_hash: string | null
+          qualified_at: string | null
+          referral_code_id: string
+          referred_user_id: string | null
+          reward_applied_at: string | null
+          signed_up_at: string | null
+          status: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          clicked_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          qualified_at?: string | null
+          referral_code_id: string
+          referred_user_id?: string | null
+          reward_applied_at?: string | null
+          signed_up_at?: string | null
+          status?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          clicked_at?: string | null
+          id?: string
+          ip_hash?: string | null
+          qualified_at?: string | null
+          referral_code_id?: string
+          referred_user_id?: string | null
+          reward_applied_at?: string | null
+          signed_up_at?: string | null
+          status?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_conversions_referral_code_id_fkey"
+            columns: ["referral_code_id"]
+            isOneToOne: false
+            referencedRelation: "referral_codes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_conversions_referred_user_id_fkey"
+            columns: ["referred_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      referral_rewards: {
+        Row: {
+          applied_at: string | null
+          conversion_id: string | null
+          created_at: string | null
+          expires_at: string | null
+          id: string
+          reward_type: string
+          reward_value: number
+          status: string | null
+          stripe_coupon_id: string | null
+          stripe_promotion_code: string | null
+          user_id: string
+        }
+        Insert: {
+          applied_at?: string | null
+          conversion_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reward_type: string
+          reward_value: number
+          status?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promotion_code?: string | null
+          user_id: string
+        }
+        Update: {
+          applied_at?: string | null
+          conversion_id?: string | null
+          created_at?: string | null
+          expires_at?: string | null
+          id?: string
+          reward_type?: string
+          reward_value?: number
+          status?: string | null
+          stripe_coupon_id?: string | null
+          stripe_promotion_code?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "referral_rewards_conversion_id_fkey"
+            columns: ["conversion_id"]
+            isOneToOne: false
+            referencedRelation: "referral_conversions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "referral_rewards_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risk_factors: {
         Row: {
           applicable_industries: string[] | null
@@ -1685,6 +1840,10 @@ export type Database = {
       cleanup_old_rate_limits: { Args: never; Returns: undefined }
       cleanup_old_security_logs: { Args: never; Returns: undefined }
       cleanup_old_webhook_events: { Args: never; Returns: undefined }
+      complete_referral_signup: {
+        Args: { p_conversion_id: string; p_referred_user_id: string }
+        Returns: boolean
+      }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
         Args: never
@@ -1697,6 +1856,7 @@ export type Database = {
         }[]
       }
       encrypt_pii: { Args: { plain_text: string }; Returns: string }
+      generate_referral_code: { Args: { p_user_id: string }; Returns: string }
       get_admin_metrics: {
         Args: never
         Returns: {
@@ -1737,6 +1897,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
       get_subscription_summary: { Args: { p_user_id?: string }; Returns: Json }
       get_todays_activity: {
         Args: never
@@ -1813,6 +1974,10 @@ export type Database = {
           }
       rotate_pii_encryption_key: { Args: never; Returns: Json }
       run_scheduled_cleanup: { Args: never; Returns: Json }
+      track_referral_click: {
+        Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
+        Returns: string
+      }
       user_owns_subscription: {
         Args: { subscription_user_id: string }
         Returns: boolean
