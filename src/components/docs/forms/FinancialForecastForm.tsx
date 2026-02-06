@@ -62,34 +62,34 @@ interface FinancialForecastFormProps {
 
 export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, isGenerating }: FinancialForecastFormProps) {
   const defaultValues = useMemo(() => ({
-    company_name: 'AIWMC AI Agency',
-    forecast_period: '2026-2028 (3 Years)',
+    company_name: '',
+    forecast_period: '',
     currency: 'USD',
     
-    current_mrr: 100000,
-    current_customers: 25,
-    current_arpu: 4000,
-    current_churn_rate: 2.5,
+    current_mrr: 0,
+    current_customers: 0,
+    current_arpu: 0,
+    current_churn_rate: 0,
     
-    pess_growth_rate: 15,
-    pess_churn_rate: 4,
-    pess_cac: 8000,
+    pess_growth_rate: 10,
+    pess_churn_rate: 5,
+    pess_cac: 0,
     
-    base_growth_rate: 30,
-    base_churn_rate: 2.5,
-    base_cac: 5000,
+    base_growth_rate: 25,
+    base_churn_rate: 3,
+    base_cac: 0,
     
-    opt_growth_rate: 50,
-    opt_churn_rate: 1.5,
-    opt_cac: 3500,
+    opt_growth_rate: 40,
+    opt_churn_rate: 2,
+    opt_cac: 0,
     
-    fixed_costs_monthly: 85000,
+    fixed_costs_monthly: 0,
     variable_cost_percent: 20,
-    sales_marketing_percent: 35,
+    sales_marketing_percent: 30,
     
-    ltv_target: 48000,
+    ltv_target: 0,
     payback_months_target: 12,
-    gross_margin_target: 80,
+    gross_margin_target: 70,
   }), [template]);
 
   const form = useForm<FinancialForecastFormData>({

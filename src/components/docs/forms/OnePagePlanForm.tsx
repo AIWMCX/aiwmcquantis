@@ -68,38 +68,38 @@ interface OnePagePlanFormProps {
 
 export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGenerating }: OnePagePlanFormProps) {
   const defaultValues = useMemo(() => ({
-    company_name: 'AIWMC AI Agency',
-    tagline: 'Transforming businesses through intelligent automation',
-    website: 'aiwmcquantis.com',
-    contact_email: 'hello@aiwmc.com',
+    company_name: '',
+    tagline: '',
+    website: '',
+    contact_email: '',
     
-    vision: 'A world where every business leverages AI to achieve its full potential.',
-    mission: 'To democratize AI implementation with guaranteed results and measurable ROI.',
+    vision: '',
+    mission: '',
     
-    problem: 'Businesses waste billions on failed AI projects. 87% never reach production.',
-    solution: 'End-to-end AI implementation with proprietary methodology and ROI guarantee.',
+    problem: '',
+    solution: '',
     
-    target_customer: 'Mid-market companies ($10M-$500M revenue) in tech, healthcare, finance',
-    market_size: '$150B TAM, growing 42% annually',
+    target_customer: '',
+    market_size: '',
     
-    value_proposition: 'Guaranteed AI ROI in 90 days or your money back. Only provider with this guarantee.',
-    key_differentiator: 'Proprietary Neural OS™ platform + outcome-based pricing',
+    value_proposition: '',
+    key_differentiator: '',
     
-    revenue_streams: 'SaaS subscriptions ($2K-$20K/mo) + Professional services',
-    pricing: 'Value-based pricing tied to measurable outcomes',
+    revenue_streams: '',
+    pricing: '',
     
-    metric_1_name: 'Annual Revenue',
-    metric_1_value: '$1.2M ARR',
+    metric_1_name: 'Revenue',
+    metric_1_value: '',
     metric_2_name: 'Customers',
-    metric_2_value: '25 Enterprise',
-    metric_3_name: 'Growth Rate',
-    metric_3_value: '3x YoY',
+    metric_2_value: '',
+    metric_3_name: 'Growth',
+    metric_3_value: '',
     
-    founders: 'Bogdan Jeltov (CEO) - 10+ years AI/ML',
-    team_size: '8 full-time employees',
+    founders: '',
+    team_size: '',
     
-    short_term_goals: 'Q2: 50 customers, Q4: $3M ARR, European expansion',
-    long_term_goals: 'Market leader in AI implementation. IPO by 2030.',
+    short_term_goals: '',
+    long_term_goals: '',
   }), [template]);
 
   const form = useForm<OnePagePlanFormData>({

@@ -78,41 +78,41 @@ interface BusinessPlanFormProps {
 
 export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGenerating }: BusinessPlanFormProps) {
   const defaultValues = useMemo(() => ({
-    company_name: 'AIWMC AI Agency LLC',
-    tagline: 'Transforming businesses through intelligent automation',
-    executive_summary: 'AIWMC AI Agency is a leading AI consulting and implementation firm helping businesses leverage artificial intelligence to automate operations, enhance decision-making, and drive growth. With a proven track record and proprietary Neural OS™ platform, we deliver measurable ROI within 90 days.',
+    company_name: '',
+    tagline: '',
+    executive_summary: '',
     
-    problem_statement: 'Businesses struggle to implement AI effectively. 87% of AI projects fail to reach production, wasting millions in investment and leaving companies behind in the AI revolution.',
-    solution_description: 'Our Neural OS™ platform and expert consultants provide end-to-end AI implementation, from strategy to deployment. We guarantee results with our "AI Success Framework" methodology.',
-    unique_value_proposition: 'Guaranteed AI ROI in 90 days or your money back',
+    problem_statement: '',
+    solution_description: '',
+    unique_value_proposition: '',
     
-    target_market: 'Mid-market companies ($10M-$500M revenue) in technology, healthcare, and financial services sectors seeking to implement AI solutions.',
-    market_size_tam: 150000000000,
-    market_size_sam: 25000000000,
-    market_size_som: 500000000,
-    competitive_advantage: 'Proprietary Neural OS™ platform, guaranteed ROI model, and specialized industry expertise set us apart from generic consulting firms.',
+    target_market: '',
+    market_size_tam: 0,
+    market_size_sam: 0,
+    market_size_som: 0,
+    competitive_advantage: '',
     
-    revenue_model: 'SaaS subscription for Neural OS™ platform ($2,000-$20,000/mo) plus professional services for implementation and consulting.',
-    pricing_strategy: 'Value-based pricing tied to measurable outcomes and ROI guarantees.',
-    sales_channels: 'Direct enterprise sales, partner channel, and inbound content marketing.',
+    revenue_model: '',
+    pricing_strategy: '',
+    sales_channels: '',
     
-    year1_revenue: 1200000,
-    year2_revenue: 3600000,
-    year3_revenue: 8400000,
-    startup_costs: 500000,
-    monthly_burn_rate: 85000,
-    break_even_months: 18,
+    year1_revenue: 0,
+    year2_revenue: 0,
+    year3_revenue: 0,
+    startup_costs: 0,
+    monthly_burn_rate: 0,
+    break_even_months: 0,
     
-    founders: 'Bogdan Jeltov, CEO - 10+ years in AI/ML, former Google engineer',
-    team_size: 8,
-    key_hires_needed: 'VP Sales, Senior AI Engineers (2), Customer Success Manager',
+    founders: '',
+    team_size: 1,
+    key_hires_needed: '',
     
-    key_risks: 'Market competition from large consulting firms, AI talent shortage, technology commoditization, and economic uncertainty affecting enterprise spending.',
-    milestones: 'Q1: Launch Neural OS™ v2.0\nQ2: 25 enterprise customers\nQ3: Series A funding\nQ4: European market expansion',
+    key_risks: '',
+    milestones: '',
     
     funding_stage: 'seed',
-    funding_amount: 2000000,
-    use_of_funds: 'Product development (40%), Sales & marketing (35%), Operations (15%), Reserve (10%)',
+    funding_amount: 0,
+    use_of_funds: '',
   }), [template]);
 
   const form = useForm<BusinessPlanFormData>({
