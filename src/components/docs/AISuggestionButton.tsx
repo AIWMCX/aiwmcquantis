@@ -12,7 +12,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
 interface AISuggestionButtonProps {
-  sectionType: 'executive_summary' | 'market_analysis' | 'risk_assessment' | 'value_proposition' | 'testimonial';
+  sectionType: 'executive_summary' | 'market_analysis' | 'risk_assessment' | 'value_proposition' | 'testimonial' | 'market_description' | 'competitive_advantage' | 'market_trends' | 'partnership_objective';
   context: {
     business_name?: string;
     industry?: string;
@@ -51,6 +51,10 @@ export function AISuggestionButton({
     risk_assessment: 'Risk Assessment',
     value_proposition: 'Value Proposition',
     testimonial: 'Customer Testimonial',
+    market_description: 'Market Description',
+    competitive_advantage: 'Competitive Advantage',
+    market_trends: 'Market Trends',
+    partnership_objective: 'Partnership Objective',
   };
 
   const generateSuggestions = async () => {

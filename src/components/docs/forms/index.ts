@@ -1,3 +1,10 @@
 export { InvoiceForm } from './InvoiceForm';
 export { QuarterlySummaryForm } from './QuarterlySummaryForm';
 export { NDAForm } from './NDAForm';
+export { BusinessPlanForm } from './BusinessPlanForm';
+export { PitchDeckForm } from './PitchDeckForm';
+export { OnePagePlanForm } from './OnePagePlanForm';
+export { FinancialForecastForm } from './FinancialForecastForm';
+export { PartnershipForm } from './PartnershipForm';
+export { FounderAgreementForm } from './FounderAgreementForm';
+export { MarketAnalysisForm } from './MarketAnalysisForm';

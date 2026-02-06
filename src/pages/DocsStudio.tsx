@@ -5,7 +5,7 @@ import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { DocumentEditor } from '@/components/docs/DocumentEditor';
-import { InvoiceForm, QuarterlySummaryForm, NDAForm } from '@/components/docs/forms';
+import { InvoiceForm, QuarterlySummaryForm, NDAForm, BusinessPlanForm, PitchDeckForm, OnePagePlanForm, FinancialForecastForm, PartnershipForm, FounderAgreementForm, MarketAnalysisForm } from '@/components/docs/forms';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -70,6 +70,81 @@ const TEMPLATE_CARDS = [
     popular: true,
     hasQuantisIntegration: true,
     usageCount: 634,
+  },
+  {
+    id: 'business-plan',
+    name: 'Business Plan',
+    description: 'Comprehensive 5-section business plan with executive summary and financial projections.',
+    icon: FileText,
+    color: 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400',
+    category: 'planning',
+    popular: true,
+    hasQuantisIntegration: true,
+    hasAI: true,
+    usageCount: 756,
+  },
+  {
+    id: 'pitch-deck',
+    name: 'Pitch Deck',
+    description: '10-slide investor pitch deck with TAM/SAM/SOM, financials, and team sections.',
+    icon: Zap,
+    color: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
+    category: 'fundraising',
+    popular: true,
+    hasQuantisIntegration: true,
+    hasAI: true,
+    usageCount: 543,
+  },
+  {
+    id: 'one-page-plan',
+    name: 'One-Page Plan',
+    description: 'Concise single-page business summary with vision, metrics, and key highlights.',
+    icon: FileText,
+    color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
+    category: 'planning',
+    hasQuantisIntegration: true,
+    usageCount: 421,
+  },
+  {
+    id: 'financial-forecast',
+    name: 'Financial Forecast',
+    description: '3-scenario financial projections with pessimistic, base, and optimistic views.',
+    icon: BarChart3,
+    color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
+    category: 'financial',
+    hasQuantisIntegration: true,
+    usageCount: 389,
+  },
+  {
+    id: 'partnership-proposal',
+    name: 'Partnership Proposal',
+    description: 'Professional partnership proposal with terms, responsibilities, and value proposition.',
+    icon: Users,
+    color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
+    category: 'legal',
+    hasQuantisIntegration: true,
+    hasAI: true,
+    usageCount: 234,
+  },
+  {
+    id: 'founder-agreement',
+    name: 'Founder Agreement',
+    description: 'Co-founder equity, vesting, IP assignment, and governance agreement.',
+    icon: Users,
+    color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
+    category: 'legal',
+    usageCount: 312,
+  },
+  {
+    id: 'market-analysis',
+    name: 'Market Analysis',
+    description: 'Comprehensive market research with TAM/SAM/SOM, competition, and trends.',
+    icon: BarChart3,
+    color: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
+    category: 'planning',
+    hasQuantisIntegration: true,
+    hasAI: true,
+    usageCount: 467,
   },
 ];
 
@@ -385,6 +460,69 @@ export default function DocsStudio() {
 
               {selectedTemplateId === 'nda-agreement' && (
                 <NDAForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'business-plan' && (
+                <BusinessPlanForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'pitch-deck' && (
+                <PitchDeckForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'one-page-plan' && (
+                <OnePagePlanForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'financial-forecast' && (
+                <FinancialForecastForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'partnership-proposal' && (
+                <PartnershipForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'founder-agreement' && (
+                <FounderAgreementForm
+                  template={selectedTemplate}
+                  onGenerate={handleGenerate}
+                  onPreviewUpdate={handlePreviewUpdate}
+                  isGenerating={isCreating}
+                />
+              )}
+
+              {selectedTemplateId === 'market-analysis' && (
+                <MarketAnalysisForm
                   template={selectedTemplate}
                   onGenerate={handleGenerate}
                   onPreviewUpdate={handlePreviewUpdate}
