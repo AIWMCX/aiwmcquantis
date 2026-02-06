@@ -1,8 +1,8 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
+import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { UseFormReturn, FieldValues, Path } from 'react-hook-form';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 
-const SAVE_DELAY_MS = 1500; // Debounce delay for auto-save
+const SAVE_DELAY_MS = 800; // Reduced debounce delay for faster auto-save
 const DRAFT_PREFIX = 'docs_draft_';
 
 interface DocDraftData<T> {
@@ -76,47 +76,57 @@ export function useDocFormDraft<T extends FieldValues>({
     checkDraft();
   }, [enabled, storageKey]);
   
-  // Debounced auto-save when form values change
-  const formValues = form.watch();
+  // Use subscription for form values to avoid re-renders
+  const formValuesRef = useRef<T | null>(null);
   
+  // Subscribe to form changes without causing re-renders
   useEffect(() => {
-    if (!enabled || (!isRestored && hasDraft)) return;
+    if (!enabled) return;
     
-    // Skip saving if form is still at defaults
-    const hasContent = Object.values(formValues as Record<string, unknown>).some(
-      (v) => v !== '' && v !== 0 && v !== null && v !== undefined
-    );
-    if (!hasContent) return;
-    
-    // Clear existing timeout
-    if (saveTimeoutRef.current) {
-      clearTimeout(saveTimeoutRef.current);
-    }
-    
-    // Set new timeout for debounced save
-    saveTimeoutRef.current = setTimeout(async () => {
-      try {
-        setIsSaving(true);
-        const draft: DocDraftData<T> = {
-          data: formValues as T,
-          savedAt: Date.now(),
-          templateId,
-        };
-        await secureSetItem(storageKey, draft);
-        setLastSaved(new Date());
-        setIsSaving(false);
-      } catch (e) {
-        console.error('[useDocFormDraft] Failed to save draft:', e);
-        setIsSaving(false);
+    const subscription = form.watch((values) => {
+      formValuesRef.current = values as T;
+      
+      // Skip if we have a pending draft and haven't restored yet
+      if (!isRestored && hasDraft) return;
+      
+      // Skip saving if form is still at defaults
+      const hasContent = Object.values(values as Record<string, unknown>).some(
+        (v) => v !== '' && v !== 0 && v !== null && v !== undefined && 
+               (Array.isArray(v) ? v.length > 0 : true)
+      );
+      if (!hasContent) return;
+      
+      // Clear existing timeout
+      if (saveTimeoutRef.current) {
+        clearTimeout(saveTimeoutRef.current);
       }
-    }, SAVE_DELAY_MS);
+      
+      // Set new timeout for debounced save
+      saveTimeoutRef.current = setTimeout(async () => {
+        try {
+          setIsSaving(true);
+          const draft: DocDraftData<T> = {
+            data: values as T,
+            savedAt: Date.now(),
+            templateId,
+          };
+          await secureSetItem(storageKey, draft);
+          setLastSaved(new Date());
+          setIsSaving(false);
+        } catch (e) {
+          console.error('[useDocFormDraft] Failed to save draft:', e);
+          setIsSaving(false);
+        }
+      }, SAVE_DELAY_MS);
+    });
     
     return () => {
+      subscription.unsubscribe();
       if (saveTimeoutRef.current) {
         clearTimeout(saveTimeoutRef.current);
       }
     };
-  }, [formValues, enabled, storageKey, templateId, hasDraft, isRestored]);
+  }, [enabled, form, storageKey, templateId, hasDraft, isRestored]);
   
   // Restore draft data to form
   const restoreDraft = useCallback(async () => {
