@@ -4,7 +4,9 @@ import { useTemplates, useTemplate } from '@/hooks/useTemplates';
 import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { DocumentEditor } from '@/components/docs/DocumentEditor';
+import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
 import { InvoiceForm, QuarterlySummaryForm, NDAForm, BusinessPlanForm, PitchDeckForm, OnePagePlanForm, FinancialForecastForm, PartnershipForm, FounderAgreementForm, MarketAnalysisForm } from '@/components/docs/forms';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
@@ -161,6 +163,9 @@ export default function DocsStudio() {
   
   // Get current user for email check
   const { user } = useAuth();
+  
+  // Client-side document download
+  const { downloadPDF, downloadHTML, isDownloading } = useDocumentDownload();
   
   // Beta whitelist removed - all Plus subscribers can now access Docs Studio
 
@@ -520,8 +525,8 @@ export default function DocsStudio() {
                   <CardContent className="p-0">
                     {previewHTML ? (
                       <div 
-                        className="bg-white overflow-auto max-h-[calc(100vh-200px)]"
-                        style={{ minHeight: '600px' }}
+                        className="bg-white overflow-auto max-h-[calc(100vh-280px)]"
+                        style={{ minHeight: '500px' }}
                         dangerouslySetInnerHTML={{ __html: sanitizePreviewHTML(previewHTML) }}
                       />
                     ) : (
@@ -533,6 +538,13 @@ export default function DocsStudio() {
                       </div>
                     )}
                   </CardContent>
+                  {/* Download actions */}
+                  <PreviewDownloadBar
+                    onDownloadPDF={() => downloadPDF(previewHTML, templateCard?.name)}
+                    onDownloadHTML={() => downloadHTML(previewHTML, templateCard?.name)}
+                    isDownloading={isDownloading}
+                    hasContent={!!previewHTML}
+                  />
                 </Card>
               </div>
             )}
