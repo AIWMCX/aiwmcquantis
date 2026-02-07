@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useForm, useFieldArray } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Loader2, Users, PieChart, Shield, Clock, Plus, Trash2, AlertTriangle } from 'lucide-react';
 import { AutoFillButton } from '../AutoFillButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
+import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import type { DocTemplate } from '@/types/document';
 
 const founderSchema = z.object({
@@ -29,32 +32,26 @@ const agreementSchema = z.object({
   
   founders: z.array(founderSchema).min(1, 'At least one founder required'),
   
-  // Vesting
   standard_vesting_months: z.number().min(12).max(60),
   standard_cliff_months: z.number().min(0).max(24),
   acceleration_on_exit: z.boolean(),
   acceleration_on_termination: z.boolean(),
   
-  // IP & Non-Compete
   ip_assignment: z.boolean(),
   non_compete_months: z.number().min(0).max(36),
   non_solicit_months: z.number().min(0).max(36),
   
-  // Decision Making
   voting_threshold: z.number().min(50).max(100),
   major_decisions_require_unanimous: z.boolean(),
   
-  // Exit Provisions
   drag_along: z.boolean(),
   tag_along: z.boolean(),
   right_of_first_refusal: z.boolean(),
   
-  // Departure
   good_leaver_buyback: z.boolean(),
   bad_leaver_buyback: z.boolean(),
   buyback_price_method: z.enum(['fair_market_value', 'cost_basis', 'formula']),
   
-  // Additional
   effective_date: z.string(),
   governing_law_state: z.string(),
   dispute_resolution: z.enum(['arbitration', 'litigation', 'mediation_first']),
@@ -103,17 +100,36 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
     },
   });
 
-  const { watch, setValue, handleSubmit, formState: { errors }, control } = form;
+  const { setValue, handleSubmit, formState: { errors }, control } = form;
   const { fields, append, remove } = useFieldArray({ control, name: 'founders' });
-  const watchedValues = watch();
 
-  // Calculate total equity
-  const totalEquity = watchedValues.founders.reduce((sum, f) => sum + (f.equity_percent || 0), 0);
-  const equityBalanced = Math.abs(totalEquity - 100) < 0.01;
+  // Draft persistence
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'founder-agreement',
+  });
 
-  // Generate preview HTML
-  const generatePreview = useCallback(() => {
-    const d = watchedValues;
+  // Optimized: subscription-based watch to avoid full re-renders
+  const formValuesRef = useRef<FounderAgreementFormData>(form.getValues());
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  // Compute equity from ref for preview (not triggering re-renders)
+  const computeEquity = useCallback((founders: FounderAgreementFormData['founders']) => {
+    return founders.reduce((sum, f) => sum + (f.equity_percent || 0), 0);
+  }, []);
+
+  const generatePreview = useCallback((rawData: FounderAgreementFormData) => {
+    const d = escapeFormValues(rawData as unknown as Record<string, unknown>) as unknown as FounderAgreementFormData;
+    const totalEquity = computeEquity(rawData.founders); // use raw for numbers
+    const equityBalanced = Math.abs(totalEquity - 100) < 0.01;
+    
     const companyTypeLabel = {
       llc: 'Limited Liability Company',
       c_corp: 'C Corporation',
@@ -152,9 +168,9 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
                 <tr>
                   <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.name || `Founder ${i + 1}`}</td>
                   <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.role || '-'}</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 600;">${f.equity_percent || 0}%</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${f.vesting_months || 0} mo</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${f.cliff_months || 0} mo</td>
+                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 600;">${rawData.founders[i]?.equity_percent || 0}%</td>
+                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.vesting_months || 0} mo</td>
+                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.cliff_months || 0} mo</td>
                 </tr>
               `).join('')}
               <tr style="background: ${equityBalanced ? '#F0FDF4' : '#FEF2F2'};">
@@ -169,47 +185,47 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">2. VESTING SCHEDULE</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
-            <li>Standard vesting period: <strong>${d.standard_vesting_months} months</strong></li>
-            <li>Cliff period: <strong>${d.standard_cliff_months} months</strong></li>
-            <li>Acceleration on exit: <strong>${d.acceleration_on_exit ? 'Yes (100% acceleration)' : 'No'}</strong></li>
-            <li>Acceleration on termination without cause: <strong>${d.acceleration_on_termination ? 'Yes' : 'No'}</strong></li>
+            <li>Standard vesting period: <strong>${rawData.standard_vesting_months} months</strong></li>
+            <li>Cliff period: <strong>${rawData.standard_cliff_months} months</strong></li>
+            <li>Acceleration on exit: <strong>${rawData.acceleration_on_exit ? 'Yes (100% acceleration)' : 'No'}</strong></li>
+            <li>Acceleration on termination without cause: <strong>${rawData.acceleration_on_termination ? 'Yes' : 'No'}</strong></li>
           </ul>
         </section>
         
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">3. INTELLECTUAL PROPERTY</h2>
           <p style="line-height: 1.8;">
-            ${d.ip_assignment ? 'All founders agree to assign all intellectual property created for or relating to the Company to the Company.' : 'IP assignment terms to be negotiated separately.'}
+            ${rawData.ip_assignment ? 'All founders agree to assign all intellectual property created for or relating to the Company to the Company.' : 'IP assignment terms to be negotiated separately.'}
           </p>
           <p style="line-height: 1.8; margin-top: 12px;">
-            <strong>Non-Compete Period:</strong> ${d.non_compete_months} months after departure<br/>
-            <strong>Non-Solicitation Period:</strong> ${d.non_solicit_months} months after departure
+            <strong>Non-Compete Period:</strong> ${rawData.non_compete_months} months after departure<br/>
+            <strong>Non-Solicitation Period:</strong> ${rawData.non_solicit_months} months after departure
           </p>
         </section>
         
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">4. DECISION MAKING</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
-            <li>Voting threshold for ordinary decisions: <strong>${d.voting_threshold}%</strong></li>
-            <li>Major decisions require unanimous consent: <strong>${d.major_decisions_require_unanimous ? 'Yes' : 'No'}</strong></li>
+            <li>Voting threshold for ordinary decisions: <strong>${rawData.voting_threshold}%</strong></li>
+            <li>Major decisions require unanimous consent: <strong>${rawData.major_decisions_require_unanimous ? 'Yes' : 'No'}</strong></li>
           </ul>
         </section>
         
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">5. EXIT PROVISIONS</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
-            <li>Drag-Along Rights: <strong>${d.drag_along ? 'Enabled' : 'Disabled'}</strong></li>
-            <li>Tag-Along Rights: <strong>${d.tag_along ? 'Enabled' : 'Disabled'}</strong></li>
-            <li>Right of First Refusal: <strong>${d.right_of_first_refusal ? 'Enabled' : 'Disabled'}</strong></li>
+            <li>Drag-Along Rights: <strong>${rawData.drag_along ? 'Enabled' : 'Disabled'}</strong></li>
+            <li>Tag-Along Rights: <strong>${rawData.tag_along ? 'Enabled' : 'Disabled'}</strong></li>
+            <li>Right of First Refusal: <strong>${rawData.right_of_first_refusal ? 'Enabled' : 'Disabled'}</strong></li>
           </ul>
         </section>
         
         <section style="margin-bottom: 32px;">
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">6. FOUNDER DEPARTURE</h2>
           <p style="line-height: 1.8;">
-            <strong>Good Leaver:</strong> ${d.good_leaver_buyback ? 'Company may repurchase unvested shares' : 'No buyback provision'}<br/>
-            <strong>Bad Leaver:</strong> ${d.bad_leaver_buyback ? 'Company may repurchase all shares (vested and unvested)' : 'No buyback provision'}<br/>
-            <strong>Buyback Price:</strong> ${d.buyback_price_method === 'fair_market_value' ? 'Fair Market Value' : d.buyback_price_method === 'cost_basis' ? 'Original Cost Basis' : 'Formula-based'}
+            <strong>Good Leaver:</strong> ${rawData.good_leaver_buyback ? 'Company may repurchase unvested shares' : 'No buyback provision'}<br/>
+            <strong>Bad Leaver:</strong> ${rawData.bad_leaver_buyback ? 'Company may repurchase all shares (vested and unvested)' : 'No buyback provision'}<br/>
+            <strong>Buyback Price:</strong> ${rawData.buyback_price_method === 'fair_market_value' ? 'Fair Market Value' : rawData.buyback_price_method === 'cost_basis' ? 'Original Cost Basis' : 'Formula-based'}
           </p>
         </section>
         
@@ -217,7 +233,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
           <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">7. GOVERNING LAW & DISPUTES</h2>
           <p style="line-height: 1.8;">
             This Agreement shall be governed by the laws of the State of <strong>${d.governing_law_state || '[State]'}</strong>.<br/>
-            Dispute resolution method: <strong>${d.dispute_resolution === 'arbitration' ? 'Binding Arbitration' : d.dispute_resolution === 'litigation' ? 'Court Litigation' : 'Mediation, then Arbitration'}</strong>
+            Dispute resolution method: <strong>${rawData.dispute_resolution === 'arbitration' ? 'Binding Arbitration' : rawData.dispute_resolution === 'litigation' ? 'Court Litigation' : 'Mediation, then Arbitration'}</strong>
           </p>
         </section>
         
@@ -251,12 +267,41 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </footer>
       </div>
     `;
-    onPreviewUpdate(html);
-  }, [watchedValues, onPreviewUpdate, totalEquity, equityBalanced]);
+    onPreviewUpdate(sanitizePreviewHTML(html));
+  }, [onPreviewUpdate, computeEquity]);
 
+  // Subscription-based watch for debounced preview (no full re-renders)
   useEffect(() => {
-    generatePreview();
-  }, [generatePreview]);
+    const subscription = form.watch((values) => {
+      formValuesRef.current = values as FounderAgreementFormData;
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = setTimeout(() => {
+        generatePreview(formValuesRef.current);
+      }, 300);
+    });
+    generatePreview(form.getValues());
+    return () => {
+      subscription.unsubscribe();
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, [form, generatePreview]);
+
+  // Watched fields needed for Select/Checkbox controlled components
+  const companyType = form.watch('company_type');
+  const buybackPriceMethod = form.watch('buyback_price_method');
+  const disputeResolution = form.watch('dispute_resolution');
+  const accelerationOnExit = form.watch('acceleration_on_exit');
+  const accelerationOnTermination = form.watch('acceleration_on_termination');
+  const ipAssignment = form.watch('ip_assignment');
+  const dragAlong = form.watch('drag_along');
+  const tagAlong = form.watch('tag_along');
+  const rightOfFirstRefusal = form.watch('right_of_first_refusal');
+  const majorDecisionsRequireUnanimous = form.watch('major_decisions_require_unanimous');
+
+  // Equity calculation from watched founders
+  const watchedFounders = form.watch('founders');
+  const totalEquity = watchedFounders.reduce((sum, f) => sum + (f.equity_percent || 0), 0);
+  const equityBalanced = Math.abs(totalEquity - 100) < 0.01;
 
   const handleAutoFill = useCallback((data: Record<string, unknown>) => {
     if (data.company_name) setValue('company_name', String(data.company_name));
@@ -269,6 +314,16 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
+      {/* Draft recovery banner */}
+      <DocDraftBanner
+        hasDraft={hasDraft}
+        draftAge={draftAge}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        onRestore={restoreDraft}
+        onDismiss={dismissDraft}
+      />
+
       {/* Auto-fill from Analysis */}
       <AutoFillButton onAutoFill={handleAutoFill} />
 
@@ -293,7 +348,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="space-y-2">
               <Label htmlFor="company_type">Entity Type *</Label>
               <Select
-                value={watchedValues.company_type}
+                value={companyType}
                 onValueChange={(v) => setValue('company_type', v as FounderAgreementFormData['company_type'])}
               >
                 <SelectTrigger id="company_type">
@@ -482,7 +537,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="acceleration_on_exit"
-                checked={watchedValues.acceleration_on_exit}
+                checked={accelerationOnExit}
                 onCheckedChange={(checked) => setValue('acceleration_on_exit', !!checked)}
               />
               <Label htmlFor="acceleration_on_exit" className="cursor-pointer">
@@ -492,7 +547,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="acceleration_on_termination"
-                checked={watchedValues.acceleration_on_termination}
+                checked={accelerationOnTermination}
                 onCheckedChange={(checked) => setValue('acceleration_on_termination', !!checked)}
               />
               <Label htmlFor="acceleration_on_termination" className="cursor-pointer">
@@ -502,7 +557,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="ip_assignment"
-                checked={watchedValues.ip_assignment}
+                checked={ipAssignment}
                 onCheckedChange={(checked) => setValue('ip_assignment', !!checked)}
               />
               <Label htmlFor="ip_assignment" className="cursor-pointer">
@@ -535,7 +590,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="space-y-2">
               <Label>Buyback Price Method</Label>
               <Select
-                value={watchedValues.buyback_price_method}
+                value={buybackPriceMethod}
                 onValueChange={(v) => setValue('buyback_price_method', v as FounderAgreementFormData['buyback_price_method'])}
               >
                 <SelectTrigger>
@@ -554,7 +609,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="drag_along"
-                checked={watchedValues.drag_along}
+                checked={dragAlong}
                 onCheckedChange={(checked) => setValue('drag_along', !!checked)}
               />
               <Label htmlFor="drag_along" className="cursor-pointer">Drag-Along Rights</Label>
@@ -562,7 +617,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="tag_along"
-                checked={watchedValues.tag_along}
+                checked={tagAlong}
                 onCheckedChange={(checked) => setValue('tag_along', !!checked)}
               />
               <Label htmlFor="tag_along" className="cursor-pointer">Tag-Along Rights</Label>
@@ -570,7 +625,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="right_of_first_refusal"
-                checked={watchedValues.right_of_first_refusal}
+                checked={rightOfFirstRefusal}
                 onCheckedChange={(checked) => setValue('right_of_first_refusal', !!checked)}
               />
               <Label htmlFor="right_of_first_refusal" className="cursor-pointer">Right of First Refusal</Label>
@@ -578,7 +633,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="flex items-center gap-2">
               <Checkbox
                 id="major_decisions_require_unanimous"
-                checked={watchedValues.major_decisions_require_unanimous}
+                checked={majorDecisionsRequireUnanimous}
                 onCheckedChange={(checked) => setValue('major_decisions_require_unanimous', !!checked)}
               />
               <Label htmlFor="major_decisions_require_unanimous" className="cursor-pointer">Unanimous Major Decisions</Label>
@@ -607,7 +662,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
             <div className="space-y-2">
               <Label>Dispute Resolution</Label>
               <Select
-                value={watchedValues.dispute_resolution}
+                value={disputeResolution}
                 onValueChange={(v) => setValue('dispute_resolution', v as FounderAgreementFormData['dispute_resolution'])}
               >
                 <SelectTrigger>

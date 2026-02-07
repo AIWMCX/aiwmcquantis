@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useTemplates, useTemplate } from '@/hooks/useTemplates';
 import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
@@ -7,7 +7,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { DocumentEditor } from '@/components/docs/DocumentEditor';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
-import { InvoiceForm, QuarterlySummaryForm, NDAForm, BusinessPlanForm, PitchDeckForm, OnePagePlanForm, FinancialForecastForm, PartnershipForm, FounderAgreementForm, MarketAnalysisForm } from '@/components/docs/forms';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -34,6 +33,29 @@ import { DocumentsList } from '@/components/docs/DocumentsList';
 import type { DocTemplate, Document } from '@/types/document';
 import { sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import '@/styles/docs-studio.css';
+
+// Lazy-load form components - only the selected template loads
+const InvoiceForm = lazy(() => import('@/components/docs/forms/InvoiceForm').then(m => ({ default: m.InvoiceForm })));
+const QuarterlySummaryForm = lazy(() => import('@/components/docs/forms/QuarterlySummaryForm').then(m => ({ default: m.QuarterlySummaryForm })));
+const NDAForm = lazy(() => import('@/components/docs/forms/NDAForm').then(m => ({ default: m.NDAForm })));
+const BusinessPlanForm = lazy(() => import('@/components/docs/forms/BusinessPlanForm').then(m => ({ default: m.BusinessPlanForm })));
+const PitchDeckForm = lazy(() => import('@/components/docs/forms/PitchDeckForm').then(m => ({ default: m.PitchDeckForm })));
+const OnePagePlanForm = lazy(() => import('@/components/docs/forms/OnePagePlanForm').then(m => ({ default: m.OnePagePlanForm })));
+const FinancialForecastForm = lazy(() => import('@/components/docs/forms/FinancialForecastForm').then(m => ({ default: m.FinancialForecastForm })));
+const PartnershipForm = lazy(() => import('@/components/docs/forms/PartnershipForm').then(m => ({ default: m.PartnershipForm })));
+const FounderAgreementForm = lazy(() => import('@/components/docs/forms/FounderAgreementForm').then(m => ({ default: m.FounderAgreementForm })));
+const MarketAnalysisForm = lazy(() => import('@/components/docs/forms/MarketAnalysisForm').then(m => ({ default: m.MarketAnalysisForm })));
+
+// Loading fallback for lazy forms
+function FormLoadingSkeleton() {
+  return (
+    <div className="space-y-6">
+      <Skeleton className="h-12 w-full rounded-lg" />
+      <Skeleton className="h-64 w-full rounded-lg" />
+      <Skeleton className="h-48 w-full rounded-lg" />
+    </div>
+  );
+}
 
 type Step = 'list' | 'pick-template' | 'generate' | 'edit';
 
@@ -421,95 +443,97 @@ export default function DocsStudio() {
           <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl'}`}>
             {/* Left Column: Form */}
             <div className="space-y-6">
-              {selectedTemplateId === 'professional-invoice' && (
-                <InvoiceForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+              <Suspense fallback={<FormLoadingSkeleton />}>
+                {selectedTemplateId === 'professional-invoice' && (
+                  <InvoiceForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'quarterly-summary' && (
-                <QuarterlySummaryForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'quarterly-summary' && (
+                  <QuarterlySummaryForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'nda-agreement' && (
-                <NDAForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'nda-agreement' && (
+                  <NDAForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'business-plan' && (
-                <BusinessPlanForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'business-plan' && (
+                  <BusinessPlanForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'pitch-deck' && (
-                <PitchDeckForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'pitch-deck' && (
+                  <PitchDeckForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'one-page-plan' && (
-                <OnePagePlanForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'one-page-plan' && (
+                  <OnePagePlanForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'financial-forecast' && (
-                <FinancialForecastForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'financial-forecast' && (
+                  <FinancialForecastForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'partnership-proposal' && (
-                <PartnershipForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'partnership-proposal' && (
+                  <PartnershipForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'founder-agreement' && (
-                <FounderAgreementForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'founder-agreement' && (
+                  <FounderAgreementForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
 
-              {selectedTemplateId === 'market-analysis' && (
-                <MarketAnalysisForm
-                  template={selectedTemplate}
-                  onGenerate={handleGenerate}
-                  onPreviewUpdate={handlePreviewUpdate}
-                  isGenerating={isCreating}
-                />
-              )}
+                {selectedTemplateId === 'market-analysis' && (
+                  <MarketAnalysisForm
+                    template={selectedTemplate}
+                    onGenerate={handleGenerate}
+                    onPreviewUpdate={handlePreviewUpdate}
+                    isGenerating={isCreating}
+                  />
+                )}
+              </Suspense>
             </div>
 
             {/* Right Column: Live Preview */}
