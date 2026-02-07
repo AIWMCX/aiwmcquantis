@@ -13,6 +13,7 @@ import { AutoFillButton } from '../AutoFillButton';
 import { AISuggestionButton } from '../AISuggestionButton';
 import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
 import { useDocFormDraft } from '@/hooks/useDocFormDraft';
+import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import type { DocTemplate } from '@/types/document';
 
 const partnershipSchema = z.object({
@@ -131,7 +132,8 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
   }, [form, onPreviewUpdate]);
 
   // Generate preview HTML
-  const generatePreview = useCallback((d: PartnershipFormData) => {
+  const generatePreview = useCallback((rawData: PartnershipFormData) => {
+    const d = escapeFormValues(rawData as unknown as Record<string, unknown>) as unknown as PartnershipFormData;
     const partnershipType = PARTNERSHIP_TYPES.find(t => t.value === d.partnership_type)?.label || d.partnership_type;
     
     const html = `
@@ -220,7 +222,7 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
         </footer>
       </div>
     `;
-    onPreviewUpdate(html);
+    onPreviewUpdate(sanitizePreviewHTML(html));
   }, [onPreviewUpdate]);
 
   // Provide watchedValues for Select components via form.watch on specific fields
