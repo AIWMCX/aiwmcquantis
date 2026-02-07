@@ -46,7 +46,6 @@ const TEMPLATE_CARDS = [
     category: 'financial',
     popular: true,
     hasQuantisIntegration: true,
-    usageCount: 1247,
   },
   {
     id: 'quarterly-summary',
@@ -58,7 +57,6 @@ const TEMPLATE_CARDS = [
     popular: true,
     hasQuantisIntegration: true,
     hasAI: true,
-    usageCount: 892,
   },
   {
     id: 'nda-agreement',
@@ -69,7 +67,6 @@ const TEMPLATE_CARDS = [
     category: 'legal',
     popular: true,
     hasQuantisIntegration: true,
-    usageCount: 634,
   },
   {
     id: 'business-plan',
@@ -81,7 +78,6 @@ const TEMPLATE_CARDS = [
     popular: true,
     hasQuantisIntegration: true,
     hasAI: true,
-    usageCount: 756,
   },
   {
     id: 'pitch-deck',
@@ -93,7 +89,6 @@ const TEMPLATE_CARDS = [
     popular: true,
     hasQuantisIntegration: true,
     hasAI: true,
-    usageCount: 543,
   },
   {
     id: 'one-page-plan',
@@ -103,7 +98,6 @@ const TEMPLATE_CARDS = [
     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
     category: 'planning',
     hasQuantisIntegration: true,
-    usageCount: 421,
   },
   {
     id: 'financial-forecast',
@@ -113,7 +107,6 @@ const TEMPLATE_CARDS = [
     color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     category: 'financial',
     hasQuantisIntegration: true,
-    usageCount: 389,
   },
   {
     id: 'partnership-proposal',
@@ -124,7 +117,6 @@ const TEMPLATE_CARDS = [
     category: 'legal',
     hasQuantisIntegration: true,
     hasAI: true,
-    usageCount: 234,
   },
   {
     id: 'founder-agreement',
@@ -133,7 +125,6 @@ const TEMPLATE_CARDS = [
     icon: Users,
     color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
     category: 'legal',
-    usageCount: 312,
   },
   {
     id: 'market-analysis',
@@ -144,17 +135,7 @@ const TEMPLATE_CARDS = [
     category: 'planning',
     hasQuantisIntegration: true,
     hasAI: true,
-    usageCount: 467,
   },
-];
-
-// Template categories for filtering
-const TEMPLATE_CATEGORIES = [
-  { id: 'all', name: 'All Templates', icon: '📄' },
-  { id: 'financial', name: 'Financial', icon: '💵' },
-  { id: 'legal', name: 'Legal', icon: '⚖️' },
-  { id: 'planning', name: 'Planning', icon: '📊' },
-  { id: 'fundraising', name: 'Fundraising', icon: '💰' },
 ];
 
 export default function DocsStudio() {
@@ -181,9 +162,7 @@ export default function DocsStudio() {
   // Get current user for email check
   const { user } = useAuth();
   
-  // TEMPORARY: Only allow specific user during beta testing
-  const ALLOWED_BETA_EMAILS = ['beltovbogdan@gmail.com'];
-  const isAllowedBetaUser = user?.email && ALLOWED_BETA_EMAILS.includes(user.email.toLowerCase());
+  // Beta whitelist removed - all Plus subscribers can now access Docs Studio
 
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
@@ -256,8 +235,7 @@ export default function DocsStudio() {
   }
 
   // CRITICAL: Gate feature behind Plus subscription
-  // Also restrict to allowed beta users during testing
-  if (!isPlus || !isAllowedBetaUser) {
+  if (!isPlus) {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto p-6">
@@ -284,16 +262,10 @@ export default function DocsStudio() {
                   Docs Studio
                 </h1>
                 
-                {isPlus && !isAllowedBetaUser ? (
-                  <p className="text-muted-foreground mb-8">
-                    Docs Studio is currently in beta testing. Access will be available soon for all Plus subscribers.
-                  </p>
-                ) : (
-                  <p className="text-muted-foreground mb-8">
-                    Generate professional business documents instantly with AI-powered templates, 
-                    automatic calculations, and one-click export. Included free with your Plus subscription.
-                  </p>
-                )}
+                <p className="text-muted-foreground mb-8">
+                  Generate professional business documents instantly with AI-powered templates, 
+                  automatic calculations, and one-click export. Included free with your Plus subscription.
+                </p>
 
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
                   <div className="p-4 rounded-lg bg-muted/50">
@@ -313,26 +285,18 @@ export default function DocsStudio() {
                   </div>
                 </div>
 
-                {isPlus && !isAllowedBetaUser ? (
-                  <p className="text-sm text-muted-foreground">
-                    You have Plus access. Beta access coming soon!
-                  </p>
-                ) : (
-                  <>
-                    <Button 
-                      size="lg" 
-                      onClick={() => setShowUpgradePrompt(true)}
-                      className="gap-2"
-                    >
-                      <Sparkles className="w-4 h-4" />
-                      Upgrade to Plus - $17/mo
-                    </Button>
-                    
-                    <p className="text-xs text-muted-foreground mt-4">
-                      14-day free trial • Cancel anytime
-                    </p>
-                  </>
-                )}
+                <Button 
+                  size="lg" 
+                  onClick={() => setShowUpgradePrompt(true)}
+                  className="gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Upgrade to Plus - $17/mo
+                </Button>
+                
+                <p className="text-xs text-muted-foreground mt-4">
+                  14-day free trial • Cancel anytime
+                </p>
               </div>
             </CardContent>
           </Card>
@@ -340,28 +304,40 @@ export default function DocsStudio() {
           {/* Feature Highlights */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold mb-2">📄 Professional Templates</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <FileText className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Professional Templates</h3>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Pre-built templates for invoices, quarterly reports, NDAs, and more. 
-                All legally reviewed and professionally formatted.
+                All professionally formatted.
               </p>
             </div>
             <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold mb-2">⚡ Instant Generation</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <Zap className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Instant Generation</h3>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Fill in the details once, get a perfect document. Auto-calculate 
                 totals, taxes, and financial metrics.
               </p>
             </div>
             <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold mb-2">🔗 Analysis Integration</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <BarChart3 className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Analysis Integration</h3>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Connect your business analyses to automatically populate 
                 financial projections in your documents.
               </p>
             </div>
             <div className="p-6 rounded-lg border bg-card">
-              <h3 className="font-semibold mb-2">📥 Export Anywhere</h3>
+              <div className="flex items-center gap-2 mb-2">
+                <FileSpreadsheet className="w-5 h-5 text-primary" />
+                <h3 className="font-semibold">Export Anywhere</h3>
+              </div>
               <p className="text-sm text-muted-foreground">
                 Download as PDF, DOCX, or Markdown. Share with investors, 
                 partners, or your team.
@@ -628,10 +604,6 @@ export default function DocsStudio() {
                           Auto-fill
                         </span>
                       )}
-                      <span className="doc-usage-badge">
-                        <Users className="w-3 h-3" />
-                        {template.usageCount?.toLocaleString() || '0'} created
-                      </span>
                     </div>
                     
                     <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground" variant="outline">

@@ -56,11 +56,11 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
       effective_date: today,
       jurisdiction: prefilled?.header?.jurisdiction || 'State of Colorado, United States',
       
-      party_a_name: prefilled?.parties?.party_a?.legal_name || 'AIWMC AI Agency LLC',
-      party_a_address: prefilled?.parties?.party_a?.address || '1234 Innovation Drive, Suite 100',
-      party_a_city: prefilled?.parties?.party_a?.city_state_zip || 'Denver, Colorado 80202',
-      party_a_rep: prefilled?.parties?.party_a?.represented_by || 'Bogdan Jeltov, Chief Executive Officer',
-      party_a_email: prefilled?.parties?.party_a?.email || 'legal@aiwmc.com',
+      party_a_name: prefilled?.parties?.party_a?.legal_name || '',
+      party_a_address: prefilled?.parties?.party_a?.address || '',
+      party_a_city: prefilled?.parties?.party_a?.city_state_zip || '',
+      party_a_rep: prefilled?.parties?.party_a?.represented_by || '',
+      party_a_email: prefilled?.parties?.party_a?.email || '',
       
       party_b_name: '[Company Name]',
       party_b_address: '[Street Address]',

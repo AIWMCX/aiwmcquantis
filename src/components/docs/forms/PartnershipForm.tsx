@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -11,6 +11,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Loader2, Handshake, Building2, Users, Target, FileText, Calendar, DollarSign } from 'lucide-react';
 import { AutoFillButton } from '../AutoFillButton';
 import { AISuggestionButton } from '../AISuggestionButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { DocTemplate } from '@/types/document';
 
 const partnershipSchema = z.object({
@@ -96,12 +98,40 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
     },
   });
 
-  const { watch, setValue, handleSubmit, formState: { errors } } = form;
-  const watchedValues = watch();
+  const { setValue, handleSubmit, formState: { errors } } = form;
+
+  // Draft persistence
+  const {
+    hasDraft,
+    draftAge,
+    restoreDraft,
+    dismissDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'partnership-proposal',
+  });
+
+  // Optimized: subscription-based watch to avoid re-renders
+  const formValuesRef = useRef(form.getValues());
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
+  useEffect(() => {
+    const subscription = form.watch((values) => {
+      formValuesRef.current = values as PartnershipFormData;
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = setTimeout(() => {
+        generatePreview(formValuesRef.current);
+      }, 300);
+    });
+    generatePreview(form.getValues());
+    return () => {
+      subscription.unsubscribe();
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, [form, onPreviewUpdate]);
 
   // Generate preview HTML
-  const generatePreview = useCallback(() => {
-    const d = watchedValues;
+  const generatePreview = useCallback((d: PartnershipFormData) => {
     const partnershipType = PARTNERSHIP_TYPES.find(t => t.value === d.partnership_type)?.label || d.partnership_type;
     
     const html = `
@@ -191,12 +221,13 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
       </div>
     `;
     onPreviewUpdate(html);
-  }, [watchedValues, onPreviewUpdate]);
+  }, [onPreviewUpdate]);
 
-  useEffect(() => {
-    generatePreview();
-  }, [generatePreview]);
-
+  // Provide watchedValues for Select components via form.watch on specific fields
+  const partnershipType = form.watch('partnership_type');
+  const exclusivity = form.watch('exclusivity');
+  const yourCompanyName = form.watch('your_company_name');
+  const partnerCompanyName = form.watch('partner_company_name');
   const handleAutoFill = useCallback((data: Record<string, unknown>) => {
     if (data.company_name) setValue('your_company_name', String(data.company_name));
     if (data.location) setValue('your_company_address', String(data.location));
@@ -339,7 +370,7 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
             <div className="space-y-2">
               <Label htmlFor="partnership_type">Partnership Type *</Label>
               <Select
-                value={watchedValues.partnership_type}
+                value={partnershipType}
                 onValueChange={(v) => setValue('partnership_type', v as PartnershipFormData['partnership_type'])}
               >
                 <SelectTrigger id="partnership_type">
@@ -370,9 +401,9 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
               <AISuggestionButton
                 sectionType="partnership_objective"
                 context={{
-                  company_name: watchedValues.your_company_name,
-                  partner_name: watchedValues.partner_company_name,
-                  partnership_type: watchedValues.partnership_type,
+                  company_name: yourCompanyName,
+                  partner_name: partnerCompanyName,
+                  partnership_type: partnershipType,
                 }}
                 onApply={(text) => setValue('partnership_objective', text)}
               />
@@ -391,9 +422,9 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
               <AISuggestionButton
                 sectionType="value_proposition"
                 context={{
-                  company_name: watchedValues.your_company_name,
-                  partner_name: watchedValues.partner_company_name,
-                  partnership_type: watchedValues.partnership_type,
+                  company_name: yourCompanyName,
+                  partner_name: partnerCompanyName,
+                  partnership_type: partnershipType,
                 }}
                 onApply={(text) => setValue('value_proposition', text)}
               />
@@ -431,7 +462,7 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
             <div className="space-y-2">
               <Label htmlFor="exclusivity">Exclusivity</Label>
               <Select
-                value={watchedValues.exclusivity}
+                value={exclusivity}
                 onValueChange={(v) => setValue('exclusivity', v as PartnershipFormData['exclusivity'])}
               >
                 <SelectTrigger id="exclusivity">
