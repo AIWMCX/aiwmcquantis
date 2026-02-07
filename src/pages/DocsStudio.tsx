@@ -1,23 +1,17 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { useTemplates, useTemplate } from '@/hooks/useTemplates';
-import { useCreateDocument, useDocument } from '@/hooks/useDocuments';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
-import { DocumentEditor } from '@/components/docs/DocumentEditor';
+import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
-import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { 
   ArrowLeft, 
-  Plus, 
   FileText, 
-  FolderOpen, 
   Eye, 
   EyeOff,
   Sparkles,
@@ -28,10 +22,13 @@ import {
   Loader2,
   Zap,
   Users,
+  Download,
+  Crown,
+  AlertTriangle,
 } from 'lucide-react';
-import { DocumentsList } from '@/components/docs/DocumentsList';
-import type { DocTemplate, Document } from '@/types/document';
+import type { DocTemplate } from '@/types/document';
 import { sanitizePreviewHTML } from '@/lib/htmlSanitizer';
+import { toast } from 'sonner';
 import '@/styles/docs-studio.css';
 
 // Lazy-load form components - only the selected template loads
@@ -57,7 +54,7 @@ function FormLoadingSkeleton() {
   );
 }
 
-type Step = 'list' | 'pick-template' | 'generate' | 'edit';
+type Step = 'pick-template' | 'generate';
 
 // Template configuration with categories and badges
 const TEMPLATE_CARDS = [
@@ -70,6 +67,7 @@ const TEMPLATE_CARDS = [
     category: 'financial',
     popular: true,
     hasQuantisIntegration: true,
+    freeTier: true,
   },
   {
     id: 'quarterly-summary',
@@ -80,7 +78,7 @@ const TEMPLATE_CARDS = [
     category: 'financial',
     popular: true,
     hasQuantisIntegration: true,
-    hasAI: true,
+    freeTier: true,
   },
   {
     id: 'nda-agreement',
@@ -91,6 +89,7 @@ const TEMPLATE_CARDS = [
     category: 'legal',
     popular: true,
     hasQuantisIntegration: true,
+    freeTier: true,
   },
   {
     id: 'business-plan',
@@ -101,7 +100,7 @@ const TEMPLATE_CARDS = [
     category: 'planning',
     popular: true,
     hasQuantisIntegration: true,
-    hasAI: true,
+    freeTier: false,
   },
   {
     id: 'pitch-deck',
@@ -112,7 +111,7 @@ const TEMPLATE_CARDS = [
     category: 'fundraising',
     popular: true,
     hasQuantisIntegration: true,
-    hasAI: true,
+    freeTier: false,
   },
   {
     id: 'one-page-plan',
@@ -122,6 +121,7 @@ const TEMPLATE_CARDS = [
     color: 'bg-cyan-100 text-cyan-700 dark:bg-cyan-900/30 dark:text-cyan-400',
     category: 'planning',
     hasQuantisIntegration: true,
+    freeTier: false,
   },
   {
     id: 'financial-forecast',
@@ -131,6 +131,7 @@ const TEMPLATE_CARDS = [
     color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400',
     category: 'financial',
     hasQuantisIntegration: true,
+    freeTier: false,
   },
   {
     id: 'partnership-proposal',
@@ -140,7 +141,7 @@ const TEMPLATE_CARDS = [
     color: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
     category: 'legal',
     hasQuantisIntegration: true,
-    hasAI: true,
+    freeTier: false,
   },
   {
     id: 'founder-agreement',
@@ -149,6 +150,7 @@ const TEMPLATE_CARDS = [
     icon: Users,
     color: 'bg-violet-100 text-violet-700 dark:bg-violet-900/30 dark:text-violet-400',
     category: 'legal',
+    freeTier: false,
   },
   {
     id: 'market-analysis',
@@ -158,7 +160,7 @@ const TEMPLATE_CARDS = [
     color: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
     category: 'planning',
     hasQuantisIntegration: true,
-    hasAI: true,
+    freeTier: false,
   },
 ];
 
@@ -168,89 +170,102 @@ export default function DocsStudio() {
   const analysisId = searchParams.get('analysis') || undefined;
   
   // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
-  const [step, setStep] = useState<Step>('list');
+  const [step, setStep] = useState<Step>('pick-template');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
-  const [editingDocId, setEditingDocId] = useState<string | null>(null);
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
-  const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
-  
-  const { data: templates, isLoading: templatesLoading } = useTemplates();
-  const { data: selectedTemplate } = useTemplate(selectedTemplateId || '');
-  const { data: editingDoc } = useDocument(editingDocId || '');
-  const { mutate: createDocument, isPending: isCreating } = useCreateDocument();
   
   // CRITICAL: Check subscription status
-  const { isPlus, loading: subscriptionLoading, remainingAnalyses } = useSubscription();
+  const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
   
-  // Get current user for email check
-  const { user } = useAuth();
+  // Get current user
+  const { user, isLoading: authLoading } = useAuth();
   
   // Client-side document download
   const { downloadPDF, downloadHTML, isDownloading } = useDocumentDownload();
   
-  // Beta whitelist removed - all Plus subscribers can now access Docs Studio
+  // Download rate limiting
+  const { 
+    canDownload, 
+    downloadsToday, 
+    dailyLimit, 
+    isUnlimited, 
+    isFreeTier, 
+    isTemplateAvailable, 
+    recordDownload,
+    nextResetAt,
+    isLoading: limitLoading,
+  } = useDocDownloadLimit();
 
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
     setPreviewHTML(html);
   }, []);
 
-  const handleGenerate = useCallback((documentData: Record<string, unknown>) => {
-    if (!selectedTemplate) return;
-
-    // Generate initial document JSON from template + user data
-    const documentJson = {
-      type: 'doc',
-      content: [
-        {
-          type: 'paragraph',
-          content: [{ type: 'text', text: 'Document generated from template' }],
-        },
-      ],
-    };
-
-    createDocument({
-      templateId: selectedTemplate.template_id,
-      analysisId,
-      title: `${selectedTemplate.name} - ${new Date().toLocaleDateString()}`,
-      variables: documentData,
-      documentJson,
-    }, {
-      onSuccess: (doc) => {
-        setEditingDocId(doc.id);
-        setStep('edit');
-      },
-    });
-  }, [selectedTemplate, analysisId, createDocument]);
+  // No-op for onGenerate since we removed the save-to-DB flow
+  const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
+    // Forms still call onGenerate on submit, but we no longer save to DB
+    // The download flow is now the only way to export
+    toast.info('Use the Download button on the preview to export your document.');
+  }, []);
 
   const handleTemplateSelect = useCallback((templateId: string) => {
     setSelectedTemplateId(templateId);
     setStep('generate');
   }, []);
 
-  const handleEditDocument = useCallback((doc: Document) => {
-    setEditingDocId(doc.id);
-    setStep('edit');
-  }, []);
-
   const handleBack = useCallback(() => {
-    if (step === 'edit') {
-      setEditingDocId(null);
-      setStep('list');
-    } else if (step === 'generate') {
+    if (step === 'generate') {
       setSelectedTemplateId(null);
       setPreviewHTML('');
       setStep('pick-template');
-    } else if (step === 'pick-template') {
-      setStep('list');
     }
   }, [step]);
 
+  // Rate-limited download handlers
+  const handleDownloadPDF = useCallback(async () => {
+    if (!selectedTemplateId || !previewHTML) return;
+    
+    if (!isUnlimited) {
+      const allowed = await recordDownload(selectedTemplateId, 'pdf');
+      if (!allowed) {
+        toast.error('Daily download limit reached. Upgrade to Plus for unlimited downloads.', {
+          duration: 5000,
+        });
+        return;
+      }
+    } else {
+      // Plus users: record but don't block
+      await recordDownload(selectedTemplateId, 'pdf');
+    }
+    
+    const templateCard = TEMPLATE_CARDS.find(t => t.id === selectedTemplateId);
+    downloadPDF(previewHTML, templateCard?.name);
+  }, [selectedTemplateId, previewHTML, isUnlimited, recordDownload, downloadPDF]);
+
+  const handleDownloadHTML = useCallback(async () => {
+    if (!selectedTemplateId || !previewHTML) return;
+    
+    if (!isUnlimited) {
+      const allowed = await recordDownload(selectedTemplateId, 'html');
+      if (!allowed) {
+        toast.error('Daily download limit reached. Upgrade to Plus for unlimited downloads.', {
+          duration: 5000,
+        });
+        return;
+      }
+    } else {
+      await recordDownload(selectedTemplateId, 'html');
+    }
+    
+    const templateCard = TEMPLATE_CARDS.find(t => t.id === selectedTemplateId);
+    downloadHTML(previewHTML, templateCard?.name);
+  }, [selectedTemplateId, previewHTML, isUnlimited, recordDownload, downloadHTML]);
+
   // NOW we can have conditional returns - after all hooks are defined
 
-  // Show loading while checking subscription
-  if (subscriptionLoading) {
+  // Show loading while checking auth/subscription
+  if (authLoading || subscriptionLoading || limitLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">
@@ -261,140 +276,20 @@ export default function DocsStudio() {
     );
   }
 
-  // CRITICAL: Gate feature behind Plus subscription
-  if (!isPlus) {
+  // Require authentication
+  if (!user) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-4xl mx-auto p-6">
-          {/* Back button */}
-          <Button variant="ghost" onClick={() => navigate('/app')} className="mb-8 -ml-2">
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Back to Dashboard
-          </Button>
-
-          {/* Locked Feature Card */}
-          <Card className="border-2 border-dashed border-primary/30">
-            <CardContent className="py-16">
-              <div className="text-center max-w-md mx-auto">
-                <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6">
-                  <Lock className="w-10 h-10 text-primary" />
-                </div>
-                
-                <Badge variant="secondary" className="mb-4">
-                  <Sparkles className="w-3 h-3 mr-1" />
-                  Plus Feature
-                </Badge>
-                
-                <h1 className="text-3xl font-bold text-foreground mb-4">
-                  Docs Studio
-                </h1>
-                
-                <p className="text-muted-foreground mb-8">
-                  Generate professional business documents instantly with AI-powered templates, 
-                  automatic calculations, and one-click export. Included free with your Plus subscription.
-                </p>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 text-left">
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <FileSpreadsheet className="w-6 h-6 text-primary mb-2" />
-                    <h3 className="font-medium text-sm">Invoices</h3>
-                    <p className="text-xs text-muted-foreground">Auto-calculate totals</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <BarChart3 className="w-6 h-6 text-primary mb-2" />
-                    <h3 className="font-medium text-sm">Reports</h3>
-                    <p className="text-xs text-muted-foreground">Financial summaries</p>
-                  </div>
-                  <div className="p-4 rounded-lg bg-muted/50">
-                    <Scale className="w-6 h-6 text-primary mb-2" />
-                    <h3 className="font-medium text-sm">Legal Docs</h3>
-                    <p className="text-xs text-muted-foreground">NDAs & contracts</p>
-                  </div>
-                </div>
-
-                <Button 
-                  size="lg" 
-                  onClick={() => setShowUpgradePrompt(true)}
-                  className="gap-2"
-                >
-                  <Sparkles className="w-4 h-4" />
-                  Upgrade to Plus - $17/mo
-                </Button>
-                
-                <p className="text-xs text-muted-foreground mt-4">
-                  14-day free trial • Cancel anytime
-                </p>
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Feature Highlights */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-6">
-            <div className="p-6 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <FileText className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Professional Templates</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Pre-built templates for invoices, quarterly reports, NDAs, and more. 
-                All professionally formatted.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <Zap className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Instant Generation</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Fill in the details once, get a perfect document. Auto-calculate 
-                totals, taxes, and financial metrics.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <BarChart3 className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Analysis Integration</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Connect your business analyses to automatically populate 
-                financial projections in your documents.
-              </p>
-            </div>
-            <div className="p-6 rounded-lg border bg-card">
-              <div className="flex items-center gap-2 mb-2">
-                <FileSpreadsheet className="w-5 h-5 text-primary" />
-                <h3 className="font-semibold">Export Anywhere</h3>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Download as PDF, DOCX, or Markdown. Share with investors, 
-                partners, or your team.
-              </p>
-            </div>
-          </div>
-        </div>
-
-        <UpgradePrompt 
-          open={showUpgradePrompt} 
-          onOpenChange={setShowUpgradePrompt}
-          remainingAnalyses={remainingAnalyses}
-        />
-      </div>
-    );
-  }
-
-  // Edit mode - full screen editor
-  if (step === 'edit' && editingDoc) {
-    return (
-      <div className="min-h-screen bg-background flex flex-col">
-        <header className="border-b border-border p-4">
-          <Button variant="ghost" onClick={handleBack} className="gap-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Documents
-          </Button>
-        </header>
-        <div className="flex-1">
-          <DocumentEditor document={editingDoc} onBack={handleBack} />
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <Card className="max-w-md w-full">
+          <CardContent className="py-12 text-center">
+            <Lock className="w-12 h-12 mx-auto mb-4 text-muted-foreground" />
+            <h2 className="text-xl font-bold mb-2">Sign in Required</h2>
+            <p className="text-muted-foreground mb-6">
+              Sign in to access Docs Studio and create professional documents.
+            </p>
+            <Button onClick={() => navigate('/auth')}>Sign In</Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -420,10 +315,10 @@ export default function DocsStudio() {
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-foreground">
-                    {templateCard?.name || selectedTemplate?.name || 'Create Document'}
+                    {templateCard?.name || 'Create Document'}
                   </h1>
                   <p className="text-muted-foreground">
-                    Fill in the details below. Content is pre-filled and fully customizable.
+                    Fill in the details below. Preview updates live.
                   </p>
                 </div>
               </div>
@@ -439,6 +334,35 @@ export default function DocsStudio() {
             </Button>
           </div>
 
+          {/* Free tier download limit banner */}
+          {isFreeTier && (
+            <div className="mb-6 p-4 rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/20 dark:border-amber-800 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                <div>
+                  <p className="text-sm font-medium text-amber-800 dark:text-amber-300">
+                    Free Tier: {downloadsToday}/{dailyLimit} download used today
+                  </p>
+                  <p className="text-xs text-amber-600 dark:text-amber-400">
+                    {canDownload
+                      ? 'You have 1 free download per day. Choose wisely!'
+                      : `Limit reached. Resets at ${nextResetAt.toLocaleTimeString()}`
+                    }
+                  </p>
+                </div>
+              </div>
+              <Button 
+                size="sm" 
+                variant="outline"
+                className="gap-1 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-300 dark:hover:bg-amber-900/30 shrink-0"
+                onClick={() => createCheckout('plus')}
+              >
+                <Crown className="w-3 h-3" />
+                Upgrade
+              </Button>
+            </div>
+          )}
+
           {/* Content Grid */}
           <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl'}`}>
             {/* Left Column: Form */}
@@ -446,91 +370,91 @@ export default function DocsStudio() {
               <Suspense fallback={<FormLoadingSkeleton />}>
                 {selectedTemplateId === 'professional-invoice' && (
                   <InvoiceForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'quarterly-summary' && (
                   <QuarterlySummaryForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'nda-agreement' && (
                   <NDAForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'business-plan' && (
                   <BusinessPlanForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'pitch-deck' && (
                   <PitchDeckForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'one-page-plan' && (
                   <OnePagePlanForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'financial-forecast' && (
                   <FinancialForecastForm
-                    template={selectedTemplate}
+                    template={undefined}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'partnership-proposal' && (
                   <PartnershipForm
-                    template={selectedTemplate}
+                    template={null}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'founder-agreement' && (
                   <FounderAgreementForm
-                    template={selectedTemplate}
+                    template={null}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
 
                 {selectedTemplateId === 'market-analysis' && (
                   <MarketAnalysisForm
-                    template={selectedTemplate}
+                    template={null}
                     onGenerate={handleGenerate}
                     onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={isCreating}
+                    isGenerating={false}
                   />
                 )}
               </Suspense>
@@ -564,10 +488,14 @@ export default function DocsStudio() {
                   </CardContent>
                   {/* Download actions */}
                   <PreviewDownloadBar
-                    onDownloadPDF={() => downloadPDF(previewHTML, templateCard?.name)}
-                    onDownloadHTML={() => downloadHTML(previewHTML, templateCard?.name)}
+                    onDownloadPDF={handleDownloadPDF}
+                    onDownloadHTML={handleDownloadHTML}
                     isDownloading={isDownloading}
                     hasContent={!!previewHTML}
+                    canDownload={canDownload || isUnlimited}
+                    isFreeTier={isFreeTier}
+                    downloadsToday={downloadsToday}
+                    dailyLimit={dailyLimit}
                   />
                 </Card>
               </div>
@@ -578,194 +506,139 @@ export default function DocsStudio() {
     );
   }
 
-  // Template picker view
-  if (step === 'pick-template') {
-    return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-6xl mx-auto p-6">
-          {/* Header */}
-          <div className="flex items-center justify-between mb-8">
-            <div>
-              <Button variant="ghost" onClick={handleBack} className="mb-4 -ml-2">
-                <ArrowLeft className="w-4 h-4 mr-2" />
-                Back
-              </Button>
-              <h1 className="text-3xl font-bold text-foreground">Choose a Template</h1>
-              <p className="text-muted-foreground">
-                Select a template to generate a professional document instantly
-              </p>
-            </div>
-          </div>
-
-          {/* Template Gallery */}
-          <div className="doc-template-gallery">
-            {TEMPLATE_CARDS.map((template) => {
-              const Icon = template.icon;
-              return (
-                <Card
-                  key={template.id}
-                  className="doc-template-card cursor-pointer group"
-                  onClick={() => handleTemplateSelect(template.id)}
-                >
-                  <CardHeader>
-                    <div className="flex items-start justify-between">
-                      <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                        <Icon className="w-7 h-7" />
-                      </div>
-                      <div className="flex flex-col items-end gap-1.5">
-                        {template.popular && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Popular
-                          </Badge>
-                        )}
-                        {template.hasAI && (
-                          <span className="doc-ai-badge">
-                            <Zap className="w-3 h-3" />
-                            AI
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
-                    
-                    {/* Feature badges */}
-                    <div className="flex items-center gap-2 mb-4 flex-wrap">
-                      {template.hasQuantisIntegration && (
-                        <span className="doc-quantis-badge">
-                          <Sparkles className="w-3 h-3" />
-                          Auto-fill
-                        </span>
-                      )}
-                    </div>
-                    
-                    <Button className="w-full group-hover:bg-primary group-hover:text-primary-foreground" variant="outline">
-                      <Sparkles className="w-4 h-4 mr-2" />
-                      Create {template.name.split(' ')[0]}
-                    </Button>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-
-          {/* Additional Templates from DB */}
-          {templatesLoading ? (
-            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-              {[1, 2, 3].map((i) => (
-                <Skeleton key={i} className="h-48 rounded-lg" />
-              ))}
-            </div>
-          ) : templates && templates.length > 3 && (
-            <div className="mt-8">
-              <h3 className="text-lg font-semibold mb-4">More Templates</h3>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {templates.slice(3).map((template) => (
-                  <Card
-                    key={template.id}
-                    className="cursor-pointer hover:shadow-md transition-shadow"
-                    onClick={() => handleTemplateSelect(template.template_id)}
-                  >
-                    <CardContent className="p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center">
-                          <FileText className="w-5 h-5 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <p className="font-medium">{template.name}</p>
-                          <p className="text-xs text-muted-foreground">{template.category}</p>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Default: List view with tabs
+  // Default: Template picker view
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto p-6">
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <div>
+            <Button variant="ghost" onClick={() => navigate('/app')} className="mb-4 -ml-2">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Dashboard
+            </Button>
             <h1 className="text-3xl font-bold text-foreground">Docs Studio</h1>
             <p className="text-muted-foreground">
-              Create professional documents from templates instantly
+              {isPlus 
+                ? 'Create professional documents from all 10 templates — unlimited downloads' 
+                : 'Create documents from 3 free templates — 1 download per day'
+              }
             </p>
           </div>
-          <Button onClick={() => setStep('pick-template')} className="gap-2">
-            <Plus className="w-4 h-4" />
-            New Document
-          </Button>
+          {isFreeTier && (
+            <Button 
+              onClick={() => createCheckout('plus')} 
+              className="gap-2"
+              variant="default"
+            >
+              <Crown className="w-4 h-4" />
+              Unlock All Templates
+            </Button>
+          )}
         </div>
 
-        {/* Tabs */}
-        <Tabs defaultValue="documents" className="w-full">
-          <TabsList className="mb-6">
-            <TabsTrigger value="documents" className="gap-2">
-              <FolderOpen className="w-4 h-4" />
-              My Documents
-            </TabsTrigger>
-            <TabsTrigger value="templates" className="gap-2">
-              <FileText className="w-4 h-4" />
-              Quick Create
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="documents">
-            <DocumentsList 
-              onEdit={handleEditDocument}
-              onNew={() => setStep('pick-template')}
-            />
-          </TabsContent>
-          
-          <TabsContent value="templates">
-            {/* Quick Template Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              {TEMPLATE_CARDS.map((template) => {
-                const Icon = template.icon;
-                return (
-                  <Card
-                    key={template.id}
-                    className="cursor-pointer hover:shadow-lg hover:border-primary/50 transition-all group"
-                    onClick={() => handleTemplateSelect(template.id)}
-                  >
-                    <CardHeader>
-                      <div className="flex items-start justify-between">
-                        <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center group-hover:scale-110 transition-transform`}>
-                          <Icon className="w-7 h-7" />
-                        </div>
-                        {template.popular && (
-                          <Badge variant="secondary" className="text-xs">
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Pre-filled
-                          </Badge>
-                        )}
-                      </div>
-                      <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-muted-foreground mb-4">{template.description}</p>
-                      <Button className="w-full" variant="outline">
-                        <Sparkles className="w-4 h-4 mr-2" />
-                        Create Instantly
-                      </Button>
-                    </CardContent>
-                  </Card>
-                );
-              })}
+        {/* Tier info banner for free users */}
+        {isFreeTier && (
+          <div className="mb-8 p-4 rounded-lg border bg-muted/30">
+            <div className="flex items-start gap-3">
+              <Download className="w-5 h-5 text-primary mt-0.5 shrink-0" />
+              <div>
+                <p className="font-medium text-sm">Free Tier Access</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You have access to <strong>3 templates</strong> (Invoice, Quarterly Summary, NDA) with <strong>1 download per day</strong>. 
+                  Upgrade to <strong>Plus ($17/mo)</strong> to unlock all 10 templates with unlimited downloads.
+                </p>
+              </div>
             </div>
-          </TabsContent>
-        </Tabs>
+          </div>
+        )}
+
+        {/* Template Gallery */}
+        <div className="doc-template-gallery">
+          {TEMPLATE_CARDS.map((template) => {
+            const Icon = template.icon;
+            const available = isTemplateAvailable(template.id);
+            const isLocked = !available;
+            
+            return (
+              <Card
+                key={template.id}
+                className={`doc-template-card group ${
+                  isLocked 
+                    ? 'opacity-60 cursor-not-allowed' 
+                    : 'cursor-pointer'
+                }`}
+                onClick={() => {
+                  if (isLocked) {
+                    toast.error('Upgrade to Plus to access this template', {
+                      action: {
+                        label: 'Upgrade',
+                        onClick: () => createCheckout('plus'),
+                      },
+                    });
+                    return;
+                  }
+                  handleTemplateSelect(template.id);
+                }}
+              >
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center ${!isLocked ? 'group-hover:scale-110' : ''} transition-transform`}>
+                      <Icon className="w-7 h-7" />
+                    </div>
+                    <div className="flex flex-col items-end gap-1.5">
+                      {template.freeTier ? (
+                        <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                          Free
+                        </Badge>
+                      ) : (
+                        <Badge variant="secondary" className="text-xs">
+                          <Crown className="w-3 h-3 mr-1" />
+                          Plus
+                        </Badge>
+                      )}
+                      {isLocked && (
+                        <Lock className="w-4 h-4 text-muted-foreground" />
+                      )}
+                    </div>
+                  </div>
+                  <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                  
+                  {/* Feature badges */}
+                  <div className="flex items-center gap-2 mb-4 flex-wrap">
+                    {template.hasQuantisIntegration && (
+                      <span className="doc-quantis-badge">
+                        <Sparkles className="w-3 h-3" />
+                        Auto-fill
+                      </span>
+                    )}
+                  </div>
+                  
+                  <Button 
+                    className="w-full" 
+                    variant={isLocked ? 'secondary' : 'outline'}
+                    disabled={isLocked}
+                  >
+                    {isLocked ? (
+                      <>
+                        <Lock className="w-4 h-4 mr-2" />
+                        Plus Only
+                      </>
+                    ) : (
+                      <>
+                        <FileText className="w-4 h-4 mr-2" />
+                        Create {template.name.split(' ')[0]}
+                      </>
+                    )}
+                  </Button>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
       </div>
     </div>
   );

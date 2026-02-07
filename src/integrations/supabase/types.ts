@@ -297,6 +297,33 @@ export type Database = {
           },
         ]
       }
+      document_downloads: {
+        Row: {
+          download_format: string
+          downloaded_at: string
+          id: string
+          ip_hash: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          download_format?: string
+          downloaded_at?: string
+          id?: string
+          ip_hash?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          download_format?: string
+          downloaded_at?: string
+          id?: string
+          ip_hash?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       document_exports: {
         Row: {
           completed_at: string | null
