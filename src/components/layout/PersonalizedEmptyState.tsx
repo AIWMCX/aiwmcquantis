@@ -142,7 +142,7 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
           </div>
           <div className="hidden sm:flex items-center gap-2">
             <TrendingUp className="w-4 h-4 text-success" />
-            <span><strong className="text-foreground">$2.3M+</strong> funding raised</span>
+            <span><strong className="text-foreground">50+</strong> cities supported</span>
           </div>
         </div>
       </div>
