@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback } from 'react';
+import React, { useEffect, useMemo, useCallback, useRef } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -6,6 +6,8 @@ import { z } from 'zod';
 import { Loader2, CheckCircle, Presentation, Target, Users, TrendingUp, DollarSign, Rocket } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { AISuggestionButton } from '@/components/docs/AISuggestionButton';
+import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
+import { useDocFormDraft } from '@/hooks/useDocFormDraft';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -77,45 +79,36 @@ interface PitchDeckFormProps {
 
 export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerating }: PitchDeckFormProps) {
   const defaultValues = useMemo(() => ({
-    company_name: 'AIWMC AI Agency',
-    tagline: 'Transforming businesses through intelligent automation',
-    presenter_name: 'Bogdan Jeltov',
-    presenter_title: 'CEO & Founder',
-    
-    problem_headline: '87% of AI Projects Fail',
-    problem_description: 'Businesses struggle to implement AI effectively. Despite massive investments, most AI initiatives never reach production, wasting millions in resources.',
-    problem_impact: '$4.8 trillion in annual AI spending with 87% failure rate',
-    
-    solution_headline: 'AI Success, Guaranteed',
-    solution_description: 'Our Neural OS™ platform and expert methodology delivers AI implementation with guaranteed ROI in 90 days or your money back.',
-    key_features: '• End-to-end AI implementation\n• Proprietary Neural OS™ platform\n• 90-day ROI guarantee\n• Industry-specific solutions',
-    
-    market_size_tam: 150000000000,
-    market_size_sam: 25000000000,
-    market_size_som: 500000000,
-    market_growth_rate: 42,
-    
-    revenue_model: 'SaaS + Professional Services hybrid model with 80% gross margins',
-    average_deal_size: 120000,
-    target_customers: 'Mid-market companies ($10M-$500M revenue) in technology, healthcare, and financial services',
-    
-    traction_metrics: '• $1.2M ARR\n• 25 enterprise customers\n• 168% net revenue retention\n• 3.2x LTV/CAC ratio',
-    key_customers: 'Fortune 500 clients including major healthcare and fintech companies',
-    growth_rate: '3x YoY growth',
-    
-    competitors: 'McKinsey Digital, Accenture AI, Big 4 Consulting, Point Solutions (DataRobot, H2O.ai)',
-    differentiation: 'Only provider offering ROI guarantee. Proprietary platform. Specialized expertise vs. generalist consultants.',
-    
-    team_members: '• Bogdan Jeltov, CEO - 10+ years AI/ML, ex-Google\n• Maria Chen, CTO - 15 years enterprise software\n• James Wilson, VP Sales - $100M+ in enterprise sales',
-    advisors: 'Former AWS VP, Stanford AI Lab Director, Fortune 500 CTO',
-    
-    current_revenue: 1200000,
-    year1_projection: 3600000,
-    year3_projection: 15000000,
-    
-    funding_amount: 5000000,
-    use_of_funds: 'Product (40%): Neural OS v2.0\nSales (35%): Enterprise team expansion\nOps (15%): Infrastructure\nReserve (10%)',
-    milestones: '• Q2 2026: 50 enterprise customers\n• Q4 2026: $5M ARR\n• Q2 2027: European expansion\n• Q4 2027: $15M ARR, cash flow positive',
+    company_name: '',
+    tagline: '',
+    presenter_name: '',
+    presenter_title: '',
+    problem_headline: '',
+    problem_description: '',
+    problem_impact: '',
+    solution_headline: '',
+    solution_description: '',
+    key_features: '',
+    market_size_tam: 0,
+    market_size_sam: 0,
+    market_size_som: 0,
+    market_growth_rate: 0,
+    revenue_model: '',
+    average_deal_size: 0,
+    target_customers: '',
+    traction_metrics: '',
+    key_customers: '',
+    growth_rate: '',
+    competitors: '',
+    differentiation: '',
+    team_members: '',
+    advisors: '',
+    current_revenue: 0,
+    year1_projection: 0,
+    year3_projection: 0,
+    funding_amount: 0,
+    use_of_funds: '',
+    milestones: '',
   }), [template]);
 
   const form = useForm<PitchDeckFormData>({
@@ -123,10 +116,54 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
     defaultValues,
   });
 
-  const formValues = form.watch();
+  // Draft persistence
+  const {
+    hasDraft,
+    draftAge,
+    isSaving,
+    lastSaved,
+    restoreDraft,
+    dismissDraft,
+    clearDraft,
+  } = useDocFormDraft({
+    form,
+    templateId: 'pitch-deck',
+  });
 
-  // Generate preview HTML (simplified pitch deck view)
+  // Optimized: subscription-based watch to avoid full re-renders
+  const formValuesRef = useRef(defaultValues);
+  const previewTimerRef = useRef<ReturnType<typeof setTimeout>>();
+
   useEffect(() => {
+    const subscription = form.watch((values) => {
+      formValuesRef.current = values as typeof defaultValues;
+      // Debounce preview update by 300ms
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+      previewTimerRef.current = setTimeout(() => {
+        updatePreview(formValuesRef.current);
+      }, 300);
+    });
+    // Initial preview
+    updatePreview(form.getValues());
+    return () => {
+      subscription.unsubscribe();
+      if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+    };
+  }, [form, onPreviewUpdate]);
+
+  const updatePreview = useCallback((fv: Partial<PitchDeckFormData>) => {
+    const formValues = {
+      company_name: '', tagline: '', presenter_name: '', presenter_title: '',
+      problem_headline: '', problem_description: '', problem_impact: '',
+      solution_headline: '', solution_description: '', key_features: '',
+      market_size_tam: 0, market_size_sam: 0, market_size_som: 0, market_growth_rate: 0,
+      revenue_model: '', average_deal_size: 0, target_customers: '',
+      traction_metrics: '', key_customers: '', growth_rate: '',
+      competitors: '', differentiation: '', team_members: '', advisors: '',
+      current_revenue: 0, year1_projection: 0, year3_projection: 0,
+      funding_amount: 0, use_of_funds: '', milestones: '',
+      ...fv,
+    };
     const safeValues = escapeFormValues(formValues);
     const formatCurrency = (n: number) => `$${n.toLocaleString('en-US')}`;
     const formatMillions = (n: number) => n >= 1000000000 ? `$${(n / 1000000000).toFixed(1)}B` : `$${(n / 1000000).toFixed(0)}M`;
@@ -285,7 +322,7 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
     `;
     
     onPreviewUpdate(sanitizePreviewHTML(rawHTML));
-  }, [formValues, onPreviewUpdate]);
+  }, [onPreviewUpdate]);
 
   const onSubmit = (data: PitchDeckFormData) => {
     onGenerate(data);
@@ -302,6 +339,16 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6" aria-label="Pitch Deck Generator Form">
+      {/* Draft Recovery */}
+      <DocDraftBanner
+        hasDraft={hasDraft}
+        draftAge={draftAge}
+        isSaving={isSaving}
+        lastSaved={lastSaved}
+        onRestore={restoreDraft}
+        onDismiss={dismissDraft}
+      />
+
       {/* Auto-fill */}
       <div className="flex items-center justify-between">
         <AutoFillButton onAutoFill={handleAutoFill} disabled={isGenerating} />
@@ -359,7 +406,7 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
               <Label htmlFor="problem_description">Problem Description <span className="text-destructive">*</span></Label>
               <AISuggestionButton
                 sectionType="market_analysis"
-                context={{ business_name: formValues.company_name }}
+                context={{ business_name: form.getValues('company_name') }}
                 onApply={(s) => form.setValue('problem_description', s)}
               />
             </div>
