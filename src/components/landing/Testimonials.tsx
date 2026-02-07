@@ -40,7 +40,7 @@ const TESTIMONIALS: Testimonial[] = [
 const STATS = [
   { value: '12,847+', label: 'Businesses Analyzed' },
   { value: '4.9/5', label: 'Average Rating' },
-  { value: '$2.3M+', label: 'Funding Raised by Users' },
+  { value: '<2 min', label: 'Full Report Generation' },
   { value: '47s', label: 'Average Analysis Time' },
 ];
 

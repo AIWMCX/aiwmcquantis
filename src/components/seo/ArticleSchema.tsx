@@ -143,7 +143,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'How accurate are the financial projections?',
-      answer: 'AIWMC Quantis uses data from 1,000+ industry benchmarks and adjusts calculations based on your specific location. While projections are estimates for planning purposes, they are based on real market data and validated financial models used by businesses that have raised over $2.3M in funding.',
+      answer: 'AIWMC Quantis uses data from 1,000+ industry benchmarks and adjusts calculations based on your specific location. While projections are estimates for planning purposes, they are based on real market data and validated financial models with location-specific cost adjustments for 50+ cities worldwide.',
     },
     {
       question: 'Can I export my business analysis?',
