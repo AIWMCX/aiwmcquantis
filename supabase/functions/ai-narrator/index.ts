@@ -198,7 +198,7 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
 serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   const startTime = Date.now();
