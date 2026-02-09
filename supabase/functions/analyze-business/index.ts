@@ -2102,7 +2102,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         breakeven_months: calc.isProfitable ? Math.min(calc.paybackMonths, 24) : 0
       },
       returns: {
-        payback_period_months: calc.paybackMonths,
+        payback_period_months: calc.paybackMonths >= 999 ? 0 : calc.paybackMonths,
         roi_year_1: calc.roiYear1Percent,
         roi_year_3: Math.round((calc.netProfit * 36 / calc.startupInvestment) * 100),
         npv_3_years: Math.round(calc.netProfit * 36 - calc.startupInvestment)

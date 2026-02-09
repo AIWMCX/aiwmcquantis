@@ -211,10 +211,8 @@ export function getMonthlyProfit(financial: FinancialAnalysis): number {
 }
 
 export function getPaybackMonths(financial: FinancialAnalysis): number {
-  if (financial.returns?.payback_period_months !== undefined) {
-    return financial.returns.payback_period_months;
-  }
-  return financial.payback_period_months ?? 0;
+  const raw = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
+  return raw >= 999 ? 0 : raw;
 }
 
 export function getMonthlyRevenue(financial: FinancialAnalysis): number {

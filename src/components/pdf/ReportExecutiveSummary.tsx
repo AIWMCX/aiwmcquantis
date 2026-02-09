@@ -3,6 +3,7 @@ import type { BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths, getMonthlyRevenue } from '@/types/analysis';
 import { pdfStyles, formatCurrency, formatNumber } from './pdfStyles';
 import { ReportHeader, ReportFooter } from './ReportPageElements';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 
 interface ReportExecutiveSummaryProps {
   result: BusinessAnalysisResult;
@@ -16,7 +17,7 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
   const roi = financial.returns?.roi_year_1 ?? financial.roi_year_1 ?? 0;
 
   const getVerdict = () => {
-    if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths <= 18) {
+    if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths > 0 && paybackMonths <= 18) {
       return { text: 'VIABLE', color: '#22c55e' };
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
       return { text: 'NEEDS REFINEMENT', color: '#f59e0b' };
@@ -68,7 +69,7 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
         <div style={pdfStyles.metricCard}>
           <div style={pdfStyles.metricCardLabel}>Payback Period</div>
           <div style={pdfStyles.metricCardValue}>
-            {paybackMonths} months
+            {formatPaybackDisplay(paybackMonths, monthlyProfit)}
           </div>
         </div>
       </div>
