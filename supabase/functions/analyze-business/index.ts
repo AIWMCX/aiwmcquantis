@@ -2351,7 +2351,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
-    return new Response("ok", { status: 204, headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders });
   }
 
   try {
