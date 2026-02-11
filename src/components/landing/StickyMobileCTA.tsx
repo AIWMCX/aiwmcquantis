@@ -205,7 +205,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
               )}
             >
               <Sparkles className="w-5 h-5" />
-              Analyze My Idea — Free
+              Validate My Idea — Free
             </Button>
           </Link>
           <div className="flex items-center justify-center gap-2 mt-2 text-xs text-muted-foreground">

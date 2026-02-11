@@ -160,12 +160,12 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
 
               {/* Headline */}
               <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-2">
-                🎁 Wait! Get 3 Free Pro Analyses
+                Before you go — validate your idea
               </h2>
 
               {/* Subheadline */}
               <p className="text-center text-muted-foreground text-sm mb-6">
-                Enter your email and unlock 3 complete business analyses with all Pro features — free.
+                Get the AI Validation Checklist used by early-stage founders. Free, instant download.
               </p>
 
               {/* Benefits */}
@@ -173,19 +173,19 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Full Industry Benchmarks</span> - Compare against 10,000+ similar businesses
+                    <span className="font-medium text-foreground">Financial Logic Check</span> — structured validation for your business model
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Complete Risk Analysis</span> - Identify threats before they happen
+                    <span className="font-medium text-foreground">Risk Red Flags</span> — the exact signals investors look for
                   </p>
                 </div>
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="h-5 w-5 text-success mt-0.5 flex-shrink-0" />
                   <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">Investor-Ready PDF Report</span> - Professional exports for pitch decks
+                    <span className="font-medium text-foreground">20 AI Prompts</span> — stress-test your idea before you build
                   </p>
                 </div>
               </div>
@@ -241,10 +241,10 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                 </p>
               </div>
 
-              {/* Social Proof */}
+              {/* Social Proof — honest, no fake numbers */}
               <div className="mt-4 pt-4 border-t border-border text-center">
                 <p className="text-xs text-muted-foreground">
-                  🔥 <span className="font-medium">1,247 businesses</span> got their analysis this month
+                  Used by early-stage founders validating their next idea
                 </p>
               </div>
             </>

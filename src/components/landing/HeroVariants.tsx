@@ -12,19 +12,19 @@ export interface HeroContent {
 // Extended CTA variants beyond the existing headlines
 export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   control: {
-    title: 'Know If Your Business Will Make Money',
-    subtitle: 'AI-powered analysis that turns your idea into a complete financial roadmap in 2 minutes.',
-    ctaText: 'See My Preview Numbers',
+    title: 'AI Business Validation & Financial Structuring in Under 3 Minutes',
+    subtitle: 'Upload your idea. Get structured financial logic, risk signals, projections, and clarity before you build.',
+    ctaText: 'Validate My Idea — Free',
   },
   numbers_first: {
-    title: 'ROI, Payback, Revenue — Calculated in 2 Minutes',
-    subtitle: 'Stop guessing. Get precise financial projections backed by 1,000+ industry benchmarks.',
-    ctaText: 'Get My Free Analysis',
+    title: 'Financial Logic, Risk Signals & Projections — in 3 Minutes',
+    subtitle: 'Stop guessing. Get structured validation backed by 1,000+ industry benchmarks.',
+    ctaText: 'Get My Free Validation',
   },
   action_focused: {
-    title: 'Turn Your Business Idea Into a Funded Plan',
-    subtitle: 'Bank-ready financial projections, market analysis, and launch roadmap — all AI-generated.',
-    ctaText: 'Start Free → 2 Min',
+    title: 'Validate Before You Build — AI Financial Structuring',
+    subtitle: 'Business model clarity, structured projections, and risk red flags — all AI-generated in minutes.',
+    ctaText: 'Start Free Validation',
   },
 };
 
