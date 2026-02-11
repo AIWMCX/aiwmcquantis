@@ -20,7 +20,7 @@ export function Footer() {
                 />
               </Link>
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
-                AI-powered business idea analysis in under 2 minutes
+                AI business validation & financial structuring for founders
               </p>
               <p className="text-xs text-muted-foreground">
                 A product of <span className="font-medium">AIWMC AI Agency LLC</span>
@@ -64,6 +64,9 @@ export function Footer() {
           
           {/* Middle Row: Links */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 pt-4 border-t border-border/50">
+            <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Blog
+            </Link>
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>

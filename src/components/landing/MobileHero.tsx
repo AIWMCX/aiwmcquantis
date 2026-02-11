@@ -6,13 +6,11 @@ import { Sparkles, Shield, MapPin, Lightbulb, ArrowDown, BarChart3, AlertTriangl
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
-// Value stack badges
+// 3 core outcome badges — sharp, specific, no fluff
 const VALUE_BADGES = [
-  { icon: BarChart3, text: 'ROI Analysis' },
-  { icon: AlertTriangle, text: 'Risk Assessment' },
-  { icon: TrendingUp, text: '3 Scenarios' },
-  { icon: FileText, text: 'Business Plan' },
-  { icon: Target, text: 'Unit Economics' },
+  { icon: CheckCircle2, text: 'Business model clarity' },
+  { icon: BarChart3, text: 'Financial logic structured' },
+  { icon: AlertTriangle, text: 'Risk red flags identified' },
 ];
 
 export function MobileHero() {
@@ -75,26 +73,27 @@ export function MobileHero() {
             <LiveCounter />
           </div>
           
-          {/* Headline */}
+          {/* Headline — sharp, specific, outcome-driven */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight tracking-tight">
-            Know If Your Business
-            <span className="text-primary block mt-1">Will Make Money</span>
+            AI Business Validation &
+            <span className="text-primary block mt-1">Financial Structuring</span>
+            <span className="block text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground mt-2">in Under 3 Minutes</span>
           </h1>
           
-          {/* Action-oriented Description */}
+          {/* Subheadline — what you do, what you get */}
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-            Get comprehensive financial analysis, risk assessment, and investor-ready 
-            business plans — in under 2 minutes
+            Upload your idea. Get structured financial logic, risk signals, 
+            projections, and clarity — before you build.
           </p>
 
-          {/* Value Stack Badges */}
-          <div className="flex flex-wrap items-center justify-center gap-2 mb-8">
+          {/* 3 Bullet Outcomes — pure results */}
+          <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
             {VALUE_BADGES.map(({ icon: Icon, text }) => (
               <div
                 key={text}
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/80 border border-border text-xs font-medium text-muted-foreground"
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-foreground"
               >
-                <Icon className="w-3.5 h-3.5" />
+                <Icon className="w-4 h-4 text-primary" />
                 {text}
               </div>
             ))}
@@ -141,7 +140,7 @@ export function MobileHero() {
                   className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
                 >
                   <Sparkles className="w-5 h-5" />
-                  See My Preview Numbers
+                  Validate My Idea — Free
                   <ArrowDown className="w-4 h-4 animate-bounce" />
                 </Button>
                 {/* Shine effect */}
@@ -158,11 +157,11 @@ export function MobileHero() {
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              <span>Free preview</span>
+              <span>For founders & consultants</span>
             </div>
             <div className="flex items-center gap-1.5">
               <CheckCircle2 className="w-4 h-4 text-success" />
-              <span>Results in seconds</span>
+              <span>Results in under 3 min</span>
             </div>
           </div>
         </div>

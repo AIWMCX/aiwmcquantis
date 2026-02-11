@@ -24,6 +24,8 @@ const Privacy = lazy(() => import("./pages/Privacy"));
 const Terms = lazy(() => import("./pages/Terms"));
 const PlusSettings = lazy(() => import("./pages/PlusSettings"));
 const DocsStudio = lazy(() => import("./pages/DocsStudio"));
+const Blog = lazy(() => import("./pages/Blog"));
+const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -69,6 +71,8 @@ const App = () => {
                 } />
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
+                <Route path="/blog" element={<Blog />} />
+                <Route path="/blog/:slug" element={<BlogArticle />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 
                 {/* Public share route - no auth required */}

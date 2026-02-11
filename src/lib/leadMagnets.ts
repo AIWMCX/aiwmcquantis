@@ -24,7 +24,8 @@ export type LeadOffer =
   | 'validation_questions'
   | 'projection_template'
   | 'newsletter'
-  | 'early_access';
+  | 'early_access'
+  | 'founder_starter_kit';
 
 // ============================================
 // Popup Priority Configuration
@@ -65,21 +66,35 @@ export interface LeadMagnetContent {
 }
 
 export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
+  founder_starter_kit: {
+    offer: 'founder_starter_kit',
+    headline: 'Founder Validation Starter Kit',
+    subheadline: 'Everything you need to validate before you build',
+    benefits: [
+      'Business Model Canvas Template — map your idea structure',
+      'Financial Projection Structure — pre-built formulas for 5-year models',
+      '20 AI Prompts for Validation — the exact questions to stress-test your idea',
+      'Risk Checklist — red flags investors look for',
+    ],
+    ctaText: 'Download Free Kit',
+    successMessage: 'Your Starter Kit is on its way! Check your inbox.',
+    pdfFilename: 'founder-validation-starter-kit.pdf',
+  },
   free_analysis: {
     offer: 'free_analysis',
-    headline: "Wait! Don't Miss This...",
-    subheadline: 'Get a FREE AI Business Analysis worth $500',
+    headline: 'Before you go — validate your idea',
+    subheadline: 'Get the AI Validation Checklist used by early founders',
     benefits: [
-      'Personalized AI Strategy - Custom recommendations for your business',
-      'ROI Calculator - See exactly how much you could save',
-      'Implementation Roadmap - Step-by-step guide to get started',
+      'Structured financial logic check for your idea',
+      'Risk signals identified before you invest',
+      'Clear next steps based on AI analysis',
     ],
-    ctaText: 'Get My Free Analysis',
-    successMessage: 'Check your inbox for your free AI analysis report.',
+    ctaText: 'Get My Free Validation',
+    successMessage: 'Check your inbox for your validation report.',
   },
   business_guide: {
     offer: 'business_guide',
-    headline: 'Free Business Analysis Guide',
+    headline: 'Free Business Validation Guide',
     subheadline: 'The complete framework for evaluating any business idea',
     benefits: [
       '47-page comprehensive guide',
@@ -92,12 +107,12 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
   },
   validation_questions: {
     offer: 'validation_questions',
-    headline: '10 Questions to Validate Your Idea',
-    subheadline: 'The exact questions investors ask before funding',
+    headline: 'Validate Before You Build',
+    subheadline: 'The 10 questions investors ask before funding',
     benefits: [
-      'Proven validation framework',
-      'Red flags to watch for',
-      'Scoring rubric included',
+      'Proven validation framework used by top accelerators',
+      'Financial red flags scoring rubric',
+      'Business model stress-test checklist',
     ],
     ctaText: 'Get the Checklist',
     successMessage: 'Your validation checklist is on its way!',
@@ -106,9 +121,9 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
   projection_template: {
     offer: 'projection_template',
     headline: 'Financial Projection Template',
-    subheadline: 'Bank-ready financial model in Excel format',
+    subheadline: 'Bank-ready financial model with pre-built formulas',
     benefits: [
-      'Pre-built formulas',
+      'Pre-built formulas for revenue, costs, and margins',
       '5-year projection model',
       'Investor-ready formatting',
     ],
@@ -118,11 +133,11 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
   },
   newsletter: {
     offer: 'newsletter',
-    headline: 'Weekly Business Insights',
-    subheadline: 'Join 500+ entrepreneurs getting smarter about business',
+    headline: 'Weekly Founder Insights',
+    subheadline: 'Join founders getting smarter about business validation',
     benefits: [
-      'Weekly tips from industry experts',
-      'Market trend analysis',
+      'Weekly validation tips from industry experts',
+      'Financial structuring frameworks',
       'Exclusive feature previews',
     ],
     ctaText: 'Subscribe',

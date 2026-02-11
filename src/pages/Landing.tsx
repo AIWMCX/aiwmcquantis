@@ -17,6 +17,7 @@ import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
+import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 
 // Lazy load below-fold components for faster LCP
 const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
@@ -61,28 +62,28 @@ export default function Landing() {
 
   const features = [{
     icon: BarChart3,
-    title: 'Financial Projections',
-    description: 'Get accurate ROI, payback period, and revenue forecasts based on real market data.'
+    title: 'Financial Structuring',
+    description: 'Get structured revenue logic, cost projections, and payback analysis based on real benchmarks.'
   }, {
     icon: FileText,
-    title: 'Complete Business Plan',
-    description: 'Receive a step-by-step launch roadmap with specific milestones and actions.'
+    title: 'Business Model Clarity',
+    description: 'Receive a clear breakdown of your business model with specific milestones and actions.'
   }, {
     icon: TrendingUp,
-    title: 'Marketing Strategy',
-    description: 'Discover optimal customer acquisition channels with CAC/LTV calculations.'
+    title: 'Unit Economics',
+    description: 'CAC, LTV, margins, and acquisition channel recommendations — all calculated.'
   }, {
     icon: Target,
-    title: 'Market Analysis',
-    description: 'Understand your competition, market size, and growth opportunities.'
+    title: 'Market Validation',
+    description: 'Understand your competition, market size, and realistic growth trajectory.'
   }, {
     icon: Zap,
-    title: 'AI-Powered Insights',
-    description: 'Leverage advanced AI to uncover hidden opportunities and risks.'
+    title: 'Risk Signals',
+    description: 'AI-powered red flag detection before you invest time and money.'
   }, {
     icon: Building2,
     title: 'Location Intelligence',
-    description: 'Analysis tailored to your specific geographic market and demographics.'
+    description: 'Cost adjustments and market context for 50+ cities worldwide.'
   }];
 
   // Stats for social proof
@@ -90,11 +91,11 @@ export default function Landing() {
     value: '1,000+',
     label: 'Industry Benchmarks'
   }, {
-    value: '12',
-    label: 'Financial Variables'
+    value: '50+',
+    label: 'Cities Covered'
   }, {
-    value: '<2 min',
-    label: 'Analysis Time'
+    value: '<3 min',
+    label: 'Validation Time'
   }, {
     value: '3',
     label: 'Scenario Types'
@@ -129,9 +130,9 @@ export default function Landing() {
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Features</a>
-              <a href="#demo-preview" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Demo</a>
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
               <a href="#pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</a>
+              <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
@@ -211,11 +212,11 @@ export default function Landing() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="text-center max-w-3xl mx-auto mb-12">
             <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-              Everything You Need to Validate Your Idea
+              Structured Validation, Not Guesswork
             </h2>
             <p className="text-base md:text-lg text-muted-foreground">
-              Our AI analyzes your business concept and delivers actionable insights 
-              that would take consultants weeks to produce.
+              Financial logic, risk signals, and market context — 
+              the same frameworks VCs use, delivered in minutes.
             </p>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -250,6 +251,22 @@ export default function Landing() {
         )}
       </div>
 
+      {/* Lead Capture Section — Founder Starter Kit */}
+      <section className="py-12 md:py-16 bg-muted/30">
+        <div className="container max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Not ready to analyze yet?</p>
+          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+            Download the Founder Validation Starter Kit
+          </h2>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free.
+          </p>
+          <div className="max-w-md mx-auto">
+            <LeadCaptureInline />
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="py-16 md:py-24">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
@@ -257,15 +274,15 @@ export default function Landing() {
             <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
             <div className="relative">
               <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
-                Ready to Validate Your Business Idea?
+                Validate Before You Build
               </h2>
               <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
-                Join entrepreneurs using AI-powered analysis. 
-                Start free, no credit card required.
+                Structured financial logic, risk signals, and market context —
+                in under 3 minutes. Free, no credit card.
               </p>
               <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
                 <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px]">
-                  Start Your Free Analysis
+                  Start My Free Validation
                   <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>

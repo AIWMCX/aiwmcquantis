@@ -6,13 +6,13 @@ type Language = 'en' | 'ru';
 
 const CONTENT = {
   en: {
-    desktop: 'Analyze business ideas for free — sign up in 30 seconds',
-    mobile: 'Free business analysis',
+    desktop: 'AI business validation for founders — structured financial logic in 3 min',
+    mobile: 'Validate your idea free',
     cta: 'Start →',
   },
   ru: {
-    desktop: 'Анализируйте бизнес-идеи бесплатно — регистрация за 30 секунд',
-    mobile: 'Бесплатный анализ бизнес-идей',
+    desktop: 'AI-валидация бизнес-идей — финансовая логика за 3 минуты',
+    mobile: 'Проверьте идею бесплатно',
     cta: 'Начать →',
   },
 } as const;
