@@ -86,6 +86,12 @@ export function MobileHero() {
             projections, and clarity — before you build.
           </p>
 
+          {/* ICP Identifier */}
+          <p className="text-sm text-muted-foreground mb-4">
+            Built for early-stage founders, consultants, and indie builders
+            validating ideas before investing time and money.
+          </p>
+
           {/* 3 Bullet Outcomes — pure results */}
           <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
             {VALUE_BADGES.map(({ icon: Icon, text }) => (

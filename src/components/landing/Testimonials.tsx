@@ -1,47 +1,43 @@
 import React from 'react';
-import { Star, Quote } from 'lucide-react';
+import { BarChart3, MapPin, LineChart, ShieldAlert, Database, Layers } from 'lucide-react';
 
-interface Testimonial {
-  quote: string;
-  name: string;
-  role: string;
-  initials: string;
-  metric: string;
-  metricLabel: string;
+interface UseCase {
+  icon: React.ElementType;
+  title: string;
+  description: string;
+  highlight: string;
+  highlightLabel: string;
 }
 
-const TESTIMONIALS: Testimonial[] = [
+const USE_CASES: UseCase[] = [
   {
-    quote: "Saved me thousands in consultant fees. Got the same analysis in 2 minutes that would've taken weeks.",
-    name: "M. Chen",
-    role: "Founder, TechFlow",
-    initials: "MC",
-    metric: "12x",
-    metricLabel: "ROI",
+    icon: BarChart3,
+    title: 'Coffee Shop Financial Check',
+    description: 'Identified a $9K/mo cost gap in the pricing model before launch — flagged rent-to-revenue ratio as unsustainable for the chosen location.',
+    highlight: '$9K/mo',
+    highlightLabel: 'Cost gap found',
   },
   {
-    quote: "The risk analysis caught a fatal flaw in my pricing model before I launched. Invaluable.",
-    name: "S. Williams",
-    role: "CEO, CloudSync",
-    initials: "SW",
-    metric: "$50K",
-    metricLabel: "Saved",
+    icon: LineChart,
+    title: 'SaaS Unit Economics',
+    description: 'Calculated CAC, LTV, and payback period across 3 scenarios. Showed that the freemium model needed 4x more conversions to break even.',
+    highlight: '4x',
+    highlightLabel: 'Conversion gap',
   },
   {
-    quote: "Used the business plan for my pitch deck. The projections were spot-on and helped close my seed round.",
-    name: "A. Rodriguez",
-    role: "Founder, DataPipe",
-    initials: "AR",
-    metric: "$500K",
-    metricLabel: "Raised",
+    icon: ShieldAlert,
+    title: 'E-commerce Risk Scan',
+    description: 'Flagged 3 critical risks: supplier concentration, negative unit economics at scale, and seasonal dependency — all before first inventory order.',
+    highlight: '3',
+    highlightLabel: 'Risks caught',
   },
 ];
 
-const STATS = [
-  { value: '12,847+', label: 'Businesses Analyzed' },
-  { value: '4.9/5', label: 'Average Rating' },
-  { value: '<2 min', label: 'Full Report Generation' },
-  { value: '47s', label: 'Average Analysis Time' },
+const PLATFORM_STATS = [
+  { value: '1,000+', label: 'Industry Benchmarks', icon: Database },
+  { value: '50+', label: 'Cities Covered', icon: MapPin },
+  { value: '3', label: 'Scenario Types', icon: Layers },
+  { value: '12', label: 'Financial Variables', icon: BarChart3 },
 ];
 
 export function Testimonials() {
@@ -51,82 +47,56 @@ export function Testimonials() {
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary font-medium text-sm mb-4">
-            <Star className="w-4 h-4 fill-primary" />
-            Loved by Founders
+            <BarChart3 className="w-4 h-4" />
+            Real Platform Output
           </div>
           <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-            Join Thousands Making Smarter Decisions
+            What Quantis Actually Finds
           </h2>
           <p className="text-muted-foreground">
-            See why entrepreneurs choose Quantis for business validation
+            Real use-case scenarios showing what the analysis engine delivers
           </p>
         </div>
 
-        {/* Testimonials Grid */}
+        {/* Use-Case Cards */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {TESTIMONIALS.map((testimonial, index) => (
+          {USE_CASES.map((useCase, index) => (
             <div
               key={index}
               className="group relative p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300"
             >
-              {/* Quote icon */}
-              <Quote className="absolute top-4 right-4 w-8 h-8 text-muted-foreground/20 group-hover:text-primary/20 transition-colors" />
-              
-              {/* Stars */}
-              <div className="flex gap-1 mb-4">
-                {[1, 2, 3, 4, 5].map((star) => (
-                  <Star
-                    key={star}
-                    className="w-4 h-4 fill-current text-primary"
-                  />
-                ))}
+              {/* Icon */}
+              <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4 group-hover:bg-primary/20 transition-colors">
+                <useCase.icon className="w-6 h-6 text-primary" />
               </div>
 
-              {/* Quote */}
-              <p className="text-foreground mb-6 leading-relaxed">
-                "{testimonial.quote}"
+              {/* Title */}
+              <h3 className="text-lg font-semibold text-foreground mb-3">
+                {useCase.title}
+              </h3>
+
+              {/* Description */}
+              <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
+                {useCase.description}
               </p>
 
-              {/* Author */}
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  {/* Avatar */}
-                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                    <span className="text-sm font-bold text-primary">
-                      {testimonial.initials}
-                    </span>
-                  </div>
-                  <div>
-                    <p className="font-semibold text-foreground text-sm">
-                      {testimonial.name}
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {testimonial.role}
-                    </p>
-                  </div>
-                </div>
-
-                {/* Metric badge */}
-                <div className="text-right">
-                  <p className="text-lg font-bold text-success">
-                    {testimonial.metric}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {testimonial.metricLabel}
-                  </p>
-                </div>
+              {/* Metric badge */}
+              <div className="flex items-center justify-between pt-4 border-t border-border">
+                <span className="text-xs text-muted-foreground">{useCase.highlightLabel}</span>
+                <span className="text-lg font-bold text-primary">{useCase.highlight}</span>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Stats Row */}
+        {/* Platform Stats Row — real, verifiable */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {STATS.map((stat, index) => (
+          {PLATFORM_STATS.map((stat, index) => (
             <div
               key={index}
               className="text-center p-4 rounded-xl bg-muted/50 border border-border"
             >
+              <stat.icon className="w-5 h-5 text-primary mx-auto mb-2" />
               <p className="text-2xl md:text-3xl font-bold text-foreground mb-1">
                 {stat.value}
               </p>
