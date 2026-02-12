@@ -10,6 +10,8 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { TrustLogos } from '@/components/landing/TrustLogos';
 import { Testimonials } from '@/components/landing/Testimonials';
+import { ChatGPTComparison } from '@/components/landing/ChatGPTComparison';
+import { DemoPreview } from '@/components/landing/DemoPreview';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
@@ -19,12 +21,9 @@ import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 
-// Lazy load below-fold components for faster LCP
-const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
-const ClientTestimonials = lazy(() => import('@/components/landing/ClientTestimonials').then(m => ({ default: m.ClientTestimonials })));
+// Lazy load below-fold components
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
 
-// Section skeleton for lazy-loaded components
 const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
   <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-16">
     <Skeleton className={`w-full rounded-2xl`} style={{ height }} />
@@ -40,12 +39,8 @@ export default function Landing() {
     return false;
   });
 
-  // Progressive hydration for below-fold sections
-  const demoSection = useLazySection({ rootMargin: '300px' });
-  const testimonialsSection = useLazySection({ rootMargin: '200px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
   
-  // Refs for sticky CTA observer
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
 
@@ -86,34 +81,17 @@ export default function Landing() {
     description: 'Cost adjustments and market context for 50+ cities worldwide.'
   }];
 
-  // Stats for social proof
-  const stats = [{
-    value: '1,000+',
-    label: 'Industry Benchmarks'
-  }, {
-    value: '50+',
-    label: 'Cities Covered'
-  }, {
-    value: '<3 min',
-    label: 'Validation Time'
-  }, {
-    value: '3',
-    label: 'Scenario Types'
-  }];
-
   return (
     <div className="min-h-screen bg-background text-foreground">
-      {/* Structured Data for SEO */}
       <StructuredData />
       
-      {/* Urgency Banner */}
+      {/* 1. UrgencyBanner */}
       <UrgencyBanner />
       
-      {/* Navigation - Mobile optimized with hamburger menu */}
+      {/* Navigation */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            {/* Mobile hamburger menu - CSS-based visibility for immediate render */}
             <div className="md:hidden">
               <MobileNav>
                 <button 
@@ -175,135 +153,119 @@ export default function Landing() {
       </nav>
 
       <main id="main-content" role="main">
-        {/* Hero Section - Mobile Optimized (Critical - loads immediately) */}
+        {/* 2. Hero (with ICP line) */}
         <div ref={heroRef} id="mobile-hero" data-hero-form>
           <MobileHero />
         </div>
-        {/* Trust Logos - Social proof */}
+
+        {/* 3. "Why Not ChatGPT?" mini-comparison */}
+        <ChatGPTComparison />
+
+        {/* 4. Trust Signals (honest badges) */}
         <TrustLogos />
 
-        {/* Testimonials - Social proof */}
+        {/* 5. Demo Preview (moved UP, no lazy-load) */}
+        <div id="demo-preview">
+          <DemoPreview />
+        </div>
+
+        {/* 6. Features grid */}
+        <section id="features" className="py-16 md:py-24 bg-muted/30">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="text-center max-w-3xl mx-auto mb-12">
+              <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
+                Structured Validation, Not Guesswork
+              </h2>
+              <p className="text-base md:text-lg text-muted-foreground">
+                Financial logic, risk signals, and market context — 
+                the same frameworks VCs use, delivered in minutes.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {features.map(feature => (
+                <div key={feature.title} className="group p-4 md:p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg min-h-[140px] md:min-h-0">
+                  <div className="p-2.5 md:p-4 rounded-xl bg-primary/10 w-fit mb-3 md:mb-6 group-hover:bg-primary/20 transition-colors">
+                    <feature.icon className="w-5 h-5 md:w-8 md:h-8 text-primary" />
+                  </div>
+                  <h3 className="text-sm md:text-xl font-semibold text-foreground mb-1 md:mb-3">{feature.title}</h3>
+                  <p className="text-xs md:text-base text-muted-foreground leading-relaxed line-clamp-3 md:line-clamp-none">{feature.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* 7. How It Works */}
+        <HowItWorksSection />
+
+        {/* 8. Use Cases (real platform output) */}
         <Testimonials />
 
-        {/* Demo Preview - Complementary visual demo */}
-        <div ref={demoSection.ref} id="demo-preview">
-          {demoSection.isVisible ? (
+        {/* 9. Lead Capture — Starter Kit (MOVED UP before pricing) */}
+        <section className="py-12 md:py-16 bg-muted/30">
+          <div className="container max-w-3xl mx-auto px-4 sm:px-6 text-center">
+            <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Not ready to analyze yet?</p>
+            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
+              Download the Founder Validation Starter Kit
+            </h2>
+            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+              Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free.
+            </p>
+            <div className="max-w-md mx-auto">
+              <LeadCaptureInline />
+            </div>
+          </div>
+        </section>
+
+        {/* 10. Pricing */}
+        <div ref={pricingRef}>
+          <PricingSection />
+        </div>
+
+        {/* 11. FAQ */}
+        <div ref={faqSection.ref}>
+          {faqSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={400} />}>
-              <DemoPreview />
+              <FAQSection />
             </Suspense>
           ) : (
             <SectionSkeleton height={400} />
           )}
         </div>
 
-      {/* Client Testimonials - Progressive hydration */}
-      <div ref={testimonialsSection.ref}>
-        {testimonialsSection.isVisible ? (
-          <Suspense fallback={<SectionSkeleton height={300} />}>
-            <ClientTestimonials />
-          </Suspense>
-        ) : (
-          <SectionSkeleton height={300} />
-        )}
-      </div>
-
-      {/* Features Section (Critical - loads immediately) */}
-      <section id="features" className="py-16 md:py-24 bg-muted/30">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="text-center max-w-3xl mx-auto mb-12">
-            <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-              Structured Validation, Not Guesswork
-            </h2>
-            <p className="text-base md:text-lg text-muted-foreground">
-              Financial logic, risk signals, and market context — 
-              the same frameworks VCs use, delivered in minutes.
-            </p>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-            {features.map(feature => (
-              <div key={feature.title} className="group p-4 md:p-8 rounded-2xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all duration-300 hover:shadow-lg min-h-[140px] md:min-h-0">
-                <div className="p-2.5 md:p-4 rounded-xl bg-primary/10 w-fit mb-3 md:mb-6 group-hover:bg-primary/20 transition-colors">
-                  <feature.icon className="w-5 h-5 md:w-8 md:h-8 text-primary" />
-                </div>
-                <h3 className="text-sm md:text-xl font-semibold text-foreground mb-1 md:mb-3">{feature.title}</h3>
-                <p className="text-xs md:text-base text-muted-foreground leading-relaxed line-clamp-3 md:line-clamp-none">{feature.description}</p>
+        {/* 12. Bottom CTA */}
+        <section className="py-16 md:py-24">
+          <div className="container max-w-7xl mx-auto px-4 sm:px-6">
+            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-primary p-8 md:p-16 text-center">
+              <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
+              <div className="relative">
+                <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
+                  Validate Before You Build
+                </h2>
+                <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
+                  Structured financial logic, risk signals, and market context —
+                  in under 3 minutes. Free, no credit card.
+                </p>
+                <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
+                  <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px]">
+                    Start My Free Validation
+                    <ArrowRight className="w-5 h-5" />
+                  </Button>
+                </Link>
               </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* How It Works Section */}
-      <HowItWorksSection />
-
-      {/* Pricing Section - Optimized for conversion */}
-      <div ref={pricingRef}>
-        <PricingSection />
-      </div>
-      {/* FAQ Section - Progressive hydration */}
-      <div ref={faqSection.ref}>
-        {faqSection.isVisible ? (
-          <Suspense fallback={<SectionSkeleton height={400} />}>
-            <FAQSection />
-          </Suspense>
-        ) : (
-          <SectionSkeleton height={400} />
-        )}
-      </div>
-
-      {/* Lead Capture Section — Founder Starter Kit */}
-      <section className="py-12 md:py-16 bg-muted/30">
-        <div className="container max-w-3xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Not ready to analyze yet?</p>
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-            Download the Founder Validation Starter Kit
-          </h2>
-          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-            Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free.
-          </p>
-          <div className="max-w-md mx-auto">
-            <LeadCaptureInline />
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-16 md:py-24">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-          <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-primary p-8 md:p-16 text-center">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
-            <div className="relative">
-              <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
-                Validate Before You Build
-              </h2>
-              <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
-                Structured financial logic, risk signals, and market context —
-                in under 3 minutes. Free, no credit card.
-              </p>
-              <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
-                <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px]">
-                  Start My Free Validation
-                  <ArrowRight className="w-5 h-5" />
-                </Button>
-              </Link>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
       </main>
 
-      {/* Footer with Email Capture */}
       <Footer />
 
-      {/* Smart Mobile Sticky CTA */}
       <StickyMobileCTA 
         heroFormRef={heroRef as React.RefObject<HTMLElement>} 
         pricingRef={pricingRef as React.RefObject<HTMLElement>} 
       />
 
-      {/* Bottom padding for mobile sticky CTA */}
       <div className="h-24 md:hidden" />
-      {/* Popup Manager - Handles all email capture popups */}
       <PopupManager />
     </div>
   );

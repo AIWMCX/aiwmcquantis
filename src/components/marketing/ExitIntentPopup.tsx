@@ -143,7 +143,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
               </h3>
               
               <p className="text-muted-foreground mb-4">
-                Check your inbox for your free AI analysis report.
+                Check your inbox for the Founder Validation Starter Kit.
               </p>
               
               <p className="text-sm text-muted-foreground">
@@ -214,7 +214,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
                     </>
                   ) : (
                     <>
-                      Get My Free Analysis
+                      Download Free Starter Kit
                       <ArrowRight className="ml-2 h-4 w-4" />
                     </>
                   )}

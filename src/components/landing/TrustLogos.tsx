@@ -1,37 +1,25 @@
 import React from 'react';
+import { Lock, Eye, Shield, Server } from 'lucide-react';
 
-const TRUST_LOGOS = [
-  { name: 'Y Combinator Alumni', abbr: 'YC' },
-  { name: 'TechStars', abbr: 'TS' },
-  { name: 'Stanford Founders', abbr: 'SF' },
-  { name: '500 Startups', abbr: '500' },
-  { name: 'Harvard Business', abbr: 'HBS' },
+const TRUST_BADGES = [
+  { icon: Lock, label: 'AES-256 Encrypted' },
+  { icon: Eye, label: 'GDPR Compliant' },
+  { icon: Shield, label: 'No Data Sold' },
+  { icon: Server, label: 'Open Audit Trail' },
 ];
 
 export function TrustLogos() {
   return (
-    <section className="py-8 md:py-12 border-b border-border bg-muted/30">
+    <section className="py-6 md:py-8 border-b border-border bg-muted/30">
       <div className="container max-w-5xl mx-auto px-4 sm:px-6">
-        <p className="text-center text-sm text-muted-foreground mb-6">
-          Trusted by founders from
-        </p>
-        
-        <div className="flex items-center justify-center gap-6 md:gap-10 flex-wrap">
-          {TRUST_LOGOS.map((logo, index) => (
+        <div className="flex items-center justify-center gap-5 md:gap-8 flex-wrap">
+          {TRUST_BADGES.map((badge) => (
             <div
-              key={logo.name}
-              className="flex items-center gap-2 opacity-60 hover:opacity-100 transition-opacity duration-300 grayscale hover:grayscale-0"
-              style={{ animationDelay: `${index * 100}ms` }}
+              key={badge.label}
+              className="flex items-center gap-2 text-muted-foreground"
             >
-              {/* Logo placeholder - styled text badge */}
-              <div className="flex items-center justify-center px-3 py-1.5 rounded-lg bg-card border border-border">
-                <span className="text-sm font-bold text-muted-foreground">
-                  {logo.abbr}
-                </span>
-              </div>
-              <span className="hidden sm:inline text-xs text-muted-foreground font-medium">
-                {logo.name}
-              </span>
+              <badge.icon className="w-4 h-4" />
+              <span className="text-xs sm:text-sm font-medium">{badge.label}</span>
             </div>
           ))}
         </div>

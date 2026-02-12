@@ -57,7 +57,7 @@ export function UrgencyBanner() {
             <span className="sm:hidden">{content.mobile}</span>
           </span>
           <Link 
-            to="/auth" 
+            to="/app" 
             className="px-4 py-1 bg-primary-foreground text-primary rounded-lg text-sm font-semibold hover:bg-primary-foreground/90 transition-colors whitespace-nowrap"
           >
             {content.cta}
