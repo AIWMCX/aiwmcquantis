@@ -43,7 +43,7 @@ export function UrgencyBanner() {
         <button
           onClick={toggleLang}
           className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-primary-foreground/10 hover:bg-primary-foreground/20 transition-colors text-xs font-medium"
-          aria-label="Toggle language"
+          aria-label={`Language: ${lang.toUpperCase()}`}
         >
           <Globe className="w-3.5 h-3.5" />
           <span className="uppercase">{lang}</span>
