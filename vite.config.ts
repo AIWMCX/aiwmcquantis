@@ -47,8 +47,8 @@ export default defineConfig(({ mode }) => ({
           // React Query - data fetching
           'query-vendor': ['@tanstack/react-query'],
           
-          // Heavy visualization library - lazy loaded
-          'charts': ['recharts'],
+          // Note: recharts is NOT in manualChunks — it naturally code-splits
+          // into the lazy-loaded AdminDashboard chunk where it's actually used
           
           // PDF generation - only used for exports
           'pdf': ['@react-pdf/renderer'],
