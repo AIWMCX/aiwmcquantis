@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Shield, MapPin, Lightbulb, ArrowDown, BarChart3, AlertTriangle, TrendingUp, FileText, Target, CheckCircle2 } from 'lucide-react';
+import { Sparkles, Shield, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, TrendingUp, FileText, Target, CheckCircle2 } from 'lucide-react';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
@@ -75,15 +75,15 @@ export function MobileHero() {
           
           {/* Headline — sharp, specific, outcome-driven */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight tracking-tight">
-            AI Business Validation &
-            <span className="text-primary block mt-1">Financial Structuring</span>
-            <span className="block text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground mt-2">in Under 3 Minutes</span>
+            Validate Your Business Idea
+            <span className="text-primary block mt-1">Before You Build It</span>
+            <span className="block text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground mt-3">Structured financial logic, risk signals & projections — in 3 minutes</span>
           </h1>
           
           {/* Subheadline — what you do, what you get */}
           <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-            Upload your idea. Get structured financial logic, risk signals, 
-            projections, and clarity — before you build.
+            Enter your idea → get revenue projections, unit economics, 
+            risk red flags, and a clear action plan. Powered by 1,000+ industry benchmarks.
           </p>
 
           {/* ICP Identifier */}
@@ -146,8 +146,8 @@ export function MobileHero() {
                   className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
                 >
                   <Sparkles className="w-5 h-5" />
-                  Validate My Idea — Free
-                  <ArrowDown className="w-4 h-4 animate-bounce" />
+                  See My Numbers — Free
+                  <ArrowRight className="w-4 h-4" />
                 </Button>
                 {/* Shine effect */}
                 <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />

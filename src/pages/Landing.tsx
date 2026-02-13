@@ -10,7 +10,7 @@ import { PricingSection } from '@/components/landing/PricingSection';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { TrustLogos } from '@/components/landing/TrustLogos';
 import { Testimonials } from '@/components/landing/Testimonials';
-import { ChatGPTComparison } from '@/components/landing/ChatGPTComparison';
+import { ResultsTicker } from '@/components/landing/ResultsTicker';
 import { DemoPreview } from '@/components/landing/DemoPreview';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
@@ -158,8 +158,8 @@ export default function Landing() {
           <MobileHero />
         </div>
 
-        {/* 3. "Why Not ChatGPT?" mini-comparison */}
-        <ChatGPTComparison />
+        {/* 3. Live Results Ticker — flashy social proof */}
+        <ResultsTicker />
 
         {/* 4. Trust Signals (honest badges) */}
         <TrustLogos />
@@ -240,15 +240,15 @@ export default function Landing() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
               <div className="relative">
                 <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
-                  Validate Before You Build
+                  Your Idea Deserves Real Numbers
                 </h2>
                 <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
-                  Structured financial logic, risk signals, and market context —
-                  in under 3 minutes. Free, no credit card.
+                  Revenue projections, risk flags, and a clear action plan —
+                  free, no credit card, results in under 3 minutes.
                 </p>
                 <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
-                  <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px]">
-                    Start My Free Validation
+                  <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
+                    See My Numbers — Free
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>

@@ -65,11 +65,12 @@ export function DemoPreview() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header - Simplified */}
         <div className="text-center max-w-2xl mx-auto mb-6">
+          <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-2">Sample Report</p>
           <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-            Your Report Preview
+            See What You'll Get in 3 Minutes
           </h2>
           <p className="text-sm text-muted-foreground">
-            Sample: "Coffee shop in downtown Denver"
+            Real output: "Coffee shop in downtown Denver"
           </p>
         </div>
 
