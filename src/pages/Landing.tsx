@@ -94,7 +94,7 @@ export default function Landing() {
                   <Link to="/app">
                     <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
                       <span className="hidden sm:inline">Get Started</span>
-                      <span className="sm:hidden">Start</span>
+                      <span className="sm:hidden">Start Analysis</span>
                       <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
