@@ -1,9 +1,7 @@
-import React, { useState } from 'react';
-import { Calculator, FileInput, BarChart3, ArrowRight, Lightbulb, Shield, ChevronRight } from 'lucide-react';
+import React from 'react';
+import { Calculator, FileInput, BarChart3, ArrowRight, ChevronRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { VariableCard } from './VariableCard';
-import { FormulaDisplay } from './FormulaDisplay';
 import { ComparisonTable } from './ComparisonTable';
 
 const processSteps = [
@@ -30,104 +28,12 @@ const processSteps = [
   },
 ];
 
-const variableGroups = [
-  {
-    name: 'Revenue',
-    color: 'emerald',
-    variables: [
-      { code: 'P', name: 'Price', description: 'Average price per product or service' },
-      { code: 'N', name: 'Customers', description: 'Number of paying customers per month' },
-      { code: 'F', name: 'Frequency', description: 'How often customers buy (times/month)' },
-      { code: 'U', name: 'Upsell', description: 'Additional revenue per customer' },
-    ],
-  },
-  {
-    name: 'Costs',
-    color: 'amber',
-    variables: [
-      { code: 'C', name: 'COGS', description: 'Direct cost to produce your product' },
-      { code: 'O', name: 'Operating', description: 'Rent, salaries, utilities, etc.' },
-      { code: 'M', name: 'Marketing', description: 'Monthly marketing spend' },
-      { code: 'A', name: 'CAC', description: 'Cost to acquire one new customer' },
-    ],
-  },
-  {
-    name: 'Investment',
-    color: 'blue',
-    variables: [
-      { code: 'I', name: 'Initial', description: 'Startup capital needed to launch' },
-      { code: 'K', name: 'CapEx', description: 'Equipment, renovations, etc.' },
-    ],
-  },
-  {
-    name: 'Retention',
-    color: 'purple',
-    variables: [
-      { code: 'L', name: 'LTV', description: 'Total revenue from one customer' },
-      { code: 'H', name: 'Churn', description: '% of customers lost per month' },
-    ],
-  },
-];
-
-const formulas = [
-  {
-    name: 'LTV',
-    formula: 'Price × Orders/Month × Lifetime',
-    example: '$50 × 2 × 24 = $2,400',
-    description: 'Customer Lifetime Value',
-  },
-  {
-    name: 'Payback',
-    formula: 'Investment / Monthly Profit',
-    example: '$30,000 / $3,500 = 8.6 months',
-    description: 'Time to recoup investment',
-  },
-  {
-    name: 'ROI',
-    formula: '(Profit × 12 / Investment) × 100%',
-    example: '($3,500 × 12 / $30,000) × 100% = 140%',
-    description: 'Return on Investment',
-  },
-  {
-    name: 'Break-Even',
-    formula: 'Fixed Costs / (1 - Variable Cost %)',
-    example: '$5,000 / (1 - 0.4) = $8,333/mo',
-    description: 'Revenue needed to cover costs',
-  },
-  {
-    name: 'Net Margin',
-    formula: '(Profit / Revenue) × 100%',
-    example: '($3,500 / $15,000) × 100% = 23%',
-    description: 'Profit as percentage of revenue',
-  },
-];
-
-const trustIndicators = [
-  {
-    icon: Lightbulb,
-    title: 'See Every Formula',
-    description: 'Full calculation audit in every report',
-  },
-  {
-    icon: BarChart3,
-    title: 'Real Industry Data',
-    description: '1,000+ benchmarks from Kerry Dataset',
-  },
-  {
-    icon: Shield,
-    title: 'Auto-Correction',
-    description: 'Validates & fixes unrealistic values',
-  },
-];
-
 export function HowItWorksSection() {
-  const [activeFormula, setActiveFormula] = useState<string | null>(null);
-
   return (
-    <section id="how-it-works" className="py-20 md:py-32 bg-background">
+    <section id="how-it-works" className="py-16 md:py-24 bg-background">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-16">
+        <div className="text-center max-w-3xl mx-auto mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 text-primary font-semibold text-sm mb-6">
             <Calculator className="w-4 h-4" />
             Real Math, Real Results
@@ -142,7 +48,7 @@ export function HowItWorksSection() {
         </div>
 
         {/* Process Steps */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-20">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
           {processSteps.map((step, index) => (
             <div key={step.step} className="relative">
               <div className="p-6 rounded-2xl border border-border bg-card hover:bg-accent/30 transition-all duration-300">
@@ -164,108 +70,25 @@ export function HowItWorksSection() {
           ))}
         </div>
 
-        {/* 12-Variable System */}
-        <div className="mb-20">
-          <div className="text-center mb-10">
-            <h3 className="text-2xl font-bold text-foreground mb-2">The 12-Variable Financial System</h3>
-            <p className="text-muted-foreground">
-              Every analysis uses these proven financial metrics
-            </p>
-          </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-            {variableGroups.map((group) => (
-              <div key={group.name} className="space-y-2 md:space-y-3">
-                <h4 className={`text-xs md:text-sm font-semibold uppercase tracking-wide ${
-                  group.color === 'emerald' ? 'text-emerald-700 dark:text-emerald-400' :
-                  group.color === 'amber' ? 'text-amber-700 dark:text-amber-400' :
-                  group.color === 'blue' ? 'text-blue-700 dark:text-blue-400' :
-                  'text-purple-700 dark:text-purple-400'
-                }`}>
-                  {group.name}
-                </h4>
-                <div className="space-y-1.5 md:space-y-2">
-                  {group.variables.map((variable) => (
-                    <VariableCard
-                      key={variable.code}
-                      code={variable.code}
-                      name={variable.name}
-                      description={variable.description}
-                      color={group.color as 'emerald' | 'amber' | 'blue' | 'purple'}
-                    />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Formulas */}
-        <div className="mb-20">
-          <div className="text-center mb-8 md:mb-10">
-            <h3 className="text-xl md:text-2xl font-bold text-foreground mb-2">Key Formulas We Calculate</h3>
-            <p className="text-sm md:text-base text-muted-foreground">
-              <span className="hidden md:inline">Hover over any formula to see a real example</span>
-              <span className="md:hidden">Tap any formula to see an example</span>
-            </p>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
-            {formulas.map((formula) => (
-              <FormulaDisplay
-                key={formula.name}
-                name={formula.name}
-                formula={formula.formula}
-                example={formula.example}
-                description={formula.description}
-                isActive={activeFormula === formula.name}
-                onHover={() => setActiveFormula(formula.name)}
-                onLeave={() => setActiveFormula(null)}
-              />
-            ))}
-          </div>
-        </div>
-
         {/* Comparison Table */}
-        <div className="mb-20">
+        <div className="mb-12">
           <div className="text-center mb-10">
             <h3 className="text-2xl font-bold text-foreground mb-2">Why We're Different</h3>
             <p className="text-muted-foreground">
-              More than AI—a complete financial analysis engine
+              More than AI — a complete financial analysis engine
             </p>
           </div>
           <ComparisonTable />
         </div>
 
-        {/* Trust Indicators */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {trustIndicators.map((indicator) => (
-            <div
-              key={indicator.title}
-              className="flex items-start gap-4 p-6 rounded-xl border border-border bg-card"
-            >
-              <div className="p-3 rounded-lg bg-primary/10">
-                <indicator.icon className="w-5 h-5 text-primary" />
-              </div>
-              <div>
-                <h4 className="font-semibold text-foreground mb-1">{indicator.title}</h4>
-                <p className="text-sm text-muted-foreground">{indicator.description}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
         {/* CTA */}
         <div className="text-center">
-          <p className="text-muted-foreground mb-4">
-            Ready to see your numbers calculated with precision?
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Link to="/app">
-              <Button size="lg" className="gap-2">
-                Analyze Your Business Free
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
+          <Link to="/app">
+            <Button size="lg" className="gap-2">
+              See My Numbers — Free
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+          </Link>
         </div>
       </div>
     </section>

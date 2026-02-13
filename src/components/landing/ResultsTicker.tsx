@@ -80,15 +80,14 @@ export function ResultsTicker() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mb-6">
           <div className="flex items-center gap-3">
-            <div className="relative">
-              <div className="w-3 h-3 rounded-full bg-success animate-pulse" />
-              <div className="absolute inset-0 w-3 h-3 rounded-full bg-success animate-ping opacity-30" />
+            <div className="p-1.5 rounded-lg bg-primary/10">
+              <BarChart3 className="w-4 h-4 text-primary" />
             </div>
             <h2 className="text-base md:text-lg font-semibold text-foreground">
-              Live Analysis Results
+              Sample Analysis Outputs
             </h2>
             <span className="text-xs text-muted-foreground hidden sm:inline">
-              — sample outputs from the engine
+              — example results from the engine
             </span>
           </div>
           <Link to="/app">

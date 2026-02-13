@@ -2,11 +2,10 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, Shield, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, TrendingUp, FileText, Target, CheckCircle2 } from 'lucide-react';
+import { Sparkles, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
-// 3 core outcome badges — sharp, specific, no fluff
 const VALUE_BADGES = [
   { icon: CheckCircle2, text: 'Business model clarity' },
   { icon: BarChart3, text: 'Financial logic structured' },
@@ -20,25 +19,15 @@ export function MobileHero() {
 
   const handleQuickSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (quickIdea.trim().length < 5 || quickLocation.trim().length < 2) {
-      return;
-    }
+    if (quickIdea.trim().length < 5 || quickLocation.trim().length < 2) return;
 
-    // Track the submission
-    trackEvent('hero_quick_submit', { 
-      idea_length: quickIdea.length, 
-      location: quickLocation 
-    });
+    trackEvent('hero_quick_submit', { idea_length: quickIdea.length, location: quickLocation });
     trackCtaClick('see_preview_numbers', 'hero_form');
 
-    // Store in sessionStorage for the app to pick up
     sessionStorage.setItem('hero_prefill', JSON.stringify({
       idea: quickIdea.trim(),
       location: quickLocation.trim(),
     }));
-    
-    // Navigate to the app
     navigate('/app');
   };
 
@@ -48,15 +37,10 @@ export function MobileHero() {
     <section id="main-content" className="relative overflow-hidden" aria-label="Hero">
       {/* Animated gradient background */}
       <div className="absolute inset-0">
-        {/* Base gradient */}
         <div className="absolute inset-0 bg-gradient-to-b from-primary/5 via-background to-background" />
-        
-        {/* Floating orbs */}
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute top-40 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-primary/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        
-        {/* Grid pattern overlay */}
         <div 
           className="absolute inset-0 opacity-[0.015]"
           style={{
@@ -65,53 +49,31 @@ export function MobileHero() {
         />
       </div>
       
-      <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-16">
+      <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-16">
         <div className="text-center max-w-4xl mx-auto">
           
-          {/* Live Counter - Social proof at top */}
-          <div className="flex justify-center mb-6">
+          {/* Live Counter */}
+          <div className="flex justify-center mb-4 md:mb-6">
             <LiveCounter />
           </div>
           
-          {/* Headline — sharp, specific, outcome-driven */}
-          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-4 leading-tight tracking-tight">
+          {/* Headline */}
+          <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
             Validate Your Business Idea
             <span className="text-primary block mt-1">Before You Build It</span>
-            <span className="block text-lg sm:text-xl md:text-2xl font-medium text-muted-foreground mt-3">Structured financial logic, risk signals & projections — in 3 minutes</span>
           </h1>
-          
-          {/* Subheadline — what you do, what you get */}
-          <p className="text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto mb-6 leading-relaxed">
-            Enter your idea → get revenue projections, unit economics, 
-            risk red flags, and a clear action plan. Powered by 1,000+ industry benchmarks.
+
+          {/* Short subheadline - single line on mobile */}
+          <p className="text-base sm:text-lg text-muted-foreground mb-4 md:mb-6">
+            Revenue projections, risk flags & action plan — in 3 minutes.
           </p>
 
-          {/* ICP Identifier */}
-          <p className="text-sm text-muted-foreground mb-4">
-            Built for early-stage founders, consultants, and indie builders
-            validating ideas before investing time and money.
-          </p>
-
-          {/* 3 Bullet Outcomes — pure results */}
-          <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-            {VALUE_BADGES.map(({ icon: Icon, text }) => (
-              <div
-                key={text}
-                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-foreground"
-              >
-                <Icon className="w-4 h-4 text-primary" />
-                {text}
-              </div>
-            ))}
-          </div>
-
-          {/* Quick Input Form - Above the fold */}
+          {/* FORM FIRST on mobile - above badges */}
           <form 
             onSubmit={handleQuickSubmit}
-            className="max-w-xl mx-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 sm:p-6 shadow-xl mb-6"
+            className="max-w-xl mx-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 sm:p-6 shadow-xl mb-4 md:mb-6"
           >
             <div className="space-y-3">
-              {/* Business Idea Input */}
               <div className="relative">
                 <Lightbulb className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -123,8 +85,6 @@ export function MobileHero() {
                   maxLength={200}
                 />
               </div>
-
-              {/* Location Input */}
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
                 <Input
@@ -136,38 +96,41 @@ export function MobileHero() {
                   maxLength={100}
                 />
               </div>
-
-              {/* Submit Button with shine effect */}
-              <div className="relative overflow-hidden rounded-lg">
-                <Button 
-                  type="submit"
-                  disabled={!isFormValid}
-                  size="lg" 
-                  className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
-                >
-                  <Sparkles className="w-5 h-5" />
-                  See My Numbers — Free
-                  <ArrowRight className="w-4 h-4" />
-                </Button>
-                {/* Shine effect */}
-                <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-700 bg-gradient-to-r from-transparent via-white/10 to-transparent pointer-events-none" />
-              </div>
+              <Button 
+                type="submit"
+                disabled={!isFormValid}
+                size="lg" 
+                className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
+              >
+                <Sparkles className="w-5 h-5" />
+                See My Numbers — Free
+                <ArrowRight className="w-4 h-4" />
+              </Button>
             </div>
           </form>
 
-          {/* Friction Reducers */}
-          <div className="flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span>No credit card</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span>For founders & consultants</span>
-            </div>
-            <div className="flex items-center gap-1.5">
-              <CheckCircle2 className="w-4 h-4 text-success" />
-              <span>Results in under 3 min</span>
+          {/* Friction reducers - compact */}
+          <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground mb-4 md:mb-6">
+            <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> No credit card</span>
+            <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Results in under 3 min</span>
+          </div>
+
+          {/* Value badges + ICP - BELOW the form (visible on scroll or on desktop) */}
+          <div className="hidden md:block">
+            <p className="text-sm text-muted-foreground mb-3">
+              Built for early-stage founders, consultants, and indie builders
+              validating ideas before investing time and money.
+            </p>
+            <div className="flex flex-wrap items-center justify-center gap-3">
+              {VALUE_BADGES.map(({ icon: Icon, text }) => (
+                <div
+                  key={text}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-foreground"
+                >
+                  <Icon className="w-4 h-4 text-primary" />
+                  {text}
+                </div>
+              ))}
             </div>
           </div>
         </div>

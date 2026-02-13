@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
-  Play
+  Sparkles
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 
@@ -22,27 +22,9 @@ interface DemoMetric {
 }
 
 const demoMetrics: DemoMetric[] = [
-  {
-    label: 'Monthly Profit',
-    value: '$4,200',
-    subValue: 'Conservative estimate',
-    icon: DollarSign,
-    color: 'text-success',
-  },
-  {
-    label: 'Payback Period',
-    value: '7.1 months',
-    subValue: 'Based on $30K investment',
-    icon: Clock,
-    color: 'text-primary',
-  },
-  {
-    label: 'Annual ROI',
-    value: '168%',
-    subValue: 'First year projection',
-    icon: TrendingUp,
-    color: 'text-success',
-  },
+  { label: 'Monthly Profit', value: '$4,200', subValue: 'Conservative estimate', icon: DollarSign, color: 'text-success' },
+  { label: 'Payback Period', value: '7.1 months', subValue: 'Based on $30K investment', icon: Clock, color: 'text-primary' },
+  { label: 'Annual ROI', value: '168%', subValue: 'First year projection', icon: TrendingUp, color: 'text-success' },
 ];
 
 const demoInsights = [
@@ -57,26 +39,22 @@ const demoRisks = [
 ];
 
 export function DemoPreview() {
-  // Instant visibility - no animation delays
-  const animationStep = 5;
-
   return (
     <section id="demo-preview" className="py-8 md:py-12 bg-background overflow-hidden">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Header - Simplified */}
+        {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-6">
           <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-2">Sample Report</p>
           <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
             See What You'll Get in 3 Minutes
           </h2>
           <p className="text-sm text-muted-foreground">
-            Real output: "Coffee shop in downtown Denver"
+            Example output: "Coffee shop in downtown Denver"
           </p>
         </div>
 
         {/* Demo Card */}
         <div className="relative max-w-4xl mx-auto">
-          {/* Glow Effect */}
           <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 blur-3xl -z-10" />
           
           <div className="rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
@@ -91,44 +69,28 @@ export function DemoPreview() {
                   <div className="text-xs text-muted-foreground">Coffee Shop • Denver, CO</div>
                 </div>
               </div>
-              <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-success/10 text-success text-xs font-medium">
-                <div className="w-2 h-2 rounded-full bg-success" />
-                Live Demo
+              <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
+                Sample
               </div>
             </div>
 
             {/* Metrics Grid */}
             <div className="p-4 md:p-6">
-              <div className={`grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 transition-all duration-500 ${animationStep >= 1 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                {demoMetrics.map((metric, index) => (
-                  <div 
-                    key={metric.label}
-                    className="p-4 rounded-xl border border-border bg-background"
-                    style={{ 
-                      transitionDelay: `${index * 100}ms`,
-                      opacity: animationStep >= 1 ? 1 : 0,
-                      transform: animationStep >= 1 ? 'translateY(0)' : 'translateY(10px)'
-                    }}
-                  >
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                {demoMetrics.map((metric) => (
+                  <div key={metric.label} className="p-4 rounded-xl border border-border bg-background">
                     <div className="flex items-center gap-2 mb-2">
                       <metric.icon className={`w-4 h-4 ${metric.color}`} />
                       <span className="text-sm text-muted-foreground">{metric.label}</span>
                     </div>
-                    <div className={`text-2xl md:text-3xl font-bold ${metric.color}`}>
-                      {metric.value}
-                    </div>
-                    {metric.subValue && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {metric.subValue}
-                      </div>
-                    )}
+                    <div className={`text-2xl md:text-3xl font-bold ${metric.color}`}>{metric.value}</div>
+                    {metric.subValue && <div className="text-xs text-muted-foreground mt-1">{metric.subValue}</div>}
                   </div>
                 ))}
               </div>
 
               {/* Insights & Risks */}
-              <div className={`grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 transition-all duration-500 ${animationStep >= 2 ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
-                {/* Key Insights */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 <div className="p-4 rounded-xl border border-border bg-background">
                   <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2 text-base">
                     <CheckCircle2 className="w-4 h-4 text-success" />
@@ -136,22 +98,13 @@ export function DemoPreview() {
                   </h3>
                   <ul className="space-y-2">
                     {demoInsights.map((insight, i) => (
-                      <li 
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-start gap-2"
-                        style={{
-                          opacity: animationStep >= 3 ? 1 : 0,
-                          transitionDelay: `${i * 100}ms`
-                        }}
-                      >
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                         <span className="text-success mt-0.5">•</span>
                         {insight}
                       </li>
                     ))}
                   </ul>
                 </div>
-
-                {/* Risks */}
                 <div className="p-4 rounded-xl border border-border bg-background">
                   <h3 className="font-semibold text-foreground mb-3 flex items-center gap-2 text-base">
                     <AlertTriangle className="w-4 h-4 text-warning" />
@@ -159,14 +112,7 @@ export function DemoPreview() {
                   </h3>
                   <ul className="space-y-2">
                     {demoRisks.map((risk, i) => (
-                      <li 
-                        key={i}
-                        className="text-sm text-muted-foreground flex items-start gap-2"
-                        style={{
-                          opacity: animationStep >= 3 ? 1 : 0,
-                          transitionDelay: `${i * 100}ms`
-                        }}
-                      >
+                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                         <span className="text-warning mt-0.5">•</span>
                         {risk}
                       </li>
@@ -175,45 +121,36 @@ export function DemoPreview() {
                 </div>
               </div>
 
-              {/* Blurred Content Preview */}
-              <div 
-                className={`relative transition-all duration-500 ${animationStep >= 4 ? 'opacity-100' : 'opacity-0'}`}
-              >
-                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/80 to-card z-10" />
-                <div className="filter blur-sm pointer-events-none">
+              {/* Blurred teaser */}
+              <div className="relative">
+                <div className="filter blur-sm pointer-events-none select-none">
                   <div className="p-4 rounded-xl border border-border bg-muted/30 mb-4">
                     <div className="h-4 bg-muted rounded w-3/4 mb-2" />
                     <div className="h-4 bg-muted rounded w-1/2 mb-2" />
                     <div className="h-4 bg-muted rounded w-2/3" />
                   </div>
-                  <div className="p-4 rounded-xl border border-border bg-muted/30">
-                    <div className="h-4 bg-muted rounded w-1/2 mb-2" />
-                    <div className="h-4 bg-muted rounded w-3/4" />
-                  </div>
                 </div>
-                
-                {/* CTA Overlay - Enhanced for mobile */}
-                <div className="absolute inset-0 flex items-center justify-center z-20 px-4">
-                  <Link 
-                    to="/app"
-                    onClick={() => trackCtaClick('unlock_full_report', 'demo_preview')}
-                    className="w-full md:w-auto"
-                  >
-                    <Button size="lg" className="w-full md:w-auto gap-2 shadow-2xl min-h-[56px] text-base transition-all duration-300 hover:shadow-primary/20 haptic-btn relative overflow-hidden">
-                      <Play className="w-5 h-5" />
-                      Analyze My Idea
-                      <ArrowRight className="w-4 h-4 hidden sm:block" />
-                    </Button>
-                  </Link>
-                </div>
+                <div className="absolute inset-0 bg-gradient-to-b from-transparent via-card/60 to-card" />
               </div>
             </div>
           </div>
 
-          {/* Mobile Touch Prompt */}
-          <p className="text-center text-sm text-muted-foreground mt-4 md:hidden font-medium">
-            👆 Tap above to get your free analysis
-          </p>
+          {/* CTA OUTSIDE the blur — clearly clickable */}
+          <div className="mt-6 text-center">
+            <p className="text-sm text-muted-foreground mb-3">
+              This is a sample. Get <strong className="text-foreground">your</strong> numbers:
+            </p>
+            <Link
+              to="/app"
+              onClick={() => trackCtaClick('see_my_numbers', 'demo_preview')}
+            >
+              <Button size="lg" className="w-full md:w-auto gap-2 shadow-xl min-h-[56px] text-base hover:scale-[1.02] transition-all">
+                <Sparkles className="w-5 h-5" />
+                See My Numbers — Free
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
         </div>
       </div>
     </section>
