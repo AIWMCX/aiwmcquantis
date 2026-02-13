@@ -15,14 +15,12 @@
       base-uri 'self';
       form-action 'self';">
     
-    <!-- Preconnect for critical third-party origins - MUST be first in head for maximum effect -->
+    <!-- Preconnect for critical third-party origins (≤4 to avoid browser contention) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="preconnect" href="https://www.google-analytics.com" crossorigin>
-    <link rel="preconnect" href="https://www.googletagmanager.com" crossorigin>
     <link rel="preconnect" href="https://gafxacjhkqsdzwwzhbor.supabase.co" crossorigin>
     
-    <!-- DNS Prefetch as fallback for browsers that don't support preconnect -->
+    <!-- DNS Prefetch for less critical origins -->
     <link rel="dns-prefetch" href="//fonts.googleapis.com">
     <link rel="dns-prefetch" href="//fonts.gstatic.com">
     <link rel="dns-prefetch" href="//www.google-analytics.com">

@@ -3,15 +3,10 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
-import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { MobileNav } from '@/components/layout/MobileNav';
-import { PricingSection } from '@/components/landing/PricingSection';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
-import { TrustLogos } from '@/components/landing/TrustLogos';
-import { Testimonials } from '@/components/landing/Testimonials';
 import { ResultsTicker } from '@/components/landing/ResultsTicker';
-import { DemoPreview } from '@/components/landing/DemoPreview';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { trackCtaClick } from '@/lib/analytics';
@@ -22,6 +17,12 @@ import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { useTheme } from 'next-themes';
 
+// Lazy-load below-fold sections to reduce initial JS and speed up FCP
+const TrustLogos = lazy(() => import('@/components/landing/TrustLogos').then(m => ({ default: m.TrustLogos })));
+const DemoPreview = lazy(() => import('@/components/landing/DemoPreview').then(m => ({ default: m.DemoPreview })));
+const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection').then(m => ({ default: m.HowItWorksSection })));
+const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
+const PricingSection = lazy(() => import('@/components/landing/PricingSection').then(m => ({ default: m.PricingSection })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
 
 const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
@@ -34,6 +35,7 @@ export default function Landing() {
   const { user } = useAuth();
   const { theme, setTheme } = useTheme();
   const faqSection = useLazySection({ rootMargin: '200px' });
+  const belowFoldSection = useLazySection({ rootMargin: '300px' });
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
 
@@ -114,17 +116,26 @@ export default function Landing() {
         {/* 3. Results Ticker */}
         <ResultsTicker />
 
-        {/* 4. Trust Signals */}
-        <TrustLogos />
+        {/* Below-fold sections - lazy loaded for faster FCP */}
+        <div ref={belowFoldSection.ref}>
+          {belowFoldSection.isVisible ? (
+            <Suspense fallback={<SectionSkeleton height={200} />}>
+              {/* 4. Trust Signals */}
+              <TrustLogos />
 
-        {/* 5. Demo Preview */}
-        <DemoPreview />
+              {/* 5. Demo Preview */}
+              <DemoPreview />
 
-        {/* 6. How It Works (condensed) */}
-        <HowItWorksSection />
+              {/* 6. How It Works (condensed) */}
+              <HowItWorksSection />
 
-        {/* 7. Use Cases */}
-        <Testimonials />
+              {/* 7. Use Cases */}
+              <Testimonials />
+            </Suspense>
+          ) : (
+            <SectionSkeleton height={800} />
+          )}
+        </div>
 
         {/* 8. Lead Capture */}
         <section className="py-12 md:py-16 bg-muted/30">
@@ -144,7 +155,9 @@ export default function Landing() {
 
         {/* 9. Pricing */}
         <div ref={pricingRef}>
-          <PricingSection />
+          <Suspense fallback={<SectionSkeleton height={400} />}>
+            <PricingSection />
+          </Suspense>
         </div>
 
         {/* 10. FAQ */}
