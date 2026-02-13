@@ -119,19 +119,23 @@ export function ResultsTicker() {
         </div>
 
         {/* Active indicator dots */}
-        <div className="flex items-center justify-center gap-1.5 mt-4">
+        <div className="flex items-center justify-center gap-0 mt-2">
           {TICKER_DATA.map((_, idx) => (
             <button
               key={idx}
               onClick={() => setVisibleIndex(idx)}
-              className={cn(
-                'w-1.5 h-1.5 rounded-full transition-all duration-300',
-                idx === visibleIndex
-                  ? 'w-4 bg-primary'
-                  : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-              )}
+              className="relative p-3 group"
               aria-label={`Show result ${idx + 1}`}
-            />
+            >
+              <span
+                className={cn(
+                  'block rounded-full transition-all duration-300',
+                  idx === visibleIndex
+                    ? 'w-4 h-1.5 bg-primary'
+                    : 'w-1.5 h-1.5 bg-muted-foreground/30 group-hover:bg-muted-foreground/50'
+                )}
+              />
+            </button>
           ))}
         </div>
       </div>
