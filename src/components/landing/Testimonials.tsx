@@ -46,7 +46,7 @@ export function Testimonials() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary font-medium text-sm mb-4">
+          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/[0.06] text-primary font-medium text-sm mb-4">
             <BarChart3 className="w-4 h-4" />
             Real Platform Output
           </div>
