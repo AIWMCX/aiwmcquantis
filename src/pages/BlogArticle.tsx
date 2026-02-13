@@ -105,6 +105,80 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>AI handles the 80% (financial logic, benchmarks, risk scoring). Humans handle the 20% (strategy, relationships, judgment calls).</p>
     </>
   ),
+  'how-to-calculate-startup-costs': (
+    <>
+      <p>One of the most common reasons startups fail isn't a bad idea — it's running out of money. And that usually happens because founders underestimate how much it actually costs to get started.</p>
+      
+      <h2>Why Startup Cost Estimation Matters</h2>
+      <p>Before you write a single line of code or sign a lease, you need to know your burn rate. How much will you spend per month before generating revenue? How many months of runway do you need? These questions determine whether your business survives the startup phase.</p>
+      
+      <h2>The Three Categories of Startup Costs</h2>
+      <h3>1. Fixed Costs (Monthly)</h3>
+      <p>These are costs you pay regardless of revenue: rent, salaries, software subscriptions, insurance, and utilities. For a coffee shop in Denver, expect $8,000-$15,000/month in fixed costs. For a SaaS startup, $2,000-$5,000/month.</p>
+      
+      <h3>2. Variable Costs (Per Unit)</h3>
+      <p>Costs that scale with your output: raw materials, transaction fees, shipping, and customer support. Your gross margin is revenue minus variable costs — and it determines whether scaling makes you money or loses it faster.</p>
+      
+      <h3>3. One-Time Setup Costs</h3>
+      <p>Equipment, legal fees, branding, initial inventory, and deposits. These are your "Day 1" costs before the business even opens.</p>
+      
+      <h2>Location Matters More Than You Think</h2>
+      <p>The same business in New York City costs 2-3x more to run than in Austin, Texas. Rent, salaries, and even utilities vary dramatically. AIWMC Quantis adjusts all projections for 50+ cities worldwide, so your numbers reflect reality — not averages.</p>
+      
+      <h2>The Break-Even Formula</h2>
+      <p>Break-even point = Fixed Costs ÷ (Price per Unit - Variable Cost per Unit). This tells you exactly how many customers you need to cover your costs. If that number seems unrealistically high for your market, reconsider your pricing or cost structure before launching.</p>
+      
+      <h2>Common Estimation Mistakes</h2>
+      <ul>
+        <li><strong>Forgetting hidden costs:</strong> Payment processing fees, accounting software, legal compliance, and insurance add up to 15-25% of your estimated budget.</li>
+        <li><strong>Underestimating time to revenue:</strong> Most businesses take 3-6 months to generate meaningful revenue. Budget for at least 6 months of runway.</li>
+        <li><strong>Ignoring seasonality:</strong> A beach rental business will have 3-4 strong months and 8 lean ones. Your cost structure must survive the off-season.</li>
+      </ul>
+      
+      <h2>How to Get Accurate Startup Cost Estimates</h2>
+      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 3 minutes.</p>
+    </>
+  ),
+  'unit-economics-explained-for-founders': (
+    <>
+      <p>Unit economics is the single most important concept for any founder to understand. It answers the fundamental question: "Does this business make money on each customer, or lose it?"</p>
+      
+      <h2>What Are Unit Economics?</h2>
+      <p>Unit economics measures the revenue and costs associated with a single "unit" of your business — usually one customer. If each customer generates more revenue than they cost to acquire and serve, your business is fundamentally sound. If not, growing faster just means losing money faster.</p>
+      
+      <h2>Customer Acquisition Cost (CAC)</h2>
+      <p>CAC is the total cost to acquire one new customer. This includes marketing spend, sales team costs, advertising, and any tools used for outreach — divided by the number of customers acquired in that period.</p>
+      <p><strong>Formula:</strong> CAC = Total Sales & Marketing Spend ÷ New Customers Acquired</p>
+      <p><strong>Example:</strong> If you spend $5,000/month on marketing and acquire 100 customers, your CAC is $50.</p>
+      <p>Industry benchmarks vary widely: B2C e-commerce averages $10-$50 CAC, while B2B SaaS can range from $200-$1,000+.</p>
+      
+      <h2>Lifetime Value (LTV)</h2>
+      <p>LTV is the total revenue you expect from a single customer over their entire relationship with your business. It depends on three factors: average transaction value, purchase frequency, and customer lifespan.</p>
+      <p><strong>Formula:</strong> LTV = Average Revenue per Customer × Customer Lifetime (in months)</p>
+      <p><strong>Example:</strong> If a customer pays $29/month and stays for 14 months on average, LTV = $406.</p>
+      
+      <h2>The LTV/CAC Ratio</h2>
+      <p>This is the most important metric in startup economics. It tells you how much value you get for every dollar spent on acquisition.</p>
+      <ul>
+        <li><strong>LTV/CAC &lt; 1:</strong> You're losing money on every customer. Stop spending on acquisition immediately.</li>
+        <li><strong>LTV/CAC = 1-2:</strong> Barely profitable. You need to either reduce CAC or increase retention.</li>
+        <li><strong>LTV/CAC = 3-5:</strong> Healthy business. This is the target range for most startups.</li>
+        <li><strong>LTV/CAC &gt; 5:</strong> Excellent — you may be underinvesting in growth.</li>
+      </ul>
+      
+      <h2>Payback Period</h2>
+      <p>Even if your LTV/CAC ratio is healthy, you need to consider how long it takes to recover your acquisition cost. A 12-month payback period means you need 12 months of cash flow before each customer becomes profitable.</p>
+      <p><strong>Formula:</strong> Payback Period = CAC ÷ Monthly Revenue per Customer</p>
+      <p>For bootstrapped startups, aim for a payback period under 6 months. VC-backed companies can tolerate 12-18 months.</p>
+      
+      <h2>Churn Rate: The Silent Killer</h2>
+      <p>Monthly churn rate directly impacts LTV. If 5% of customers leave each month, your average customer lifetime is only 20 months. At 10% churn, it drops to 10 months — cutting your LTV in half.</p>
+      <p>Reducing churn by even 1-2% can have a bigger impact on profitability than doubling your marketing budget.</p>
+      
+      <h2>How Quantis Calculates Your Unit Economics</h2>
+      <p>AIWMC Quantis automatically calculates CAC, LTV, LTV/CAC ratio, payback period, and churn impact for your specific business idea — using benchmarks from 1,000+ industry scenarios. You'll see exactly where your business stands and what metrics need to improve before you invest.</p>
+    </>
+  ),
 };
 
 export default function BlogArticle() {
@@ -123,6 +197,20 @@ export default function BlogArticle() {
         description={article.description}
         canonical={`/blog/${article.slug}`}
         ogType="article"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Article',
+          headline: article.title,
+          description: article.description,
+          image: 'https://aiwmcquantis.com/og-image.png',
+          datePublished: article.date,
+          dateModified: article.date,
+          author: { '@type': 'Person', name: 'Bogdan Jeltov', url: 'https://aiwmcquantis.com' },
+          publisher: { '@type': 'Organization', name: 'AIWMC AI Agency LLC', logo: { '@type': 'ImageObject', url: 'https://aiwmcquantis.com/icon-512.png' } },
+          mainEntityOfPage: { '@type': 'WebPage', '@id': `https://aiwmcquantis.com/blog/${article.slug}` },
+          ...(article.keywords && { keywords: article.keywords.join(', ') }),
+          articleSection: article.category,
+        }}
       />
 
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
@@ -181,10 +269,10 @@ export default function BlogArticle() {
         {/* CTA */}
         <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Structured financial logic, risk signals, and clarity — in under 3 minutes.</p>
+          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 3 minutes.</p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
-              Start Free Validation <ArrowRight className="w-5 h-5" />
+              See My Numbers — Free <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </div>

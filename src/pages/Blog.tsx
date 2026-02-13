@@ -12,6 +12,7 @@ export interface BlogArticle {
   date: string;
   readTime: string;
   category: string;
+  keywords?: string[];
 }
 
 export const BLOG_ARTICLES: BlogArticle[] = [
@@ -22,6 +23,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-02-11',
     readTime: '8 min read',
     category: 'Validation',
+    keywords: ['startup validation', 'AI business analysis', 'validate business idea', 'startup feasibility'],
   },
   {
     slug: '5-financial-mistakes-early-founders-make',
@@ -30,6 +32,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-02-11',
     readTime: '6 min read',
     category: 'Finance',
+    keywords: ['startup finance', 'founder mistakes', 'unit economics', 'CAC LTV ratio'],
   },
   {
     slug: 'ai-vs-traditional-business-planning',
@@ -38,6 +41,25 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     date: '2026-02-11',
     readTime: '7 min read',
     category: 'Strategy',
+    keywords: ['AI business planning', 'business plan generator', 'startup planning tools'],
+  },
+  {
+    slug: 'how-to-calculate-startup-costs',
+    title: 'How to Calculate Startup Costs for Any Business Idea (2026 Guide)',
+    description: 'A practical breakdown of startup cost estimation — fixed costs, variable costs, and location-adjusted projections for 50+ cities.',
+    date: '2026-02-13',
+    readTime: '7 min read',
+    category: 'Finance',
+    keywords: ['startup costs', 'business startup budget', 'calculate startup expenses', 'startup cost calculator'],
+  },
+  {
+    slug: 'unit-economics-explained-for-founders',
+    title: 'Unit Economics Explained: CAC, LTV, and Payback Period for Founders',
+    description: 'The essential unit economics every founder must know — customer acquisition cost, lifetime value, and how to calculate payback period.',
+    date: '2026-02-13',
+    readTime: '9 min read',
+    category: 'Finance',
+    keywords: ['unit economics', 'CAC', 'LTV', 'customer acquisition cost', 'lifetime value', 'payback period'],
   },
 ];
 
@@ -121,10 +143,10 @@ export default function Blog() {
         {/* CTA */}
         <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Structured financial logic, risk signals, and clarity — in under 3 minutes.</p>
+          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 3 minutes.</p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
-              Start Free Validation <ArrowRight className="w-5 h-5" />
+              See My Numbers — Free <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </div>
