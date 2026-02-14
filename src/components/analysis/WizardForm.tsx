@@ -93,15 +93,17 @@ export function WizardForm({
   }, [isLoading]);
   const [isRestored, setIsRestored] = useState(false);
 
-  // Check for prefill from mini-demo
+  // Check for prefill from mini-demo OR hero form
   useEffect(() => {
-    const prefill = localStorage.getItem('quantis_prefill');
+    // Try localStorage first (mini-demo), then sessionStorage (hero form)
+    const prefill = localStorage.getItem('quantis_prefill') || sessionStorage.getItem('hero_prefill');
     if (prefill) {
       try {
         const { idea: prefillIdea, location: prefillLocation } = JSON.parse(prefill);
         if (prefillIdea) onIdeaChange(prefillIdea);
         if (prefillLocation) onLocationChange(prefillLocation);
         localStorage.removeItem('quantis_prefill');
+        sessionStorage.removeItem('hero_prefill');
       } catch (e) {
         console.error('Failed to parse prefill:', e);
       }

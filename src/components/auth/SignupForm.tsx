@@ -230,23 +230,33 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     return (
       <div className={cn('text-center space-y-6 py-8', className)}>
         <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-green-100 dark:bg-green-900/20">
-          <CheckCircle2 className="w-8 h-8 text-green-600" />
+          <Mail className="w-8 h-8 text-green-600" />
         </div>
         
         <div className="space-y-2">
-          <h3 className="text-xl font-semibold text-foreground">Account Created!</h3>
+          <h3 className="text-xl font-semibold text-foreground">Check Your Email</h3>
           <p className="text-muted-foreground">
-            Welcome to AIWMC Quantis™
+            We sent a verification link to
           </p>
         </div>
         
-        <p className="text-sm text-muted-foreground">
-          Check your email at <span className="font-medium text-foreground">{submittedEmail}</span> to verify your account.
+        <p className="text-sm font-medium text-foreground bg-muted px-4 py-2 rounded-lg inline-block">
+          {submittedEmail}
         </p>
 
-        <Button onClick={() => navigate('/app')} className="w-full">
-          Go to Dashboard
-        </Button>
+        <p className="text-sm text-muted-foreground">
+          Click the link in your email to activate your account, then you can sign in and start analyzing.
+        </p>
+
+        <div className="pt-2 space-y-3">
+          <Button variant="outline" onClick={() => navigate('/auth')} className="w-full">
+            Go to Sign In
+          </Button>
+          <p className="text-xs text-muted-foreground">
+            Didn't receive the email? Check your spam folder or{' '}
+            <Link to="/auth" className="text-primary hover:underline">try again</Link>.
+          </p>
+        </div>
       </div>
     );
   }

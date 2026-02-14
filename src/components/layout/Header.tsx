@@ -8,15 +8,19 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { MobileNav } from './MobileNav';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
+import { useTheme } from 'next-themes';
 import aiwmcLogo from '@/assets/aiwmc-quantis-logo.jpg';
 import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
 
 interface HeaderProps {
-  darkMode: boolean;
-  onToggleTheme: () => void;
+  darkMode?: boolean;
+  onToggleTheme?: () => void;
 }
 
-export function Header({ darkMode, onToggleTheme }: HeaderProps) {
+export function Header({ darkMode: _legacyDarkMode, onToggleTheme: _legacyToggle }: HeaderProps) {
+  const { theme, setTheme } = useTheme();
+  const darkMode = theme === 'dark';
+  const onToggleTheme = () => setTheme(darkMode ? 'light' : 'dark');
   const { user, isAuthenticated, signOut, isLoading } = useAuth();
   const { isAdmin } = useAdmin();
   const isMobile = useIsMobile();
