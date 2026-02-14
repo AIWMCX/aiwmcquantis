@@ -7,13 +7,19 @@ import TableCell from '@tiptap/extension-table-cell';
 import TableHeader from '@tiptap/extension-table-header';
 import Placeholder from '@tiptap/extension-placeholder';
 import { EditorToolbar } from './EditorToolbar';
-import { ExportPanel } from './ExportPanel';
 import { useUpdateDocument } from '@/hooks/useDocuments';
-import { useDocumentExport } from '@/hooks/useDocumentExport';
+import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { Loader2, CheckCircle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Loader2, CheckCircle, Download, FileText } from 'lucide-react';
 import { cn, useDebouncedCallback } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 import type { Document, DocumentStatus } from '@/types/document';
 
 interface DocumentEditorProps {
@@ -23,9 +29,10 @@ interface DocumentEditorProps {
 
 export function DocumentEditor({ document, onBack }: DocumentEditorProps) {
   const { mutate: updateDocument, isPending: isSaving } = useUpdateDocument();
-  const { exportDocument, isExporting } = useDocumentExport();
+  const { downloadPDF, downloadHTML, isDownloading } = useDocumentDownload();
   const [title, setTitle] = React.useState(document.title);
   const [lastSaved, setLastSaved] = React.useState<Date | null>(null);
+  const [status, setStatus] = React.useState<DocumentStatus>(document.status);
 
   const editor = useEditor({
     extensions: [
@@ -101,16 +108,26 @@ export function DocumentEditor({ document, onBack }: DocumentEditorProps) {
     debouncedSave(editor?.getJSON() as Record<string, unknown>);
   }, [editor, debouncedSave]);
 
-  const handleExport = useCallback(async (format: 'pdf' | 'docx' | 'md') => {
-    await exportDocument(document.id, format);
-  }, [document.id, exportDocument]);
-
-  const handleStatusChange = useCallback((status: DocumentStatus) => {
+  const handleStatusChange = useCallback((newStatus: DocumentStatus) => {
+    setStatus(newStatus);
     updateDocument({
       documentId: document.id,
-      status,
+      status: newStatus,
     });
   }, [document.id, updateDocument]);
+
+  // Export: get the editor HTML and download
+  const handleExportPDF = useCallback(() => {
+    if (!editor) return;
+    const html = editor.getHTML();
+    downloadPDF(html, title);
+  }, [editor, downloadPDF, title]);
+
+  const handleExportHTML = useCallback(() => {
+    if (!editor) return;
+    const html = editor.getHTML();
+    downloadHTML(html, title);
+  }, [editor, downloadHTML, title]);
 
   if (!editor) {
     return (
@@ -149,17 +166,62 @@ export function DocumentEditor({ document, onBack }: DocumentEditorProps) {
           </div>
           
           {/* Status badge */}
-          <Badge
-            variant={document.status === 'final' ? 'default' : 'outline'}
-            className={cn(
-              'cursor-pointer',
-              document.status === 'draft' && 'border-warning text-warning',
-              document.status === 'review' && 'border-primary text-primary',
-              document.status === 'final' && 'bg-primary'
-            )}
-          >
-            {document.status}
-          </Badge>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Badge
+                variant={status === 'final' ? 'default' : 'outline'}
+                className={cn(
+                  'cursor-pointer',
+                  status === 'draft' && 'border-amber-500 text-amber-700 dark:text-amber-400',
+                  status === 'review' && 'border-primary text-primary',
+                  status === 'final' && 'bg-primary'
+                )}
+              >
+                {status}
+              </Badge>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={() => handleStatusChange('draft')}>
+                Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange('review')}>
+                Review
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleStatusChange('final')}>
+                Final
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {/* Export */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button size="sm" className="gap-2" disabled={isDownloading}>
+                {isDownloading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+                Export
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-52">
+              <DropdownMenuItem onClick={handleExportPDF} className="gap-2 cursor-pointer">
+                <FileText className="w-4 h-4 text-red-500" />
+                <div>
+                  <p className="font-medium">Save as PDF</p>
+                  <p className="text-xs text-muted-foreground">Print to PDF dialog</p>
+                </div>
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleExportHTML} className="gap-2 cursor-pointer">
+                <FileText className="w-4 h-4 text-blue-500" />
+                <div>
+                  <p className="font-medium">Download HTML</p>
+                  <p className="text-xs text-muted-foreground">Standalone file</p>
+                </div>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
 
@@ -174,14 +236,9 @@ export function DocumentEditor({ document, onBack }: DocumentEditorProps) {
           </div>
         </div>
       </div>
-
-      {/* Export panel */}
-      <ExportPanel
-        onExport={handleExport}
-        isExporting={isExporting}
-        status={document.status}
-        onStatusChange={handleStatusChange}
-      />
     </div>
   );
 }
+
+// Default export for lazy loading
+export default DocumentEditor;
