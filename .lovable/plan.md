@@ -1,121 +1,167 @@
 
 
-# Docs Studio: Complete Professional Polish
+# AIWMC Quantis: Production Stability & Growth Readiness Plan
 
-## Current State (What a Customer Sees Today)
+## Executive Summary
 
-After testing every element end-to-end, here is the exact customer experience and every issue that needs fixing:
+After auditing every page, every hook, every edge function, the database state, and real usage data, here is the honest picture and the precise fixes needed to stabilize this project for growth.
 
-### What Works Well
-- Template gallery renders cleanly with 10 cards (3 free, 7 Plus)
-- Live preview updates in real-time with 300ms debounce (no flicker)
-- Invoice form has proper Zod validation, reactive totals, and line item management
-- Auto-fill from Analysis works (pulls from most recent business analysis)
-- Draft auto-save to localStorage works (800ms debounce, restore/dismiss banner)
-- Download: PDF opens print dialog, HTML downloads as Blob
-- XSS protection via DOMPurify + escapeFormValues on every preview render
-- My Documents tab shows saved docs with search, status filter, duplicate, delete
-- Document editor (TipTap) loads HTML snapshots correctly from saved documents
+## Real Usage Data (as of Feb 14, 2026)
 
-### Issues Found (Ranked by Customer Impact)
+- **11 registered users** (9 free, 2 Plus)
+- **24 total analyses** from 3 unique users
+- **5 leads** captured
+- **2 saved documents**, 0 tracked downloads
+- **Daily analysis volume**: 0-4 per day, with multi-day gaps
+- **1 month post-launch**: Product is functional but not growing
 
-| # | Issue | Severity | What Customer Sees |
-|---|-------|----------|-------------------|
-| 1 | **"Generate Invoice" submit button does nothing useful** | High | Button triggers `handleGenerate` which just shows a toast "Use the Download button..." -- confusing dead-end |
-| 2 | **No mobile preview at all** | High | CSS `@media (max-width: 768px) { .doc-preview-container { display: none } }` hides preview, but the actual preview container uses different classes (`Card` component), so mobile users see the preview column but it takes full width below the form with no toggle |
-| 3 | **Hide Preview button visible but broken on mobile** | Medium | The button shows/hides the preview column, but on mobile the layout becomes a single column -- toggling it makes the form full-width but there's no way to see preview without scrolling |
-| 4 | **Download button only appears inside preview card** | Medium | If user hides preview, the download button disappears entirely -- no way to download |
-| 5 | **No invoice number customization** | Medium | Hardcoded as "INV-000001" -- customers need editable invoice numbers |
-| 6 | **No date customization** | Medium | Invoice date and due date are auto-calculated but not editable |
-| 7 | **ExportPanel shows "DOCX coming soon"** | Low | Clicking DOCX in the editor export shows a toast saying "coming soon" -- unprofessional |
-| 8 | **Document title in "My Documents" uses auto-generated names** | Low | Title is "Professional Invoice" + nothing user-specific -- hard to distinguish multiple invoices |
-| 9 | **No currency selection** | Low | All documents are USD-only ($) -- no EUR/GBP support |
-| 10 | **Template cards missing "popular" badge display** | Low | `popular: true` is set in data but never rendered in the UI |
-| 11 | **No document count/stats on My Documents tab** | Low | Tab shows "Plus" badge but no count of saved documents |
-| 12 | **Editor has duplicate back buttons** | Low | DocsStudio renders a "Back to My Documents" button, then DocumentEditor renders its own ArrowLeft back button -- two overlapping back navigation elements |
+## Competitive Landscape
 
----
+### Direct Competitors
 
-## Implementation Plan
+| Tool | What They Do | Pricing | Key Feature We Lack |
+|------|-------------|---------|-------------------|
+| **BizPlanAI Pro** | Business plan generator + idea validator | Free demo + paid plans | SWOT analysis output, "investor-ready" PDF branding, 150+ industry claim |
+| **ValidatorAI** | Startup idea scoring with AI mentor chat | Freemium | Conversational AI advisor ("Val"), idea scoring system (1-10), simulated customer feedback |
+| **LivePlan** | Full business planning + financial dashboards | $20-40/mo | Live financial dashboards, milestone tracking, Pitch preparation mode |
+| **Upmetrics** | AI business plan writer + pitch deck builder | $7-30/mo | Step-by-step plan builder wizard, financial forecast charts, collaboration |
 
-### Fix 1: Remove Confusing "Generate" Submit Button
-The form submit button at the bottom of every template form says "Generate Invoice" / "Generate Plan" etc, but `handleGenerate` just shows a toast. This is a dead-end that confuses customers.
+### What AIWMC Quantis Has That Competitors Don't
+- **Deterministic financial engine** (not pure LLM-generated numbers) -- CFO-grounded
+- **Location intelligence** with 50+ city cost multipliers
+- **7-layer AI safety architecture** with truth labeling
+- **Anonymous analysis** (no signup required for first try)
+- **Document intelligence** -- upload PDFs/Excel for enhanced analysis
+- **Real-time scenario switching** (pessimistic/base/optimistic)
 
-**Change:** Remove the submit button from all 10 form components, or repurpose it as a "Save and Download PDF" primary action that combines form validation + download in one click. This makes the call-to-action clear.
+### What Competitors Have That We're Missing (Critical Gaps)
 
-**Files:** All 10 form components in `src/components/docs/forms/`
-
-### Fix 2: Make Download Always Accessible
-Currently the download button is buried inside the preview card. If preview is hidden, there's no download.
-
-**Change:** Add a sticky bottom bar (like `PreviewDownloadBar`) that is always visible regardless of preview visibility. On mobile, this becomes the primary download surface.
-
-**File:** `src/pages/DocsStudio.tsx` (generate step section)
-
-### Fix 3: Mobile Preview as Modal/Sheet
-On mobile, customers cannot see a proper preview. The 2-column layout collapses.
-
-**Change:** On screens below `lg` breakpoint, replace the side-by-side layout with:
-- Form visible by default
-- "Preview" button opens a full-screen sheet/drawer (`vaul` Drawer already installed) showing the rendered document
-- Download actions available inside the drawer
-
-**Files:** `src/pages/DocsStudio.tsx`, potentially a new `MobilePreviewDrawer` component
-
-### Fix 4: Add Editable Invoice Number and Date Fields
-Professional invoices need custom invoice numbers and dates.
-
-**Change:** Add `invoice_number` (string, default "INV-000001"), `invoice_date` (date, default today), and `due_date` (date, default +30 days) fields to `InvoiceFormSchema` and the form UI. Wire them into the preview HTML template.
-
-**File:** `src/components/docs/forms/InvoiceForm.tsx`
-
-### Fix 5: Fix Duplicate Back Buttons in Editor
-When editing a saved document, DocsStudio renders its own back button above the DocumentEditor, which also has its own back button.
-
-**Change:** Remove the outer back button from DocsStudio when in `edit` step. The DocumentEditor already handles its own navigation via `onBack`.
-
-**File:** `src/pages/DocsStudio.tsx` (lines 348-368)
-
-### Fix 6: Add Custom Document Title Input
-Currently documents are auto-named (e.g., "Professional Invoice"). Customers need to name their own documents for the "My Documents" list.
-
-**Change:** Add a title input field at the top of the generate step that defaults to the template name + date but is editable. Pass this to `saveAndDownload` instead of the hardcoded template name.
-
-**File:** `src/pages/DocsStudio.tsx`
-
-### Fix 7: Remove DOCX Option from ExportPanel
-Showing a "coming soon" toast is unprofessional. Remove the DOCX option until it's actually implemented.
-
-**Change:** Filter out `docx` from the export menu in `ExportPanel`, or hide it behind a feature flag.
-
-**File:** `src/components/docs/ExportPanel.tsx`
-
-### Fix 8: Add Document Count Badge to My Documents Tab
-Show users how many documents they have at a glance.
-
-**Change:** Query the document count and display it in the tab trigger as a small number badge.
-
-**File:** `src/pages/DocsStudio.tsx`
+| Gap | Competitor Reference | Impact on Growth |
+|-----|---------------------|-----------------|
+| **No onboarding email sequence after signup** | All competitors do drip campaigns | Users sign up and forget about the product |
+| **No "share analysis" social proof loop** | BizPlanAI has social sharing | No viral coefficient |
+| **Landing page hero form goes to /app but doesn't auto-submit** | BizPlanAI does instant analysis from landing | Breaks the "3-minute" promise -- user has to re-enter data |
+| **No SWOT analysis in results** | BizPlanAI Pro, ValidatorAI | Missing standard business framework output |
+| **No idea scoring (1-10 rating)** | ValidatorAI scores ideas | Users want a clear "go/no-go" signal |
+| **No progress/milestone tracking post-analysis** | LivePlan | No reason to come back after first analysis |
+| **Email verification blocks immediate use** | Most competitors allow instant access | 50%+ drop-off between signup and first analysis |
 
 ---
 
-## Technical Details
+## Critical Stability Fixes (Must-Do Before Growing)
 
-### Files Modified (in order of implementation)
+### Fix 1: Hero Form to Dashboard Prefill is Broken
+
+**Problem**: Landing page `MobileHero` saves to `sessionStorage` as `hero_prefill`, but `WizardForm` reads from `localStorage` as `quantis_prefill`. The data never connects.
+
+**Impact**: Every user who enters their idea on the landing page and clicks "See My Numbers" arrives at /app with an empty form. The "3-minute" promise is broken.
+
+**Fix**: Align the storage keys so the hero form data flows into the analysis wizard, OR read both keys in WizardForm.
+
+### Fix 2: Post-Signup Dead End
+
+**Problem**: After signup, user sees "Check your email to verify" and a "Go to Dashboard" button. But email verification is required, so clicking "Go to Dashboard" leads to a protected route that bounces back to /auth. The user is stuck in a loop until they verify.
+
+**Fix**: Either:
+- Show a clear "verify first" screen without the dashboard button
+- OR enable auto-confirm for signups (trades security for conversion)
+- OR allow dashboard access in read-only mode until verified
+
+### Fix 3: Free Tier Analysis Count Not Decrementing Visually
+
+**Problem**: The dashboard shows "X of 3 analyses remaining" but the `usage_tracking` table is only incremented server-side after the edge function completes. If the edge function fails or times out, the UI count doesn't match reality.
+
+**Fix**: Optimistically update the UI counter when analysis starts, and roll back if it fails.
+
+### Fix 4: Dark Mode Conflict Between Landing and Dashboard
+
+**Problem**: Landing page uses `next-themes` (`useTheme`), but AppDashboard uses its own `useState` + `localStorage` for dark mode with manual `document.documentElement.classList` manipulation. These two systems fight each other.
+
+**Fix**: Unify on `next-themes` everywhere and remove the manual dark mode state from AppDashboard.
+
+### Fix 5: "handleGenerate" Toast Still Fires
+
+**Problem**: In DocsStudio, the `handleGenerate` callback (line 288) still shows a toast "Use the Download button on the preview..." even though the Generate buttons were removed from forms. However, some forms still call `onGenerate` on form submit (since forms without a submit button can still be submitted via Enter key).
+
+**Fix**: Make `handleGenerate` a no-op (remove the toast), or prevent form submission entirely since there's no submit button.
+
+---
+
+## Growth-Critical Features (What Will Make Users Come Back)
+
+### Feature 1: Idea Score Badge (Like ValidatorAI)
+
+Add a prominent 1-10 score at the top of analysis results with a color-coded badge:
+- 8-10: "Strong Opportunity" (green)
+- 5-7: "Needs Work" (amber)
+- 1-4: "High Risk" (red)
+
+This gives users the instant "go/no-go" signal they crave. The score can be derived from the existing `confidence_score` + financial viability metrics.
+
+### Feature 2: Shareable Analysis Link with Preview Card
+
+The `shared_reports` table and `share-report` edge function already exist, but there's no Open Graph preview card when the link is shared on social media. Add:
+- OG image generation showing the idea score + key metrics
+- Social share buttons (Twitter, LinkedIn, WhatsApp) on the results page
+- "Share your analysis" CTA after results load
+
+### Feature 3: Email Lifecycle Sequence
+
+The `email_sequences` table is seeded but `send-lifecycle-email` edge function exists without being triggered. Wire up:
+- Day 0: Welcome email (already working)
+- Day 1: "Your analysis results are waiting" (if signed up but never analyzed)
+- Day 3: "3 tips to improve your business idea" (content email)
+- Day 7: "See how your idea compares to industry benchmarks" (Plus upsell)
+
+### Feature 4: SWOT Analysis Section in Results
+
+Add a SWOT (Strengths, Weaknesses, Opportunities, Threats) section to the analysis results. This is expected by every business planning tool user. The data is already available from the AI narrator output -- it just needs a dedicated visual section.
+
+---
+
+## Technical Debt to Resolve
+
+| Issue | File | Fix |
+|-------|------|-----|
+| Duplicate dark mode systems | `AppDashboard.tsx` + `Landing.tsx` | Remove manual dark mode from AppDashboard, use `next-themes` only |
+| `hero_prefill` vs `quantis_prefill` key mismatch | `MobileHero.tsx` + `WizardForm.tsx` | Align storage keys |
+| `handleGenerate` toast | `DocsStudio.tsx:288` | Remove toast, make it a silent no-op |
+| `document_downloads` has 0 records | `useDocDownloadLimit.ts` | Verify the recording function is actually being called on download |
+| `usage_count: 0` on most templates | `doc_templates` table | Verify `increment_template_usage` RPC is being called |
+
+---
+
+## Implementation Priority (Single Session)
+
+### Batch 1: Fix Broken Flows (Stability)
+1. Fix hero-to-dashboard prefill (storage key mismatch)
+2. Fix post-signup dead-end flow
+3. Unify dark mode systems
+4. Remove handleGenerate toast
+5. Fix download tracking
+
+### Batch 2: Growth Levers
+6. Add Idea Score Badge to analysis results
+7. Add social share buttons to results
+8. Wire up email lifecycle triggers
+
+### Batch 3: Competitive Parity
+9. Add SWOT section to results
+10. Improve the "share analysis" OG preview
+
+---
+
+## Files to Modify
 
 | File | Changes |
 |------|---------|
-| `src/pages/DocsStudio.tsx` | Remove duplicate back button in edit mode; add sticky download bar outside preview card; add editable document title; add document count badge; add mobile preview drawer |
-| `src/components/docs/forms/InvoiceForm.tsx` | Add invoice_number, invoice_date, due_date fields; repurpose submit button as "Save and Download PDF" action |
-| `src/components/docs/ExportPanel.tsx` | Remove DOCX option from menu |
-| `src/styles/docs-studio.css` | Remove the broken `.doc-preview-container { display: none }` mobile rule (it targets the wrong selector anyway) |
+| `src/components/analysis/WizardForm.tsx` | Read `hero_prefill` from sessionStorage in addition to `quantis_prefill` |
+| `src/components/landing/MobileHero.tsx` | Align prefill key OR keep as-is if WizardForm reads both |
+| `src/pages/AppDashboard.tsx` | Remove manual dark mode state, use `next-themes` |
+| `src/pages/DocsStudio.tsx` | Remove handleGenerate toast |
+| `src/components/auth/SignupForm.tsx` | Fix post-signup flow to not show "Go to Dashboard" until verified |
+| `src/components/analysis/AnalysisResults.tsx` | Add Idea Score Badge + SWOT section + social share buttons |
 
-### Forms NOT Modified (working correctly)
-The other 9 form templates follow the same pattern as InvoiceForm. Only the Invoice needs the number/date fix since it's the most-used template. The submit button change needs to propagate to all 10 forms.
-
-### No Database or Schema Changes Required
-All fixes are frontend-only. The existing DB tables, RLS policies, and edge functions remain unchanged.
-
-### No New Dependencies Required
-All changes use existing libraries: `vaul` (Drawer), `react-hook-form`, `zod`, `date-fns`.
+### No Database Changes Required
+All fixes are frontend-only or use existing tables/functions.
 
