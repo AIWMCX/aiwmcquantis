@@ -43,27 +43,15 @@ if ('serviceWorker' in navigator) {
         // Silently ignore update errors - they're non-critical
       });
       
-      // Listen for new service worker
+      // Listen for new service worker — notify only, no auto-reload
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              // New version available - activate immediately
-              console.log('[SW] New version available, activating...');
-              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              console.log('[SW] New version available. Will activate on next visit.');
             }
           });
-        }
-      });
-      
-      // Reload when new SW takes control
-      let refreshing = false;
-      navigator.serviceWorker.addEventListener('controllerchange', () => {
-        if (!refreshing) {
-          refreshing = true;
-          console.log('[SW] New version activated, reloading...');
-          window.location.reload();
         }
       });
     } catch (error) {
