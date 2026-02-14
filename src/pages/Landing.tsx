@@ -16,6 +16,7 @@ import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { useTheme } from 'next-themes';
+import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 // Lazy-load below-fold sections to reduce initial JS and speed up FCP
 const TrustLogos = lazy(() => import('@/components/landing/TrustLogos').then(m => ({ default: m.TrustLogos })));
@@ -62,7 +63,7 @@ export default function Landing() {
             </div>
             
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
+              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-8 sm:h-10 w-auto object-contain dark:invert" />
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
