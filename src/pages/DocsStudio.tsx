@@ -239,15 +239,21 @@ export default function DocsStudio() {
 
     // Save to DB (Plus users only — free tier keeps form-to-download)
     if (isPlus) {
-      // Convert HTML preview to a simple TipTap-compatible doc JSON
+      // Convert the live preview HTML into a TipTap-compatible doc with raw HTML content
+      // This stores the actual rendered document so the editor can display it
       const documentJson = {
         type: 'doc',
         content: [
           {
             type: 'paragraph',
-            content: [{ type: 'text', text: `Document generated from ${title} template` }],
+            content: [{ type: 'text', text: title }],
           },
+          // Store the HTML snapshot as a custom node attribute for retrieval
         ],
+        // Preserve the full HTML snapshot for the editor to parse
+        attrs: {
+          htmlSnapshot: html,
+        },
       };
 
       createDocument({

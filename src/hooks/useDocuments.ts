@@ -190,3 +190,53 @@ export function useDeleteDocument() {
     },
   });
 }
+
+export function useDuplicateDocument() {
+  const queryClient = useQueryClient();
+  const { user } = useAuth();
+
+  return useMutation({
+    mutationFn: async (documentId: string) => {
+      if (!user) throw new Error('Must be logged in');
+
+      // Fetch the original document
+      const { data: original, error: fetchError } = await supabase
+        .from('documents')
+        .select('*')
+        .eq('id', documentId)
+        .single();
+
+      if (fetchError || !original) {
+        throw new Error('Document not found');
+      }
+
+      // Create a copy
+      const { data, error } = await supabase
+        .from('documents')
+        .insert({
+          user_id: user.id,
+          template_id: original.template_id,
+          analysis_id: original.analysis_id,
+          title: `Copy of ${original.title}`,
+          document_json: original.document_json,
+          variables_data: original.variables_data,
+          status: 'draft' as const,
+        })
+        .select()
+        .single();
+
+      if (error) {
+        throw new Error(`Failed to duplicate document: ${error.message}`);
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['documents'] });
+      toast.success('Document duplicated');
+    },
+    onError: (error) => {
+      toast.error(error.message);
+    },
+  });
+}
