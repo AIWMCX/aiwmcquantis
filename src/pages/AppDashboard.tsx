@@ -27,13 +27,7 @@ export default function Index() {
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
+  // Dark mode is now managed by next-themes (via Header component)
 
   const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
@@ -129,17 +123,7 @@ export default function Index() {
     }
   }, [searchParams, setSearchParams, toast, refetchSubscription]);
 
-  // Apply dark mode
-  useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
+  // Dark mode is now managed by next-themes globally
 
   const features = [
     {
@@ -293,7 +277,7 @@ export default function Index() {
         canonical="/app"
         noindex={true}
       />
-      <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
+      <Header />
 
       <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-8">
         {/* Show skeleton during initial page load for authenticated users */}

@@ -286,7 +286,7 @@ export default function DocsStudio() {
   }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
-    toast.info('Use the Download button on the preview to export your document.');
+    // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar
   }, []);
 
   const handleTemplateSelect = useCallback((templateId: string) => {

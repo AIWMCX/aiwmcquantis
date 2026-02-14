@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2 } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -30,11 +30,82 @@ interface AnalysisResultsProps {
 export function AnalysisResults({ result, analysisId, onReset }: AnalysisResultsProps) {
   const contentRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGenerating } = usePdfExport();
-  const { shareReport, isSharing } = useShareReport();
+  const { shareReport, isSharing, shareUrl } = useShareReport();
   const { queueExport, status: exportStatus, progress: exportProgress, reset: resetExport } = useExportQueue();
   
   // Scenario selector state
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
+
+  // === IDEA SCORE (1-10) ===
+  const ideaScore = useMemo(() => {
+    const confidence = result.confidence_score || 50;
+    const margin = result.financial_analysis?.scenarios?.base?.net_margin ?? 0;
+    const ltvCac = result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0;
+    const isRealistic = result.validation?.is_realistic ? 1 : 0;
+    const isProfitable = result.validation?.is_profitable ? 1 : 0;
+
+    // Weighted score: confidence (30%), margin health (25%), LTV:CAC (25%), viability (20%)
+    const confidenceScore = Math.min(confidence / 100, 1) * 3;
+    const marginScore = margin > 20 ? 2.5 : margin > 10 ? 1.5 : margin > 0 ? 0.75 : 0;
+    const ltvCacScore = ltvCac >= 5 ? 2.5 : ltvCac >= 3 ? 1.75 : ltvCac >= 1 ? 1 : 0;
+    const viabilityScore = (isRealistic + isProfitable);
+
+    const raw = confidenceScore + marginScore + ltvCacScore + viabilityScore;
+    return Math.max(1, Math.min(10, Math.round(raw)));
+  }, [result]);
+
+  const ideaScoreLabel = ideaScore >= 8 ? 'Strong Opportunity' : ideaScore >= 5 ? 'Needs Work' : 'High Risk';
+  const ideaScoreColor = ideaScore >= 8 
+    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
+    : ideaScore >= 5 
+    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
+    : 'bg-destructive/10 text-destructive border-destructive/30';
+
+  // === SWOT derived from result data ===
+  const swot = useMemo(() => {
+    const strengths: string[] = [];
+    const weaknesses: string[] = [];
+    const opportunities: string[] = [];
+    const threats: string[] = [];
+
+    // Strengths
+    if (result.financial_analysis?.unit_economics?.ltv_cac_ratio && result.financial_analysis.unit_economics.ltv_cac_ratio >= 3)
+      strengths.push(`Strong unit economics (LTV:CAC ${result.financial_analysis.unit_economics.ltv_cac_ratio.toFixed(1)}x)`);
+    if ((result.financial_analysis?.scenarios?.base?.net_margin ?? 0) > 15)
+      strengths.push(`Healthy profit margins (${result.financial_analysis?.scenarios?.base?.net_margin?.toFixed(1)}%)`);
+    if (result.business_plan?.competitive_advantages)
+      strengths.push(result.business_plan.competitive_advantages.slice(0, 120));
+    if (strengths.length === 0)
+      strengths.push(result.business_plan?.product_description?.slice(0, 120) || 'Unique value proposition');
+
+    // Weaknesses
+    if ((result.financial_analysis?.scenarios?.base?.net_margin ?? 0) < 5)
+      weaknesses.push('Thin profit margins require careful cost management');
+    if (result.financial_analysis?.unit_economics?.cac_payback_months && result.financial_analysis.unit_economics.cac_payback_months > 12)
+      weaknesses.push(`Long CAC payback (${result.financial_analysis.unit_economics.cac_payback_months} months)`);
+    if (result.validation?.warnings?.length)
+      weaknesses.push(result.validation.warnings[0]?.message || 'Financial model has uncertainty areas');
+    if (weaknesses.length === 0)
+      weaknesses.push('Early-stage with unproven market fit');
+
+    // Opportunities
+    if (result.market_analysis?.growth_opportunities)
+      opportunities.push(result.market_analysis.growth_opportunities.slice(0, 120));
+    if (result.market_analysis?.trends?.length)
+      opportunities.push(result.market_analysis.trends[0]?.slice(0, 120) || 'Growing market trends');
+    if (opportunities.length === 0)
+      opportunities.push('Market expansion potential');
+
+    // Threats
+    if (result.business_plan?.risks?.length)
+      threats.push(result.business_plan.risks[0]?.risk || 'Competitive pressure');
+    if (result.market_analysis?.barriers_to_entry)
+      threats.push(result.market_analysis.barriers_to_entry.slice(0, 120));
+    if (threats.length === 0)
+      threats.push('Market competition and regulation');
+
+    return { strengths, weaknesses, opportunities, threats };
+  }, [result]);
 
   // Get scenario-specific metrics
   const scenarioMetrics = useMemo(() => {
@@ -139,6 +210,21 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     <div className="space-y-6" ref={contentRef}>
       {/* Header */}
       <div className="section-card">
+        {/* Idea Score Badge */}
+        <div className="flex items-center justify-between mb-4">
+          <div className={cn(
+            "inline-flex items-center gap-3 px-5 py-3 rounded-xl border-2 font-bold text-lg",
+            ideaScoreColor
+          )}>
+            <Trophy className="w-6 h-6" />
+            <span className="text-3xl font-black">{ideaScore}/10</span>
+            <span className="text-sm font-semibold">{ideaScoreLabel}</span>
+          </div>
+          <Badge variant="outline" className="text-xs">
+            Confidence: {result.confidence_score}%
+          </Badge>
+        </div>
+
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">{result.metadata.idea}</h2>
@@ -227,6 +313,69 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </Button>
           )}
         </div>
+
+        {/* Social Share Buttons - visible when share URL exists */}
+        {shareUrl && (
+          <div className="mt-4 p-3 rounded-lg bg-muted/30 border border-border">
+            <p className="text-xs text-muted-foreground mb-2 font-medium">Share your analysis:</p>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  window.open(
+                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(`I scored ${ideaScore}/10 on my business idea analysis! 🚀`)}&url=${encodeURIComponent(shareUrl)}`,
+                    '_blank'
+                  );
+                }}
+              >
+                <Twitter className="w-3.5 h-3.5" />
+                Twitter
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  window.open(
+                    `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`,
+                    '_blank'
+                  );
+                }}
+              >
+                <Linkedin className="w-3.5 h-3.5" />
+                LinkedIn
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  window.open(
+                    `https://wa.me/?text=${encodeURIComponent(`Check out my business analysis (scored ${ideaScore}/10): ${shareUrl}`)}`,
+                    '_blank'
+                  );
+                }}
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                WhatsApp
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 text-xs"
+                onClick={() => {
+                  navigator.clipboard.writeText(shareUrl);
+                  toast.success('Link copied!');
+                }}
+              >
+                <Copy className="w-3.5 h-3.5" />
+                Copy Link
+              </Button>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Scenario Selector - Top-level toggle */}
@@ -259,6 +408,48 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       {result.actionable_insights && result.actionable_insights.insights.length > 0 && (
         <ActionableInsights insights={result.actionable_insights} />
       )}
+
+      {/* SWOT Analysis */}
+      <div className="section-card">
+        <h3 className="text-lg font-semibold text-foreground mb-4 flex items-center gap-2">
+          <Target className="w-5 h-5 text-primary" />
+          SWOT Analysis
+        </h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="p-4 rounded-lg bg-emerald-500/5 border border-emerald-500/20">
+            <h4 className="text-sm font-semibold text-emerald-700 dark:text-emerald-400 mb-2 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4" /> Strengths
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {swot.strengths.map((s, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-emerald-500 mt-0.5">✓</span>{s}</li>)}
+            </ul>
+          </div>
+          <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
+            <h4 className="text-sm font-semibold text-amber-700 dark:text-amber-400 mb-2 flex items-center gap-1.5">
+              <AlertCircle className="w-4 h-4" /> Weaknesses
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {swot.weaknesses.map((w, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">⚠</span>{w}</li>)}
+            </ul>
+          </div>
+          <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
+            <h4 className="text-sm font-semibold text-blue-700 dark:text-blue-400 mb-2 flex items-center gap-1.5">
+              <TrendingUp className="w-4 h-4" /> Opportunities
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {swot.opportunities.map((o, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-blue-500 mt-0.5">→</span>{o}</li>)}
+            </ul>
+          </div>
+          <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
+            <h4 className="text-sm font-semibold text-destructive mb-2 flex items-center gap-1.5">
+              <ShieldAlert className="w-4 h-4" /> Threats
+            </h4>
+            <ul className="text-sm text-muted-foreground space-y-1">
+              {swot.threats.map((t, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-destructive mt-0.5">!</span>{t}</li>)}
+            </ul>
+          </div>
+        </div>
+      </div>
 
       {/* Tabs for different sections */}
       <Tabs defaultValue="financial" className="w-full">
