@@ -1,147 +1,121 @@
 
 
-# Docs Studio: Production-Ready Overhaul
+# Docs Studio: Complete Professional Polish
 
-## Current State Assessment
+## Current State (What a Customer Sees Today)
 
-After deep analysis, here is exactly where the Docs Studio stands and what needs to happen to make it fully production-ready.
+After testing every element end-to-end, here is the exact customer experience and every issue that needs fixing:
 
-### What Works Today
-- **10 form templates** with live HTML preview (Invoice, Quarterly Summary, NDA, Business Plan, Pitch Deck, One-Page Plan, Financial Forecast, Partnership Proposal, Founder Agreement, Market Analysis)
-- **Client-side PDF/HTML download** via `useDocumentDownload` (browser print dialog for PDF, Blob download for HTML)
-- **Auto-fill from analyses** via `useAnalysisAutoFill` -- maps financial metrics from business analyses into document fields
-- **Draft persistence** via `useDocFormDraft` -- 800ms debounced autosave to localStorage with restore/dismiss banner
-- **Download rate limiting** -- free tier gets 1 download/day from 3 templates; Plus gets unlimited from all 10
-- **AI suggestion button** (`AISuggestionButton`) -- calls `generate-document-content` edge function for Plus users to generate text sections
-- **Tabbed UI** -- Templates tab + My Documents tab (Plus only)
-- **Rich text editor** (`DocumentEditor` with TipTap) -- accessible from My Documents tab for editing saved docs
+### What Works Well
+- Template gallery renders cleanly with 10 cards (3 free, 7 Plus)
+- Live preview updates in real-time with 300ms debounce (no flicker)
+- Invoice form has proper Zod validation, reactive totals, and line item management
+- Auto-fill from Analysis works (pulls from most recent business analysis)
+- Draft auto-save to localStorage works (800ms debounce, restore/dismiss banner)
+- Download: PDF opens print dialog, HTML downloads as Blob
+- XSS protection via DOMPurify + escapeFormValues on every preview render
+- My Documents tab shows saved docs with search, status filter, duplicate, delete
+- Document editor (TipTap) loads HTML snapshots correctly from saved documents
 
-### Critical Gaps (What is Broken or Disconnected)
+### Issues Found (Ranked by Customer Impact)
 
-| # | Gap | Severity | Detail |
-|---|-----|----------|--------|
-| 1 | **Template ID mismatch** | **Blocker** | DocsStudio hardcodes template IDs like `professional-invoice`, but DB has `invoice_v1`, `nda_basic_v1`, `quarterly_summary_v1`. The `useCreateDocument` lookup via `template_id` will fail silently. |
-| 2 | **Only 3 templates in DB** | **Major** | 10 templates are defined in the UI, but only 3 exist in `doc_templates` table. The 7 Plus templates (Business Plan, Pitch Deck, etc.) have no DB records, so `useCreateDocument` will error when saving. |
-| 3 | **Document JSON is a stub** | **Major** | When saving to DB on download, the `documentJson` is a placeholder paragraph: `"Document generated from X template"`. The actual HTML preview content is never converted to TipTap JSON, making the saved document useless in the editor. |
-| 4 | **Editor loads empty** | **Major** | When opening a saved document from My Documents, the TipTap editor receives the stub JSON above, showing only the placeholder text -- not the actual document content. |
-| 5 | **TemplatePicker component unused** | Minor | A full `TemplatePicker` component exists with search/filter but is never rendered. DocsStudio uses its own inline template grid instead. |
-| 6 | **IntakeForm component unused** | Minor | A dynamic `IntakeForm` that builds forms from template variable definitions is never used. Forms are hardcoded per template instead. |
-| 7 | **ExportPanel component unused** | Minor | `ExportPanel` with PDF/DOCX/Markdown export and status selector is built but never rendered anywhere. |
-| 8 | **export-document edge function half-done** | Medium | Only handles markdown export (returns base64 data URL). PDF/DOCX commented as "would need proper rendering." |
-| 9 | **No version history UI** | Medium | `document_versions` table exists with RLS policies, version timeline CSS exists in `docs-studio.css`, but no component renders version history. |
-| 10 | **RLS blocks free-tier document creation** | **Blocker** | The `documents` table INSERT policy requires `verify_plus_subscription(auth.uid())`. Free-tier users cannot save documents even if the code tries to. Currently mitigated because saving only happens for Plus users, but this makes the "My Documents" feature permanently Plus-only. |
-| 11 | **No document cloning/duplication** | Minor | No way to re-use a saved document as a starting point for a new one. |
-| 12 | **No document sharing** | Minor | `share_token` and `share_expires_at` columns exist but no sharing UI or logic. |
-| 13 | **Mobile preview hidden** | Medium | CSS rule `.doc-preview-container { display: none }` at 768px, but the actual preview container uses different classes. The `showPreview` toggle exists but mobile users lose preview entirely. |
+| # | Issue | Severity | What Customer Sees |
+|---|-------|----------|-------------------|
+| 1 | **"Generate Invoice" submit button does nothing useful** | High | Button triggers `handleGenerate` which just shows a toast "Use the Download button..." -- confusing dead-end |
+| 2 | **No mobile preview at all** | High | CSS `@media (max-width: 768px) { .doc-preview-container { display: none } }` hides preview, but the actual preview container uses different classes (`Card` component), so mobile users see the preview column but it takes full width below the form with no toggle |
+| 3 | **Hide Preview button visible but broken on mobile** | Medium | The button shows/hides the preview column, but on mobile the layout becomes a single column -- toggling it makes the form full-width but there's no way to see preview without scrolling |
+| 4 | **Download button only appears inside preview card** | Medium | If user hides preview, the download button disappears entirely -- no way to download |
+| 5 | **No invoice number customization** | Medium | Hardcoded as "INV-000001" -- customers need editable invoice numbers |
+| 6 | **No date customization** | Medium | Invoice date and due date are auto-calculated but not editable |
+| 7 | **ExportPanel shows "DOCX coming soon"** | Low | Clicking DOCX in the editor export shows a toast saying "coming soon" -- unprofessional |
+| 8 | **Document title in "My Documents" uses auto-generated names** | Low | Title is "Professional Invoice" + nothing user-specific -- hard to distinguish multiple invoices |
+| 9 | **No currency selection** | Low | All documents are USD-only ($) -- no EUR/GBP support |
+| 10 | **Template cards missing "popular" badge display** | Low | `popular: true` is set in data but never rendered in the UI |
+| 11 | **No document count/stats on My Documents tab** | Low | Tab shows "Plus" badge but no count of saved documents |
+| 12 | **Editor has duplicate back buttons** | Low | DocsStudio renders a "Back to My Documents" button, then DocumentEditor renders its own ArrowLeft back button -- two overlapping back navigation elements |
 
 ---
 
 ## Implementation Plan
 
-### Phase 1: Fix Critical Blockers (Must-Do)
+### Fix 1: Remove Confusing "Generate" Submit Button
+The form submit button at the bottom of every template form says "Generate Invoice" / "Generate Plan" etc, but `handleGenerate` just shows a toast. This is a dead-end that confuses customers.
 
-#### 1A. Seed missing templates into DB
-- Insert the 7 missing Plus-tier templates into `doc_templates` with proper `template_id` values matching the hardcoded IDs in `TEMPLATE_CARDS`
-- Alternatively, update the DB's existing 3 templates to use the IDs that match the code (`professional-invoice`, `quarterly-summary`, `nda-agreement` instead of `invoice_v1`, `quarterly_summary_v1`, `nda_basic_v1`)
-- This is a data-only operation (no schema changes needed)
+**Change:** Remove the submit button from all 10 form components, or repurpose it as a "Save and Download PDF" primary action that combines form validation + download in one click. This makes the call-to-action clear.
 
-#### 1B. Fix the document JSON on save
-- When a Plus user downloads, convert the live preview HTML into proper TipTap-compatible JSON (or store the raw HTML as a serialized document) so the saved document actually renders in the editor
-- Approach: Store a richer doc JSON that includes the rendered HTML content as a TipTap `content` array, or add an `html_snapshot` field to the document record
+**Files:** All 10 form components in `src/components/docs/forms/`
 
-#### 1C. Fix template ID lookup in `useCreateDocument`
-- The `useCreateDocument` hook queries `doc_templates` by `template_id`, but the IDs don't match between code and DB
-- After 1A is done, this will self-resolve
+### Fix 2: Make Download Always Accessible
+Currently the download button is buried inside the preview card. If preview is hidden, there's no download.
 
-### Phase 2: Wire Up Disconnected Components
+**Change:** Add a sticky bottom bar (like `PreviewDownloadBar`) that is always visible regardless of preview visibility. On mobile, this becomes the primary download surface.
 
-#### 2A. Connect ExportPanel to DocumentEditor
-- Replace the inline export dropdown in `DocumentEditor` with the existing `ExportPanel` component
-- This gives users PDF, DOCX (planned), and Markdown export options with status management
+**File:** `src/pages/DocsStudio.tsx` (generate step section)
 
-#### 2B. Add version history to DocumentEditor
-- When a user saves (via the autosave debounce), create a version snapshot in `document_versions` if content has changed significantly
-- Add a "Version History" sidebar/panel using the CSS timeline styles already in `docs-studio.css`
-- Allow reverting to previous versions
+### Fix 3: Mobile Preview as Modal/Sheet
+On mobile, customers cannot see a proper preview. The 2-column layout collapses.
 
-#### 2C. Add document cloning
-- Add a "Duplicate" option to the document actions dropdown in `DocumentsList`
-- Creates a copy with title "Copy of [original title]"
+**Change:** On screens below `lg` breakpoint, replace the side-by-side layout with:
+- Form visible by default
+- "Preview" button opens a full-screen sheet/drawer (`vaul` Drawer already installed) showing the rendered document
+- Download actions available inside the drawer
 
-### Phase 3: Improve Core UX
+**Files:** `src/pages/DocsStudio.tsx`, potentially a new `MobilePreviewDrawer` component
 
-#### 3A. Mobile preview support
-- Add a "Preview" tab or modal for mobile users instead of hiding preview entirely
-- Use the existing `showPreview` toggle to show a full-screen preview overlay on mobile
+### Fix 4: Add Editable Invoice Number and Date Fields
+Professional invoices need custom invoice numbers and dates.
 
-#### 3B. Better document content in editor
-- When opening a saved document, if it only contains the stub placeholder, offer to "Re-generate" from the original template + variables
-- Store `variables_data` properly when creating documents so they can be used for re-generation
+**Change:** Add `invoice_number` (string, default "INV-000001"), `invoice_date` (date, default today), and `due_date` (date, default +30 days) fields to `InvoiceFormSchema` and the form UI. Wire them into the preview HTML template.
 
-#### 3C. Search and filter for My Documents
-- Add search by title and filter by status (draft/review/final) to `DocumentsList`
+**File:** `src/components/docs/forms/InvoiceForm.tsx`
 
-### Phase 4: Backend Export Improvements
+### Fix 5: Fix Duplicate Back Buttons in Editor
+When editing a saved document, DocsStudio renders its own back button above the DocumentEditor, which also has its own back button.
 
-#### 4A. Server-side markdown export
-- The `export-document` edge function already works for markdown -- wire it into the UI as a third export option
+**Change:** Remove the outer back button from DocsStudio when in `edit` step. The DocumentEditor already handles its own navigation via `onBack`.
 
-#### 4B. DOCX export (future)
-- Evaluate Deno-compatible DOCX generation libraries for the edge function
-- This is a stretch goal and may need external service integration
+**File:** `src/pages/DocsStudio.tsx` (lines 348-368)
+
+### Fix 6: Add Custom Document Title Input
+Currently documents are auto-named (e.g., "Professional Invoice"). Customers need to name their own documents for the "My Documents" list.
+
+**Change:** Add a title input field at the top of the generate step that defaults to the template name + date but is editable. Pass this to `saveAndDownload` instead of the hardcoded template name.
+
+**File:** `src/pages/DocsStudio.tsx`
+
+### Fix 7: Remove DOCX Option from ExportPanel
+Showing a "coming soon" toast is unprofessional. Remove the DOCX option until it's actually implemented.
+
+**Change:** Filter out `docx` from the export menu in `ExportPanel`, or hide it behind a feature flag.
+
+**File:** `src/components/docs/ExportPanel.tsx`
+
+### Fix 8: Add Document Count Badge to My Documents Tab
+Show users how many documents they have at a glance.
+
+**Change:** Query the document count and display it in the tab trigger as a small number badge.
+
+**File:** `src/pages/DocsStudio.tsx`
 
 ---
 
 ## Technical Details
 
-### Database Changes Required
+### Files Modified (in order of implementation)
 
-**Data operations only (no schema changes):**
+| File | Changes |
+|------|---------|
+| `src/pages/DocsStudio.tsx` | Remove duplicate back button in edit mode; add sticky download bar outside preview card; add editable document title; add document count badge; add mobile preview drawer |
+| `src/components/docs/forms/InvoiceForm.tsx` | Add invoice_number, invoice_date, due_date fields; repurpose submit button as "Save and Download PDF" action |
+| `src/components/docs/ExportPanel.tsx` | Remove DOCX option from menu |
+| `src/styles/docs-studio.css` | Remove the broken `.doc-preview-container { display: none }` mobile rule (it targets the wrong selector anyway) |
 
-Update existing template IDs to match code:
-```sql
-UPDATE doc_templates SET template_id = 'professional-invoice' WHERE template_id = 'invoice_v1';
-UPDATE doc_templates SET template_id = 'quarterly-summary' WHERE template_id = 'quarterly_summary_v1';
-UPDATE doc_templates SET template_id = 'nda-agreement' WHERE template_id = 'nda_basic_v1';
-```
+### Forms NOT Modified (working correctly)
+The other 9 form templates follow the same pattern as InvoiceForm. Only the Invoice needs the number/date fix since it's the most-used template. The submit button change needs to propagate to all 10 forms.
 
-Insert 7 missing Plus templates:
-```sql
-INSERT INTO doc_templates (template_id, name, description, category, tier, icon, template_json, version) VALUES
-('business-plan', 'Business Plan', 'Comprehensive business plan with executive summary and projections', 'finance', 'plus', 'FileText', '{"variables":[],"blocks":[]}', '1.0.0'),
-('pitch-deck', 'Pitch Deck', '10-slide investor pitch deck', 'finance', 'plus', 'Zap', '{"variables":[],"blocks":[]}', '1.0.0'),
--- ... (5 more templates)
-```
+### No Database or Schema Changes Required
+All fixes are frontend-only. The existing DB tables, RLS policies, and edge functions remain unchanged.
 
-### Files to Modify
-
-| File | Change |
-|------|--------|
-| `src/pages/DocsStudio.tsx` | Fix `saveAndDownload` to store real content, not stub JSON |
-| `src/components/docs/DocumentEditor.tsx` | Integrate `ExportPanel`, add version history panel |
-| `src/components/docs/DocumentsList.tsx` | Add search/filter, add "Duplicate" action |
-| `src/hooks/useDocuments.ts` | Add `useDuplicateDocument` mutation, add version creation on save |
-
-### Components Already Built (Just Need Wiring)
-
-| Component | Status | Action |
-|-----------|--------|--------|
-| `ExportPanel` | Built, unused | Wire into `DocumentEditor` |
-| `IntakeForm` | Built, unused | Keep as fallback for dynamic templates (future) |
-| `TemplatePicker` | Built, unused | Keep for potential future use or remove |
-| `TemplateCard` | Built, used by `TemplatePicker` | Same as above |
-| `AISuggestionButton` | Built, used in Plus forms | Already working |
-| `DocDraftBanner` | Built, used in all forms | Already working |
-| `EditorToolbar` | Built, used in editor | Already working |
-
-### Estimated Scope
-
-- **Phase 1** (Blockers): ~1 session -- data fixes + content save fix
-- **Phase 2** (Wiring): ~1 session -- ExportPanel integration, version history, cloning
-- **Phase 3** (UX): ~1 session -- mobile preview, search/filter, re-generation
-- **Phase 4** (Backend): ~1 session -- markdown export wiring, DOCX evaluation
-
-### Priority Recommendation
-
-Start with **Phase 1** since the template ID mismatch and stub document JSON are blockers that make the save-and-edit flow fundamentally broken. Without fixing these, Plus users who save documents get an empty editor experience.
+### No New Dependencies Required
+All changes use existing libraries: `vaul` (Drawer), `react-hook-form`, `zod`, `date-fns`.
 
