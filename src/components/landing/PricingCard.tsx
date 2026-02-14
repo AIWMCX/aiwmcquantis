@@ -93,7 +93,7 @@ export const PricingCard = React.memo(function PricingCard({
       </div>
 
       {/* Features List */}
-      <ul className="space-y-3 mb-6 md:mb-8">
+      <ul className="list-none space-y-3 mb-6 md:mb-8">
         {features.map((feature) => (
           <li key={feature.text} className="flex items-start gap-3">
             <CheckCircle2 

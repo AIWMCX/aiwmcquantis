@@ -34,11 +34,11 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onExportPDF }
 
       <div className="space-y-8">
         <section>
-          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">📘 Бизнес-план</h3>
+          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">Business Plan</h3>
           <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg">{result.business_plan}</p>
         </section>
         <section>
-          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">📢 План маркетинга</h3>
+          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">Marketing Plan</h3>
           <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg">{result.marketing_plan}</p>
         </section>
         <section>

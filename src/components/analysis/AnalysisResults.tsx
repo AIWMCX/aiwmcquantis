@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -228,7 +229,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2">
             <h2 className="text-2xl font-bold text-foreground">{result.metadata.idea}</h2>
-            <p className="text-muted-foreground">📍 {result.metadata.location}</p>
+            <p className="text-muted-foreground flex items-center gap-1.5"><Target className="w-4 h-4" /> {result.metadata.location}</p>
             {result.metadata.industry_detected && (
               <Badge variant="outline" className="text-xs">
                 Industry: {result.metadata.industry_detected}
@@ -421,7 +422,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <TrendingUp className="w-4 h-4" /> Strengths
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              {swot.strengths.map((s, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-emerald-500 mt-0.5">✓</span>{s}</li>)}
+              {swot.strengths.map((s, i) => <li key={i} className="flex items-start gap-1.5"><CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 mt-0.5 shrink-0" />{s}</li>)}
             </ul>
           </div>
           <div className="p-4 rounded-lg bg-amber-500/5 border border-amber-500/20">
@@ -429,7 +430,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <AlertCircle className="w-4 h-4" /> Weaknesses
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              {swot.weaknesses.map((w, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-amber-500 mt-0.5">⚠</span>{w}</li>)}
+              {swot.weaknesses.map((w, i) => <li key={i} className="flex items-start gap-1.5"><AlertCircle className="w-3.5 h-3.5 text-amber-500 mt-0.5 shrink-0" />{w}</li>)}
             </ul>
           </div>
           <div className="p-4 rounded-lg bg-blue-500/5 border border-blue-500/20">
@@ -437,7 +438,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <TrendingUp className="w-4 h-4" /> Opportunities
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              {swot.opportunities.map((o, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-blue-500 mt-0.5">→</span>{o}</li>)}
+              {swot.opportunities.map((o, i) => <li key={i} className="flex items-start gap-1.5"><TrendingUp className="w-3.5 h-3.5 text-blue-500 mt-0.5 shrink-0" />{o}</li>)}
             </ul>
           </div>
           <div className="p-4 rounded-lg bg-destructive/5 border border-destructive/20">
@@ -445,7 +446,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <ShieldAlert className="w-4 h-4" /> Threats
             </h4>
             <ul className="text-sm text-muted-foreground space-y-1">
-              {swot.threats.map((t, i) => <li key={i} className="flex items-start gap-1.5"><span className="text-destructive mt-0.5">!</span>{t}</li>)}
+              {swot.threats.map((t, i) => <li key={i} className="flex items-start gap-1.5"><ShieldAlert className="w-3.5 h-3.5 text-destructive mt-0.5 shrink-0" />{t}</li>)}
             </ul>
           </div>
         </div>
@@ -476,6 +477,31 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           <MarketAnalysisSection market={result.market_analysis} />
         </TabsContent>
       </Tabs>
+
+      {/* Recommended Next Step — Retention CTA */}
+      {analysisId && (
+        <div className="section-card bg-primary/5 border-primary/20">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                <FileText className="w-5 h-5 text-primary" />
+              </div>
+              <div>
+                <h3 className="text-base font-semibold text-foreground">Recommended next: Create a Business Plan</h3>
+                <p className="text-sm text-muted-foreground">
+                  Turn this analysis into a professional document — auto-filled with your data.
+                </p>
+              </div>
+            </div>
+            <Link to={`/docs?analysis=${analysisId}`}>
+              <Button className="gap-2 shrink-0">
+                Open Docs Studio
+                <ArrowRight className="w-4 h-4" />
+              </Button>
+            </Link>
+          </div>
+        </div>
+      )}
 
       {/* Limitations & Sources */}
       <div className="section-card space-y-4">
