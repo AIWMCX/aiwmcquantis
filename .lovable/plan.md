@@ -1,168 +1,147 @@
 
 
-# QUANTIS RESCUE PLAN -- Comprehensive Improvement Roadmap
+# Docs Studio: Production-Ready Overhaul
 
-## Honest Current State Assessment
+## Current State Assessment
 
-After auditing every landing page component, the app dashboard, mobile viewport, and conversion funnel:
+After deep analysis, here is exactly where the Docs Studio stands and what needs to happen to make it fully production-ready.
 
-**What is working well:**
-- Hero messaging is clear and outcome-driven ("Validate Your Business Idea Before You Build It")
-- ICP identifier is present ("Built for early-stage founders, consultants, and indie builders")
-- 3 value badges are sharp and specific
-- Hero form captures idea + location with low friction
-- Trust badges are honest (AES-256, GDPR, No data sold)
-- CTA copy is strong ("See My Numbers -- Free")
-- Urgency banner links to `/app` (not `/auth`) -- good
-- LiveCounter correctly queries real database count
+### What Works Today
+- **10 form templates** with live HTML preview (Invoice, Quarterly Summary, NDA, Business Plan, Pitch Deck, One-Page Plan, Financial Forecast, Partnership Proposal, Founder Agreement, Market Analysis)
+- **Client-side PDF/HTML download** via `useDocumentDownload` (browser print dialog for PDF, Blob download for HTML)
+- **Auto-fill from analyses** via `useAnalysisAutoFill` -- maps financial metrics from business analyses into document fields
+- **Draft persistence** via `useDocFormDraft` -- 800ms debounced autosave to localStorage with restore/dismiss banner
+- **Download rate limiting** -- free tier gets 1 download/day from 3 templates; Plus gets unlimited from all 10
+- **AI suggestion button** (`AISuggestionButton`) -- calls `generate-document-content` edge function for Plus users to generate text sections
+- **Tabbed UI** -- Templates tab + My Documents tab (Plus only)
+- **Rich text editor** (`DocumentEditor` with TipTap) -- accessible from My Documents tab for editing saved docs
 
-**What is broken or suboptimal:**
+### Critical Gaps (What is Broken or Disconnected)
 
-### Critical Conversion Killers
-
-1. **Hero form is below the fold on mobile** -- The 3 value badges, ICP line, and subheadline push the actual input form off-screen. On a 390px phone, users see headline + text but must scroll to find the form. This is the #1 conversion killer for 77.8% of traffic.
-
-2. **ResultsTicker says "Live Analysis Results" with fake data** -- The ticker shows hardcoded results like "Coffee Shop - Denver: $4,200 profit" and "SaaS Platform - Austin: ROI 168%". These are not live, not real, and the subtitle "sample outputs from the engine" is easy to miss. This creates a credibility gap.
-
-3. **DemoPreview shows static mockup data** -- The "Coffee Shop Denver" demo card shows $4,200 profit, 7.1 months payback, 168% ROI -- all hardcoded. There is no interactivity. The "Analyze My Idea" button at the bottom is behind a blur overlay that obscures value.
-
-4. **Too much content between hero and first CTA** -- After the hero form, users scroll through: ResultsTicker, TrustLogos, DemoPreview, Features Grid (6 cards), HowItWorksSection (massive -- process steps, 12 variables, 5 formulas, comparison table, trust indicators), Testimonials, Lead Capture, Pricing, FAQ, Bottom CTA. That is 12+ sections before the bottom CTA. Most users bounce before reaching section 4.
-
-5. **HowItWorksSection is enormous** -- It contains 5 subsections: 3 process steps, 12-variable system with 4 groups, 5 formula cards, a comparison table, and 3 trust indicators. This is an entire page worth of content crammed into one section. It overwhelms rather than clarifies.
-
-6. **Sticky mobile CTA says "Validate My Idea -- Free"** but the hero CTA says "See My Numbers -- Free" -- Inconsistent messaging confuses users about what they are getting.
-
-7. **No clear "what happens next" after form submit** -- The hero form stores data in sessionStorage and navigates to `/app`. There is no loading state, no preview, no indication of what the user will see. The jump from marketing page to app dashboard is jarring.
-
-8. **Landing page manages its own dark mode** -- The Landing page has its own `darkMode` state and localStorage logic, duplicating the theme system. This can cause flash-of-wrong-theme on load.
-
-9. **StickyMobileCTA has a window.innerWidth check** -- `if (window.innerWidth >= 768) return null` runs once on mount. If the user rotates their device, the CTA does not reappear. Should use CSS `md:hidden` instead.
-
-10. **Footer has duplicate email signup** -- Both the lead capture section on the page and `FooterEmailSignup` in the footer ask for email. Two similar forms on the same page dilute conversion.
+| # | Gap | Severity | Detail |
+|---|-----|----------|--------|
+| 1 | **Template ID mismatch** | **Blocker** | DocsStudio hardcodes template IDs like `professional-invoice`, but DB has `invoice_v1`, `nda_basic_v1`, `quarterly_summary_v1`. The `useCreateDocument` lookup via `template_id` will fail silently. |
+| 2 | **Only 3 templates in DB** | **Major** | 10 templates are defined in the UI, but only 3 exist in `doc_templates` table. The 7 Plus templates (Business Plan, Pitch Deck, etc.) have no DB records, so `useCreateDocument` will error when saving. |
+| 3 | **Document JSON is a stub** | **Major** | When saving to DB on download, the `documentJson` is a placeholder paragraph: `"Document generated from X template"`. The actual HTML preview content is never converted to TipTap JSON, making the saved document useless in the editor. |
+| 4 | **Editor loads empty** | **Major** | When opening a saved document from My Documents, the TipTap editor receives the stub JSON above, showing only the placeholder text -- not the actual document content. |
+| 5 | **TemplatePicker component unused** | Minor | A full `TemplatePicker` component exists with search/filter but is never rendered. DocsStudio uses its own inline template grid instead. |
+| 6 | **IntakeForm component unused** | Minor | A dynamic `IntakeForm` that builds forms from template variable definitions is never used. Forms are hardcoded per template instead. |
+| 7 | **ExportPanel component unused** | Minor | `ExportPanel` with PDF/DOCX/Markdown export and status selector is built but never rendered anywhere. |
+| 8 | **export-document edge function half-done** | Medium | Only handles markdown export (returns base64 data URL). PDF/DOCX commented as "would need proper rendering." |
+| 9 | **No version history UI** | Medium | `document_versions` table exists with RLS policies, version timeline CSS exists in `docs-studio.css`, but no component renders version history. |
+| 10 | **RLS blocks free-tier document creation** | **Blocker** | The `documents` table INSERT policy requires `verify_plus_subscription(auth.uid())`. Free-tier users cannot save documents even if the code tries to. Currently mitigated because saving only happens for Plus users, but this makes the "My Documents" feature permanently Plus-only. |
+| 11 | **No document cloning/duplication** | Minor | No way to re-use a saved document as a starting point for a new one. |
+| 12 | **No document sharing** | Minor | `share_token` and `share_expires_at` columns exist but no sharing UI or logic. |
+| 13 | **Mobile preview hidden** | Medium | CSS rule `.doc-preview-container { display: none }` at 768px, but the actual preview container uses different classes. The `showPreview` toggle exists but mobile users lose preview entirely. |
 
 ---
 
-## Implementation Plan (Ordered by Impact)
+## Implementation Plan
 
-### Task 1: Move Hero Form Above the Fold on Mobile
+### Phase 1: Fix Critical Blockers (Must-Do)
 
-The most critical fix. On mobile (77.8% of traffic), the hero currently shows:
-- LiveCounter badge
-- H1 headline (3 lines)
-- Subheadline (3 lines)
-- ICP identifier (2 lines)
-- 3 value badges (3 rows on mobile)
-- THEN the form
+#### 1A. Seed missing templates into DB
+- Insert the 7 missing Plus-tier templates into `doc_templates` with proper `template_id` values matching the hardcoded IDs in `TEMPLATE_CARDS`
+- Alternatively, update the DB's existing 3 templates to use the IDs that match the code (`professional-invoice`, `quarterly-summary`, `nda-agreement` instead of `invoice_v1`, `quarterly_summary_v1`, `nda_basic_v1`)
+- This is a data-only operation (no schema changes needed)
 
-This means the form is ~600px below the top of the viewport on a 390px screen. Users must scroll to find the primary action.
+#### 1B. Fix the document JSON on save
+- When a Plus user downloads, convert the live preview HTML into proper TipTap-compatible JSON (or store the raw HTML as a serialized document) so the saved document actually renders in the editor
+- Approach: Store a richer doc JSON that includes the rendered HTML content as a TipTap `content` array, or add an `html_snapshot` field to the document record
 
-**Fix:** Restructure the hero to put the form immediately after the headline on mobile:
-- Keep LiveCounter + H1 headline
-- Move value badges and ICP line BELOW the form
-- Add a single-line subheadline between headline and form
-- On desktop, keep the current layout (it fits above the fold)
+#### 1C. Fix template ID lookup in `useCreateDocument`
+- The `useCreateDocument` hook queries `doc_templates` by `template_id`, but the IDs don't match between code and DB
+- After 1A is done, this will self-resolve
 
-This ensures the form is visible within the first viewport on all devices.
+### Phase 2: Wire Up Disconnected Components
 
-### Task 2: Fix ResultsTicker Honesty
+#### 2A. Connect ExportPanel to DocumentEditor
+- Replace the inline export dropdown in `DocumentEditor` with the existing `ExportPanel` component
+- This gives users PDF, DOCX (planned), and Markdown export options with status management
 
-The ticker currently shows hardcoded fake results labeled as "Live Analysis Results" with a green pulsing dot (implying real-time data). This violates the zero-clickbait policy.
+#### 2B. Add version history to DocumentEditor
+- When a user saves (via the autosave debounce), create a version snapshot in `document_versions` if content has changed significantly
+- Add a "Version History" sidebar/panel using the CSS timeline styles already in `docs-studio.css`
+- Allow reverting to previous versions
 
-**Fix:**
-- Change heading from "Live Analysis Results" to "Sample Analysis Outputs"
-- Remove the green pulsing "live" dot
-- Add explicit label: "Example outputs from the analysis engine"
-- Keep the flashy auto-scrolling animation -- it adds energy to the page
+#### 2C. Add document cloning
+- Add a "Duplicate" option to the document actions dropdown in `DocumentsList`
+- Creates a copy with title "Copy of [original title]"
 
-### Task 3: Condense HowItWorksSection
+### Phase 3: Improve Core UX
 
-The current HowItWorks section is ~5 screenfuls on mobile. Most users will never scroll through all of it.
+#### 3A. Mobile preview support
+- Add a "Preview" tab or modal for mobile users instead of hiding preview entirely
+- Use the existing `showPreview` toggle to show a full-screen preview overlay on mobile
 
-**Fix:**
-- Keep the 3 process steps (concise, clear)
-- Remove the 12-variable system display (interesting but doesn't convert)
-- Remove the 5 formula cards (same -- informational, not conversion-driving)
-- Keep the ComparisonTable (it answers "why not ChatGPT/Excel")
-- Remove the trust indicators (already covered by TrustLogos section above)
-- Net result: section shrinks from ~800px to ~300px on mobile
+#### 3B. Better document content in editor
+- When opening a saved document, if it only contains the stub placeholder, offer to "Re-generate" from the original template + variables
+- Store `variables_data` properly when creating documents so they can be used for re-generation
 
-### Task 4: Unify CTA Copy Across All Touchpoints
+#### 3C. Search and filter for My Documents
+- Add search by title and filter by status (draft/review/final) to `DocumentsList`
 
-Currently there are 4 different CTA texts:
-- Hero button: "See My Numbers -- Free"
-- Sticky mobile: "Validate My Idea -- Free"
-- Demo preview: "Analyze My Idea"
-- Bottom CTA: "See My Numbers -- Free"
-- HowItWorks: "Analyze Your Business Free"
+### Phase 4: Backend Export Improvements
 
-**Fix:** Standardize all CTAs to "See My Numbers -- Free" -- this is the strongest copy because it promises a concrete, personal result.
+#### 4A. Server-side markdown export
+- The `export-document` edge function already works for markdown -- wire it into the UI as a third export option
 
-### Task 5: Fix StickyMobileCTA Rendering
-
-Replace the `window.innerWidth` JavaScript check with CSS-only `md:hidden`. This ensures correct behavior on device rotation and SSR-safe rendering.
-
-### Task 6: Remove Duplicate Theme Management
-
-The Landing page manages its own `darkMode` state. This should use the existing theme system (next-themes is installed). Remove the local state and useEffect for dark mode toggle.
-
-### Task 7: Improve DemoPreview Clarity
-
-The demo preview shows static data with a blur overlay. The "Analyze My Idea" CTA button appears inside the blurred section, which makes it look disabled or inaccessible.
-
-**Fix:**
-- Move the CTA button outside and below the blur overlay
-- Add a clear separator: "This is a sample. Get YOUR numbers:"
-- Make the button full-width on mobile with larger text
-
-### Task 8: Streamline the Page Length
-
-The landing page has 12 sections. For a tool that promises "results in 3 minutes," the marketing page should not take 5 minutes to scroll through.
-
-**Proposed new order (7 sections instead of 12):**
-
-```
-1. UrgencyBanner
-2. Hero (with form above fold on mobile)
-3. ResultsTicker (honest labeling)
-4. TrustLogos
-5. DemoPreview (improved CTA placement)
-6. HowItWorks (condensed -- 3 steps + comparison table only)
-7. Testimonials (use-case cards -- keep as-is, they are honest)
-8. Lead Capture (Starter Kit)
-9. Pricing
-10. FAQ (lazy-loaded)
-11. Bottom CTA
-12. Footer
-```
-
-The Features Grid section is removed -- it overlaps with HowItWorks and Testimonials. The same information (Financial Structuring, Unit Economics, Risk Signals, etc.) is already communicated through the hero badges, process steps, and use-case cards.
+#### 4B. DOCX export (future)
+- Evaluate Deno-compatible DOCX generation libraries for the edge function
+- This is a stretch goal and may need external service integration
 
 ---
 
 ## Technical Details
 
+### Database Changes Required
+
+**Data operations only (no schema changes):**
+
+Update existing template IDs to match code:
+```sql
+UPDATE doc_templates SET template_id = 'professional-invoice' WHERE template_id = 'invoice_v1';
+UPDATE doc_templates SET template_id = 'quarterly-summary' WHERE template_id = 'quarterly_summary_v1';
+UPDATE doc_templates SET template_id = 'nda-agreement' WHERE template_id = 'nda_basic_v1';
+```
+
+Insert 7 missing Plus templates:
+```sql
+INSERT INTO doc_templates (template_id, name, description, category, tier, icon, template_json, version) VALUES
+('business-plan', 'Business Plan', 'Comprehensive business plan with executive summary and projections', 'finance', 'plus', 'FileText', '{"variables":[],"blocks":[]}', '1.0.0'),
+('pitch-deck', 'Pitch Deck', '10-slide investor pitch deck', 'finance', 'plus', 'Zap', '{"variables":[],"blocks":[]}', '1.0.0'),
+-- ... (5 more templates)
+```
+
+### Files to Modify
+
 | File | Change |
 |------|--------|
-| `src/components/landing/MobileHero.tsx` | Restructure to put form above value badges on mobile; unify CTA text |
-| `src/components/landing/ResultsTicker.tsx` | Change "Live" label to "Sample"; remove green pulsing dot |
-| `src/components/landing/HowItWorksSection.tsx` | Remove 12-variable system, formula cards, and trust indicators; keep process steps + comparison table |
-| `src/components/landing/DemoPreview.tsx` | Move CTA outside blur overlay; improve mobile button sizing |
-| `src/components/landing/StickyMobileCTA.tsx` | Replace JS width check with CSS; unify CTA text to "See My Numbers -- Free" |
-| `src/pages/Landing.tsx` | Remove Features Grid section; remove local darkMode state (use existing theme system) |
+| `src/pages/DocsStudio.tsx` | Fix `saveAndDownload` to store real content, not stub JSON |
+| `src/components/docs/DocumentEditor.tsx` | Integrate `ExportPanel`, add version history panel |
+| `src/components/docs/DocumentsList.tsx` | Add search/filter, add "Duplicate" action |
+| `src/hooks/useDocuments.ts` | Add `useDuplicateDocument` mutation, add version creation on save |
 
-## Expected Impact
+### Components Already Built (Just Need Wiring)
 
-- **Hero form above fold on mobile**: Eliminates the #1 reason 77.8% of traffic bounces without interacting
-- **Honest social proof**: Removes credibility risk when founders investigate claims
-- **Condensed page**: Reduces scroll depth by ~40%, keeping users closer to conversion points
-- **Unified CTAs**: Consistent messaging reinforces the value promise at every touchpoint
-- **Better DemoPreview**: Makes the sample report CTA visible and actionable instead of hidden behind blur
+| Component | Status | Action |
+|-----------|--------|--------|
+| `ExportPanel` | Built, unused | Wire into `DocumentEditor` |
+| `IntakeForm` | Built, unused | Keep as fallback for dynamic templates (future) |
+| `TemplatePicker` | Built, unused | Keep for potential future use or remove |
+| `TemplateCard` | Built, used by `TemplatePicker` | Same as above |
+| `AISuggestionButton` | Built, used in Plus forms | Already working |
+| `DocDraftBanner` | Built, used in all forms | Already working |
+| `EditorToolbar` | Built, used in editor | Already working |
 
-## What This Will NOT Fix (Honest Assessment)
+### Estimated Scope
 
-- **Organic traffic**: This plan optimizes conversion, not acquisition. You still need the content + social distribution strategy (LinkedIn posts, SEO articles, Product Hunt) to drive visitors.
-- **Product-market fit**: The 97% non-return rate suggests users may not find enough ongoing value. This is a product question, not a landing page question.
-- **Revenue timeline**: With current traffic (~1-2/day organic), even a perfect 10% conversion rate yields 0.1-0.2 signups/day. You need both traffic AND conversion fixes simultaneously.
+- **Phase 1** (Blockers): ~1 session -- data fixes + content save fix
+- **Phase 2** (Wiring): ~1 session -- ExportPanel integration, version history, cloning
+- **Phase 3** (UX): ~1 session -- mobile preview, search/filter, re-generation
+- **Phase 4** (Backend): ~1 session -- markdown export wiring, DOCX evaluation
 
-The 20-45 daily users target requires the content/social distribution engine running in parallel with these conversion fixes. Neither works alone.
+### Priority Recommendation
+
+Start with **Phase 1** since the template ID mismatch and stub document JSON are blockers that make the save-and-edit flow fundamentally broken. Without fixing these, Plus users who save documents get an empty editor experience.
 
