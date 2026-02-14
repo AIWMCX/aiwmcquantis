@@ -1,9 +1,10 @@
 import React from 'react';
-import { useDocuments, useDeleteDocument } from '@/hooks/useDocuments';
+import { useDocuments, useDeleteDocument, useDuplicateDocument } from '@/hooks/useDocuments';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -20,7 +21,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { FileText, MoreVertical, Pencil, Trash2, Plus, Clock } from 'lucide-react';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { FileText, MoreVertical, Pencil, Trash2, Plus, Clock, Copy, Search } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 import { cn } from '@/lib/utils';
 import type { Document, DocumentStatus } from '@/types/document';
@@ -39,7 +47,10 @@ const STATUS_COLORS: Record<DocumentStatus, string> = {
 export function DocumentsList({ onEdit, onNew }: DocumentsListProps) {
   const { data: documents, isLoading } = useDocuments();
   const { mutate: deleteDocument } = useDeleteDocument();
+  const { mutate: duplicateDocument } = useDuplicateDocument();
   const [deleteTarget, setDeleteTarget] = React.useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = React.useState('');
+  const [statusFilter, setStatusFilter] = React.useState<DocumentStatus | 'all'>('all');
 
   const handleDelete = () => {
     if (deleteTarget) {
@@ -47,6 +58,16 @@ export function DocumentsList({ onEdit, onNew }: DocumentsListProps) {
       setDeleteTarget(null);
     }
   };
+
+  // Filter documents by search + status
+  const filteredDocuments = React.useMemo(() => {
+    if (!documents) return [];
+    return documents.filter((doc) => {
+      const matchesSearch = !searchQuery || doc.title.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || doc.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [documents, searchQuery, statusFilter]);
 
   if (isLoading) {
     return (
@@ -78,57 +99,95 @@ export function DocumentsList({ onEdit, onNew }: DocumentsListProps) {
 
   return (
     <>
-      <div className="space-y-3">
-        {documents.map((doc) => (
-          <Card
-            key={doc.id}
-            className="cursor-pointer hover:shadow-md transition-shadow"
-            onClick={() => onEdit(doc)}
-          >
-            <CardHeader className="py-4">
-              <div className="flex items-start justify-between">
-                <div className="flex-1 min-w-0">
-                  <CardTitle className="text-base truncate">{doc.title}</CardTitle>
-                  <CardDescription className="flex items-center gap-2 mt-1">
-                    <Clock className="w-3 h-3" />
-                    <span>
-                      Updated {formatDistanceToNow(new Date(doc.updated_at), { addSuffix: true })}
-                    </span>
-                  </CardDescription>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Badge
-                    variant="outline"
-                    className={cn('capitalize', STATUS_COLORS[doc.status])}
-                  >
-                    {doc.status}
-                  </Badge>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <MoreVertical className="w-4 h-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(doc); }}>
-                        <Pencil className="w-4 h-4 mr-2" />
-                        Edit
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={(e) => { e.stopPropagation(); setDeleteTarget(doc.id); }}
-                        className="text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-              </div>
-            </CardHeader>
-          </Card>
-        ))}
+      {/* Search & Filter bar */}
+      <div className="flex items-center gap-3 mb-4">
+        <div className="relative flex-1 max-w-sm">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Search documents..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="pl-9"
+          />
+        </div>
+        <Select value={statusFilter} onValueChange={(v) => setStatusFilter(v as DocumentStatus | 'all')}>
+          <SelectTrigger className="w-[130px]">
+            <SelectValue placeholder="Status" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All statuses</SelectItem>
+            <SelectItem value="draft">Draft</SelectItem>
+            <SelectItem value="review">Review</SelectItem>
+            <SelectItem value="final">Final</SelectItem>
+          </SelectContent>
+        </Select>
+        <Button onClick={onNew} size="sm" className="gap-2 shrink-0">
+          <Plus className="w-4 h-4" />
+          New
+        </Button>
       </div>
+
+      {filteredDocuments.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground">
+          <p>No documents match your search.</p>
+        </div>
+      ) : (
+        <div className="space-y-3">
+          {filteredDocuments.map((doc) => (
+            <Card
+              key={doc.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => onEdit(doc)}
+            >
+              <CardHeader className="py-4">
+                <div className="flex items-start justify-between">
+                  <div className="flex-1 min-w-0">
+                    <CardTitle className="text-base truncate">{doc.title}</CardTitle>
+                    <CardDescription className="flex items-center gap-2 mt-1">
+                      <Clock className="w-3 h-3" />
+                      <span>
+                        Updated {formatDistanceToNow(new Date(doc.updated_at), { addSuffix: true })}
+                      </span>
+                    </CardDescription>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Badge
+                      variant="outline"
+                      className={cn('capitalize', STATUS_COLORS[doc.status])}
+                    >
+                      {doc.status}
+                    </Badge>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild onClick={(e) => e.stopPropagation()}>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="w-4 h-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); onEdit(doc); }}>
+                          <Pencil className="w-4 h-4 mr-2" />
+                          Edit
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={(e) => { e.stopPropagation(); duplicateDocument(doc.id); }}>
+                          <Copy className="w-4 h-4 mr-2" />
+                          Duplicate
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={(e) => { e.stopPropagation(); setDeleteTarget(doc.id); }}
+                          className="text-destructive"
+                        >
+                          <Trash2 className="w-4 h-4 mr-2" />
+                          Delete
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
+                  </div>
+                </div>
+              </CardHeader>
+            </Card>
+          ))}
+        </div>
+      )}
 
       {/* Delete confirmation */}
       <AlertDialog open={!!deleteTarget} onOpenChange={() => setDeleteTarget(null)}>
