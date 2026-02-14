@@ -339,8 +339,8 @@ export default function DocsStudio() {
 
   // NOW we can have conditional returns - after all hooks are defined
 
-  // Show loading while checking auth/subscription
-  if (authLoading || subscriptionLoading || limitLoading) {
+  // Show loading while checking auth/subscription (but NOT limitLoading — it resolves after sub)
+  if (authLoading || subscriptionLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
         <div className="text-center">

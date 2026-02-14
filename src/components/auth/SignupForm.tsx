@@ -214,8 +214,9 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       if (onSuccess) {
         onSuccess();
       } else {
-        // Navigate to thank you page
-        navigate('/thank-you');
+        // Navigate directly to app — keep user engaged
+        toast.info('Check your email to verify your account.', { duration: 8000 });
+        navigate('/app');
       }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -282,7 +283,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
           variant="default"
         />
         <p className="text-xs text-center text-muted-foreground">
-          ⚡ 1-click signup — recommended
+          Fastest way to get started
         </p>
       </div>
 

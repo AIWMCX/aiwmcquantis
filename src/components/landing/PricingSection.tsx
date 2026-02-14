@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useExperiment, trackExperimentConversion } from '@/lib/abTesting';
 import { trackEvent } from '@/lib/analytics';
+import { CheckCircle2, Minus } from 'lucide-react';
 import { ValueAnchor } from './ValueAnchor';
 import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
@@ -224,10 +225,10 @@ function FeatureComparisonTable() {
     { name: 'Monthly analyses', free: '3', plus: 'Unlimited' },
     { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
     { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
-    { name: 'Marketing strategy', free: '—', plus: '✓' },
-    { name: 'Document Intelligence', free: '—', plus: '✓' },
-    { name: 'PDF export', free: '—', plus: '✓' },
-    { name: 'Custom branding', free: '—', plus: '✓' },
+    { name: 'Marketing strategy', free: 'no', plus: 'yes' },
+    { name: 'Document Intelligence', free: 'no', plus: 'yes' },
+    { name: 'PDF export', free: 'no', plus: 'yes' },
+    { name: 'Custom branding', free: 'no', plus: 'yes' },
     { name: 'Support', free: 'Email', plus: 'Priority' },
   ];
 
@@ -249,8 +250,12 @@ function FeatureComparisonTable() {
             {features.map((feature, idx) => (
               <tr key={feature.name} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                 <td className="p-4 text-sm text-foreground">{feature.name}</td>
-                <td className="p-4 text-sm text-center text-muted-foreground">{feature.free}</td>
-                <td className="p-4 text-sm text-center text-foreground font-medium bg-primary/5">{feature.plus}</td>
+                <td className="p-4 text-sm text-center text-muted-foreground">
+                  {feature.free === 'no' ? <Minus className="w-4 h-4 mx-auto text-muted-foreground/50" /> : feature.free}
+                </td>
+                <td className="p-4 text-sm text-center text-foreground font-medium bg-primary/5">
+                  {feature.plus === 'yes' ? <CheckCircle2 className="w-4 h-4 mx-auto text-success" /> : feature.plus}
+                </td>
               </tr>
             ))}
           </tbody>

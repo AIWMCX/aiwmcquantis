@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';
@@ -165,14 +165,17 @@ export function useDocDownloadLimit() {
     }
   }, [subLoading, fetchDownloadCount]);
 
-  return {
+  // Memoize the return value to prevent unnecessary re-renders in consumers
+  const stableResult = useMemo(() => ({
     ...info,
     isLoading: isLoading || subLoading,
     isTemplateAvailable,
     recordDownload,
     refresh: fetchDownloadCount,
     freeTemplateIds: FREE_TEMPLATES,
-  };
+  }), [info.canDownload, info.downloadsToday, info.dailyLimit, info.isUnlimited, info.isFreeTier, isLoading, subLoading, isTemplateAvailable, recordDownload, fetchDownloadCount]);
+
+  return stableResult;
 }
 
 function getNextMidnight(): Date {

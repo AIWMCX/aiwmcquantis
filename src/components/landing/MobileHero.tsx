@@ -113,6 +113,9 @@ export function MobileHero() {
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground mb-4 md:mb-6">
             <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> No credit card</span>
             <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Results in under 3 min</span>
+            <a href="#demo-preview" className="flex items-center gap-1 text-primary hover:underline">
+              <BarChart3 className="w-3.5 h-3.5" /> See a sample report
+            </a>
           </div>
 
           {/* Value badges + ICP - BELOW the form (visible on scroll or on desktop) */}
