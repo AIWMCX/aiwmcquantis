@@ -4,11 +4,14 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
+import { useCreateDocument } from '@/hooks/useDocuments';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
+import { DocumentsList } from '@/components/docs/DocumentsList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { 
   ArrowLeft, 
   FileText, 
@@ -25,8 +28,11 @@ import {
   Download,
   Crown,
   AlertTriangle,
+  FolderOpen,
+  Plus,
 } from 'lucide-react';
 import type { DocTemplate } from '@/types/document';
+import type { Document } from '@/types/document';
 import { sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { toast } from 'sonner';
 import '@/styles/docs-studio.css';
@@ -43,6 +49,9 @@ const PartnershipForm = lazy(() => import('@/components/docs/forms/PartnershipFo
 const FounderAgreementForm = lazy(() => import('@/components/docs/forms/FounderAgreementForm').then(m => ({ default: m.FounderAgreementForm })));
 const MarketAnalysisForm = lazy(() => import('@/components/docs/forms/MarketAnalysisForm').then(m => ({ default: m.MarketAnalysisForm })));
 
+// Lazy-load the rich editor (heavy TipTap dependency)
+const DocumentEditor = lazy(() => import('@/components/docs/DocumentEditor').then(m => ({ default: m.DocumentEditor })));
+
 // Loading fallback for lazy forms
 function FormLoadingSkeleton() {
   return (
@@ -54,7 +63,7 @@ function FormLoadingSkeleton() {
   );
 }
 
-type Step = 'pick-template' | 'generate';
+type Step = 'home' | 'pick-template' | 'generate' | 'edit';
 
 // Template configuration with categories and badges
 const TEMPLATE_CARDS = [
@@ -170,10 +179,12 @@ export default function DocsStudio() {
   const analysisId = searchParams.get('analysis') || undefined;
   
   // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
-  const [step, setStep] = useState<Step>('pick-template');
+  const [step, setStep] = useState<Step>('home');
+  const [activeTab, setActiveTab] = useState<'templates' | 'documents'>('templates');
   const [selectedTemplateId, setSelectedTemplateId] = useState<string | null>(null);
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
+  const [editingDocument, setEditingDocument] = useState<Document | null>(null);
   
   // CRITICAL: Check subscription status
   const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
@@ -183,6 +194,9 @@ export default function DocsStudio() {
   
   // Client-side document download
   const { downloadPDF, downloadHTML, isDownloading } = useDocumentDownload();
+  
+  // Document creation (save to DB)
+  const { mutate: createDocument, isPending: isCreating } = useCreateDocument();
   
   // Download rate limiting
   const { 
@@ -202,10 +216,54 @@ export default function DocsStudio() {
     setPreviewHTML(html);
   }, []);
 
-  // No-op for onGenerate since we removed the save-to-DB flow
+  // Save document to DB + trigger download
+  const saveAndDownload = useCallback(async (
+    templateId: string,
+    html: string,
+    format: 'pdf' | 'html',
+    downloadFn: (html: string, title?: string) => void,
+  ) => {
+    const templateCard = TEMPLATE_CARDS.find(t => t.id === templateId);
+    const title = templateCard?.name || 'Untitled Document';
+
+    // Rate limit check for free tier
+    if (!isUnlimited) {
+      const allowed = await recordDownload(templateId, format);
+      if (!allowed) {
+        toast.error('Daily download limit reached. Upgrade to Plus for unlimited downloads.', { duration: 5000 });
+        return;
+      }
+    } else {
+      await recordDownload(templateId, format);
+    }
+
+    // Save to DB (Plus users only — free tier keeps form-to-download)
+    if (isPlus) {
+      // Convert HTML preview to a simple TipTap-compatible doc JSON
+      const documentJson = {
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: `Document generated from ${title} template` }],
+          },
+        ],
+      };
+
+      createDocument({
+        templateId,
+        analysisId,
+        title,
+        variables: {},
+        documentJson,
+      });
+    }
+
+    // Trigger download
+    downloadFn(html, title);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId]);
+
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
-    // Forms still call onGenerate on submit, but we no longer save to DB
-    // The download flow is now the only way to export
     toast.info('Use the Download button on the preview to export your document.');
   }, []);
 
@@ -218,49 +276,35 @@ export default function DocsStudio() {
     if (step === 'generate') {
       setSelectedTemplateId(null);
       setPreviewHTML('');
-      setStep('pick-template');
+      setStep('home');
+    } else if (step === 'edit') {
+      setEditingDocument(null);
+      setStep('home');
+      setActiveTab('documents');
     }
   }, [step]);
 
-  // Rate-limited download handlers
+  // Rate-limited download handlers with DB save
   const handleDownloadPDF = useCallback(async () => {
     if (!selectedTemplateId || !previewHTML) return;
-    
-    if (!isUnlimited) {
-      const allowed = await recordDownload(selectedTemplateId, 'pdf');
-      if (!allowed) {
-        toast.error('Daily download limit reached. Upgrade to Plus for unlimited downloads.', {
-          duration: 5000,
-        });
-        return;
-      }
-    } else {
-      // Plus users: record but don't block
-      await recordDownload(selectedTemplateId, 'pdf');
-    }
-    
-    const templateCard = TEMPLATE_CARDS.find(t => t.id === selectedTemplateId);
-    downloadPDF(previewHTML, templateCard?.name);
-  }, [selectedTemplateId, previewHTML, isUnlimited, recordDownload, downloadPDF]);
+    await saveAndDownload(selectedTemplateId, previewHTML, 'pdf', downloadPDF);
+  }, [selectedTemplateId, previewHTML, saveAndDownload, downloadPDF]);
 
   const handleDownloadHTML = useCallback(async () => {
     if (!selectedTemplateId || !previewHTML) return;
-    
-    if (!isUnlimited) {
-      const allowed = await recordDownload(selectedTemplateId, 'html');
-      if (!allowed) {
-        toast.error('Daily download limit reached. Upgrade to Plus for unlimited downloads.', {
-          duration: 5000,
-        });
-        return;
-      }
-    } else {
-      await recordDownload(selectedTemplateId, 'html');
-    }
-    
-    const templateCard = TEMPLATE_CARDS.find(t => t.id === selectedTemplateId);
-    downloadHTML(previewHTML, templateCard?.name);
-  }, [selectedTemplateId, previewHTML, isUnlimited, recordDownload, downloadHTML]);
+    await saveAndDownload(selectedTemplateId, previewHTML, 'html', downloadHTML);
+  }, [selectedTemplateId, previewHTML, saveAndDownload, downloadHTML]);
+
+  // Open a saved document in the editor
+  const handleEditDocument = useCallback((doc: Document) => {
+    setEditingDocument(doc);
+    setStep('edit');
+  }, []);
+
+  // Navigate to template picker from documents list
+  const handleNewDocument = useCallback(() => {
+    setActiveTab('templates');
+  }, []);
 
   // NOW we can have conditional returns - after all hooks are defined
 
@@ -290,6 +334,30 @@ export default function DocsStudio() {
             <Button onClick={() => navigate('/auth')}>Sign In</Button>
           </CardContent>
         </Card>
+      </div>
+    );
+  }
+
+  // Editor mode — open a saved document in TipTap
+  if (step === 'edit' && editingDocument) {
+    return (
+      <div className="min-h-screen bg-background">
+        <div className="max-w-[1800px] mx-auto">
+          {/* Header */}
+          <div className="p-4 border-b border-border">
+            <Button variant="ghost" onClick={handleBack} className="-ml-2">
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to My Documents
+            </Button>
+          </div>
+          <Suspense fallback={
+            <div className="flex items-center justify-center h-[60vh]">
+              <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
+            </div>
+          }>
+            <DocumentEditor document={editingDocument} onBack={handleBack} />
+          </Suspense>
+        </div>
       </div>
     );
   }
@@ -369,93 +437,34 @@ export default function DocsStudio() {
             <div className="space-y-6">
               <Suspense fallback={<FormLoadingSkeleton />}>
                 {selectedTemplateId === 'professional-invoice' && (
-                  <InvoiceForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <InvoiceForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'quarterly-summary' && (
-                  <QuarterlySummaryForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <QuarterlySummaryForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'nda-agreement' && (
-                  <NDAForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <NDAForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'business-plan' && (
-                  <BusinessPlanForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <BusinessPlanForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'pitch-deck' && (
-                  <PitchDeckForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <PitchDeckForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'one-page-plan' && (
-                  <OnePagePlanForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <OnePagePlanForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'financial-forecast' && (
-                  <FinancialForecastForm
-                    template={undefined}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <FinancialForecastForm template={undefined} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'partnership-proposal' && (
-                  <PartnershipForm
-                    template={null}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <PartnershipForm template={null} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'founder-agreement' && (
-                  <FounderAgreementForm
-                    template={null}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <FounderAgreementForm template={null} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
-
                 {selectedTemplateId === 'market-analysis' && (
-                  <MarketAnalysisForm
-                    template={null}
-                    onGenerate={handleGenerate}
-                    onPreviewUpdate={handlePreviewUpdate}
-                    isGenerating={false}
-                  />
+                  <MarketAnalysisForm template={null} onGenerate={handleGenerate} onPreviewUpdate={handlePreviewUpdate} isGenerating={false} />
                 )}
               </Suspense>
             </div>
@@ -490,7 +499,7 @@ export default function DocsStudio() {
                   <PreviewDownloadBar
                     onDownloadPDF={handleDownloadPDF}
                     onDownloadHTML={handleDownloadHTML}
-                    isDownloading={isDownloading}
+                    isDownloading={isDownloading || isCreating}
                     hasContent={!!previewHTML}
                     canDownload={canDownload || isUnlimited}
                     isFreeTier={isFreeTier}
@@ -506,7 +515,7 @@ export default function DocsStudio() {
     );
   }
 
-  // Default: Template picker view
+  // Default: Home view with tabs
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-6xl mx-auto p-6">
@@ -520,7 +529,7 @@ export default function DocsStudio() {
             <h1 className="text-3xl font-bold text-foreground">Docs Studio</h1>
             <p className="text-muted-foreground">
               {isPlus 
-                ? 'Create professional documents from all 10 templates — unlimited downloads' 
+                ? 'Create, edit, and manage professional documents — unlimited access' 
                 : 'Create documents from 3 free templates — 1 download per day'
               }
             </p>
@@ -553,92 +562,134 @@ export default function DocsStudio() {
           </div>
         )}
 
-        {/* Template Gallery */}
-        <div className="doc-template-gallery">
-          {TEMPLATE_CARDS.map((template) => {
-            const Icon = template.icon;
-            const available = isTemplateAvailable(template.id);
-            const isLocked = !available;
-            
-            return (
-              <Card
-                key={template.id}
-                className={`doc-template-card group ${
-                  isLocked 
-                    ? 'opacity-60 cursor-not-allowed' 
-                    : 'cursor-pointer'
-                }`}
-                onClick={() => {
-                  if (isLocked) {
-                    toast.error('Upgrade to Plus to access this template', {
-                      action: {
-                        label: 'Upgrade',
-                        onClick: () => createCheckout('plus'),
-                      },
-                    });
-                    return;
-                  }
-                  handleTemplateSelect(template.id);
-                }}
-              >
-                <CardHeader>
-                  <div className="flex items-start justify-between">
-                    <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center ${!isLocked ? 'group-hover:scale-110' : ''} transition-transform`}>
-                      <Icon className="w-7 h-7" />
-                    </div>
-                    <div className="flex flex-col items-end gap-1.5">
-                      {template.freeTier ? (
-                        <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
-                          Free
-                        </Badge>
-                      ) : (
-                        <Badge variant="secondary" className="text-xs">
-                          <Crown className="w-3 h-3 mr-1" />
-                          Plus
-                        </Badge>
-                      )}
-                      {isLocked && (
-                        <Lock className="w-4 h-4 text-muted-foreground" />
-                      )}
-                    </div>
-                  </div>
-                  <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
-                  
-                  {/* Feature badges */}
-                  <div className="flex items-center gap-2 mb-4 flex-wrap">
-                    {template.hasQuantisIntegration && (
-                      <span className="doc-quantis-badge">
-                        <Sparkles className="w-3 h-3" />
-                        Auto-fill
-                      </span>
-                    )}
-                  </div>
-                  
-                  <Button 
-                    className="w-full" 
-                    variant={isLocked ? 'secondary' : 'outline'}
-                    disabled={isLocked}
+        {/* Tabs: Templates / My Documents */}
+        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'templates' | 'documents')} className="mb-8">
+          <TabsList className="grid w-full max-w-md grid-cols-2">
+            <TabsTrigger value="templates" className="gap-2">
+              <Plus className="w-4 h-4" />
+              Templates
+            </TabsTrigger>
+            <TabsTrigger value="documents" className="gap-2">
+              <FolderOpen className="w-4 h-4" />
+              My Documents
+              {isPlus && <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Plus</Badge>}
+            </TabsTrigger>
+          </TabsList>
+
+          {/* Templates Tab */}
+          <TabsContent value="templates" className="mt-6">
+            <div className="doc-template-gallery">
+              {TEMPLATE_CARDS.map((template) => {
+                const Icon = template.icon;
+                const available = isTemplateAvailable(template.id);
+                const isLocked = !available;
+                
+                return (
+                  <Card
+                    key={template.id}
+                    className={`doc-template-card group ${
+                      isLocked 
+                        ? 'opacity-60 cursor-not-allowed' 
+                        : 'cursor-pointer'
+                    }`}
+                    onClick={() => {
+                      if (isLocked) {
+                        toast.error('Upgrade to Plus to access this template', {
+                          action: {
+                            label: 'Upgrade',
+                            onClick: () => createCheckout('plus'),
+                          },
+                        });
+                        return;
+                      }
+                      handleTemplateSelect(template.id);
+                    }}
                   >
-                    {isLocked ? (
-                      <>
-                        <Lock className="w-4 h-4 mr-2" />
-                        Plus Only
-                      </>
-                    ) : (
-                      <>
-                        <FileText className="w-4 h-4 mr-2" />
-                        Create {template.name.split(' ')[0]}
-                      </>
-                    )}
+                    <CardHeader>
+                      <div className="flex items-start justify-between">
+                        <div className={`w-14 h-14 rounded-xl ${template.color} flex items-center justify-center ${!isLocked ? 'group-hover:scale-110' : ''} transition-transform`}>
+                          <Icon className="w-7 h-7" />
+                        </div>
+                        <div className="flex flex-col items-end gap-1.5">
+                          {template.freeTier ? (
+                            <Badge variant="secondary" className="text-xs bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400">
+                              Free
+                            </Badge>
+                          ) : (
+                            <Badge variant="secondary" className="text-xs">
+                              <Crown className="w-3 h-3 mr-1" />
+                              Plus
+                            </Badge>
+                          )}
+                          {isLocked && (
+                            <Lock className="w-4 h-4 text-muted-foreground" />
+                          )}
+                        </div>
+                      </div>
+                      <CardTitle className="mt-4 text-xl">{template.name}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-muted-foreground mb-3">{template.description}</p>
+                      
+                      {/* Feature badges */}
+                      <div className="flex items-center gap-2 mb-4 flex-wrap">
+                        {template.hasQuantisIntegration && (
+                          <span className="doc-quantis-badge">
+                            <Sparkles className="w-3 h-3" />
+                            Auto-fill
+                          </span>
+                        )}
+                      </div>
+                      
+                      <Button 
+                        className="w-full" 
+                        variant={isLocked ? 'secondary' : 'outline'}
+                        disabled={isLocked}
+                      >
+                        {isLocked ? (
+                          <>
+                            <Lock className="w-4 h-4 mr-2" />
+                            Plus Only
+                          </>
+                        ) : (
+                          <>
+                            <FileText className="w-4 h-4 mr-2" />
+                            Create {template.name.split(' ')[0]}
+                          </>
+                        )}
+                      </Button>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          </TabsContent>
+
+          {/* My Documents Tab */}
+          <TabsContent value="documents" className="mt-6">
+            {isPlus ? (
+              <DocumentsList 
+                onEdit={handleEditDocument} 
+                onNew={handleNewDocument} 
+              />
+            ) : (
+              <Card className="border-dashed">
+                <CardContent className="flex flex-col items-center justify-center py-12">
+                  <Lock className="w-12 h-12 text-muted-foreground mb-4" />
+                  <h3 className="text-lg font-semibold mb-2">Plus Feature</h3>
+                  <p className="text-muted-foreground text-center mb-4 max-w-md">
+                    Document management with editing, versioning, and re-exporting is available on the Plus plan. 
+                    Free tier users can still create and download documents from templates.
+                  </p>
+                  <Button onClick={() => createCheckout('plus')} className="gap-2">
+                    <Crown className="w-4 h-4" />
+                    Upgrade to Plus
                   </Button>
                 </CardContent>
               </Card>
-            );
-          })}
-        </div>
+            )}
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
