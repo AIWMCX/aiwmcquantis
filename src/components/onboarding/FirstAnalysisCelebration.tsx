@@ -38,7 +38,7 @@ export const FirstAnalysisCelebration = React.memo(function FirstAnalysisCelebra
   }, [open]);
 
   const handleTwitterShare = () => {
-    const text = "Just got my first AI business analysis in under 2 minutes with @AIWMC_official's Quantis! 🚀 Financial projections, market analysis, and a complete business plan - all automated. #StartupTools #AI";
+    const text = "Just got my first AI business analysis in under 2 minutes with @AIWMC_official's Quantis — Financial projections, market analysis, and a complete business plan, all automated. #StartupTools #AI";
     const url = 'https://aiwmcquantis.com';
     window.open(
       `https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`,
@@ -79,7 +79,7 @@ export const FirstAnalysisCelebration = React.memo(function FirstAnalysisCelebra
             <PartyPopper className="w-8 h-8 text-success" />
           </div>
           <DialogTitle className="text-2xl font-bold">
-            🎉 Your First Analysis is Complete!
+            Your First Analysis is Complete!
           </DialogTitle>
           <DialogDescription className="text-base">
             You just saved hours of research and calculations. Here's what you can do next:

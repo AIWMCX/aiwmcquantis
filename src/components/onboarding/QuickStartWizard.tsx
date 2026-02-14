@@ -131,7 +131,7 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
 
             <div className="space-y-2">
               <h2 className="text-2xl font-bold text-foreground">
-                You're All Set! 🚀
+                You're All Set!
               </h2>
               <p className="text-muted-foreground">
                 {selectedPath === 'sample'

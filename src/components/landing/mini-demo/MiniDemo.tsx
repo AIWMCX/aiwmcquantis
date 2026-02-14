@@ -309,7 +309,7 @@ export function MiniDemo() {
                 {/* Locked Features Tease */}
                 <div className="space-y-3">
                   <p className="text-sm font-medium text-muted-foreground">
-                    🔒 Unlock with free signup:
+                    Unlock with free signup:
                   </p>
                   <LockedFeaturesTease />
                 </div>

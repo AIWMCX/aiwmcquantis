@@ -46,7 +46,7 @@ export function StreakCounter({ className }: StreakCounterProps) {
         <TooltipContent>
           <div className="text-center">
             <p className="font-medium">
-              {engagement.current_streak} day streak! 🔥
+              {engagement.current_streak} day streak!
             </p>
             {currentMilestone && (
               <p className="text-xs text-muted-foreground">

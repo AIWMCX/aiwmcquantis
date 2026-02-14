@@ -42,7 +42,7 @@ const AnalysisResults: React.FC<AnalysisResultsProps> = ({ result, onExportPDF }
           <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg">{result.marketing_plan}</p>
         </section>
         <section>
-          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">📊 Анализ рынка</h3>
+          <h3 className="text-xl sm:text-2xl font-semibold text-primary mb-3 pb-2 border-b border-border">Анализ рынка</h3>
           <p className="whitespace-pre-line leading-relaxed text-base sm:text-lg">{result.market_analysis}</p>
         </section>
       </div>
