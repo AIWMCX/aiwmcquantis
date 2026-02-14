@@ -268,13 +268,14 @@ serve(async (req: Request): Promise<Response> => {
       const [sequence, stepStr] = template_key.split("_step_");
       const step = parseInt(stepStr, 10);
 
-      await supabase.from("email_sequence_log").insert({
+      const { error: logError } = await supabase.from("email_sequence_log").insert({
         user_id,
         sequence_name: sequence,
         step_number: step,
-      }).catch(() => {
-        // Ignore duplicate key errors
       });
+      if (logError) {
+        console.warn("Failed to log email sequence:", logError.message);
+      }
     }
 
     return new Response(JSON.stringify({ success: true, id: result.id }), {
