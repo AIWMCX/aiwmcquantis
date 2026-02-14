@@ -9,8 +9,7 @@ import { MobileNav } from './MobileNav';
 import { NotificationCenter } from '@/components/notifications/NotificationCenter';
 import { toast } from 'sonner';
 import { useTheme } from 'next-themes';
-import aiwmcLogo from '@/assets/aiwmc-quantis-logo.jpg';
-import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
+import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 interface HeaderProps {
   darkMode?: boolean;
@@ -39,9 +38,9 @@ export function Header({ darkMode: _legacyDarkMode, onToggleTheme: _legacyToggle
       <div className="container flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6">
         <Link to="/" className="flex items-center gap-2">
           <img 
-            src={aiwmcLogoDark}
+            src={aiwmcLogoText}
             alt="AIWMC Quantis"
-            className="h-14 sm:h-16 w-auto object-contain rounded-lg shadow-md"
+            className="h-10 sm:h-12 w-auto object-contain dark:invert"
           />
         </Link>
 

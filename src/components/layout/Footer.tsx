@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Heart, Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
-import aiwmcLogoDark from '@/assets/aiwmc-quantis-logo-dark.png';
+import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 export function Footer() {
   return (
@@ -14,9 +14,9 @@ export function Footer() {
             <div className="flex flex-col items-center lg:items-start gap-3">
               <Link to="/" className="flex items-center">
                 <img 
-                  src={aiwmcLogoDark} 
+                  src={aiwmcLogoText} 
                   alt="AIWMC Quantis" 
-                  className="h-8 w-auto object-contain rounded"
+                  className="h-8 w-auto object-contain dark:invert"
                 />
               </Link>
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
