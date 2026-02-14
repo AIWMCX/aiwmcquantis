@@ -104,7 +104,7 @@ export default function Index() {
     
     if (checkoutStatus === 'success' || successStatus === 'true') {
       toast({
-        title: '🎉 Welcome to Your Trial!',
+        title: 'Welcome to Your Trial!',
         description: 'Your 14-day free trial has started. Enjoy unlimited analyses!',
       });
       // Refetch subscription after a short delay to allow webhook processing
@@ -417,12 +417,12 @@ export default function Index() {
                 <TabsTrigger value="analyze" className="gap-2 min-h-[44px]">
                   <Sparkles className="w-4 h-4" />
                   <span className="hidden sm:inline">Results</span>
-                  <span className="sm:hidden">📊</span>
+                   <span className="sm:hidden">Results</span>
                 </TabsTrigger>
                 <TabsTrigger value="history" className="gap-2 min-h-[44px]">
                   <History className="w-4 h-4" />
                   <span className="hidden sm:inline">History</span>
-                  <span className="sm:hidden">📋</span>
+                  <span className="sm:hidden">History</span>
                 </TabsTrigger>
               </TabsList>
 

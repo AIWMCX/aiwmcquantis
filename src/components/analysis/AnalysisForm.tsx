@@ -268,7 +268,7 @@ export function AnalysisForm({
       {/* Tip */}
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">💡 Pro Tip:</strong> For best results, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
+          <strong className="text-foreground">Pro Tip:</strong> For best results, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
           The AI will analyze actual numbers from your revenue statements and marketing data for precise insights.
         </p>
       </div>

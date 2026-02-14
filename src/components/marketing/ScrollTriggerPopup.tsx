@@ -73,7 +73,7 @@ export function ScrollTriggerPopup({ isOpen, onClose, onSubmitSuccess }: ScrollT
               </div>
               
               <h3 className="text-2xl font-bold text-foreground mb-2">
-                🎯 Validation Checklist Sent!
+                Validation Checklist Sent!
               </h3>
               
               <p className="text-muted-foreground mb-4">

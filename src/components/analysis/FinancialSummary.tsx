@@ -388,10 +388,10 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     <div className="pt-2 border-t border-border/50">
                       <p className="text-xs text-muted-foreground">
                         {financial.unit_economics.ltv_cac_ratio >= 3 
-                          ? "✅ Healthy ratio (>3x)" 
+                          ? "Healthy ratio (>3x)" 
                           : financial.unit_economics.ltv_cac_ratio >= 1 
-                            ? "⚠️ Needs improvement (1-3x)"
-                            : "❌ Unprofitable model (<1x)"}
+                            ? "Needs improvement (1-3x)"
+                            : "Unprofitable model (<1x)"}
                       </p>
                     </div>
                   </div>

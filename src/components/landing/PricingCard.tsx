@@ -53,7 +53,7 @@ export const PricingCard = React.memo(function PricingCard({
       {/* Trial Banner - Prominent for Plus */}
       {highlighted && (
         <div className="absolute -top-4 left-4 right-4 px-4 py-2 rounded-lg bg-success text-white text-sm font-semibold text-center shadow-lg">
-          🎉 14-Day Free Trial — No Credit Card
+          14-Day Free Trial — No Credit Card
         </div>
       )}
 

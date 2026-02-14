@@ -139,7 +139,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
               </div>
               
               <h3 className="text-2xl font-bold text-foreground mb-2">
-                🎉 You're All Set!
+                You're All Set!
               </h3>
               
               <p className="text-muted-foreground mb-4">
