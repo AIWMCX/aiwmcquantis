@@ -100,7 +100,7 @@ function getUnsubscribeHtml(success: boolean, message: string): string {
     </div>
     <h1>${success ? 'Unsubscribed Successfully' : 'Something Went Wrong'}</h1>
     <p>${message}</p>
-    <a href="https://aiwmcquantis.lovable.app" class="button">Visit AIWMC Quantis</a>
+    <a href="https://aiwmcquantis.com" class="button">Visit AIWMC Quantis</a>
     <div class="footer">
       <div class="logo">AIWMC Quantis</div>
       <p>AI-Powered Business Analysis</p>

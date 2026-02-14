@@ -18,7 +18,7 @@ interface LeadMagnetRequest {
   leadId?: string;
 }
 
-const APP_URL = 'https://aiwmcquantis.lovable.app';
+const APP_URL = 'https://aiwmcquantis.com';
 const KIT_DOWNLOAD_URL = `${APP_URL}/downloads/Founder_Validation_Starter_Kit.docx`;
 
 // Email content by offer type
@@ -242,7 +242,7 @@ function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[stri
                 &copy; ${new Date().getFullYear()} AIWMC Quantis. All rights reserved.
               </p>
               <p style="margin: 0; color: #9ca3af; font-size: 12px;">
-                You received this because you signed up at aiwmcquantis.lovable.app
+                You received this because you signed up at aiwmcquantis.com
               </p>
             </td>
           </tr>

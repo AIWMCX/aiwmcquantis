@@ -33,7 +33,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <li>Receive a detailed market analysis</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.lovable.app'}/app" 
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Start Your Free Analysis
           </a>
@@ -67,7 +67,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <p style="color: #4a4a4a; margin: 0; font-size: 14px;">Export professional PDFs for presentations.</p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.lovable.app'}/app" 
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Get Your Analysis Now
           </a>
@@ -90,7 +90,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           </p>
         </div>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.lovable.app'}/app" 
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             View & Export Your Analysis
           </a>
@@ -118,7 +118,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <li>Export bank-ready PDF reports</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.lovable.app'}/app" 
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             Start Your Free Analysis
           </a>
@@ -153,7 +153,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           </div>
         ` : ''}
         <div style="text-align: center; margin: 30px 0;">
-          <a href="${data.app_url || 'https://aiwmcquantis.lovable.app'}/app" 
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/app" 
              style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
             View Your Progress
           </a>
@@ -231,7 +231,7 @@ serve(async (req: Request): Promise<Response> => {
     const templateData = {
       ...userData,
       ...dynamic_data,
-      app_url: Deno.env.get("APP_URL") || "https://aiwmcquantis.lovable.app",
+      app_url: Deno.env.get("APP_URL") || "https://aiwmcquantis.com",
     };
 
     // Send email via Resend
