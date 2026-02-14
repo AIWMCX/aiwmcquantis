@@ -42,8 +42,8 @@ interface WelcomeEmailRequest {
 const generateWelcomeEmailHtml = (name: string, email: string): string => {
   const firstName = name.split(' ')[0] || 'Friend';
   const encodedEmail = encodeURIComponent(email);
-  const signupUrl = `https://aiwmcquantis.lovable.app/auth?email=${encodedEmail}&tab=signup`;
-  const appUrl = `https://aiwmcquantis.lovable.app/app?email=${encodedEmail}`;
+  const signupUrl = `https://aiwmcquantis.com/auth?email=${encodedEmail}&tab=signup`;
+  const appUrl = `https://aiwmcquantis.com/app?email=${encodedEmail}`;
   
   return `
 <!DOCTYPE html>
@@ -211,9 +211,9 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
                       © ${new Date().getFullYear()} AIWMC Quantis™. All Rights Reserved.
                     </p>
                     <p style="margin: 8px 0 0 0; font-size: 11px; color: #9ca3af;">
-                      <a href="https://aiwmcquantis.lovable.app/terms" style="color: #6b7280; text-decoration: underline;">Terms of Service</a>
+                      <a href="https://aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms of Service</a>
                       &nbsp;|&nbsp;
-                      <a href="https://aiwmcquantis.lovable.app/privacy" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
+                      <a href="https://aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
                     </p>
                   </td>
                 </tr>

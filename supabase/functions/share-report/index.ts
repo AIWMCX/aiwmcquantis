@@ -216,7 +216,7 @@ Deno.serve(async (req) => {
 
       if (existingShare) {
         // Return existing share link
-        const siteUrl = Deno.env.get("SITE_URL") || "https://aiwmcquantis.lovable.app";
+        const siteUrl = Deno.env.get("SITE_URL") || "https://aiwmcquantis.com";
         const shareUrl = `${siteUrl}/share/${existingShare.token}`;
         
         return new Response(
@@ -250,7 +250,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      const siteUrl = Deno.env.get("SITE_URL") || "https://aiwmcquantis.lovable.app";
+      const siteUrl = Deno.env.get("SITE_URL") || "https://aiwmcquantis.com";
       const shareUrl = `${siteUrl}/share/${share.token}`;
 
       console.log("[share-report] Share created successfully:", share.token.substring(0, 8) + "...");

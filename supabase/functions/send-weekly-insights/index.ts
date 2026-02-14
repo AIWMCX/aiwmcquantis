@@ -156,7 +156,7 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
                   <td style="padding: 20px;">
                     <span style="color: #92400e; font-size: 12px; font-weight: 600; text-transform: uppercase;">📥 Free Resource</span>
                     <p style="margin: 8px 0 12px; color: #78350f; font-size: 16px; font-weight: 600;">${content.free_resource.title}</p>
-                    <a href="https://aiwmcquantis.lovable.app${content.free_resource.url}" style="display: inline-block; background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600;">Download Now →</a>
+                    <a href="https://aiwmcquantis.com${content.free_resource.url}" style="display: inline-block; background-color: #f59e0b; color: #ffffff; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-size: 14px; font-weight: 600;">Download Now</a>
                   </td>
                 </tr>
               </table>
@@ -167,7 +167,7 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
           <!-- CTA -->
           <tr>
             <td style="padding: 0 32px 32px; text-align: center;">
-              <a href="https://aiwmcquantis.lovable.app/app" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">Analyze Your Business →</a>
+              <a href="https://aiwmcquantis.com/app" style="display: inline-block; background: linear-gradient(135deg, #3b82f6 0%, #1d4ed8 100%); color: #ffffff; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-size: 15px; font-weight: 600;">Analyze Your Business</a>
             </td>
           </tr>
           
