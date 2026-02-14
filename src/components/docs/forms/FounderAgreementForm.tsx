@@ -688,25 +688,12 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </CardContent>
       </Card>
 
-      {/* Submit */}
-      <Button type="submit" size="lg" className="w-full gap-2" disabled={isGenerating || !equityBalanced}>
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Creating Agreement...
-          </>
-        ) : (
-          <>
-            <Users className="w-5 h-5" />
-            Generate Founder Agreement
-          </>
-        )}
-      </Button>
-      
       {!equityBalanced && (
-        <p className="text-sm text-destructive text-center">
-          Equity must total 100% before generating (currently {totalEquity}%)
-        </p>
+        <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-center">
+          <p className="text-sm text-destructive font-medium">
+            Equity must total 100% before downloading (currently {totalEquity}%)
+          </p>
+        </div>
       )}
     </form>
   );

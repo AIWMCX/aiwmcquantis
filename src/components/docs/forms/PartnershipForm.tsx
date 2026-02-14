@@ -552,20 +552,6 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
         </CardContent>
       </Card>
 
-      {/* Submit */}
-      <Button type="submit" size="lg" className="w-full gap-2" disabled={isGenerating}>
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Creating Proposal...
-          </>
-        ) : (
-          <>
-            <Handshake className="w-5 h-5" />
-            Generate Partnership Proposal
-          </>
-        )}
-      </Button>
     </form>
   );
 }

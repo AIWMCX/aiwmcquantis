@@ -688,20 +688,6 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </CardContent>
       </Card>
 
-      {/* Submit */}
-      <Button type="submit" size="lg" className="w-full gap-2" disabled={isGenerating}>
-        {isGenerating ? (
-          <>
-            <Loader2 className="w-5 h-5 animate-spin" />
-            Creating Report...
-          </>
-        ) : (
-          <>
-            <BarChart3 className="w-5 h-5" />
-            Generate Market Analysis
-          </>
-        )}
-      </Button>
     </form>
   );
 }

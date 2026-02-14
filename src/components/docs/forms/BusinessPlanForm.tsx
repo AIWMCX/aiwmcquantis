@@ -696,22 +696,6 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
         </CardContent>
       </Card>
 
-      {/* Submit Button */}
-      <div className="flex items-center justify-end gap-4 pt-4">
-        <Button type="submit" size="lg" disabled={isGenerating} className="gap-2">
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              <span>Generating...</span>
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-4 h-4" aria-hidden="true" />
-              <span>Generate Business Plan</span>
-            </>
-          )}
-        </Button>
-      </div>
     </form>
   );
 }
