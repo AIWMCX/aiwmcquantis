@@ -114,18 +114,17 @@ export default function Landing() {
           <MobileHero />
         </div>
 
-        {/* 3. Results Ticker */}
-        <ResultsTicker />
-
-        {/* Below-fold sections - lazy loaded for faster FCP */}
+        {/* 3. Trust Signals — immediately after hero */}
         <div ref={belowFoldSection.ref}>
           {belowFoldSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={200} />}>
-              {/* 4. Trust Signals */}
               <TrustLogos />
 
-              {/* 5. Demo Preview */}
+              {/* 4. Demo Preview — instant value */}
               <DemoPreview />
+
+              {/* 5. Results Ticker */}
+              <ResultsTicker />
 
               {/* 6. How It Works (condensed) */}
               <HowItWorksSection />
