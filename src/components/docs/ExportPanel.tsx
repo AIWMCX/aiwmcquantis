@@ -72,10 +72,6 @@ export function ExportPanel({ onExport, isExporting, status, onStatusChange }: E
               <span>Export as PDF</span>
               <Badge variant="secondary" className="ml-auto text-xs">Recommended</Badge>
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => onExport('docx')} className="gap-2">
-              <FileType className="w-4 h-4 text-blue-500" />
-              <span>Export as Word (.docx)</span>
-            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => onExport('md')} className="gap-2">
               <Code className="w-4 h-4 text-muted-foreground" />
               <span>Export as Markdown</span>

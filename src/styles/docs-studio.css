@@ -152,10 +152,6 @@
 
 /* Mobile Responsive Adjustments */
 @media (max-width: 768px) {
-  .doc-preview-container {
-    @apply hidden;
-  }
-  
   .doc-form-section {
     animation: none;
   }

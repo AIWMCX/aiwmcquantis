@@ -4,14 +4,23 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
-import { useCreateDocument } from '@/hooks/useDocuments';
+import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerClose,
+} from '@/components/ui/drawer';
 import { 
   ArrowLeft, 
   FileText, 
@@ -30,6 +39,7 @@ import {
   AlertTriangle,
   FolderOpen,
   Plus,
+  X,
 } from 'lucide-react';
 import type { DocTemplate } from '@/types/document';
 import type { Document } from '@/types/document';
@@ -185,12 +195,18 @@ export default function DocsStudio() {
   const [previewHTML, setPreviewHTML] = useState<string>('');
   const [showPreview, setShowPreview] = useState(true);
   const [editingDocument, setEditingDocument] = useState<Document | null>(null);
+  const [documentTitle, setDocumentTitle] = useState('');
+  const [mobilePreviewOpen, setMobilePreviewOpen] = useState(false);
+  const isMobile = useIsMobile();
   
   // CRITICAL: Check subscription status
   const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
   
   // Get current user
   const { user, isLoading: authLoading } = useAuth();
+  
+  // Document count for My Documents tab
+  const { data: userDocuments } = useDocuments();
   
   // Client-side document download
   const { downloadPDF, downloadHTML, isDownloading } = useDocumentDownload();
@@ -224,7 +240,7 @@ export default function DocsStudio() {
     downloadFn: (html: string, title?: string) => void,
   ) => {
     const templateCard = TEMPLATE_CARDS.find(t => t.id === templateId);
-    const title = templateCard?.name || 'Untitled Document';
+    const title = documentTitle || templateCard?.name || 'Untitled Document';
 
     // Rate limit check for free tier
     if (!isUnlimited) {
@@ -267,13 +283,15 @@ export default function DocsStudio() {
 
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     toast.info('Use the Download button on the preview to export your document.');
   }, []);
 
   const handleTemplateSelect = useCallback((templateId: string) => {
+    const card = TEMPLATE_CARDS.find(t => t.id === templateId);
+    setDocumentTitle(card?.name || '');
     setSelectedTemplateId(templateId);
     setStep('generate');
   }, []);
@@ -349,13 +367,6 @@ export default function DocsStudio() {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-[1800px] mx-auto">
-          {/* Header */}
-          <div className="p-4 border-b border-border">
-            <Button variant="ghost" onClick={handleBack} className="-ml-2">
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to My Documents
-            </Button>
-          </div>
           <Suspense fallback={
             <div className="flex items-center justify-center h-[60vh]">
               <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
@@ -398,14 +409,37 @@ export default function DocsStudio() {
               </div>
             </div>
 
-            <Button
-              variant="outline"
-              onClick={() => setShowPreview(!showPreview)}
-              className="gap-2"
-            >
-              {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-              {showPreview ? 'Hide Preview' : 'Show Preview'}
-            </Button>
+            {/* Document Title */}
+            <div className="flex items-center gap-3">
+              <Input
+                value={documentTitle}
+                onChange={(e) => setDocumentTitle(e.target.value)}
+                placeholder="Document title..."
+                className="max-w-xs text-sm"
+              />
+            </div>
+
+            {/* Preview toggle (desktop) / Preview button (mobile) */}
+            {isMobile ? (
+              <Button
+                variant="outline"
+                onClick={() => setMobilePreviewOpen(true)}
+                className="gap-2"
+                disabled={!previewHTML}
+              >
+                <Eye className="w-4 h-4" />
+                Preview
+              </Button>
+            ) : (
+              <Button
+                variant="outline"
+                onClick={() => setShowPreview(!showPreview)}
+                className="gap-2"
+              >
+                {showPreview ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                {showPreview ? 'Hide Preview' : 'Show Preview'}
+              </Button>
+            )}
           </div>
 
           {/* Free tier download limit banner */}
@@ -438,7 +472,7 @@ export default function DocsStudio() {
           )}
 
           {/* Content Grid */}
-          <div className={`grid gap-8 ${showPreview ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl'}`}>
+          <div className={`grid gap-8 ${showPreview && !isMobile ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 max-w-3xl'}`}>
             {/* Left Column: Form */}
             <div className="space-y-6">
               <Suspense fallback={<FormLoadingSkeleton />}>
@@ -475,8 +509,8 @@ export default function DocsStudio() {
               </Suspense>
             </div>
 
-            {/* Right Column: Live Preview */}
-            {showPreview && (
+            {/* Right Column: Live Preview (desktop only) */}
+            {showPreview && !isMobile && (
               <div className="lg:sticky lg:top-8 lg:self-start">
                 <Card className="overflow-hidden">
                   <CardHeader className="py-3 bg-muted/50 border-b">
@@ -501,21 +535,63 @@ export default function DocsStudio() {
                       </div>
                     )}
                   </CardContent>
-                  {/* Download actions */}
-                  <PreviewDownloadBar
-                    onDownloadPDF={handleDownloadPDF}
-                    onDownloadHTML={handleDownloadHTML}
-                    isDownloading={isDownloading || isCreating}
-                    hasContent={!!previewHTML}
-                    canDownload={canDownload || isUnlimited}
-                    isFreeTier={isFreeTier}
-                    downloadsToday={downloadsToday}
-                    dailyLimit={dailyLimit}
-                  />
                 </Card>
               </div>
             )}
           </div>
+
+          {/* Sticky Download Bar — always visible regardless of preview toggle */}
+          <div className="sticky bottom-0 left-0 right-0 z-10 mt-6 -mx-6 bg-background border-t border-border">
+            <PreviewDownloadBar
+              onDownloadPDF={handleDownloadPDF}
+              onDownloadHTML={handleDownloadHTML}
+              isDownloading={isDownloading || isCreating}
+              hasContent={!!previewHTML}
+              canDownload={canDownload || isUnlimited}
+              isFreeTier={isFreeTier}
+              downloadsToday={downloadsToday}
+              dailyLimit={dailyLimit}
+            />
+          </div>
+
+          {/* Mobile Preview Drawer */}
+          <Drawer open={mobilePreviewOpen} onOpenChange={setMobilePreviewOpen}>
+            <DrawerContent className="max-h-[90vh]">
+              <DrawerHeader className="flex items-center justify-between">
+                <DrawerTitle>Document Preview</DrawerTitle>
+                <DrawerClose asChild>
+                  <Button variant="ghost" size="sm">
+                    <X className="w-4 h-4" />
+                  </Button>
+                </DrawerClose>
+              </DrawerHeader>
+              <div className="px-4 pb-4 overflow-auto flex-1">
+                {previewHTML ? (
+                  <div 
+                    className="bg-white rounded-lg overflow-auto"
+                    style={{ maxHeight: 'calc(90vh - 180px)' }}
+                    dangerouslySetInnerHTML={{ __html: sanitizePreviewHTML(previewHTML) }}
+                  />
+                ) : (
+                  <div className="flex items-center justify-center h-48 text-muted-foreground">
+                    <p>Fill the form to see preview</p>
+                  </div>
+                )}
+              </div>
+              <div className="px-4 pb-4">
+                <PreviewDownloadBar
+                  onDownloadPDF={handleDownloadPDF}
+                  onDownloadHTML={handleDownloadHTML}
+                  isDownloading={isDownloading || isCreating}
+                  hasContent={!!previewHTML}
+                  canDownload={canDownload || isUnlimited}
+                  isFreeTier={isFreeTier}
+                  downloadsToday={downloadsToday}
+                  dailyLimit={dailyLimit}
+                />
+              </div>
+            </DrawerContent>
+          </Drawer>
         </div>
       </div>
     );
@@ -578,7 +654,11 @@ export default function DocsStudio() {
             <TabsTrigger value="documents" className="gap-2">
               <FolderOpen className="w-4 h-4" />
               My Documents
-              {isPlus && <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Plus</Badge>}
+              {isPlus && userDocuments && userDocuments.length > 0 ? (
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{userDocuments.length}</Badge>
+              ) : isPlus ? (
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Plus</Badge>
+              ) : null}
             </TabsTrigger>
           </TabsList>
 

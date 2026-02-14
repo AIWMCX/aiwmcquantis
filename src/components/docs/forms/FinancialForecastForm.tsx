@@ -508,22 +508,6 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
         </CardContent>
       </Card>
 
-      {/* Submit */}
-      <div className="flex items-center justify-end gap-4 pt-4">
-        <Button type="submit" size="lg" disabled={isGenerating} className="gap-2">
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-4 h-4" aria-hidden="true" />
-              Generate Forecast
-            </>
-          )}
-        </Button>
-      </div>
     </form>
   );
 }

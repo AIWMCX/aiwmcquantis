@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -123,6 +123,13 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     name: 'line_items',
   });
 
+  // Invoice customization state
+  const today = new Date().toISOString().split('T')[0];
+  const defaultDueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const [invoiceNumber, setInvoiceNumber] = useState('INV-000001');
+  const [invoiceDate, setInvoiceDate] = useState(today);
+  const [dueDate, setDueDate] = useState(defaultDueDate);
+
   // Watch form values for preview and calculations
   const formValues = form.watch();
   
@@ -153,8 +160,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       const safeValues = escapeFormValues(formValues);
       const safeLineItems = (safeValues.line_items || []) as typeof formValues.line_items;
       
-      const invoiceDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-      const dueDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const formattedInvoiceDate = invoiceDate 
+        ? new Date(invoiceDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
+      const formattedDueDate = dueDate 
+        ? new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+        : '';
       
       const rawHTML = `
         <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
@@ -162,9 +173,9 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
             <div>
               <h1 style="font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 8px 0;">INVOICE</h1>
-              <p style="color: #6b7280; margin: 4px 0;">Invoice #: INV-000001</p>
-              <p style="color: #6b7280; margin: 4px 0;">Date: ${invoiceDate}</p>
-              <p style="color: #6b7280; margin: 4px 0;">Due: ${dueDate}</p>
+              <p style="color: #6b7280; margin: 4px 0;">Invoice #: ${invoiceNumber}</p>
+              <p style="color: #6b7280; margin: 4px 0;">Date: ${formattedInvoiceDate}</p>
+              <p style="color: #6b7280; margin: 4px 0;">Due: ${formattedDueDate}</p>
             </div>
             <div style="text-align: right;">
               <p style="font-weight: 600; font-size: 18px; margin: 0;">${safeValues.company_name || ''}</p>
@@ -249,7 +260,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         clearTimeout(previewTimeoutRef.current);
       }
     };
-  }, [formValues, calculations, onPreviewUpdate]);
+  }, [formValues, calculations, onPreviewUpdate, invoiceNumber, invoiceDate, dueDate]);
 
   const onSubmit = (data: InvoiceFormData) => {
     clearDraft(); // Clear draft on successful submit
@@ -507,22 +518,43 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         </CardContent>
       </Card>
 
-      {/* Submit Button */}
-      <div className="flex justify-end gap-4">
-        <Button type="submit" size="lg" disabled={isGenerating} className="min-w-[200px]">
-          {isGenerating ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Generating...
-            </>
-          ) : (
-            <>
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Generate Invoice
-            </>
-          )}
-        </Button>
-      </div>
+      {/* Invoice Number & Date Customization */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Invoice Details</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <Label>Invoice Number</Label>
+              <Input
+                value={invoiceNumber}
+                onChange={(e) => setInvoiceNumber(e.target.value)}
+                className="mt-1"
+                placeholder="INV-000001"
+              />
+            </div>
+            <div>
+              <Label>Invoice Date</Label>
+              <Input
+                type="date"
+                value={invoiceDate}
+                onChange={(e) => setInvoiceDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Due Date</Label>
+              <Input
+                type="date"
+                value={dueDate}
+                onChange={(e) => setDueDate(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     </form>
   );
 }
