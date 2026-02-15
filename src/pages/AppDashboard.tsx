@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, History, BarChart3, FileText, TrendingUp, Target, Zap, Download, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { Sparkles, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function Index() {
@@ -125,38 +125,6 @@ export default function Index() {
 
   // Dark mode is now managed by next-themes globally
 
-  const features = [
-    {
-      icon: BarChart3,
-      title: 'Financial Analysis',
-      description: 'Investment, revenue, expenses and payback period calculation',
-    },
-    {
-      icon: FileText,
-      title: 'Business Plan',
-      description: 'Step-by-step launch plan with specific actions',
-    },
-    {
-      icon: TrendingUp,
-      title: 'Marketing Strategy',
-      description: 'Customer acquisition channels and CAC/LTV calculation',
-    },
-    {
-      icon: Target,
-      title: 'Market Analysis',
-      description: 'Competition, trends and opportunities assessment',
-    },
-    {
-      icon: Download,
-      title: 'PDF Export',
-      description: 'Save results for investor presentations',
-    },
-    {
-      icon: Zap,
-      title: 'Real Data',
-      description: 'Current market data by location',
-    },
-  ];
 
   // Subscription status bar skeleton
   const SubscriptionSkeleton = () => (
@@ -454,26 +422,6 @@ export default function Index() {
           </div>
         </div>
 
-        {/* Features Section */}
-        <div className="border-t border-border pt-16">
-          <h2 className="text-2xl font-bold text-center text-foreground mb-12">
-            What You Get
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {features.map((feature) => (
-              <div
-                key={feature.title}
-                className="p-6 rounded-xl border border-border bg-card hover:bg-accent/50 hover:border-primary/30 transition-all"
-              >
-                <div className="p-3 rounded-lg bg-primary/10 w-fit mb-4">
-                  <feature.icon className="w-6 h-6 text-primary" />
-                </div>
-                <h3 className="font-semibold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
           </>
         )}
       </main>
