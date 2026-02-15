@@ -1,6 +1,8 @@
 import React, { useRef, useMemo, useState } from 'react';
 import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
+import { useAuth } from '@/hooks/useAuth';
+import { SignupPrompt } from './SignupPrompt';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
@@ -29,6 +31,7 @@ interface AnalysisResultsProps {
 }
 
 export function AnalysisResults({ result, analysisId, onReset }: AnalysisResultsProps) {
+  const { isAuthenticated } = useAuth();
   const contentRef = useRef<HTMLDivElement>(null);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
@@ -478,8 +481,13 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         </TabsContent>
       </Tabs>
 
-      {/* Recommended Next Step — Retention CTA */}
-      {analysisId && (
+      {/* Signup Prompt for anonymous users */}
+      {!isAuthenticated && (
+        <SignupPrompt ideaScore={ideaScore} />
+      )}
+
+      {/* Recommended Next Step — Retention CTA (authenticated only) */}
+      {isAuthenticated && analysisId && (
         <div className="section-card bg-primary/5 border-primary/20">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div className="flex items-start gap-3">

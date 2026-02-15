@@ -63,9 +63,12 @@ export function MobileHero() {
             <span className="text-primary block mt-1">Before You Build It</span>
           </h1>
 
-          {/* Short subheadline - single line on mobile */}
-          <p className="text-base sm:text-lg text-muted-foreground mb-4 md:mb-6">
+          {/* Concrete value example */}
+          <p className="text-base sm:text-lg text-muted-foreground mb-2 md:mb-3">
             Revenue projections, risk flags & action plan — in 3 minutes.
+          </p>
+          <p className="text-sm text-muted-foreground/80 mb-4 md:mb-6 italic">
+            "Coffee shop in Denver → <span className="text-foreground font-semibold not-italic">$4,200/mo profit</span>, <span className="text-foreground font-semibold not-italic">7.1 mo payback</span>, <span className="text-foreground font-semibold not-italic">168% ROI</span>"
           </p>
 
           {/* FORM FIRST on mobile - above badges */}
