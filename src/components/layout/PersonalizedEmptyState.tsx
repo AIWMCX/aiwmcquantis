@@ -1,12 +1,10 @@
 import React from 'react';
 import { 
-  Sparkles, 
   ArrowRight, 
   TrendingUp, 
-  Users, 
   Clock,
-  Lightbulb,
-  Zap
+  Zap,
+  CheckCircle2
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -58,47 +56,24 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
   // Rate Limited State
   if (isRateLimited) {
     return (
-      <div className={cn('section-card flex flex-col items-center justify-center min-h-[400px] text-center', className)}>
-        <div className="p-4 rounded-2xl bg-warning/10 mb-6">
-          <Clock className="w-12 h-12 text-warning" />
-        </div>
+      <div className={cn('rounded-xl border border-border bg-card p-8 md:p-12 flex flex-col items-center justify-center min-h-[360px] text-center', className)}>
+        <Clock className="w-10 h-10 text-muted-foreground mb-4" />
         
         <h3 className="text-xl font-semibold text-foreground mb-2">
-          You've used your free analyses today
+          Free analyses used
         </h3>
         
-        <p className="text-muted-foreground max-w-md mb-6">
-          Upgrade to Plus for unlimited analyses and unlock powerful features 
-          like AI Document Intelligence and bank-ready PDF exports.
+        <p className="text-muted-foreground max-w-sm mb-6 text-sm leading-relaxed">
+          Upgrade to Plus for unlimited analyses, AI Document Intelligence, and bank-ready PDF exports.
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-3">
-          <Button onClick={handleUpgrade} className="gap-2">
-            <Zap className="w-4 h-4" />
-            Upgrade to Plus
-          </Button>
-          <p className="text-xs text-muted-foreground">
-            14-day free trial • No credit card required
-          </p>
-        </div>
-
-        {/* Value comparison */}
-        <div className="mt-8 p-4 rounded-lg bg-muted/50 border border-border max-w-sm">
-          <p className="text-sm font-medium text-foreground mb-2">
-            What you're missing:
-          </p>
-          <ul className="space-y-1 text-sm text-muted-foreground text-left">
-            <li className="flex items-center gap-2">
-              <span className="text-success">✓</span> Unlimited business analyses
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-success">✓</span> AI Document Intelligence
-            </li>
-            <li className="flex items-center gap-2">
-              <span className="text-success">✓</span> Bank-ready PDF exports
-            </li>
-          </ul>
-        </div>
+        <Button onClick={handleUpgrade} className="gap-2">
+          <Zap className="w-4 h-4" />
+          Upgrade to Plus
+        </Button>
+        <p className="text-xs text-muted-foreground mt-3">
+          14-day free trial included
+        </p>
       </div>
     );
   }
@@ -106,44 +81,45 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
   // New User State (0 analyses)
   if (analysisCount === 0) {
     return (
-      <div className={cn('section-card flex flex-col items-center justify-center min-h-[400px] text-center', className)}>
-        <div className="p-4 rounded-2xl bg-primary/10 mb-6 animate-pulse">
-          <Sparkles className="w-12 h-12 text-primary" />
-        </div>
-        
-        <h3 className="text-2xl font-bold text-foreground mb-2">
-          Your First Analysis is Free
-        </h3>
-        
-        <p className="text-muted-foreground max-w-md mb-8">
-          Enter your business idea and get instant financial projections, 
-          market analysis, and a complete business plan in under 2 minutes.
+      <div className={cn('rounded-xl border border-border bg-card p-8 md:p-12 flex flex-col items-center justify-center min-h-[360px] text-center', className)}>
+        <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-4">
+          No analyses yet
         </p>
 
-        <div className="flex flex-col sm:flex-row items-center gap-4">
+        <h3 className="text-2xl font-bold text-foreground mb-3">
+          Run your first analysis
+        </h3>
+        
+        <p className="text-muted-foreground max-w-md mb-8 text-sm leading-relaxed">
+          Enter a business idea and location. Get financial projections, risk assessment, and a business plan in under 2 minutes.
+        </p>
+
+        <div className="flex flex-col sm:flex-row items-center gap-3">
           <Button size="lg" onClick={handleStartAnalysis} className="gap-2 min-w-[200px]">
-            <Lightbulb className="w-5 h-5" />
-            Enter My Business Idea
+            Start Analysis
             <ArrowRight className="w-4 h-4" />
           </Button>
           
           {onTrySample && (
-            <Button variant="outline" size="lg" onClick={handleTrySample} className="gap-2">
-              Try a Sample Analysis
+            <Button variant="outline" size="lg" onClick={handleTrySample}>
+              Try a sample
             </Button>
           )}
         </div>
 
-        {/* Social proof */}
-        <div className="mt-10 flex items-center gap-6 text-sm text-muted-foreground">
-          <div className="flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary" />
-            <span>Join <strong className="text-foreground">12,500+</strong> entrepreneurs</span>
-          </div>
-          <div className="hidden sm:flex items-center gap-2">
-            <TrendingUp className="w-4 h-4 text-success" />
-            <span><strong className="text-foreground">50+</strong> cities supported</span>
-          </div>
+        <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+            3 free analyses
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+            50+ cities
+          </span>
+          <span className="flex items-center gap-1.5">
+            <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
+            No credit card
+          </span>
         </div>
       </div>
     );
@@ -151,40 +127,37 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
 
   // Returning User State (has analyses)
   return (
-    <div className={cn('section-card flex flex-col items-center justify-center min-h-[400px] text-center', className)}>
-      <div className="p-4 rounded-2xl bg-primary/10 mb-6">
-        <TrendingUp className="w-12 h-12 text-primary" />
-      </div>
-      
+    <div className={cn('rounded-xl border border-border bg-card p-8 md:p-12 flex flex-col items-center justify-center min-h-[360px] text-center', className)}>
+      <p className="text-xs font-medium tracking-widest uppercase text-muted-foreground mb-4">
+        Ready to go
+      </p>
+
       <h3 className="text-xl font-semibold text-foreground mb-2">
-        Ready for Another Analysis?
+        Start a new analysis
       </h3>
       
       {lastAnalysis && (
         <p className="text-sm text-muted-foreground mb-4">
-          Last analysis: <span className="font-medium text-foreground">{truncate(lastAnalysis.idea, 40)}</span>
+          Last: <span className="font-medium text-foreground">{truncate(lastAnalysis.idea, 40)}</span>
         </p>
       )}
 
-      {/* Progress tracker */}
       {remainingAnalyses !== undefined && (
-        <div className="mb-6 p-3 rounded-lg bg-muted/50 border border-border">
+        <div className="mb-6 px-4 py-2 rounded-md bg-muted/50 border border-border">
           <p className="text-sm text-muted-foreground">
-            <span className="font-bold text-foreground">{analysisCount}</span> analyses completed 
+            <span className="font-semibold text-foreground">{analysisCount}</span> completed
             {remainingAnalyses > 0 && (
-              <> • <span className="font-bold text-primary">{remainingAnalyses}</span> remaining this month</>
+              <span className="text-muted-foreground"> · <span className="font-semibold text-primary">{remainingAnalyses}</span> remaining</span>
             )}
           </p>
         </div>
       )}
 
-      <div className="flex flex-col sm:flex-row items-center gap-3">
-        <Button size="lg" onClick={handleStartAnalysis} className="gap-2">
-          <Sparkles className="w-5 h-5" />
-          Start New Analysis
-          <ArrowRight className="w-4 h-4" />
-        </Button>
-      </div>
+      <Button size="lg" onClick={handleStartAnalysis} className="gap-2">
+        <TrendingUp className="w-4 h-4" />
+        New Analysis
+        <ArrowRight className="w-4 h-4" />
+      </Button>
     </div>
   );
 });
