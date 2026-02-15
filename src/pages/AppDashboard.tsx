@@ -367,32 +367,34 @@ export default function Index() {
                 isAuthenticated={isAuthenticated}
               />
               
-              {/* Quick History Access */}
-              <button
-                onClick={() => setActiveTab('history')}
-                className="w-full p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground min-h-[48px]"
-              >
-                <History className="w-4 h-4" />
-                Analysis History
-              </button>
+              {/* Quick History Access — only for authenticated users */}
+              {isAuthenticated && (
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className="w-full p-3 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-sm font-medium text-muted-foreground hover:text-foreground min-h-[48px]"
+                >
+                  <History className="w-4 h-4" />
+                  Analysis History
+                </button>
+              )}
             </div>
           </div>
 
           {/* Results Column - Appears first on mobile */}
           <div className="lg:col-span-2 order-1 lg:order-2">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
-              <TabsList className="mb-4 lg:mb-6 grid w-full grid-cols-2">
-                <TabsTrigger value="analyze" className="gap-2 min-h-[44px]">
-                  <Sparkles className="w-4 h-4" />
-                  <span className="hidden sm:inline">Results</span>
-                   <span className="sm:hidden">Results</span>
-                </TabsTrigger>
-                <TabsTrigger value="history" className="gap-2 min-h-[44px]">
-                  <History className="w-4 h-4" />
-                  <span className="hidden sm:inline">History</span>
-                  <span className="sm:hidden">History</span>
-                </TabsTrigger>
-              </TabsList>
+              {isAuthenticated && (
+                <TabsList className="mb-4 lg:mb-6 grid w-full grid-cols-2">
+                  <TabsTrigger value="analyze" className="gap-2 min-h-[44px]">
+                    <Sparkles className="w-4 h-4" />
+                    Results
+                  </TabsTrigger>
+                  <TabsTrigger value="history" className="gap-2 min-h-[44px]">
+                    <History className="w-4 h-4" />
+                    History
+                  </TabsTrigger>
+                </TabsList>
+              )}
 
               <TabsContent value="analyze">
                 {result ? (

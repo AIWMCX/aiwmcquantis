@@ -81,11 +81,7 @@ const App = () => {
                 <Route path="/share/:token" element={<SharedReport />} />
                 
                 {/* Protected routes - require authentication */}
-                <Route path="/app" element={
-                  <ProtectedRoute>
-                    <AppDashboard />
-                  </ProtectedRoute>
-                } />
+                <Route path="/app" element={<AppDashboard />} />
                 <Route path="/plus-settings" element={
                   <ProtectedRoute>
                     <PlusSettings />
