@@ -76,7 +76,7 @@ export default function ThankYou() {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Export PDF Reports</p>
-                  <p className="text-sm text-muted-foreground">Investor-ready documents in one click</p>
+                  <p className="text-sm text-muted-foreground">Professional documents in one click</p>
                 </div>
               </div>
             </div>

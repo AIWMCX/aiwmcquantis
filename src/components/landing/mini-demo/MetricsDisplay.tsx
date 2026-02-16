@@ -1,5 +1,5 @@
 import React from 'react';
-import { TrendingUp, Clock, Percent, PieChart, Sparkles } from 'lucide-react';
+import { TrendingUp, Clock, Percent, PieChart, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { CalculatedMetrics, Verdict, VerdictInfo } from './types';
 import { formatCurrency, formatPercent, formatPayback, getVerdict, getVerdictInfo } from './calculations';
@@ -18,7 +18,7 @@ export function MetricsDisplay({ metrics, industryDetected }: MetricsDisplayProp
     <div className="space-y-4">
       {/* Verdict Badge */}
       <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full", verdictInfo.bg)}>
-        <Sparkles className={cn("w-4 h-4", verdictInfo.color)} />
+        <Zap className={cn("w-4 h-4", verdictInfo.color)} />
         <span className={cn("text-sm font-semibold", verdictInfo.color)}>
           {verdictInfo.label}
         </span>

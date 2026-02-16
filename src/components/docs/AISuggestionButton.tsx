@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, Loader2, RefreshCw, Check, X, Wand2 } from 'lucide-react';
+import { Zap, Loader2, RefreshCw, Check, X, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -124,7 +124,7 @@ export function AISuggestionButton({
             className
           )}
         >
-          <Sparkles className="w-3 h-3" />
+          <Zap className="w-3 h-3" />
           Generate with AI
         </Button>
       </PopoverTrigger>
@@ -215,7 +215,7 @@ export function AISuggestionButton({
             </div>
           ) : (
             <div className="flex flex-col items-center justify-center py-8 text-muted-foreground">
-              <Sparkles className="w-6 h-6 mb-2 opacity-50" />
+              <Zap className="w-6 h-6 mb-2 opacity-50" />
               <p className="text-sm">Click refresh to generate suggestions</p>
             </div>
           )}

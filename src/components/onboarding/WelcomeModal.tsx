@@ -7,7 +7,7 @@
    DialogTitle,
  } from '@/components/ui/dialog';
  import { Button } from '@/components/ui/button';
- import { Sparkles, BarChart3, FileText, Zap, ArrowRight } from 'lucide-react';
+ import { BarChart3, FileText, Zap, ArrowRight } from 'lucide-react';
  
  interface WelcomeModalProps {
    open: boolean;
@@ -43,7 +43,7 @@
        <DialogContent className="sm:max-w-md">
          <DialogHeader className="text-center">
            <div className="mx-auto w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center mb-4">
-             <Sparkles className="w-6 h-6 text-primary" />
+             <Zap className="w-6 h-6 text-primary" />
            </div>
            <DialogTitle className="text-2xl font-bold">
              Welcome to Quantis!

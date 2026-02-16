@@ -11,7 +11,7 @@ import {
   FileText,
   Lock,
   X,
-  Sparkles,
+  Zap,
   Crown
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,6 +67,7 @@ export function MobileNav({ children }: MobileNavProps) {
   const navItems = [
     { path: '/', label: 'Home', icon: Home, show: true },
     { path: '/app', label: 'Dashboard', icon: LayoutDashboard, show: isAuthenticated },
+    { path: '/docs', label: 'Docs Studio', icon: FileText, show: isAuthenticated },
     { path: '/plus-settings', label: 'Plus Settings', icon: Settings, show: isAuthenticated },
     { path: '/admin', label: 'Admin Panel', icon: Shield, show: isAuthenticated && isAdmin },
     { path: '/terms', label: 'Terms of Service', icon: FileText, show: true },
@@ -104,7 +105,7 @@ export function MobileNav({ children }: MobileNavProps) {
             onClick={handleNewAnalysis}
             className="w-full gap-2 h-12 mb-4 font-semibold"
           >
-            <Sparkles className="w-5 h-5" />
+            <Zap className="w-5 h-5" />
             New Analysis
           </Button>
 

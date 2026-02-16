@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Sparkles, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Zap, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
@@ -105,7 +105,7 @@ export function MobileHero() {
                 size="lg" 
                 className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
               >
-                <Sparkles className="w-5 h-5" />
+                <Zap className="w-5 h-5" />
                 See My Numbers — Free
                 <ArrowRight className="w-4 h-4" />
               </Button>

@@ -7,7 +7,7 @@ const LOCKED_FEATURES = [
   { icon: AlertTriangle, title: 'Risk Analysis', desc: 'Threats with mitigations' },
   { icon: Target, title: '5-7 Recommendations', desc: 'Actionable next steps' },
   { icon: Calculator, title: 'Unit Economics', desc: 'CAC, LTV, margins' },
-  { icon: FileText, title: 'PDF Export', desc: 'Investor-ready reports' },
+  { icon: FileText, title: 'PDF Export', desc: 'Professional reports' },
   { icon: Database, title: 'Industry Benchmarks', desc: 'Compare vs 10K+ businesses' },
   { icon: History, title: 'Unlimited History', desc: 'Save all your analyses' },
   { icon: ShieldCheck, title: 'Calculation Audit', desc: 'See how numbers are derived' },

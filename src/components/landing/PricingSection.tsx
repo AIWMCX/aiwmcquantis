@@ -27,7 +27,8 @@ const PRICING = {
 const FREE_FEATURES = [
   { text: '3 analyses per month', highlight: false },
   { text: 'Basic financial projections', highlight: false },
-  { text: 'Business plan outline', highlight: false },
+  { text: '3 document templates', highlight: false },
+  { text: '5 downloads per day', highlight: false },
   { text: 'Email support', highlight: false },
 ];
 
@@ -35,7 +36,9 @@ const PLUS_FEATURES = [
   { text: '14-day free trial', highlight: true, badge: 'Try Free' },
   { text: 'Unlimited analyses', highlight: true, subtext: 'Worth $2,000+ in consultant fees' },
   { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF/Excel' },
-  { text: 'Bank-ready PDF exports', highlight: false, subtext: 'Professional reports for investors' },
+  { text: 'Professional PDF exports', highlight: false },
+  { text: 'All document templates', highlight: false },
+  { text: 'Unlimited downloads', highlight: false },
   { text: 'Custom branding', highlight: false, subtext: 'White-label with your logo' },
   { text: 'Priority support', highlight: false },
 ];

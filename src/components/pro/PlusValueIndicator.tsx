@@ -9,7 +9,6 @@ import {
   Brain, 
   Database, 
   Target, 
-  Sparkles,
   CheckCircle2,
   BarChart3,
   LineChart,
@@ -55,7 +54,7 @@ const plusAdvantages = [
   {
     title: 'Document Intelligence™',
     description: 'Extract real numbers from your financial documents. Real data = real results.',
-    icon: <Sparkles className="w-5 h-5" />
+    icon: <Zap className="w-5 h-5" />
   }
 ];
 
@@ -274,7 +273,7 @@ export function PlusValueIndicator() {
                 
                 <div className="p-4 rounded-lg bg-card border border-border">
                   <div className="flex items-center gap-2 mb-1">
-                    <Sparkles className="w-4 h-4 text-primary" />
+                    <Zap className="w-4 h-4 text-primary" />
                     <span className="text-xs text-muted-foreground font-medium">Accuracy Boost</span>
                   </div>
                   <p className="text-2xl font-bold text-foreground">
@@ -360,7 +359,7 @@ export function PlusValueIndicator() {
       <Card>
         <CardHeader>
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Zap className="w-5 h-5 text-primary" />
             <CardTitle className="text-lg">Exclusive Plus Capabilities</CardTitle>
           </div>
           <CardDescription>
@@ -401,7 +400,7 @@ export function PlusValueIndicator() {
             </p>
             <p className="text-sm text-muted-foreground mt-1">
               Every dollar invested in accurate analysis saves $47 in failed ventures and missed opportunities. 
-              Plus delivers bank-ready projections that investors trust.
+              Plus delivers professional projections you can trust.
             </p>
           </div>
         </div>

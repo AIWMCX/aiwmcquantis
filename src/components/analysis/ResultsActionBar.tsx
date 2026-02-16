@@ -128,7 +128,7 @@ export const ResultsActionBar = React.memo(function ResultsActionBar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Download bank-ready PDF report</p>
+              <p>Download professional PDF report</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
