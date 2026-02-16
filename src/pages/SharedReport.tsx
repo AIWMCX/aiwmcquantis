@@ -135,7 +135,7 @@ export default function SharedReport() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-8 w-auto object-contain dark:invert" />
+              <img src={aiwmcLogoText} alt="AIWMC Quantis" width={109} height={32} className="h-8 w-auto object-contain dark:invert" />
             </Link>
             <div className="flex items-center gap-3">
               <Badge variant="secondary" className="gap-1">
@@ -265,7 +265,7 @@ export default function SharedReport() {
       <footer className="border-t border-border py-8 mt-12">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-8 w-auto object-contain dark:invert" />
+            <img src={aiwmcLogoText} alt="AIWMC Quantis" width={109} height={32} className="h-8 w-auto object-contain dark:invert" />
             <p className="text-sm text-muted-foreground">
               © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
             </p>

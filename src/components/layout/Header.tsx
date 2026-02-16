@@ -40,6 +40,8 @@ export function Header({ darkMode: _legacyDarkMode, onToggleTheme: _legacyToggle
           <img 
             src={aiwmcLogoText}
             alt="AIWMC Quantis"
+            width={136}
+            height={40}
             className="h-8 sm:h-10 w-auto object-contain dark:invert"
           />
         </Link>
