@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Sparkles, Loader2, DollarSign, TrendingUp, Receipt } from 'lucide-react';
+import { Brain, MapPin, ArrowRight, Loader2, DollarSign, TrendingUp, Receipt, Zap } from 'lucide-react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -158,7 +158,7 @@ export function MiniDemo() {
         {/* Header */}
         <div className="text-center mb-8">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/15 text-primary font-semibold text-sm mb-4">
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             Try It Free — No Signup Required
           </div>
           <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-2">
@@ -288,7 +288,7 @@ export function MiniDemo() {
                   </>
                 ) : (
                   <>
-                    <Sparkles className="w-5 h-5" />
+                    <ArrowRight className="w-5 h-5" />
                     See My Preview Numbers
                   </>
                 )}

@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, LogIn, Sparkles } from 'lucide-react';
+import { AlertCircle, LogIn, UserPlus } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -36,7 +36,7 @@ export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
             </Button>
             <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5">
               <Link to="/auth?mode=signup">
-                <Sparkles className="w-3.5 h-3.5" />
+                <UserPlus className="w-3.5 h-3.5" />
                 Create Account
               </Link>
             </Button>

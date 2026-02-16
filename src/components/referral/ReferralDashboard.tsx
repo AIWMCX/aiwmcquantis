@@ -15,7 +15,6 @@ import {
   Loader2,
   Share2,
   DollarSign,
-  Sparkles,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useReferral } from '@/hooks/useReferral';
@@ -133,7 +132,7 @@ export const ReferralDashboard = React.memo(function ReferralDashboard({
               </>
             ) : (
               <>
-                <Sparkles className="w-4 h-4" />
+                <Gift className="w-4 h-4" />
                 Get My Referral Link
               </>
             )}

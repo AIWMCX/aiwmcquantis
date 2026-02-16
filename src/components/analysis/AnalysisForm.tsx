@@ -1,5 +1,5 @@
 import React from 'react';
-import { Brain, MapPin, Send, Loader2, Sparkles, FileText } from 'lucide-react';
+import { Brain, MapPin, Send, Loader2, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -72,7 +72,7 @@ export function AnalysisForm({
       
       <div className="flex items-center gap-3 mb-2">
         <div className="p-2 rounded-lg bg-primary/10">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <Brain className="w-5 h-5 text-primary" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">Business Idea Analysis</h2>
       </div>

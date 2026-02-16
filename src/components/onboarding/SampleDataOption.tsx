@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import { Sparkles, Building2, Coffee, Laptop, ShoppingBag } from 'lucide-react';
+import { PenLine, Building2, Coffee, Laptop, ShoppingBag } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 
@@ -107,7 +107,7 @@ export const SampleDataOption = React.memo(function SampleDataOption({
         }}
         className="w-full gap-2"
       >
-        <Sparkles className="w-4 h-4" />
+        <PenLine className="w-4 h-4" />
         Start with my own idea
       </Button>
     </div>

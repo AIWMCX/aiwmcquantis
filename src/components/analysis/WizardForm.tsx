@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Send, Loader2, ChevronDown, FileText, Sparkles } from 'lucide-react';
+import { Brain, MapPin, Send, Loader2, ChevronDown, FileText } from 'lucide-react';
 import { QuickStartTemplates } from './QuickStartTemplates';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -212,7 +212,7 @@ export function WizardForm({
       {/* Header */}
       <div className="flex items-center gap-3">
         <div className="p-2 rounded-lg bg-primary/10">
-          <Sparkles className="w-5 h-5 text-primary" />
+          <Brain className="w-5 h-5 text-primary" />
         </div>
         <h2 className="text-xl font-semibold text-foreground">Analyze Your Idea</h2>
       </div>

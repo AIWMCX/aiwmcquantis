@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, Globe } from 'lucide-react';
+import { Zap, Globe } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 type Language = 'en' | 'ru';
@@ -52,7 +52,7 @@ export function UrgencyBanner() {
         {/* Main Content - Center */}
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center flex-1 mx-2">
           <span className="text-sm font-medium flex items-center gap-2">
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             <span className="hidden sm:inline">{content.desktop}</span>
             <span className="sm:hidden">{content.mobile}</span>
           </span>

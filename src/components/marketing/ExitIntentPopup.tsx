@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { X, Sparkles, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
+import { X, Brain, CheckCircle2, ArrowRight, Loader2 } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
@@ -155,7 +155,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
             <>
               {/* Icon */}
               <div className="w-14 h-14 bg-primary/10 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Sparkles className="h-7 w-7 text-primary" />
+                <Brain className="h-7 w-7 text-primary" />
               </div>
 
               {/* Headline */}

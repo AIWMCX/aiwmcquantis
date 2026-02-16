@@ -3,7 +3,7 @@ import {
   CheckCircle2, 
   Circle, 
   AlertTriangle,
-  Sparkles,
+  Lightbulb,
   Brain,
   MapPin,
   Building2,
@@ -308,7 +308,7 @@ export function InputQualityIndicator({
             {improvements.length > 0 && (
               <div className="p-3 rounded-lg bg-primary/5 border border-primary/10">
                 <div className="flex items-center gap-2 mb-2">
-                  <Sparkles className="w-4 h-4 text-primary" />
+                  <Lightbulb className="w-4 h-4 text-primary" />
                   <span className="text-sm font-medium text-foreground">Quick Improvements</span>
                 </div>
                 <ul className="space-y-1.5">

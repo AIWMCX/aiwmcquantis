@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
-import { Sparkles, Lock, Loader2, ArrowUp } from 'lucide-react';
+import { ArrowRight, Lock, Loader2, ArrowUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
@@ -176,7 +176,7 @@ export const StickyMobileCTA = React.memo(function StickyMobileCTA({
                 'animate-pulse-subtle'
               )}
             >
-              <Sparkles className="w-5 h-5" />
+              <ArrowRight className="w-5 h-5" />
               See My Numbers — Free
             </Button>
           </Link>
