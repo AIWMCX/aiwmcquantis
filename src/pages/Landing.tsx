@@ -63,7 +63,7 @@ export default function Landing() {
             </div>
             
             <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
-              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-8 sm:h-10 w-auto object-contain dark:invert" />
+              <img src={aiwmcLogoText} alt="AIWMC Quantis" width={136} height={40} className="h-8 sm:h-10 w-auto object-contain dark:invert" />
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <a href="#how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</a>
