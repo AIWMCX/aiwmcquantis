@@ -25,10 +25,27 @@ interface RevokeRequest {
   token: string;
 }
 
+// Simple in-memory rate limiter for share-report GET requests
+const shareAccessRateLimit = new Map<string, { count: number; resetAt: number }>();
+const SHARE_RATE_LIMIT = 60; // max requests per window
+const SHARE_RATE_WINDOW_MS = 60 * 60 * 1000; // 1 hour
+const MAX_VIEW_COUNT = 500; // max views per shared report
+
+function checkShareRateLimit(ipHash: string): boolean {
+  const now = Date.now();
+  const entry = shareAccessRateLimit.get(ipHash);
+  if (!entry || now > entry.resetAt) {
+    shareAccessRateLimit.set(ipHash, { count: 1, resetAt: now + SHARE_RATE_WINDOW_MS });
+    return true;
+  }
+  entry.count++;
+  return entry.count <= SHARE_RATE_LIMIT;
+}
+
 Deno.serve(async (req) => {
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
-    return new Response("ok", { headers: corsHeaders });
+    return new Response(null, { headers: corsHeaders, status: 204 });
   }
 
   try {
@@ -65,6 +82,23 @@ Deno.serve(async (req) => {
         return new Response(
           JSON.stringify({ error: "Invalid token format" }), 
           { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // IP-based rate limiting to prevent token enumeration
+      const clientIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim()
+        || req.headers.get("cf-connecting-ip")
+        || req.headers.get("x-real-ip")
+        || "unknown";
+      const encoder = new TextEncoder();
+      const ipHashBuffer = await crypto.subtle.digest("SHA-256", encoder.encode(clientIp + "share-salt"));
+      const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("").substring(0, 32);
+
+      if (!checkShareRateLimit(ipHash)) {
+        console.log("[share-report] Rate limit exceeded for IP hash:", ipHash.substring(0, 8));
+        return new Response(
+          JSON.stringify({ error: "Too many requests. Please try again later." }),
+          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "3600" } }
         );
       }
 
@@ -112,10 +146,20 @@ Deno.serve(async (req) => {
         );
       }
 
+      // Enforce max view count to prevent indefinite access
+      const currentViews = share.view_count || 0;
+      if (currentViews >= MAX_VIEW_COUNT) {
+        console.log("[share-report] Max view count reached for share:", share.id);
+        return new Response(
+          JSON.stringify({ error: "This shared report has reached its maximum view limit." }),
+          { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       // Increment view count (fire and forget)
       adminClient
         .from("shared_reports")
-        .update({ view_count: (share.view_count || 0) + 1 })
+        .update({ view_count: currentViews + 1 })
         .eq("id", share.id)
         .then(() => console.log("[share-report] View count incremented"))
         .catch((err) => console.error("[share-report] Failed to increment view count:", err));
@@ -128,7 +172,7 @@ Deno.serve(async (req) => {
             analysis: share.analyses,
             shared_at: share.created_at,
             expires_at: share.expires_at,
-            view_count: (share.view_count || 0) + 1,
+            view_count: currentViews + 1,
           }
         }), 
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
