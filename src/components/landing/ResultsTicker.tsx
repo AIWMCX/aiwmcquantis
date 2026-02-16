@@ -40,10 +40,10 @@ function TickerCard({ item, isNew }: { item: TickerItem; isNew: boolean }) {
       </div>
       <div className="min-w-0">
         <div className="flex items-center gap-2">
-          <span className={cn('text-lg font-bold', item.color)}>{item.value}</span>
-          <span className="text-xs text-muted-foreground">{item.label}</span>
+          <span className={cn('text-lg font-bold text-foreground')}>{item.value}</span>
+          <span className="text-xs text-foreground/60">{item.label}</span>
         </div>
-        <div className="flex items-center gap-1 text-xs text-muted-foreground">
+        <div className="flex items-center gap-1 text-xs text-foreground/60">
           <MapPin className="w-3 h-3" />
           <span>{item.business} • {item.location}</span>
         </div>

@@ -34,7 +34,7 @@ export function HowItWorksSection() {
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/[0.08] text-primary font-semibold text-sm mb-6">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/15 text-primary font-semibold text-sm mb-6">
             <Calculator className="w-4 h-4" />
             Real Math, Real Results
           </div>
