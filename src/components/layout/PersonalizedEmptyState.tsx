@@ -64,7 +64,7 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
         </h3>
         
         <p className="text-muted-foreground max-w-sm mb-6 text-sm leading-relaxed">
-          Upgrade to Plus for unlimited analyses, AI Document Intelligence, and bank-ready PDF exports.
+          Upgrade to Plus for unlimited analyses, AI Document Intelligence, and professional PDF exports.
         </p>
 
         <Button onClick={handleUpgrade} className="gap-2">

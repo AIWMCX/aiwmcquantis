@@ -121,11 +121,11 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
   projection_template: {
     offer: 'projection_template',
     headline: 'Financial Projection Template',
-    subheadline: 'Bank-ready financial model with pre-built formulas',
+    subheadline: 'Professional financial model with pre-built formulas',
     benefits: [
       'Pre-built formulas for revenue, costs, and margins',
       '5-year projection model',
-      'Investor-ready formatting',
+      'Professional formatting',
     ],
     ctaText: 'Download Template',
     successMessage: 'Your template is on its way!',

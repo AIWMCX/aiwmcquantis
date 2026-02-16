@@ -8,7 +8,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { ProgressIndicator } from './ProgressIndicator';
 import { SampleDataOption } from './SampleDataOption';
-import { Sparkles, ArrowRight, ArrowLeft, User, Target, Rocket } from 'lucide-react';
+import { Zap, ArrowRight, ArrowLeft, User, Target, Rocket } from 'lucide-react';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
@@ -90,7 +90,7 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
             <div className="grid gap-3 text-left">
               {[
                 { icon: Target, text: 'Financial projections based on real data' },
-                { icon: Sparkles, text: 'AI-powered recommendations' },
+                { icon: Zap, text: 'AI-powered recommendations' },
                 { icon: Rocket, text: 'Complete business plan outline' },
               ].map((item, index) => (
                 <div
@@ -153,7 +153,7 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
             <div className="space-y-3">
               <Button onClick={handleComplete} className="w-full gap-2" size="lg">
                 Start Analyzing
-                <Sparkles className="w-4 h-4" />
+                <Zap className="w-4 h-4" />
               </Button>
               
               <Button variant="ghost" onClick={handleBack} className="w-full gap-2">

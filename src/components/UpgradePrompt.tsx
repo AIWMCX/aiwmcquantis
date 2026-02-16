@@ -7,7 +7,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { CheckCircle2, Sparkles, Zap, Loader2 } from 'lucide-react';
+import { CheckCircle2, Zap, Loader2 } from 'lucide-react';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useAuth } from '@/hooks/useAuth';
 
@@ -43,7 +43,7 @@ export function UpgradePrompt({
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-xl">
-            <Sparkles className="w-5 h-5 text-primary" />
+            <Zap className="w-5 h-5 text-primary" />
             Upgrade to Continue
           </DialogTitle>
           <DialogDescription>
@@ -94,7 +94,7 @@ export function UpgradePrompt({
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />
-                Document intelligence & PDF export
+                All document templates & unlimited downloads
               </li>
               <li className="flex items-center gap-2">
                 <CheckCircle2 className="w-4 h-4 text-success" />

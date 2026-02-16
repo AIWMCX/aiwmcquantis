@@ -17,7 +17,6 @@ import {
   Zap, 
   ArrowLeft, 
   Lock,
-  Sparkles,
   TrendingUp
 } from 'lucide-react';
 
@@ -129,7 +128,7 @@ export default function PlusSettings() {
                   onClick={() => createCheckout('plus')}
                   className="gap-2"
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Zap className="w-4 h-4" />
                   Upgrade to Plus - $17/month
                 </Button>
                 <p className="text-sm text-muted-foreground">

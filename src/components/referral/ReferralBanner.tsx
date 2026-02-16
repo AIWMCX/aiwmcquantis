@@ -1,7 +1,7 @@
 import React from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Gift, X, ArrowRight, Sparkles } from 'lucide-react';
+import { Gift, X, ArrowRight, Zap } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
 import { useReferral } from '@/hooks/useReferral';
@@ -81,7 +81,7 @@ export const ReferralBanner = React.memo(function ReferralBanner({
           <div className="flex-1 space-y-1">
             <h3 className="font-semibold text-foreground flex items-center gap-2">
               Invite Friends, Earn Rewards
-              <Sparkles className="w-4 h-4 text-primary" />
+              <Zap className="w-4 h-4 text-primary" />
             </h3>
             <p className="text-sm text-muted-foreground">
               Share your referral link and get 20% off your next month for each friend who subscribes to Plus.

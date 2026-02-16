@@ -4,7 +4,7 @@ import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';
 
 /**
- * Free tier: 3 templates (invoice, quarterly-summary, nda-agreement), 1 download/day
+ * Free tier: 3 templates (invoice, quarterly-summary, nda-agreement), 5 downloads/day
  * Plus tier: all 10 templates, unlimited downloads
  */
 
@@ -14,7 +14,7 @@ const FREE_TEMPLATES = [
   'nda-agreement',
 ] as const;
 
-const FREE_DOWNLOAD_LIMIT = 1; // 1 download per day
+const FREE_DOWNLOAD_LIMIT = 5; // 5 downloads per day
 
 interface DownloadLimitInfo {
   canDownload: boolean;

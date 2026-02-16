@@ -147,7 +147,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'Can I export my business analysis?',
-      answer: 'Yes! Plus subscribers can export their complete analysis as professional, investor-ready PDF reports. You can also share your analysis with team members or advisors using secure share links.',
+      answer: 'Yes! Plus subscribers can export their complete analysis as professional PDF reports. You can also share your analysis with team members or advisors using secure share links.',
     },
     {
       question: 'What locations does AIWMC Quantis support?',
