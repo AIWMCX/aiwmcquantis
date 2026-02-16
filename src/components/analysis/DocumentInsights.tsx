@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, TrendingUp, CheckCircle2, Info, Sparkles } from 'lucide-react';
+import { FileText, TrendingUp, CheckCircle2, Info } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { 
@@ -31,7 +31,7 @@ export function DocumentInsights({ documents, summary }: DocumentInsightsProps) 
     <Card className="border-primary/20 bg-primary/5">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
-          <Sparkles className="h-5 w-5 text-primary" />
+          <FileText className="h-5 w-5 text-primary" />
           Document-Powered Analysis
           <Badge variant="secondary" className="ml-2 text-xs">
             +{summary.total_confidence_boost}% Confidence

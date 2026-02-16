@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { TrendingUp, Sparkles } from 'lucide-react';
+import { TrendingUp, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 const CACHE_KEY = 'live_counter_cache';
@@ -52,7 +52,7 @@ export function LiveCounter() {
   if (count === null || count < 100) {
     return (
       <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-        <Sparkles className="w-4 h-4 text-primary" />
+        <Zap className="w-4 h-4 text-primary" />
         <span className="text-sm font-medium text-primary">
           New — be one of the first to validate
         </span>

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Building2, Sparkles, ChevronDown, Check } from 'lucide-react';
+import { Building2, CheckCircle2, ChevronDown, Check } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -31,7 +31,7 @@ export function IndustrySelector({ value, onChange, disabled }: IndustrySelector
         </Label>
         {isManualSelection && (
           <Badge variant="secondary" className="text-xs gap-1 bg-primary/10 text-primary border-0">
-            <Sparkles className="w-3 h-3" />
+            <CheckCircle2 className="w-3 h-3" />
             +10% confidence
           </Badge>
         )}

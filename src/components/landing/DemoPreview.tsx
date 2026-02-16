@@ -9,7 +9,7 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
-  Sparkles
+  ArrowRight as ArrowRightIcon
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 
@@ -145,7 +145,7 @@ export function DemoPreview() {
               onClick={() => trackCtaClick('see_my_numbers', 'demo_preview')}
             >
               <Button size="lg" className="w-full md:w-auto gap-2 shadow-xl min-h-[56px] text-base hover:scale-[1.02] transition-all">
-                <Sparkles className="w-5 h-5" />
+                <TrendingUp className="w-5 h-5" />
                 See My Numbers — Free
                 <ArrowRight className="w-4 h-4" />
               </Button>

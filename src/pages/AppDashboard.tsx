@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Sparkles, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings } from 'lucide-react';
+import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function Index() {
@@ -331,7 +331,7 @@ export default function Index() {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6">
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
             AIWMC Quantis™ Analysis
           </div>
           <h1 className="text-4xl md:text-5xl font-bold text-foreground mb-4">
@@ -398,7 +398,7 @@ export default function Index() {
               {isAuthenticated && (
                 <TabsList className="mb-4 lg:mb-6 grid w-full grid-cols-2">
                   <TabsTrigger value="analyze" className="gap-2 min-h-[44px]">
-                    <Sparkles className="w-4 h-4" />
+                    <BarChart3 className="w-4 h-4" />
                     Results
                   </TabsTrigger>
                   <TabsTrigger value="history" className="gap-2 min-h-[44px]">
@@ -429,7 +429,7 @@ export default function Index() {
                       </>
                     ) : (
                       <>
-                        <Sparkles className="w-10 h-10 text-primary mb-4" />
+                        <Brain className="w-10 h-10 text-primary mb-4" />
                         <h3 className="text-xl font-semibold text-foreground mb-2">Ready to analyze</h3>
                         <p className="text-muted-foreground text-sm max-w-sm">
                           Your idea is pre-filled in the form. Hit <strong>Analyze</strong> to get your projections.

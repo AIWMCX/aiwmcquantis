@@ -1,5 +1,5 @@
 import React from 'react';
-import { Bell, Trophy, Sparkles, Lightbulb, Star, X, Check } from 'lucide-react';
+import { Bell, Trophy, Zap, Lightbulb, Star, X, Check } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -14,7 +14,7 @@ import type { NotificationType } from '@/lib/engagementTypes';
 
 const NOTIFICATION_ICONS: Record<NotificationType, React.ElementType> = {
   achievement: Trophy,
-  feature: Sparkles,
+  feature: Zap,
   tip: Lightbulb,
   system: Bell,
   milestone: Star,

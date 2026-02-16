@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { AlertCircle, LogIn, Sparkles, Clock } from 'lucide-react';
+import { AlertCircle, LogIn, UserPlus, Zap, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -62,7 +62,7 @@ export function RateLimitBanner({ message, isAuthenticated, onDismiss }: RateLim
                 </Button>
                 <Button asChild size="sm" variant="outline" className="h-7 text-xs gap-1.5">
                   <Link to="/auth?mode=signup">
-                    <Sparkles className="w-3.5 h-3.5" />
+                    <UserPlus className="w-3.5 h-3.5" />
                     Create Account
                   </Link>
                 </Button>
@@ -72,7 +72,7 @@ export function RateLimitBanner({ message, isAuthenticated, onDismiss }: RateLim
             {isAuthenticated && (
               <Button asChild size="sm" variant="default" className="h-7 text-xs gap-1.5">
                 <Link to="/#pricing">
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Zap className="w-3.5 h-3.5" />
                   Upgrade to Plus
                 </Link>
               </Button>

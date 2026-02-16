@@ -27,7 +27,6 @@ import {
   FileText, 
   Eye, 
   EyeOff,
-  Sparkles,
   FileSpreadsheet,
   BarChart3,
   Scale,
@@ -734,7 +733,7 @@ export default function DocsStudio() {
                         )}
                         {template.hasQuantisIntegration && (
                           <span className="doc-quantis-badge">
-                            <Sparkles className="w-3 h-3" />
+                            <Zap className="w-3 h-3" />
                             Auto-fill
                           </span>
                         )}

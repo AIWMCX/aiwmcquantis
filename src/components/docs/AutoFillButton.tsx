@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Sparkles, ChevronDown, Loader2, FileText, Calendar, DollarSign, TrendingUp } from 'lucide-react';
+import { Zap, ChevronDown, Loader2, FileText, Calendar, DollarSign, TrendingUp } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import {
@@ -55,7 +55,7 @@ export function AutoFillButton({ onAutoFill, disabled, className }: AutoFillButt
           {isLoading ? (
             <Loader2 className="w-4 h-4 animate-spin" />
           ) : (
-            <Sparkles className="w-4 h-4" />
+            <Zap className="w-4 h-4" />
           )}
           Auto-fill from Analysis
         </Button>
@@ -78,7 +78,7 @@ export function AutoFillButton({ onAutoFill, disabled, className }: AutoFillButt
         <DialogContent className="sm:max-w-lg">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-primary" />
+              <Zap className="w-5 h-5 text-primary" />
               Select Analysis to Auto-Fill
             </DialogTitle>
             <DialogDescription>

@@ -22,7 +22,6 @@ import {
   Activity,
   Clock,
   LogIn,
-  Sparkles
 } from 'lucide-react';
 import { useAdminMetrics } from '@/hooks/useAdminMetrics';
 import { 
@@ -124,7 +123,7 @@ export function AdminMetricsDashboard() {
             {/* New Signups Today */}
             <div>
               <h3 className="text-sm font-medium flex items-center gap-2 mb-3">
-                <Sparkles className="w-4 h-4 text-primary" />
+                <UserPlus className="w-4 h-4 text-primary" />
                 New Signups Today ({newSignupsToday.length})
               </h3>
               {newSignupsToday.length > 0 ? (

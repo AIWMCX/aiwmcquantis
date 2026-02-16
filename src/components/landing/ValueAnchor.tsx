@@ -1,5 +1,5 @@
 import React from 'react';
-import { Clock, DollarSign, FileText, Sparkles } from 'lucide-react';
+import { Clock, DollarSign, FileText, Zap } from 'lucide-react';
 
 interface ComparisonRow {
   approach: string;
@@ -30,7 +30,7 @@ const comparisons: ComparisonRow[] = [
     cost: '$0 – $17/mo',
     time: '< 2 minutes',
     output: 'Complete analysis + PDF',
-    icon: Sparkles,
+    icon: Zap,
     highlight: true,
   },
 ];

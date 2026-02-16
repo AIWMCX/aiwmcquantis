@@ -1,5 +1,5 @@
 import React from 'react';
-import { Sparkles, Shield, Zap, Calculator, TrendingUp, Target } from 'lucide-react';
+import { Brain, Shield, Zap, Calculator, TrendingUp, Target } from 'lucide-react';
 
 /**
  * ClientTestimonials - Replaced with verifiable feature highlights
@@ -92,7 +92,7 @@ export function ClientTestimonials() {
             </div>
             <div className="text-center">
               <div className="flex items-center justify-center gap-2">
-                <Sparkles className="w-5 h-5 text-primary" />
+                <Brain className="w-5 h-5 text-primary" />
                 <span className="text-sm font-medium text-foreground">AI-Powered</span>
               </div>
               <p className="text-xs text-muted-foreground mt-1">Claude 3.5 analysis</p>
