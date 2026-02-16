@@ -121,7 +121,7 @@ export default function Auth() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PageSEO
-        title="Sign In | AIWMC Quantis™"
+        title="Sign In | AIWMC Quantis"
         description="Sign in or create an account to access AI-powered business analysis with financial projections and market insights."
         canonical="/auth"
       />
@@ -139,7 +139,7 @@ export default function Auth() {
           <div className="p-2 rounded-lg bg-primary/10">
             <Brain className="w-8 h-8 text-primary" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></h1>
+          <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis</h1>
         </div>
 
         <Card className="w-full">

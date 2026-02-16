@@ -76,7 +76,7 @@ function MobileComparisonCard({ row }: { row: typeof comparisons[0] }) {
         <div className="flex items-start gap-2 p-2 rounded-lg bg-primary/5 border border-primary/10">
           <StatusIcon status={row.quantisStatus as 'good' | 'neutral' | 'poor'} />
           <div className="flex-1 min-w-0">
-            <span className="text-xs text-primary block mb-0.5">AIWMC Quantis™</span>
+            <span className="text-xs text-primary block mb-0.5">AIWMC Quantis</span>
             <span className="text-sm text-foreground font-medium">{row.quantis}</span>
           </div>
         </div>
@@ -102,7 +102,7 @@ export function ComparisonTable() {
             <tr className="border-b border-border">
               <th className="text-left py-4 px-4 font-semibold text-foreground">Aspect</th>
               <th className="text-left py-4 px-4 font-semibold text-muted-foreground">Generic AI Tools</th>
-              <th className="text-left py-4 px-4 font-semibold text-primary">AIWMC Quantis™</th>
+              <th className="text-left py-4 px-4 font-semibold text-primary">AIWMC Quantis</th>
             </tr>
           </thead>
           <tbody>

@@ -147,7 +147,7 @@ export default function PlusSettings() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <PageSEO
-        title="Plus Settings | AIWMC Quantis™"
+        title="Plus Settings | AIWMC Quantis"
         description="Manage your Plus subscription settings and custom branding."
         canonical="/plus-settings"
         noindex={true}

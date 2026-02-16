@@ -2,7 +2,7 @@
  * Unit Tests for Quantis Financial Engine
  * 
  * Tests the deterministic financial calculations that are the core
- * differentiator of AIWMC Quantis™ from "GPT wrappers".
+ * differentiator of AIWMC Quantis from "GPT wrappers".
  */
 
 import { describe, it, expect } from 'vitest';

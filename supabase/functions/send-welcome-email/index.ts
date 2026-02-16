@@ -51,13 +51,13 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Welcome to AIWMC Quantis™</title>
+  <title>Welcome to AIWMC Quantis</title>
 </head>
 <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #1f2937;">
   
   <!-- Preheader Text -->
   <div style="display: none; max-height: 0px; overflow: hidden;">
-    We're not perfect, but we're committed to getting better every day. Welcome to AIWMC Quantis™!
+    We're not perfect, but we're committed to getting better every day. Welcome to AIWMC Quantis!
   </div>
   
   <!-- Email Container -->
@@ -74,7 +74,7 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
               <table role="presentation" cellspacing="0" cellpadding="0" border="0">
                 <tr>
                   <td style="font-size: 28px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.5px;">
-                    AIWMC Quantis™
+                    AIWMC Quantis
                   </td>
                 </tr>
               </table>
@@ -88,7 +88,7 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
                 Welcome, ${firstName}! 👋
               </h1>
               <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
-                Thank you for your interest in AIWMC Quantis™. We're excited to help you analyze your business ideas!
+                Thank you for your interest in AIWMC Quantis. We're excited to help you analyze your business ideas!
               </p>
             </td>
           </tr>
@@ -201,14 +201,14 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
                   <td align="center" style="padding-bottom: 16px;">
                     <p style="margin: 0; font-size: 12px; color: #9ca3af;">
                       With gratitude,<br>
-                      <strong style="color: #6b7280;">The AIWMC Quantis™ Team</strong>
+                      <strong style="color: #6b7280;">The AIWMC Quantis Team</strong>
                     </p>
                   </td>
                 </tr>
                 <tr>
                   <td align="center">
                     <p style="margin: 0; font-size: 11px; color: #9ca3af;">
-                      © ${new Date().getFullYear()} AIWMC Quantis™. All Rights Reserved.
+                      © ${new Date().getFullYear()} AIWMC Quantis. All Rights Reserved.
                     </p>
                     <p style="margin: 8px 0 0 0; font-size: 11px; color: #9ca3af;">
                       <a href="https://aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms of Service</a>
@@ -270,7 +270,7 @@ const handler = async (req: Request): Promise<Response> => {
       from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
       to: [email],
       replyTo: "AIWMCSRM@gmail.com",
-      subject: "Welcome to AIWMC Quantis™ - Your Free Analysis Awaits!",
+      subject: "Welcome to AIWMC Quantis - Your Free Analysis Awaits!",
       html: generateWelcomeEmailHtml(name, email),
     });
 

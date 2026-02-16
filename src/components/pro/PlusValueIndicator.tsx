@@ -52,7 +52,7 @@ const plusAdvantages = [
     icon: <Brain className="w-5 h-5" />
   },
   {
-    title: 'Document Intelligence™',
+    title: 'Document Intelligence',
     description: 'Extract real numbers from your financial documents. Real data = real results.',
     icon: <Zap className="w-5 h-5" />
   }

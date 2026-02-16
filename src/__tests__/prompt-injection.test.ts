@@ -1,5 +1,5 @@
 /**
- * PROMPT INJECTION TEST SUITE - AIWMC Quantis™
+ * PROMPT INJECTION TEST SUITE - AIWMC Quantis
  * 
  * 20+ adversarial prompts to test AI safety guardrails.
  * These prompts attempt to:

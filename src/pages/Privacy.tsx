@@ -13,7 +13,7 @@ export default function Privacy() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Privacy Policy | AIWMC Quantis™"
+        title="Privacy Policy | AIWMC Quantis"
         description="Learn how AIWMC Quantis protects your data. Our privacy policy covers data collection, security measures, and your GDPR/CCPA rights."
         canonical="/privacy"
       />
@@ -36,7 +36,7 @@ export default function Privacy() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold text-foreground">1. Introduction</h2>
             <p className="text-muted-foreground leading-relaxed">
-              AIWMC Quantis™ ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. 
+              AIWMC Quantis ("we", "our", or "us") respects your privacy and is committed to protecting your personal data. 
               This privacy policy explains how we collect, use, store, and protect your information when you use our 
               AI-powered business analysis platform.
             </p>
@@ -176,7 +176,7 @@ export default function Privacy() {
 
         <div className="mt-12 pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground text-center">
-            © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
+            © {new Date().getFullYear()} AIWMC Quantis. All rights reserved.
           </p>
         </div>
       </div>

@@ -1,5 +1,5 @@
 /**
- * AI SAFETY GUARDRAILS - AIWMC Quantis™
+ * AI SAFETY GUARDRAILS - AIWMC Quantis
  * 
  * Multi-layer defense system for AI-generated content:
  * 1. Input filtering (pre-processing)

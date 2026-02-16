@@ -31,7 +31,7 @@ export default function AdminDashboard() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PageSEO
-        title="Admin Dashboard | AIWMC Quantis™"
+        title="Admin Dashboard | AIWMC Quantis"
         description="Admin dashboard for monitoring metrics and system health."
         canonical="/admin"
         noindex={true}

@@ -1,4 +1,4 @@
-# AI Safety Architecture - AIWMC Quantis™
+# AI Safety Architecture - AIWMC Quantis
 
 ## Overview
 

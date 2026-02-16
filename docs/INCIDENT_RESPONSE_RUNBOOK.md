@@ -1,8 +1,8 @@
-# AIWMC Quantis™ Incident Response Runbook
+# AIWMC Quantis Incident Response Runbook
 
 ## 📋 Overview
 
-This runbook provides step-by-step procedures for responding to incidents affecting the AIWMC Quantis™ platform.
+This runbook provides step-by-step procedures for responding to incidents affecting the AIWMC Quantis platform.
 
 ---
 

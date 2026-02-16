@@ -246,7 +246,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           <!-- Footer -->
           <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
             <p>Payment Terms: ${safeValues.payment_terms || 'Net 30'} | Please include invoice number in payment reference</p>
-            <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
+            <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
           </div>
         </div>
       `;

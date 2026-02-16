@@ -87,7 +87,7 @@ export function MobileNav({ children }: MobileNavProps) {
                 <Brain className="w-5 h-5 text-primary" />
               </div>
               <DrawerTitle className="text-left">
-                AIWMC Quantis<sup className="text-xs align-super">™</sup>
+                AIWMC Quantis
               </DrawerTitle>
             </div>
             <DrawerClose asChild>

@@ -190,7 +190,7 @@ async function sendEmailNotification(
       ` : ''}
       
       <div style="margin-top: 20px; padding-top: 20px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-        <p>AIWMC Quantis™ Alert System</p>
+        <p>AIWMC Quantis Alert System</p>
       </div>
     </div>
   `;
