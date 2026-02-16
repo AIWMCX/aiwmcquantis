@@ -7,6 +7,7 @@ import { EmptyState } from '@/components/layout/EmptyState';
 import { WizardForm } from '@/components/analysis/WizardForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
+import { AnalysisTemplatesGrid } from '@/components/analysis/AnalysisTemplatesGrid';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
@@ -438,7 +439,19 @@ export default function Index() {
                     )}
                   </div>
                 ) : (
-                  <EmptyState />
+                  <div className="space-y-6">
+                    <EmptyState />
+                    <AnalysisTemplatesGrid
+                      onSelect={(templateIdea, templateLocation) => {
+                        if (templateIdea) {
+                          setIdea(templateIdea);
+                          setLocation(templateLocation);
+                          formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      }}
+                      disabled={isLoading}
+                    />
+                  </div>
                 )}
               </TabsContent>
 

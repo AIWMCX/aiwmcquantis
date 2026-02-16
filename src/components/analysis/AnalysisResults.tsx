@@ -1,4 +1,4 @@
-import React, { useRef, useMemo, useState } from 'react';
+import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -16,6 +16,8 @@ import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { DocumentInsights } from './DocumentInsights';
 import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
+import { IndustryComparison } from './IndustryComparison';
+import { ShareSuccessModal } from './ShareSuccessModal';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
@@ -39,6 +41,19 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   
   // Scenario selector state
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
+  const [showShareModal, setShowShareModal] = useState(false);
+
+  // Auto-show share modal on first render (first analysis completion)
+  useEffect(() => {
+    const key = `quantis_shared_${result.metadata.generated_at}`;
+    if (!sessionStorage.getItem(key)) {
+      const timer = setTimeout(() => {
+        setShowShareModal(true);
+        sessionStorage.setItem(key, '1');
+      }, 1500);
+      return () => clearTimeout(timer);
+    }
+  }, [result.metadata.generated_at]);
 
   // === IDEA SCORE (1-10) ===
   const ideaScore = useMemo(() => {
@@ -455,6 +470,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         </div>
       </div>
 
+      {/* Industry Comparison */}
+      <IndustryComparison
+        metrics={{
+          revenue: scenarioMetrics.revenue,
+          margin: scenarioMetrics.margin,
+          ltvCacRatio: result.financial_analysis?.unit_economics?.ltv_cac_ratio || 0,
+        }}
+        industryName={result.metadata.industry_detected}
+      />
+
       {/* Tabs for different sections */}
       <Tabs defaultValue="financial" className="w-full">
         <TabsList className="w-full grid grid-cols-4 mb-4">
@@ -537,6 +562,18 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           Model: {result.metadata.model} • Version: {result.metadata.version}
         </p>
       </div>
+
+      {/* Share Success Modal */}
+      <ShareSuccessModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        ideaScore={ideaScore}
+        ideaName={result.metadata.idea}
+        shareUrl={shareUrl || undefined}
+        onExportPDF={handleExportPDF}
+        profit={scenarioMetrics.profit}
+        margin={scenarioMetrics.margin}
+      />
     </div>
   );
 }
