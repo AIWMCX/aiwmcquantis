@@ -20,7 +20,7 @@ export default function ThankYou() {
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-12">
       <PageSEO
-        title="Welcome! | AIWMC Quantis™"
+        title="Welcome! | AIWMC Quantis"
         description="Your account is ready. Start validating your business ideas."
         canonical="/thank-you"
         noindex={true}

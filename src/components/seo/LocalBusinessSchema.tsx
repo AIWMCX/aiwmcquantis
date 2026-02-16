@@ -121,7 +121,7 @@ export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
   return (
     <LocalBusinessSchema
       name="AIWMC AI Agency LLC"
-      description="AIWMC AI Agency is a Denver-based artificial intelligence consulting company specializing in AI-powered business intelligence tools, including AIWMC Quantis™ for instant business analysis and financial projections."
+      description="AIWMC AI Agency is a Denver-based artificial intelligence consulting company specializing in AI-powered business intelligence tools, including AIWMC Quantis for instant business analysis and financial projections."
       url="https://aiwmcquantis.com"
       logo="https://aiwmcquantis.com/icon-512.png"
       image="https://aiwmcquantis.com/og-image.png"

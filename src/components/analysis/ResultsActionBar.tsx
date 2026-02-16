@@ -54,8 +54,8 @@ export const ResultsActionBar = React.memo(function ResultsActionBar({
     : window.location.href;
 
   const shareText = businessIdea
-    ? `Check out my business analysis for "${businessIdea}" - created with AIWMC Quantis™`
-    : 'Check out my AI-powered business analysis - created with AIWMC Quantis™';
+    ? `Check out my business analysis for "${businessIdea}" - created with AIWMC Quantis`
+    : 'Check out my AI-powered business analysis - created with AIWMC Quantis';
 
   const handleCopyLink = useCallback(async () => {
     try {

@@ -13,7 +13,7 @@ export default function Terms() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Terms of Service | AIWMC Quantis™"
+        title="Terms of Service | AIWMC Quantis"
         description="Read the terms of service for AIWMC Quantis, including subscription plans, acceptable use, and liability limitations."
         canonical="/terms"
       />
@@ -36,7 +36,7 @@ export default function Terms() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold text-foreground">1. Acceptance of Terms</h2>
             <p className="text-muted-foreground leading-relaxed">
-              By accessing or using AIWMC Quantis™ ("the Service"), you agree to be bound by these Terms of Service. 
+              By accessing or using AIWMC Quantis ("the Service"), you agree to be bound by these Terms of Service. 
               If you do not agree to these terms, please do not use our Service.
             </p>
           </section>
@@ -44,7 +44,7 @@ export default function Terms() {
           <section className="space-y-4">
             <h2 className="text-2xl font-semibold text-foreground">2. Description of Service</h2>
             <p className="text-muted-foreground leading-relaxed">
-              AIWMC Quantis™ is an AI-powered business analysis platform that provides:
+              AIWMC Quantis is an AI-powered business analysis platform that provides:
             </p>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>Financial projections and modeling</li>
@@ -234,7 +234,7 @@ export default function Terms() {
 
         <div className="mt-12 pt-8 border-t border-border">
           <p className="text-sm text-muted-foreground text-center">
-            © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
+            © {new Date().getFullYear()} AIWMC Quantis. All rights reserved.
           </p>
         </div>
       </div>

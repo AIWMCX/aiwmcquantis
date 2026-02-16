@@ -1,5 +1,5 @@
 /**
- * QUANTIS™ 2.0 - BULLETPROOF VALIDATION ENGINE
+ * QUANTIS 2.0 - BULLETPROOF VALIDATION ENGINE
  * 
  * CRITICAL: This is the GATE that prevents garbage data from entering the system.
  * All inputs are validated, reconciled, and scored before analysis.

@@ -43,7 +43,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
         </p>
         <hr style="border: none; border-top: 1px solid #eee; margin: 30px 0;">
         <p style="color: #888; font-size: 12px;">
-          AIWMC Quantis™ - AI Business Intelligence Platform
+          AIWMC Quantis - AI Business Intelligence Platform
         </p>
       </div>
     `,

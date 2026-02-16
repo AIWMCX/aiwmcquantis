@@ -289,7 +289,7 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>` : ''}
         
         <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: center; color: #94A3B8; font-size: 11px;">
-          Generated with AIWMC Quantis™ | aiwmcquantis.com
+          Generated with AIWMC Quantis | aiwmcquantis.com
         </footer>
       </div>
     `;

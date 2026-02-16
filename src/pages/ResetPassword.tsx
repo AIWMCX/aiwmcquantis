@@ -190,7 +190,7 @@ export default function ResetPassword() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <PageSEO
-        title="Reset Password | AIWMC Quantis™"
+        title="Reset Password | AIWMC Quantis"
         description="Set a new password for your AIWMC Quantis account."
         canonical="/reset-password"
         noindex={true}
@@ -201,7 +201,7 @@ export default function ResetPassword() {
             <Brain className="w-8 h-8 text-primary" />
           </div>
           <h1 className="text-2xl font-bold text-foreground">
-            AIWMC Quantis<sup className="text-xs align-super">™</sup>
+            AIWMC Quantis
           </h1>
         </div>
 

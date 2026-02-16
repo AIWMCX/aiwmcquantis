@@ -67,7 +67,7 @@ export default function Blog() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Blog — AIWMC Quantis™ | Business Validation Insights"
+        title="Blog — AIWMC Quantis | Business Validation Insights"
         description="Practical guides on startup validation, financial structuring, and AI-powered business analysis for founders and consultants."
         canonical="/blog"
       />
@@ -77,7 +77,7 @@ export default function Blog() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
+              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis</span>
             </Link>
             <div className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>

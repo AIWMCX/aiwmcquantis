@@ -1,5 +1,5 @@
 /**
- * QUANTIS™ 2.0 - INTELLIGENT RECOMMENDATION ENGINE
+ * QUANTIS 2.0 - INTELLIGENT RECOMMENDATION ENGINE
  * 
  * Generates actionable, prioritized recommendations based on:
  * - Validation errors and warnings

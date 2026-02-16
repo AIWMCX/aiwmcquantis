@@ -193,7 +193,7 @@ export default function BlogArticle() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title={`${article.title} — AIWMC Quantis™`}
+        title={`${article.title} — AIWMC Quantis`}
         description={article.description}
         canonical={`/blog/${article.slug}`}
         ogType="article"
@@ -217,7 +217,7 @@ export default function BlogArticle() {
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis<sup className="text-xs align-super">™</sup></span>
+              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis</span>
             </Link>
             <Link to="/app">
               <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">

@@ -284,7 +284,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
         <!-- Footer -->
         <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
           <p>Financial Forecast - ${safeValues.company_name || 'Company'} © ${new Date().getFullYear()}</p>
-          <p style="margin-top: 8px; font-size: 10px;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis™</a></p>
+          <p style="margin-top: 8px; font-size: 10px;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
         </div>
       </div>
     `;

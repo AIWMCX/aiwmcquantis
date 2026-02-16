@@ -15,7 +15,7 @@ const AppFooter: React.FC = () => {
           support@aiwmcquantis.com
         </a>
       </div>
-      <p>© {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.</p>
+      <p>© {new Date().getFullYear()} AIWMC Quantis. All rights reserved.</p>
     </footer>
   );
 };

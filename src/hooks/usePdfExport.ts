@@ -28,7 +28,7 @@ export interface BrandingConfig {
 }
 
 const defaultBranding: BrandingConfig = {
-  companyName: 'AIWMC Quantis™',
+  companyName: 'AIWMC Quantis',
   primaryColor: '#3b82f6',
   accentColor: '#22c55e',
   hideQuantisBranding: false,
@@ -715,11 +715,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
   const limitations = result.limitations || [];
 
   // Branding text values
-  const brandName = branding.companyName || 'AIWMC Quantis™';
+  const brandName = branding.companyName || 'AIWMC Quantis';
   const brandSubtitle = branding.headerText || 'AI Business Intelligence Platform';
   const footerText = branding.footerText || `${brandName} - ${brandSubtitle}`;
   const showQuantisBranding = !branding.hideQuantisBranding;
-  const displayBrandName = showQuantisBranding ? brandName : brandName.replace('AIWMC Quantis™', brandName);
+  const displayBrandName = showQuantisBranding ? brandName : brandName.replace('AIWMC Quantis', brandName);
 
   // Dynamic branded styles
   const brandedLogoText = { ...styles.logoText, color: brandedColors.primary };
@@ -790,7 +790,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Executive Summary')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(
         View,
@@ -857,7 +857,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Financial Analysis')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Initial Investment Breakdown'),
       React.createElement(
@@ -940,7 +940,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Scenario Analysis')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       financial.scenarios && React.createElement(
         View,
@@ -1059,7 +1059,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Market Analysis')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Market Size Analysis'),
       React.createElement(
@@ -1148,7 +1148,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Risk Assessment')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Business Risk Matrix'),
       React.createElement(
@@ -1208,7 +1208,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Action Plan')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Launch Timeline'),
       launchSteps.length > 0
@@ -1278,7 +1278,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Appendix')
         ),
-        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis™' : brandName.substring(0, 15))
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Data Sources'),
       React.createElement(
@@ -1325,7 +1325,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         React.createElement(
           Text,
           { style: styles.disclaimerText },
-          `This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. ${showQuantisBranding ? 'AIWMC Quantis™ and its affiliates assume' : brandName + ' assumes'} no liability for decisions made based on this analysis.`
+          `This analysis is provided for informational purposes only and does not constitute financial, investment, legal, or tax advice. The projections contained herein are based on assumptions and AI-generated estimates that may not reflect actual market conditions. Past performance is not indicative of future results. Users should consult with qualified professionals before making any business decisions. ${showQuantisBranding ? 'AIWMC Quantis and its affiliates assume' : brandName + ' assumes'} no liability for decisions made based on this analysis.`
         )
       ),
       React.createElement(
@@ -1360,7 +1360,7 @@ async function fetchBrandingSettings(): Promise<BrandingConfig | null> {
     if (error || !data) return null;
 
     return {
-      companyName: data.company_name || 'AIWMC Quantis™',
+      companyName: data.company_name || 'AIWMC Quantis',
       logoUrl: data.logo_url || undefined,
       primaryColor: data.primary_color || '#3b82f6',
       accentColor: data.accent_color || '#22c55e',

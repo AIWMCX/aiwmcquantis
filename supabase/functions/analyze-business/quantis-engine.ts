@@ -1,5 +1,5 @@
 /**
- * QUANTIS™ 2.0 - MAIN ORCHESTRATOR ENGINE
+ * QUANTIS 2.0 - MAIN ORCHESTRATOR ENGINE
  * 
  * This is the primary entry point for the Quantis 2.0 analysis system.
  * It orchestrates:
@@ -524,7 +524,7 @@ function buildValidationSummary(
 
 export const QUANTIS_ENGINE_INFO = {
   version: '2.0.0',
-  name: 'Quantis™ Business Intelligence Engine',
+  name: 'Quantis Business Intelligence Engine',
   features: [
     'Bulletproof input validation',
     'Expense reconciliation',

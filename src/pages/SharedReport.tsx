@@ -267,7 +267,7 @@ export default function SharedReport() {
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <img src={aiwmcLogoText} alt="AIWMC Quantis" width={109} height={32} className="h-8 w-auto object-contain dark:invert" />
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} AIWMC Quantis™. All rights reserved.
+              © {new Date().getFullYear()} AIWMC Quantis. All rights reserved.
             </p>
           </div>
         </div>
