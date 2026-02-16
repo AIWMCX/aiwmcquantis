@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Zap, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { Zap, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2, DollarSign } from 'lucide-react';
 import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
 const VALUE_BADGES = [
-  { icon: CheckCircle2, text: 'Business model clarity' },
-  { icon: BarChart3, text: 'Financial logic structured' },
-  { icon: AlertTriangle, text: 'Risk red flags identified' },
+  { icon: BarChart3, text: 'Revenue projections' },
+  { icon: AlertTriangle, text: 'Risk flags identified' },
+  { icon: CheckCircle2, text: 'Action plan included' },
 ];
 
 export function MobileHero() {
@@ -57,15 +57,22 @@ export function MobileHero() {
             <LiveCounter />
           </div>
           
+          {/* Savings badge */}
+          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-sm font-semibold text-success mb-3 md:mb-4">
+            <DollarSign className="w-4 h-4" />
+            Save $2,000+ per analysis vs. consultants
+          </div>
+
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
-            Validate Your Business Idea
-            <span className="text-primary block mt-1">Before You Build It</span>
+            Get CFO-Level Business
+            <span className="text-primary block mt-1">Insights in 60 Seconds</span>
           </h1>
 
-          {/* Concrete value example */}
+          {/* Sub-headline */}
           <p className="text-base sm:text-lg text-muted-foreground mb-2 md:mb-3">
-            Revenue projections, risk flags & action plan — in 3 minutes.
+            Stop paying consultants $500/hour. Get unlimited financial analysis,
+            professional documents, and AI-powered insights for <span className="text-foreground font-semibold">$17/month</span>.
           </p>
           <p className="text-sm text-muted-foreground/80 mb-4 md:mb-6 italic">
             "Coffee shop in Denver → <span className="text-foreground font-semibold not-italic">$4,200/mo profit</span>, <span className="text-foreground font-semibold not-italic">7.1 mo payback</span>, <span className="text-foreground font-semibold not-italic">168% ROI</span>"
