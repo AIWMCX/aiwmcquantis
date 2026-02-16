@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Header } from '@/components/layout/Header';
@@ -33,6 +33,8 @@ export default function Index() {
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
+  const [hasPrefill, setHasPrefill] = useState(false);
+  const formRef = useRef<HTMLDivElement>(null);
 
   const { isAuthenticated, user } = useAuth();
   
@@ -125,7 +127,17 @@ export default function Index() {
 
   // Dark mode is now managed by next-themes globally
 
-
+  // Detect hero prefill and auto-scroll to form
+  useEffect(() => {
+    const prefill = localStorage.getItem('quantis_prefill') || sessionStorage.getItem('hero_prefill');
+    if (prefill) {
+      setHasPrefill(true);
+      // Scroll to form after a brief render delay
+      requestAnimationFrame(() => {
+        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
+    }
+  }, []);
   // Subscription status bar skeleton
   const SubscriptionSkeleton = () => (
     <div className="mb-6 p-4 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-4">
@@ -332,10 +344,10 @@ export default function Index() {
           </p>
         </div>
 
-        {/* Main Content - Mobile-first layout */}
+        {/* Main Content - Mobile-first: form ABOVE results */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 lg:gap-8 mb-16">
-          {/* Form Column - Appears second on mobile for results-first experience */}
-          <div className="lg:col-span-1 order-2 lg:order-1">
+          {/* Form Column - Appears FIRST on mobile so users see input, not dead-end */}
+          <div ref={formRef} className="lg:col-span-1 order-1 lg:order-1">
             <div className="lg:sticky lg:top-24 space-y-4">
               {/* Rate-limit banner when hit */}
               {rateLimitError && (
@@ -380,8 +392,8 @@ export default function Index() {
             </div>
           </div>
 
-          {/* Results Column - Appears first on mobile */}
-          <div className="lg:col-span-2 order-1 lg:order-2">
+          {/* Results Column - Appears AFTER form on mobile */}
+          <div className="lg:col-span-2 order-2 lg:order-2">
             <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
               {isAuthenticated && (
                 <TabsList className="mb-4 lg:mb-6 grid w-full grid-cols-2">
@@ -404,8 +416,27 @@ export default function Index() {
                     onReset={() => {
                       reset();
                       setCurrentAnalysisId(null);
+                      setHasPrefill(false);
                     }} 
                   />
+                ) : hasPrefill || isLoading ? (
+                  /* When user came from hero form or is analyzing, show a clean waiting state */
+                  <div className="rounded-xl border border-border bg-card p-8 md:p-12 flex flex-col items-center justify-center min-h-[280px] text-center">
+                    {isLoading ? (
+                      <>
+                        <p className="text-muted-foreground text-sm">Your analysis is being generated...</p>
+                        <p className="text-xs text-muted-foreground mt-2">Results will appear here automatically.</p>
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="w-10 h-10 text-primary mb-4" />
+                        <h3 className="text-xl font-semibold text-foreground mb-2">Ready to analyze</h3>
+                        <p className="text-muted-foreground text-sm max-w-sm">
+                          Your idea is pre-filled in the form. Hit <strong>Analyze</strong> to get your projections.
+                        </p>
+                      </>
+                    )}
+                  </div>
                 ) : (
                   <EmptyState />
                 )}

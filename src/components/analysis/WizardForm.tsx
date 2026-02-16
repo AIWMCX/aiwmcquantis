@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { Brain, MapPin, Send, Loader2, ChevronDown, FileText, Sparkles } from 'lucide-react';
+import { QuickStartTemplates } from './QuickStartTemplates';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -215,6 +216,17 @@ export function WizardForm({
         </div>
         <h2 className="text-xl font-semibold text-foreground">Analyze Your Idea</h2>
       </div>
+
+      {/* Quick-start templates — show when form is empty */}
+      {!idea.trim() && !location.trim() && !isLoading && (
+        <QuickStartTemplates
+          onSelect={(templateIdea, templateLocation) => {
+            onIdeaChange(templateIdea);
+            onLocationChange(templateLocation);
+          }}
+          disabled={isLoading}
+        />
+      )}
 
       {/* Business Idea */}
       <div className="space-y-2">
