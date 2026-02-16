@@ -5,6 +5,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { BeforeAfterComparison } from '@/components/landing/BeforeAfterComparison';
+import { ROICalculator } from '@/components/landing/ROICalculator';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { ResultsTicker } from '@/components/landing/ResultsTicker';
@@ -131,10 +132,13 @@ export default function Landing() {
               {/* 5. Results Ticker */}
               <ResultsTicker />
 
-              {/* 6. How It Works (condensed) */}
+              {/* 6. ROI Calculator */}
+              <ROICalculator />
+
+              {/* 7. How It Works (condensed) */}
               <HowItWorksSection />
 
-              {/* 7. Use Cases */}
+              {/* 8. Use Cases */}
               <Testimonials />
             </Suspense>
           ) : (
