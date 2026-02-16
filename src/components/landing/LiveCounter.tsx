@@ -27,7 +27,11 @@ export function LiveCounter() {
   });
 
   useEffect(() => {
-    const fetchCount = async () => {
+    // If we have a valid cached count, skip the network request entirely
+    if (count !== null) return;
+
+    // Defer the fetch so it doesn't extend the critical request chain
+    const timer = setTimeout(async () => {
       try {
         const { count: dbCount, error } = await supabase
           .from('analyses')
@@ -43,10 +47,10 @@ export function LiveCounter() {
       } catch (e) {
         console.error('Failed to fetch analysis count:', e);
       }
-    };
+    }, 2000); // Delay 2s to avoid blocking critical path
 
-    fetchCount();
-  }, []);
+    return () => clearTimeout(timer);
+  }, [count]);
 
   // If count is low or unknown, show "early adopter" messaging
   if (count === null || count < 100) {
