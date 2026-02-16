@@ -201,38 +201,8 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
         </div>
       )}
 
-      {/* Skeleton preview */}
-      <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border">
-        <p className="text-xs font-medium text-muted-foreground mb-3">Preview of your report:</p>
-        <div className="space-y-2">
-          <div
-            className={cn(
-              'h-4 rounded bg-muted animate-pulse',
-              overallProgress > 20 ? 'w-3/4' : 'w-1/2'
-            )}
-          />
-          <div
-            className={cn(
-              'h-3 rounded bg-muted animate-pulse',
-              overallProgress > 40 ? 'w-2/3' : 'w-1/3',
-              overallProgress > 40 ? 'opacity-100' : 'opacity-50'
-            )}
-          />
-          <div
-            className={cn(
-              'h-3 rounded bg-muted animate-pulse',
-              overallProgress > 60 ? 'w-1/2' : 'w-1/4',
-              overallProgress > 60 ? 'opacity-100' : 'opacity-30'
-            )}
-          />
-          <div
-            className={cn(
-              'h-3 rounded bg-muted animate-pulse w-2/5',
-              overallProgress > 80 ? 'opacity-100' : 'opacity-20'
-            )}
-          />
-        </div>
-      </div>
+      {/* Educational micro-content — rotating industry insights */}
+      <EducationalTip elapsedSeconds={elapsedSeconds} />
     </div>
   );
 });
@@ -244,4 +214,33 @@ function formatTime(seconds: number): string {
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   }
   return `${secs}s`;
+}
+
+const EDUCATIONAL_TIPS = [
+  { emoji: '☕', text: 'Coffee shops average 12-18% net margins in the US.' },
+  { emoji: '📊', text: 'A healthy LTV:CAC ratio is 3:1 or higher.' },
+  { emoji: '🏪', text: 'Location costs vary up to 4x between cities globally.' },
+  { emoji: '💡', text: '82% of startups fail due to cash flow problems, not bad ideas.' },
+  { emoji: '📈', text: 'SaaS companies typically need 18-24 months to reach profitability.' },
+  { emoji: '🎯', text: 'Customer acquisition cost drops 60% with referral programs.' },
+  { emoji: '🌍', text: 'We analyze costs across 50+ cities with real cost indices.' },
+  { emoji: '⏱️', text: 'Average payback period for small businesses is 6-18 months.' },
+  { emoji: '🤖', text: 'Our engine cross-checks your numbers against 1,000+ benchmarks.' },
+  { emoji: '💰', text: 'Businesses with a clear financial plan are 2.5x more likely to get funded.' },
+];
+
+function EducationalTip({ elapsedSeconds }: { elapsedSeconds: number }) {
+  // Rotate tips every 5 seconds
+  const tipIndex = Math.floor(elapsedSeconds / 5) % EDUCATIONAL_TIPS.length;
+  const tip = EDUCATIONAL_TIPS[tipIndex];
+
+  return (
+    <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border transition-all duration-500">
+      <p className="text-xs font-medium text-muted-foreground mb-1">Did you know?</p>
+      <p className="text-sm text-foreground animate-fade-in" key={tipIndex}>
+        <span className="mr-1.5">{tip.emoji}</span>
+        {tip.text}
+      </p>
+    </div>
+  );
 }
