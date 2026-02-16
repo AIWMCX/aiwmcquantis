@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
 import { MobileHero } from '@/components/landing/MobileHero';
+import { BeforeAfterComparison } from '@/components/landing/BeforeAfterComparison';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { ResultsTicker } from '@/components/landing/ResultsTicker';
@@ -114,6 +115,9 @@ export default function Landing() {
         <div ref={heroRef} id="mobile-hero" data-hero-form>
           <MobileHero />
         </div>
+
+        {/* Before/After Value Comparison */}
+        <BeforeAfterComparison />
 
         {/* 3. Trust Signals — immediately after hero */}
         <div ref={belowFoldSection.ref}>
