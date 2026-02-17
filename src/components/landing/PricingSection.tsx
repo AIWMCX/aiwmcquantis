@@ -33,13 +33,13 @@ const FREE_FEATURES = [
 ];
 
 const PLUS_FEATURES = [
-  { text: '14-day free trial', highlight: true, badge: 'Try Free' },
   { text: 'Unlimited analyses', highlight: true, subtext: 'Worth $2,000+ in consultant fees' },
-  { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF/Excel' },
+  { text: 'Advanced financial modeling', highlight: true, subtext: '12-variable projections with scenarios' },
+  { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },
   { text: 'Professional PDF exports', highlight: false },
   { text: 'All document templates', highlight: false },
   { text: 'Unlimited downloads', highlight: false },
-  { text: 'Custom branding', highlight: false, subtext: 'White-label with your logo' },
+  { text: 'Custom branding', highlight: false, subtext: 'White-label reports with your logo' },
   { text: 'Priority support', highlight: false },
 ];
 

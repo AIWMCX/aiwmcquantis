@@ -50,16 +50,9 @@ export const PricingCard = React.memo(function PricingCard({
           : 'border-border bg-card hover:border-primary/30 hover:shadow-lg'
       )}
     >
-      {/* Trial Banner - Prominent for Plus */}
-      {highlighted && (
-        <div className="absolute -top-4 left-4 right-4 px-4 py-2 rounded-lg bg-success text-white text-sm font-semibold text-center shadow-lg">
-          14-Day Free Trial — No Credit Card
-        </div>
-      )}
-
       {/* Badge */}
       {badge && highlighted && (
-        <div className="absolute -top-3 right-4 px-3 py-1 rounded-full bg-primary text-primary-foreground text-xs font-medium shadow-lg">
+        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg whitespace-nowrap">
           {badge}
         </div>
       )}
