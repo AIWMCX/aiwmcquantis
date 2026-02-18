@@ -32,12 +32,21 @@ serve(async (req) => {
   }
 
   try {
-    // Verify cron secret for security
-    const cronSecret = req.headers.get('x-cron-secret');
-    const expectedSecret = Deno.env.get('CRON_SECRET');
-    
-    if (cronSecret !== expectedSecret) {
-      console.error('[warm-functions] Invalid or missing cron secret');
+    // Warm-functions is a low-risk internal warming endpoint.
+    // Accept: service role key, valid anon key, or CRON_SECRET header.
+    // Any authenticated caller (cron jobs use anon key from pg_net) is allowed.
+    const authHeader = req.headers.get('Authorization') || '';
+    const cronSecretHeader = req.headers.get('x-cron-secret');
+    const expectedCronSecret = Deno.env.get('CRON_SECRET');
+    const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+
+    const isServiceRole = authHeader.includes(supabaseServiceKey) && supabaseServiceKey.length > 10;
+    const isAnonKey = authHeader.includes(supabaseAnonKey) && supabaseAnonKey.length > 10;
+    const isCronSecret = expectedCronSecret && cronSecretHeader === expectedCronSecret;
+
+    if (!isServiceRole && !isAnonKey && !isCronSecret) {
+      console.error('[warm-functions] Unauthorized request - no valid auth method');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
