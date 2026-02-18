@@ -9,6 +9,7 @@ interface AdminMetrics {
   monthly_analyses: number;
   weekly_signups: number;
   monthly_signups: number;
+  unique_users_with_analysis: number;
 }
 
 interface DailySignup {
@@ -61,6 +62,9 @@ export function useAdminMetrics() {
         throw new Error('No metrics data returned');
       }
 
+      // Fetch unique users with analysis count separately
+      const { data: uniqueUsersData } = await supabase.rpc('get_unique_users_with_analysis');
+
       return {
         total_users: metrics.total_users || 0,
         total_analyses: metrics.total_analyses || 0,
@@ -68,7 +72,8 @@ export function useAdminMetrics() {
         free_users: metrics.free_users || 0,
         monthly_analyses: metrics.monthly_analyses || 0,
         weekly_signups: metrics.weekly_signups || 0,
-        monthly_signups: metrics.monthly_signups || 0
+        monthly_signups: metrics.monthly_signups || 0,
+        unique_users_with_analysis: (uniqueUsersData as number) || 0,
       };
     },
     staleTime: 30 * 1000, // 30 seconds

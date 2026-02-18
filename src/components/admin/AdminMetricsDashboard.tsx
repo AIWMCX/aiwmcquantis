@@ -420,9 +420,9 @@ export function AdminMetricsDashboard() {
             />
             <div className="text-muted-foreground">→</div>
             <FunnelStep 
-              label="Performed Analysis" 
-              value={Math.min(metrics?.total_analyses || 0, metrics?.total_users || 0)} 
-              percentage={metrics?.total_users ? Math.min(100, ((metrics.total_analyses / metrics.total_users) * 100)) : 0} 
+              label="Ran an Analysis" 
+              value={metrics?.unique_users_with_analysis || 0} 
+              percentage={metrics?.total_users ? ((metrics.unique_users_with_analysis / metrics.total_users) * 100) : 0} 
             />
             <div className="text-muted-foreground">→</div>
             <FunnelStep 

@@ -1937,6 +1937,7 @@ export type Database = {
           user_id: string
         }[]
       }
+      get_unique_users_with_analysis: { Args: never; Returns: number }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
       has_role: {
         Args: {
