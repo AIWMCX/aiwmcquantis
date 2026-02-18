@@ -43,11 +43,10 @@ serve(async (req: Request): Promise<Response> => {
 
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
-      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
+      serviceKey
     );
 
     const functionUrl = `${Deno.env.get("SUPABASE_URL")}/functions/v1/send-lifecycle-email`;
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
     let emailsSent = 0;
     const errors: string[] = [];
