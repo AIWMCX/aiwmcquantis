@@ -502,6 +502,33 @@ export type Database = {
           },
         ]
       }
+      email_send_log: {
+        Row: {
+          email: string
+          id: string
+          resend_id: string | null
+          sent_at: string
+          template_key: string
+          user_id: string
+        }
+        Insert: {
+          email: string
+          id?: string
+          resend_id?: string | null
+          sent_at?: string
+          template_key: string
+          user_id: string
+        }
+        Update: {
+          email?: string
+          id?: string
+          resend_id?: string | null
+          sent_at?: string
+          template_key?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       email_sequence_log: {
         Row: {
           id: string
