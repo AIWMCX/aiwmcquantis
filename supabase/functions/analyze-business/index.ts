@@ -1252,6 +1252,25 @@ function calculateStrictFinancials(
     isValid: roiYear1Percent > 0,
     notes: `($${finalNetProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`
   });
+
+  // BUG FIX (Phase 2): True DCF NPV — not cumulative profit.
+  // NPV = –Investment + Σ(month 1→36) [ NetProfit / (1 + monthly_rate)^month ]
+  // Using 10% annual WACC (standard small business cost of capital).
+  const ANNUAL_WACC = 0.10;
+  const monthlyDiscountRate = Math.pow(1 + ANNUAL_WACC, 1 / 12) - 1;
+  let npvAccum = -startupInvestment;
+  for (let m = 1; m <= 36; m++) {
+    npvAccum += finalNetProfit / Math.pow(1 + monthlyDiscountRate, m);
+  }
+  const npv3Years = Math.round(npvAccum);
+
+  audit.push({
+    formula: 'NPV_3yr = -Investment + Σ(month 1→36) [NetProfit / (1 + Monthly_Rate)^month]',
+    inputs: { 'Monthly Profit': finalNetProfit, 'Investment': startupInvestment, 'Annual WACC %': ANNUAL_WACC * 100, 'Monthly Rate %': Math.round(monthlyDiscountRate * 10000) / 100 },
+    result: npv3Years,
+    isValid: npv3Years > 0,
+    notes: `DCF at 10% WACC: -$${startupInvestment} + 36mo discounted cash flows = $${npv3Years.toLocaleString()}`
+  });
   
   // BUG FIX: Guard against division-by-zero when mrr=0 in break-even formula.
   const effectiveMrrForBreakeven = Math.max(mrr, benchmarks.average_check_min || 100);
@@ -1310,6 +1329,7 @@ function calculateStrictFinancials(
     startupInvestment,
     paybackMonths,
     roiYear1Percent,
+    npv3Years,
     breakEvenRevenue,
     revenueFor45kProfit,
     isProfitable: finalNetProfit > 0,
