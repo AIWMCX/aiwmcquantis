@@ -166,20 +166,24 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     cac = benchmarks.cac_max;
   }
   
-  // ===== STEP 4: Calculate LTV (deterministic formula) =====
-  // FORMULA: LTV = Avg_Check × Orders_per_Month × Lifetime_Months
-  const ltv = avgCheck * benchmarks.orders_per_client * benchmarks.client_lifetime_months;
+  // ===== STEP 4: Calculate LTV (deterministic formula — MARGIN-ADJUSTED) =====
+  // FORMULA: LTV = Avg_Check × Gross_Margin_Fraction × Orders_per_Month × Lifetime_Months
+  // BUG FIX: Must include gross margin fraction — LTV is what the business KEEPS, not raw revenue.
+  // A SaaS at 80% gross margin with $200 avg_check keeps only $160 per order.
+  const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
+  const ltv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
   
   audit.push({
-    formula: 'LTV = Average_Check × Orders_per_Month × Client_Lifetime_Months',
+    formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime_Months',
     inputs: {
       'Average Check': avgCheck,
+      'Gross Margin Fraction': Math.round(grossMarginFraction * 100) / 100,
       'Orders/Month': benchmarks.orders_per_client,
       'Lifetime (months)': benchmarks.client_lifetime_months,
     },
     result: ltv,
     isValid: true,
-    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${ltv}`,
+    notes: `$${avgCheck} × ${Math.round(grossMarginFraction * 100)}% × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${ltv} (margin-adjusted LTV)`,
   });
   
   // ===== STEP 5: Calculate LTV:CAC ratio =====
@@ -366,7 +370,16 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     ? Math.round((netProfit * 36 / startupInvestment) * 100) 
     : 0;
   
-  const npv3Years = Math.round(netProfit * 36 - startupInvestment);
+  // BUG FIX: True Discounted Cash Flow (DCF) NPV — not cumulative profit.
+  // Using 10% annual WACC (standard for small business cost of capital).
+  // Monthly_Rate = (1 + 0.10)^(1/12) - 1 ≈ 0.7974%
+  const ANNUAL_DISCOUNT_RATE = 0.10;
+  const monthlyDiscountRate = Math.pow(1 + ANNUAL_DISCOUNT_RATE, 1 / 12) - 1;
+  let npvSum = -startupInvestment;
+  for (let month = 1; month <= 36; month++) {
+    npvSum += netProfit / Math.pow(1 + monthlyDiscountRate, month);
+  }
+  const npv3Years = Math.round(npvSum);
   
   audit.push({
     formula: 'ROI_Year1 = (Net_Profit × 12 / Investment) × 100%',
@@ -376,22 +389,31 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     notes: `($${netProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`,
   });
   
-  // ===== STEP 9: Calculate break-even points =====
+  audit.push({
+    formula: 'NPV_3yr = -Investment + Σ(month 1→36) [NetProfit / (1 + Monthly_Rate)^month]',
+    inputs: { 'Monthly Profit': netProfit, Investment: startupInvestment, 'Annual WACC': ANNUAL_DISCOUNT_RATE * 100, 'Monthly Rate %': Math.round(monthlyDiscountRate * 10000) / 100 },
+    result: npv3Years,
+    isValid: npv3Years > 0,
+    notes: `DCF at 10% WACC: -$${startupInvestment} + 36mo discounted cash flows = $${npv3Years.toLocaleString()}`,
+  });
   
-  const variableCostRatio = benchmarks.cogs_percent / 100 + (mrr > 0 ? marketing / mrr : 0);
+  // ===== STEP 9: Calculate break-even points =====
+  // BUG FIX: Guard against division-by-zero when mrr=0; use benchmark floor instead.
+  const effectiveMrrForBreakeven = Math.max(mrr, benchmarks.average_check_min || 100);
+  const variableCostRatio = benchmarks.cogs_percent / 100 + (effectiveMrrForBreakeven > 0 ? marketing / effectiveMrrForBreakeven : 0);
   const contributionMargin = 1 - variableCostRatio;
   
-  const breakEvenRevenue = contributionMargin > 0 
-    ? Math.round(fixedCosts / contributionMargin) 
+  const breakEvenRevenue = contributionMargin > 0.01
+    ? Math.round(fixedCosts / contributionMargin)
     : 0;
   
-  const breakEvenUnits = avgCheck > 0 
-    ? Math.ceil(breakEvenRevenue / avgCheck) 
+  const breakEvenUnits = avgCheck > 0
+    ? Math.ceil(breakEvenRevenue / avgCheck)
     : 0;
   
   const targetProfit = 45000;
-  const revenueFor45kProfit = contributionMargin > 0 
-    ? Math.round((fixedCosts + targetProfit) / contributionMargin) 
+  const revenueFor45kProfit = contributionMargin > 0.01
+    ? Math.round((fixedCosts + targetProfit) / contributionMargin)
     : 0;
   
   audit.push({
@@ -509,9 +531,16 @@ function generateScenarios(
   
   const mult = SCENARIO_MULTIPLIERS;
   
-  // Pessimistic (Conservative): Revenue drops, costs increase
+  // BUG FIX: Apply gross margin COMPRESSION in pessimistic and EXPANSION in optimistic.
+  // Old code: COGS scaled proportionally with revenue → gross margin % was identical across all 3 scenarios.
+  // Fix: Pessimistic gets +5% COGS ratio (margin compression due to fixed-cost leverage);
+  //      Optimistic gets -2% COGS ratio (operational efficiency gains).
+  const baseCogsPercent = mrr > 0 ? cogs / mrr : 0; // actual base COGS ratio
+  
+  // Pessimistic (Conservative): Revenue drops, costs increase + margin compression
   const pessimisticRevenue = Math.round(mrr * mult.conservative.revenue);
-  const pessimisticCogs = Math.round(cogs * mult.conservative.revenue); // COGS scales with revenue
+  const pessimisticCogsRatio = Math.min(baseCogsPercent + 0.05, 0.95); // +5% COGS compression
+  const pessimisticCogs = Math.round(pessimisticRevenue * pessimisticCogsRatio);
   const pessimisticMarketing = Math.round(marketing * mult.conservative.costs);
   const pessimisticFixed = Math.round(fixedCosts * mult.conservative.costs);
   const pessimisticTotal = pessimisticCogs + pessimisticFixed + pessimisticMarketing;
@@ -521,9 +550,10 @@ function generateScenarios(
   // Base case: current projections (multiplier = 1.0)
   const baseTotal = cogs + fixedCosts + marketing;
   
-  // Optimistic (Aggressive): Revenue grows, costs controlled
+  // Optimistic (Aggressive): Revenue grows, costs controlled + margin expansion
   const optimisticRevenue = Math.round(mrr * mult.aggressive.revenue);
-  const optimisticCogs = Math.round(cogs * mult.aggressive.revenue); // COGS scales with revenue
+  const optimisticCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01); // -2% COGS efficiency
+  const optimisticCogs = Math.round(optimisticRevenue * optimisticCogsRatio);
   const optimisticMarketing = Math.round(marketing * mult.aggressive.costs);
   const optimisticFixed = Math.round(fixedCosts * mult.aggressive.costs);
   const optimisticTotal = optimisticCogs + optimisticFixed + optimisticMarketing;
@@ -766,14 +796,45 @@ export function generateInvestmentBreakdown(
 ): InvestmentBreakdownItem[] {
   // Industry-specific allocation ratios
   const allocations: Record<string, Record<string, number>> = {
-    saas: { equipment: 0.35, working_capital: 0.30, marketing_initial: 0.20, rent_deposit: 0.05, legal: 0.05, inventory: 0.05 },
+    saas: { equipment: 0.30, working_capital: 0.35, marketing_initial: 0.20, rent_deposit: 0.05, legal: 0.05, inventory: 0.05 },
     ecommerce: { inventory: 0.35, equipment: 0.20, working_capital: 0.20, marketing_initial: 0.15, rent_deposit: 0.05, legal: 0.05 },
     food_service: { equipment: 0.40, rent_deposit: 0.15, inventory: 0.20, working_capital: 0.15, marketing_initial: 0.05, legal: 0.05 },
     consulting: { working_capital: 0.40, equipment: 0.20, marketing_initial: 0.20, rent_deposit: 0.10, legal: 0.10, inventory: 0 },
+    retail: { inventory: 0.40, equipment: 0.20, working_capital: 0.20, marketing_initial: 0.10, rent_deposit: 0.05, legal: 0.05 },
+    healthcare: { equipment: 0.40, legal: 0.15, working_capital: 0.25, marketing_initial: 0.10, rent_deposit: 0.05, inventory: 0.05 },
     default: { equipment: 0.30, working_capital: 0.25, inventory: 0.15, marketing_initial: 0.15, rent_deposit: 0.10, legal: 0.05 },
   };
   
-  const ratios = allocations[industryId] || allocations.default;
+  // BUG FIX: Normalize industry IDs so 'saas_startup', 'b2b_saas', etc. map correctly.
+  // Previously, any ID with an underscore suffix fell through to 'default' (40% equipment - wrong for software).
+  const ID_ALIASES: Record<string, string> = {
+    'saas_startup': 'saas',
+    'b2b_saas': 'saas',
+    'b2c_saas': 'saas',
+    'software_startup': 'saas',
+    'software': 'saas',
+    'tech_startup': 'saas',
+    'digital_marketing': 'consulting',
+    'marketing_agency': 'consulting',
+    'management_consulting': 'consulting',
+    'freelance_consulting': 'consulting',
+    'business_consulting': 'consulting',
+    'ecommerce_retail': 'ecommerce',
+    'dropshipping': 'ecommerce',
+    'online_retail': 'ecommerce',
+    'marketplace': 'ecommerce',
+    'food_delivery': 'food_service',
+    'restaurant': 'food_service',
+    'cafe': 'food_service',
+    'catering': 'food_service',
+    'retail_store': 'retail',
+    'fashion_retail': 'retail',
+    'medical_practice': 'healthcare',
+    'dental_practice': 'healthcare',
+    'clinic': 'healthcare',
+  };
+  const normalizedId = ID_ALIASES[industryId] || industryId;
+  const ratios = allocations[normalizedId] || allocations.default;
   
   // Calculate rent deposit as 2 months rent or allocation, whichever is higher
   const rentDeposit = Math.max(monthlyRent * 2, totalInvestment * ratios.rent_deposit);
