@@ -1030,21 +1030,24 @@ function calculateStrictFinancials(
     cac = locationAdjustedCac;
   }
   
-  // 1.3 LTV - calculate from formula with sub-industry adjusted lifetime
-  // FORMULA: LTV = Avg_Check × Orders_per_Month × Lifetime_Months
+  // 1.3 LTV - calculate from formula with GROSS MARGIN adjustment and sub-industry adjusted lifetime
+  // BUG FIX: LTV must be margin-adjusted. Formula: LTV = Avg_Check × (1-COGS%) × Orders × Lifetime
+  // Previously was raw revenue; now correctly represents what the business KEEPS from each customer.
   const effectiveLifetime = effectiveBenchmarks.client_lifetime_months;
-  const calculatedLtv = avgCheck * benchmarks.orders_per_client * effectiveLifetime;
+  const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
+  const calculatedLtv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * effectiveLifetime);
   
   audit.push({
-    formula: 'LTV = Avg_Check × Orders_per_Month × Client_Lifetime',
+    formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime',
     inputs: {
       'Average Check': avgCheck,
+      'Gross Margin Fraction': Math.round(grossMarginFraction * 100) / 100,
       'Orders/Month': benchmarks.orders_per_client,
       'Lifetime (months)': effectiveLifetime
     },
     result: calculatedLtv,
     isValid: true,
-    notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${effectiveLifetime} = $${calculatedLtv}`
+    notes: `$${avgCheck} × ${Math.round(grossMarginFraction * 100)}% × ${benchmarks.orders_per_client} × ${effectiveLifetime} = $${calculatedLtv} (margin-adjusted)`
   });
   
   let ltv = calculatedLtv;
@@ -1180,12 +1183,35 @@ function calculateStrictFinancials(
   
   const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
   
+  // ===== MARGIN CEILING GUARD (BUG FIX Phase 5) =====
+  // bulletproof-validator detects UNREALISTIC_NET_MARGIN but was not wired into this primary pipeline.
+  // Now enforcing it here: clamp net margin to benchmark max + 20% buffer.
+  const maxAllowedMargin = benchmarks.net_margin_max + 20;
+  let finalNetProfit = netProfit;
+  let finalNetMarginPercent = netMarginPercent;
+  let finalTotalExpenses = totalExpenses;
+  
+  if (netMarginPercent > maxAllowedMargin && mrr > 0) {
+    const clampedMargin = maxAllowedMargin;
+    const targetExpenses = Math.round(mrr * (1 - clampedMargin / 100));
+    corrections.push({
+      field: 'net_margin',
+      original: netMarginPercent,
+      corrected: clampedMargin,
+      reason: `Net margin ${netMarginPercent}% exceeds maximum realistic threshold of ${maxAllowedMargin}% for ${benchmarks.name}. Expenses adjusted upward to enforce realistic model.`
+    });
+    finalTotalExpenses = targetExpenses;
+    finalNetProfit = mrr - targetExpenses;
+    finalNetMarginPercent = clampedMargin;
+    console.warn(`⚠️ Margin ceiling enforced: ${netMarginPercent}% → ${clampedMargin}% (max for ${benchmarks.name} = ${benchmarks.net_margin_max}%)`);
+  }
+  
   audit.push({
     formula: 'Net_Margin = (Profit / Revenue) × 100%',
-    inputs: { 'Profit': netProfit, 'Revenue': mrr },
-    result: netMarginPercent,
-    isValid: netMarginPercent >= benchmarks.net_margin_min && netMarginPercent <= benchmarks.net_margin_max,
-    notes: `($${netProfit} / $${mrr}) × 100 = ${netMarginPercent}% (healthy: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%)`
+    inputs: { 'Profit': finalNetProfit, 'Revenue': mrr },
+    result: finalNetMarginPercent,
+    isValid: finalNetMarginPercent >= benchmarks.net_margin_min && finalNetMarginPercent <= maxAllowedMargin,
+    notes: `($${finalNetProfit} / $${mrr}) × 100 = ${finalNetMarginPercent}% (healthy: ${benchmarks.net_margin_min}-${benchmarks.net_margin_max}%)`
   });
   
   const grossProfit = mrr - cogs;
@@ -1197,8 +1223,8 @@ function calculateStrictFinancials(
   
   let paybackMonths = 0;
   if (startupInvestment > 0) {
-    if (netProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / netProfit);
+    if (finalNetProfit > 0) {
+      paybackMonths = Math.ceil(startupInvestment / finalNetProfit);
     } else {
       paybackMonths = 999;
     }
@@ -1206,29 +1232,32 @@ function calculateStrictFinancials(
   
   audit.push({
     formula: 'Payback = Investment / Monthly_Profit',
-    inputs: { 'Investment': startupInvestment, 'Profit/mo': netProfit },
+    inputs: { 'Investment': startupInvestment, 'Profit/mo': finalNetProfit },
     result: paybackMonths,
     isValid: paybackMonths < 36 && paybackMonths > 0,
     notes: paybackMonths === 999 
       ? 'Business is unprofitable - payback impossible' 
-      : `$${startupInvestment} / $${netProfit} = ${paybackMonths} months`
+      : `$${startupInvestment} / $${finalNetProfit} = ${paybackMonths} months`
   });
   
   let roiYear1Percent = 0;
   if (startupInvestment > 0) {
-    roiYear1Percent = Math.round((netProfit * 12 / startupInvestment) * 100);
+    roiYear1Percent = Math.round((finalNetProfit * 12 / startupInvestment) * 100);
   }
   
   audit.push({
     formula: 'ROI = (Profit × 12 / Investment) × 100%',
-    inputs: { 'Profit/mo': netProfit, 'Investment': startupInvestment },
+    inputs: { 'Profit/mo': finalNetProfit, 'Investment': startupInvestment },
     result: roiYear1Percent,
     isValid: roiYear1Percent > 0,
-    notes: `($${netProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`
+    notes: `($${finalNetProfit} × 12 / $${startupInvestment}) × 100 = ${roiYear1Percent}%`
   });
   
-  const variableCostRatio = (benchmarks.cogs_percent / 100) + (marketing / mrr);
-  const breakEvenRevenue = Math.round(fixedCosts / (1 - variableCostRatio));
+  // BUG FIX: Guard against division-by-zero when mrr=0 in break-even formula.
+  const effectiveMrrForBreakeven = Math.max(mrr, benchmarks.average_check_min || 100);
+  const variableCostRatio = (benchmarks.cogs_percent / 100) + (marketing / effectiveMrrForBreakeven);
+  const safeContributionMargin = Math.max(1 - variableCostRatio, 0.01); // prevent zero or negative
+  const breakEvenRevenue = Math.round(fixedCosts / safeContributionMargin);
   
   audit.push({
     formula: 'Break_Even = Fixed_Costs / (1 - Variable_Cost_Ratio)',
@@ -1242,7 +1271,7 @@ function calculateStrictFinancials(
   });
   
   const targetProfit = 45000;
-  const revenueFor45kProfit = Math.round((fixedCosts + targetProfit) / (1 - variableCostRatio));
+  const revenueFor45kProfit = Math.round((fixedCosts + targetProfit) / safeContributionMargin);
   
   audit.push({
     formula: 'Revenue_for_$45k = (Fixed_Costs + $45000) / (1 - Variable%)',
@@ -1258,9 +1287,9 @@ function calculateStrictFinancials(
   
   return {
     mrr,
-    totalExpenses,
-    netProfit,
-    netMarginPercent,
+    totalExpenses: finalTotalExpenses,
+    netProfit: finalNetProfit,
+    netMarginPercent: finalNetMarginPercent,
     grossProfit,
     grossMarginPercent,
     expenses: {
@@ -1275,7 +1304,7 @@ function calculateStrictFinancials(
     ltv,
     ltvCacRatio,
     averageCheck: avgCheck,
-    ordersMonthly: Math.round(mrr / avgCheck),
+    ordersMonthly: Math.round(mrr / Math.max(avgCheck, 1)),
     clientsActive,
     newClientsNeeded,
     startupInvestment,
@@ -1283,7 +1312,7 @@ function calculateStrictFinancials(
     roiYear1Percent,
     breakEvenRevenue,
     revenueFor45kProfit,
-    isProfitable,
+    isProfitable: finalNetProfit > 0,
     corrections,
     audit,
     industryDetected: benchmarks.name
@@ -2037,40 +2066,51 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       scenarios: (() => {
         // CRITICAL FIX: Calculate expenses from breakdown, not calc.totalExpenses
         const fixedCosts = calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other;
-        const variableCosts = calc.expenses.cogs + calc.expenses.marketing;
-        const totalExpensesFromBreakdown = fixedCosts + variableCosts;
+        const baseCogsPercent = calc.mrr > 0 ? calc.expenses.cogs / calc.mrr : 0;
         
-        // Pessimistic scenario: 20% less revenue, slightly less variable costs
+        // Pessimistic scenario: 20% less revenue + margin COMPRESSION (+5% COGS ratio)
         const pessRevenue = Math.round(calc.mrr * 0.8);
-        const pessVariableCosts = Math.round(variableCosts * 0.85); // Less sales = less COGS/marketing
-        const pessTotalExpenses = fixedCosts + pessVariableCosts;
+        const pessCogsRatio = Math.min(baseCogsPercent + 0.05, 0.95);
+        const pessCogs = Math.round(pessRevenue * pessCogsRatio);
+        const pessMarketing = Math.round(calc.expenses.marketing * 0.85);
+        const pessFixed = Math.round(fixedCosts * 1.05);
+        const pessTotalExpenses = pessCogs + pessMarketing + pessFixed;
         const pessNetProfit = pessRevenue - pessTotalExpenses;
+        const pessGrossProfit = pessRevenue - pessCogs;
         const pessNetMargin = pessRevenue > 0 ? Math.round((pessNetProfit / pessRevenue) * 100) : 0;
+        const pessGrossMargin = pessRevenue > 0 ? Math.round((pessGrossProfit / pessRevenue) * 100) : 0;
         
         // Base scenario: current values
-        const baseNetProfit = calc.mrr - totalExpensesFromBreakdown;
+        const baseVariableCosts = calc.expenses.cogs + calc.expenses.marketing;
+        const baseTotalExpenses = fixedCosts + baseVariableCosts;
+        const baseNetProfit = calc.mrr - baseTotalExpenses;
         const baseNetMargin = calc.mrr > 0 ? Math.round((baseNetProfit / calc.mrr) * 100) : 0;
         
-        // Optimistic scenario: 25% more revenue, proportional variable cost increase
+        // Optimistic scenario: 25% more revenue + margin EXPANSION (-2% COGS ratio)
         const optRevenue = Math.round(calc.mrr * 1.25);
-        const optVariableCosts = Math.round(variableCosts * 1.25);
-        const optTotalExpenses = fixedCosts + optVariableCosts;
+        const optCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01);
+        const optCogs = Math.round(optRevenue * optCogsRatio);
+        const optMarketing = Math.round(calc.expenses.marketing * 1.20);
+        const optFixed = Math.round(fixedCosts * 0.95);
+        const optTotalExpenses = optCogs + optMarketing + optFixed;
         const optNetProfit = optRevenue - optTotalExpenses;
+        const optGrossProfit = optRevenue - optCogs;
         const optNetMargin = optRevenue > 0 ? Math.round((optNetProfit / optRevenue) * 100) : 0;
+        const optGrossMargin = optRevenue > 0 ? Math.round((optGrossProfit / optRevenue) * 100) : 0;
         
         return {
           pessimistic: {
             revenue: pessRevenue,
-            variable_costs: pessVariableCosts,
-            fixed_costs: fixedCosts,
-            gross_profit: Math.round(pessRevenue - (calc.expenses.cogs * 0.85)),
+            variable_costs: pessCogs + pessMarketing,
+            fixed_costs: pessFixed,
+            gross_profit: pessGrossProfit,
             net_profit: pessNetProfit,
-            gross_margin: calc.grossMarginPercent,
+            gross_margin: pessGrossMargin,
             net_margin: pessNetMargin
           },
           base: {
             revenue: calc.mrr,
-            variable_costs: variableCosts,
+            variable_costs: baseVariableCosts,
             fixed_costs: fixedCosts,
             gross_profit: calc.grossProfit,
             net_profit: baseNetProfit,
@@ -2079,11 +2119,11 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
           },
           optimistic: {
             revenue: optRevenue,
-            variable_costs: optVariableCosts,
-            fixed_costs: fixedCosts,
-            gross_profit: Math.round(optRevenue - (calc.expenses.cogs * 1.25)),
+            variable_costs: optCogs + optMarketing,
+            fixed_costs: optFixed,
+            gross_profit: optGrossProfit,
             net_profit: optNetProfit,
-            gross_margin: calc.grossMarginPercent,
+            gross_margin: optGrossMargin,
             net_margin: optNetMargin
           }
         };
@@ -2097,15 +2137,23 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         ltv_cac_ratio: calc.ltvCacRatio
       },
       breakeven: {
-        breakeven_units: Math.ceil(calc.breakEvenRevenue / calc.averageCheck),
+        breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
         breakeven_revenue: calc.breakEvenRevenue,
         breakeven_months: calc.isProfitable ? Math.min(calc.paybackMonths, 24) : 0
       },
       returns: {
         payback_period_months: calc.paybackMonths >= 999 ? 0 : calc.paybackMonths,
         roi_year_1: calc.roiYear1Percent,
-        roi_year_3: Math.round((calc.netProfit * 36 / calc.startupInvestment) * 100),
-        npv_3_years: Math.round(calc.netProfit * 36 - calc.startupInvestment)
+        roi_year_3: Math.round((calc.netProfit * 36 / Math.max(calc.startupInvestment, 1)) * 100),
+        // BUG FIX: True DCF NPV at 10% annual WACC — not cumulative profit
+        npv_3_years: (() => {
+          const monthlyRate = Math.pow(1.10, 1 / 12) - 1;
+          let npv = -calc.startupInvestment;
+          for (let m = 1; m <= 36; m++) {
+            npv += calc.netProfit / Math.pow(1 + monthlyRate, m);
+          }
+          return Math.round(npv);
+        })(),
       },
       startup_investment: (() => {
         // CRITICAL FIX: Calculate breakdown items that sum EXACTLY to total
