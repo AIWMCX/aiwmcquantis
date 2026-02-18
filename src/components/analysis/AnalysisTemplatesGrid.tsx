@@ -2,7 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { 
   BarChart3, TrendingUp, Users, DollarSign, Target, Shield,
-  Clock, Zap, ArrowRight 
+  Clock, Zap, ArrowRight, Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -19,7 +19,12 @@ interface AnalysisTemplate {
   popular?: boolean;
   idea: string;
   location: string;
-  color: string;
+  // Quantis icon brand system
+  iconBg: string;
+  iconColor: string;
+  accentColor: string;
+  borderColor: string;
+  hoverGlow: string;
 }
 
 const TEMPLATES: AnalysisTemplate[] = [
@@ -33,7 +38,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     popular: true,
     idea: 'I need a financial health check for my existing business to analyze profitability, cash flow management, and identify areas to improve margins',
     location: 'New York, USA',
-    color: 'bg-emerald-500/10 border-emerald-500/20 hover:border-emerald-500/40',
+    iconBg: 'from-emerald-500/25 to-teal-600/15',
+    iconColor: 'text-emerald-400',
+    accentColor: 'text-emerald-400',
+    borderColor: 'border-emerald-500/20 hover:border-emerald-400/45',
+    hoverGlow: 'hover:shadow-emerald-500/10',
   },
   {
     id: 'growth-analysis',
@@ -45,7 +54,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     popular: true,
     idea: 'Analyze growth strategy for my business — best channels for customer acquisition, revenue scaling tactics, and market expansion opportunities',
     location: 'San Francisco, USA',
-    color: 'bg-blue-500/10 border-blue-500/20 hover:border-blue-500/40',
+    iconBg: 'from-blue-500/25 to-indigo-600/15',
+    iconColor: 'text-blue-400',
+    accentColor: 'text-blue-400',
+    borderColor: 'border-blue-500/20 hover:border-blue-400/45',
+    hoverGlow: 'hover:shadow-blue-500/10',
   },
   {
     id: 'customer-metrics',
@@ -57,7 +70,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     popular: true,
     idea: 'Analyze my customer acquisition cost, lifetime value, churn rate, and retention metrics to optimize unit economics and improve customer profitability',
     location: 'London, UK',
-    color: 'bg-violet-500/10 border-violet-500/20 hover:border-violet-500/40',
+    iconBg: 'from-violet-500/25 to-purple-600/15',
+    iconColor: 'text-violet-400',
+    accentColor: 'text-violet-400',
+    borderColor: 'border-violet-500/20 hover:border-violet-400/45',
+    hoverGlow: 'hover:shadow-violet-500/10',
   },
   {
     id: 'cost-optimization',
@@ -68,7 +85,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     time: '90 seconds',
     idea: 'Evaluate my business cost structure to identify inefficiencies, reduce fixed and variable expenses, and improve overall profitability margins',
     location: 'Chicago, USA',
-    color: 'bg-amber-500/10 border-amber-500/20 hover:border-amber-500/40',
+    iconBg: 'from-amber-500/25 to-orange-600/15',
+    iconColor: 'text-amber-400',
+    accentColor: 'text-amber-400',
+    borderColor: 'border-amber-500/20 hover:border-amber-400/45',
+    hoverGlow: 'hover:shadow-amber-500/10',
   },
   {
     id: 'competitive-position',
@@ -79,7 +100,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     time: '90 seconds',
     idea: 'Analyze my competitive position in the market — identify main competitors, assess competitive advantages, and find differentiation opportunities',
     location: 'Austin, Texas',
-    color: 'bg-pink-500/10 border-pink-500/20 hover:border-pink-500/40',
+    iconBg: 'from-pink-500/25 to-rose-600/15',
+    iconColor: 'text-pink-400',
+    accentColor: 'text-pink-400',
+    borderColor: 'border-pink-500/20 hover:border-pink-400/45',
+    hoverGlow: 'hover:shadow-pink-500/10',
   },
   {
     id: 'risk-assessment',
@@ -90,7 +115,11 @@ const TEMPLATES: AnalysisTemplate[] = [
     time: '60 seconds',
     idea: 'Conduct a comprehensive risk assessment for my business — identify financial, operational, market, and regulatory risks with mitigation strategies',
     location: 'Miami, Florida',
-    color: 'bg-destructive/10 border-destructive/20 hover:border-destructive/40',
+    iconBg: 'from-red-500/25 to-rose-700/15',
+    iconColor: 'text-red-400',
+    accentColor: 'text-red-400',
+    borderColor: 'border-red-500/20 hover:border-red-400/45',
+    hoverGlow: 'hover:shadow-red-500/10',
   },
 ];
 
@@ -130,34 +159,46 @@ export function AnalysisTemplatesGrid({ onSelect, disabled, className }: Analysi
               onClick={() => handleSelect(template)}
               disabled={disabled}
               className={cn(
-                'relative text-left p-4 rounded-xl border-2 transition-all duration-200',
-                'hover:shadow-md hover:scale-[1.02]',
+                'group relative text-left p-4 rounded-xl border-2 transition-all duration-200',
+                'bg-card/70 backdrop-blur-sm',
+                'hover:shadow-lg hover:scale-[1.02] active:scale-[0.99]',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                'disabled:opacity-50 disabled:cursor-not-allowed',
-                template.color
+                'disabled:opacity-40 disabled:cursor-not-allowed',
+                template.borderColor,
+                template.hoverGlow
               )}
             >
               {template.popular && (
-                <Badge className="absolute -top-2 right-3 bg-primary text-primary-foreground text-[10px] px-2 py-0.5">
-                  POPULAR
+                <Badge className="absolute -top-2.5 right-3 bg-primary text-primary-foreground text-[9px] font-bold px-2 py-0.5 tracking-widest uppercase">
+                  Popular
                 </Badge>
               )}
+
               <div className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-background/80 shrink-0">
-                  <Icon className="w-5 h-5 text-foreground" />
+                {/* Quantis brand icon orb */}
+                <div className={cn(
+                  'relative flex items-center justify-center w-11 h-11 rounded-xl shrink-0',
+                  'bg-gradient-to-br',
+                  template.iconBg,
+                  'shadow-md transition-transform duration-200 group-hover:scale-110 group-hover:shadow-lg'
+                )}>
+                  <Icon className={cn('w-5 h-5', template.iconColor)} strokeWidth={1.75} />
+                  {/* Top shine layer */}
+                  <div className="absolute inset-0 rounded-xl bg-gradient-to-b from-white/15 to-transparent pointer-events-none" />
                 </div>
-                <div className="min-w-0">
-                  <p className="font-semibold text-foreground text-sm">{template.title}</p>
-                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">
+
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold text-foreground text-sm leading-tight">{template.title}</p>
+                  <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 leading-relaxed">
                     {template.description}
                   </p>
-                  <div className="flex items-center gap-3 mt-2 text-xs text-muted-foreground">
+                  <div className="flex items-center gap-3 mt-2.5 text-xs text-muted-foreground">
                     <span className="flex items-center gap-1">
-                      <Clock className="w-3 h-3" />
+                      <Clock className={cn('w-3 h-3', template.accentColor)} />
                       {template.time}
                     </span>
                     <span className="flex items-center gap-1">
-                      <Zap className="w-3 h-3" />
+                      <Zap className={cn('w-3 h-3', template.accentColor)} />
                       {template.questions}
                     </span>
                   </div>
@@ -169,17 +210,28 @@ export function AnalysisTemplatesGrid({ onSelect, disabled, className }: Analysi
       </div>
 
       {/* Custom Analysis CTA */}
-      <div className="p-4 rounded-xl border border-dashed border-primary/30 bg-primary/5 flex flex-col sm:flex-row items-center justify-between gap-3">
-        <div className="text-center sm:text-left">
-          <p className="font-semibold text-foreground text-sm">Need Custom Analysis?</p>
-          <p className="text-xs text-muted-foreground">
-            Upload your own data (PDF, Excel, CSV) and ask specific questions
-          </p>
+      <div className={cn(
+        'relative p-4 rounded-xl border border-dashed border-primary/30',
+        'bg-gradient-to-br from-primary/5 to-primary/3',
+        'flex flex-col sm:flex-row items-center justify-between gap-3 overflow-hidden'
+      )}>
+        {/* Subtle background orb */}
+        <div className="absolute -right-8 -top-8 w-32 h-32 rounded-full bg-primary/5 blur-2xl pointer-events-none" />
+        <div className="flex items-center gap-3 text-center sm:text-left">
+          <div className="hidden sm:flex items-center justify-center w-9 h-9 rounded-lg bg-primary/10 border border-primary/20 shrink-0">
+            <Upload className="w-4 h-4 text-primary" />
+          </div>
+          <div>
+            <p className="font-semibold text-foreground text-sm">Need Custom Analysis?</p>
+            <p className="text-xs text-muted-foreground">
+              Upload your own data (PDF, Excel, CSV) and ask specific questions
+            </p>
+          </div>
         </div>
         <Button
           variant="outline"
           size="sm"
-          className="gap-1.5 shrink-0"
+          className="gap-1.5 shrink-0 border-primary/40 text-primary hover:bg-primary/10 hover:border-primary/60"
           onClick={() => {
             onSelect('', '');
           }}
