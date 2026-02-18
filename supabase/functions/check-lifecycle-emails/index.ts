@@ -64,6 +64,18 @@ serve(async (req: Request): Promise<Response> => {
       return (data && data.length > 0) || false;
     }
 
+    // Helper: check 48-hour global cooldown per user (anti-spam protection)
+    async function isOnCooldown(userId: string): Promise<boolean> {
+      const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
+      const { data } = await supabase
+        .from("email_send_log")
+        .select("id")
+        .eq("user_id", userId)
+        .gte("sent_at", cutoff)
+        .limit(1);
+      return (data && data.length > 0) || false;
+    }
+
     // Helper: send lifecycle email via the existing edge function
     async function sendEmail(userId: string, templateKey: string): Promise<boolean> {
       try {
@@ -98,6 +110,9 @@ serve(async (req: Request): Promise<Response> => {
 
       if (users) {
         for (const user of users) {
+          // Skip if on 48h global cooldown (anti-spam)
+          if (await isOnCooldown(user.id)) continue;
+
           // Check if they have any analyses
           const { count } = await supabase
             .from("analyses")
@@ -121,6 +136,8 @@ serve(async (req: Request): Promise<Response> => {
 
       if (users) {
         for (const user of users) {
+          if (await isOnCooldown(user.id)) continue;
+
           const { count } = await supabase
             .from("analyses")
             .select("*", { count: "exact", head: true })
@@ -152,6 +169,8 @@ serve(async (req: Request): Promise<Response> => {
         }
 
         for (const [userId] of firstAnalysisByUser) {
+          if (await isOnCooldown(userId)) continue;
+
           // Only send if this is truly their first analysis ever
           const { count } = await supabase
             .from("analyses")
@@ -175,6 +194,8 @@ serve(async (req: Request): Promise<Response> => {
 
       if (inactiveUsers) {
         for (const user of inactiveUsers) {
+          if (await isOnCooldown(user.user_id)) continue;
+
           if (!(await alreadySent(user.user_id, "reengagement", 1))) {
             await sendEmail(user.user_id, "reengagement_step_1");
           }

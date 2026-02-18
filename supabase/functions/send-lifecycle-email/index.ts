@@ -263,17 +263,29 @@ serve(async (req: Request): Promise<Response> => {
     const result = await emailResponse.json();
     console.log(`Lifecycle email sent: ${template_key} to ${recipientEmail}`);
 
-    // Log the email send if user_id provided
+    // Log every send to email_send_log for global 48h cooldown tracking
+    if (user_id) {
+      await supabase.from("email_send_log").insert({
+        user_id,
+        email: recipientEmail,
+        template_key,
+        resend_id: result.id || null,
+      });
+    }
+
+    // Log the email send to sequence log (with ON CONFLICT DO NOTHING to prevent duplicates)
     if (user_id && template_key.includes("_step_")) {
       const [sequence, stepStr] = template_key.split("_step_");
       const step = parseInt(stepStr, 10);
 
+      // Use raw SQL upsert approach: insert and ignore if unique constraint fires
       const { error: logError } = await supabase.from("email_sequence_log").insert({
         user_id,
         sequence_name: sequence,
         step_number: step,
       });
-      if (logError) {
+      // Ignore duplicate constraint errors (user already received this step)
+      if (logError && !logError.message?.includes("unique") && !logError.message?.includes("duplicate")) {
         console.warn("Failed to log email sequence:", logError.message);
       }
     }
