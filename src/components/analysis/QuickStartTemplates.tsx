@@ -7,14 +7,17 @@ interface QuickTemplate {
   id: string;
   icon: React.ElementType;
   label: string;
+  shortLabel: string;
   idea: string;
   location: string;
-  // Quantis brand icon style: gradient bg + icon color + glow color
-  iconBg: string;
+  /** CSS vars-based ring color for the icon orb border */
+  orbRing: string;
+  /** Tailwind bg gradient classes */
+  orbBg: string;
+  /** Icon stroke color class */
   iconColor: string;
-  glowColor: string;
-  borderColor: string;
-  hoverBg: string;
+  /** Card border + hover */
+  cardBorder: string;
 }
 
 const TEMPLATES: QuickTemplate[] = [
@@ -22,73 +25,73 @@ const TEMPLATES: QuickTemplate[] = [
     id: 'coffee-shop',
     icon: Coffee,
     label: 'Coffee Shop',
+    shortLabel: 'Coffee',
     idea: 'Specialty coffee shop with remote work-friendly spaces, fast Wi-Fi, meeting rooms, and locally roasted beans in a high-foot-traffic neighborhood',
     location: 'Denver, Colorado',
-    iconBg: 'from-amber-500/30 to-orange-600/20',
-    iconColor: 'text-amber-400',
-    glowColor: 'shadow-amber-500/20',
-    borderColor: 'border-amber-500/25 hover:border-amber-400/50',
-    hoverBg: 'hover:bg-amber-500/5',
+    orbBg: 'from-amber-400 via-orange-400 to-amber-600',
+    orbRing: 'ring-amber-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-amber-400/20 hover:border-amber-400/50 hover:bg-amber-500/5',
   },
   {
     id: 'saas-app',
     icon: Monitor,
     label: 'SaaS App',
+    shortLabel: 'SaaS',
     idea: 'Project management SaaS tool for freelancers and small agencies with AI-powered task prioritization, time tracking, and automated invoicing',
     location: 'San Francisco, USA',
-    iconBg: 'from-blue-500/30 to-indigo-600/20',
-    iconColor: 'text-blue-400',
-    glowColor: 'shadow-blue-500/20',
-    borderColor: 'border-blue-500/25 hover:border-blue-400/50',
-    hoverBg: 'hover:bg-blue-500/5',
+    orbBg: 'from-blue-500 via-indigo-500 to-blue-700',
+    orbRing: 'ring-blue-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-blue-400/20 hover:border-blue-400/50 hover:bg-blue-500/5',
   },
   {
     id: 'ecommerce',
     icon: ShoppingBag,
     label: 'Online Store',
+    shortLabel: 'Store',
     idea: 'Direct-to-consumer sustainable fashion brand selling organic cotton basics online with subscription model and personalized styling',
     location: 'London, UK',
-    iconBg: 'from-pink-500/30 to-rose-600/20',
-    iconColor: 'text-pink-400',
-    glowColor: 'shadow-pink-500/20',
-    borderColor: 'border-pink-500/25 hover:border-pink-400/50',
-    hoverBg: 'hover:bg-pink-500/5',
+    orbBg: 'from-pink-400 via-rose-500 to-pink-700',
+    orbRing: 'ring-pink-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-pink-400/20 hover:border-pink-400/50 hover:bg-pink-500/5',
   },
   {
     id: 'consulting',
     icon: Briefcase,
     label: 'Consulting',
+    shortLabel: 'Consult',
     idea: 'Digital transformation consulting firm for mid-market manufacturing companies transitioning to Industry 4.0 with AI implementation',
     location: 'Chicago, USA',
-    iconBg: 'from-violet-500/30 to-purple-600/20',
-    iconColor: 'text-violet-400',
-    glowColor: 'shadow-violet-500/20',
-    borderColor: 'border-violet-500/25 hover:border-violet-400/50',
-    hoverBg: 'hover:bg-violet-500/5',
+    orbBg: 'from-violet-500 via-purple-500 to-violet-700',
+    orbRing: 'ring-violet-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-violet-400/20 hover:border-violet-400/50 hover:bg-violet-500/5',
   },
   {
     id: 'restaurant',
     icon: Utensils,
     label: 'Restaurant',
+    shortLabel: 'Food',
     idea: 'Fast-casual healthy bowl restaurant with customizable grain bowls, fresh ingredients, and a strong delivery/takeout model',
     location: 'Austin, Texas',
-    iconBg: 'from-emerald-500/30 to-teal-600/20',
-    iconColor: 'text-emerald-400',
-    glowColor: 'shadow-emerald-500/20',
-    borderColor: 'border-emerald-500/25 hover:border-emerald-400/50',
-    hoverBg: 'hover:bg-emerald-500/5',
+    orbBg: 'from-emerald-400 via-teal-500 to-emerald-700',
+    orbRing: 'ring-emerald-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-emerald-400/20 hover:border-emerald-400/50 hover:bg-emerald-500/5',
   },
   {
     id: 'fitness',
     icon: Dumbbell,
-    label: 'Fitness Studio',
+    label: 'Fitness',
+    shortLabel: 'Fitness',
     idea: 'Boutique fitness studio combining HIIT and yoga classes with an app for at-home workouts, nutrition coaching, and community challenges',
     location: 'Miami, Florida',
-    iconBg: 'from-orange-500/30 to-red-600/20',
-    iconColor: 'text-orange-400',
-    glowColor: 'shadow-orange-500/20',
-    borderColor: 'border-orange-500/25 hover:border-orange-400/50',
-    hoverBg: 'hover:bg-orange-500/5',
+    orbBg: 'from-orange-400 via-red-500 to-orange-600',
+    orbRing: 'ring-orange-400/30',
+    iconColor: 'text-white',
+    cardBorder: 'border-orange-400/20 hover:border-orange-400/50 hover:bg-orange-500/5',
   },
 ];
 
@@ -107,10 +110,10 @@ export function QuickStartTemplates({ onSelect, disabled = false, className }: Q
 
   return (
     <div className={cn('space-y-3', className)}>
-      <p className="text-xs font-medium text-muted-foreground text-center tracking-wide uppercase">
+      <p className="text-[10px] font-semibold text-muted-foreground text-center tracking-widest uppercase">
         Or try a sample — pick a business type
       </p>
-      <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
+      <div className="grid grid-cols-6 gap-1.5">
         {TEMPLATES.map((template) => {
           const Icon = template.icon;
           return (
@@ -120,30 +123,31 @@ export function QuickStartTemplates({ onSelect, disabled = false, className }: Q
               onClick={() => handleSelect(template)}
               disabled={disabled}
               className={cn(
-                'group relative flex flex-col items-center gap-2 p-3 rounded-xl border transition-all duration-200 min-h-[80px]',
-                'bg-card/60 backdrop-blur-sm',
+                'group relative flex flex-col items-center justify-center gap-1.5 px-0.5 py-2.5 rounded-xl border transition-all duration-200',
+                'bg-card backdrop-blur-sm overflow-hidden',
                 'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
                 'disabled:opacity-40 disabled:cursor-not-allowed',
-                'hover:scale-[1.04] hover:shadow-lg active:scale-[0.98]',
-                template.borderColor,
-                template.hoverBg
+                'hover:scale-[1.04] hover:shadow-md active:scale-[0.98]',
+                template.cardBorder
               )}
             >
-              {/* Quantis branded icon container — gradient orb */}
+              {/* Quantis icon orb — solid gradient with specular highlight */}
               <div className={cn(
-                'relative flex items-center justify-center w-10 h-10 rounded-xl',
+                'relative flex items-center justify-center w-8 h-8 rounded-[9px] shrink-0',
                 'bg-gradient-to-br',
-                template.iconBg,
+                template.orbBg,
+                'ring-[1.5px]',
+                template.orbRing,
                 'shadow-md',
-                template.glowColor,
-                'transition-transform duration-200 group-hover:scale-110'
+                'transition-all duration-200 group-hover:scale-110 group-hover:shadow-lg'
               )}>
-                <Icon className={cn('w-5 h-5', template.iconColor)} strokeWidth={1.75} />
-                {/* Inner shine */}
-                <div className="absolute inset-0 rounded-xl bg-gradient-to-t from-transparent to-white/10 pointer-events-none" />
+                <Icon className="w-4 h-4 text-white" strokeWidth={2.2} />
+                <div className="absolute top-0.5 left-0.5 w-2.5 h-2 rounded-full bg-white/30 blur-[2.5px] pointer-events-none" />
               </div>
-              <span className="text-[11px] font-semibold leading-tight text-center text-foreground/80 group-hover:text-foreground transition-colors">
-                {template.label}
+
+              {/* Short label — single line, guaranteed to fit */}
+              <span className="block w-full text-center font-semibold text-[9.5px] leading-none tracking-tight text-foreground/70 group-hover:text-foreground transition-colors truncate px-0.5">
+                {template.shortLabel}
               </span>
             </button>
           );
@@ -152,3 +156,4 @@ export function QuickStartTemplates({ onSelect, disabled = false, className }: Q
     </div>
   );
 }
+
