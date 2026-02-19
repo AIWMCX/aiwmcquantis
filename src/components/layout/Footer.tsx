@@ -86,8 +86,8 @@ export function Footer() {
           
           {/* Bottom Row: Copyright + Compliance */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
-            <p className="text-xs text-muted-foreground flex items-center gap-1">
-              © {new Date().getFullYear()} AIWMC AI Agency LLC • Made with  
+            <p className="text-xs text-muted-foreground">
+              © {new Date().getFullYear()} AIWMC AI Agency LLC
             </p>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
             <p className="text-xs text-muted-foreground">
