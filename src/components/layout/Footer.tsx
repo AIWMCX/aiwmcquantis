@@ -85,10 +85,12 @@ export function Footer() {
           </div>
           
           {/* Bottom Row: Copyright + Compliance */}
-          <div className="flex items-center justify-center">
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} AIWMC™ LLC
             </p>
+            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
+            <p className="text-xs text-muted-foreground">GDPR & CCPA Compliant</p>
           </div>
         </div>
       </div>
