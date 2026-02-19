@@ -10,6 +10,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { FinancialAnalysis, ScenarioMetrics } from '@/types/analysis';
 import type { ScenarioType } from './ScenarioSelector';
 
@@ -233,7 +234,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
       label: 'Payback Period',
       value: (() => {
         const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
-        return (raw >= 999 || raw === 0 || !isProfitable) ? 'N/A' : `${raw} mo.`;
+        return formatPaybackDisplay(raw, baseProfit);
       })(),
       icon: Clock,
       color: 'text-amber-600 dark:text-amber-400',
@@ -295,7 +296,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
             label="Payback Period"
             value={(() => {
               const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
-              return (raw >= 999 || raw === 0 || !isProfitable) ? 'N/A' : `${raw} mo.`;
+              return formatPaybackDisplay(raw, baseProfit);
             })()}
             rawValue={financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0}
             icon={Clock}

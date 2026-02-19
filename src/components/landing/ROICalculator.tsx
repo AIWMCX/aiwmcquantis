@@ -6,8 +6,11 @@ import { Slider } from '@/components/ui/slider';
 import { trackCtaClick } from '@/lib/analytics';
 
 export function ROICalculator() {
-  const [analyses, setAnalyses] = useState(3);
-  const [hourlyRate, setHourlyRate] = useState(50);
+  const [analyses, setAnalyses] = useState(10);
+  const [hourlyRate, setHourlyRate] = useState(35);
+
+  // Force en-US locale for consistent number formatting across all environments
+  const fmt = (n: number) => n.toLocaleString('en-US');
 
   const savings = useMemo(() => {
     const consultantCost = analyses * 1500;
@@ -15,8 +18,9 @@ export function ROICalculator() {
     const timeCostSaved = timeSaved * hourlyRate;
     const totalSavings = consultantCost + timeCostSaved;
     const quantisCost = 17;
-    const roi = Math.round(((totalSavings - quantisCost) / quantisCost) * 100);
-    return { consultantCost, timeSaved, timeCostSaved, totalSavings, quantisCost, roi };
+    const netSavings = totalSavings - quantisCost;
+    const roi = Math.round((netSavings / quantisCost) * 100);
+    return { consultantCost, timeSaved, timeCostSaved, totalSavings, netSavings, quantisCost, roi };
   }, [analyses, hourlyRate]);
 
   return (
@@ -84,7 +88,7 @@ export function ROICalculator() {
                 <div className="p-3 rounded-xl bg-destructive/5 border border-destructive/20 text-center">
                   <p className="text-xs text-muted-foreground mb-1">Consultant Cost</p>
                   <p className="text-xl font-bold text-destructive">
-                    ${savings.consultantCost.toLocaleString()}
+                    ${fmt(savings.consultantCost)}
                   </p>
                 </div>
                 <div className="p-3 rounded-xl bg-muted/50 border border-border text-center">
@@ -92,7 +96,7 @@ export function ROICalculator() {
                   <p className="text-xl font-bold text-foreground">
                     {savings.timeSaved}h
                     <span className="text-sm font-normal text-muted-foreground ml-1">
-                      (${savings.timeCostSaved.toLocaleString()})
+                      (${fmt(savings.timeCostSaved)})
                     </span>
                   </p>
                 </div>
@@ -101,11 +105,11 @@ export function ROICalculator() {
               <div className="p-4 rounded-xl bg-success/5 border-2 border-success/30 text-center">
                 <p className="text-xs text-muted-foreground mb-1">Your Monthly Savings with Quantis</p>
                 <p className="text-3xl font-black text-success">
-                  ${(savings.totalSavings - savings.quantisCost).toLocaleString()}
+                  ${fmt(savings.netSavings)}
                 </p>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
                   <span>Your cost: <strong className="text-foreground">$17/mo</strong></span>
-                  <span>ROI: <strong className="text-success">{savings.roi.toLocaleString()}%</strong></span>
+                  <span>ROI: <strong className="text-success">{fmt(savings.roi)}%</strong></span>
                 </div>
               </div>
 
@@ -116,7 +120,7 @@ export function ROICalculator() {
               >
                 <Button size="lg" className="w-full gap-2 min-h-[52px] text-base font-semibold hover:scale-[1.02] transition-transform">
                   <DollarSign className="w-5 h-5" />
-                  Start Saving ${(savings.totalSavings - savings.quantisCost).toLocaleString()}/Month
+                  Start Saving ${fmt(savings.netSavings)}/Month
                   <ArrowRight className="w-4 h-4" />
                 </Button>
               </Link>

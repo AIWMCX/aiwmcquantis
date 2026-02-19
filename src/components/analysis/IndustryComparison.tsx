@@ -85,7 +85,7 @@ export function IndustryComparison({ metrics, industryAvg, industryName }: Indus
     ltvCacRatio: industryAvg?.ltvCacRatio || 3,
   };
 
-  // Percentile ranking estimate
+  // Percentile ranking estimate — clamped to always show a positive, sensible range
   const percentile = useMemo(() => {
     let score = 50;
     if (metrics.revenue > defaults.revenue) score += 15;
@@ -93,7 +93,9 @@ export function IndustryComparison({ metrics, industryAvg, industryName }: Indus
     if (metrics.ltvCacRatio > defaults.ltvCacRatio) score += 10;
     if (metrics.revenue > defaults.revenue * 1.5) score += 5;
     if (metrics.margin > defaults.margin * 1.3) score += 5;
-    return Math.min(99, Math.max(10, score));
+    if (metrics.revenue < defaults.revenue * 0.5) score -= 10;
+    if (metrics.margin < 0) score -= 15;
+    return Math.min(95, Math.max(15, score)); // Always show "Top 5%"–"Top 85%"
   }, [metrics, defaults]);
 
   return (
