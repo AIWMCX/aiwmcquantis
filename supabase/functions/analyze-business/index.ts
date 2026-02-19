@@ -3717,16 +3717,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           engine_version: quantisOutput.version,
           data_sources: [
             benchmarkSource === 'database' 
-              ? `Kerry Industry Dataset (${benchmarkDataSource || 'verified benchmarks'})` 
+              ? `Proprietary Industry Benchmark Database (${benchmarkDataSource?.replace(/kerry/gi, 'verified') || 'verified benchmarks'})` 
               : 'IBISWorld Industry Reports (2024)',
             'U.S. Bureau of Labor Statistics',
             'Small Business Administration Cost Data',
             'Industry Standard Financial Formulas (GAAP)',
             `${calc.industryDetected} Sector Benchmarks`,
             locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
-            benchmarkMatchedRegion ? `Regional data: ${benchmarkMatchedRegion}` : null,
-            benchmarkSampleSize ? `Sample size: ${benchmarkSampleSize} companies` : null,
-            ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `User Document: ${ef.source_document}`) : [])
+            benchmarkMatchedRegion ? `Regional benchmark data: ${benchmarkMatchedRegion}` : null,
+            benchmarkSampleSize ? `Verified sample: ${benchmarkSampleSize} companies` : null,
+            ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
           ].filter(Boolean),
           limitations: [
             benchmarkSource === 'hardcoded' ? 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.' : null,

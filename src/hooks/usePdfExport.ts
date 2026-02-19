@@ -824,7 +824,10 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.metricCard },
           React.createElement(Text, { style: styles.metricCardLabel }, 'Payback Period'),
-          React.createElement(Text, { style: styles.metricCardValue }, `${paybackMonths} months`)
+          React.createElement(Text, { style: {
+            ...styles.metricCardValue,
+            color: monthlyProfit <= 0 ? brandedColors.danger : brandedColors.textPrimary
+          } }, monthlyProfit <= 0 ? 'N/A (unprofitable)' : paybackMonths >= 999 ? 'N/A (unprofitable)' : paybackMonths < 12 ? `${paybackMonths} months` : `${(paybackMonths / 12).toFixed(1)} years`)
         )
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Business Overview'),
@@ -835,12 +838,12 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: { ...styles.highlightBox, borderLeftColor: brandedColors.primary } },
         React.createElement(Text, { style: styles.highlightText }, result.business_plan.target_audience)
       ),
-      React.createElement(
+        React.createElement(
         View,
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 2 of 8')
+        React.createElement(Text, null, 'Page 2 of 9')
       )
     ),
     // Financial Analysis Page
@@ -923,7 +926,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 3 of 8')
+        React.createElement(Text, null, 'Page 3 of 9')
       )
     ),
     // Scenario Analysis Page
@@ -1042,7 +1045,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 4 of 8')
+        React.createElement(Text, null, 'Page 4 of 9')
       )
     ),
     // Market Analysis Page
@@ -1131,7 +1134,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 5 of 8')
+        React.createElement(Text, null, 'Page 5 of 9')
       )
     ),
     // Risk Assessment Page
@@ -1191,7 +1194,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 6 of 8')
+        React.createElement(Text, null, 'Page 6 of 9')
       )
     ),
     // Action Plan Page
@@ -1261,7 +1264,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 7 of 8')
+        React.createElement(Text, null, 'Page 7 of 9')
       )
     ),
     // Appendix Page
@@ -1285,8 +1288,14 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         View,
         { style: { marginBottom: 20 } },
         dataSources.length > 0
-          ? dataSources.map((source, i) =>
-              React.createElement(
+          ? dataSources.map((source, i) => {
+              // Sanitize internal developer references for user-facing display
+              const cleanSource = String(source)
+                .replace(/Kerry Industry Dataset/gi, 'Proprietary Industry Benchmark Database')
+                .replace(/Kerry dataset/gi, 'proprietary industry benchmarks')
+                .replace(/\(Kerry\)/gi, '(proprietary)')
+                .replace(/upload Kerry dataset for enhanced accuracy/gi, 'proprietary industry benchmark database');
+              return React.createElement(
                 View,
                 { key: i, style: styles.listItem },
                 React.createElement(
@@ -1294,9 +1303,9 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
                   { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
-                React.createElement(Text, { style: styles.listText }, String(source))
-              )
-            )
+                React.createElement(Text, { style: styles.listText }, cleanSource)
+              );
+            })
           : React.createElement(Text, { style: styles.emptyText }, 'No data sources listed')
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Analysis Limitations'),
@@ -1304,8 +1313,14 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         View,
         { style: { marginBottom: 20 } },
         limitations.length > 0
-          ? limitations.map((limitation, i) =>
-              React.createElement(
+          ? limitations.map((limitation, i) => {
+              // Sanitize internal developer messages
+              const cleanLimitation = String(limitation)
+                .replace(/Using default benchmarks \(upload Kerry dataset for enhanced accuracy\)/gi, 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.')
+                .replace(/No industry-specific benchmarks applied/gi, 'General industry benchmarks applied. Specify your exact business sector for higher precision.')
+                .replace(/upload Kerry dataset/gi, 'providing additional financial details')
+                .replace(/Kerry dataset/gi, 'proprietary industry database');
+              return React.createElement(
                 View,
                 { key: i, style: styles.listItem },
                 React.createElement(
@@ -1313,9 +1328,9 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
                   { style: { ...styles.listBullet, backgroundColor: brandedColors.primary } },
                   React.createElement(Text, { style: styles.listBulletText }, String(i + 1))
                 ),
-                React.createElement(Text, { style: styles.listText }, String(limitation))
-              )
-            )
+                React.createElement(Text, { style: styles.listText }, cleanLimitation)
+              );
+            })
           : React.createElement(Text, { style: styles.emptyText }, 'No limitations listed')
       ),
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Legal Disclaimer'),
@@ -1333,7 +1348,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} ${footerText}. All Rights Reserved.`),
-        React.createElement(Text, null, 'Page 8 of 8')
+        React.createElement(Text, null, 'Page 9 of 9')
       )
     )
   );
