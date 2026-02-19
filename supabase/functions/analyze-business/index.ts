@@ -2700,6 +2700,31 @@ serve(async (req) => {
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
+
+    // ========== SMART IDEA VALIDATION ==========
+    // Detect meta-questions and strategy prompts that are NOT actual business ideas.
+    // These cause "General Business" fallback and produce meaningless reports.
+    const metaQuestionPatterns = [
+      /^analyze\s+(my|the|our)\s+(competitive|market|business|competitive position)/i,
+      /^(how|what|why|when|where|should|can|could|would|is|are)\s+/i,
+      /\?(.*)?$/,  // ends with a question mark
+      /^(help me|tell me|explain|describe|compare|evaluate|assess|review|check|look at|give me|show me)/i,
+      /^(what is|what are|how to|how do|how can|how should)/i,
+    ];
+    // Only block if it's clearly a question with no business noun
+    const businessNounPatterns = [/shop|store|app|service|product|restaurant|cafe|salon|clinic|agency|studio|platform|business|startup|company|firm|brand|marketplace/i];
+    const isMetaQuestion = metaQuestionPatterns.some(p => p.test(sanitizedIdea.trim()));
+    const hasBusinessNoun = businessNounPatterns.some(p => p.test(sanitizedIdea));
+    if (isMetaQuestion && !hasBusinessNoun && sanitizedIdea.length < 150) {
+      return new Response(
+        JSON.stringify({ 
+          error: "Please describe a specific business idea (e.g. 'Coffee shop in Austin, TX' or 'SaaS tool for project management'). Questions and strategy requests cannot be analyzed — the engine needs a concrete business type to apply industry benchmarks.", 
+          code: "INVALID_BUSINESS_IDEA",
+          hint: "Describe what your business does, not a question about business strategy."
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     if (sanitizedIdea.length > 5000) {
       return new Response(
@@ -3476,13 +3501,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // BONUS for database-sourced benchmarks (+15%)
     if (benchmarkSource === 'database') {
       relevanceScore += 15;
-      confidenceBreakdown.details.push(`Using verified database benchmarks (${benchmarkDataSource || 'Kerry dataset'})`);
+      confidenceBreakdown.details.push(`Using verified proprietary industry benchmarks (${benchmarkDataSource || 'industry database'})`);
       if (benchmarkSampleSize && benchmarkSampleSize > 50) {
         relevanceScore += 5; // Extra bonus for large sample size
         confidenceBreakdown.details.push(`Based on ${benchmarkSampleSize} company sample`);
       }
     } else if (benchmarkSource === 'hardcoded') {
-      confidenceBreakdown.details.push('Using default hardcoded benchmarks - upload Kerry dataset for improved accuracy');
+      confidenceBreakdown.details.push('Using default industry benchmarks — select your specific industry for improved accuracy');
     }
     
     // BONUS for region-matched benchmarks (+10%)
@@ -3704,14 +3729,24 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `User Document: ${ef.source_document}`) : [])
           ].filter(Boolean),
           limitations: [
-            benchmarkSource === 'hardcoded' ? 'Using default benchmarks (upload Kerry dataset for enhanced accuracy)' : null,
-            'Analysis based on industry benchmarks and AI estimates',
-            ideaLength < 50 ? 'Limited business description reduces accuracy' : null,
-            detectedIndustry.id === 'general' ? 'No industry-specific benchmarks applied' : null,
-            locationMultiplier === 1.0 ? 'Location-specific data not available' : null,
-            'Actual results depend on execution and market conditions',
-            'Competitive landscape may vary from estimates',
-            calc.corrections.length > 0 ? `${calc.corrections.length} values auto-corrected for realism` : null
+            benchmarkSource === 'hardcoded' ? 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.' : null,
+            'Analysis based on industry benchmarks and AI-assisted estimates',
+            ideaLength < 50 ? 'Brief business description reduces accuracy — add more detail for better results' : null,
+            detectedIndustry.id === 'general' ? 'General industry benchmarks applied. For higher precision, specify your exact business sector.' : null,
+            locationMultiplier === 1.0 ? 'Location-specific cost data not available — specify a major city for adjusted estimates' : null,
+            'Actual results depend on execution, market timing, and competitive dynamics',
+            'Competitive landscape estimates may differ from real market conditions',
+            calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
+            // Expense mismatch disclosure — surfaces hidden engine correction to user
+            (() => {
+              const breakdownSum = calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other;
+              const mismatch = Math.abs(breakdownSum - calc.totalExpenses);
+              if (mismatch > 100) {
+                const pct = Math.round((mismatch / Math.max(calc.totalExpenses, 1)) * 100);
+                return `Expense reconciliation applied: expense breakdown sum ($${breakdownSum.toLocaleString()}) differed from initial calculation by $${mismatch.toLocaleString()} (${pct}%). The breakdown total was used as the source of truth.`;
+              }
+              return null;
+            })(),
           ].filter(Boolean),
           metadata: {
             idea: idea_clean,

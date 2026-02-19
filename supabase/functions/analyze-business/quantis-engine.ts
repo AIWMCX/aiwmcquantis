@@ -234,7 +234,10 @@ export function processQuantisAnalysis(
   const lifetimeMonths = subIndustry?.modifiers?.ltv_multiplier 
     ? Math.round(benchmarks.client_lifetime_months * subIndustry.modifiers.ltv_multiplier)
     : benchmarks.client_lifetime_months;
-  const ltv = avgCheck * benchmarks.orders_per_client * lifetimeMonths;
+  // BUG FIX: LTV must be gross-margin-adjusted (aligns with financial-engine.ts formula).
+  // LTV = Avg_Check × (1 - COGS%) × Orders × Lifetime — represents what the business KEEPS per customer.
+  const grossMarginFractionQ = 1 - (benchmarks.cogs_percent / 100);
+  const ltv = Math.round(avgCheck * grossMarginFractionQ * benchmarks.orders_per_client * lifetimeMonths);
   
   // LTV:CAC ratio
   const ltvCacRatio = cac > 0 ? Math.round((ltv / cac) * 10) / 10 : 0;
@@ -383,15 +386,16 @@ export function processQuantisAnalysis(
           : `$${mrr} - $${totalExpenses} = $${netProfit} ❌ LOSS`,
       },
       {
-        formula: 'LTV = Avg_Check × Orders × Lifetime',
+        formula: 'LTV = Avg_Check × (1 - COGS%) × Orders × Lifetime',
         inputs: {
           'Avg Check': avgCheck,
+          'Gross Margin': `${Math.round(grossMarginFractionQ * 100)}%`,
           'Orders/Mo': benchmarks.orders_per_client,
           'Lifetime': lifetimeMonths,
         },
         result: ltv,
         isValid: true,
-        notes: `$${avgCheck} × ${benchmarks.orders_per_client} × ${lifetimeMonths} = $${ltv}`,
+        notes: `$${avgCheck} × ${Math.round(grossMarginFractionQ * 100)}% × ${benchmarks.orders_per_client} × ${lifetimeMonths} = $${ltv} (margin-adjusted)`,
       },
       {
         formula: 'LTV:CAC = LTV / CAC',

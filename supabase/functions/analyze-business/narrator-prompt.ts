@@ -308,8 +308,16 @@ export function generateFallbackNarrator(
     : metrics.ltvCacRatio >= 3 && metrics.paybackMonths <= 18 ? 'PROMISING'
     : 'LOW_RISK';
 
+  // Guard against "General Business business" double-word when industry detection falls back
+  const industryLabel = (benchmarks.name === 'General Business' || benchmarks.id === 'general')
+    ? 'this business opportunity'
+    : `this ${benchmarks.name}`;
+  const industryLabelLower = (benchmarks.name === 'General Business' || benchmarks.id === 'general')
+    ? 'the proposed business'
+    : benchmarks.name.toLowerCase();
+
   return {
-    executive_summary: `This analysis evaluates a ${benchmarks.name} business opportunity in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}. The LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'indicates healthy unit economics' : 'suggests customer acquisition costs need optimization'}. With an initial investment of $${metrics.startupInvestment.toLocaleString()}, the projected payback period is ${metrics.paybackMonths === 999 ? 'indeterminate until profitability is achieved' : `${metrics.paybackMonths} months`}. All financial projections are computed using industry benchmarks for ${benchmarks.name} adjusted for the ${location} market.`,
+    executive_summary: `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}. The LTV:CAC ratio of ${metrics.ltvCacRatio}x ${metrics.ltvCacRatio >= 3 ? 'indicates healthy unit economics' : 'suggests customer acquisition costs need optimization'}. With an initial investment of $${metrics.startupInvestment.toLocaleString()}, the projected payback period is ${metrics.paybackMonths === 999 ? 'indeterminate until profitability is achieved' : `${metrics.paybackMonths} months`}. All financial projections are computed using industry benchmarks adjusted for the ${location} market.`,
     
     investment_verdict: verdict as NarratorOutput['investment_verdict'],
     
@@ -323,8 +331,8 @@ export function generateFallbackNarrator(
     ],
     
     business_plan: {
-      product_description: `A ${benchmarks.name} business serving the ${location} market.`,
-      target_audience: `Customers in ${location} seeking ${benchmarks.name.toLowerCase()} solutions.`,
+      product_description: `A business serving the ${location} market — focused on delivering value to target customers.`,
+      target_audience: `Customers in ${location} seeking solutions from ${industryLabelLower}.`,
       competitive_advantages: `Focus on operational efficiency and customer retention to maintain margins.`,
       operations: `Standard ${benchmarks.name} operations with focus on ${metrics.isProfitable ? 'scaling' : 'cost optimization'}.`,
       launch_steps: [

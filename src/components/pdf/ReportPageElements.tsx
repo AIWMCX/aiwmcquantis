@@ -41,7 +41,7 @@ export function ReportFooter({ pageNumber, isLast }: ReportFooterProps) {
         ) : null}
       </div>
       <div style={pdfStyles.footerRight}>
-        Page {pageNumber} of 8
+        Page {pageNumber} of 9
       </div>
     </div>
   );
