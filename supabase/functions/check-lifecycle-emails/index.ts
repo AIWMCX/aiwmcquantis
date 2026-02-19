@@ -202,6 +202,48 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
+    // ===== SEQUENCE 5: Weekly Pulse (every Monday — users with at least 1 analysis) =====
+    // Only send on Mondays to create a predictable weekly habit
+    {
+      const today = new Date();
+      const isMonday = today.getUTCDay() === 1;
+
+      if (isMonday) {
+        // Find all users who have run at least 1 analysis and are NOT on cooldown
+        const { data: activeUsers } = await supabase
+          .from("user_engagement")
+          .select("user_id, total_analyses")
+          .gt("total_analyses", 0)
+          // Engagement records updated in last 90 days (recently active enough to care)
+          .gt("updated_at", new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString());
+
+        if (activeUsers) {
+          // Get current week number for deduplication
+          const weekStart = new Date();
+          weekStart.setUTCHours(0, 0, 0, 0);
+          weekStart.setUTCDate(weekStart.getUTCDate() - weekStart.getUTCDay() + 1);
+          const weekKey = weekStart.toISOString().split("T")[0]; // e.g. "2026-02-17"
+
+          for (const user of activeUsers) {
+            if (await isOnCooldown(user.user_id)) continue;
+
+            // Check if we already sent this week's pulse
+            const { data: existingPulse } = await supabase
+              .from("email_send_log")
+              .select("id")
+              .eq("user_id", user.user_id)
+              .eq("template_key", "weekly_pulse")
+              .gte("sent_at", weekKey)
+              .limit(1);
+
+            if (!existingPulse || existingPulse.length === 0) {
+              await sendEmail(user.user_id, "weekly_pulse");
+            }
+          }
+        }
+      }
+    }
+
     console.log(`Lifecycle email check complete: ${emailsSent} emails sent, ${errors.length} errors`);
 
     return new Response(

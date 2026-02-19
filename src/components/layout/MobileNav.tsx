@@ -66,6 +66,7 @@ export function MobileNav({ children }: MobileNavProps) {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home, show: true },
+    { path: '/leaderboard', label: 'Leaderboard 🏆', icon: Zap, show: true },
     { path: '/app', label: 'Dashboard', icon: LayoutDashboard, show: isAuthenticated },
     { path: '/docs', label: 'Docs Studio', icon: FileText, show: isAuthenticated },
     { path: '/plus-settings', label: 'Plus Settings', icon: Settings, show: isAuthenticated },
