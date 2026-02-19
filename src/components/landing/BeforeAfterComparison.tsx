@@ -59,9 +59,9 @@ export function BeforeAfterComparison() {
         </div>
 
         <div className="text-center">
-          <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'before_after')}>
+          <Link to="/app" onClick={() => trackCtaClick('switch_60_seconds', 'before_after')}>
             <Button size="lg" className="gap-2 min-h-[52px] px-6 text-base font-semibold hover:scale-[1.02] transition-transform">
-              See My Numbers — Free
+              Switch in 60 Seconds
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>

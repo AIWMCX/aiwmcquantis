@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { 
@@ -9,48 +9,124 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
-  ArrowRight as ArrowRightIcon
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
+import { cn } from '@/lib/utils';
 
-interface DemoMetric {
+interface IndustryDemo {
   label: string;
-  value: string;
-  subValue?: string;
-  icon: React.ElementType;
-  color: string;
+  emoji: string;
+  idea: string;
+  location: string;
+  metrics: { label: string; value: string; subValue?: string; color: string }[];
+  insights: string[];
+  risks: string[];
 }
 
-const demoMetrics: DemoMetric[] = [
-  { label: 'Monthly Profit', value: '$4,200', subValue: 'Conservative estimate', icon: DollarSign, color: 'text-success' },
-  { label: 'Payback Period', value: '7.1 months', subValue: 'Based on $30K investment', icon: Clock, color: 'text-primary' },
-  { label: 'Annual ROI', value: '168%', subValue: 'First year projection', icon: TrendingUp, color: 'text-success' },
+const INDUSTRY_DEMOS: IndustryDemo[] = [
+  {
+    label: 'Coffee Shop',
+    emoji: '☕',
+    idea: 'Coffee shop with remote work focus',
+    location: 'Denver, CO',
+    metrics: [
+      { label: 'Monthly Profit', value: '$4,200', subValue: 'Conservative estimate', color: 'text-success' },
+      { label: 'Payback Period', value: '7.1 months', subValue: 'Based on $30K investment', color: 'text-primary' },
+      { label: 'Annual ROI', value: '168%', subValue: 'First year projection', color: 'text-success' },
+    ],
+    insights: [
+      'Target 85 customers/month for profitability',
+      'CAC should stay under $45 for positive unit economics',
+      'Peak season: March–May offers 40% revenue boost',
+    ],
+    risks: [
+      'Competition: 3 similar businesses within 2mi radius',
+      'Seasonal dependency requires cash reserves',
+    ],
+  },
+  {
+    label: 'SaaS App',
+    emoji: '💻',
+    idea: 'Project management SaaS for small teams',
+    location: 'San Francisco, CA',
+    metrics: [
+      { label: 'Monthly Profit', value: '$12,000', subValue: 'At 400 paying users', color: 'text-success' },
+      { label: 'Payback Period', value: '4.8 months', subValue: 'Based on $50K investment', color: 'text-primary' },
+      { label: 'Annual ROI', value: '289%', subValue: 'First year projection', color: 'text-success' },
+    ],
+    insights: [
+      'LTV:CAC ratio of 3.2x — healthy unit economics',
+      'Freemium model needs 6% conversion rate to break even',
+      'Monthly churn must stay under 3% to sustain growth',
+    ],
+    risks: [
+      'Market: 327+ direct competitors identified',
+      'CAC rising 22% YoY in this category',
+    ],
+  },
+  {
+    label: 'E-commerce',
+    emoji: '🛍️',
+    idea: 'Sustainable fashion e-commerce brand',
+    location: 'New York, NY',
+    metrics: [
+      { label: 'Monthly Profit', value: '$6,800', subValue: 'Conservative estimate', color: 'text-success' },
+      { label: 'Payback Period', value: '9.3 months', subValue: 'Based on $40K investment', color: 'text-primary' },
+      { label: 'Annual ROI', value: '204%', subValue: 'First year projection', color: 'text-success' },
+    ],
+    insights: [
+      'Average order value of $87 drives strong margins',
+      'Repeat purchase rate of 34% keeps LTV high',
+      'Q4 (Oct–Dec) accounts for 38% of annual revenue',
+    ],
+    risks: [
+      'Supplier concentration risk — 1 vendor = 60% of supply',
+      'Returns rate above 18% will erode profitability',
+    ],
+  },
 ];
 
-const demoInsights = [
-  'Target 85 customers/month for profitability',
-  'CAC should stay under $45 for positive unit economics',
-  'Peak season: March-May offers 40% revenue boost',
-];
-
-const demoRisks = [
-  'Competition: 3 similar businesses within 2mi radius',
-  'Seasonal dependency requires cash reserves',
-];
+const MetricIcon: Record<string, React.ElementType> = {
+  'Monthly Profit': DollarSign,
+  'Payback Period': Clock,
+  'Annual ROI': TrendingUp,
+};
 
 export function DemoPreview() {
+  const [activeTab, setActiveTab] = useState(0);
+  const demo = INDUSTRY_DEMOS[activeTab];
+
   return (
     <section id="demo-preview" className="py-8 md:py-12 bg-background overflow-hidden">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Header */}
         <div className="text-center max-w-2xl mx-auto mb-6">
-          <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-2">Sample Report</p>
+          <p className="text-xs uppercase tracking-widest text-primary font-semibold mb-2">Interactive Sample Report</p>
           <h2 className="text-xl md:text-2xl font-bold text-foreground mb-2">
-            See What You'll Get in 3 Minutes
+            See What You'll Get — Pick an Industry
           </h2>
           <p className="text-sm text-muted-foreground">
-            Example output: "Coffee shop in downtown Denver"
+            Switch between industries to see how the engine adapts to each business type.
           </p>
+        </div>
+
+        {/* Industry Tabs */}
+        <div className="flex justify-center gap-2 mb-6">
+          {INDUSTRY_DEMOS.map((d, i) => (
+            <button
+              key={d.label}
+              onClick={() => setActiveTab(i)}
+              className={cn(
+                'flex items-center gap-2 px-4 py-2 rounded-full text-sm font-medium transition-all duration-200',
+                activeTab === i
+                  ? 'bg-primary text-primary-foreground shadow-md scale-105'
+                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
+              )}
+            >
+              <span>{d.emoji}</span>
+              {d.label}
+            </button>
+          ))}
         </div>
 
         {/* Demo Card */}
@@ -66,7 +142,7 @@ export function DemoPreview() {
                 </div>
                 <div>
                   <div className="font-semibold text-foreground text-sm md:text-base">Business Analysis Report</div>
-                  <div className="text-xs text-muted-foreground">Coffee Shop • Denver, CO</div>
+                  <div className="text-xs text-muted-foreground">{demo.emoji} {demo.idea} • {demo.location}</div>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
@@ -77,16 +153,21 @@ export function DemoPreview() {
             {/* Metrics Grid */}
             <div className="p-4 md:p-6">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                {demoMetrics.map((metric) => (
-                  <div key={metric.label} className="p-4 rounded-xl border border-border bg-background">
-                    <div className="flex items-center gap-2 mb-2">
-                      <metric.icon className={`w-4 h-4 ${metric.color}`} />
-                      <span className="text-sm text-muted-foreground">{metric.label}</span>
+                {demo.metrics.map((metric) => {
+                  const Icon = MetricIcon[metric.label] || TrendingUp;
+                  return (
+                    <div key={metric.label} className="p-4 rounded-xl border border-border bg-background transition-all duration-300">
+                      <div className="flex items-center gap-2 mb-2">
+                        <Icon className={cn('w-4 h-4', metric.color)} />
+                        <span className="text-sm text-muted-foreground">{metric.label}</span>
+                      </div>
+                      <div className={cn('text-2xl md:text-3xl font-bold transition-all duration-300', metric.color)}>
+                        {metric.value}
+                      </div>
+                      {metric.subValue && <div className="text-xs text-muted-foreground mt-1">{metric.subValue}</div>}
                     </div>
-                    <div className={`text-2xl md:text-3xl font-bold ${metric.color}`}>{metric.value}</div>
-                    {metric.subValue && <div className="text-xs text-muted-foreground mt-1">{metric.subValue}</div>}
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Insights & Risks */}
@@ -97,8 +178,8 @@ export function DemoPreview() {
                     Key Insights
                   </h3>
                   <ul className="space-y-2">
-                    {demoInsights.map((insight, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                    {demo.insights.map((insight) => (
+                      <li key={insight} className="text-sm text-muted-foreground flex items-start gap-2">
                         <span className="text-success mt-0.5">•</span>
                         {insight}
                       </li>
@@ -111,8 +192,8 @@ export function DemoPreview() {
                     Risk Factors
                   </h3>
                   <ul className="space-y-2">
-                    {demoRisks.map((risk, i) => (
-                      <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
+                    {demo.risks.map((risk) => (
+                      <li key={risk} className="text-sm text-muted-foreground flex items-start gap-2">
                         <span className="text-warning mt-0.5">•</span>
                         {risk}
                       </li>
@@ -135,19 +216,18 @@ export function DemoPreview() {
             </div>
           </div>
 
-          {/* CTA OUTSIDE the blur — clearly clickable */}
+          {/* CTA OUTSIDE the blur */}
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground mb-3">
-              This is a sample. Get <strong className="text-foreground">your</strong> numbers:
+              This is a sample. Get <strong className="text-foreground">your</strong> personalized report:
             </p>
             <Link
               to="/app"
-              onClick={() => trackCtaClick('see_my_numbers', 'demo_preview')}
+              onClick={() => trackCtaClick('get_my_version', 'demo_preview')}
             >
               <Button size="lg" className="w-full md:w-auto gap-2 shadow-xl min-h-[56px] text-base hover:scale-[1.02] transition-all">
                 <TrendingUp className="w-5 h-5" />
-                See My Numbers — Free
-                <ArrowRight className="w-4 h-4" />
+                Get My Version of This Report →
               </Button>
             </Link>
           </div>
