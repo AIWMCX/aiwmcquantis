@@ -25,7 +25,7 @@ export function Footer() {
                 AI business validation & financial structuring for founders
               </p>
               <p className="text-xs text-muted-foreground">
-                A product of <span className="font-medium">AIWMC AI Agency LLC</span>
+                A product of <span className="font-medium">AIWMC™  LLC</span>
               </p>
               
               {/* Social Links */}
