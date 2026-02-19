@@ -87,10 +87,15 @@ export function useAnalysis() {
         error.message.includes('429') ||
         error.message.includes('RATE_LIMIT');
 
+      const isInvalidIdea = error.message.includes('INVALID_BUSINESS_IDEA');
+
       if (isRateLimit) {
         // Set the banner state so the UI can show a persistent prompt
         setRateLimitError(error.message);
         message = error.message.replace('RATE_LIMIT_EXCEEDED: ', '');
+      } else if (isInvalidIdea) {
+        // Strip the code prefix, show the user-friendly message
+        message = error.message.replace('INVALID_BUSINESS_IDEA: ', '');
       } else if (
         error.message.includes('402') ||
         error.message.includes('PAYMENT') ||
@@ -102,7 +107,7 @@ export function useAnalysis() {
       }
 
       toast.error(message, {
-        duration: 5000,
+        duration: isInvalidIdea ? 8000 : 5000,
         description: isRateLimit
           ? 'Please wait a bit, or sign in / upgrade to Plus for higher limits.'
           : undefined,

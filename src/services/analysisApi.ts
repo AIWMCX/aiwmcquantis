@@ -47,8 +47,28 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       });
 
       if (error) {
+        // Try to parse the response body for structured error messages (e.g., 400 validation errors)
+        const status = error.context?.status;
+        if (status === 400) {
+          // Parse the body to get the user-friendly error message from the edge function
+          let body: any = {};
+          try {
+            const rawBody = error.context?.body;
+            if (typeof rawBody === 'string') {
+              body = JSON.parse(rawBody);
+            } else if (rawBody && typeof rawBody === 'object') {
+              body = rawBody;
+            }
+          } catch {}
+          
+          const code = body.code || 'VALIDATION_ERROR';
+          const message = body.error || 'Invalid request';
+          const hint = body.hint ? ` ${body.hint}` : '';
+          throw new Error(`${code}: ${message}${hint}`);
+        }
+
         // Check for rate limit error in the response
-        if (error.message?.includes('429') || error.context?.status === 429) {
+        if (error.message?.includes('429') || status === 429) {
           const errorData = error.context?.body || {};
           const retryAfter = errorData.details?.retry_after_seconds || 60;
           const minutes = Math.ceil(retryAfter / 60);
@@ -102,10 +122,11 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       lastError = error instanceof Error ? error : new Error(String(error));
       console.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
       
-      // Don't retry for validation errors or rate limit errors
+      // Don't retry for validation errors, invalid input, or rate limit errors
       if (lastError.message.includes('VALIDATION') || 
           lastError.message.includes('validation') ||
-          lastError.message.includes('RATE_LIMIT')) {
+          lastError.message.includes('RATE_LIMIT') ||
+          lastError.message.includes('INVALID_BUSINESS_IDEA')) {
         throw lastError;
       }
     }
