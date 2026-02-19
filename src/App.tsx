@@ -27,6 +27,7 @@ const PlusSettings = lazy(() => import("./pages/PlusSettings"));
 const DocsStudio = lazy(() => import("./pages/DocsStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/BlogArticle"));
+const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -76,6 +77,7 @@ const App = () => {
                 <Route path="/blog" element={<Blog />} />
                 <Route path="/blog/:slug" element={<BlogArticle />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/leaderboard" element={<Leaderboard />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />

@@ -1966,6 +1966,19 @@ export type Database = {
       }
       get_unique_users_with_analysis: { Args: never; Returns: number }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_weekly_leaderboard: {
+        Args: never
+        Returns: {
+          idea_score: number
+          industry: string
+          location: string
+          monthly_profit: number
+          net_margin: number
+          payback_months: number
+          rank_position: number
+          share_token: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

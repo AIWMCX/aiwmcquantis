@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { 
   Twitter, Linkedin, MessageCircle, Copy, Mail, 
-  Download, CheckCircle2, X, Trophy, ArrowRight, DollarSign
+  Download, CheckCircle2, X, Trophy, ArrowRight, DollarSign, Image
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -18,6 +18,7 @@ interface ShareSuccessModalProps {
   onExportPDF?: () => void;
   profit?: number;
   margin?: number;
+  paybackMonths?: number;
 }
 
 export function ShareSuccessModal({
@@ -29,12 +30,32 @@ export function ShareSuccessModal({
   onExportPDF,
   profit = 0,
   margin = 0,
+  paybackMonths,
 }: ShareSuccessModalProps) {
   const [copied, setCopied] = useState(false);
+  const [captionCopied, setCaptionCopied] = useState(false);
 
   if (!isOpen) return null;
 
-  const shareText = `I scored ${ideaScore}/10 on my business idea analysis with AIWMC Quantis! Get your free analysis:`;
+  // Build short idea label (first 3 words max)
+  const ideaLabel = ideaName.split(' ').slice(0, 4).join(' ');
+
+  // Curiosity-driven share text
+  const shareText = `Quantis gave my "${ideaLabel}" idea a ${ideaScore}/10. Here's why: $${profit.toLocaleString()}/mo profit, ${margin.toFixed(1)}% net margin${paybackMonths ? `, ${paybackMonths}mo payback` : ''}. See the full breakdown:`;
+
+  // Pre-formatted image caption for Instagram/LinkedIn posts
+  const imageCaption = `📊 Just validated my business idea with AIWMC Quantis
+
+Score: ${ideaScore}/10 ${ideaScore >= 8 ? '🏆' : ideaScore >= 5 ? '⚡' : '⚠️'}
+Monthly Profit: $${profit.toLocaleString()}
+Net Margin: ${margin.toFixed(1)}%${paybackMonths ? `\nPayback Period: ${paybackMonths} months` : ''}
+
+Most validators just say "good idea" or "bad idea."
+Quantis shows you HOW to make it profitable 📈
+
+Free analysis → aiwmcquantis.com
+${shareUrl ? `\nMy full report: ${shareUrl}` : ''}`;
+
   const encodedText = encodeURIComponent(shareText);
   const encodedUrl = encodeURIComponent(shareUrl || 'https://aiwmcquantis.com');
 
@@ -44,6 +65,16 @@ export function ShareSuccessModal({
     toast.success('Link copied!');
     trackEvent('share_link_copied', { score: ideaScore });
     setTimeout(() => setCopied(false), 2000);
+  };
+
+  const handleCopyCaption = () => {
+    navigator.clipboard.writeText(imageCaption);
+    setCaptionCopied(true);
+    toast.success('Caption copied!', {
+      description: 'Paste it as your Instagram or LinkedIn post caption.',
+    });
+    trackEvent('share_caption_copied', { score: ideaScore });
+    setTimeout(() => setCaptionCopied(false), 2000);
   };
 
   const handleSocialShare = (platform: string, url: string) => {
@@ -65,7 +96,7 @@ export function ShareSuccessModal({
       <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
 
       {/* Modal */}
-      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200">
+      <div className="relative w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl animate-in fade-in zoom-in-95 duration-200 max-h-[90vh] overflow-y-auto">
         <button
           onClick={onClose}
           className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-muted transition-colors"
@@ -81,7 +112,7 @@ export function ShareSuccessModal({
           </div>
           <h3 className="text-xl font-bold text-foreground">Analysis Complete!</h3>
           <p className="text-sm text-muted-foreground mt-1 flex items-center justify-center gap-1.5">
-            <DollarSign className="w-4 h-4 text-success" />
+            <DollarSign className="w-4 h-4 text-emerald-500" />
             You just saved ~$1,500 in consultant fees
           </p>
         </div>
@@ -99,7 +130,7 @@ export function ShareSuccessModal({
             <div className="text-right space-y-1">
               <div>
                 <p className="text-xs text-muted-foreground">Monthly Profit</p>
-                <p className={cn('text-sm font-bold', profit >= 0 ? 'text-success' : 'text-destructive')}>
+                <p className={cn('text-sm font-bold', profit >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive')}>
                   ${profit.toLocaleString()}
                 </p>
               </div>
@@ -125,7 +156,7 @@ export function ShareSuccessModal({
               )}
             >
               <Twitter className="w-4 h-4" />
-              Twitter
+              Twitter/X
             </Button>
             <Button
               variant="outline"
@@ -155,10 +186,24 @@ export function ShareSuccessModal({
               className="gap-2"
               onClick={handleCopyLink}
             >
-              {copied ? <CheckCircle2 className="w-4 h-4 text-success" /> : <Copy className="w-4 h-4" />}
+              {copied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Copy className="w-4 h-4" />}
               {copied ? 'Copied!' : 'Copy Link'}
             </Button>
           </div>
+
+          {/* Image Caption Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            className="w-full gap-2 border-dashed"
+            onClick={handleCopyCaption}
+          >
+            {captionCopied ? <CheckCircle2 className="w-4 h-4 text-emerald-500" /> : <Image className="w-4 h-4" />}
+            {captionCopied ? 'Caption Copied!' : 'Copy Instagram / LinkedIn Caption'}
+          </Button>
+          <p className="text-xs text-muted-foreground text-center">
+            Pre-formatted with your metrics — ready to paste as a post
+          </p>
         </div>
 
         {/* Actions */}

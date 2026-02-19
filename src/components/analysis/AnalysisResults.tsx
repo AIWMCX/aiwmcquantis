@@ -43,14 +43,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [showShareModal, setShowShareModal] = useState(false);
 
-  // Auto-show share modal on first render (first analysis completion)
+  // Auto-show share modal after 8s — enough time for user to read results
   useEffect(() => {
     const key = `quantis_shared_${result.metadata.generated_at}`;
     if (!sessionStorage.getItem(key)) {
       const timer = setTimeout(() => {
         setShowShareModal(true);
         sessionStorage.setItem(key, '1');
-      }, 1500);
+      }, 8000);
       return () => clearTimeout(timer);
     }
   }, [result.metadata.generated_at]);
@@ -343,8 +343,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 variant="outline"
                 className="gap-1.5 text-xs"
                 onClick={() => {
+                  const tweetText = `Quantis gave my business idea a ${ideaScore}/10. Here's why: $${scenarioMetrics.profit.toLocaleString()}/mo profit, ${result.financial_analysis?.scenarios?.base?.net_margin?.toFixed(1) ?? '0'}% net margin. See the full breakdown:`;
                   window.open(
-                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(`I scored ${ideaScore}/10 on my business idea analysis! 🚀`)}&url=${encodeURIComponent(shareUrl)}`,
+                    `https://twitter.com/intent/tweet?text=${encodeURIComponent(tweetText)}&url=${encodeURIComponent(shareUrl)}`,
                     '_blank'
                   );
                 }}
@@ -371,8 +372,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 variant="outline"
                 className="gap-1.5 text-xs"
                 onClick={() => {
+                  const waText = `Quantis gave my business idea a ${ideaScore}/10 — $${scenarioMetrics.profit.toLocaleString()}/mo profit. See the full analysis: ${shareUrl}`;
                   window.open(
-                    `https://wa.me/?text=${encodeURIComponent(`Check out my business analysis (scored ${ideaScore}/10): ${shareUrl}`)}`,
+                    `https://wa.me/?text=${encodeURIComponent(waText)}`,
                     '_blank'
                   );
                 }}
@@ -573,6 +575,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         onExportPDF={handleExportPDF}
         profit={scenarioMetrics.profit}
         margin={scenarioMetrics.margin}
+        paybackMonths={result.financial_analysis?.payback_period_months ?? undefined}
       />
     </div>
   );
