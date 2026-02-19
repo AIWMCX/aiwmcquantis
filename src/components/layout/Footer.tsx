@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Heart, Mail, Linkedin, Github, Instagram } from 'lucide-react';
+import { Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
@@ -13,13 +13,13 @@ export function Footer() {
           <div className="flex flex-col lg:flex-row items-center lg:items-start justify-between gap-6">
             <div className="flex flex-col items-center lg:items-start gap-3">
               <Link to="/" className="flex items-center">
-                <img 
-                  src={aiwmcLogoText} 
-                  alt="AIWMC Quantis" 
+                <img
+                  src={aiwmcLogoText}
+                  alt="AIWMC Quantis"
                   width={109}
                   height={32}
-                  className="h-8 w-auto object-contain dark:invert"
-                />
+                  className="h-8 w-auto object-contain dark:invert" />
+
               </Link>
               <p className="text-sm text-muted-foreground text-center lg:text-left max-w-xs">
                 AI business validation & financial structuring for founders
@@ -30,31 +30,31 @@ export function Footer() {
               
               {/* Social Links */}
               <div className="flex items-center gap-3 mt-2">
-                <a 
-                  href="https://www.linkedin.com/in/bogdan-jeltov-6218b9324" 
-                  target="_blank" 
+                <a
+                  href="https://www.linkedin.com/in/bogdan-jeltov-6218b9324"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                  aria-label="LinkedIn"
-                >
+                  aria-label="LinkedIn">
+
                   <Linkedin className="w-4 h-4" />
                 </a>
-                <a 
-                  href="https://www.instagram.com/wmc.ai" 
-                  target="_blank" 
+                <a
+                  href="https://www.instagram.com/wmc.ai"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                  aria-label="Instagram"
-                >
+                  aria-label="Instagram">
+
                   <Instagram className="w-4 h-4" />
                 </a>
-                <a 
-                  href="https://github.com/AIWMCX" 
-                  target="_blank" 
+                <a
+                  href="https://github.com/AIWMCX"
+                  target="_blank"
                   rel="noopener noreferrer"
                   className="p-2 rounded-lg hover:bg-accent transition-colors text-muted-foreground hover:text-foreground"
-                  aria-label="GitHub"
-                >
+                  aria-label="GitHub">
+
                   <Github className="w-4 h-4" />
                 </a>
               </div>
@@ -75,10 +75,10 @@ export function Footer() {
             <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Terms of Service
             </Link>
-            <a 
-              href="mailto:support@aiwmcquantis.com" 
-              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
-            >
+            <a
+              href="mailto:support@aiwmcquantis.com"
+              className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+
               <Mail className="w-4 h-4" />
               support@aiwmcquantis.com
             </a>
@@ -87,7 +87,7 @@ export function Footer() {
           {/* Bottom Row: Copyright + Compliance */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground flex items-center gap-1">
-              © {new Date().getFullYear()} AIWMC AI Agency LLC • Made with <Heart className="w-3 h-3 text-destructive" /> 
+              © {new Date().getFullYear()} AIWMC AI Agency LLC • Made with  
             </p>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
             <p className="text-xs text-muted-foreground">
@@ -96,6 +96,6 @@ export function Footer() {
           </div>
         </div>
       </div>
-    </footer>
-  );
+    </footer>);
+
 }
