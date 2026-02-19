@@ -1,235 +1,225 @@
 
-# Zero Activity Dashboard — Complete Root Cause Analysis
+# PDF Report Quality Audit — Issues Found & Complete Fix Plan
 
-The image you shared is the Lovable project analytics dashboard — showing 0 visitors today in the preview environment. This is expected for the preview URL. The **real traffic data** from the production app (aiwmcquantis.lovable.app) shows 50 visitors and 143 pageviews in the past 7 days, so users ARE coming. The problem is not "no traffic" — it is that the **engagement tracking, activity scoring, churn signals, and notifications are all broken or misconfigured** in multiple places simultaneously.
+## What Was Analyzed
 
-Here is every bug found, root cause identified, and the fix plan.
-
----
-
-## What the Data Actually Shows (Good News First)
-
-From the production analytics pulled right now:
-
-```text
-Last 7 Days:
-  Feb 13: 11 visitors, 31 pageviews
-  Feb 15:  9 visitors, 13 pageviews
-  Feb 16: 15 visitors, 39 pageviews
-  Feb 17: 11 visitors, 22 pageviews
-
-Sources: Direct (38), Facebook (2), VK (2), Claude.ai (1), Google (1)
-Devices: Desktop (34), Mobile (13)
-Countries: US (33), Russia (8)
-
-Database:
-  11 registered users
-  2 Plus subscribers ($34 MRR)
-  29 total analyses run
-  3 active analyzers (one power user with 27 analyses)
-```
-
-Traffic exists. The dashboard you showed is the Lovable **preview iframe** analytics — it only tracks the dev preview URL, not production.
+The uploaded Executive Report PDF was parsed page by page, and the full source code was read across:
+- All 9 PDF report component files (`usePdfExport.ts`, `ReportRiskAssessment.tsx`, etc.)
+- The Quantis financial engine (`financial-engine.ts`, `quantis-engine.ts`)
+- The main `analyze-business` edge function
 
 ---
 
-## Bug #1 — CRITICAL: `activity_score` Is Never Computed (Always 0)
-
-**Root cause:** The `update_engagement_on_analysis` trigger updates `total_analyses`, `streak`, and `last_active_date` — but **never touches `activity_score`**. There is no function, trigger, or cron that computes it. It stays 0 for every user forever.
-
-**Impact cascade:**
-- `churn_risk_score` formula adds `Math.max(0, 20 - (activityScore / 5))` — since `activityScore` is always 0, every user gets the maximum 20 penalty points added
-- `engagement_tier` is computed from risk score, so tiers are always wrong
-- The `check-churn-signals` daily cron reads this 0 and miscalculates every user's risk
-- In-app notifications are triggered based on wrong risk levels
-- All retention interventions fire at wrong times
-
-**Fix:** Add `activity_score` calculation to the `update_engagement_on_analysis` trigger function:
-```sql
--- activity_score = (total_analyses * 10) + (total_exports * 15) + streak bonus
-activity_score = LEAST(100, (total_analyses * 10) + (total_exports * 15) + (current_streak * 5))
-```
+## Issues Found (Categorized by Severity)
 
 ---
 
-## Bug #2 — CRITICAL: `warm-functions` Cron Returns 401 on Every Call
+### CRITICAL — Data & Logic Bugs
 
-**Root cause confirmed from edge function logs:**
-```text
-POST | 401 | warm-functions  (2 consecutive 401s in logs)
-```
+**1. "GENERAL BUSINESS" Industry — No Specific Benchmark Applied**
 
-The `warm-functions` cron job uses the `anon key` in the Authorization header, but the `warm-functions` edge function likely requires a service role key or has JWT verification enabled.
+The PDF cover page shows `GENERAL BUSINESS` as the detected industry. The Appendix (page 11) itself admits:
+> "No industry-specific benchmarks applied"
+> "Using default benchmarks"
 
-**Impact:** Every 5 minutes, the warm-functions cron fires and gets a 401. This means:
-- All edge functions (analyze-business, check-lifecycle-emails, etc.) may be cold when users hit them
-- Cold starts of 2-5 seconds on analysis requests
-- The cron secret approach doesn't work because the anon key is sent instead of service role
+The business idea was: *"Analyze my competitive position in the market..."* — this is a meta-question, not an actual business idea. The engine fell back to the `general_business` benchmark because it couldn't classify the input.
 
-**Fix:** Update the `warm-functions` cron job authorization header to use the service role key (stored as `app.service_role_key` setting), or update the warm-functions edge function to accept anon key calls.
+**Root cause:** `detectSubIndustry()` in `sub-industry-detection.ts` received a strategic question instead of a business type. The engine should detect this and prompt the user with an error or require a valid business idea before running the analysis.
 
 ---
 
-## Bug #3 — CRITICAL: `CRON_SECRET` Secret Is Not Configured
+**2. Expense Mismatch — Engine Warns But Report Hides It**
 
-**Root cause confirmed:**
-```sql
-SELECT current_setting('app.cron_secret', true) → NULL
+From the edge function logs:
+```
+⚠️ Expense mismatch detected: breakdown sum=$15,440, calc.totalExpenses=$8,250. Using sum.
 ```
 
-The `check-churn-signals` and `send-weekly-insights` cron jobs both send `x-cron-secret` header. The edge functions check:
+The PDF (page 3) shows Total Monthly Expenses = **$15,440**, but the calculated net profit uses `-$440`, which implies expenses of ~$15,440. However, the financial engine originally computed `$8,250`. The discrepancy is real and large (87% difference). The engine silently chose the breakdown sum and the user sees no explanation.
+
+**Fix needed:** When an expense mismatch is detected, the `limitations[]` array in the API response and the Appendix section in the PDF must explicitly show this correction with its magnitude.
+
+---
+
+**3. Russian Language Strings in Risk Color Mapping**
+
+In `ReportRiskAssessment.tsx` (lines 14-30):
+
 ```typescript
-if (!isServiceRole && cronSecret && providedSecret !== cronSecret) {
-  return 401
-}
+const getProbabilityColor = (prob: string) => {
+  switch (prob) {
+    case 'высокая': return '#ef4444';   // Russian: "high"
+    case 'средняя': return '#f59e0b';  // Russian: "medium"
+    case 'низкая':  return '#22c55e';  // Russian: "low"
+    default: return '#94a3b8';          // ← ALWAYS FALLS HERE FOR ENGLISH
+  }
+};
 ```
 
-Since `cronSecret` is `undefined`/empty, the `&&` short-circuits and the check passes. So cron calls DO work currently — but only by accident. If someone ever sets `CRON_SECRET`, both cron jobs would immediately break because the cron jobs read from `app.cron_secret` (database setting) but the edge functions read from `Deno.env.get("CRON_SECRET")` — **different sources**.
+The AI returns English values (`HIGH`, `MEDIUM`, `LOW`), but the component matches Russian strings. **All risk colors default to grey `#94a3b8`**, making the entire Risk Matrix colorless and unprofessional in the PDF.
 
-**Fix:** Either:
-- Remove `CRON_SECRET` requirement from edge functions (use service role key verification only)
-- Or properly set `CRON_SECRET` as a Supabase secret AND as a database setting consistently
-
----
-
-## Bug #4 — HIGH: `check-lifecycle-emails` Cron Uses Anon Key
-
-**Root cause:**
-```sql
--- pg_cron job definition:
-headers := '{"Authorization": "Bearer eyJhbG...anon_key..."}' 
-```
-
-The cron job sends the **anon key** to `check-lifecycle-emails`. The edge function then creates a Supabase client with `SUPABASE_SERVICE_ROLE_KEY` (correct), but the function authentication layer sees an anon-key request.
-
-Currently the function has this bypass:
+Same issue in the Risk Summary counter (line 116):
 ```typescript
-if (!isCron && !isServiceRole && !authHeader.includes(SUPABASE_ANON_KEY)) {
-  // still allow...
-}
+businessRisks.filter(r => r.probability === 'высокая' || r.impact === 'высокий')
 ```
-The anon key condition makes it pass through — so it technically works. But this is a security hole: **anyone with the anon key (which is public) can trigger lifecycle emails for all users.**
-
-**Fix:** Replace anon key in the cron job with the service role key, or add proper cron secret validation.
+This always returns `0` for English responses, so all counters show `0`.
 
 ---
 
-## Bug #5 — HIGH: Zero Notifications Ever Created
+**4. Payback Period Inconsistency — Executive Summary Shows "8 months" When Business Is Unprofitable**
 
-**Confirmed:**
-```sql
-SELECT COUNT(*), MAX(created_at) FROM user_notifications → count:0, max:NULL
-```
+The PDF Executive Summary (page 2) shows:
+- Monthly Net Profit: **-$440** (negative — a loss)
+- Payback Period: **8 months**
 
-The `check-churn-signals` function creates notifications, but **it has never run successfully** in a way that triggered notifications. Reasons:
-1. Activity score is 0, so risk calculations are skewed
-2. Most users have `user_engagement` records with wrong risk scores
-3. The threshold comparisons (`previousRisk <= 30` → `risk > 30`) never change correctly when `activity_score` is always 0
-4. Only 2 users have `user_engagement` records at all (the trigger only fires when an analysis is saved — 9 users never ran an analysis)
+A negative-profit business can never pay back in 8 months. The `formatPaybackDisplay()` function likely returns `8` based on the investment divided by a different (earlier) profit figure before the expense mismatch correction was applied.
 
-**Fix:** Run `check-churn-signals` once manually after fixing `activity_score`, and ensure `user_engagement` records are created for ALL users, not just those who ran analyses.
+**Fix:** Payback must always be recalculated from the **same** `netProfit` figure used for display. If `netProfit < 0`, payback must display `"Not achievable"` or `"N/A (unprofitable)"`.
 
 ---
 
-## Bug #6 — MEDIUM: Bounce Rate is 59–89% — Needs Investigation
+**5. Gross Margin Ceiling Enforcement Not Explained to User**
 
-**From analytics:**
+From the edge function logs:
+```
+⚠️ Margin ceiling enforced: 90% → 45% (max for General Business = 25%)
+```
+
+The engine corrected the margin from 90% to 45%, but the benchmark maximum is 25%. The engine applied an intermediate ceiling (45%) rather than the strict benchmark maximum (25%). This is a guardrail logic inconsistency that needs resolving — either use the strict benchmark maximum or document why a softer ceiling was chosen.
+
+---
+
+### HIGH — Report Structure Problems
+
+**6. Page Count Is Wrong**
+
+The PDF footer says **"Page X of 8"** throughout, but the actual document has **11 pages** (confirmed by the parser which found content through `Page 11`). The cover page, executive summary, and financial pages all span more than 8 pages due to content overflow.
+
+**Fix:** Change the hardcoded `"Page X of 8"` in `ReportPageElements.tsx` and `usePdfExport.ts` to `"Page X of 9"` or implement automatic page counting.
+
+---
+
+**7. Page Break Mid-Content (Executive Summary Cut Off)**
+
+The Executive Summary (page 2) ends abruptly mid-sentence:
+> "Psychographic"  ← truncated at end of page 2
+
+The text is cut off and continues on page 3 without a header, creating a disjointed reading experience. The `@react-pdf/renderer` page auto-breaks inside a `<View>` block, but no `wrap={false}` or `break` hints are applied to content paragraphs.
+
+---
+
+**8. Business Overview Is Generic Boilerplate**
+
+Page 2, Business Overview section reads:
+> *"This General Business business opportunity in Austin, Texas..."*
+> *"primary target customers in Austin, Texas who are seeking high-quality general business solutions"*
+
+The phrase "General Business business opportunity" is duplicated and the entire section is generic template text that doesn't relate to the specific idea input by the user. This happens because the deterministic fallback engine was triggered (AI timed out), and the fallback uses `industry_name` directly in templates without checking for "General Business" edge cases.
+
+---
+
+### MEDIUM — Data Accuracy Improvements
+
+**9. LTV Calculation Inconsistency Between Engines**
+
+In `financial-engine.ts` (line 174):
+```
+LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime_Months
+```
+
+In `quantis-engine.ts` (line 237):
+```
+LTV = Avg_Check × Orders_per_Month × Client_Lifetime_Months  ← NO gross margin adjustment
+```
+
+Two different LTV formulas are in use simultaneously. The financial engine (v1) applies gross margin fraction; the Quantis engine (v2) does not. The PDF output depends on which engine was used last, leading to unpredictable LTV/CAC ratio values.
+
+---
+
+**10. Appendix Limitation Messages Are Internal Developer Text**
+
+The Appendix shows:
+> "Using default benchmarks (upload Kerry dataset for enhanced accuracy)"
+> "No industry-specific benchmarks applied"
+
+These are developer-facing diagnostic messages, not user-facing limitations. Users shouldn't see "Kerry dataset" references — that's internal terminology.
+
+---
+
+## Complete Fix Plan
+
+### Phase 1 — Critical Bug Fixes (Highest Priority)
+
+**File: `src/components/pdf/ReportRiskAssessment.tsx`**
+- Replace Russian string matching with English case-insensitive matching:
+  `'high' | 'HIGH' | 'High'` → red; `'medium'` → amber; `'low'` → green
+- Fix the Risk Summary counters to use `.toLowerCase()` comparison
+
+**File: `src/hooks/usePdfExport.ts` + `src/components/pdf/ReportPageElements.tsx`**
+- Fix payback period: add a guard — if `monthlyProfit < 0`, display `"N/A (currently at a loss)"` instead of a positive number
+- Change `"Page X of 8"` to `"Page X of 9"` (the report genuinely has 9 content pages)
+
+**File: `supabase/functions/analyze-business/index.ts`**
+- When expense mismatch is detected, add it to the `limitations[]` array that gets sent to the frontend (e.g., `"Expense mismatch of $7,190 detected and corrected. Breakdown sum used."`)
+- When the business idea appears to be a question/strategy prompt rather than a business type, return a validation error prompting users to describe a specific business
+
+---
+
+### Phase 2 — Accuracy & Consistency Improvements
+
+**File: `supabase/functions/analyze-business/quantis-engine.ts`**
+- Align LTV formula with `financial-engine.ts` — add the `grossMarginFraction` multiplication:
+  `LTV = Avg_Check × (1 - COGS%) × Orders × Lifetime`
+- This ensures a single source of truth for LTV across both engines
+
+**File: `supabase/functions/analyze-business/narrator-prompt.ts`**
+- Add a special-case guard: when `industry_detected === "General Business"` or `industry_detected === "general_business"`, the fallback narrator must avoid using the phrase "General Business business" and must substitute with "this business opportunity" or the user's actual idea text
+
+**File: `src/components/pdf/ReportAppendix.tsx`**
+- Replace internal developer limitation strings with user-friendly equivalents
+- Hide or rename any reference to "Kerry dataset" — replace with "enhanced industry benchmarks"
+
+---
+
+### Phase 3 — Professional Polish
+
+**File: `src/components/pdf/ReportExecutiveSummary.tsx`**
+- Add text truncation or max character limits to the Business Overview paragraph to prevent mid-page overflow
+- Add `break` hints or `wrap={false}` guards around key metric blocks
+
+**File: `src/hooks/usePdfExport.ts`**
+- Add dynamic page count calculation based on actual content length
+- Fix gross margin ceiling log discrepancy — if max benchmark is 25%, enforce 25%, not 45%
+
+---
+
+## Summary Table
+
 ```text
-Feb 15: 89% bounce rate
-Feb 16: 73% bounce rate  
-Feb 17: 73% bounce rate
+| #  | Issue                                    | Severity | File(s)                              |
+|----|------------------------------------------|----------|--------------------------------------|
+| 1  | Generic "General Business" fallback      | Critical | analyze-business/index.ts            |
+| 2  | Expense mismatch hidden from user        | Critical | analyze-business/index.ts            |
+| 3  | Russian strings in Risk color mapping    | Critical | ReportRiskAssessment.tsx             |
+| 4  | Payback shown positive when unprofitable | Critical | usePdfExport.ts                      |
+| 5  | Margin ceiling enforced inconsistently   | High     | analyze-business/index.ts            |
+| 6  | Wrong page count (says 8, is actually 9) | High     | ReportPageElements.tsx, usePdfExport |
+| 7  | Page break cuts executive summary        | High     | usePdfExport.ts                      |
+| 8  | Generic boilerplate in Business Overview | High     | narrator-prompt.ts                   |
+| 9  | LTV formula mismatch between engines     | Medium   | quantis-engine.ts                    |
+| 10 | Internal developer text in Appendix      | Medium   | ReportAppendix.tsx                   |
 ```
-
-Session duration on Feb 17 was only 91 seconds average (down from 1,569s on Feb 15). This correlates with the date — Feb 17 was when the icon redesign work happened. The bounce rate spike may indicate a visual regression from the icon/UI changes that's driving users away faster.
-
-**Fix:** Review landing page first impression; the 73%+ bounce rate on mobile (13 of 50 visitors) needs investigation. The `/` route has 44 of 50 sessions — almost all users hit the landing and leave.
 
 ---
 
-## Bug #7 — MEDIUM: `user_engagement` Records Only Exist for Analyzed Users
+## What This Will Achieve
 
-Only 2 of 11 registered users have `user_engagement` records (the ones who ran analyses). The other 9 users — including those who signed up and never ran an analysis — have no engagement tracking at all. The churn check skips them entirely for score-based interventions.
-
-The `update_engagement_on_analysis` trigger creates the record only when an analysis fires. Users who sign up but never analyze are invisible to the retention system.
-
-**Fix:** The `handle_new_user` function (which runs on auth.users insert) should also create a baseline `user_engagement` record with zeroed values.
-
----
-
-## Implementation Plan
-
-### Phase 1 — Database Fixes (Migration)
-
-**1A. Fix `activity_score` computation in the trigger:**
-```sql
--- Update update_engagement_on_analysis to compute activity_score
--- Add: activity_score = LEAST(100, (total_analyses * 10) + (current_streak * 5))
-```
-
-**1B. Create `user_engagement` records for all existing users who don't have one:**
-```sql
-INSERT INTO user_engagement (user_id, total_analyses, last_active_date, ...)
-SELECT id, 0, NULL, ...
-FROM profiles
-WHERE id NOT IN (SELECT user_id FROM user_engagement);
-```
-
-**1C. Fix `handle_new_user` to create engagement record on signup:**
-```sql
--- Add INSERT INTO user_engagement when new user registers
-```
-
-**1D. Backfill `activity_score` for existing users based on their actual analyses:**
-```sql
-UPDATE user_engagement ue
-SET activity_score = LEAST(100, 
-  (SELECT COUNT(*) FROM analyses WHERE user_id = ue.user_id) * 10 + 
-  COALESCE(ue.current_streak, 0) * 5
-);
-```
-
-### Phase 2 — Fix `warm-functions` Edge Function Authentication
-
-Update the `warm-functions` edge function to accept anon key OR update the cron job to use the service role key. The 401s need to stop.
-
-### Phase 3 — Fix Cron Job Security
-
-Update `check-lifecycle-emails` cron job pg_cron definition to use proper authorization, removing the security hole of accepting any anon key request.
-
-### Phase 4 — Run Backfill on Churn Signals
-
-After fixing activity_score and engagement records, manually trigger `check-churn-signals` to:
-- Recompute churn risk for all 11 users
-- Create appropriate notifications for the 9 users who never completed an analysis
-- Set correct engagement tiers (most should be "dormant" or "churned" based on last activity)
-
-### Phase 5 — Bounce Rate Investigation
-
-After the retention fixes, review the landing page to address the 73-89% bounce rate. Mobile users (26% of traffic) are likely hitting UX friction. The StickyMobileCTA and hero section need auditing against current mobile viewport behavior.
-
----
-
-## Files That Will Change
-
-| File / Location | Change |
-|---|---|
-| Database migration | Fix `update_engagement_on_analysis` to compute `activity_score` |
-| Database migration | Fix `handle_new_user` to create `user_engagement` row on signup |
-| Database migration | Backfill existing users with correct `activity_score` |
-| Database migration | Backfill `user_engagement` for users with no record |
-| `supabase/functions/warm-functions/index.ts` | Fix 401 authentication issue |
-| `supabase/functions/check-lifecycle-emails/index.ts` | Remove anon-key security bypass |
-
----
-
-## Summary of What Was Zero and Why
-
-| System | Status | Root Cause |
-|---|---|---|
-| Visitors "today" in dashboard | 0 | Preview URL — not production |
-| Production visitors last 7 days | 50 real users | Working correctly |
-| `activity_score` for all users | Always 0 | Trigger never computes it |
-| `user_engagement` records | Only 2 of 11 users | Trigger fires on analysis only |
-| In-app notifications ever sent | 0 | Wrong risk scores, missing records |
-| `warm-functions` | Failing with 401 | Anon key sent, service role needed |
-| Lifecycle emails working | Partially | 5 sent total, logic generally works |
+After these fixes:
+- The Risk Matrix will show correct red/amber/green colors for all entries
+- The Payback Period will never contradict the profit figure
+- Expense corrections will be visible and explained to the user
+- Business Overview will use the actual idea text instead of "General Business business"
+- The Appendix will show clean, user-friendly limitation messages
+- LTV calculations will be consistent across both financial engines
+- Page numbers will be accurate
+- The report will pass a CFO-level credibility review without contradiction
