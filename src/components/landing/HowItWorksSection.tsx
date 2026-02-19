@@ -85,7 +85,7 @@ export function HowItWorksSection() {
         <div className="text-center">
           <Link to="/app">
             <Button size="lg" className="gap-2">
-              See My Numbers — Free
+              Start Analysis — Only 2 Fields Required
               <ChevronRight className="w-4 h-4" />
             </Button>
           </Link>

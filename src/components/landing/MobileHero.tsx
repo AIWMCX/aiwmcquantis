@@ -57,10 +57,10 @@ export function MobileHero() {
             <LiveCounter />
           </div>
           
-          {/* Savings badge */}
+          {/* Trust badge — consistent with "700+ businesses" below */}
           <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-sm font-semibold text-success mb-3 md:mb-4">
             <DollarSign className="w-4 h-4" />
-            Save $2,000+ per analysis vs. consultants
+            Trusted by founders in 50+ cities — save $2,000+ per analysis
           </div>
 
           {/* Headline */}

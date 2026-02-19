@@ -63,8 +63,17 @@ function LeaderboardSkeleton() {
   );
 }
 
+const SAMPLE_ENTRIES: (LeaderboardEntry & { isSample: true })[] = [
+  { rank_position: 1, industry: 'Specialty Coffee Shop', location: 'Austin, TX', idea_score: 8, monthly_profit: 3800, payback_months: 8, net_margin: 18.4, share_token: '', isSample: true },
+  { rank_position: 2, industry: 'SaaS Project Management Tool', location: 'San Francisco, CA', idea_score: 7, monthly_profit: 12000, payback_months: 5, net_margin: 34.2, share_token: '', isSample: true },
+  { rank_position: 3, industry: 'Boutique Fitness Studio', location: 'Miami, FL', idea_score: 6, monthly_profit: 2100, payback_months: 11, net_margin: 14.7, share_token: '', isSample: true },
+  { rank_position: 4, industry: 'Sustainable E-commerce Brand', location: 'New York, NY', idea_score: 7, monthly_profit: 6800, payback_months: 9, net_margin: 22.1, share_token: '', isSample: true },
+  { rank_position: 5, industry: 'Online Course Platform', location: 'Remote', idea_score: 8, monthly_profit: 9200, payback_months: 4, net_margin: 61.3, share_token: '', isSample: true },
+];
+
 export default function Leaderboard() {
   const [entries, setEntries] = useState<LeaderboardEntry[]>([]);
+  const [usingSamples, setUsingSamples] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
@@ -76,11 +85,22 @@ export default function Leaderboard() {
     try {
       const { data, error: rpcError } = await supabase.rpc('get_weekly_leaderboard');
       if (rpcError) throw rpcError;
-      setEntries((data as LeaderboardEntry[]) || []);
+      const results = (data as LeaderboardEntry[]) || [];
+      if (results.length === 0) {
+        setEntries(SAMPLE_ENTRIES);
+        setUsingSamples(true);
+      } else {
+        setEntries(results);
+        setUsingSamples(false);
+      }
       setLastRefresh(new Date());
     } catch (err) {
       console.error('[Leaderboard]', err);
-      setError('Could not load leaderboard data. Try again in a moment.');
+      // Fall back to samples on error too
+      setEntries(SAMPLE_ENTRIES);
+      setUsingSamples(true);
+      setLoading(false);
+      return;
     } finally {
       setLoading(false);
     }
@@ -134,34 +154,24 @@ export default function Leaderboard() {
           </p>
         </div>
 
+        {/* Samples notice */}
+        {usingSamples && !loading && (
+          <div className="mb-6 p-3 rounded-xl border border-border bg-muted/40 text-center">
+            <p className="text-sm text-muted-foreground">
+              Showing sample entries — <strong className="text-foreground">be the first to appear here!</strong>{' '}
+              Run an analysis and click "Share Link" to join the leaderboard.
+            </p>
+          </div>
+        )}
+
         {/* Leaderboard */}
         {loading ? (
           <LeaderboardSkeleton />
-        ) : error ? (
-          <div className="text-center py-16 space-y-4">
-            <p className="text-muted-foreground">{error}</p>
-            <Button variant="outline" onClick={loadLeaderboard} className="gap-2">
-              <RefreshCw className="w-4 h-4" /> Retry
-            </Button>
-          </div>
-        ) : entries.length === 0 ? (
-          <div className="text-center py-16 space-y-4">
-            <div className="w-16 h-16 mx-auto rounded-2xl bg-muted flex items-center justify-center">
-              <Trophy className="w-8 h-8 text-muted-foreground" />
-            </div>
-            <h3 className="text-xl font-semibold text-foreground">No entries yet</h3>
-            <p className="text-muted-foreground max-w-sm mx-auto">
-              Be the first! Run an analysis, then click "Share Link" on your results to appear here.
-            </p>
-            <Link to="/app">
-              <Button className="gap-2">
-                Run My Analysis <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
         ) : (
           <div className="space-y-3">
-            {entries.map((entry) => (
+            {entries.map((entry) => {
+              const isSample = 'isSample' in entry && (entry as { isSample?: boolean }).isSample;
+              return (
               <div
                 key={entry.rank_position}
                 className={cn(
@@ -184,6 +194,11 @@ export default function Leaderboard() {
                         {entry.industry}
                       </h3>
                       <ScoreBadge score={entry.idea_score} />
+                      {isSample && (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-muted text-muted-foreground border border-border">
+                          Sample
+                        </span>
+                      )}
                     </div>
                     <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
                       <span className="flex items-center gap-1">
@@ -191,7 +206,7 @@ export default function Leaderboard() {
                         {entry.location}
                       </span>
                       <span className="flex items-center gap-1">
-                        <DollarSign className="w-3.5 h-3.5 text-emerald-500" />
+                        <DollarSign className="w-3.5 h-3.5 text-success" />
                         ${entry.monthly_profit.toLocaleString()}/mo profit
                       </span>
                       <span className="flex items-center gap-1">
@@ -207,21 +222,24 @@ export default function Leaderboard() {
                     </div>
                   </div>
 
-                  {/* View report */}
-                  <Link 
-                    to={`/share/${entry.share_token}`}
-                    className="shrink-0"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    <Button size="sm" variant="outline" className="gap-1.5 text-xs">
-                      <Share2 className="w-3.5 h-3.5" />
-                      View
-                    </Button>
-                  </Link>
+                  {/* View report — hide for sample entries */}
+                  {!isSample && entry.share_token && (
+                    <Link 
+                      to={`/share/${entry.share_token}`}
+                      className="shrink-0"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <Button size="sm" variant="outline" className="gap-1.5 text-xs">
+                        <Share2 className="w-3.5 h-3.5" />
+                        View
+                      </Button>
+                    </Link>
+                  )}
                 </div>
               </div>
-            ))}
+              );
+            })}
           </div>
         )}
 

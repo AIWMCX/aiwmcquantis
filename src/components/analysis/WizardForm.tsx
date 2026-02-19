@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Send, Loader2, ChevronDown, FileText } from 'lucide-react';
+import { Brain, MapPin, Send, Loader2, ChevronDown, FileText, Zap, CheckCircle2 } from 'lucide-react';
 import { QuickStartTemplates } from './QuickStartTemplates';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -287,11 +287,33 @@ export function WizardForm({
         )}
       </div>
 
+      {/* "What your analysis will include" preview — appears after 10 chars */}
+      {idea.trim().length >= 10 && !isLoading && (
+        <div className="rounded-xl border border-primary/20 bg-primary/5 p-4 space-y-2 animate-in fade-in slide-in-from-bottom-2 duration-300">
+          <p className="text-xs font-semibold text-primary uppercase tracking-wide mb-2">Your analysis will include:</p>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+            {[
+              'Revenue projections (3 scenarios)',
+              'Risk assessment & flags',
+              'Payback period calculation',
+              'Marketing strategy',
+              'Industry benchmark comparison',
+              'Action plan with next steps',
+            ].map((item, i) => (
+              <div key={item} className="flex items-center gap-2 text-sm text-foreground" style={{ animationDelay: `${i * 60}ms` }}>
+                <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
+                {item}
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Submit Button */}
       <Button
         type="submit"
         disabled={!isFormValid || isLoading}
-        className="w-full gap-2 min-h-[48px] text-base"
+        className="w-full gap-2 min-h-[52px] text-base shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01]"
         size="lg"
       >
         {isLoading ? (
@@ -301,8 +323,8 @@ export function WizardForm({
           </>
         ) : (
           <>
-            <Send className="w-4 h-4" />
-            Analyze
+            <Zap className="w-4 h-4" />
+            Get My Financial Analysis →
           </>
         )}
       </Button>
