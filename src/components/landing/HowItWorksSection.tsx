@@ -71,15 +71,15 @@ export function HowItWorksSection() {
         </div>
 
         {/* Comparison Table */}
-        <div className="mb-12">
-          <div className="text-center mb-10">
-            
-            <p className="text-muted-foreground">
-              More than AI — a complete financial analysis engine
-            </p>
-          </div>
-          <ComparisonTable />
-        </div>
+        
+
+
+
+
+
+
+
+
 
         {/* CTA */}
         <div className="text-center">
