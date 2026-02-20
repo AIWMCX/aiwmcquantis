@@ -5,28 +5,28 @@ import { Button } from '@/components/ui/button';
 import { ComparisonTable } from './ComparisonTable';
 
 const processSteps = [
-  {
-    step: 1,
-    icon: FileInput,
-    title: 'You Provide',
-    description: 'Business idea, location, and optional financial inputs',
-    color: 'bg-primary/10 text-primary',
-  },
-  {
-    step: 2,
-    icon: Calculator,
-    title: 'Engine Calculates',
-    description: '12-variable system + 1,000+ industry benchmarks',
-    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  },
-  {
-    step: 3,
-    icon: BarChart3,
-    title: 'You Receive',
-    description: '3 scenarios, ROI, payback period, and action plan',
-    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-];
+{
+  step: 1,
+  icon: FileInput,
+  title: 'You Provide',
+  description: 'Business idea, location, and optional financial inputs',
+  color: 'bg-primary/10 text-primary'
+},
+{
+  step: 2,
+  icon: Calculator,
+  title: 'Engine Calculates',
+  description: '12-variable system + 1,000+ industry benchmarks',
+  color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+},
+{
+  step: 3,
+  icon: BarChart3,
+  title: 'You Receive',
+  description: '3 scenarios, ROI, payback period, and action plan',
+  color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+}];
+
 
 export function HowItWorksSection() {
   return (
@@ -49,8 +49,8 @@ export function HowItWorksSection() {
 
         {/* Process Steps */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
-          {processSteps.map((step, index) => (
-            <div key={step.step} className="relative">
+          {processSteps.map((step, index) =>
+          <div key={step.step} className="relative">
               <div className="p-6 rounded-2xl border border-border bg-card hover:bg-accent/30 transition-all duration-300">
                 <div className="flex items-center gap-4 mb-4">
                   <div className={`p-3 rounded-xl ${step.color}`}>
@@ -61,19 +61,19 @@ export function HowItWorksSection() {
                 <h3 className="text-xl font-semibold text-foreground mb-2">{step.title}</h3>
                 <p className="text-muted-foreground">{step.description}</p>
               </div>
-              {index < processSteps.length - 1 && (
-                <div className="hidden md:flex absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
+              {index < processSteps.length - 1 &&
+            <div className="hidden md:flex absolute top-1/2 -right-3 transform -translate-y-1/2 z-10">
                   <ArrowRight className="w-6 h-6 text-muted-foreground/50" />
                 </div>
-              )}
+            }
             </div>
-          ))}
+          )}
         </div>
 
         {/* Comparison Table */}
         <div className="mb-12">
           <div className="text-center mb-10">
-            <h3 className="text-2xl font-bold text-foreground mb-2">Why We're Different</h3>
+            
             <p className="text-muted-foreground">
               More than AI — a complete financial analysis engine
             </p>
@@ -91,6 +91,6 @@ export function HowItWorksSection() {
           </Link>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
