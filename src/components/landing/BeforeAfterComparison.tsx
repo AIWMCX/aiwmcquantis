@@ -5,25 +5,25 @@ import { Button } from '@/components/ui/button';
 import { trackCtaClick } from '@/lib/analytics';
 
 const WITHOUT_ITEMS = [
-  'Pay consultant $500–2,000 per analysis',
-  'Wait 2–3 weeks for results',
-  'Spend 10+ hours gathering data',
-  "Get static PDF reports you can\u2019t update",
-];
+'Pay consultant $500–2,000 per analysis',
+'Wait 2–3 weeks for results',
+'Spend 10+ hours gathering data',
+"Get static PDF reports you can\u2019t update"];
+
 
 const WITH_ITEMS = [
-  'Unlimited analyses (worth $2,000+ each)',
-  'Get insights in 60 seconds, not weeks',
-  'AI extracts data from PDFs/Excel automatically',
-  'Interactive dashboards you can update anytime',
-];
+'Unlimited analyses (worth $2,000+ each)',
+'Get insights in 60 seconds, not weeks',
+'AI extracts data from PDFs/Excel automatically',
+'Interactive dashboards you can update anytime'];
+
 
 export function BeforeAfterComparison() {
   return (
     <section className="py-12 md:py-16 bg-muted/20">
       <div className="container max-w-5xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">
-          Why 700+ Businesses Switched to Quantis
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">Our Differentiation
+
         </h2>
 
         <div className="grid md:grid-cols-2 gap-4 md:gap-6 mb-8">
@@ -33,12 +33,12 @@ export function BeforeAfterComparison() {
               <XCircle className="w-4 h-4" /> Without Quantis
             </p>
             <ul className="space-y-3">
-              {WITHOUT_ITEMS.map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
+              {WITHOUT_ITEMS.map((item) =>
+              <li key={item} className="flex items-start gap-2.5 text-sm text-muted-foreground">
                   <XCircle className="w-4 h-4 text-destructive/60 mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
-              ))}
+              )}
             </ul>
           </div>
 
@@ -48,12 +48,12 @@ export function BeforeAfterComparison() {
               <CheckCircle2 className="w-4 h-4" /> With Quantis — $17/mo
             </p>
             <ul className="space-y-3">
-              {WITH_ITEMS.map((item) => (
-                <li key={item} className="flex items-start gap-2.5 text-sm text-foreground font-medium">
+              {WITH_ITEMS.map((item) =>
+              <li key={item} className="flex items-start gap-2.5 text-sm text-foreground font-medium">
                   <CheckCircle2 className="w-4 h-4 text-success mt-0.5 flex-shrink-0" />
                   {item}
                 </li>
-              ))}
+              )}
             </ul>
           </div>
         </div>
@@ -68,6 +68,6 @@ export function BeforeAfterComparison() {
           <p className="text-xs text-muted-foreground mt-2">3 free analyses · No credit card required</p>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
