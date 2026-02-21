@@ -7,10 +7,10 @@ import { trackCtaClick, trackEvent } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
 const VALUE_BADGES = [
-  { icon: BarChart3, text: 'Revenue projections' },
-  { icon: AlertTriangle, text: 'Risk flags identified' },
-  { icon: CheckCircle2, text: 'Action plan included' },
-];
+{ icon: BarChart3, text: 'Revenue projections' },
+{ icon: AlertTriangle, text: 'Risk flags identified' },
+{ icon: CheckCircle2, text: 'Action plan included' }];
+
 
 export function MobileHero() {
   const navigate = useNavigate();
@@ -26,7 +26,7 @@ export function MobileHero() {
 
     sessionStorage.setItem('hero_prefill', JSON.stringify({
       idea: quickIdea.trim(),
-      location: quickLocation.trim(),
+      location: quickLocation.trim()
     }));
     navigate('/app');
   };
@@ -41,12 +41,12 @@ export function MobileHero() {
         <div className="absolute top-20 left-10 w-72 h-72 bg-primary/10 rounded-full blur-3xl animate-pulse" />
         <div className="absolute top-40 right-10 w-96 h-96 bg-primary/5 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '1s' }} />
         <div className="absolute bottom-20 left-1/4 w-64 h-64 bg-primary/8 rounded-full blur-3xl animate-pulse" style={{ animationDelay: '2s' }} />
-        <div 
+        <div
           className="absolute inset-0 opacity-[0.015]"
           style={{
             backgroundImage: `url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23000' fill-opacity='1'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`
-          }}
-        />
+          }} />
+
       </div>
       
       <div className="relative container max-w-7xl mx-auto px-4 sm:px-6 py-8 md:py-16">
@@ -58,10 +58,10 @@ export function MobileHero() {
           </div>
           
           {/* Trust badge — consistent with "700+ businesses" below */}
-          <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-success/10 border border-success/20 text-sm font-semibold text-success mb-3 md:mb-4">
-            <DollarSign className="w-4 h-4" />
-            Trusted by founders in 50+ cities — save $2,000+ per analysis
-          </div>
+          
+
+
+
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
@@ -84,10 +84,10 @@ export function MobileHero() {
           </p>
 
           {/* FORM FIRST on mobile - above badges */}
-          <form 
+          <form
             onSubmit={handleQuickSubmit}
-            className="max-w-xl mx-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 sm:p-6 shadow-xl mb-4 md:mb-6"
-          >
+            className="max-w-xl mx-auto bg-card/80 backdrop-blur-sm rounded-2xl border border-border p-4 sm:p-6 shadow-xl mb-4 md:mb-6">
+
             <div className="space-y-3">
               <div className="relative">
                 <Lightbulb className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -97,8 +97,8 @@ export function MobileHero() {
                   value={quickIdea}
                   onChange={(e) => setQuickIdea(e.target.value)}
                   className="pl-10 h-12 text-base bg-background"
-                  maxLength={200}
-                />
+                  maxLength={200} />
+
               </div>
               <div className="relative">
                 <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -108,15 +108,15 @@ export function MobileHero() {
                   value={quickLocation}
                   onChange={(e) => setQuickLocation(e.target.value)}
                   className="pl-10 h-12 text-base bg-background"
-                  maxLength={100}
-                />
+                  maxLength={100} />
+
               </div>
-              <Button 
+              <Button
                 type="submit"
                 disabled={!isFormValid}
-                size="lg" 
-                className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]"
-              >
+                size="lg"
+                className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]">
+
                 <Zap className="w-5 h-5" />
                 See My Numbers — Free
                 <ArrowRight className="w-4 h-4" />
@@ -140,19 +140,19 @@ export function MobileHero() {
               validating ideas before investing time and money.
             </p>
             <div className="flex flex-wrap items-center justify-center gap-3">
-              {VALUE_BADGES.map(({ icon: Icon, text }) => (
-                <div
-                  key={text}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-foreground"
-                >
+              {VALUE_BADGES.map(({ icon: Icon, text }) =>
+              <div
+                key={text}
+                className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-sm font-semibold text-foreground">
+
                   <Icon className="w-4 h-4 text-primary" />
                   {text}
                 </div>
-              ))}
+              )}
             </div>
           </div>
         </div>
       </div>
-    </section>
-  );
+    </section>);
+
 }
