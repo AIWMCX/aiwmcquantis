@@ -440,17 +440,30 @@ export default function Index() {
                   </div>
                 ) : (
                   <div className="space-y-6">
-                    <EmptyState />
-                    <AnalysisTemplatesGrid
-                      onSelect={(templateIdea, templateLocation) => {
-                        if (templateIdea) {
-                          setIdea(templateIdea);
-                          setLocation(templateLocation);
-                          formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                        }
-                      }}
-                      disabled={isLoading}
-                    />
+                    {/* For anonymous first-time users, show a minimal "results appear here" state */}
+                    {!isAuthenticated ? (
+                      <div className="rounded-xl border border-border bg-card p-8 md:p-12 flex flex-col items-center justify-center min-h-[280px] text-center">
+                        <BarChart3 className="w-10 h-10 text-muted-foreground/50 mb-4" />
+                        <h3 className="text-lg font-semibold text-foreground mb-2">Your results will appear here</h3>
+                        <p className="text-sm text-muted-foreground max-w-sm">
+                          Fill in your business idea and location, then hit <strong>Analyze</strong>.
+                        </p>
+                      </div>
+                    ) : (
+                      <>
+                        <EmptyState />
+                        <AnalysisTemplatesGrid
+                          onSelect={(templateIdea, templateLocation) => {
+                            if (templateIdea) {
+                              setIdea(templateIdea);
+                              setLocation(templateLocation);
+                              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }
+                          }}
+                          disabled={isLoading}
+                        />
+                      </>
+                    )}
                   </div>
                 )}
               </TabsContent>

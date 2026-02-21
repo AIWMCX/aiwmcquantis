@@ -55,10 +55,10 @@ export function LiveCounter() {
   // If count is low or unknown, show "early adopter" messaging
   if (count === null || count < 100) {
     return (
-      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-        <Zap className="w-4 h-4 text-primary" />
-        <span className="text-sm font-medium text-primary">
-          New — be one of the first to validate
+      <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-success/10 border border-success/20">
+        <TrendingUp className="w-4 h-4 text-success" />
+        <span className="text-sm font-medium text-success">
+          Now analyzing ideas in 50+ cities
         </span>
       </div>
     );
