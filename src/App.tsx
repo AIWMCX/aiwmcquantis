@@ -28,6 +28,7 @@ const DocsStudio = lazy(() => import("./pages/DocsStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
+const ViralContent = lazy(() => import("./pages/ViralContent"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -78,6 +79,7 @@ const App = () => {
                 <Route path="/blog/:slug" element={<BlogArticle />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
+                <Route path="/viral-content" element={<ViralContent />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
