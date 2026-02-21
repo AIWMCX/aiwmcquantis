@@ -69,6 +69,11 @@ export function MobileHero() {
             <span className="text-primary block mt-1">Insights in 60 Seconds</span>
           </h1>
 
+          {/* Plain-English explainer */}
+          <p className="text-base sm:text-lg text-foreground/80 font-medium mb-2 md:mb-3">
+            Type your business idea. Get profit projections, risk flags, and an action plan.
+          </p>
+
           {/* Sub-headline */}
           <p className="text-base sm:text-lg text-muted-foreground mb-2 md:mb-3">
             Stop paying consultants $500/hour. Get unlimited financial analysis,
