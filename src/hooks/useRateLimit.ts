@@ -10,11 +10,11 @@
    tier: 'anonymous' | 'free' | 'plus';
  }
  
- const TIER_LIMITS = {
-   anonymous: 1,
-   free: 3,
-   plus: Infinity,
- };
+const TIER_LIMITS = {
+  anonymous: 3,
+  free: 10,
+  plus: Infinity,
+};
  
  export function useRateLimit() {
    const { user, isLoading: authLoading } = useAuth();

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Zap, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2, DollarSign } from 'lucide-react';
-import { trackCtaClick, trackEvent } from '@/lib/analytics';
+import { trackCtaClick, trackEvent, trackAnalysisFunnel } from '@/lib/analytics';
 import { LiveCounter } from './LiveCounter';
 
 const VALUE_BADGES = [
@@ -23,6 +23,7 @@ export function MobileHero() {
 
     trackEvent('hero_quick_submit', { idea_length: quickIdea.length, location: quickLocation });
     trackCtaClick('see_preview_numbers', 'hero_form');
+    trackAnalysisFunnel('started', { source: 'hero_form', idea_length: quickIdea.length });
 
     sessionStorage.setItem('hero_prefill', JSON.stringify({
       idea: quickIdea.trim(),
