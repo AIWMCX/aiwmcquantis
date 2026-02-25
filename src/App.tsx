@@ -31,6 +31,9 @@ const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const ViralContent = lazy(() => import("./pages/ViralContent"));
 const ExamplesIndex = lazy(() => import("./pages/examples/ExamplesIndex"));
 const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
+const HowItWorks = lazy(() => import("./pages/HowItWorks"));
+const UseCases = lazy(() => import("./pages/UseCases"));
+const PricingPage = lazy(() => import("./pages/Pricing"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -84,6 +87,9 @@ const App = () => {
                 <Route path="/viral-content" element={<ViralContent />} />
                 <Route path="/examples" element={<ExamplesIndex />} />
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
+                <Route path="/how-it-works" element={<HowItWorks />} />
+                <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/pricing" element={<PricingPage />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />

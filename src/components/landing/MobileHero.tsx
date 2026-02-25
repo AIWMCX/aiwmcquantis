@@ -66,19 +66,19 @@ export function MobileHero() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
-            Get CFO-Level Business
-            <span className="text-primary block mt-1">Insights in 60 Seconds</span>
+            Stress-Test Your Business Model
+            <span className="text-primary block mt-1">Before the Market Does</span>
           </h1>
 
           {/* Plain-English explainer */}
           <p className="text-base sm:text-lg text-foreground/80 font-medium mb-2 md:mb-3">
-            Type your business idea. Get profit projections, risk flags, and an action plan.
+            Enter your idea and location. Get revenue projections, risk flags, and an action plan — in 60 seconds.
           </p>
 
           {/* Sub-headline */}
           <p className="text-base sm:text-lg text-muted-foreground mb-2 md:mb-3">
-            Stop paying consultants $500/hour. Get unlimited financial analysis,
-            professional documents, and AI-powered insights for <span className="text-foreground font-semibold">$17/month</span>.
+            AI-powered financial validation using 1,000+ industry benchmarks.
+            The same framework VCs use — for <span className="text-foreground font-semibold">$17/month</span>.
           </p>
           <p className="text-sm text-muted-foreground/80 mb-4 md:mb-6 italic">
             "Coffee shop in Denver → <span className="text-foreground font-semibold not-italic">$4,200/mo profit</span>, <span className="text-foreground font-semibold not-italic">7.1 mo payback</span>, <span className="text-foreground font-semibold not-italic">168% ROI</span>"
