@@ -140,8 +140,32 @@ export default function Blog() {
           ))}
         </div>
 
+        {/* Example Analyses Cross-Links */}
+        <section className="mt-16 mb-10">
+          <h2 className="text-2xl font-bold text-foreground mb-3">See Real Business Analyses</h2>
+          <p className="text-muted-foreground mb-6">Explore complete financial reports with revenue projections, risk assessments, and action plans for real business ideas.</p>
+          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {[
+              { slug: 'coffee-shop-denver', title: 'Coffee Shop in Denver', profit: '$4,200/mo' },
+              { slug: 'saas-project-management', title: 'SaaS Project Management', profit: '$3,800/mo' },
+              { slug: 'restaurant-miami', title: 'Restaurant in Miami', profit: '$8,900/mo' },
+              { slug: 'fitness-studio-los-angeles', title: 'Fitness Studio in LA', profit: '$7,800/mo' },
+              { slug: 'food-truck-austin', title: 'Food Truck in Austin', profit: '$5,400/mo' },
+              { slug: 'tutoring-service-boston', title: 'Tutoring Service in Boston', profit: '$9,500/mo' },
+            ].map((ex) => (
+              <Link key={ex.slug} to={`/examples/${ex.slug}`} className="block p-4 rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all bg-card">
+                <h3 className="font-semibold text-foreground text-sm">{ex.title}</h3>
+                <p className="text-xs text-primary font-medium mt-1">{ex.profit} profit →</p>
+              </Link>
+            ))}
+          </div>
+          <Link to="/examples" className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-4 hover:gap-2 transition-all">
+            View all 15 examples <ArrowRight className="w-4 h-4" />
+          </Link>
+        </section>
+
         {/* CTA */}
-        <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
+        <div className="mt-8 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
           <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 3 minutes.</p>
           <Link to="/app">

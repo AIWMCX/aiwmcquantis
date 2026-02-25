@@ -14,6 +14,14 @@ export default function ExamplesIndex() {
         title="Business Analysis Examples — Real Financial Reports | AIWMC Quantis"
         description="See real business analysis examples: coffee shops, SaaS startups, restaurants, e-commerce, and consulting firms. Revenue projections, risk flags, and action plans."
         canonical="/examples"
+        jsonLd={{
+          "@context": "https://schema.org",
+          "@type": "BreadcrumbList",
+          "itemListElement": [
+            { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://aiwmcquantis.com" },
+            { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://aiwmcquantis.com/examples" },
+          ],
+        }}
       />
 
       <header className="border-b border-border bg-background/80 backdrop-blur-lg">

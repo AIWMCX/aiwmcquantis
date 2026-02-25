@@ -44,16 +44,27 @@ export default function ExampleAnalysis() {
     );
   }
 
-  const jsonLd = {
-    "@context": "https://schema.org",
-    "@type": "Article",
-    "headline": data.seo.title,
-    "description": data.seo.description,
-    "author": { "@type": "Organization", "name": "AIWMC Quantis" },
-    "publisher": { "@type": "Organization", "name": "AIWMC Quantis" },
-    "datePublished": "2026-02-24",
-    "mainEntityOfPage": `https://aiwmcquantis.com/examples/${slug}`,
-  };
+  const jsonLd = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Article",
+      "headline": data.seo.title,
+      "description": data.seo.description,
+      "author": { "@type": "Organization", "name": "AIWMC Quantis" },
+      "publisher": { "@type": "Organization", "name": "AIWMC Quantis" },
+      "datePublished": "2026-02-25",
+      "mainEntityOfPage": `https://aiwmcquantis.com/examples/${slug}`,
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://aiwmcquantis.com" },
+        { "@type": "ListItem", "position": 2, "name": "Examples", "item": "https://aiwmcquantis.com/examples" },
+        { "@type": "ListItem", "position": 3, "name": data.title, "item": `https://aiwmcquantis.com/examples/${slug}` },
+      ],
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-background text-foreground">
