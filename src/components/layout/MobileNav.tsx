@@ -66,13 +66,16 @@ export function MobileNav({ children }: MobileNavProps) {
 
   const navItems = [
     { path: '/', label: 'Home', icon: Home, show: true },
-    { path: '/leaderboard', label: 'Leaderboard 🏆', icon: Zap, show: true },
+    { path: '/how-it-works', label: 'How It Works', icon: Brain, show: true },
+    { path: '/use-cases', label: 'Use Cases', icon: User, show: true },
+    { path: '/examples', label: 'Examples', icon: FileText, show: true },
+    { path: '/pricing', label: 'Pricing', icon: Zap, show: true },
+    { path: '/blog', label: 'Blog', icon: FileText, show: true },
+    { path: '/leaderboard', label: 'Leaderboard', icon: Crown, show: true },
     { path: '/app', label: 'Dashboard', icon: LayoutDashboard, show: isAuthenticated },
     { path: '/docs', label: 'Docs Studio', icon: FileText, show: isAuthenticated },
     { path: '/plus-settings', label: 'Plus Settings', icon: Settings, show: isAuthenticated },
     { path: '/admin', label: 'Admin Panel', icon: Shield, show: isAuthenticated && isAdmin },
-    { path: '/terms', label: 'Terms of Service', icon: FileText, show: true },
-    { path: '/privacy', label: 'Privacy Policy', icon: Lock, show: true },
   ];
 
   return (

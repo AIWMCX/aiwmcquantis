@@ -9,11 +9,19 @@ import { StructuredData } from '@/components/seo/StructuredData';
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: 'AIWMC Quantis is an AI-powered business analysis platform that generates comprehensive financial projections, market analysis, and complete business plans in under 2 minutes. Simply enter your business idea and location, and our AI analyzes real market data to provide actionable insights.'
+    answer: 'AIWMC Quantis is an AI-powered business validation and risk stress-testing platform. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 1,000+ industry benchmarks — in under 60 seconds.'
+  },
+  {
+    question: 'How is this different from ChatGPT?',
+    answer: 'Quantis uses a deterministic financial engine with real industry benchmarks — not generative text. Every number is calculated from verified data, not hallucinated. ChatGPT gives opinions; Quantis gives math. Every metric is tagged as "computed", "benchmark", or "estimated" for full transparency.'
+  },
+  {
+    question: 'What data do you use?',
+    answer: '1,000+ industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data. The engine uses the same financial frameworks that VCs and accelerators rely on.'
   },
   {
     question: 'How accurate are the financial projections?',
-    answer: 'Our projections are based on 1,000+ industry benchmarks and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. While projections are estimates, they are grounded in verified industry data and best practices.'
+    answer: 'Our projections are based on 1,000+ industry benchmarks and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.'
   },
   {
     question: 'Can I try AIWMC Quantis for free?',

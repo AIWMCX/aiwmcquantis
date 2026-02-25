@@ -61,6 +61,33 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     category: 'Finance',
     keywords: ['unit economics', 'CAC', 'LTV', 'customer acquisition cost', 'lifetime value', 'payback period'],
   },
+  {
+    slug: 'how-to-stress-test-your-startup',
+    title: 'How to Stress-Test Your Startup Before Launch (2026 Guide)',
+    description: 'Run financial stress tests on your startup idea before spending money. 3-scenario analysis, risk identification, and survival planning for founders.',
+    date: '2026-02-25',
+    readTime: '8 min read',
+    category: 'Validation',
+    keywords: ['stress test startup', 'startup risk analysis', 'financial stress testing', 'scenario analysis startup', 'business model validation'],
+  },
+  {
+    slug: 'startup-validation-checklist',
+    title: 'Startup Validation Checklist: 7 Questions Before You Build',
+    description: 'Validate your startup idea with this 7-step checklist covering financial logic, market signals, risk flags, and unit economics.',
+    date: '2026-02-25',
+    readTime: '7 min read',
+    category: 'Validation',
+    keywords: ['startup validation checklist', 'validate business idea', 'startup checklist', 'business validation steps'],
+  },
+  {
+    slug: 'ai-vs-spreadsheets-startup-planning',
+    title: 'AI vs Spreadsheets: Which Is Better for Startup Financial Planning?',
+    description: 'Honest comparison of AI-powered validation vs spreadsheet modeling for startups. Speed, accuracy, cost, and when to use each approach.',
+    date: '2026-02-25',
+    readTime: '6 min read',
+    category: 'Strategy',
+    keywords: ['AI financial planning', 'startup spreadsheet', 'financial model tools', 'AI vs spreadsheet', 'startup planning tools'],
+  },
 ];
 
 export default function Blog() {
