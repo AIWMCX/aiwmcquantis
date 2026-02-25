@@ -8,22 +8,22 @@ const processSteps = [
 {
   step: 1,
   icon: FileInput,
-  title: 'You Provide',
-  description: 'Business idea, location, and optional financial inputs',
+  title: 'Paste Your Key Numbers',
+  description: 'Revenue, costs, basic assumptions. No spreadsheet required.',
   color: 'bg-primary/10 text-primary'
 },
 {
   step: 2,
   icon: Calculator,
-  title: 'Engine Calculates',
-  description: '12-variable system + 1,000+ industry benchmarks',
+  title: 'Quantis Runs Stress Scenarios',
+  description: 'Revenue drops, cost spikes, growth stalls — modeled against 1,000+ benchmarks.',
   color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
 },
 {
   step: 3,
   icon: BarChart3,
-  title: 'You Receive',
-  description: '3 scenarios, ROI, payback period, and action plan',
+  title: 'You Get a Survival Report',
+  description: 'Projections, weak points, and an action plan — in under 60 seconds.',
   color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
 }];
 
@@ -39,7 +39,7 @@ export function HowItWorksSection() {
             Real Math, Real Results
           </div>
           <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            How Our Analysis Engine Works
+            How AIWMC Quantis Works
           </h2>
           <p className="text-lg text-muted-foreground">
             Powered by a 12-variable financial system, not just AI guesswork. 

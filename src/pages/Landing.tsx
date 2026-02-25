@@ -16,6 +16,8 @@ import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
+import { WhoItsFor } from '@/components/landing/WhoItsFor';
+import { RiskGalleryTeaser } from '@/components/landing/RiskGalleryTeaser';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
@@ -71,8 +73,8 @@ export default function Landing() {
               <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
               <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
               <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
+              <Link to="/risk-gallery" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Risk Gallery</Link>
               <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-              <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
@@ -141,6 +143,12 @@ export default function Landing() {
 
               {/* 8. Use Cases */}
               <Testimonials />
+
+              {/* Who It's For */}
+              <WhoItsFor />
+
+              {/* Risk Gallery Teaser */}
+              <RiskGalleryTeaser />
             </Suspense>
           ) : (
             <SectionSkeleton height={800} />

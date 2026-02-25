@@ -34,6 +34,7 @@ const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const UseCases = lazy(() => import("./pages/UseCases"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
+const RiskGallery = lazy(() => import("./pages/RiskGallery"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -90,6 +91,7 @@ const App = () => {
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/risk-gallery" element={<RiskGallery />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />

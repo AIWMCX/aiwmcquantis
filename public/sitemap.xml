@@ -103,6 +103,30 @@
     <priority>0.8</priority>
   </url>
   <url>
+    <loc>https://aiwmcquantis.com/risk-gallery</loc>
+    <lastmod>2026-02-25</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.9</priority>
+  </url>
+  <url>
+    <loc>https://aiwmcquantis.com/how-it-works</loc>
+    <lastmod>2026-02-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://aiwmcquantis.com/use-cases</loc>
+    <lastmod>2026-02-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
+    <loc>https://aiwmcquantis.com/pricing</loc>
+    <lastmod>2026-02-25</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
+  <url>
     <loc>https://aiwmcquantis.com/auth</loc>
     <lastmod>2026-02-11</lastmod>
     <changefreq>monthly</changefreq>

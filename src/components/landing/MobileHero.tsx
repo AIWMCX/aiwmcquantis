@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Zap, MapPin, Lightbulb, ArrowRight, BarChart3, AlertTriangle, CheckCircle2, DollarSign } from 'lucide-react';
@@ -66,23 +66,22 @@ export function MobileHero() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
-            Stress-Test Your Business Model
-            <span className="text-primary block mt-1">Before the Market Does</span>
+            AI Business Validation and Risk Stress&#8209;Testing
+            <span className="text-primary block mt-1">for Startups</span>
           </h1>
 
-          {/* Plain-English explainer */}
+          {/* Core promise — non-negotiable copy */}
           <p className="text-base sm:text-lg text-foreground/80 font-medium mb-2 md:mb-3">
-            Enter your idea and location. Get revenue projections, risk flags, and an action plan — in 60 seconds.
+            Validate your business idea with AI-powered financial analysis.
+            Get structured revenue projections, risk signals, and an action plan &mdash; free, in under 3 minutes.
           </p>
 
-          {/* Sub-headline */}
-          <p className="text-base sm:text-lg text-muted-foreground mb-2 md:mb-3">
-            AI-powered financial validation using 1,000+ industry benchmarks.
-            The same framework VCs use — for <span className="text-foreground font-semibold">$17/month</span>.
-          </p>
-          <p className="text-sm text-muted-foreground/80 mb-4 md:mb-6 italic">
-            "Coffee shop in Denver → <span className="text-foreground font-semibold not-italic">$4,200/mo profit</span>, <span className="text-foreground font-semibold not-italic">7.1 mo payback</span>, <span className="text-foreground font-semibold not-italic">168% ROI</span>"
-          </p>
+          {/* Supporting bullets */}
+          <ul className="text-sm sm:text-base text-muted-foreground space-y-1.5 mb-4 md:mb-6 max-w-xl mx-auto text-left">
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> Find out if your model survives revenue and cost shocks.</li>
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> See which assumptions are fragile before you talk to investors.</li>
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> Get an AI-generated action plan, not just a score.</li>
+          </ul>
 
           {/* FORM FIRST on mobile - above badges */}
           <form
@@ -116,10 +115,10 @@ export function MobileHero() {
                 type="submit"
                 disabled={!isFormValid}
                 size="lg"
+                data-event-id="start_validation_click"
                 className="w-full gap-2 text-base sm:text-lg py-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-[1.02] min-h-[56px]">
-
                 <Zap className="w-5 h-5" />
-                See My Numbers — Free
+                Run Free Validation
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
@@ -129,9 +128,9 @@ export function MobileHero() {
           <div className="flex flex-wrap items-center justify-center gap-3 text-xs sm:text-sm text-muted-foreground mb-4 md:mb-6">
             <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> No credit card</span>
             <span className="flex items-center gap-1"><CheckCircle2 className="w-3.5 h-3.5 text-success" /> Results in under 3 min</span>
-            <a href="#demo-preview" className="flex items-center gap-1 text-primary hover:underline">
-              <BarChart3 className="w-3.5 h-3.5" /> See a sample report
-            </a>
+            <Link to="/risk-gallery" className="flex items-center gap-1 text-primary hover:underline">
+              <BarChart3 className="w-3.5 h-3.5" /> See example scenarios
+            </Link>
           </div>
 
           {/* Value badges + ICP - BELOW the form (visible on scroll or on desktop) */}
