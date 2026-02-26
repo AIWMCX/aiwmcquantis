@@ -7,61 +7,61 @@ import { StructuredData } from '@/components/seo/StructuredData';
 import { Footer } from '@/components/layout/Footer';
 
 const STEPS = [
-  {
-    step: 1,
-    icon: FileInput,
-    title: 'Describe Your Business Idea',
-    description: 'Enter your business concept and target location. No financial background required — just your idea in plain language.',
-    example: '"Coffee shop with remote work focus in Denver, Colorado"',
-    color: 'bg-primary/10 text-primary',
-  },
-  {
-    step: 2,
-    icon: Calculator,
-    title: 'AI Runs Financial Stress Tests',
-    description: 'Our deterministic engine calculates 12 financial variables using 1,000+ industry benchmarks, adjusted for your specific city.',
-    example: 'Revenue projections, cost structure, unit economics, break-even analysis',
-    color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400',
-  },
-  {
-    step: 3,
-    icon: BarChart3,
-    title: 'Get Your Risk Report & Action Plan',
-    description: 'Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, and a clear action plan — in under 60 seconds.',
-    example: '$4,200/mo profit, 7.1 months payback, 168% ROI, 3 risk flags identified',
-    color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400',
-  },
-];
+{
+  step: 1,
+  icon: FileInput,
+  title: 'Describe Your Business Idea',
+  description: 'Enter your business concept and target location. No financial background required — just your idea in plain language.',
+  example: '"Coffee shop with remote work focus in Denver, Colorado"',
+  color: 'bg-primary/10 text-primary'
+},
+{
+  step: 2,
+  icon: Calculator,
+  title: 'AI Runs Financial Stress Tests',
+  description: 'Our deterministic engine calculates 12 financial variables using 1,000+ industry benchmarks, adjusted for your specific city.',
+  example: 'Revenue projections, cost structure, unit economics, break-even analysis',
+  color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+},
+{
+  step: 3,
+  icon: BarChart3,
+  title: 'Get Your Risk Report & Action Plan',
+  description: 'Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, and a clear action plan — in under 60 seconds.',
+  example: '$4,200/mo profit, 7.1 months payback, 168% ROI, 3 risk flags identified',
+  color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
+}];
+
 
 const REPORT_SECTIONS = [
-  { icon: TrendingUp, title: 'Revenue & Profit Projections', desc: '3 scenarios with monthly breakdown, gross margins, and net profit calculations.' },
-  { icon: AlertTriangle, title: 'Risk Assessment', desc: 'Identified vulnerabilities — fragile assumptions, market risks, and financial red flags.' },
-  { icon: Target, title: 'Unit Economics', desc: 'CAC, LTV, LTV/CAC ratio, payback period, and churn impact — calculated from benchmarks.' },
-  { icon: Shield, title: 'Action Plan', desc: 'What to cut, where to double down, and whether to proceed — based on your numbers.' },
-];
+{ icon: TrendingUp, title: 'Revenue & Profit Projections', desc: '3 scenarios with monthly breakdown, gross margins, and net profit calculations.' },
+{ icon: AlertTriangle, title: 'Risk Assessment', desc: 'Identified vulnerabilities — fragile assumptions, market risks, and financial red flags.' },
+{ icon: Target, title: 'Unit Economics', desc: 'CAC, LTV, LTV/CAC ratio, payback period, and churn impact — calculated from benchmarks.' },
+{ icon: Shield, title: 'Action Plan', desc: 'What to cut, where to double down, and whether to proceed — based on your numbers.' }];
+
 
 const FAQ_ITEMS = [
-  {
-    q: 'How is this different from ChatGPT?',
-    a: 'Quantis uses a deterministic financial engine with real industry benchmarks — not generative text. Every number is calculated from verified data, not hallucinated. ChatGPT gives opinions; Quantis gives math.',
-  },
-  {
-    q: 'What data do you use for projections?',
-    a: '1,000+ industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.',
-  },
-  {
-    q: 'Can I trust the projections?',
-    a: 'Projections are estimates, not guarantees. We provide 3 scenarios and confidence scores so you can calibrate. Every metric is tagged as "computed", "benchmark", or "estimated" for transparency.',
-  },
-  {
-    q: 'Do I need a business plan first?',
-    a: 'No. Just your idea and location. The engine builds the financial model from benchmarks and generates the full analysis automatically.',
-  },
-  {
-    q: 'What if my industry is niche?',
-    a: 'We cover 50+ industries. For niche businesses, the AI maps your idea to the closest benchmark cluster and flags the confidence level so you know the margin of uncertainty.',
-  },
-];
+{
+  q: 'How is this different from ChatGPT?',
+  a: 'Quantis uses a deterministic financial engine with real industry benchmarks — not generative text. Every number is calculated from verified data, not hallucinated. ChatGPT gives opinions; Quantis gives math.'
+},
+{
+  q: 'What data do you use for projections?',
+  a: '1,000+ industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.'
+},
+{
+  q: 'Can I trust the projections?',
+  a: 'Projections are estimates, not guarantees. We provide 3 scenarios and confidence scores so you can calibrate. Every metric is tagged as "computed", "benchmark", or "estimated" for transparency.'
+},
+{
+  q: 'Do I need a business plan first?',
+  a: 'No. Just your idea and location. The engine builds the financial model from benchmarks and generates the full analysis automatically.'
+},
+{
+  q: 'What if my industry is niche?',
+  a: 'We cover 50+ industries. For niche businesses, the AI maps your idea to the closest benchmark cluster and flags the confidence level so you know the margin of uncertainty.'
+}];
+
 
 export default function HowItWorks() {
   return (
@@ -80,17 +80,17 @@ export default function HowItWorks() {
             '@type': 'HowToStep',
             position: s.step,
             name: s.title,
-            text: s.description,
-          })),
-        }}
-      />
+            text: s.description
+          }))
+        }} />
+
       <StructuredData
         includeBreadcrumbs
         breadcrumbs={[
-          { name: 'Home', url: '/' },
-          { name: 'How It Works', url: '/how-it-works' },
-        ]}
-      />
+        { name: 'Home', url: '/' },
+        { name: 'How It Works', url: '/how-it-works' }]
+        } />
+
 
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
@@ -124,7 +124,7 @@ export default function HowItWorks() {
         {/* Hero */}
         <section className="py-12 md:py-20 text-center">
           <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-            How AIWMC Quantis Validates Your Business Model
+            How AIWMC™ Quantis Validates Your Business Model
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
             Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 1,000+ industry benchmarks, in under 60 seconds.
@@ -142,8 +142,8 @@ export default function HowItWorks() {
             3 Steps to Financial Clarity
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            {STEPS.map((step, idx) => (
-              <div key={step.step} className="relative">
+            {STEPS.map((step, idx) =>
+            <div key={step.step} className="relative">
                 <div className="p-6 rounded-2xl border border-border bg-card h-full">
                   <div className="flex items-center gap-3 mb-4">
                     <div className={`p-3 rounded-xl ${step.color}`}>
@@ -155,13 +155,13 @@ export default function HowItWorks() {
                   <p className="text-muted-foreground mb-4">{step.description}</p>
                   <p className="text-sm text-primary font-medium italic">{step.example}</p>
                 </div>
-                {idx < STEPS.length - 1 && (
-                  <div className="hidden md:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
+                {idx < STEPS.length - 1 &&
+              <div className="hidden md:flex absolute top-1/2 -right-4 transform -translate-y-1/2 z-10">
                     <ArrowRight className="w-6 h-6 text-muted-foreground/40" />
                   </div>
-                )}
+              }
               </div>
-            ))}
+            )}
           </div>
         </section>
 
@@ -174,13 +174,13 @@ export default function HowItWorks() {
             Every analysis includes four sections — the same framework VCs and accelerators use, made accessible to founders.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {REPORT_SECTIONS.map(({ icon: Icon, title, desc }) => (
-              <div key={title} className="p-6 rounded-2xl border border-border bg-card hover:border-primary/20 transition-colors">
+            {REPORT_SECTIONS.map(({ icon: Icon, title, desc }) =>
+            <div key={title} className="p-6 rounded-2xl border border-border bg-card hover:border-primary/20 transition-colors">
                 <Icon className="w-6 h-6 text-primary mb-3" />
                 <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
                 <p className="text-sm text-muted-foreground">{desc}</p>
               </div>
-            ))}
+            )}
           </div>
           <div className="text-center mt-8">
             <Link to="/examples/coffee-shop-denver" className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1">
@@ -195,15 +195,15 @@ export default function HowItWorks() {
             Frequently Asked Questions
           </h2>
           <div className="space-y-4 max-w-3xl mx-auto">
-            {FAQ_ITEMS.map(({ q, a }) => (
-              <details key={q} className="group p-5 rounded-xl border border-border bg-card">
+            {FAQ_ITEMS.map(({ q, a }) =>
+            <details key={q} className="group p-5 rounded-xl border border-border bg-card">
                 <summary className="font-semibold text-foreground cursor-pointer list-none flex items-center justify-between">
                   {q}
                   <span className="ml-2 text-muted-foreground group-open:rotate-45 transition-transform text-xl">+</span>
                 </summary>
                 <p className="mt-3 text-muted-foreground text-sm leading-relaxed">{a}</p>
               </details>
-            ))}
+            )}
           </div>
         </section>
 
@@ -229,6 +229,6 @@ export default function HowItWorks() {
       </main>
 
       <Footer />
-    </div>
-  );
+    </div>);
+
 }
