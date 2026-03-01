@@ -2704,18 +2704,20 @@ serve(async (req) => {
     // ========== SMART IDEA VALIDATION ==========
     // Detect meta-questions and strategy prompts that are NOT actual business ideas.
     // These cause "General Business" fallback and produce meaningless reports.
+    // IMPORTANT: Only block inputs that are CLEARLY questions/commands with NO business context.
     const metaQuestionPatterns = [
-      /^analyze\s+(my|the|our)\s+(competitive|market|business|competitive position)/i,
-      /^(how|what|why|when|where|should|can|could|would|is|are)\s+/i,
-      /\?(.*)?$/,  // ends with a question mark
-      /^(help me|tell me|explain|describe|compare|evaluate|assess|review|check|look at|give me|show me)/i,
-      /^(what is|what are|how to|how do|how can|how should)/i,
+      /^analyze\s+(my|the|our)\s+(competitive|market|business\s+position|competitive position)/i,
+      /^(help me|tell me|explain|describe|compare|evaluate|assess|review|check|look at|give me|show me)\s+(how|what|why|the|my|a|an)\s/i,
+      /^(what is|what are|how to|how do|how can|how should)\s+(the best|a good|my|the|it)\s/i,
+      /^(should i|can i|could i|would it)\s+(start|open|launch|invest|build|create|make)\s/i,
     ];
-    // Only block if it's clearly a question with no business noun
-    const businessNounPatterns = [/shop|store|app|service|product|restaurant|cafe|salon|clinic|agency|studio|platform|business|startup|company|firm|brand|marketplace/i];
+    // Only block if it ends with ? AND matches a meta pattern
+    const endsWithQuestion = /\?\s*$/.test(sanitizedIdea.trim());
+    // Comprehensive business noun list to avoid false positives
+    const businessNounPatterns = [/shop|store|app|service|product|restaurant|cafe|salon|clinic|agency|studio|platform|business|startup|company|firm|brand|marketplace|gym|fitness|school|academy|course|delivery|logistics|consulting|coaching|saas|software|tool|bakery|bar|hotel|motel|hostel|rental|cleaning|laundry|pharmacy|dental|medical|therapy|spa|massage|photography|design|marketing|advertising|freelance|subscription|newsletter|blog|podcast|streaming|food|truck|catering|wedding|event|construction|landscaping|plumbing|electrical|hvac|roofing|painting|auto|mechanic|car wash|pet|grooming|daycare|nursery|tutoring|music|art|dance|yoga|pilates|crossfit|boxing|martial|swimming|golf|tennis|cricket|esports|gaming|vr|ar|drone|3d print|manufacture|factory|farm|organic|vegan|gluten|juice|smoothie|ice cream|donut|pizza|burger|sushi|taco|ramen|pho|bbq|steakhouse|seafood|brewery|winery|distillery|roastery|import|export|wholesale|retail|boutique|thrift|vintage|antique|bookstore|toy|electronics|furniture|jewelry|flower|gift|candle|soap|cosmetic|beauty|hair|nail|tattoo|barber|tailor|dry clean|shoe|repair|locksmith|security|it support|web dev|mobile dev|data|analytics|ai |machine learning|blockchain|crypto|nft|token|exchange|wallet|insurance|tax|accounting|legal|law|notary|translation|interpreter|travel|tour|guide|adventure|camp|resort|airbnb|co.working|coworking|incubator|accelerator|venture|fund|investment|bank|credit|loan|mortgage|real estate|property|warehouse|storage|moving|freight|courier|dispatch|fleet|ride|carpool|scooter|bike|electric|solar|wind|energy|utility|water|waste|recycling|sustainability|carbon|eco|green|garden|plant|flower|tree|seed|fertilizer|pesticide|equipment|tool|hardware|supply|material|chemical|pharmaceutical|biotech|medtech|healthtech|edtech|fintech|proptech|agritech|foodtech|cleantech|legaltech|insurtech|regtech|hrtech|martech|adtech|govtech|civictech|nonprofit|charity|foundation|social enterprise|co.op|cooperative|franchise|chain|network|hub|center|lab|workshop|maker|creator|influencer|model|talent|recruiter|staffing|outsourc|virtual assistant|chatbot|bot|automation|workflow|crm|erp|pos|inventory|booking|reservation|ticketing|parking|vending|kiosk|atm|locker|laundromat/i];
     const isMetaQuestion = metaQuestionPatterns.some(p => p.test(sanitizedIdea.trim()));
     const hasBusinessNoun = businessNounPatterns.some(p => p.test(sanitizedIdea));
-    if (isMetaQuestion && !hasBusinessNoun && sanitizedIdea.length < 150) {
+    if (isMetaQuestion && !hasBusinessNoun && sanitizedIdea.length < 150 && endsWithQuestion) {
       return new Response(
         JSON.stringify({ 
           error: "Please describe a specific business idea (e.g. 'Coffee shop in Austin, TX' or 'SaaS tool for project management'). Questions and strategy requests cannot be analyzed — the engine needs a concrete business type to apply industry benchmarks.", 
