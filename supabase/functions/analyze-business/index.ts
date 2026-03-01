@@ -2701,10 +2701,11 @@ serve(async (req) => {
       );
     }
 
-    // ========== SMART IDEA VALIDATION ==========
+    // ========== SMART IDEA VALIDATION v3 ==========
     // Detect meta-questions and strategy prompts that are NOT actual business ideas.
     // These cause "General Business" fallback and produce meaningless reports.
     // IMPORTANT: Only block inputs that are CLEARLY questions/commands with NO business context.
+    // v3: Tightened patterns to avoid false positives on pricing/strategy questions about real businesses.
     const metaQuestionPatterns = [
       /^analyze\s+(my|the|our)\s+(competitive|market|business\s+position|competitive position)/i,
       /^(help me|tell me|explain|describe|compare|evaluate|assess|review|check|look at|give me|show me)\s+(how|what|why|the|my|a|an)\s/i,
