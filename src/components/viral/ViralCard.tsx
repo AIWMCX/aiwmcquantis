@@ -71,7 +71,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
               QUANTIS ANALYSIS
             </div>
             <div style={{ fontSize: '11px', color: '#64748b', letterSpacing: '1px' }}>
-              aiwmcquantis.lovable.app
+              www.aiwmcquantis.com
             </div>
           </div>
           <div style={{
