@@ -1,123 +1,83 @@
 
 
-# Technical Analysis: 22-User Traffic Spike + Next Improvements
+# Security Hardening Plan -- Airplane-Grade Engineering
 
-## Part 1: Why You Got 22 Users Yesterday
+## Current Security Posture (Audit Results)
 
-### What Changed (Timeline of SEO-Impacting Deployments)
+**What's already secure:**
+- Service role key: Only used server-side in Edge Functions (19 functions) -- never leaked to frontend
+- PII encryption: Vault-managed keys with pgp_sym_encrypt for emails/phones
+- Admin protection: Database trigger restricts admin role to your account only
+- Rate limiting: Multi-layer (device, IP, fingerprint)
+- Input sanitization: 1MB limit, regex cleaning in analyze-business
 
-Yesterday's deployment added 3 critical SEO surfaces that were previously missing:
+**What the scan found -- 58 findings:**
+- 1 extension-in-public warning (low risk)
+- 43 "Anonymous Access Policies" warnings -- RLS policies using `public` role instead of `authenticated`, allowing anon role to potentially match
+- 8 data exposure error-level findings (profiles, leads, subscriptions, API keys, analyses, documents, teams, Stripe webhooks)
+- 6 missing RLS protection warnings (security logs, rate limits, engagement, referrals, audit logs, exports)
 
-1. **5 New Indexable Pages** (`/examples`, `/examples/coffee-shop-denver`, etc.)
-   - Each page has unique `<title>`, `<meta description>`, canonical URL, and JSON-LD Article schema
-   - These target long-tail queries like "coffee shop business analysis Denver" and "SaaS project management financial analysis"
+## The Fix -- 3 Phases
 
-2. **Sitemap Updated** with all 5 example URLs -- Google re-crawled immediately after detecting sitemap changes
+### Phase 1: Lock Down Anonymous Access (Critical)
 
-3. **Rate Limit Relaxed** (1 -> 3 anonymous analyses) -- visitors who arrived could actually USE the product without hitting a wall
+Add RESTRICTIVE deny policies targeting the `anon` role on every sensitive table. This is the single highest-impact fix.
 
-### Most Likely Traffic Source Breakdown
+**Tables to add `anon` deny policies (SELECT, INSERT, UPDATE, DELETE):**
 
-| Source | Est. % | Evidence |
-|--------|--------|----------|
-| Google organic (new example pages indexed) | 40-50% | Sitemap update triggers priority re-crawl within 24h |
-| Google organic (blog articles, deployed weeks ago) | 20-30% | 12+ blog articles with JSON-LD have had time to index |
-| Direct / referral (your own sharing) | 10-20% | Normal baseline |
-| Bot/spam (filtered) | ~5% | Bot filtering in `analytics.ts` catches most |
-
-### The Core Mechanism
-
-Google's crawl cycle works like this:
-1. Sitemap change detected -> priority re-crawl within 4-24 hours
-2. New pages with unique, high-quality content get indexed
-3. Long-tail queries ("coffee shop analysis", "SaaS business plan") start matching
-4. Click-through happens on day 1-3 after indexing
-
-Your example pages are essentially **free landing pages** targeting searches that consultants and founders actually make.
-
----
-
-## Part 2: Critical Problem -- SPA Rendering Gap
-
-Despite the traffic improvement, there is a fundamental technical limitation:
-
-**Problem**: Your entire app is a React SPA. When Googlebot visits `/examples/coffee-shop-denver`, it receives an empty `<div id="root"></div>` and must execute JavaScript to see the content. Google CAN render JS, but:
-- It deprioritizes JS-rendered pages vs static HTML
-- Rendering budget is limited -- not all pages get rendered
-- Time-to-index is 2-10x slower than static pages
-
-**Evidence**: The `index.html` file has generic meta tags. The `PageSEO` component updates tags via `document.title` and `createElement('meta')` at runtime -- Googlebot may or may not execute this.
-
----
-
-## Part 3: Improvement Plan (Ordered by Impact)
-
-### Improvement 1: Pre-render Meta Tags in index.html for Example Pages
-**Impact**: HIGH | **Effort**: Medium
-
-Since we cannot add SSR on this platform, we will create a **static HTML fallback** approach:
-- Add `<noscript>` content blocks with key text from example pages
-- Ensure critical meta tags (title, description, OG) are set in the initial HTML response for the landing page
-- Add `<meta name="fragment" content="!">` for Google's AJAX crawling scheme
-
-### Improvement 2: Add 10 More Example Analysis Pages
-**Impact**: HIGH | **Effort**: Low
-
-Each example page is a free SEO landing page. Currently you have 5. Adding 10 more across high-search-volume niches will multiply organic impressions:
-
-New examples to add:
-- Fitness studio (Los Angeles)
-- Food truck (Austin, TX)
-- Dropshipping store (Online)
-- Mobile app startup (San Francisco)
-- Real estate agency (Chicago)
-- Cleaning service (Atlanta)
-- Tutoring service (Boston)
-- Barbershop (Houston)
-- Coworking space (Portland)
-- Pet grooming (Seattle)
-
-Each targets a specific "[business type] + [city] + business plan/analysis" long-tail query.
-
-### Improvement 3: Add BreadcrumbList JSON-LD to All Example Pages
-**Impact**: MEDIUM | **Effort**: Low
-
-Google shows breadcrumbs in search results, increasing click-through rate. Currently the example pages render visual breadcrumbs but don't have BreadcrumbList schema. Adding this will make search results show:
-
-```
-aiwmcquantis.com > Examples > Coffee Shop in Denver
+```text
+profiles, analyses, subscriptions, api_keys, api_request_logs,
+documents, document_versions, document_exports, document_downloads,
+branding_settings, export_jobs, user_engagement, user_notifications,
+user_roles, usage_tracking, teams, team_members, team_invitations,
+referral_codes, referral_conversions, referral_rewards,
+subscription_audit_log, shared_reports, stripe_webhook_events,
+email_send_log, email_sequence_log, email_sequences,
+newsletter_sends, launch_checklists, doc_templates,
+leads, security_logs, rate_limits, industry_benchmarks,
+location_data, marketing_channels, risk_factors, scenario_library
 ```
 
-### Improvement 4: Add Internal Cross-Links from Blog to Examples
-**Impact**: MEDIUM | **Effort**: Low
+Each table gets one migration:
+```sql
+CREATE POLICY "Deny anon access to [table]"
+ON public.[table]
+AS RESTRICTIVE
+FOR ALL
+TO anon
+USING (false)
+WITH CHECK (false);
+```
 
-Blog articles currently don't link to example pages. Adding contextual links (e.g., "See our full Coffee Shop analysis" inside the startup costs article) creates internal link equity and keeps users on-site longer.
+This is a single database migration with ~38 policy statements.
 
-### Improvement 5: Add an Auto-Generated `<meta>` Refresh Fallback
-**Impact**: MEDIUM | **Effort**: Low
+### Phase 2: Tighten Edge Function Auth Patterns
 
-For crawlers that don't execute JS, add a `<noscript>` block in `index.html` with a meaningful text description and links. This ensures even non-JS crawlers see SOME content.
+Review and standardize authentication in all 19 Edge Functions:
+- Public endpoints (webhooks, health-check, analyze-business): Validate via secrets/signatures, not JWT
+- Protected endpoints: Use `getClaims()` pattern consistently
+- Remove any comparison of raw service role key in authorization headers (warm-functions, check-lifecycle-emails) -- replace with CRON_SECRET validation only
 
----
+### Phase 3: Rotate Sensitive Secrets
 
-## Technical Implementation Details
+Rotate these secrets as a precaution (via the secrets management tool):
+- ADMIN_UPLOAD_KEY
+- CRON_SECRET
+- STRIPE_WEBHOOK_SECRET (also update in Stripe dashboard)
 
-### Files to Create
-- `src/pages/examples/exampleData.ts` -- extend with 10 new example entries (same schema)
+The RESEND_API_KEY, STRIPE_SECRET_KEY should also be rotated from their respective dashboards (Resend, Stripe) and re-added here.
 
-### Files to Modify
-- `public/sitemap.xml` -- add 10 new example URLs
-- `src/pages/examples/ExampleAnalysis.tsx` -- add BreadcrumbList JSON-LD schema
-- `src/pages/examples/ExamplesIndex.tsx` -- add BreadcrumbList JSON-LD schema
-- `src/pages/Blog.tsx` or `src/pages/BlogArticle.tsx` -- add cross-links to relevant examples
-- `index.html` -- add `<noscript>` content block with site description and key page links for non-JS crawlers
+## What This Achieves
 
-### No Database Changes Required
-All improvements are frontend/static content only.
+After implementation:
+- Zero anonymous access to any user data table
+- All Edge Functions follow consistent auth pattern
+- All rotatable secrets refreshed
+- Security scan should drop from 58 findings to under 10 (mostly informational)
 
-### Expected Impact
-- 10 new example pages = ~10-30 additional long-tail keywords indexed within 1-2 weeks
-- BreadcrumbList schema = ~15-25% higher click-through rate on search results
-- Internal cross-links = improved crawl depth and page authority distribution
-- Combined: targeting 50-100 daily organic visitors within 30 days (up from current 22)
+## Files Changed
+
+- 1 database migration (Phase 1 -- ~38 RESTRICTIVE policies)
+- 2-3 Edge Functions tightened (Phase 2 -- warm-functions, check-lifecycle-emails)
+- Secret rotation via tools (Phase 3)
 
