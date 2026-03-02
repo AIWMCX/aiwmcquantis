@@ -179,7 +179,7 @@ export function initLeadFromUrl(): LeadData | null {
  * Generate signup URL with email prefilled
  */
 export function generateSignupUrl(email: string): string {
-  const baseUrl = 'https://aiwmcquantis.lovable.app/auth';
+  const baseUrl = 'https://www.aiwmcquantis.com/auth';
   const encodedEmail = encodeURIComponent(email);
   return `${baseUrl}?email=${encodedEmail}&tab=signup`;
 }
@@ -188,7 +188,7 @@ export function generateSignupUrl(email: string): string {
  * Generate app URL with email for returning leads
  */
 export function generateAppUrl(email: string): string {
-  const baseUrl = 'https://aiwmcquantis.lovable.app/app';
+  const baseUrl = 'https://www.aiwmcquantis.com/app';
   const encodedEmail = encodeURIComponent(email);
   return `${baseUrl}?email=${encodedEmail}`;
 }

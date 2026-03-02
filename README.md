@@ -1,73 +1,117 @@
-# Welcome to your Lovable project
+# AIWMC Quantis — 2-Minute Business Analysis Engine
 
-## Project info
+> **Validate any business idea in under 2 minutes.** Powered by real industry benchmarks, location intelligence, and AI-enhanced financial modeling.
 
-**URL**: https://aiwmcquantis.com
+🌐 **Live:** [www.aiwmcquantis.com](https://www.aiwmcquantis.com)
 
-## How can I edit this code?
+---
 
-There are several ways of editing your application.
+## What It Does
 
-**Use Lovable**
+AIWMC Quantis takes a business idea, a location, and optional financial inputs — then produces a comprehensive analysis covering:
 
-Simply visit the[ (https://aiwmcquantis.com) 
+- **Financial Projections** — Revenue, margins, startup investment, payback period, monthly profit across base/optimistic/pessimistic scenarios
+- **Unit Economics** — CAC, LTV, LTV:CAC ratio, average check, orders per client
+- **Location Intelligence** — Cost adjustments for 50+ global cities (salary, rent, utility multipliers)
+- **Risk Assessment** — 9-category risk scoring with mitigation strategies
+- **Industry Benchmarks** — 100+ industries with real margin, churn, and growth data
+- **AI Narrative** — Qualitative business insights and actionable recommendations
 
-Changes made via Lovable will be committed automatically to this repo.
+## Tech Stack
 
-**Use your preferred IDE**
+| Layer | Technology |
+|---|---|
+| Frontend | React 18, TypeScript, Vite, Tailwind CSS, shadcn/ui |
+| Backend | Supabase (Postgres + Edge Functions) |
+| AI | Multi-model (GPT-5, Gemini 2.5) via Lovable AI |
+| Payments | Stripe (subscriptions, webhooks) |
+| Email | Resend (lifecycle, newsletters) |
+| Analytics | Google Analytics, Sentry |
+| Hosting | Lovable Cloud |
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Architecture
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+```
+┌─────────────────────────────────────────────┐
+│                  Frontend                    │
+│  React SPA → Supabase Client → Edge Fns     │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│              Edge Functions (19)             │
+│  analyze-business │ calculate-financials     │
+│  ai-narrator      │ generate-document        │
+│  stripe-webhook   │ share-report             │
+│  send-lifecycle   │ health-check    ...      │
+└──────────────────┬──────────────────────────┘
+                   │
+┌──────────────────▼──────────────────────────┐
+│              Supabase Postgres               │
+│  38+ tables │ RLS on every table             │
+│  RESTRICTIVE anon deny │ PII encryption      │
+│  Vault-managed keys │ SECURITY DEFINER RPCs  │
+└─────────────────────────────────────────────┘
+```
 
-Follow these steps:
+## Security Posture
+
+This project follows **Airplane-Grade Security Engineering**:
+
+- ✅ **Zero anonymous access** — Every table has a RESTRICTIVE `anon` deny policy
+- ✅ **PII encryption** — Emails and phones encrypted via Supabase Vault (`pgp_sym_encrypt`)
+- ✅ **Admin lockdown** — Database trigger restricts admin role to a single authorized account
+- ✅ **Rate limiting** — Multi-layer (device, IP, browser fingerprint) with anti-incognito measures
+- ✅ **Input sanitization** — 1MB limit, regex cleaning, 7-layer AI safety guardrails
+- ✅ **Edge Function auth** — CRON_SECRET-only authentication for scheduled tasks, no raw key comparisons
+- ✅ **Webhook security** — Stripe signature verification, PII redaction on stored payloads
+- ✅ **No secrets in code** — All API keys stored as encrypted environment variables
+
+## Local Development
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+git clone <repo-url>
+cd <project-dir>
+npm install
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+> **Note:** The app requires a connected Supabase backend. Environment variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_PUBLISHABLE_KEY`) are auto-configured in production.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+## Project Structure
 
-**Use GitHub Codespaces**
+```
+src/
+├── components/        # UI components (analysis, auth, landing, docs, etc.)
+├── hooks/             # Custom React hooks
+├── lib/               # Utilities, analytics, validation
+├── pages/             # Route pages
+├── services/          # API and database service layer
+├── types/             # TypeScript type definitions
+└── integrations/      # Supabase client (auto-generated)
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+supabase/
+├── functions/         # 19 Deno Edge Functions
+└── config.toml        # Supabase configuration
+```
 
-## What technologies are used for this project?
+## Key Features
 
-This project is built with:
+| Feature | Tier |
+|---|---|
+| Business Analysis (1 free/hr) | Free |
+| Full Financial Projections | Free |
+| Document Studio (10 templates) | Plus |
+| Executive PDF Reports | Plus |
+| Custom Branding | Plus |
+| API Access | Plus |
+| Team Collaboration | Plus |
+| Priority AI Models | Plus |
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+## License
 
-## How can I deploy this project?
+Proprietary — © 2024-2026 AIWMC Quantis. All rights reserved.
 
-Simply open [Lovable](https://lovable.dev/projects/0da630d3-8c00-442d-a344-28294f94cd9f) and click on Share -> Publish.
+## Contact
 
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+- 🌐 [www.aiwmcquantis.com](https://www.aiwmcquantis.com)
+- 📧 support@aiwmcquantis.com
