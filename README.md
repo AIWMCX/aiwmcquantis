@@ -262,3 +262,4 @@ npm run dev
 This software and its source code are the exclusive property of AIWMC LLC. Unauthorized copying, modification, distribution, or use of this software is strictly prohibited.
 
 ---
+AIWMC, Quantis, and the AIWMC logo are trademarks of AIWMC LLC. All other trademarks are the property of their respective owners.
