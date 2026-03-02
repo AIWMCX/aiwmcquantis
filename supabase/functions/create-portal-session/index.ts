@@ -1,4 +1,4 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -15,7 +15,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
     "https://aiwmcquantis.com",
     "https://www.aiwmcquantis.com",
     "http://localhost:5173",
-    "http://localhost:8080",
+    "",
   ];
   
   // Also allow Lovable preview domains
@@ -157,3 +157,4 @@ serve(async (req) => {
     );
   }
 });
+
