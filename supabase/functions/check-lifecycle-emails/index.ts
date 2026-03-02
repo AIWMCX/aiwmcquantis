@@ -23,24 +23,20 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Security: only allow service role key or valid CRON_SECRET
-    // Removed anon key bypass — anon key is PUBLIC and anyone could trigger this
-    const authHeader = req.headers.get("authorization") || "";
+    // Security: Only allow CRON_SECRET header authentication.
+    // Never compare raw service role key in authorization headers.
     const cronSecretHeader = req.headers.get("x-cron-secret");
     const expectedCronSecret = Deno.env.get("CRON_SECRET");
-    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
 
-    const isServiceRole = serviceKey.length > 10 && authHeader.includes(serviceKey);
-    const isCronSecret = expectedCronSecret && expectedCronSecret.length > 5 && cronSecretHeader === expectedCronSecret;
-
-    if (!isServiceRole && !isCronSecret) {
-      console.error("[check-lifecycle-emails] Unauthorized: missing service role key or cron secret");
+    if (!expectedCronSecret || expectedCronSecret.length < 10 || cronSecretHeader !== expectedCronSecret) {
+      console.error("[check-lifecycle-emails] Unauthorized: missing or invalid CRON_SECRET");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
+    const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
     const supabase = createClient(
       Deno.env.get("SUPABASE_URL")!,
       serviceKey
