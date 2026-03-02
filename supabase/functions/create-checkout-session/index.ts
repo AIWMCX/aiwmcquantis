@@ -14,13 +14,10 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   const allowedOrigins = [
     "https://aiwmcquantis.com",
     "https://www.aiwmcquantis.com",
-    "http://localhost:5173",
-    "http://localhost:8080",
   ];
   
-  // Also allow Lovable preview domains
-  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
-  const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
+  // Only permit exact production domains
+  const isAllowed = origin && allowedOrigins.includes(origin);
   
   return {
     "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
