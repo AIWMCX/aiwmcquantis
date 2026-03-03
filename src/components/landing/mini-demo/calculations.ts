@@ -1,25 +1,23 @@
 // Pure calculation functions for MiniDemo
+// All math routed through FormulaRegistry for precision and audit trail
 
 import { CalculatedMetrics, FinancialInputs, Verdict, VerdictInfo } from './types';
+import { FormulaRegistry } from '@/lib/formula-registry';
+import { QuantisMath } from '@/lib/quantis-math';
 
 export function calculateMetrics(inputs: FinancialInputs): CalculatedMetrics {
   const { investment, monthlyRevenue, monthlyCosts } = inputs;
   
-  const monthlyProfit = monthlyRevenue - monthlyCosts;
-  const annualRoi = investment > 0 
-    ? ((monthlyProfit * 12) / investment) * 100 
-    : 0;
-  const paybackMonths = monthlyProfit > 0 
-    ? investment / monthlyProfit 
-    : Infinity;
-  const netMargin = monthlyRevenue > 0 
-    ? (monthlyProfit / monthlyRevenue) * 100 
-    : 0;
+  const monthlyProfit = QuantisMath.round(QuantisMath.subtract(monthlyRevenue, monthlyCosts));
+  
+  const annualRoi = FormulaRegistry.execute('mini_annual_roi', monthlyProfit, investment).output;
+  const paybackMonths = FormulaRegistry.execute('mini_payback', investment, monthlyProfit).output;
+  const netMargin = FormulaRegistry.execute('mini_net_margin', monthlyProfit, monthlyRevenue).output;
 
   return {
     monthlyProfit,
     annualRoi,
-    paybackMonths: Math.min(paybackMonths, 999), // Cap for display
+    paybackMonths,
     netMargin,
   };
 }
