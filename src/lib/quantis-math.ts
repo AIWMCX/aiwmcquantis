@@ -27,6 +27,16 @@ Decimal.set({
 export type DecimalInput = Decimal | number | string;
 
 /**
+ * Result of sanitization with origin tracking.
+ * Allows the UI to distinguish "real zero" from "sanitized fallback zero."
+ */
+export interface SanitizeResult {
+  value: Decimal;
+  wasSanitized: boolean;
+  originalInput: string;
+}
+
+/**
  * Sanitize input: reject NaN, Infinity, undefined, null.
  * Returns a safe Decimal or Decimal(0) for invalid inputs.
  */
@@ -49,6 +59,38 @@ function sanitize(value: DecimalInput | null | undefined, fallback: DecimalInput
     return new Decimal(value);
   } catch {
     return new Decimal(fallback);
+  }
+}
+
+/**
+ * Sanitize with origin tracking — returns whether the value was sanitized
+ * and what the original input was. Feeds into confidence badges (Phase 5).
+ */
+function sanitizeWithOrigin(value: DecimalInput | null | undefined, fallback: DecimalInput = 0): SanitizeResult {
+  const originalInput = String(value ?? 'null');
+  
+  if (value === null || value === undefined) {
+    return { value: new Decimal(fallback), wasSanitized: true, originalInput };
+  }
+  
+  if (typeof value === 'number') {
+    if (!Number.isFinite(value)) {
+      return { value: new Decimal(fallback), wasSanitized: true, originalInput };
+    }
+    return { value: new Decimal(value), wasSanitized: false, originalInput };
+  }
+  
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    if (trimmed === '' || trimmed === 'NaN' || trimmed === 'Infinity' || trimmed === '-Infinity') {
+      return { value: new Decimal(fallback), wasSanitized: true, originalInput };
+    }
+  }
+  
+  try {
+    return { value: new Decimal(value), wasSanitized: false, originalInput };
+  } catch {
+    return { value: new Decimal(fallback), wasSanitized: true, originalInput };
   }
 }
 
@@ -281,4 +323,4 @@ export class QuantisMath {
   }
 }
 
-export { Decimal, sanitize };
+export { Decimal, sanitize, sanitizeWithOrigin };

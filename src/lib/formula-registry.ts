@@ -39,10 +39,13 @@ export interface FormulaDefinition {
   name: string;
   description: string;
   category: 'unit_economics' | 'profitability' | 'investment' | 'statistical' | 'growth' | 'risk';
+  criticality: 'critical' | 'standard' | 'informational';
+  units: string; // e.g. 'USD', '%', 'months', 'ratio', 'count'
+  validRange?: { min: number; max: number }; // output sanity bounds
   inputs: FormulaInput[];
   formula: (...args: number[]) => number;
-  formulaExpression: string; // Human-readable formula string
-  confidenceWeight: number; // 0-100
+  formulaExpression: string;
+  confidenceWeight: number;
   testCases: TestCase[];
   version: string;
   lastVerified: string;
@@ -186,6 +189,9 @@ FormulaRegistry.register({
   name: 'Customer Lifetime Value (Margin-Adjusted)',
   description: 'Revenue a customer generates over their lifetime, adjusted for gross margin. LTV = AvgCheck × GrossMarginFraction × OrdersPerMonth × LifetimeMonths',
   category: 'unit_economics',
+  criticality: 'critical',
+  units: 'USD',
+  validRange: { min: 0, max: 10000000 },
   formulaExpression: 'LTV = Avg_Check × (1 - COGS%) × Orders/Mo × Lifetime_Mo',
   inputs: [
     { name: 'avgCheck', description: 'Average transaction value', unit: 'USD', min: 0, required: true },
@@ -214,6 +220,9 @@ FormulaRegistry.register({
   name: 'LTV:CAC Ratio',
   description: 'Ratio of customer lifetime value to acquisition cost. Healthy range is 3-8x.',
   category: 'unit_economics',
+  criticality: 'critical',
+  units: 'ratio',
+  validRange: { min: 0, max: 1000 },
   formulaExpression: 'LTV_CAC = LTV / CAC',
   inputs: [
     { name: 'ltv', description: 'Customer Lifetime Value', unit: 'USD', min: 0, required: true },
@@ -238,6 +247,9 @@ FormulaRegistry.register({
   name: 'CAC Payback Months',
   description: 'Months to recover customer acquisition cost from contribution margin.',
   category: 'unit_economics',
+  criticality: 'standard',
+  units: 'months',
+  validRange: { min: 0, max: 999 },
   formulaExpression: 'CAC_Payback = CAC / (Avg_Check × (1 - COGS%))',
   inputs: [
     { name: 'cac', description: 'Customer Acquisition Cost', unit: 'USD', min: 0, required: true },
@@ -265,6 +277,8 @@ FormulaRegistry.register({
   name: 'Gross Profit',
   description: 'Revenue minus cost of goods sold.',
   category: 'profitability',
+  criticality: 'critical',
+  units: 'USD',
   formulaExpression: 'Gross_Profit = Revenue - COGS',
   inputs: [
     { name: 'revenue', description: 'Monthly Recurring Revenue', unit: 'USD', min: 0, required: true },
@@ -286,6 +300,9 @@ FormulaRegistry.register({
   name: 'Gross Margin Percentage',
   description: 'Gross profit as a percentage of revenue.',
   category: 'profitability',
+  criticality: 'critical',
+  units: '%',
+  validRange: { min: -100, max: 100 },
   formulaExpression: 'Gross_Margin% = (Gross_Profit / Revenue) × 100',
   inputs: [
     { name: 'grossProfit', description: 'Gross profit amount', unit: 'USD', required: true },
@@ -309,6 +326,8 @@ FormulaRegistry.register({
   name: 'Net Profit',
   description: 'Revenue minus all expenses (COGS + fixed costs + marketing).',
   category: 'profitability',
+  criticality: 'critical',
+  units: 'USD',
   formulaExpression: 'Net_Profit = MRR - Total_Expenses',
   inputs: [
     { name: 'mrr', description: 'Monthly Recurring Revenue', unit: 'USD', min: 0, required: true },
@@ -330,6 +349,9 @@ FormulaRegistry.register({
   name: 'Net Margin Percentage',
   description: 'Net profit as a percentage of revenue.',
   category: 'profitability',
+  criticality: 'critical',
+  units: '%',
+  validRange: { min: -500, max: 100 },
   formulaExpression: 'Net_Margin% = (Net_Profit / MRR) × 100',
   inputs: [
     { name: 'netProfit', description: 'Net profit', unit: 'USD', required: true },
@@ -353,6 +375,9 @@ FormulaRegistry.register({
   name: 'Cost of Goods Sold',
   description: 'Variable costs directly tied to revenue.',
   category: 'profitability',
+  criticality: 'standard',
+  units: 'USD',
+  validRange: { min: 0, max: 10000000 },
   formulaExpression: 'COGS = MRR × COGS_Percent / 100',
   inputs: [
     { name: 'mrr', description: 'Monthly Recurring Revenue', unit: 'USD', min: 0, required: true },
@@ -378,6 +403,9 @@ FormulaRegistry.register({
   name: 'Payback Period',
   description: 'Months to recover initial investment from monthly net profit.',
   category: 'investment',
+  criticality: 'critical',
+  units: 'months',
+  validRange: { min: 0, max: 999 },
   formulaExpression: 'Payback = Investment / Monthly_Net_Profit',
   inputs: [
     { name: 'investment', description: 'Startup investment', unit: 'USD', min: 0, required: true },
@@ -402,6 +430,9 @@ FormulaRegistry.register({
   name: 'Year 1 ROI',
   description: 'Return on investment for the first year.',
   category: 'investment',
+  criticality: 'critical',
+  units: '%',
+  validRange: { min: -100, max: 10000 },
   formulaExpression: 'ROI_Y1 = (Net_Profit × 12 / Investment) × 100',
   inputs: [
     { name: 'monthlyProfit', description: 'Monthly net profit', unit: 'USD', required: true },
@@ -431,6 +462,8 @@ FormulaRegistry.register({
   name: '3-Year Net Present Value',
   description: 'Discounted cash flow NPV over 36 months at 10% annual WACC.',
   category: 'investment',
+  criticality: 'critical',
+  units: 'USD',
   formulaExpression: 'NPV = -Investment + Σ(m=1→36)[NetProfit / (1 + r_monthly)^m]',
   inputs: [
     { name: 'investment', description: 'Startup investment', unit: 'USD', min: 0, required: true },
@@ -456,6 +489,9 @@ FormulaRegistry.register({
   name: 'Break-Even Revenue',
   description: 'Monthly revenue needed to cover all fixed costs given the contribution margin.',
   category: 'investment',
+  criticality: 'standard',
+  units: 'USD',
+  validRange: { min: 0, max: 50000000 },
   formulaExpression: 'BER = Fixed_Costs / Contribution_Margin',
   inputs: [
     { name: 'fixedCosts', description: 'Monthly fixed costs', unit: 'USD', min: 0, required: true },
@@ -481,6 +517,9 @@ FormulaRegistry.register({
   name: 'Monthly Marketing Cost',
   description: 'Cost to acquire new customers to replace churned ones.',
   category: 'growth',
+  criticality: 'standard',
+  units: 'USD',
+  validRange: { min: 0, max: 10000000 },
   formulaExpression: 'Marketing = ceil(Active_Clients × Churn_Rate) × CAC',
   inputs: [
     { name: 'activeClients', description: 'Number of active clients', min: 0, required: true },
@@ -506,6 +545,9 @@ FormulaRegistry.register({
   name: 'Location-Adjusted Cost',
   description: 'Base cost adjusted by location cost multiplier.',
   category: 'growth',
+  criticality: 'informational',
+  units: 'USD',
+  validRange: { min: 0, max: 50000000 },
   formulaExpression: 'Adjusted = Base_Cost × Location_Multiplier',
   inputs: [
     { name: 'baseCost', description: 'Base cost amount', unit: 'USD', min: 0, required: true },
@@ -531,6 +573,9 @@ FormulaRegistry.register({
   name: 'Mini Demo Annual ROI',
   description: 'Simplified annual ROI for the landing page calculator.',
   category: 'investment',
+  criticality: 'standard',
+  units: '%',
+  validRange: { min: -100, max: 10000 },
   formulaExpression: 'ROI = ((Monthly_Profit × 12) / Investment) × 100',
   inputs: [
     { name: 'monthlyProfit', description: 'Monthly profit (revenue - costs)', unit: 'USD', required: true },
@@ -561,6 +606,9 @@ FormulaRegistry.register({
   name: 'Mini Demo Payback',
   description: 'Simplified payback months for the landing page calculator.',
   category: 'investment',
+  criticality: 'standard',
+  units: 'months',
+  validRange: { min: 0, max: 999 },
   formulaExpression: 'Payback = Investment / Monthly_Profit (capped at 999)',
   inputs: [
     { name: 'investment', description: 'Initial investment', unit: 'USD', min: 0, required: true },
@@ -586,6 +634,9 @@ FormulaRegistry.register({
   name: 'Mini Demo Net Margin',
   description: 'Net margin percentage for the landing page calculator.',
   category: 'profitability',
+  criticality: 'standard',
+  units: '%',
+  validRange: { min: -500, max: 100 },
   formulaExpression: 'Net_Margin = (Monthly_Profit / Monthly_Revenue) × 100',
   inputs: [
     { name: 'monthlyProfit', description: 'Monthly profit', unit: 'USD', required: true },
