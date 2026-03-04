@@ -1,83 +1,74 @@
 
 
-# Security Hardening Plan -- Airplane-Grade Engineering
+# Next Refinements: Pre-Phase 2 Hardening
 
-## Current Security Posture (Audit Results)
+## Analysis Summary
 
-**What's already secure:**
-- Service role key: Only used server-side in Edge Functions (19 functions) -- never leaked to frontend
-- PII encryption: Vault-managed keys with pgp_sym_encrypt for emails/phones
-- Admin protection: Database trigger restricts admin role to your account only
-- Rate limiting: Multi-layer (device, IP, fingerprint)
-- Input sanitization: 1MB limit, regex cleaning in analyze-business
+Your technical review is accurate. Here's what the codebase audit reveals:
 
-**What the scan found -- 58 findings:**
-- 1 extension-in-public warning (low risk)
-- 43 "Anonymous Access Policies" warnings -- RLS policies using `public` role instead of `authenticated`, allowing anon role to potentially match
-- 8 data exposure error-level findings (profiles, leads, subscriptions, API keys, analyses, documents, teams, Stripe webhooks)
-- 6 missing RLS protection warnings (security logs, rate limits, engagement, referrals, audit logs, exports)
+**Achieved (client-side):**
+- QuantisMath + FormulaRegistry fully operational with 17 formulas, test vectors, audit envelopes
+- Mini-demo routed through registry — zero shadow math on landing page
+- 34 precision tests passing
 
-## The Fix -- 3 Phases
+**Critical gap discovered:**
+The production financial engine (`supabase/functions/analyze-business/financial-engine.ts` — 903 lines) still uses **raw JS arithmetic** (`Math.round`, `*`, `/`, etc.) for all server-side calculations. This is the actual analysis pipeline that produces user-facing reports. The FormulaRegistry currently only covers the client-side mini-demo.
 
-### Phase 1: Lock Down Anonymous Access (Critical)
+This means the precision boundary you built exists at the marketing layer but not at the production layer where it matters most.
 
-Add RESTRICTIVE deny policies targeting the `anon` role on every sensitive table. This is the single highest-impact fix.
+## Plan: 3 Refinements
 
-**Tables to add `anon` deny policies (SELECT, INSERT, UPDATE, DELETE):**
+### Refinement 1: Sanitize-origin distinction in QuantisMath
 
-```text
-profiles, analyses, subscriptions, api_keys, api_request_logs,
-documents, document_versions, document_exports, document_downloads,
-branding_settings, export_jobs, user_engagement, user_notifications,
-user_roles, usage_tracking, teams, team_members, team_invitations,
-referral_codes, referral_conversions, referral_rewards,
-subscription_audit_log, shared_reports, stripe_webhook_events,
-email_send_log, email_sequence_log, email_sequences,
-newsletter_sends, launch_checklists, doc_templates,
-leads, security_logs, rate_limits, industry_benchmarks,
-location_data, marketing_channels, risk_factors, scenario_library
+Add an `InputOrigin` flag so the UI can distinguish "real zero" from "sanitized fallback zero."
+
+- Add `sanitizeWithOrigin()` returning `{ value: Decimal, wasSanitized: boolean, originalInput: string }`
+- Export it alongside existing `sanitize()` (non-breaking)
+- This feeds directly into confidence badges later (Phase 5)
+
+**File:** `src/lib/quantis-math.ts`
+
+### Refinement 2: FormulaRegistry metadata expansion
+
+Add fields needed for consensus and confidence:
+- `criticality: 'critical' | 'standard' | 'informational'`
+- `units: string` (USD, %, months, ratio)
+- `validRange: { min: number, max: number }` — output bounds for sanity checks
+
+Update all 17 existing formulas with these fields. This is a schema expansion — fully backward-compatible since `execute()` already returns structured results.
+
+**File:** `src/lib/formula-registry.ts`
+
+### Refinement 3: ConsensusEvaluator interface + deterministic implementation
+
+Define the contract boundary for Phase 2's dual-model consensus:
+
+```typescript
+interface ConsensusEvaluator {
+  evaluate(
+    results: FormulaExecutionResult[]
+  ): {
+    consensusScore: number;       // 0-100
+    divergenceType: 'none' | 'minor' | 'major' | 'critical';
+    mergedOutput: number;
+    auditTrail: string;
+  };
+}
 ```
 
-Each table gets one migration:
-```sql
-CREATE POLICY "Deny anon access to [table]"
-ON public.[table]
-AS RESTRICTIVE
-FOR ALL
-TO anon
-USING (false)
-WITH CHECK (false);
-```
+Start with a **deterministic-only** evaluator that compares two `execute()` results using `QuantisMath.equals()` with configurable tolerance. No AI model calls yet — pure numeric agreement checking. This is the "hook" that Phase 2 will plug dual-model outputs into.
 
-This is a single database migration with ~38 policy statements.
+**New file:** `src/lib/consensus-evaluator.ts`
 
-### Phase 2: Tighten Edge Function Auth Patterns
+## Not in scope (but flagged)
 
-Review and standardize authentication in all 19 Edge Functions:
-- Public endpoints (webhooks, health-check, analyze-business): Validate via secrets/signatures, not JWT
-- Protected endpoints: Use `getClaims()` pattern consistently
-- Remove any comparison of raw service role key in authorization headers (warm-functions, check-lifecycle-emails) -- replace with CRON_SECRET validation only
+Migrating the edge function `financial-engine.ts` (903 lines of raw JS math) to use QuantisMath is a separate, larger task. The edge function runs in Deno and cannot import from `src/lib/` directly — it would need its own copy of the precision utilities or a shared module pattern. This should be its own dedicated phase.
 
-### Phase 3: Rotate Sensitive Secrets
+## Files changed
 
-Rotate these secrets as a precaution (via the secrets management tool):
-- ADMIN_UPLOAD_KEY
-- CRON_SECRET
-- STRIPE_WEBHOOK_SECRET (also update in Stripe dashboard)
-
-The RESEND_API_KEY, STRIPE_SECRET_KEY should also be rotated from their respective dashboards (Resend, Stripe) and re-added here.
-
-## What This Achieves
-
-After implementation:
-- Zero anonymous access to any user data table
-- All Edge Functions follow consistent auth pattern
-- All rotatable secrets refreshed
-- Security scan should drop from 58 findings to under 10 (mostly informational)
-
-## Files Changed
-
-- 1 database migration (Phase 1 -- ~38 RESTRICTIVE policies)
-- 2-3 Edge Functions tightened (Phase 2 -- warm-functions, check-lifecycle-emails)
-- Secret rotation via tools (Phase 3)
+| File | Action |
+|------|--------|
+| `src/lib/quantis-math.ts` | Add `sanitizeWithOrigin()` |
+| `src/lib/formula-registry.ts` | Expand `FormulaDefinition` with criticality, units, validRange; update 17 formulas |
+| `src/lib/consensus-evaluator.ts` | New — ConsensusEvaluator interface + deterministic implementation |
 
