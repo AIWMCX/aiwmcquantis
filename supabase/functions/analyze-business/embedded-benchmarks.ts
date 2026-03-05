@@ -35,6 +35,7 @@ export interface EmbeddedBenchmark {
   sample_size: number;
   confidence_score: number;
   source: string;
+  last_updated: string; // ISO date string for staleness scoring
 }
 
 /**
@@ -70,7 +71,8 @@ export const EMBEDDED_BENCHMARKS: EmbeddedBenchmark[] = [
     keywords: ['saas', 'software', 'subscription', 'mrr', 'arr', 'churn', 'saas_startup', 'saas_metrics', 'retention', 'b2b'],
     sample_size: 150,
     confidence_score: 85,
-    source: 'kerry_dataset'
+    source: 'kerry_dataset',
+    last_updated: '2025-01-15'
   },
   {
     industry_id: 'b2b_saas',

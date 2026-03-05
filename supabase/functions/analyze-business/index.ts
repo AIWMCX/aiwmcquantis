@@ -51,6 +51,11 @@ import {
   type DatabaseBenchmarkRecord as CachedBenchmarkRecord
 } from "./benchmark-cache.ts";
 
+// ========== CTO-LEVEL ACCURACY UPGRADES ==========
+import { crossValidateEngines, type CrossValidationResult } from "./engine-cross-validator.ts";
+import { analyzeSensitivity, type SensitivityResult } from "./sensitivity-analyzer.ts";
+import { computeBenchmarkConfidence, getHedgingPrefix, type BenchmarkConfidenceResult } from "./benchmark-confidence.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
@@ -3658,6 +3663,45 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       primaryDataSource: documentExtractedFinancials[0]?.source_document || 'N/A'
     } : undefined;
 
+    // ========== CROSS-VALIDATION + SENSITIVITY + BENCHMARK CONFIDENCE ==========
+    let crossValidation: CrossValidationResult | undefined;
+    try {
+      crossValidation = crossValidateEngines(
+        { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses, cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths, roiYear1Percent: calc.roiYear1Percent, breakEvenRevenue: calc.breakEvenRevenue, npv3Years: calc.npv3Years },
+        { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
+      );
+      console.log(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
+    } catch (cvErr) {
+      console.error('Cross-validation failed:', cvErr);
+    }
+
+    let sensitivityAnalysis: SensitivityResult | undefined;
+    try {
+      const churnRate = mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
+      sensitivityAnalysis = analyzeSensitivity({
+        mrr: calc.mrr, totalExpenses: calc.totalExpenses, netProfit: calc.netProfit,
+        averageCheck: calc.averageCheck, cac: calc.cac, cogsPercent: detectedIndustry.cogs_percent,
+        fixedCosts: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
+        clientsActive: calc.clientsActive, ordersPerClient: detectedIndustry.orders_per_client, churnRate,
+      });
+      console.log(`Sensitivity: most=${sensitivityAnalysis.mostSensitiveVariable}, least=${sensitivityAnalysis.leastSensitiveVariable}`);
+    } catch (saErr) {
+      console.error('Sensitivity analysis failed:', saErr);
+    }
+
+    let benchmarkConfidenceData: BenchmarkConfidenceResult | undefined;
+    try {
+      benchmarkConfidenceData = computeBenchmarkConfidence(
+        benchmarkConfidence || 75,
+        null, // last_updated from DB would go here
+        benchmarkSampleSize || null,
+        benchmarkDataSource || null
+      );
+      console.log(`Benchmark confidence: ${benchmarkConfidenceData.adjustedScore}% (${benchmarkConfidenceData.confidenceLabel})`);
+    } catch (bcErr) {
+      console.error('Benchmark confidence calc failed:', bcErr);
+    }
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -3715,6 +3759,31 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             cac: quantisOutput.metrics.cac,
             ltv: quantisOutput.metrics.ltv,
           },
+
+          // ========== CTO-LEVEL ACCURACY UPGRADES ==========
+          cross_validation: crossValidation ? {
+            agreement_score: crossValidation.agreementScore,
+            is_dual_engine_verified: crossValidation.isDualEngineVerified,
+            recommendation: crossValidation.recommendation,
+            divergence_count: crossValidation.divergences.length,
+            critical_divergences: crossValidation.criticalDivergences,
+            audit_summary: crossValidation.auditSummary,
+          } : undefined,
+
+          sensitivity_analysis: sensitivityAnalysis ? {
+            tornado: sensitivityAnalysis.tornado,
+            most_sensitive_variable: sensitivityAnalysis.mostSensitiveVariable,
+            least_sensitive_variable: sensitivityAnalysis.leastSensitiveVariable,
+            summary: sensitivityAnalysis.summary,
+          } : undefined,
+
+          benchmark_confidence: benchmarkConfidenceData ? {
+            adjusted_score: benchmarkConfidenceData.adjustedScore,
+            confidence_label: benchmarkConfidenceData.confidenceLabel,
+            staleness_factor: benchmarkConfidenceData.stalenessFactor,
+            is_stale: benchmarkConfidenceData.isStale,
+            explanation: benchmarkConfidenceData.explanation,
+          } : undefined,
           
           // Engine version info
           engine_version: quantisOutput.version,
