@@ -184,6 +184,7 @@ export interface OutputValidationResult {
  * 1. Invented numbers (not from computed metrics)
  * 2. Potential secret leakage
  * 3. Injected malicious content
+ * 4. Number anchoring verification (new)
  */
 export function validateAIOutput(
   narratorOutput: NarratorOutput | null,
@@ -218,6 +219,68 @@ export function validateAIOutput(
       trustScore -= 15;
     }
   }
+
+  // 1b. ENHANCED: Extract all dollar amounts and percentages from AI text
+  // and cross-check against computed metric anchors within ±5% tolerance
+  const allText = JSON.stringify(narratorOutput);
+  const anchorMetrics: Record<string, number> = {
+    mrr: computedMetrics.mrr,
+    netProfit: computedMetrics.netProfit,
+    grossProfit: computedMetrics.grossProfit,
+    totalExpenses: computedMetrics.totalExpenses,
+    ltv: computedMetrics.ltv,
+    cac: computedMetrics.cac,
+    startupInvestment: computedMetrics.startupInvestment,
+    breakEvenRevenue: computedMetrics.breakEvenRevenue,
+    npv3Years: computedMetrics.npv3Years,
+    arr: computedMetrics.arr,
+  };
+  const anchorValues = Object.values(anchorMetrics).filter(v => v !== 0);
+  
+  // Extract dollar amounts from AI text
+  const dollarPattern = /\$[\d,]+(?:\.\d{1,2})?/g;
+  const dollarMatches = allText.match(dollarPattern) || [];
+  
+  for (const match of dollarMatches) {
+    const extractedValue = parseFloat(match.replace(/[$,]/g, ''));
+    if (isNaN(extractedValue) || extractedValue < 100) continue; // skip small amounts
+    
+    // Check if this number is within 5% of any computed anchor
+    const isAnchored = anchorValues.some(anchor => {
+      if (anchor === 0) return extractedValue === 0;
+      const tolerance = Math.abs(anchor) * 0.05;
+      return Math.abs(extractedValue - anchor) <= tolerance;
+    });
+    
+    // Also allow numbers that are clearly derived (e.g., breakdown items, scenario values)
+    const isDerived = [
+      computedMetrics.expenses.cogs,
+      computedMetrics.expenses.salaries,
+      computedMetrics.expenses.rent,
+      computedMetrics.expenses.utilities,
+      computedMetrics.expenses.marketing,
+      computedMetrics.expenses.other,
+      computedMetrics.revenueFor45kProfit,
+      computedMetrics.scenarios?.pessimistic?.revenue,
+      computedMetrics.scenarios?.optimistic?.revenue,
+      computedMetrics.scenarios?.pessimistic?.netProfit,
+      computedMetrics.scenarios?.optimistic?.netProfit,
+    ].filter(v => v !== undefined && v !== 0).some(anchor => {
+      const tolerance = Math.abs(anchor as number) * 0.10;
+      return Math.abs(extractedValue - (anchor as number)) <= tolerance;
+    });
+    
+    if (!isAnchored && !isDerived && extractedValue > 500) {
+      // This is a potentially invented number
+      issues.push({
+        code: 'UNANCHORED_NUMBER',
+        field: 'output',
+        message: `AI output contains ${match} which doesn't match any computed metric within 5% tolerance`,
+        severity: 'warning',
+      });
+      trustScore -= 5;
+    }
+  }
   
   // 2. Check for secret leakage patterns
   const secretPatterns = [
@@ -230,7 +293,6 @@ export function validateAIOutput(
     /SUPABASE_[A-Z_]+/i,
   ];
   
-  const allText = JSON.stringify(narratorOutput);
   let containsSecrets = false;
   
   for (const pattern of secretPatterns) {

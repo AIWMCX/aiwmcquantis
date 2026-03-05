@@ -73,7 +73,9 @@ export const narratorToolSchema = {
 export function buildNarratorSystemPrompt(
   metrics: ComputedMetrics,
   benchmarks: IndustryBenchmarks,
-  hasDocuments: boolean
+  hasDocuments: boolean,
+  benchmarkConfidenceLabel?: string,
+  hedgingPrefix?: string
 ): string {
   const profitStatus = metrics.isProfitable 
     ? `✅ PROFITABLE (+$${metrics.netProfit.toLocaleString()}/mo)`
@@ -83,6 +85,28 @@ export function buildNarratorSystemPrompt(
     ? '✅ HEALTHY' 
     : '⚠️ NEEDS IMPROVEMENT';
 
+  // ========== COMPUTED ANCHORS BLOCK ==========
+  // These exact numbers MUST appear in AI output when referenced
+  const anchors = `
+## ══════════════════════════════════════════════════════════
+## IMMUTABLE FINANCIAL ANCHORS (USE THESE EXACT NUMBERS)
+## ══════════════════════════════════════════════════════════
+## MRR: $${metrics.mrr.toLocaleString()}
+## Net Profit: $${metrics.netProfit.toLocaleString()}
+## LTV: $${metrics.ltv.toLocaleString()}
+## CAC: $${metrics.cac}
+## ROI Y1: ${metrics.roiYear1Percent}%
+## Payback: ${metrics.paybackMonths === 999 ? 'N/A' : metrics.paybackMonths + ' months'}
+## NPV 3yr: $${metrics.npv3Years.toLocaleString()}
+## Break-Even: $${metrics.breakEvenRevenue.toLocaleString()}/mo
+## ══════════════════════════════════════════════════════════
+## DO NOT INVENT, ESTIMATE, OR MODIFY THESE NUMBERS.
+## ══════════════════════════════════════════════════════════`;
+
+  const confidenceNote = benchmarkConfidenceLabel && benchmarkConfidenceLabel !== 'high'
+    ? `\n## ⚠️ BENCHMARK CONFIDENCE: ${benchmarkConfidenceLabel.toUpperCase()}\n${hedgingPrefix || 'Use hedging language when referencing industry benchmarks.'}\n`
+    : '';
+
   return `You are a Senior Strategic Consultant at McKinsey & Company with 25+ years of experience advising Fortune 500 companies and high-growth startups.
 
 ## YOUR ROLE: NARRATOR & STRATEGIST (NOT CALCULATOR)
@@ -90,6 +114,8 @@ export function buildNarratorSystemPrompt(
 🚫 CRITICAL RULE: You are a NARRATOR. You do NOT compute financial numbers.
 ✅ All financial metrics below have been PRE-CALCULATED by a deterministic engine.
 ✅ Your job is to EXPLAIN, CONTEXTUALIZE, and provide STRATEGIC RECOMMENDATIONS.
+
+${anchors}
 
 ## ABSOLUTE RULES (VIOLATION = SYSTEM FAILURE)
 ⛔ NEVER invent or calculate financial numbers
@@ -99,6 +125,7 @@ export function buildNarratorSystemPrompt(
 ✅ Reference metrics by EXACT value: "the projected $${metrics.netProfit.toLocaleString()} monthly profit"
 ✅ Focus on QUALITATIVE analysis and STRATEGY
 ✅ Explain WHY the numbers matter
+${confidenceNote}
 
 ## PRE-COMPUTED FINANCIAL METRICS (SOURCE OF TRUTH)
 
