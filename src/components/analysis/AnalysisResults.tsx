@@ -18,6 +18,9 @@ import { DocumentInsights } from './DocumentInsights';
 import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
 import { IndustryComparison } from './IndustryComparison';
 import { ShareSuccessModal } from './ShareSuccessModal';
+import { SensitivityTornado } from './SensitivityTornado';
+import { DualEngineBadge } from './DualEngineBadge';
+import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
@@ -243,6 +246,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             Confidence: {result.confidence_score}%
           </Badge>
         </div>
+        
+        {/* Dual-Engine Verified Badge */}
+        <DualEngineBadge crossValidation={(result as any).cross_validation} />
 
         <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
           <div className="space-y-2">
@@ -412,9 +418,22 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         suggestions={result.validation?.improvement_suggestions}
       />
 
+      {/* Benchmark Confidence Indicator */}
+      <BenchmarkConfidenceIndicator confidence={(result as any).benchmark_confidence} />
+
       {/* Validation Section - Show data quality */}
       {result.validation && (
         <ValidationSection validation={result.validation} />
+      )}
+
+      {/* Sensitivity Tornado Chart */}
+      {(result as any).sensitivity_analysis && (
+        <SensitivityTornado 
+          tornado={(result as any).sensitivity_analysis.tornado}
+          mostSensitiveVariable={(result as any).sensitivity_analysis.most_sensitive_variable}
+          leastSensitiveVariable={(result as any).sensitivity_analysis.least_sensitive_variable}
+          summary={(result as any).sensitivity_analysis.summary}
+        />
       )}
 
       {/* Document Insights - Show how documents improved analysis */}
