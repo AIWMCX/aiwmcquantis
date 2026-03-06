@@ -1,4 +1,4 @@
-﻿import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
@@ -14,10 +14,13 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   const allowedOrigins = [
     "https://aiwmcquantis.com",
     "https://www.aiwmcquantis.com",
+    "http://localhost:5173",
+    "http://localhost:8080",
   ];
   
-  // Only permit exact production domains
-  const isAllowed = origin && allowedOrigins.includes(origin);
+  // Also allow Lovable preview domains
+  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
+  const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
   
   return {
     "Access-Control-Allow-Origin": isAllowed ? origin : allowedOrigins[0],
@@ -154,4 +157,3 @@ serve(async (req) => {
     );
   }
 });
-
