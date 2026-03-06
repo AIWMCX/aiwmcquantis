@@ -11,6 +11,18 @@
  * 4. Traceable - full calculation audit trail for transparency
  */
 
+import { QMath } from 'qmath'; // Precise math library for financial calculations
+
+interface FinancialValue {
+  value: number;
+}
+
+interface CalculationStep {
+  label: string;
+  operation: string;
+  value: number;
+}
+
 import type { 
   ComputedMetrics, 
   ScenarioMetrics, 
@@ -98,10 +110,39 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const audit: CalculationAudit[] = [];
   
   // ===== STEP 1: Apply location adjustments to fixed costs =====
-  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultiplier);
-  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultiplier);
-  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultiplier);
-  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultiplier);
+  
+  /**
+   * Location adjusted salaries calculation
+   * FORMULA: Adjusted Salaries = Base Salaries × Location Multiplier
+   */
+  const baseSalaries = QMath.create(benchmarks.salaries_fixed);
+  const locationMultiplierValue = QMath.create(locationMultiplier);
+  const adjustedSalariesRaw = QMath.multiply(baseSalaries, locationMultiplierValue);
+  const adjustedSalaries = QMath.round(adjustedSalariesRaw);
+  
+  /**
+   * Location adjusted rent calculation
+   * FORMULA: Adjusted Rent = Base Rent × Location Multiplier
+   */
+  const baseRent = QMath.create(benchmarks.rent_fixed);
+  const adjustedRentRaw = QMath.multiply(baseRent, locationMultiplierValue);
+  const adjustedRent = QMath.round(adjustedRentRaw);
+  
+  /**
+   * Location adjusted utilities calculation
+   * FORMULA: Adjusted Utilities = Base Utilities × Location Multiplier
+   */
+  const baseUtilities = QMath.create(benchmarks.utilities_fixed);
+  const adjustedUtilitiesRaw = QMath.multiply(baseUtilities, locationMultiplierValue);
+  const adjustedUtilities = QMath.round(adjustedUtilitiesRaw);
+  
+  /**
+   * Location adjusted other costs calculation
+   * FORMULA: Adjusted Other = Base Other × Location Multiplier
+   */
+  const baseOther = QMath.create(benchmarks.other_fixed);
+  const adjustedOtherRaw = QMath.multiply(baseOther, locationMultiplierValue);
+  const adjustedOther = QMath.round(adjustedOtherRaw);
   
   audit.push({
     formula: 'Location_Adjusted_Costs = Base_Costs × Location_Multiplier',
@@ -109,9 +150,9 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
       'Base Salaries': benchmarks.salaries_fixed,
       'Location Multiplier': locationMultiplier,
     },
-    result: adjustedSalaries,
+    result: adjustedSalaries.value,
     isValid: true,
-    notes: `$${benchmarks.salaries_fixed} × ${locationMultiplier} = $${adjustedSalaries}`,
+    notes: `$${benchmarks.salaries_fixed} × ${locationMultiplier} = $${adjustedSalaries.value}`,
   });
   
   // ===== STEP 2: Validate and correct average check =====
@@ -170,31 +211,69 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   // FORMULA: LTV = Avg_Check × Gross_Margin_Fraction × Orders_per_Month × Lifetime_Months
   // BUG FIX: Must include gross margin fraction — LTV is what the business KEEPS, not raw revenue.
   // A SaaS at 80% gross margin with $200 avg_check keeps only $160 per order.
-  const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
-  const ltv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
+  
+  /**
+   * Gross margin fraction calculation
+   * FORMULA: Gross Margin Fraction = 1 - (COGS Percent / 100)
+   */
+  const cogsPercent = QMath.create(benchmarks.cogs_percent);
+  const hundred = QMath.create(100);
+  const cogsRatio = QMath.divide(cogsPercent, hundred);
+  const one = QMath.create(1);
+  const grossMarginFraction = QMath.subtract(one, cogsRatio);
+  
+  /**
+   * LTV calculation
+   * FORMULA: LTV = Avg_Check × Gross_Margin_Fraction × Orders_per_Client × Client_Lifetime_Months
+   */
+  const avgCheckValue = QMath.create(avgCheck);
+  const ordersPerClient = QMath.create(benchmarks.orders_per_client);
+  const clientLifetimeMonths = QMath.create(benchmarks.client_lifetime_months);
+  
+  const marginAdjustedCheck = QMath.multiply(avgCheckValue, grossMarginFraction);
+  const annualValue = QMath.multiply(marginAdjustedCheck, ordersPerClient);
+  const ltvRaw = QMath.multiply(annualValue, clientLifetimeMonths);
+  const ltv = QMath.round(ltvRaw);
   
   audit.push({
     formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime_Months',
     inputs: {
       'Average Check': avgCheck,
-      'Gross Margin Fraction': Math.round(grossMarginFraction * 100) / 100,
+      'Gross Margin Fraction': Math.round(grossMarginFraction.value * 100) / 100,
       'Orders/Month': benchmarks.orders_per_client,
       'Lifetime (months)': benchmarks.client_lifetime_months,
     },
-    result: ltv,
+    result: ltv.value,
     isValid: true,
-    notes: `$${avgCheck} × ${Math.round(grossMarginFraction * 100)}% × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${ltv} (margin-adjusted LTV)`,
+    notes: `$${avgCheck} × ${Math.round(grossMarginFraction.value * 100)}% × ${benchmarks.orders_per_client} × ${benchmarks.client_lifetime_months} = $${ltv.value} (margin-adjusted LTV)`,
   });
   
   // ===== STEP 5: Calculate LTV:CAC ratio =====
-  const ltvCacRatio = cac > 0 ? Math.round((ltv / cac) * 10) / 10 : 0;
+  
+  /**
+   * LTV:CAC ratio calculation
+   * FORMULA: LTV_CAC_Ratio = LTV / CAC
+   */
+  const cacValue = QMath.create(cac);
+  const ltvValue = QMath.create(ltv.value);
+  let ltvCacRatioRaw: FinancialValue;
+  if (cacValue.value > 0) {
+    ltvCacRatioRaw = QMath.divide(ltvValue, cacValue);
+    const ten = QMath.create(10);
+    const multiplied = QMath.multiply(ltvCacRatioRaw, ten);
+    const rounded = QMath.round(multiplied);
+    ltvCacRatioRaw = QMath.divide(rounded, ten);
+  } else {
+    ltvCacRatioRaw = QMath.create(0);
+  }
+  const ltvCacRatio = ltvCacRatioRaw.value;
   
   audit.push({
     formula: 'LTV_CAC_Ratio = LTV / CAC',
-    inputs: { LTV: ltv, CAC: cac },
+    inputs: { LTV: ltv.value, CAC: cac },
     result: ltvCacRatio,
     isValid: ltvCacRatio >= 2 && ltvCacRatio <= 10,
-    notes: `$${ltv} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`,
+    notes: `$${ltv.value} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`,
   });
   
   // Validate LTV:CAC
@@ -219,31 +298,89 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   // ===== STEP 6: Calculate expense structure =====
   
   // COGS (variable cost based on revenue)
-  const cogs = Math.round(mrr * (benchmarks.cogs_percent / 100));
+  
+  /**
+   * COGS calculation
+   * FORMULA: COGS = MRR × COGS_Percent
+   */
+  const mrrValue = QMath.create(mrr);
+  const cogsPercentValue = QMath.create(benchmarks.cogs_percent);
+  const cogsRatio = QMath.divide(cogsPercentValue, hundred);
+  const cogsRaw = QMath.multiply(mrrValue, cogsRatio);
+  const cogs = QMath.round(cogsRaw);
   
   audit.push({
     formula: 'COGS = MRR × COGS_Percent',
     inputs: { MRR: mrr, 'COGS%': benchmarks.cogs_percent },
-    result: cogs,
+    result: cogs.value,
     isValid: true,
-    notes: `$${mrr} × ${benchmarks.cogs_percent}% = $${cogs}`,
+    notes: `$${mrr} × ${benchmarks.cogs_percent}% = $${cogs.value}`,
   });
   
   // Fixed costs
-  const fixedCosts = adjustedSalaries + adjustedRent + adjustedUtilities + adjustedOther;
+  /**
+   * Fixed costs calculation
+   * FORMULA: Fixed Costs = Adjusted Salaries + Adjusted Rent + Adjusted Utilities + Adjusted Other
+   */
+  const adjustedSalariesValue = QMath.create(adjustedSalaries.value);
+  const adjustedRentValue = QMath.create(adjustedRent.value);
+  const adjustedUtilitiesValue = QMath.create(adjustedUtilities.value);
+  const adjustedOtherValue = QMath.create(adjustedOther.value);
+  const salariesPlusRent = QMath.add(adjustedSalariesValue, adjustedRentValue);
+  const plusUtilities = QMath.add(salariesPlusRent, adjustedUtilitiesValue);
+  const fixedCostsValue = QMath.add(plusUtilities, adjustedOtherValue);
+  const fixedCosts = fixedCostsValue.value;
   
   // Calculate active clients and marketing spend
-  const revenuePerClient = avgCheck * benchmarks.orders_per_client;
+  /**
+   * Revenue per client calculation
+   * FORMULA: Revenue per Client = Average Check × Orders per Client
+   */
+  const avgCheckValue2 = QMath.create(avgCheck);
+  const ordersPerClient2 = QMath.create(benchmarks.orders_per_client);
+  const revenuePerClientValue = QMath.multiply(avgCheckValue2, ordersPerClient2);
+  const revenuePerClient = revenuePerClientValue.value;
+  
+  /**
+   * Active clients calculation
+   * FORMULA: Clients Active = max(1, ceil(MRR / max(Revenue per Client, 1)))
+   */
+  const mrrValue2 = QMath.create(mrr);
+  const maxRevenuePerClient = QMath.create(Math.max(revenuePerClient, 1));
+  const clientsRaw = QMath.divide(mrrValue2, maxRevenuePerClient);
+  const clientsCeil = QMath.ceil(clientsRaw);
+  const clientsActiveValue = QMath.create(Math.max(1, clientsCeil.value));
   const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
     ? userProvidedCustomers 
-    : Math.max(1, Math.ceil(mrr / Math.max(revenuePerClient, 1)));
+    : clientsActiveValue.value;
   
-  const churnRate = userProvidedChurnRate && userProvidedChurnRate > 0 
-    ? userProvidedChurnRate / 100 
-    : 1 / benchmarks.client_lifetime_months;
+  /**
+   * Churn rate calculation
+   * FORMULA: Churn Rate = User Provided or 1 / Client Lifetime Months
+   */
+  const churnRateValue = userProvidedChurnRate && userProvidedChurnRate > 0 
+    ? QMath.divide(QMath.create(userProvidedChurnRate), hundred)
+    : QMath.divide(one, QMath.create(benchmarks.client_lifetime_months));
+  const churnRate = churnRateValue.value;
   
-  const newClientsNeeded = Math.ceil(clientsActive * churnRate);
-  const marketing = newClientsNeeded * cac;
+  /**
+   * New clients needed calculation
+   * FORMULA: New Clients Needed = ceil(Clients Active × Churn Rate)
+   */
+  const clientsActiveValue2 = QMath.create(clientsActive);
+  const churnRateValue2 = QMath.create(churnRate);
+  const newClientsRaw = QMath.multiply(clientsActiveValue2, churnRateValue2);
+  const newClientsNeededValue = QMath.ceil(newClientsRaw);
+  const newClientsNeeded = newClientsNeededValue.value;
+  
+  /**
+   * Marketing cost calculation
+   * FORMULA: Marketing = New Clients Needed × CAC
+   */
+  const newClientsNeededValue2 = QMath.create(newClientsNeeded);
+  const cacValue2 = QMath.create(cac);
+  const marketingValue = QMath.multiply(newClientsNeededValue2, cacValue2);
+  const marketing = marketingValue.value;
   
   audit.push({
     formula: 'Marketing_Cost = New_Clients_Needed × CAC',
@@ -274,31 +411,82 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
       notes: `Using user-provided monthly costs: $${userProvidedCosts.toLocaleString()}`,
     });
   } else {
-    totalExpenses = cogs + fixedCosts + marketing;
+    /**
+     * Total expenses calculation
+     * FORMULA: Total Expenses = COGS + Fixed Costs + Marketing
+     */
+    const cogsValue = QMath.create(cogs.value);
+    const fixedCostsValue2 = QMath.create(fixedCosts);
+    const marketingValue2 = QMath.create(marketing);
+    const cogsPlusFixed = QMath.add(cogsValue, fixedCostsValue2);
+    const totalExpensesValue = QMath.add(cogsPlusFixed, marketingValue2);
+    totalExpenses = totalExpensesValue.value;
     
     audit.push({
       formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
       inputs: {
-        COGS: cogs,
-        Salaries: adjustedSalaries,
-        Rent: adjustedRent,
-        Utilities: adjustedUtilities,
-        Other: adjustedOther,
+        COGS: cogs.value,
+        Salaries: adjustedSalaries.value,
+        Rent: adjustedRent.value,
+        Utilities: adjustedUtilities.value,
+        Other: adjustedOther.value,
         Marketing: marketing,
       },
       result: totalExpenses,
       isValid: true,
-      notes: `$${cogs} + $${fixedCosts} + $${marketing} = $${totalExpenses}`,
+      notes: `$${cogs.value} + $${fixedCosts} + $${marketing} = $${totalExpenses}`,
     });
   }
   
   // ===== STEP 7: Calculate profit metrics =====
   
-  const grossProfit = mrr - cogs;
-  const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
+  /**
+   * Gross profit calculation
+   * FORMULA: Gross Profit = MRR - COGS
+   */
+  const mrrValue3 = QMath.create(mrr);
+  const cogsValue2 = QMath.create(cogs.value);
+  const grossProfitValue = QMath.subtract(mrrValue3, cogsValue2);
+  const grossProfit = grossProfitValue.value;
   
-  const netProfit = mrr - totalExpenses;
-  const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  /**
+   * Gross margin percent calculation
+   * FORMULA: Gross Margin % = round((Gross Profit / MRR) × 100)
+   */
+  let grossMarginPercentValue: FinancialValue;
+  if (mrrValue3.value > 0) {
+    const grossProfitValue2 = QMath.create(grossProfit);
+    const ratio = QMath.divide(grossProfitValue2, mrrValue3);
+    const multiplied = QMath.multiply(ratio, hundred);
+    grossMarginPercentValue = QMath.round(multiplied);
+  } else {
+    grossMarginPercentValue = QMath.create(0);
+  }
+  const grossMarginPercent = grossMarginPercentValue.value;
+  
+  /**
+   * Net profit calculation
+   * FORMULA: Net Profit = MRR - Total Expenses
+   */
+  const totalExpensesValue = QMath.create(totalExpenses);
+  const netProfitValue = QMath.subtract(mrrValue3, totalExpensesValue);
+  const netProfit = netProfitValue.value;
+  
+  /**
+   * Net margin percent calculation
+   * FORMULA: Net Margin % = round((Net Profit / MRR) × 100)
+   */
+  let netMarginPercentValue: FinancialValue;
+  if (mrrValue3.value > 0) {
+    const netProfitValue2 = QMath.create(netProfit);
+    const ratio2 = QMath.divide(netProfitValue2, mrrValue3);
+    const multiplied2 = QMath.multiply(ratio2, hundred);
+    netMarginPercentValue = QMath.round(multiplied2);
+  } else {
+    netMarginPercentValue = QMath.create(0);
+  }
+  const netMarginPercent = netMarginPercentValue.value;
+  
   const isProfitable = netProfit > 0;
   
   audit.push({
@@ -332,14 +520,24 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 8: Calculate investment returns =====
   
-  let paybackMonths = 0;
-  if (startupInvestment > 0) {
-    if (netProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / netProfit);
+  /**
+   * Payback months calculation
+   * FORMULA: Payback Months = ceil(Startup Investment / Monthly Net Profit)
+   */
+  let paybackMonthsValue: FinancialValue;
+  const startupInvestmentValue = QMath.create(startupInvestment);
+  const netProfitValue3 = QMath.create(netProfit);
+  if (startupInvestmentValue.value > 0) {
+    if (netProfitValue3.value > 0) {
+      const ratio3 = QMath.divide(startupInvestmentValue, netProfitValue3);
+      paybackMonthsValue = QMath.ceil(ratio3);
     } else {
-      paybackMonths = 999; // Unprofitable - never pays back
+      paybackMonthsValue = QMath.create(999);
     }
+  } else {
+    paybackMonthsValue = QMath.create(0);
   }
+  const paybackMonths = paybackMonthsValue.value;
   
   audit.push({
     formula: 'Payback_Months = Startup_Investment / Monthly_Net_Profit',
@@ -362,24 +560,64 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   }
   
   // ROI calculations
-  const roiYear1Percent = startupInvestment > 0 
-    ? Math.round((netProfit * 12 / startupInvestment) * 100) 
-    : 0;
+  /**
+   * Year 1 ROI percent calculation
+   * FORMULA: ROI Year 1 % = round((Net Profit × 12 / Investment) × 100)
+   */
+  let roiYear1PercentValue: FinancialValue;
+  if (startupInvestmentValue.value > 0) {
+    const twelve = QMath.create(12);
+    const annualProfit = QMath.multiply(netProfitValue3, twelve);
+    const roiRatio = QMath.divide(annualProfit, startupInvestmentValue);
+    const roiPercentRaw = QMath.multiply(roiRatio, hundred);
+    roiYear1PercentValue = QMath.round(roiPercentRaw);
+  } else {
+    roiYear1PercentValue = QMath.create(0);
+  }
+  const roiYear1Percent = roiYear1PercentValue.value;
   
-  const roiYear3Percent = startupInvestment > 0 
-    ? Math.round((netProfit * 36 / startupInvestment) * 100) 
-    : 0;
+  /**
+   * Year 3 ROI percent calculation
+   * FORMULA: ROI Year 3 % = round((Net Profit × 36 / Investment) × 100)
+   */
+  let roiYear3PercentValue: FinancialValue;
+  if (startupInvestmentValue.value > 0) {
+    const thirtySix = QMath.create(36);
+    const threeYearProfit = QMath.multiply(netProfitValue3, thirtySix);
+    const roiRatio2 = QMath.divide(threeYearProfit, startupInvestmentValue);
+    const roiPercentRaw2 = QMath.multiply(roiRatio2, hundred);
+    roiYear3PercentValue = QMath.round(roiPercentRaw2);
+  } else {
+    roiYear3PercentValue = QMath.create(0);
+  }
+  const roiYear3Percent = roiYear3PercentValue.value;
   
   // BUG FIX: True Discounted Cash Flow (DCF) NPV — not cumulative profit.
   // Using 10% annual WACC (standard for small business cost of capital).
   // Monthly_Rate = (1 + 0.10)^(1/12) - 1 ≈ 0.7974%
+  
+  /**
+   * NPV calculation
+   * FORMULA: NPV = -Investment + Σ(month 1→36) [Net Profit / (1 + Monthly Rate)^month]
+   */
   const ANNUAL_DISCOUNT_RATE = 0.10;
-  const monthlyDiscountRate = Math.pow(1 + ANNUAL_DISCOUNT_RATE, 1 / 12) - 1;
-  let npvSum = -startupInvestment;
+  const annualRate = QMath.create(1 + ANNUAL_DISCOUNT_RATE);
+  const twelfth = QMath.create(1 / 12);
+  const monthlyRateBase = QMath.pow(annualRate, twelfth);
+  const one2 = QMath.create(1);
+  const monthlyDiscountRateValue = QMath.subtract(monthlyRateBase, one2);
+  const monthlyDiscountRate = monthlyDiscountRateValue.value;
+  
+  let npvSumValue = QMath.create(-startupInvestment);
   for (let month = 1; month <= 36; month++) {
-    npvSum += netProfit / Math.pow(1 + monthlyDiscountRate, month);
+    const monthValue = QMath.create(month);
+    const base = QMath.add(one2, monthlyDiscountRateValue);
+    const power = QMath.pow(base, monthValue);
+    const discountedProfit = QMath.divide(netProfitValue3, power);
+    npvSumValue = QMath.add(npvSumValue, discountedProfit);
   }
-  const npv3Years = Math.round(npvSum);
+  const npv3YearsValue = QMath.round(npvSumValue);
+  const npv3Years = npv3YearsValue.value;
   
   audit.push({
     formula: 'ROI_Year1 = (Net_Profit × 12 / Investment) × 100%',
