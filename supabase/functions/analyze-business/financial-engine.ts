@@ -9,6 +9,7 @@
  * 2. Auditable - every step is logged with formula and inputs
  * 3. Validated - unrealistic values are caught and corrected
  * 4. Traceable - full calculation audit trail for transparency
+ * 5. Precision - uses QMath (decimal.js) to eliminate floating-point drift
  */
 
 import type { 
@@ -18,6 +19,8 @@ import type {
   CalculationAudit,
   InvestmentBreakdownItem 
 } from './schemas.ts';
+
+import { QMath } from './quantis-math-server.ts';
 
 // ========== INDUSTRY BENCHMARK TYPE ==========
 
@@ -80,6 +83,7 @@ export interface FinancialEngineOutput {
 
 /**
  * The heart of the financial engine - produces all metrics deterministically
+ * Now uses QMath for all arithmetic to eliminate floating-point drift.
  */
 export function computeFinancials(input: FinancialEngineInput): FinancialEngineOutput {
   const { 
@@ -98,10 +102,10 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const audit: CalculationAudit[] = [];
   
   // ===== STEP 1: Apply location adjustments to fixed costs =====
-  const adjustedSalaries = Math.round(benchmarks.salaries_fixed * locationMultiplier);
-  const adjustedRent = Math.round(benchmarks.rent_fixed * locationMultiplier);
-  const adjustedUtilities = Math.round(benchmarks.utilities_fixed * locationMultiplier);
-  const adjustedOther = Math.round(benchmarks.other_fixed * locationMultiplier);
+  const adjustedSalaries = QMath.round(QMath.multiply(benchmarks.salaries_fixed, locationMultiplier));
+  const adjustedRent = QMath.round(QMath.multiply(benchmarks.rent_fixed, locationMultiplier));
+  const adjustedUtilities = QMath.round(QMath.multiply(benchmarks.utilities_fixed, locationMultiplier));
+  const adjustedOther = QMath.round(QMath.multiply(benchmarks.other_fixed, locationMultiplier));
   
   audit.push({
     formula: 'Location_Adjusted_Costs = Base_Costs × Location_Multiplier',
@@ -167,17 +171,14 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   }
   
   // ===== STEP 4: Calculate LTV (deterministic formula — MARGIN-ADJUSTED) =====
-  // FORMULA: LTV = Avg_Check × Gross_Margin_Fraction × Orders_per_Month × Lifetime_Months
-  // BUG FIX: Must include gross margin fraction — LTV is what the business KEEPS, not raw revenue.
-  // A SaaS at 80% gross margin with $200 avg_check keeps only $160 per order.
-  const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
-  const ltv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
+  const ltv = QMath.round(QMath.ltv(avgCheck, benchmarks.cogs_percent, benchmarks.orders_per_client, benchmarks.client_lifetime_months));
+  const grossMarginFraction = QMath.roundTo(QMath.subtract(1, QMath.divide(benchmarks.cogs_percent, 100)).toNumber(), 2);
   
   audit.push({
     formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime_Months',
     inputs: {
       'Average Check': avgCheck,
-      'Gross Margin Fraction': Math.round(grossMarginFraction * 100) / 100,
+      'Gross Margin Fraction': grossMarginFraction,
       'Orders/Month': benchmarks.orders_per_client,
       'Lifetime (months)': benchmarks.client_lifetime_months,
     },
@@ -187,7 +188,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   });
   
   // ===== STEP 5: Calculate LTV:CAC ratio =====
-  const ltvCacRatio = cac > 0 ? Math.round((ltv / cac) * 10) / 10 : 0;
+  const ltvCacRatio = QMath.ltvCacRatio(ltv, cac);
   
   audit.push({
     formula: 'LTV_CAC_Ratio = LTV / CAC',
@@ -219,7 +220,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   // ===== STEP 6: Calculate expense structure =====
   
   // COGS (variable cost based on revenue)
-  const cogs = Math.round(mrr * (benchmarks.cogs_percent / 100));
+  const cogs = QMath.round(QMath.percentage(mrr, benchmarks.cogs_percent));
   
   audit.push({
     formula: 'COGS = MRR × COGS_Percent',
@@ -233,17 +234,17 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const fixedCosts = adjustedSalaries + adjustedRent + adjustedUtilities + adjustedOther;
   
   // Calculate active clients and marketing spend
-  const revenuePerClient = avgCheck * benchmarks.orders_per_client;
+  const revenuePerClient = QMath.round(QMath.multiply(avgCheck, benchmarks.orders_per_client));
   const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
     ? userProvidedCustomers 
-    : Math.max(1, Math.ceil(mrr / Math.max(revenuePerClient, 1)));
+    : Math.max(1, Math.ceil(QMath.divide(mrr, Math.max(revenuePerClient, 1)).toNumber()));
   
   const churnRate = userProvidedChurnRate && userProvidedChurnRate > 0 
     ? userProvidedChurnRate / 100 
     : 1 / benchmarks.client_lifetime_months;
   
   const newClientsNeeded = Math.ceil(clientsActive * churnRate);
-  const marketing = newClientsNeeded * cac;
+  const marketing = QMath.round(QMath.multiply(newClientsNeeded, cac));
   
   audit.push({
     formula: 'Marketing_Cost = New_Clients_Needed × CAC',
@@ -295,10 +296,10 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   // ===== STEP 7: Calculate profit metrics =====
   
   const grossProfit = mrr - cogs;
-  const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
+  const grossMarginPercent = QMath.marginPercent(grossProfit, mrr);
   
   const netProfit = mrr - totalExpenses;
-  const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  const netMarginPercent = QMath.marginPercent(netProfit, mrr);
   const isProfitable = netProfit > 0;
   
   audit.push({
@@ -332,14 +333,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 8: Calculate investment returns =====
   
-  let paybackMonths = 0;
-  if (startupInvestment > 0) {
-    if (netProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / netProfit);
-    } else {
-      paybackMonths = 999; // Unprofitable - never pays back
-    }
-  }
+  const paybackMonths = QMath.paybackMonths(startupInvestment, netProfit);
   
   audit.push({
     formula: 'Payback_Months = Startup_Investment / Monthly_Net_Profit',
@@ -361,25 +355,18 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     });
   }
   
-  // ROI calculations
-  const roiYear1Percent = startupInvestment > 0 
-    ? Math.round((netProfit * 12 / startupInvestment) * 100) 
-    : 0;
+  // ROI calculations using QMath
+  const roiYear1Percent = QMath.round(QMath.roi(netProfit, startupInvestment, 12));
+  const roiYear3Percent = QMath.round(QMath.roi(netProfit, startupInvestment, 36));
   
-  const roiYear3Percent = startupInvestment > 0 
-    ? Math.round((netProfit * 36 / startupInvestment) * 100) 
-    : 0;
-  
-  // BUG FIX: True Discounted Cash Flow (DCF) NPV — not cumulative profit.
-  // Using 10% annual WACC (standard for small business cost of capital).
-  // Monthly_Rate = (1 + 0.10)^(1/12) - 1 ≈ 0.7974%
+  // True DCF NPV using QMath precision
   const ANNUAL_DISCOUNT_RATE = 0.10;
-  const monthlyDiscountRate = Math.pow(1 + ANNUAL_DISCOUNT_RATE, 1 / 12) - 1;
-  let npvSum = -startupInvestment;
-  for (let month = 1; month <= 36; month++) {
-    npvSum += netProfit / Math.pow(1 + monthlyDiscountRate, month);
-  }
-  const npv3Years = Math.round(npvSum);
+  const npv3Years = QMath.round(QMath.npv(startupInvestment, netProfit, 36, ANNUAL_DISCOUNT_RATE));
+  
+  const monthlyDiscountRate = QMath.roundTo(
+    QMath.sanitize(ANNUAL_DISCOUNT_RATE).plus(1).pow(QMath.sanitize(1).dividedBy(12)).minus(1).toNumber(),
+    6
+  );
   
   audit.push({
     formula: 'ROI_Year1 = (Net_Profit × 12 / Investment) × 100%',
@@ -398,14 +385,17 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   });
   
   // ===== STEP 9: Calculate break-even points =====
-  // BUG FIX: Guard against division-by-zero when mrr=0; use benchmark floor instead.
   const effectiveMrrForBreakeven = Math.max(mrr, benchmarks.average_check_min || 100);
-  const variableCostRatio = benchmarks.cogs_percent / 100 + (effectiveMrrForBreakeven > 0 ? marketing / effectiveMrrForBreakeven : 0);
+  const variableCostRatio = QMath.roundTo(
+    QMath.add(
+      QMath.divide(benchmarks.cogs_percent, 100),
+      effectiveMrrForBreakeven > 0 ? QMath.divide(marketing, effectiveMrrForBreakeven) : QMath.sanitize(0)
+    ).toNumber(),
+    4
+  );
   const contributionMargin = 1 - variableCostRatio;
   
-  const breakEvenRevenue = contributionMargin > 0.01
-    ? Math.round(fixedCosts / contributionMargin)
-    : 0;
+  const breakEvenRevenue = QMath.round(QMath.breakEvenRevenue(fixedCosts, contributionMargin));
   
   const breakEvenUnits = avgCheck > 0
     ? Math.ceil(breakEvenRevenue / avgCheck)
@@ -413,7 +403,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   const targetProfit = 45000;
   const revenueFor45kProfit = contributionMargin > 0.01
-    ? Math.round((fixedCosts + targetProfit) / contributionMargin)
+    ? QMath.round(QMath.divide(fixedCosts + targetProfit, contributionMargin))
     : 0;
   
   audit.push({
@@ -429,9 +419,9 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 10: Calculate CAC payback months =====
   
-  const contributionPerCustomer = avgCheck * (1 - benchmarks.cogs_percent / 100);
+  const contributionPerCustomer = QMath.round(QMath.multiply(avgCheck, 1 - benchmarks.cogs_percent / 100));
   const cacPaybackMonths = contributionPerCustomer > 0 
-    ? Math.ceil(cac / contributionPerCustomer) 
+    ? Math.ceil(QMath.divide(cac, contributionPerCustomer).toNumber())
     : 999;
   
   audit.push({
@@ -439,7 +429,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     inputs: { CAC: cac, 'Contribution/Customer': contributionPerCustomer },
     result: cacPaybackMonths,
     isValid: cacPaybackMonths <= benchmarks.client_lifetime_months,
-    notes: `$${cac} / $${Math.round(contributionPerCustomer)} = ${cacPaybackMonths} months`,
+    notes: `$${cac} / $${contributionPerCustomer} = ${cacPaybackMonths} months`,
   });
   
   if (cacPaybackMonths > benchmarks.client_lifetime_months) {
@@ -457,6 +447,8 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const scenarios = generateScenarios(mrr, cogs, fixedCosts, marketing, netProfit, grossProfit, grossMarginPercent, netMarginPercent);
   
   // ===== BUILD FINAL OUTPUT =====
+  
+  const ordersMonthly = avgCheck > 0 ? QMath.round(QMath.divide(mrr, avgCheck)) : 0;
   
   const metrics: ComputedMetrics = {
     mrr,
@@ -481,7 +473,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     averageCheck: avgCheck,
     clientsActive,
     newClientsNeeded,
-    ordersMonthly: Math.round(mrr / avgCheck),
+    ordersMonthly,
     startupInvestment,
     paybackMonths,
     roiYear1Percent,
@@ -531,31 +523,27 @@ function generateScenarios(
   
   const mult = SCENARIO_MULTIPLIERS;
   
-  // BUG FIX: Apply gross margin COMPRESSION in pessimistic and EXPANSION in optimistic.
-  // Old code: COGS scaled proportionally with revenue → gross margin % was identical across all 3 scenarios.
-  // Fix: Pessimistic gets +5% COGS ratio (margin compression due to fixed-cost leverage);
-  //      Optimistic gets -2% COGS ratio (operational efficiency gains).
-  const baseCogsPercent = mrr > 0 ? cogs / mrr : 0; // actual base COGS ratio
+  const baseCogsPercent = mrr > 0 ? cogs / mrr : 0;
   
-  // Pessimistic (Conservative): Revenue drops, costs increase + margin compression
-  const pessimisticRevenue = Math.round(mrr * mult.conservative.revenue);
-  const pessimisticCogsRatio = Math.min(baseCogsPercent + 0.05, 0.95); // +5% COGS compression
-  const pessimisticCogs = Math.round(pessimisticRevenue * pessimisticCogsRatio);
-  const pessimisticMarketing = Math.round(marketing * mult.conservative.costs);
-  const pessimisticFixed = Math.round(fixedCosts * mult.conservative.costs);
+  // Pessimistic (Conservative)
+  const pessimisticRevenue = QMath.round(QMath.multiply(mrr, mult.conservative.revenue));
+  const pessimisticCogsRatio = Math.min(baseCogsPercent + 0.05, 0.95);
+  const pessimisticCogs = QMath.round(QMath.multiply(pessimisticRevenue, pessimisticCogsRatio));
+  const pessimisticMarketing = QMath.round(QMath.multiply(marketing, mult.conservative.costs));
+  const pessimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.conservative.costs));
   const pessimisticTotal = pessimisticCogs + pessimisticFixed + pessimisticMarketing;
   const pessimisticNetProfit = pessimisticRevenue - pessimisticTotal;
   const pessimisticGrossProfit = pessimisticRevenue - pessimisticCogs;
   
-  // Base case: current projections (multiplier = 1.0)
+  // Base case
   const baseTotal = cogs + fixedCosts + marketing;
   
-  // Optimistic (Aggressive): Revenue grows, costs controlled + margin expansion
-  const optimisticRevenue = Math.round(mrr * mult.aggressive.revenue);
-  const optimisticCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01); // -2% COGS efficiency
-  const optimisticCogs = Math.round(optimisticRevenue * optimisticCogsRatio);
-  const optimisticMarketing = Math.round(marketing * mult.aggressive.costs);
-  const optimisticFixed = Math.round(fixedCosts * mult.aggressive.costs);
+  // Optimistic (Aggressive)
+  const optimisticRevenue = QMath.round(QMath.multiply(mrr, mult.aggressive.revenue));
+  const optimisticCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01);
+  const optimisticCogs = QMath.round(QMath.multiply(optimisticRevenue, optimisticCogsRatio));
+  const optimisticMarketing = QMath.round(QMath.multiply(marketing, mult.aggressive.costs));
+  const optimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.aggressive.costs));
   const optimisticTotal = optimisticCogs + optimisticFixed + optimisticMarketing;
   const optimisticNetProfit = optimisticRevenue - optimisticTotal;
   const optimisticGrossProfit = optimisticRevenue - optimisticCogs;
@@ -567,8 +555,8 @@ function generateScenarios(
       fixedCosts: pessimisticFixed,
       grossProfit: pessimisticGrossProfit,
       netProfit: pessimisticNetProfit,
-      grossMargin: pessimisticRevenue > 0 ? Math.round((pessimisticGrossProfit / pessimisticRevenue) * 100) : 0,
-      netMargin: pessimisticRevenue > 0 ? Math.round((pessimisticNetProfit / pessimisticRevenue) * 100) : 0,
+      grossMargin: QMath.marginPercent(pessimisticGrossProfit, pessimisticRevenue),
+      netMargin: QMath.marginPercent(pessimisticNetProfit, pessimisticRevenue),
     },
     base: {
       revenue: mrr,
@@ -585,8 +573,8 @@ function generateScenarios(
       fixedCosts: optimisticFixed,
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
-      grossMargin: optimisticRevenue > 0 ? Math.round((optimisticGrossProfit / optimisticRevenue) * 100) : 0,
-      netMargin: optimisticRevenue > 0 ? Math.round((optimisticNetProfit / optimisticRevenue) * 100) : 0,
+      grossMargin: QMath.marginPercent(optimisticGrossProfit, optimisticRevenue),
+      netMargin: QMath.marginPercent(optimisticNetProfit, optimisticRevenue),
     },
   };
 }
@@ -607,7 +595,7 @@ export function generate12MonthProjections(
   totalExpenses: number,
   startupInvestment: number,
   currentCash: number,
-  monthlyGrowthRate: number = 0.05 // Default 5% growth
+  monthlyGrowthRate: number = 0.05
 ): MonthlyProjection[] {
   const projections: MonthlyProjection[] = [];
   
@@ -618,9 +606,8 @@ export function generate12MonthProjections(
   
   for (let month = 1; month <= 12; month++) {
     if (month > 1) {
-      // Revenue grows at specified rate, costs grow at half the rate
-      revenue = Math.round(revenue * (1 + monthlyGrowthRate));
-      costs = Math.round(costs * (1 + monthlyGrowthRate * 0.5));
+      revenue = QMath.round(QMath.multiply(revenue, 1 + monthlyGrowthRate));
+      costs = QMath.round(QMath.multiply(costs, 1 + monthlyGrowthRate * 0.5));
     }
     
     const profit = revenue - costs;
@@ -629,11 +616,11 @@ export function generate12MonthProjections(
     
     projections.push({
       month,
-      revenue: Math.round(revenue),
-      costs: Math.round(costs),
-      profit: Math.round(profit),
-      cumulativeProfit: Math.round(cumulativeProfit),
-      cash: Math.round(Math.max(0, cash)),
+      revenue: QMath.round(revenue),
+      costs: QMath.round(costs),
+      profit: QMath.round(profit),
+      cumulativeProfit: QMath.round(cumulativeProfit),
+      cash: QMath.round(Math.max(0, cash)),
     });
   }
   
@@ -659,7 +646,6 @@ export function analyzeRisks(
 ): { risks: RiskFlag[]; overallLevel: 'low' | 'medium' | 'high' | 'critical' } {
   const risks: RiskFlag[] = [];
   
-  // Risk 1: Negative profit
   if (metrics.netProfit < 0) {
     risks.push({
       id: 'negative-profit',
@@ -671,7 +657,6 @@ export function analyzeRisks(
     });
   }
   
-  // Risk 2: Limited runway
   if (metrics.netProfit < 0 && currentCash > 0) {
     const runwayMonths = currentCash / Math.abs(metrics.netProfit);
     if (runwayMonths < 6) {
@@ -685,7 +670,6 @@ export function analyzeRisks(
     }
   }
   
-  // Risk 3: Long payback period
   if (metrics.paybackMonths > 24 && metrics.paybackMonths < 999) {
     risks.push({
       id: 'long-payback',
@@ -696,7 +680,6 @@ export function analyzeRisks(
     });
   }
   
-  // Risk 4: Poor LTV:CAC ratio
   if (metrics.ltvCacRatio < 3 && metrics.ltvCacRatio > 0) {
     risks.push({
       id: 'low-ltv-cac',
@@ -707,7 +690,6 @@ export function analyzeRisks(
     });
   }
   
-  // Risk 5: High churn
   if (churnRate > 10) {
     risks.push({
       id: 'high-churn',
@@ -718,7 +700,6 @@ export function analyzeRisks(
     });
   }
   
-  // Risk 6: Customer concentration
   if (currentCustomers > 0 && currentCustomers < 10 && metrics.mrr > 10000) {
     risks.push({
       id: 'customer-concentration',
@@ -729,7 +710,6 @@ export function analyzeRisks(
     });
   }
   
-  // Calculate overall risk level
   const criticalCount = risks.filter(r => r.severity === 'critical').length;
   const highCount = risks.filter(r => r.severity === 'high').length;
   
@@ -794,7 +774,6 @@ export function generateInvestmentBreakdown(
   monthlyRent: number,
   industryId: string
 ): InvestmentBreakdownItem[] {
-  // Industry-specific allocation ratios
   const allocations: Record<string, Record<string, number>> = {
     saas: { equipment: 0.30, working_capital: 0.35, marketing_initial: 0.20, rent_deposit: 0.05, legal: 0.05, inventory: 0.05 },
     ecommerce: { inventory: 0.35, equipment: 0.20, working_capital: 0.20, marketing_initial: 0.15, rent_deposit: 0.05, legal: 0.05 },
@@ -805,52 +784,35 @@ export function generateInvestmentBreakdown(
     default: { equipment: 0.30, working_capital: 0.25, inventory: 0.15, marketing_initial: 0.15, rent_deposit: 0.10, legal: 0.05 },
   };
   
-  // BUG FIX: Normalize industry IDs so 'saas_startup', 'b2b_saas', etc. map correctly.
-  // Previously, any ID with an underscore suffix fell through to 'default' (40% equipment - wrong for software).
   const ID_ALIASES: Record<string, string> = {
-    'saas_startup': 'saas',
-    'b2b_saas': 'saas',
-    'b2c_saas': 'saas',
-    'software_startup': 'saas',
-    'software': 'saas',
-    'tech_startup': 'saas',
-    'digital_marketing': 'consulting',
-    'marketing_agency': 'consulting',
-    'management_consulting': 'consulting',
-    'freelance_consulting': 'consulting',
+    'saas_startup': 'saas', 'b2b_saas': 'saas', 'b2c_saas': 'saas',
+    'software_startup': 'saas', 'software': 'saas', 'tech_startup': 'saas',
+    'digital_marketing': 'consulting', 'marketing_agency': 'consulting',
+    'management_consulting': 'consulting', 'freelance_consulting': 'consulting',
     'business_consulting': 'consulting',
-    'ecommerce_retail': 'ecommerce',
-    'dropshipping': 'ecommerce',
-    'online_retail': 'ecommerce',
-    'marketplace': 'ecommerce',
-    'food_delivery': 'food_service',
-    'restaurant': 'food_service',
-    'cafe': 'food_service',
-    'catering': 'food_service',
-    'retail_store': 'retail',
-    'fashion_retail': 'retail',
-    'medical_practice': 'healthcare',
-    'dental_practice': 'healthcare',
-    'clinic': 'healthcare',
+    'ecommerce_retail': 'ecommerce', 'dropshipping': 'ecommerce',
+    'online_retail': 'ecommerce', 'marketplace': 'ecommerce',
+    'food_delivery': 'food_service', 'restaurant': 'food_service',
+    'cafe': 'food_service', 'catering': 'food_service',
+    'retail_store': 'retail', 'fashion_retail': 'retail',
+    'medical_practice': 'healthcare', 'dental_practice': 'healthcare', 'clinic': 'healthcare',
   };
   const normalizedId = ID_ALIASES[industryId] || industryId;
   const ratios = allocations[normalizedId] || allocations.default;
   
-  // Calculate rent deposit as 2 months rent or allocation, whichever is higher
-  const rentDeposit = Math.max(monthlyRent * 2, totalInvestment * ratios.rent_deposit);
+  const rentDeposit = Math.max(monthlyRent * 2, QMath.round(QMath.multiply(totalInvestment, ratios.rent_deposit)));
   const remaining = totalInvestment - rentDeposit;
   
-  // Adjust other allocations proportionally
   const rentRatio = ratios.rent_deposit;
   const adjustmentFactor = (1 - rentRatio) > 0 ? remaining / (totalInvestment * (1 - rentRatio)) : 1;
   
   return [
-    { category: 'rent_deposit', amount: Math.round(rentDeposit) },
-    { category: 'equipment', amount: Math.round(totalInvestment * ratios.equipment * adjustmentFactor) },
-    { category: 'inventory', amount: Math.round(totalInvestment * ratios.inventory * adjustmentFactor) },
-    { category: 'working_capital', amount: Math.round(totalInvestment * ratios.working_capital * adjustmentFactor) },
-    { category: 'marketing_initial', amount: Math.round(totalInvestment * ratios.marketing_initial * adjustmentFactor) },
-    { category: 'legal', amount: Math.round(totalInvestment * ratios.legal * adjustmentFactor) },
+    { category: 'rent_deposit', amount: QMath.round(rentDeposit) },
+    { category: 'equipment', amount: QMath.round(QMath.multiply(QMath.multiply(totalInvestment, ratios.equipment), adjustmentFactor)) },
+    { category: 'inventory', amount: QMath.round(QMath.multiply(QMath.multiply(totalInvestment, ratios.inventory), adjustmentFactor)) },
+    { category: 'working_capital', amount: QMath.round(QMath.multiply(QMath.multiply(totalInvestment, ratios.working_capital), adjustmentFactor)) },
+    { category: 'marketing_initial', amount: QMath.round(QMath.multiply(QMath.multiply(totalInvestment, ratios.marketing_initial), adjustmentFactor)) },
+    { category: 'legal', amount: QMath.round(QMath.multiply(QMath.multiply(totalInvestment, ratios.legal), adjustmentFactor)) },
   ].filter(item => item.amount > 0);
 }
 
@@ -875,13 +837,13 @@ export function generateCalculationSummary(
 ### Expense Structure
 | Category | Amount | % of Revenue |
 |----------|--------|--------------|
-| COGS | $${metrics.expenses.cogs.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.cogs / metrics.mrr * 100) : 0}% |
-| Salaries | $${metrics.expenses.salaries.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.salaries / metrics.mrr * 100) : 0}% |
-| Rent | $${metrics.expenses.rent.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.rent / metrics.mrr * 100) : 0}% |
-| Utilities | $${metrics.expenses.utilities.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.utilities / metrics.mrr * 100) : 0}% |
-| Marketing | $${metrics.expenses.marketing.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.marketing / metrics.mrr * 100) : 0}% |
-| Other | $${metrics.expenses.other.toLocaleString()} | ${metrics.mrr > 0 ? Math.round(metrics.expenses.other / metrics.mrr * 100) : 0}% |
-| **TOTAL** | **$${metrics.totalExpenses.toLocaleString()}** | **${metrics.mrr > 0 ? Math.round(metrics.totalExpenses / metrics.mrr * 100) : 0}%** |
+| COGS | $${metrics.expenses.cogs.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.cogs, metrics.mrr) : 0}% |
+| Salaries | $${metrics.expenses.salaries.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.salaries, metrics.mrr) : 0}% |
+| Rent | $${metrics.expenses.rent.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.rent, metrics.mrr) : 0}% |
+| Utilities | $${metrics.expenses.utilities.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.utilities, metrics.mrr) : 0}% |
+| Marketing | $${metrics.expenses.marketing.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.marketing, metrics.mrr) : 0}% |
+| Other | $${metrics.expenses.other.toLocaleString()} | ${metrics.mrr > 0 ? QMath.marginPercent(metrics.expenses.other, metrics.mrr) : 0}% |
+| **TOTAL** | **$${metrics.totalExpenses.toLocaleString()}** | **${metrics.mrr > 0 ? QMath.marginPercent(metrics.totalExpenses, metrics.mrr) : 0}%** |
 
 ### Profit Calculation
 **Profit = Revenue - Expenses**
