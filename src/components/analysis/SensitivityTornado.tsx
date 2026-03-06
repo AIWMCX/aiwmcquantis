@@ -81,14 +81,14 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
               }}
             />
             <ReferenceLine x={baseProfit} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-            <Bar dataKey="low" stackId="range" name="-20%">
+            <Bar dataKey="low" stackId="range" name="-20%" radius={4}>
               {chartData.map((entry, index) => (
-                <Cell key={index} fill="hsl(var(--destructive) / 0.6)" radius={[4, 0, 0, 4]} />
+                <Cell key={index} fill="hsl(var(--destructive) / 0.6)" />
               ))}
             </Bar>
-            <Bar dataKey="high" stackId="range" name="+20%">
+            <Bar dataKey="high" stackId="range" name="+20%" radius={4}>
               {chartData.map((entry, index) => (
-                <Cell key={index} fill="hsl(var(--primary) / 0.6)" radius={[0, 4, 4, 0]} />
+                <Cell key={index} fill="hsl(var(--primary) / 0.6)" />
               ))}
             </Bar>
           </BarChart>
