@@ -1,3 +1,6 @@
+// CRITICAL: Bootstrap env vars before ANY Supabase imports
+import './integrations/supabase/bootstrap-env';
+
 import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
