@@ -55,6 +55,9 @@ import {
 import { crossValidateEngines, type CrossValidationResult } from "./engine-cross-validator.ts";
 import { analyzeSensitivity, type SensitivityResult } from "./sensitivity-analyzer.ts";
 import { computeBenchmarkConfidence, getHedgingPrefix, type BenchmarkConfidenceResult } from "./benchmark-confidence.ts";
+import { computeAssumptionGraph, type AssumptionGraphResult } from "./assumption-graph.ts";
+import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
+import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -3700,6 +3703,97 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       console.log(`Benchmark confidence: ${benchmarkConfidenceData.adjustedScore}% (${benchmarkConfidenceData.confidenceLabel})`);
     } catch (bcErr) {
       console.error('Benchmark confidence calc failed:', bcErr);
+    }
+
+    // ========== ANTI-BS SANITY CHECKS ==========
+    let sanityFlags: SanityFlag[] = [];
+    try {
+      sanityFlags = runAntiBS({
+        ltvCacRatio: calc.ltvCacRatio,
+        netMarginPercent: calc.netMarginPercent,
+        churnRate: mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months),
+        mrr: calc.mrr,
+        clientsActive: calc.clientsActive,
+      }, detectedIndustry.id);
+      if (sanityFlags.length > 0) {
+        console.log(`Anti-BS: ${sanityFlags.length} flags (${sanityFlags.filter(f => f.severity === 'critical').length} critical)`);
+      }
+    } catch (abErr) {
+      console.error('Anti-BS check failed:', abErr);
+    }
+
+    // ========== ASSUMPTION GRAPH ==========
+    let assumptionGraph: AssumptionGraphResult | undefined;
+    try {
+      const churnRate = mergedFinancialInputs?.churn_rate ? mergedFinancialInputs.churn_rate / 100 : (1 / detectedIndustry.client_lifetime_months);
+      assumptionGraph = computeAssumptionGraph(
+        {
+          averageCheck: calc.averageCheck,
+          clientsActive: calc.clientsActive,
+          cac: calc.cac,
+          churnRate,
+          cogsPercent: detectedIndustry.cogs_percent,
+          fixedCosts: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
+          ltv: calc.ltv,
+          grossMarginPercent: calc.grossMarginPercent,
+          netProfit: calc.netProfit,
+          mrr: calc.mrr,
+        },
+        sensitivityAnalysis,
+        benchmarkConfidence || 75
+      );
+      console.log(`Assumption graph: fragility=${assumptionGraph.fragility_score}, critical_path=${assumptionGraph.criticalPath.length}`);
+    } catch (agErr) {
+      console.error('Assumption graph failed:', agErr);
+    }
+
+    // ========== MODEL CONFIDENCE (PREDICTION ENGINE v0) ==========
+    let modelConfidence: ModelConfidenceResult | undefined;
+    try {
+      const maxSwing = sensitivityAnalysis?.tornado?.[0]?.profitSwing || 0;
+      modelConfidence = await computeModelConfidence({
+        hasFinancialInputs: !!(financial_inputs?.startup_investment || financial_inputs?.monthly_revenue || financial_inputs?.average_price),
+        hasDocuments: documentExtractedFinancials.length > 0,
+        hasSpecificIndustry: detectedIndustry.id !== 'general',
+        ideaLength: idea_clean.length,
+        benchmarkAdjustedScore: benchmarkConfidenceData?.adjustedScore || 50,
+        maxTornadoSwing: maxSwing,
+        baseNetProfit: calc.netProfit,
+        totalSanityRules: 5,
+        criticalFlagsCount: sanityFlags.filter(f => f.severity === 'critical').length,
+        warningFlagsCount: sanityFlags.filter(f => f.severity === 'warning').length,
+        industryId: detectedIndustry.id,
+        location: location_clean,
+      });
+      console.log(`Model confidence: ${modelConfidence.confidence} (${modelConfidence.recommendation_level})`);
+    } catch (mcErr) {
+      console.error('Model confidence failed:', mcErr);
+    }
+
+    // ========== CASE MEMORY INSERT (Non-blocking) ==========
+    let caseId: string | undefined;
+    try {
+      const { data: caseData } = await supabaseService
+        .from('analysis_cases')
+        .insert({
+          analysis_id: null, // Will be set later if saved
+          user_id: userId || '00000000-0000-0000-0000-000000000000',
+          industry_id: detectedIndustry.id,
+          location: location_clean,
+          input_snapshot: { idea: idea_clean, location: location_clean, financial_inputs: financial_inputs || {} },
+          output_snapshot: { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent },
+          engine_version: '9.1-resilient-fallback',
+          benchmark_version: benchmarkDataSource || 'embedded',
+          assumption_graph: assumptionGraph || null,
+          sanity_flags: sanityFlags.length > 0 ? sanityFlags : null,
+          confidence_score: modelConfidence?.confidence || null,
+        })
+        .select('id')
+        .single();
+      caseId = caseData?.id;
+      if (caseId) console.log(`Case memory saved: ${caseId}`);
+    } catch (cmErr) {
+      console.error('Case memory insert failed (non-blocking):', cmErr);
     }
 
     return new Response(
