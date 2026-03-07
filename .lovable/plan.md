@@ -1,168 +1,133 @@
 
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+# Landing Page Marketing Refresh — Reflecting New Engine Capabilities
 
-## Current State Assessment
-
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
-
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
-
-### Critical Gaps Identified
-
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
-
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
-
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
-
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
-
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
+The landing page currently sells a "stress-testing" and "benchmark-matching" tool. We've now built a **Bayesian Market Prior Engine** (anomaly cards, percentile scoring, z-scores) and **SCORE-native I/O** (import/export, compliance indicator). The marketing copy, sections, and proof points need to reflect this evolution — naturally, without sounding like a feature changelog.
 
 ---
 
-## Plan: 5 High-Impact Upgrades
+## Philosophy
 
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
-
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
-
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
-
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
-
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
-
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
-
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
-
-**Solution**: After both engines run, compare their outputs:
-
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
-}
-```
-
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
-
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
-
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
-```
-
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
-
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
-
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
-
-### Upgrade 4: Sensitivity Analysis Module
-
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
-
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
-
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
-}
-```
-
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
-
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
-
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
-
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
-
-**Solution**: Add a `computeBenchmarkConfidence()` function:
-
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
-```
-
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
-
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+The tone shifts from "we have benchmarks" to **"we grade your numbers against the market's actual distribution."** This is how a senior FP&A partner talks — not features, but *consequences*. The SCORE interoperability positions Quantis as the tool advisors and lenders already trust, not a replacement for their workflow.
 
 ---
 
-## Implementation Priority
+## Changes
 
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+### 1. Hero Copy Update (`MobileHero.tsx`)
 
-## What This Does NOT Include (Flagged for Later)
+**Current:** "AI Business Validation and Risk Stress-Testing for Startups"
 
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+**New:**
+```
+AI Business Validation and Financial Intelligence for Startups
+```
 
-## Files Changed Summary
+Sub-copy update:
+```
+Type your business idea. Get profit projections, risk flags, market
+percentile scoring, and an advisor-ready action plan — free, in under 3 minutes.
+```
 
-| File | Action |
+Bullet updates:
+- "Find out if your model survives revenue and cost shocks." → stays
+- "See which assumptions are fragile before you talk to investors." → stays
+- NEW: "Know exactly where your numbers sit vs. your peer group — by percentile, not guesswork."
+
+### 2. Hero Variants (`HeroVariants.tsx`)
+
+Update the A/B test variants to include the new positioning:
+- **control:** "AI Business Validation & Financial Intelligence in Under 3 Minutes" / "Get structured projections, percentile-ranked metrics, and advisor-ready SCORE exports — free."
+- **numbers_first:** "Financial Intelligence, Market Percentiles & Risk Signals — in 3 Minutes"
+- **action_focused:** "Validate Before You Build — AI Financial Intelligence"
+
+### 3. HowItWorks — Step 2 Rewrite (`HowItWorksSection.tsx`)
+
+**Current Step 2:** "Quantis Runs Stress Scenarios — Revenue drops, cost spikes, growth stalls — modeled against 1,000+ benchmarks."
+
+**New Step 2:** "Quantis Scores Against Market Reality — Your numbers are ranked against sector distributions: margins, unit economics, cost structure. Outliers are flagged with percentile context."
+
+**Current Step 3:** "You Get a Survival Report"
+
+**New Step 3:** "You Get an Advisor-Ready Report — Projections, anomaly cards, SCORE-compatible exports, and an action plan — in under 60 seconds."
+
+Also update the section subtitle:
+- "Powered by a 12-variable financial system" → "Powered by a 12-variable financial system with Bayesian market priors across 50+ sectors"
+
+### 4. BeforeAfterComparison — New "With" Items (`BeforeAfterComparison.tsx`)
+
+Replace the current WITH_ITEMS to reflect actual differentiation:
+```
+'Percentile-ranked metrics against real sector data'
+'SCORE-format exports accepted by lenders and advisors'
+'Anomaly detection flags what's off — and explains why'
+'Interactive dashboards you can update anytime'
+```
+
+### 5. DemoPreview — Add Anomaly Card Preview (`DemoPreview.tsx`)
+
+Add a 4th metric to each industry demo: a mini "Market Position" indicator showing a percentile rank. For example:
+- Coffee Shop: `Market Position: 72nd percentile` (subValue: "Above average for your peer group")
+- SaaS App: `Market Position: 58th percentile` (subValue: "In-line with sector median")
+- E-commerce: `Market Position: 85th percentile` (subValue: "Strong unit economics vs. peers")
+
+This previews the Anomaly Card concept before the user even signs up.
+
+### 6. ResultsTicker — Add Market Prior Metrics (`ResultsTicker.tsx`)
+
+Add 2 new ticker items that showcase the new engine:
+```
+{ label: 'Peer Percentile', value: '72nd', color: 'text-primary', business: 'Bakery', location: 'Chicago' }
+{ label: 'SCORE Ready', value: '94%', color: 'text-success', business: 'SaaS', location: 'Seattle' }
+```
+
+### 7. WhoItsFor — Add Advisor Proof Point (`WhoItsFor.tsx`)
+
+Update the "Investors & Advisors" persona bullets:
+- Current: "Compare a founder's projections against industry benchmarks."
+- New: "See where a founder's numbers rank in their sector's actual distribution — not just ranges, but percentiles."
+- Add: "Export any analysis as a SCORE-format file that lenders and accelerators accept directly."
+
+### 8. FAQSection — 2 New Questions (`FAQSection.tsx`)
+
+Add after "How accurate are the financial projections?":
+
+**"What is percentile scoring?"**
+"Every metric in your analysis — margins, unit economics, cost structure — is ranked against the statistical distribution of businesses in your sector. Instead of 'your margin is between 10-30%,' Quantis tells you 'your margin is in the 72nd percentile — higher than 72% of comparable businesses.' This turns benchmarks into actionable intelligence."
+
+**"What is SCORE compatibility?"**
+"SCORE is the standard financial template used by SBA advisors, lenders, and accelerators across the US. Quantis can import SCORE-format spreadsheets and export any analysis as a SCORE-compatible file — so your report works directly with the people who fund and advise small businesses."
+
+### 9. PricingSection — Feature List Update (`PricingSection.tsx`)
+
+Update PLUS_FEATURES:
+- "Advanced financial modeling" subtext → "12-variable projections with percentile scoring and anomaly detection"
+- Add new feature: `{ text: 'SCORE-format exports', highlight: false, subtext: 'Advisor and lender-ready financial reports' }`
+- Add new feature: `{ text: 'Market percentile scoring', highlight: true, subtext: 'Know where your numbers rank in your sector' }`
+
+### 10. Bottom CTA Copy Update (`Landing.tsx`)
+
+**Current:** "Your Idea Deserves Real Numbers"
+**New:** "Your Idea Deserves Market-Grade Intelligence"
+
+Sub-copy: "Revenue projections, percentile-ranked metrics, anomaly flags, and a SCORE-ready action plan — free, no credit card, results in under 3 minutes."
+
+---
+
+## Files Summary
+
+| File | Change |
 |------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+| `src/components/landing/MobileHero.tsx` | H1, sub-copy, bullets |
+| `src/components/landing/HeroVariants.tsx` | A/B variant copy |
+| `src/components/landing/HowItWorksSection.tsx` | Steps 2-3 rewrite, subtitle |
+| `src/components/landing/BeforeAfterComparison.tsx` | "With" items |
+| `src/components/landing/DemoPreview.tsx` | 4th metric per demo |
+| `src/components/landing/ResultsTicker.tsx` | 2 new ticker items |
+| `src/components/landing/WhoItsFor.tsx` | Advisor persona bullets |
+| `src/components/landing/FAQSection.tsx` | 2 new Q&As |
+| `src/components/landing/PricingSection.tsx` | Feature list updates |
+| `src/pages/Landing.tsx` | Bottom CTA copy |
+
+No structural or architectural changes. Pure copy and data updates that reflect what the engine now actually does.
 
