@@ -21,6 +21,8 @@ import { ShareSuccessModal } from './ShareSuccessModal';
 import { SensitivityTornado } from './SensitivityTornado';
 import { DualEngineBadge } from './DualEngineBadge';
 import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
+import { AssumptionGraph } from './AssumptionGraph';
+import { ModelConfidenceBadge } from './ModelConfidenceBadge';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
@@ -434,6 +436,39 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           leastSensitiveVariable={(result as any).sensitivity_analysis.least_sensitive_variable}
           summary={(result as any).sensitivity_analysis.summary}
         />
+      )}
+
+      {/* Assumption Critical Path */}
+      <AssumptionGraph graph={result.assumption_graph} />
+
+      {/* Model Confidence Badge */}
+      <ModelConfidenceBadge confidence={result.model_confidence} />
+
+      {/* Sanity Flags */}
+      {result.sanity_flags && result.sanity_flags.length > 0 && (
+        <div className="section-card">
+          <h3 className="text-lg font-semibold text-foreground mb-3 flex items-center gap-2">
+            <AlertCircle className="w-5 h-5 text-amber-500" />
+            Sanity Check Flags
+          </h3>
+          <div className="space-y-2">
+            {result.sanity_flags.map((flag, i) => (
+              <div key={i} className={cn(
+                'p-3 rounded-lg border text-sm',
+                flag.severity === 'critical' ? 'bg-destructive/5 border-destructive/30' :
+                flag.severity === 'warning' ? 'bg-amber-500/5 border-amber-500/30' :
+                'bg-muted/30 border-border'
+              )}>
+                <div className="flex items-center gap-2 mb-1">
+                  <Badge variant="outline" className="text-xs">{flag.severity}</Badge>
+                  <span className="font-medium text-foreground">{flag.rule_id.replace(/_/g, ' ')}</span>
+                </div>
+                <p className="text-muted-foreground">{flag.explanation}</p>
+                <p className="text-xs text-primary mt-1">💡 {flag.suggested_correction}</p>
+              </div>
+            ))}
+          </div>
+        </div>
       )}
 
       {/* Document Insights - Show how documents improved analysis */}
