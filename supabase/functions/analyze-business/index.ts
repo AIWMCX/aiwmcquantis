@@ -59,6 +59,12 @@ import { computeAssumptionGraph, type AssumptionGraphResult } from "./assumption
 import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
 import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
 
+// ========== MARKET PRIOR ENGINE ==========
+import { mapToNAICS, fetchDistributions, computeAnomalyScores, generateMarketPrior, type MarketPriorResult, type AnomalyScore } from "./market-prior.ts";
+
+// ========== SCORE COMPLIANCE ==========
+import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
@@ -3770,6 +3776,40 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       console.error('Model confidence failed:', mcErr);
     }
 
+    // ========== MARKET PRIOR ENGINE ==========
+    let marketPrior: MarketPriorResult | undefined;
+    try {
+      const naicsCode = mapToNAICS(detectedIndustry.id);
+      const distributions = await fetchDistributions(supabaseService, naicsCode);
+      if (distributions.length > 0) {
+        const userMetrics: Record<string, number> = {
+          gross_margin: calc.grossMarginPercent,
+          net_margin: calc.netMarginPercent,
+          cac: calc.cac,
+          ltv: calc.ltv,
+          ltv_cac_ratio: calc.ltvCacRatio,
+          cogs_percent: detectedIndustry.cogs_percent,
+          average_check: calc.averageCheck,
+          salaries_fixed: calc.expenses.salaries,
+          rent_fixed: calc.expenses.rent,
+        };
+        const anomalyScores = computeAnomalyScores(userMetrics, distributions);
+        marketPrior = generateMarketPrior(anomalyScores, naicsCode, distributions.length);
+        console.log(`Market prior: ${anomalyScores.filter(a => a.severity === 'outlier').length} outliers, ${anomalyScores.filter(a => a.severity === 'notable').length} notable`);
+      }
+    } catch (mpErr) {
+      console.error('Market prior engine failed (non-blocking):', mpErr);
+    }
+
+    // ========== SCORE COMPLIANCE ==========
+    let scoreCompliance: SCORECompliance | undefined;
+    try {
+      scoreCompliance = computeSCORECompliance(result);
+      console.log(`SCORE compliance: ${scoreCompliance.score}% (${scoreCompliance.filledFields.length} filled, ${scoreCompliance.missingFields.length} missing)`);
+    } catch (scErr) {
+      console.error('SCORE compliance failed (non-blocking):', scErr);
+    }
+
     // ========== CASE MEMORY INSERT (Non-blocking) ==========
     let caseId: string | undefined;
     try {
@@ -3884,6 +3924,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           sanity_flags: sanityFlags.length > 0 ? sanityFlags : undefined,
           model_confidence: modelConfidence || undefined,
           case_id: caseId || undefined,
+
+          // ========== MARKET PRIOR + SCORE COMPLIANCE ==========
+          market_prior: marketPrior || undefined,
+          score_compliance: scoreCompliance || undefined,
           
           // Engine version info
           engine_version: quantisOutput.version,

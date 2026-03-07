@@ -1,158 +1,168 @@
 
 
-# Phase 1: Market Prior Engine + SCORE Schema I/O
+# CTO-Level Accuracy & Precision Upgrade Plan
 
-Two high-leverage systems that transform Quantis from a benchmark-matching tool into a probabilistic intelligence platform with industry-standard interoperability.
+## Current State Assessment
+
+After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
+
+### What's Strong
+- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
+- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
+- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
+- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
+- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
+- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
+
+### Critical Gaps Identified
+
+**Gap 1: Two calculation engines, no shared precision**
+The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
+
+**Gap 2: No cross-validation between the two server paths**
+`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
+
+**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
+The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
+
+**Gap 4: Benchmark data is static — no confidence degradation for stale data**
+The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
+
+**Gap 5: No sensitivity analysis**
+The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
 
 ---
 
-## Part A: Bayesian Market Prior Engine
+## Plan: 5 High-Impact Upgrades
 
-### What It Does
-Every analysis passes through a "financial reality" layer that computes statistical distributions for the user's sector, then scores the user's numbers against those distributions. The result is an **Anomaly Card** surfaced in the UI: "Your EBITDA margin is in the 8th percentile for your peer group; typical range is 12–22%; main driver appears to be staff cost."
+### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
 
-### Architecture
+**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
+
+**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
+
+- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
+- Use `npm:decimal.js` specifier per the project's edge function deployment standard
+- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
+- Refactor `computeFinancials` in `financial-engine.ts` the same way
+- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
+
+**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
+
+### Upgrade 2: Cross-Validation Between Dual Engine Paths
+
+**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
+
+**Solution**: After both engines run, compare their outputs:
 
 ```text
-User Input → NAICS/Segment Mapping → Distribution Lookup → Anomaly Scoring → Anomaly Card
-                                          ↑
-                              industry_distributions table
-                              (mean, stddev, p10, p25, p50, p75, p90
-                               for 15-20 ratios per NAICS code)
-```
-
-### Database Changes
-
-**New table: `industry_distributions`**
-- `naics_code` (text), `segment` (text), `metric_name` (text — e.g. "gross_margin", "ebitda_margin", "cac", "ltv_cac_ratio")
-- `mean`, `stddev`, `p10`, `p25`, `median`, `p75`, `p90` (all numeric)
-- `sample_size` (int), `source` (text — "sec_derived" | "sba_derived" | "kerry_computed"), `last_updated` (timestamptz)
-- Primary key: `(naics_code, segment, metric_name)`
-- RLS: read-only for authenticated, write for service_role only
-
-**Seed data:** Compute distributions from existing `industry_benchmarks` + `embedded-benchmarks.ts` for ~15 metrics across all 50+ industries. The min/max/avg values already stored can bootstrap p10/p25/median/p75/p90 estimates using a normal approximation.
-
-### Edge Function Changes
-
-**New module: `supabase/functions/analyze-business/market-prior.ts`**
-
-Core functions:
-- `mapToNAICS(industryId, businessIdea)` — maps detected industry to NAICS segment
-- `computeAnomalyScores(userMetrics, distributions)` — for each metric, compute z-score and percentile rank
-- `generateAnomalyCard(anomalies)` — produces structured output with:
-  - `metric`, `userValue`, `percentile`, `typicalRange` (p25-p75), `zScore`, `severity` ("normal" | "notable" | "outlier"), `driver` (optional text explaining why)
-
-**Integration point in `index.ts`:** After financial engine produces metrics, call `computeAnomalyScores()` and attach `anomaly_card` to the response payload.
-
-### Frontend Changes
-
-**New component: `src/components/analysis/AnomalyCard.tsx`**
-- Rendered in the **Reliability** tab of the results dashboard
-- Shows each flagged metric as a horizontal percentile bar (p10-p90 range with user's position marked)
-- Color-coded: green (p25-p75), yellow (p10-p25 or p75-p90), red (below p10 or above p90)
-- Caption per metric: "Your gross margin (68%) is in the 92nd percentile — higher than 92% of similar businesses"
-
-**Type additions in `src/types/analysis.ts`:**
-```ts
-interface AnomalyScore {
-  metric: string;
-  userValue: number;
-  percentile: number;
-  zScore: number;
-  typicalRange: { p25: number; p75: number };
-  fullRange: { p10: number; p90: number };
-  severity: 'normal' | 'notable' | 'outlier';
-  explanation: string;
+compareEngineOutputs(strictResult, quantisResult) → {
+  agreementScore: 0-100,
+  divergences: [{ metric, pathA, pathB, delta% }],
+  finalOutput: "strict" | "quantis" | "merged"
 }
 ```
-Add `anomaly_card?: AnomalyScore[]` to `BusinessAnalysisResult`.
 
----
+- If agreement > 95%: use strict result (higher audit trail fidelity)
+- If agreement 80-95%: use strict result + flag divergences in audit
+- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
 
-## Part B: SCORE-Native Import/Export + Compliance Indicator
+Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
 
-### What It Does
-Users can import a SCORE-format spreadsheet (the standard used by SBA advisors, lenders, accelerators) and Quantis auto-maps it to its internal model, flagging inconsistencies. Any Quantis analysis can be exported as a SCORE-compatible file. A compliance indicator shows: "Your model fills 92% of standard SCORE expectations; missing: debt schedule detail, owner draw assumptions."
+**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
 
-### Architecture
+### Upgrade 3: AI Narrator Number Anchoring
+
+**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
+
+**Solution**: Enhance the system prompt and post-validation:
+
+1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
+```text
+IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
+- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
+DO NOT invent, estimate, or modify these numbers.
+```
+
+2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
+
+3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
+
+**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
+
+### Upgrade 4: Sensitivity Analysis Module
+
+**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
+
+**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
 
 ```text
-SCORE Sheet (CSV/XLSX) → Parser → Field Mapper → Validation → Quantis Internal Model
-                                                                        ↓
-Quantis Internal Model → SCORE Mapper → SCORE Sheet Export (CSV)
-                                                                        ↓
-                                              Compliance Scorer → "92% SCORE-ready"
-```
-
-### Edge Function
-
-**New function: `supabase/functions/score-import/index.ts`**
-
-Handles CSV/XLSX upload, parses rows, maps columns to Quantis fields:
-- SCORE tabs: Revenue Projections, Startup Costs, Operating Expenses, Cash Flow, Balance Sheet, Loan Information
-- Maps each SCORE field to the corresponding `BusinessInputVariables` / `FinancialAnalysis` field
-- Returns: mapped data + list of unmapped/inconsistent fields + compliance score
-
-**New module: `supabase/functions/analyze-business/score-mapper.ts`**
-
-Two functions:
-- `mapFromSCORE(parsedRows)` → `Partial<QuantisEngineInput>` + `inconsistencies[]`
-- `mapToSCORE(analysisResult)` → structured SCORE data ready for CSV generation
-- `computeSCORECompliance(analysisResult)` → `{ score: number, missing: string[], filled: string[] }`
-
-SCORE compliance checks ~30 standard fields. Each present = +3.3%. Missing fields listed by name.
-
-### Frontend Changes
-
-**Import flow (in WizardForm Step 1):**
-- "Import SCORE Sheet" button alongside existing document upload
-- Parses the file via the edge function
-- Auto-fills wizard fields from mapped data
-- Shows a toast with inconsistencies: "3 fields had mismatches and were flagged"
-
-**Export (in ResultsActionBar):**
-- "Export as SCORE" button next to existing PDF export
-- Generates a CSV with SCORE-standard column headers
-- Client-side generation using the analysis result data
-
-**Compliance indicator (in Reliability tab):**
-- New `SCOREComplianceBadge` component
-- Shows percentage + missing fields list
-- "Your model fills 92% of standard SCORE expectations"
-
-**New component: `src/components/analysis/SCOREComplianceBadge.tsx`**
-
-### Type additions:
-```ts
-interface SCORECompliance {
-  score: number;          // 0-100
-  filledFields: string[];
-  missingFields: string[];
-  inconsistencies: Array<{ field: string; issue: string }>;
+sensitivityAnalysis(baseMetrics, benchmarks) → {
+  tornado: [
+    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
+    { variable: "CAC", ... },
+    { variable: "Churn Rate", ... },
+    { variable: "Fixed Costs", ... },
+  ],
+  mostSensitiveVariable: "Price",
+  leastSensitiveVariable: "Fixed Costs"
 }
 ```
-Add `score_compliance?: SCORECompliance` to `BusinessAnalysisResult`.
+
+This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
+
+**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
+
+### Upgrade 5: Benchmark Confidence Decay + Source Scoring
+
+**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
+
+**Solution**: Add a `computeBenchmarkConfidence()` function:
+
+```text
+confidence = base_score
+  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
+  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
+  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
+```
+
+This confidence feeds into:
+- The reliability score shown to users
+- The AI prompt (lower confidence → more hedging language)
+- The consensus evaluator thresholds (lower confidence → wider tolerance)
+
+**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
 
 ---
 
-## Files Summary
+## Implementation Priority
 
-| File | Action | Part |
-|------|--------|------|
-| `supabase/functions/analyze-business/market-prior.ts` | New — Bayesian prior + anomaly scoring | A |
-| `supabase/functions/analyze-business/index.ts` | Wire anomaly card into response | A |
-| `src/components/analysis/AnomalyCard.tsx` | New — percentile visualization | A |
-| `src/components/analysis/AnalysisResults.tsx` | Add AnomalyCard to Reliability tab | A |
-| `src/types/analysis.ts` | Add AnomalyScore + SCORECompliance types | A+B |
-| DB migration | `industry_distributions` table + seed data | A |
-| `supabase/functions/score-import/index.ts` | New — SCORE file parser | B |
-| `supabase/functions/analyze-business/score-mapper.ts` | New — bidirectional SCORE mapping | B |
-| `src/components/analysis/SCOREComplianceBadge.tsx` | New — compliance indicator | B |
-| `src/components/analysis/WizardForm.tsx` | Add "Import SCORE" button | B |
-| `src/components/analysis/ResultsActionBar.tsx` | Add "Export as SCORE" button | B |
+| Order | Upgrade | Impact | Effort | Risk |
+|-------|---------|--------|--------|------|
+| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
+| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
+| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
+| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
+| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
 
-## What This Does NOT Change
-- No modifications to the financial engine or Quantis math
-- No changes to existing benchmark lookup — distributions are an additional layer
-- Pattern Critic (Part 2) and Test Harness (Part 4) deferred to next phase
+## What This Does NOT Include (Flagged for Later)
+
+- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
+- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
+- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
+- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+
+## Files Changed Summary
+
+| File | Action |
+|------|--------|
+| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
+| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
+| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
+| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
+| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
+| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
+| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
+| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
+| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
 
