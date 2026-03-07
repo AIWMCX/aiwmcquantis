@@ -427,7 +427,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 function MetricCard({ label, value, positive }: { label: string; value: string; positive: boolean }) {
   return (
     <div className="p-3 rounded-lg bg-muted/30 border border-border text-center">
-      <p className="text-[10px] text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
+      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
       <p className={cn(
         "text-base sm:text-lg font-bold tabular-nums transition-all duration-300",
         positive ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"

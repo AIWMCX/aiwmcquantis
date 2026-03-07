@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
 import { Activity, ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
@@ -24,19 +24,27 @@ interface SensitivityTornadoProps {
 export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: SensitivityTornadoProps) {
   if (!tornado || tornado.length === 0) return null;
 
-  // Prepare data for tornado chart
-  const chartData = tornado.map(v => ({
-    name: v.variable,
-    low: v.profitAtMinus20,
-    high: v.profitAtPlus20,
-    range: v.profitAtPlus20 - v.profitAtMinus20,
-    sensitivity: v.sensitivity,
-    direction: v.direction,
-    recommendation: v.recommendation,
-  }));
+  // Compute base profit as the average midpoint across all variables
+  const baseProfit = useMemo(() => {
+    const sum = tornado.reduce((acc, v) => acc + (v.profitAtMinus20 + v.profitAtPlus20) / 2, 0);
+    return Math.round(sum / tornado.length);
+  }, [tornado]);
 
-  // Base profit (midpoint of most sensitive variable)
-  const baseProfit = tornado[0] ? Math.round((tornado[0].profitAtMinus20 + tornado[0].profitAtPlus20) / 2) : 0;
+  // Transform to delta-from-base for proper tornado rendering
+  const chartData = useMemo(() => {
+    return tornado.map(v => {
+      const negativeDelta = v.profitAtMinus20 - baseProfit; // typically negative
+      const positiveDelta = v.profitAtPlus20 - baseProfit;  // typically positive
+      return {
+        name: v.variable,
+        negativeDelta,
+        positiveDelta,
+        low: v.profitAtMinus20,
+        high: v.profitAtPlus20,
+        range: Math.abs(v.profitAtPlus20 - v.profitAtMinus20),
+      };
+    });
+  }, [tornado, baseProfit]);
 
   return (
     <div className="section-card space-y-4">
@@ -52,48 +60,61 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
       
       <p className="text-sm text-muted-foreground">{summary}</p>
 
-      {/* Tornado Chart */}
+      {/* Tornado Chart — deltas from base profit */}
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={chartData} layout="vertical" margin={{ left: 100, right: 20, top: 10, bottom: 10 }}>
             <XAxis 
               type="number" 
-              tickFormatter={(v) => `$${(v / 1000).toFixed(0)}k`}
-              domain={['dataMin - 1000', 'dataMax + 1000']}
-              tick={{ fontSize: 11 }}
+              tickFormatter={(v) => {
+                const abs = Math.abs(v);
+                return `${v < 0 ? '-' : '+'}$${(abs / 1000).toFixed(0)}k`;
+              }}
+              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
             />
             <YAxis 
               type="category" 
               dataKey="name" 
               width={90}
-              tick={{ fontSize: 12 }}
+              tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
             />
             <Tooltip 
-              formatter={(value: number, name: string) => [
-                `$${value.toLocaleString()}`,
-                name === 'low' ? '-20%' : '+20%'
-              ]}
+              formatter={(value: number, name: string) => {
+                const label = name === 'negativeDelta' ? 'At −20%' : 'At +20%';
+                const actual = baseProfit + value;
+                return [`$${actual.toLocaleString()}`, label];
+              }}
+              labelStyle={{ color: 'hsl(var(--foreground))' }}
               contentStyle={{ 
                 borderRadius: '8px', 
                 border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--background))',
+                background: 'hsl(var(--card))',
                 color: 'hsl(var(--foreground))',
               }}
             />
-            <ReferenceLine x={baseProfit} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" />
-            <Bar dataKey="low" stackId="range" name="-20%" radius={4}>
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill="hsl(var(--destructive) / 0.6)" />
+            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" label={{ value: `Base: $${baseProfit.toLocaleString()}`, position: 'top', fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
+            {/* Negative delta bar (goes left from 0) */}
+            <Bar dataKey="negativeDelta" name="negativeDelta" radius={[4, 0, 0, 4]}>
+              {chartData.map((_, index) => (
+                <Cell key={index} fill="hsl(var(--destructive) / 0.7)" />
               ))}
             </Bar>
-            <Bar dataKey="high" stackId="range" name="+20%" radius={4}>
-              {chartData.map((entry, index) => (
-                <Cell key={index} fill="hsl(var(--primary) / 0.6)" />
+            {/* Positive delta bar (goes right from 0) */}
+            <Bar dataKey="positiveDelta" name="positiveDelta" radius={[0, 4, 4, 0]}>
+              {chartData.map((_, index) => (
+                <Cell key={index} fill="hsl(var(--primary) / 0.7)" />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
+
+      {/* Caption */}
+      {mostSensitiveVariable && (
+        <p className="text-xs text-muted-foreground text-center">
+          <span className="font-semibold text-foreground">{mostSensitiveVariable}</span> has the highest impact on profitability. Focus optimization here first.
+        </p>
+      )}
 
       {/* Variable details */}
       <div className="space-y-2">
@@ -107,7 +128,7 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
               </div>
             </div>
             <div className="flex items-center gap-3 text-right">
-              <div className="text-xs">
+              <div className="text-xs tabular-nums">
                 <span className="text-destructive flex items-center gap-0.5">
                   <ArrowDown className="w-3 h-3" />
                   ${v.profitAtMinus20.toLocaleString()}
