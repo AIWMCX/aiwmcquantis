@@ -288,6 +288,34 @@ export interface MarketAnalysis {
   growth_opportunities: string;
 }
 
+// ========== MARKET PRIOR / ANOMALY CARD ==========
+export interface AnomalyScore {
+  metric: string;
+  metricLabel: string;
+  userValue: number;
+  percentile: number;
+  zScore: number;
+  typicalRange: { p25: number; p75: number };
+  fullRange: { p10: number; p90: number };
+  severity: 'normal' | 'notable' | 'outlier';
+  explanation: string;
+}
+
+export interface MarketPrior {
+  anomaly_card: AnomalyScore[];
+  industry_match: string;
+  distributions_used: number;
+  peer_group_label: string;
+}
+
+// ========== SCORE COMPLIANCE ==========
+export interface SCORECompliance {
+  score: number;
+  filledFields: string[];
+  missingFields: string[];
+  inconsistencies: Array<{ field: string; issue: string }>;
+}
+
 // Complete Analysis Response
 export interface BusinessAnalysisResult {
   financial_analysis: FinancialAnalysis;
@@ -318,6 +346,10 @@ export interface BusinessAnalysisResult {
     similar_cases_count?: number;
   };
   case_id?: string;
+  // Market Prior Engine
+  market_prior?: MarketPrior;
+  // SCORE Compliance
+  score_compliance?: SCORECompliance;
   metadata: {
     idea: string;
     location: string;
