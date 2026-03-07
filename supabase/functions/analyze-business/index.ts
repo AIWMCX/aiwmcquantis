@@ -3924,6 +3924,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           sanity_flags: sanityFlags.length > 0 ? sanityFlags : undefined,
           model_confidence: modelConfidence || undefined,
           case_id: caseId || undefined,
+
+          // ========== MARKET PRIOR + SCORE COMPLIANCE ==========
+          market_prior: marketPrior || undefined,
+          score_compliance: scoreCompliance || undefined,
           
           // Engine version info
           engine_version: quantisOutput.version,
