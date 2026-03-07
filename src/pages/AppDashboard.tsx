@@ -71,12 +71,12 @@ export default function Index() {
 
     // Step 2: Core numbers = 35%
     const f = financialInputs;
-    const coreFields = [f.startup_investment, f.monthly_revenue, f.average_check, f.monthly_customers, f.monthly_costs, f.cac];
+    const coreFields = [f.startup_investment, f.monthly_revenue, f.average_price, f.expected_customers, f.monthly_costs, f.cac];
     const coreFilled = coreFields.filter(Boolean).length;
     score += Math.round((coreFilled / 6) * 35);
 
     // Step 3: Advanced = 25%
-    const advFields = [f.rent, f.salaries, f.marketing_budget, f.churn_rate];
+    const advFields = [f.churn_rate];
     const advFilled = advFields.filter(Boolean).length;
     score += Math.round((advFilled / 4) * 15);
     if (files.length > 0) score += 10;

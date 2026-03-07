@@ -57,15 +57,13 @@ function getStepStatus(step: number, idea: string, location: string, financialIn
   }
   if (step === 2) {
     const f = financialInputs;
-    const hasAny = !!(f.startup_investment || f.monthly_revenue || f.average_check || f.monthly_customers || f.monthly_costs || f.cac);
+    const hasAny = !!(f.startup_investment || f.monthly_revenue || f.average_price || f.expected_customers || f.monthly_costs || f.cac);
     return hasAny;
   }
   if (step === 3) {
-    const f = financialInputs;
-    const hasExpenses = !!(f.rent || f.salaries || f.marketing_budget);
-    const hasChurn = !!f.churn_rate;
+    const hasChurn = !!financialInputs.churn_rate;
     const hasDocs = files.length > 0;
-    return hasExpenses || hasChurn || hasDocs;
+    return hasChurn || hasDocs;
   }
   return false;
 }
@@ -402,48 +400,26 @@ export function WizardForm({
                         <span>Optional but strongly recommended for reliable projections</span>
                       </div>
 
-                      {/* Expense breakdown fields */}
+                      {/* Churn + additional details */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Monthly Rent ($)</Label>
-                          <Input
-                            type="number"
-                            value={financialInputs.rent || ''}
-                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, rent: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="2,500"
-                            disabled={isLoading}
-                            className="text-sm h-9"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Monthly Salaries ($)</Label>
-                          <Input
-                            type="number"
-                            value={financialInputs.salaries || ''}
-                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, salaries: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="8,000"
-                            disabled={isLoading}
-                            className="text-sm h-9"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Marketing Budget ($)</Label>
-                          <Input
-                            type="number"
-                            value={financialInputs.marketing_budget || ''}
-                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, marketing_budget: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="1,500"
-                            disabled={isLoading}
-                            className="text-sm h-9"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Churn Rate (%)</Label>
+                          <Label className="text-xs text-muted-foreground">Monthly Churn Rate (%)</Label>
                           <Input
                             type="number"
                             value={financialInputs.churn_rate || ''}
                             onChange={(e) => onFinancialInputsChange({ ...financialInputs, churn_rate: e.target.value ? Number(e.target.value) : undefined })}
                             placeholder="5"
+                            disabled={isLoading}
+                            className="text-sm h-9"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs text-muted-foreground">Monthly Costs ($)</Label>
+                          <Input
+                            type="number"
+                            value={financialInputs.monthly_costs || ''}
+                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, monthly_costs: e.target.value ? Number(e.target.value) : undefined })}
+                            placeholder="8,000"
                             disabled={isLoading}
                             className="text-sm h-9"
                           />
