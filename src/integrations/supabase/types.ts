@@ -74,6 +74,65 @@ export type Database = {
           },
         ]
       }
+      analysis_cases: {
+        Row: {
+          analysis_id: string | null
+          assumption_graph: Json | null
+          benchmark_version: string | null
+          confidence_score: number | null
+          created_at: string | null
+          engine_version: string
+          id: string
+          industry_id: string
+          input_snapshot: Json
+          location: string
+          output_snapshot: Json
+          sanity_flags: Json | null
+          user_corrections: Json | null
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          assumption_graph?: Json | null
+          benchmark_version?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          engine_version: string
+          id?: string
+          industry_id: string
+          input_snapshot: Json
+          location: string
+          output_snapshot: Json
+          sanity_flags?: Json | null
+          user_corrections?: Json | null
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          assumption_graph?: Json | null
+          benchmark_version?: string | null
+          confidence_score?: number | null
+          created_at?: string | null
+          engine_version?: string
+          id?: string
+          industry_id?: string
+          input_snapshot?: Json
+          location?: string
+          output_snapshot?: Json
+          sanity_flags?: Json | null
+          user_corrections?: Json | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "analysis_cases_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       anonymous_usage: {
         Row: {
           created_at: string | null
