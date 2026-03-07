@@ -195,6 +195,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               {isGenerating ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <FileDown className="w-3.5 h-3.5" />}
               PDF
             </Button>
+            <Button onClick={handleExportSCORE} variant="outline" size="sm" className="gap-1.5 text-xs h-8">
+              <Download className="w-3.5 h-3.5" />
+              SCORE
+            </Button>
             {analysisId && (
               <Button onClick={() => shareReport(analysisId)} variant="outline" size="sm" className="gap-1.5 text-xs h-8" disabled={isSharing}>
                 {isSharing ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Share2 className="w-3.5 h-3.5" />}
