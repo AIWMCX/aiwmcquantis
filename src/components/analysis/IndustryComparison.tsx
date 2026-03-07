@@ -23,20 +23,41 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
   unit?: string;
   suffix?: string;
 }) {
-  // Normalize so benchmark sits at 50% of bar width.
-  // User value proportional: (value / benchmark) * 50, capped at 100%.
-  const benchmarkPos = 50; // always at 50%
-  const userWidth = benchmark !== 0
-    ? Math.min(Math.max((value / benchmark) * benchmarkPos, 0), 100)
-    : 0;
+  // For the bar: benchmark is always at 50%. User value scales proportionally.
+  const benchmarkPos = 50;
+
+  // Handle negative values: shift the scale so 0 maps to a visible position
+  let userWidth: number;
+  const isNegativeValue = value < 0;
+  const isNegativeBenchmark = benchmark < 0;
+
+  if (benchmark === 0) {
+    userWidth = 0;
+  } else if (isNegativeValue && !isNegativeBenchmark) {
+    // Negative value vs positive benchmark: show a thin red bar at 0
+    userWidth = 0;
+  } else {
+    userWidth = Math.min(Math.max((value / benchmark) * benchmarkPos, 0), 100);
+  }
 
   const diff = benchmark !== 0 ? value - benchmark : 0;
   const diffPct = benchmark !== 0 ? ((diff / Math.abs(benchmark)) * 100) : 0;
   const isAbove = diff > 0;
   const isEqual = Math.abs(diffPct) < 5;
 
-  // Handle negative values (e.g., negative margins)
-  const isNegativeValue = value < 0;
+  // Determine bar color
+  const barColorClass = isNegativeValue
+    ? 'bg-destructive'
+    : isAbove
+    ? 'bg-emerald-500'
+    : isEqual
+    ? 'bg-primary'
+    : 'bg-amber-500';
+
+  // Determine diff text color
+  const diffColorClass = isAbove
+    ? 'text-emerald-600 dark:text-emerald-400'
+    : 'text-destructive';
 
   return (
     <div className="space-y-1.5">
@@ -47,10 +68,7 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
             {unit}{value.toLocaleString()}{suffix}
           </span>
           {!isEqual && (
-            <span className={cn(
-              'text-xs font-medium flex items-center gap-0.5',
-              isAbove ? 'text-success' : 'text-destructive'
-            )}>
+            <span className={cn('text-xs font-medium flex items-center gap-0.5', diffColorClass)}>
               {isAbove ? <TrendingUp className="w-3 h-3" /> : <TrendingDown className="w-3 h-3" />}
               {isAbove ? '+' : ''}{diffPct.toFixed(0)}%
             </span>
@@ -66,21 +84,22 @@ function ComparisonBar({ label, value, benchmark, unit = '', suffix = '' }: {
       <div className="relative h-3 rounded-full bg-muted overflow-hidden">
         {/* Industry avg marker at 50% */}
         <div
-          className="absolute top-0 bottom-0 w-0.5 bg-foreground/30 z-10"
+          className="absolute top-0 bottom-0 w-0.5 bg-foreground/40 z-10"
           style={{ left: `${benchmarkPos}%` }}
           title={`Industry avg: ${unit}${benchmark.toLocaleString()}${suffix}`}
         />
-        {/* Your value */}
-        <div
-          className={cn(
-            'h-full rounded-full transition-all duration-500',
-            isNegativeValue ? 'bg-destructive' :
-            isAbove ? 'bg-success' :
-            isEqual ? 'bg-primary' :
-            'bg-warning'
-          )}
-          style={{ width: `${userWidth}%` }}
-        />
+        {/* Your value bar */}
+        {isNegativeValue && !isNegativeBenchmark ? (
+          /* For negative values against positive benchmark, show a "below zero" indicator */
+          <div className="h-full w-full flex items-center justify-center">
+            <span className="text-[9px] font-medium text-destructive">Below zero</span>
+          </div>
+        ) : (
+          <div
+            className={cn('h-full rounded-full transition-all duration-500', barColorClass)}
+            style={{ width: `${userWidth}%` }}
+          />
+        )}
       </div>
       <div className="flex justify-between text-xs text-muted-foreground">
         <span>0</span>
@@ -116,7 +135,7 @@ export function IndustryComparison({ metrics, industryAvg, industryName }: Indus
         How You Compare{industryName ? ` to ${industryName}` : ''}
       </h3>
       <p className="text-xs text-muted-foreground mb-5">
-        Your metrics vs. industry benchmarks. The dashed line marks the industry average.
+        Your metrics vs. industry benchmarks. The line marks the industry average.
       </p>
 
       <div className="space-y-5">

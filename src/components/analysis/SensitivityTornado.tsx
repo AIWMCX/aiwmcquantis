@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, ReferenceLine, LabelList } from 'recharts';
 import { Activity, ArrowDown, ArrowUp } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 
@@ -22,19 +22,17 @@ interface SensitivityTornadoProps {
 }
 
 export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: SensitivityTornadoProps) {
-  if (!tornado || tornado.length === 0) return null;
-
-  // Compute base profit as the average midpoint across all variables
   const baseProfit = useMemo(() => {
+    if (!tornado || tornado.length === 0) return 0;
     const sum = tornado.reduce((acc, v) => acc + (v.profitAtMinus20 + v.profitAtPlus20) / 2, 0);
     return Math.round(sum / tornado.length);
   }, [tornado]);
 
-  // Transform to delta-from-base for proper tornado rendering
   const chartData = useMemo(() => {
+    if (!tornado || tornado.length === 0) return [];
     return tornado.map(v => {
-      const negativeDelta = v.profitAtMinus20 - baseProfit; // typically negative
-      const positiveDelta = v.profitAtPlus20 - baseProfit;  // typically positive
+      const negativeDelta = v.profitAtMinus20 - baseProfit;
+      const positiveDelta = v.profitAtPlus20 - baseProfit;
       return {
         name: v.variable,
         negativeDelta,
@@ -45,6 +43,22 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
       };
     });
   }, [tornado, baseProfit]);
+
+  if (!tornado || tornado.length === 0) return null;
+
+  const CustomTooltip = ({ active, payload, label }: any) => {
+    if (!active || !payload?.length) return null;
+    const item = chartData.find(d => d.name === label);
+    if (!item) return null;
+    return (
+      <div className="rounded-lg border border-border bg-card p-3 shadow-lg">
+        <p className="font-semibold text-foreground text-sm mb-1">{label}</p>
+        <p className="text-sm text-destructive">At −20%: ${item.low.toLocaleString()}</p>
+        <p className="text-sm text-primary">At +20%: ${item.high.toLocaleString()}</p>
+        <p className="text-xs text-muted-foreground mt-1">Swing: ${item.range.toLocaleString()}</p>
+      </div>
+    );
+  };
 
   return (
     <div className="section-card space-y-4">
@@ -60,63 +74,60 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
       
       <p className="text-sm text-muted-foreground">{summary}</p>
 
-      {/* Tornado Chart — deltas from base profit */}
       <div className="h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={chartData} layout="vertical" margin={{ left: 100, right: 20, top: 10, bottom: 10 }}>
+          <BarChart data={chartData} layout="vertical" margin={{ left: 100, right: 20, top: 20, bottom: 10 }}>
             <XAxis 
               type="number" 
               tickFormatter={(v) => {
                 const abs = Math.abs(v);
-                return `${v < 0 ? '-' : '+'}$${(abs / 1000).toFixed(0)}k`;
+                if (abs >= 1000) return `${v < 0 ? '-' : '+'}$${(abs / 1000).toFixed(0)}k`;
+                return `${v < 0 ? '-' : '+'}$${abs}`;
               }}
-              tick={{ fontSize: 11, fill: 'hsl(var(--muted-foreground))' }}
+              tick={{ fontSize: 11, fill: 'currentColor' }}
+              className="text-muted-foreground"
             />
             <YAxis 
               type="category" 
               dataKey="name" 
               width={90}
-              tick={{ fontSize: 12, fill: 'hsl(var(--foreground))' }}
+              tick={{ fontSize: 12, fill: 'currentColor' }}
+              className="text-foreground"
             />
-            <Tooltip 
-              formatter={(value: number, name: string) => {
-                const label = name === 'negativeDelta' ? 'At −20%' : 'At +20%';
-                const actual = baseProfit + value;
-                return [`$${actual.toLocaleString()}`, label];
-              }}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
-              contentStyle={{ 
-                borderRadius: '8px', 
-                border: '1px solid hsl(var(--border))',
-                background: 'hsl(var(--card))',
-                color: 'hsl(var(--foreground))',
-              }}
+            <Tooltip content={<CustomTooltip />} />
+            <ReferenceLine 
+              x={0} 
+              stroke="currentColor" 
+              strokeDasharray="3 3" 
+              className="text-muted-foreground"
+              label={{ 
+                value: `Base: $${baseProfit.toLocaleString()}`, 
+                position: 'top', 
+                fill: 'currentColor', 
+                fontSize: 11,
+                className: 'text-muted-foreground'
+              }} 
             />
-            <ReferenceLine x={0} stroke="hsl(var(--muted-foreground))" strokeDasharray="3 3" label={{ value: `Base: $${baseProfit.toLocaleString()}`, position: 'top', fill: 'hsl(var(--muted-foreground))', fontSize: 10 }} />
-            {/* Negative delta bar (goes left from 0) */}
-            <Bar dataKey="negativeDelta" name="negativeDelta" radius={[4, 0, 0, 4]}>
+            <Bar dataKey="negativeDelta" name="At −20%" radius={[4, 0, 0, 4]}>
               {chartData.map((_, index) => (
-                <Cell key={index} fill="hsl(var(--destructive) / 0.7)" />
+                <Cell key={index} fill="#ef4444" opacity={0.75} />
               ))}
             </Bar>
-            {/* Positive delta bar (goes right from 0) */}
-            <Bar dataKey="positiveDelta" name="positiveDelta" radius={[0, 4, 4, 0]}>
+            <Bar dataKey="positiveDelta" name="At +20%" radius={[0, 4, 4, 0]}>
               {chartData.map((_, index) => (
-                <Cell key={index} fill="hsl(var(--primary) / 0.7)" />
+                <Cell key={index} fill="#3b82f6" opacity={0.75} />
               ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
       </div>
 
-      {/* Caption */}
       {mostSensitiveVariable && (
         <p className="text-xs text-muted-foreground text-center">
           <span className="font-semibold text-foreground">{mostSensitiveVariable}</span> has the highest impact on profitability. Focus optimization here first.
         </p>
       )}
 
-      {/* Variable details */}
       <div className="space-y-2">
         {tornado.slice(0, 3).map((v, i) => (
           <div key={v.variable} className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-border">
