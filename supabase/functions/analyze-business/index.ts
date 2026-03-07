@@ -3878,6 +3878,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             is_stale: benchmarkConfidenceData.isStale,
             explanation: benchmarkConfidenceData.explanation,
           } : undefined,
+
+          // ========== ASSUMPTION GRAPH + ANTI-BS + PREDICTION ENGINE ==========
+          assumption_graph: assumptionGraph || undefined,
+          sanity_flags: sanityFlags.length > 0 ? sanityFlags : undefined,
+          model_confidence: modelConfidence || undefined,
+          case_id: caseId || undefined,
           
           // Engine version info
           engine_version: quantisOutput.version,

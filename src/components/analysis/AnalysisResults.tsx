@@ -21,6 +21,8 @@ import { ShareSuccessModal } from './ShareSuccessModal';
 import { SensitivityTornado } from './SensitivityTornado';
 import { DualEngineBadge } from './DualEngineBadge';
 import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
+import { AssumptionGraph } from './AssumptionGraph';
+import { ModelConfidenceBadge } from './ModelConfidenceBadge';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
