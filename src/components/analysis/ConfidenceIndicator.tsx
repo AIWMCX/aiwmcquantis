@@ -125,8 +125,8 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
                     <div key={item.label} className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">{item.label}</span>
-                        <span className="font-medium">
-                          {item.value}% <span className="text-xs text-muted-foreground">({item.weight})</span>
+                        <span className="font-medium tabular-nums">
+                          {item.value ?? 0}% <span className="text-xs text-muted-foreground">({item.weight})</span>
                         </span>
                       </div>
                       <Progress 
