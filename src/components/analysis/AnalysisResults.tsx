@@ -1,5 +1,6 @@
 import React, { useRef, useMemo, useState, useEffect } from 'react';
 import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb } from 'lucide-react';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SignupPrompt } from './SignupPrompt';
@@ -179,8 +180,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           />
           <MetricCard
             label="Payback"
-            value={`${result.financial_analysis?.payback_period_months ?? '—'} mo`}
-            positive={(result.financial_analysis?.payback_period_months ?? 99) <= 18}
+            value={formatPaybackDisplay(result.financial_analysis?.payback_period_months ?? 999, scenarioMetrics.profit)}
+            positive={(result.financial_analysis?.payback_period_months ?? 999) <= 18}
           />
         </div>
 
