@@ -22,14 +22,14 @@ interface SensitivityTornadoProps {
 }
 
 export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: SensitivityTornadoProps) {
-  if (!tornado || tornado.length === 0) return null;
-
   const baseProfit = useMemo(() => {
+    if (!tornado || tornado.length === 0) return 0;
     const sum = tornado.reduce((acc, v) => acc + (v.profitAtMinus20 + v.profitAtPlus20) / 2, 0);
     return Math.round(sum / tornado.length);
   }, [tornado]);
 
   const chartData = useMemo(() => {
+    if (!tornado || tornado.length === 0) return [];
     return tornado.map(v => {
       const negativeDelta = v.profitAtMinus20 - baseProfit;
       const positiveDelta = v.profitAtPlus20 - baseProfit;
@@ -43,6 +43,8 @@ export function SensitivityTornado({ tornado, mostSensitiveVariable, summary }: 
       };
     });
   }, [tornado, baseProfit]);
+
+  if (!tornado || tornado.length === 0) return null;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
