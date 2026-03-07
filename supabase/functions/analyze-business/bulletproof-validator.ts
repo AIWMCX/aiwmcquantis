@@ -793,3 +793,93 @@ export function formatPaybackPeriod(
     recommendation: months > 24 ? 'Target payback within 24 months for lower risk' : undefined
   };
 }
+
+// ========== ANTI-BS SANITY CHECK ENGINE ==========
+
+export interface SanityFlag {
+  rule_id: string;
+  severity: 'critical' | 'warning' | 'info';
+  explanation: string;
+  suggested_correction: string;
+}
+
+// Capital-intensive industries where 40%+ net margin is suspicious
+const CAPITAL_INTENSIVE_INDUSTRIES = [
+  'food_service', 'fitness', 'healthcare', 'logistics', 'real_estate',
+  'manufacturing', 'construction', 'hospitality', 'retail',
+];
+
+/**
+ * ANTI-BS ENGINE: Catches unrealistic assumptions that slip past standard validation.
+ * Returns structured flags that feed into Assumption Graph fragility and Prediction Engine.
+ */
+export function runAntiBS(metrics: {
+  ltvCacRatio: number;
+  netMarginPercent: number;
+  churnRate: number;        // monthly fraction
+  mrr: number;
+  clientsActive: number;
+  marketSize?: number;      // SOM in dollars
+  som?: number;             // SOM in dollars (alternative field)
+}, industryId: string): SanityFlag[] {
+  const flags: SanityFlag[] = [];
+
+  // Rule 1: Unrealistic LTV:CAC (ratio > 20)
+  if (metrics.ltvCacRatio > 20) {
+    flags.push({
+      rule_id: 'UNREALISTIC_LTV_CAC',
+      severity: 'critical',
+      explanation: `LTV:CAC ratio of ${metrics.ltvCacRatio.toFixed(1)}:1 is unrealistically high. Even top SaaS companies rarely exceed 10:1. This suggests CAC is underestimated or LTV is overestimated.`,
+      suggested_correction: 'Review customer acquisition cost assumptions. Include all marketing, sales, and onboarding costs. Verify retention assumptions with industry benchmarks.',
+    });
+  }
+
+  // Rule 2: Margin ceiling breach for capital-intensive industries
+  if (metrics.netMarginPercent > 40 && CAPITAL_INTENSIVE_INDUSTRIES.includes(industryId)) {
+    flags.push({
+      rule_id: 'MARGIN_CEILING_BREACH',
+      severity: 'warning',
+      explanation: `Net margin of ${metrics.netMarginPercent.toFixed(1)}% exceeds the realistic ceiling for ${industryId.replace(/_/g, ' ')}. Industry median is typically 5-20%. This may indicate missing cost categories.`,
+      suggested_correction: 'Verify all operating costs are included: rent, labor, insurance, equipment maintenance, licensing, and inventory shrinkage.',
+    });
+  }
+
+  // Rule 3: Capacity constraint — solo operator with >500 active clients
+  if (metrics.clientsActive > 500 && metrics.mrr < 50000) {
+    // Low MRR suggests small/solo operation
+    flags.push({
+      rule_id: 'CAPACITY_CONSTRAINT',
+      severity: 'warning',
+      explanation: `${metrics.clientsActive} active clients projected with modest revenue ($${metrics.mrr.toLocaleString()}/mo). This may exceed realistic capacity for a small team. Each client typically requires service time.`,
+      suggested_correction: 'Consider staffing requirements to serve this client volume, or reduce client count to match team capacity.',
+    });
+  }
+
+  // Rule 4: Churn floor — unrealistically low churn for non-enterprise
+  const isEnterprise = ['fintech', 'healthcare', 'real_estate'].includes(industryId);
+  if (metrics.churnRate < 0.01 && !isEnterprise) {
+    flags.push({
+      rule_id: 'UNREALISTIC_CHURN_FLOOR',
+      severity: 'warning',
+      explanation: `Monthly churn of ${(metrics.churnRate * 100).toFixed(2)}% is unrealistically low. Even best-in-class consumer SaaS has 3-5% monthly churn. Enterprise B2B can achieve <1% but consumer/SMB cannot.`,
+      suggested_correction: 'Use industry-standard churn rates: SaaS 3-8%, E-commerce 5-10%, Services 5-15% monthly.',
+    });
+  }
+
+  // Rule 5: TAM/SOM inconsistency — revenue > 10% of stated SOM
+  const som = metrics.som || metrics.marketSize;
+  if (som && som > 0) {
+    const annualRevenue = metrics.mrr * 12;
+    const somCapture = annualRevenue / som;
+    if (somCapture > 0.10) {
+      flags.push({
+        rule_id: 'TAM_INCONSISTENCY',
+        severity: 'info',
+        explanation: `Projected revenue ($${annualRevenue.toLocaleString()}/yr) captures ${(somCapture * 100).toFixed(1)}% of SOM ($${som.toLocaleString()}). Capturing >10% of addressable market in early stages is ambitious.`,
+        suggested_correction: 'Verify market size estimates or adjust revenue projections to a more conservative market share (1-5% for new entrants).',
+      });
+    }
+  }
+
+  return flags;
+}

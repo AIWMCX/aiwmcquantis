@@ -302,6 +302,22 @@ export interface BusinessAnalysisResult {
   // Document tracking
   documents_used?: DocumentUsage[];
   document_analysis_summary?: DocumentAnalysisSummary;
+  // CTO Architecture Upgrades
+  assumption_graph?: {
+    nodes: Array<{ id: string; label: string; value: number; source: string; confidence: number }>;
+    edges: Array<{ from: string; to: string; weight: number }>;
+    criticalPath: Array<{ assumption: string; sensitivity: number; breakingThreshold: number; currentValue: number; direction: string; recommendation: string }>;
+    fragility_score: number;
+  };
+  sanity_flags?: Array<{ rule_id: string; severity: string; explanation: string; suggested_correction: string }>;
+  model_confidence?: {
+    confidence: number;
+    assumption_risk: number;
+    recommendation_level: 'safe' | 'caution' | 'high_risk';
+    factors: Array<{ factor: string; score: number; weight: number; explanation: string }>;
+    similar_cases_count?: number;
+  };
+  case_id?: string;
   metadata: {
     idea: string;
     location: string;
