@@ -364,6 +364,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         {/* TAB: Reliability */}
         <TabsContent value="reliability" className="space-y-4 animate-in fade-in duration-200">
           <ModelConfidenceBadge confidence={result.model_confidence} />
+
+          {/* Market Prior Anomaly Card */}
+          {result.market_prior?.anomaly_card && result.market_prior.anomaly_card.length > 0 && (
+            <AnomalyCard anomalyCard={result.market_prior.anomaly_card} peerGroupLabel={result.market_prior.peer_group_label} />
+          )}
+
+          {/* SCORE Compliance */}
+          <SCOREComplianceBadge compliance={result.score_compliance} />
           
           <ConfidenceIndicator 
             score={result.confidence_score} 
