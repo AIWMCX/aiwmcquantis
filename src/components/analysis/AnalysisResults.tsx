@@ -150,6 +150,52 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     }
   };
 
+  const handleExportSCORE = useCallback(() => {
+    try {
+      // Client-side SCORE CSV generation from analysis result
+      const fields = [
+        { tab: 'Revenue Projections', field: 'monthly_revenue', label: 'Monthly Revenue', value: result.financial_analysis?.mrr },
+        { tab: 'Revenue Projections', field: 'annual_revenue', label: 'Annual Revenue', value: result.financial_analysis?.arr },
+        { tab: 'Revenue Projections', field: 'price_per_unit', label: 'Price per Unit', value: result.financial_analysis?.inputs?.price_per_unit },
+        { tab: 'Revenue Projections', field: 'units_sold', label: 'Units Sold / Month', value: result.financial_analysis?.inputs?.units_sold_monthly },
+        { tab: 'Startup Costs', field: 'total_startup_costs', label: 'Total Startup Costs', value: result.financial_analysis?.startup_investment?.total },
+        { tab: 'Startup Costs', field: 'rent_deposit', label: 'Rent & Deposit', value: result.financial_analysis?.startup_investment?.breakdown?.rent_deposit },
+        { tab: 'Startup Costs', field: 'equipment', label: 'Equipment', value: result.financial_analysis?.startup_investment?.breakdown?.equipment },
+        { tab: 'Startup Costs', field: 'initial_inventory', label: 'Initial Inventory', value: result.financial_analysis?.startup_investment?.breakdown?.inventory },
+        { tab: 'Startup Costs', field: 'legal_fees', label: 'Legal & Licensing', value: result.financial_analysis?.startup_investment?.breakdown?.legal },
+        { tab: 'Startup Costs', field: 'initial_marketing', label: 'Initial Marketing', value: result.financial_analysis?.startup_investment?.breakdown?.marketing_initial },
+        { tab: 'Startup Costs', field: 'working_capital', label: 'Working Capital Reserve', value: result.financial_analysis?.startup_investment?.breakdown?.working_capital },
+        { tab: 'Operating Expenses', field: 'monthly_rent', label: 'Monthly Rent', value: result.financial_analysis?.monthly_expenses?.breakdown?.rent },
+        { tab: 'Operating Expenses', field: 'utilities', label: 'Utilities', value: result.financial_analysis?.monthly_expenses?.breakdown?.utilities },
+        { tab: 'Operating Expenses', field: 'salaries', label: 'Salaries & Wages', value: result.financial_analysis?.monthly_expenses?.breakdown?.salaries },
+        { tab: 'Operating Expenses', field: 'marketing_monthly', label: 'Marketing Budget', value: result.financial_analysis?.monthly_expenses?.breakdown?.marketing },
+        { tab: 'Operating Expenses', field: 'total_monthly_expenses', label: 'Total Monthly Expenses', value: result.financial_analysis?.monthly_expenses?.total },
+        { tab: 'Cash Flow', field: 'net_profit', label: 'Monthly Net Profit', value: result.financial_analysis?.scenarios?.base?.net_profit },
+        { tab: 'Cash Flow', field: 'gross_margin', label: 'Gross Margin (%)', value: result.financial_analysis?.scenarios?.base?.gross_margin },
+        { tab: 'Cash Flow', field: 'net_margin', label: 'Net Margin (%)', value: result.financial_analysis?.scenarios?.base?.net_margin },
+        { tab: 'Cash Flow', field: 'payback_period', label: 'Payback Period (months)', value: result.financial_analysis?.returns?.payback_period_months },
+        { tab: 'KPIs', field: 'roi_year_1', label: 'ROI Year 1 (%)', value: result.financial_analysis?.returns?.roi_year_1 },
+      ];
+
+      const header = 'Tab,Field,Label,Value';
+      const lines = fields.map(r => `"${r.tab}","${r.field}","${r.label}","${r.value ?? ''}"`);
+      const csv = [header, ...lines].join('\n');
+
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `quantis-score-export-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+      toast.success('SCORE CSV exported!');
+    } catch (err) {
+      toast.error('Failed to export SCORE file');
+    }
+  }, [result]);
+
   return (
     <div className="space-y-4" ref={contentRef}>
       {/* Compact Header Card */}
