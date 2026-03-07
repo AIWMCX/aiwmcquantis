@@ -1,168 +1,88 @@
 
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+# Fix: Numbers Not Visible + Data Display Accuracy Audit
 
-## Current State Assessment
+## Issues Found
 
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
+### 1. `text-success` / `bg-success` — Invisible Color Classes
+The CSS defines `--success` custom property but **Tailwind does not know about it**. The `tailwind.config.ts` never registers `success` as a color. This means:
+- `IndustryComparison.tsx` uses `text-success`, `bg-success` → **invisible** (no color applied)
+- `ConfidenceIndicator.tsx` uses `text-success`, `bg-success/10`, `border-success/30` → **invisible**
 
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
+The comparison bars and confidence colors **literally don't render** because Tailwind purges unknown classes.
 
-### Critical Gaps Identified
+**Fix:** Add `success` and `warning` to `tailwind.config.ts` colors.
 
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
+### 2. Sensitivity Tornado — Stacked Bar Math Error
+The chart uses `stackId="range"` with `low` and `high` as separate bars. But stacked bars in Recharts **add values**, so if `low = $14,000` and `high = $26,000`, the second bar starts at $14k and extends to $40k. This is wrong for a tornado chart — bars should show the range from base value.
 
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
+The correct approach: compute `negativeDelta` (base - low) and `positiveDelta` (high - base), and render two bars going left/right from the base line, not stacked.
 
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
+**Fix:** Rewrite the chart data transformation to use delta-from-base values, rendered as a proper tornado (negative values go left, positive go right).
 
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
+### 3. IndustryComparison — Bar Width Always 50%
+The industry avg marker is hardcoded at `left: ${Math.min(50, 100)}%` which is always 50%. The user's value bar uses `width: ${Math.min(percentage / 2, 100)}%` — dividing by 2 makes no intuitive sense. For negative margins (-60%), `ratio` could be negative, making the bar width 0.
 
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
+**Fix:** Normalize the bar so the industry average is always at the 50% mark, and the user's value is proportional to that. Handle negative values (like negative margins) gracefully.
 
----
+### 4. ConfidenceIndicator — Breakdown Percentages Not Showing Values
+In the screenshot (image-99), the breakdown shows `% (40%)` instead of actual values like `85% (40%)`. This happens when `breakdown.input_completeness` etc. are `undefined` or `0`. The values display as just `%` with no number.
 
-## Plan: 5 High-Impact Upgrades
+**Fix:** Add fallback `?? 0` and ensure the edge function actually populates these fields. Also verify the `ConfidenceBreakdown` type alignment.
 
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
-
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
-
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
-
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
-
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
-
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
-
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
-
-**Solution**: After both engines run, compare their outputs:
-
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
-}
-```
-
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
-
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
-
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
-```
-
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
-
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
-
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
-
-### Upgrade 4: Sensitivity Analysis Module
-
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
-
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
-
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
-}
-```
-
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
-
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
-
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
-
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
-
-**Solution**: Add a `computeBenchmarkConfidence()` function:
-
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
-```
-
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
-
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+### 5. Missing Tailwind `tabular-nums` utility
+Used throughout but need to verify it works — it's a standard Tailwind utility via `font-variant-numeric`, should be fine.
 
 ---
 
-## Implementation Priority
+## Plan
 
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+### File 1: `tailwind.config.ts`
+Add `success` and `warning` color definitions to the colors object so all `text-success`, `bg-success`, etc. classes work:
+```ts
+success: {
+  DEFAULT: 'hsl(var(--success))',
+  foreground: 'hsl(var(--success-foreground))',
+},
+warning: {
+  DEFAULT: 'hsl(var(--warning))',
+  foreground: 'hsl(var(--warning-foreground))',
+},
+```
 
-## What This Does NOT Include (Flagged for Later)
+### File 2: `src/components/analysis/SensitivityTornado.tsx`
+Rewrite the chart to be a proper tornado:
+- Compute `baseProfit` as the midpoint or the base scenario profit
+- For each variable, compute `negativeDelta = profitAtMinus20 - baseProfit` (negative number) and `positiveDelta = profitAtPlus20 - baseProfit` (positive number)
+- Render two `Bar` components: one for negative delta (red, goes left) and one for positive delta (blue, goes right), both anchored at 0
+- Add a `ReferenceLine` at x=0 (the base profit)
+- Fix the tooltip to show actual dollar values with labels like "-20%: $14,200" and "+20%: $26,500"
 
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+### File 3: `src/components/analysis/IndustryComparison.tsx`
+Fix the `ComparisonBar`:
+- Normalize the bar so industry average is at the 50% mark
+- User value proportional: `(value / benchmark) * 50%`, capped at 100%
+- Handle negative values (e.g., -60% margin): show a red bar going from 0, with the benchmark marker clearly positioned
+- Fix the industry avg marker position to actually be at the 50% mark consistently
+- Show the actual percentage difference with proper sign
 
-## Files Changed Summary
+### File 4: `src/components/analysis/ConfidenceIndicator.tsx`
+- Ensure breakdown values display with proper fallbacks (`item.value ?? 0`)
+- Already has fallbacks but verify the data flow
 
-| File | Action |
+### File 5: `src/components/analysis/AnalysisResults.tsx`
+- The `MetricCard` uses `text-[10px]` for labels — this is too small. Increase to `text-xs`.
+- Verify payback period formatting uses `formatPaybackDisplay` for the 999-sentinel handling
+
+---
+
+## Files Summary
+
+| File | Change |
 |------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+| `tailwind.config.ts` | Add `success` and `warning` colors |
+| `src/components/analysis/SensitivityTornado.tsx` | Rewrite to proper tornado chart with deltas |
+| `src/components/analysis/IndustryComparison.tsx` | Fix bar normalization + negative value handling |
+| `src/components/analysis/ConfidenceIndicator.tsx` | Fix value display fallbacks |
+| `src/components/analysis/AnalysisResults.tsx` | Fix label sizing, payback sentinel |
 
