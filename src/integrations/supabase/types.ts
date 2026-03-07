@@ -838,6 +838,57 @@ export type Database = {
         }
         Relationships: []
       }
+      industry_distributions: {
+        Row: {
+          id: string
+          last_updated: string | null
+          mean: number
+          median: number | null
+          metric_name: string
+          naics_code: string
+          p10: number | null
+          p25: number | null
+          p75: number | null
+          p90: number | null
+          sample_size: number | null
+          segment: string
+          source: string | null
+          stddev: number
+        }
+        Insert: {
+          id?: string
+          last_updated?: string | null
+          mean: number
+          median?: number | null
+          metric_name: string
+          naics_code: string
+          p10?: number | null
+          p25?: number | null
+          p75?: number | null
+          p90?: number | null
+          sample_size?: number | null
+          segment?: string
+          source?: string | null
+          stddev?: number
+        }
+        Update: {
+          id?: string
+          last_updated?: string | null
+          mean?: number
+          median?: number | null
+          metric_name?: string
+          naics_code?: string
+          p10?: number | null
+          p25?: number | null
+          p75?: number | null
+          p90?: number | null
+          sample_size?: number | null
+          segment?: string
+          source?: string | null
+          stddev?: number
+        }
+        Relationships: []
+      }
       launch_checklists: {
         Row: {
           confidence_score: number | null
