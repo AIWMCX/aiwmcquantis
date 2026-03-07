@@ -78,7 +78,7 @@ export default function Index() {
     // Step 3: Advanced = 25%
     const advFields = [f.churn_rate];
     const advFilled = advFields.filter(Boolean).length;
-    score += Math.round((advFilled / 4) * 15);
+    score += Math.round(advFilled * 15);
     if (files.length > 0) score += 10;
 
     // Calculate gain
