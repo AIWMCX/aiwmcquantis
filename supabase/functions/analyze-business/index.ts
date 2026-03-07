@@ -59,6 +59,12 @@ import { computeAssumptionGraph, type AssumptionGraphResult } from "./assumption
 import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
 import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
 
+// ========== MARKET PRIOR ENGINE ==========
+import { mapToNAICS, fetchDistributions, computeAnomalyScores, generateMarketPrior, type MarketPriorResult, type AnomalyScore } from "./market-prior.ts";
+
+// ========== SCORE COMPLIANCE ==========
+import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
