@@ -188,7 +188,9 @@ export function DocumentLibrary({ userId }: DocumentLibraryProps) {
                     : 'bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)] border-[var(--q-border-default)] hover:border-[var(--q-border-strong)]'
                 )}
               >
-                {tab.label}
+                <span className="inline-flex items-center gap-1">
+                  {tab.icon}{tab.label}
+                </span>
               </button>
             ))}
           </div>
