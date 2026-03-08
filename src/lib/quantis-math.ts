@@ -276,6 +276,82 @@ export class QuantisMath {
     return v;
   }
 
+  // ========== STATISTICAL METHODS ==========
+
+  /** Arithmetic mean of a dataset */
+  static mean(dataset: DecimalInput[]): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    let sum = new Decimal(0);
+    for (const v of dataset) sum = sum.plus(sanitize(v));
+    return sum.dividedBy(dataset.length);
+  }
+
+  /** Median of a dataset (sorted middle value) */
+  static median(dataset: DecimalInput[]): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    const sorted = dataset.map(d => sanitize(d)).sort((a, b) => a.cmp(b));
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+      return sorted[mid - 1].plus(sorted[mid]).dividedBy(2);
+    }
+    return sorted[mid];
+  }
+
+  /** Z-score: (value - mean) / stdDev. Returns 0 if stdDev is 0. */
+  static zScore(value: DecimalInput, meanVal: DecimalInput, stdDev: DecimalInput): Decimal {
+    const s = sanitize(stdDev);
+    if (s.isZero()) return new Decimal(0);
+    return sanitize(value).minus(sanitize(meanVal)).dividedBy(s);
+  }
+
+  /** Percentile (linear interpolation). p is 0–100. */
+  static percentile(dataset: DecimalInput[], p: number): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    const sorted = dataset.map(d => sanitize(d)).sort((a, b) => a.cmp(b));
+    const pClamped = Math.max(0, Math.min(100, p));
+    const rank = (pClamped / 100) * (sorted.length - 1);
+    const lower = Math.floor(rank);
+    const upper = Math.ceil(rank);
+    if (lower === upper) return sorted[lower];
+    const frac = new Decimal(rank - lower);
+    return sorted[lower].plus(sorted[upper].minus(sorted[lower]).times(frac));
+  }
+
+  /** Self-test: 10 known-answer checks for QMath integrity */
+  static runSelfTest(): { passed: number; failed: number; errors: string[] } {
+    const errors: string[] = [];
+    let passed = 0;
+
+    const check = (label: string, actual: number | string, expected: number | string) => {
+      if (String(actual) === String(expected)) { passed++; }
+      else { errors.push(`${label}: expected ${expected}, got ${actual}`); }
+    };
+
+    // 1. add
+    check('add(0.1, 0.2)', QuantisMath.toNumber(QuantisMath.add(0.1, 0.2), 1), 0.3);
+    // 2. multiply
+    check('multiply(3, 7)', QuantisMath.toNumber(QuantisMath.multiply(3, 7), 0), 21);
+    // 3. divide-by-zero
+    check('divide(10, 0)', QuantisMath.toNumber(QuantisMath.divide(10, 0), 2), 0);
+    // 4. percentage
+    check('percentage(25, 200)', QuantisMath.toNumber(QuantisMath.percentage(25, 200), 1), 12.5);
+    // 5. compound
+    check('compound(1000, 0.1, 3)', QuantisMath.toNumber(QuantisMath.compound(1000, 0.1, 3), 0), 1331);
+    // 6. clamp
+    check('clamp(150, 0, 100)', QuantisMath.toNumber(QuantisMath.clamp(150, 0, 100), 0), 100);
+    // 7. normalize
+    check('normalize(75, 50, 100)', QuantisMath.toNumber(QuantisMath.normalize(75, 50, 100), 1), 0.5);
+    // 8. mean
+    check('mean([10, 20, 30])', QuantisMath.toNumber(QuantisMath.mean([10, 20, 30]), 0), 20);
+    // 9. median
+    check('median([1, 3, 5, 7])', QuantisMath.toNumber(QuantisMath.median([1, 3, 5, 7]), 0), 4);
+    // 10. stdDev
+    const sd = QuantisMath.toNumber(QuantisMath.standardDeviation([2, 4, 4, 4, 5, 5, 7, 9]), 2);
+    check('stdDev([2,4,4,4,5,5,7,9])', sd, 2.14);
+
+    return { passed, failed: errors.length, errors };
+  }
+
   // ========== CONVERSION HELPERS ==========
 
   /** Convert Decimal to number, rounded to specified decimal places */
