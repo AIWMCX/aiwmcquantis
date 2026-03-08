@@ -233,7 +233,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
 
             {/* Top Risks */}
-            <div className="animate-slide-in-right rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-slide-in-right p-4 space-y-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Top Risks</h3>
               {topRisks.length === 0 ? (
                 <p className="text-sm text-[var(--q-status-green)] flex items-center gap-1.5">
