@@ -298,10 +298,12 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 7: Calculate profit metrics =====
   
-  const grossProfit = mrr - cogs;
+  /** Gross profit = MRR - COGS */
+  const grossProfit = QMath.round(QMath.subtract(mrr, cogs));
   const grossMarginPercent = QMath.marginPercent(grossProfit, mrr);
   
-  const netProfit = mrr - totalExpenses;
+  /** Net profit = MRR - Total Expenses */
+  const netProfit = QMath.round(QMath.subtract(mrr, totalExpenses));
   const netMarginPercent = QMath.marginPercent(netProfit, mrr);
   const isProfitable = netProfit > 0;
   
