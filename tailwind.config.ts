@@ -24,6 +24,7 @@ export default {
 				mono: ['JetBrains Mono', 'Fira Code', ...fontFamily.mono],
 			},
 			colors: {
+				// Legacy shadcn tokens
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
@@ -75,55 +76,97 @@ export default {
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
 				},
-				// Quantis Financial Design System
-				quantis: {
-					profit: {
-						DEFAULT: 'hsl(var(--quantis-profit))',
-						foreground: 'hsl(var(--quantis-profit-foreground))'
+				
+				// ═══════════════════════════════════════════════
+				// QUANTIS DESIGN SYSTEM v2.0 — Trading Terminal
+				// ═══════════════════════════════════════════════
+				
+				// Surface colors
+				q: {
+					bg: {
+						base: 'var(--q-bg-base)',
+						surface: 'var(--q-bg-surface)',
+						elevated: 'var(--q-bg-elevated)',
+						overlay: 'var(--q-bg-overlay)',
+						input: 'var(--q-bg-input)'
 					},
-					loss: {
-						DEFAULT: 'hsl(var(--quantis-loss))',
-						foreground: 'hsl(var(--quantis-loss-foreground))'
+					border: {
+						subtle: 'var(--q-border-subtle)',
+						DEFAULT: 'var(--q-border-default)',
+						strong: 'var(--q-border-strong)'
 					},
-					caution: {
-						DEFAULT: 'hsl(var(--quantis-caution))',
-						foreground: 'hsl(var(--quantis-caution-foreground))'
+					text: {
+						primary: 'var(--q-text-primary)',
+						secondary: 'var(--q-text-secondary)',
+						tertiary: 'var(--q-text-tertiary)',
+						disabled: 'var(--q-text-disabled)',
+						inverse: 'var(--q-text-inverse)'
 					},
-					neutral: {
-						DEFAULT: 'hsl(var(--quantis-neutral))',
-						foreground: 'hsl(var(--quantis-neutral-foreground))'
+					accent: {
+						DEFAULT: 'var(--q-accent-primary)',
+						glow: 'var(--q-accent-glow)',
+						hover: 'var(--q-accent-hover)',
+						pressed: 'var(--q-accent-pressed)'
 					},
-					gold: {
-						DEFAULT: 'hsl(var(--quantis-gold))',
-						foreground: 'hsl(var(--quantis-gold-foreground))'
-					},
-					cyan: {
-						DEFAULT: 'hsl(var(--quantis-cyan))',
-						foreground: 'hsl(var(--quantis-cyan-foreground))'
+					status: {
+						green: {
+							DEFAULT: 'var(--q-status-green)',
+							bg: 'var(--q-status-green-bg)',
+							border: 'var(--q-status-green-border)'
+						},
+						yellow: {
+							DEFAULT: 'var(--q-status-yellow)',
+							bg: 'var(--q-status-yellow-bg)',
+							border: 'var(--q-status-yellow-border)'
+						},
+						red: {
+							DEFAULT: 'var(--q-status-red)',
+							bg: 'var(--q-status-red-bg)',
+							border: 'var(--q-status-red-border)'
+						},
+						orange: {
+							DEFAULT: 'var(--q-status-orange)',
+							bg: 'var(--q-status-orange-bg)',
+							border: 'var(--q-status-orange-border)'
+						},
+						ai: {
+							DEFAULT: 'var(--q-status-ai)',
+							bg: 'var(--q-status-ai-bg)',
+							border: 'var(--q-status-ai-border)'
+						}
 					},
 					chart: {
-						'1': 'hsl(var(--quantis-chart-1))',
-						'2': 'hsl(var(--quantis-chart-2))',
-						'3': 'hsl(var(--quantis-chart-3))',
-						'4': 'hsl(var(--quantis-chart-4))',
-						'5': 'hsl(var(--quantis-chart-5))'
-					},
-					surface: {
-						raised: 'hsl(var(--quantis-surface-raised))',
-						sunken: 'hsl(var(--quantis-surface-sunken))'
+						'1': 'var(--q-chart-1)',
+						'2': 'var(--q-chart-2)',
+						'3': 'var(--q-chart-3)',
+						'4': 'var(--q-chart-4)',
+						'5': 'var(--q-chart-5)',
+						corridor: 'var(--q-chart-corridor-fill)'
 					}
 				}
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
 				md: 'calc(var(--radius) - 2px)',
-				sm: 'calc(var(--radius) - 4px)'
+				sm: 'calc(var(--radius) - 4px)',
+				'q-sm': 'var(--q-radius-sm)',
+				'q-md': 'var(--q-radius-md)',
+				'q-lg': 'var(--q-radius-lg)',
+				'q-xl': 'var(--q-radius-xl)',
+				'q-pill': 'var(--q-radius-pill)'
 			},
 			boxShadow: {
-				'quantis-glow': '0 0 30px hsl(var(--quantis-glow-primary) / 0.2)',
-				'quantis-glow-profit': '0 0 20px hsl(var(--quantis-glow-profit) / 0.25)',
-				'quantis-card': '0 1px 3px hsl(var(--foreground) / 0.05), 0 4px 12px hsl(var(--foreground) / 0.08)',
-				'quantis-card-hover': '0 4px 12px hsl(var(--foreground) / 0.08), 0 8px 24px hsl(var(--foreground) / 0.12)'
+				'q-card': 'var(--q-shadow-card)',
+				'q-elevated': 'var(--q-shadow-elevated)',
+				'q-glow-blue': 'var(--q-shadow-glow-blue)',
+				'q-glow-green': 'var(--q-shadow-glow-green)'
+			},
+			backgroundImage: {
+				'q-gradient-hero': 'var(--q-gradient-hero)',
+				'q-gradient-card': 'var(--q-gradient-card)',
+				'q-gradient-accent': 'var(--q-gradient-accent)',
+				'q-gradient-danger': 'var(--q-gradient-danger)',
+				'q-gradient-success': 'var(--q-gradient-success)'
 			},
 			keyframes: {
 				'accordion-down': {
@@ -148,13 +191,22 @@ export default {
 					'100%': { transform: 'scale(1)', opacity: '1' }
 				},
 				'glow-pulse': {
-					'0%, 100%': { boxShadow: '0 0 20px hsl(var(--quantis-glow-primary) / 0.2)' },
-					'50%': { boxShadow: '0 0 40px hsl(var(--quantis-glow-primary) / 0.35)' }
+					'0%, 100%': { boxShadow: 'var(--q-shadow-glow-blue)' },
+					'50%': { boxShadow: '0 0 40px rgba(79,142,247,0.35)' }
 				},
 				'metric-flash': {
 					'0%': { backgroundColor: 'transparent' },
-					'15%': { backgroundColor: 'hsl(var(--quantis-profit) / 0.15)' },
+					'15%': { backgroundColor: 'var(--q-status-green-bg)' },
 					'100%': { backgroundColor: 'transparent' }
+				},
+				'terminal-blink': {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0' }
+				},
+				'data-pulse': {
+					'0%': { transform: 'scale(1)', opacity: '0.8' },
+					'50%': { transform: 'scale(1.02)', opacity: '1' },
+					'100%': { transform: 'scale(1)', opacity: '0.8' }
 				}
 			},
 			animation: {
@@ -164,7 +216,9 @@ export default {
 				'count-up': 'count-up 0.5s ease-out',
 				'score-reveal': 'score-reveal 0.6s cubic-bezier(0.34, 1.56, 0.64, 1)',
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
-				'metric-flash': 'metric-flash 1s ease-out'
+				'metric-flash': 'metric-flash 1s ease-out',
+				'terminal-blink': 'terminal-blink 1s step-end infinite',
+				'data-pulse': 'data-pulse 3s ease-in-out infinite'
 			}
 		}
 	},
