@@ -9,6 +9,9 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
+  Coffee,
+  Monitor,
+  ShoppingBag,
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
