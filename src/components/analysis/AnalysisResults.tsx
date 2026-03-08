@@ -383,8 +383,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             {/* Reconciliation Status */}
             {(() => {
               const netMargin = result.financial_analysis?.scenarios?.base?.net_margin ?? 0;
-              const riskLevel = result.risk_assessment?.overall_risk || '';
-              const hasR006Violation = netMargin < -10 && riskLevel.toLowerCase() === 'low';
+              const confidence = result.confidence_score || 50;
+              // Infer risk level from confidence (matching mapRiskLevel in report-schema)
+              const inferredRisk = confidence >= 80 ? 'low' : confidence >= 60 ? 'moderate' : confidence >= 40 ? 'high' : 'very high';
+              const hasR006Violation = netMargin < -10 && inferredRisk === 'low';
               const checksRun = [
                 { rule: 'R-001', label: 'Sum Integrity', pass: true },
                 { rule: 'R-002', label: 'Sign Consistency', pass: (result.financial_analysis?.mrr ?? 0) >= 0 },
