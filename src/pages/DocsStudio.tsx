@@ -7,6 +7,7 @@ import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDocSignals } from '@/hooks/useDocSignals';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import { Button } from '@/components/ui/button';
