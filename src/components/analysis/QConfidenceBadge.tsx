@@ -29,7 +29,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   verified: {
     label: 'VERIFIED',
     icon: Shield,
-    prefix: '⚡',
+    prefix: '',
     classes: 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)] border-[var(--q-status-green-border)]',
     glow: 'shadow-[0_0_12px_var(--q-status-green-bg)]',
   },
