@@ -371,6 +371,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         {/* TAB: Risk Map */}
         <TabsContent value="riskmap" className="space-y-4 animate-in fade-in duration-200">
           <StressMap {...calculateStressScores(result)} />
+          <RealityCheck
+            industryType={result.metadata?.industry_detected}
+            overallRiskIndex={calculateStressScores(result).overallRiskIndex}
+          />
         </TabsContent>
         {/* TAB: Simulation */}
         <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">
