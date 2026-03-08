@@ -49,7 +49,7 @@ const INDUSTRY_DEMOS: IndustryDemo[] = [
   },
   {
     label: 'SaaS App',
-    emoji: '💻',
+    icon: Monitor,
     idea: 'Project management SaaS for small teams',
     location: 'San Francisco, CA',
     metrics: [
