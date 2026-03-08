@@ -12,7 +12,7 @@ export function FormProgressBar({ filledCount, totalCount }: FormProgressBarProp
     <div className="space-y-1.5">
       <div className="flex items-center justify-between text-xs">
         <span className="text-[var(--q-text-tertiary)] font-medium" style={{ fontFamily: 'var(--q-font-body)' }}>
-          {filledCount} of {totalCount} fields complete
+          Step {filledCount} of {totalCount}
         </span>
         <span className="text-[var(--q-text-tertiary)] tabular-nums">{percent}%</span>
       </div>
