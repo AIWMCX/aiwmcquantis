@@ -56,7 +56,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [showShareModal, setShowShareModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
+  const [showActualsImporter, setShowActualsImporter] = useState(false);
   useEffect(() => {
     const key = `quantis_shared_${result.metadata.generated_at}`;
     if (!sessionStorage.getItem(key)) {
