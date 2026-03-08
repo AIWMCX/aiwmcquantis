@@ -1925,6 +1925,38 @@ export type Database = {
         }
         Relationships: []
       }
+      user_validation_progress: {
+        Row: {
+          analysis_id: string | null
+          completed_actions: string[]
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          completed_actions?: string[]
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          completed_actions?: string[]
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_validation_progress_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
