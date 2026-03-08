@@ -1,27 +1,20 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame, ClipboardCheck, Upload, GitCompare } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Share2, Twitter, Linkedin, Copy, Trophy, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, Shield, Lightbulb, Download, Upload } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { SignupPrompt } from './SignupPrompt';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
 import { FinancialSummary } from './FinancialSummary';
-import { BusinessPlanSection } from './BusinessPlanSection';
-import { MarketingSection } from './MarketingSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
-import { ValidationSection } from './ValidationSection';
 import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
-import { DocumentInsights } from './DocumentInsights';
 import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
 import { IndustryComparison } from './IndustryComparison';
 import { ShareSuccessModal } from './ShareSuccessModal';
-import { SensitivityTornado } from './SensitivityTornado';
 import { DualEngineBadge } from './DualEngineBadge';
 import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
-import { AssumptionGraph } from './AssumptionGraph';
 import { ModelConfidenceBadge } from './ModelConfidenceBadge';
 import { ConfidenceBadge as OutputConfidenceBadge } from './ConfidenceBadge';
 import { MonteCarloResults } from './MonteCarloResults';
@@ -33,12 +26,12 @@ import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import { ValidationJourney } from './ValidationJourney';
 import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
-import { RealityCheck } from './RealityCheck';
+import { ValidationSection } from './ValidationSection';
 import { ResultsTopBar } from './ResultsTopBar';
 import { ResultsHeroStrip } from './ResultsHeroStrip';
 import { ResultsAccordionSections } from './ResultsAccordionSections';
+import { RevenueChart } from './RevenueChart';
 import type { BusinessAnalysisResult } from '@/types/analysis';
-import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
 import { useExportQueue } from '@/hooks/useExportQueue';
@@ -94,13 +87,11 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     return { revenue: current.revenue, profit: current.net_profit, margin: current.net_margin };
   }, [result.financial_analysis, selectedScenario]);
 
-  // Break-even, runway
   const breakEvenMonths = result.financial_analysis?.payback_period_months ?? 99;
   const cashRunwayMonths = useMemo(() => {
     const investment = result.financial_analysis?.startup_investment?.total ?? 0;
-    const monthlyBurn = result.financial_analysis?.monthly_expenses?.total ?? 1;
     const monthlyProfit = scenarioMetrics.profit;
-    if (monthlyProfit >= 0) return 36; // profitable = long runway
+    if (monthlyProfit >= 0) return 36;
     return Math.max(1, Math.floor(investment / Math.abs(monthlyProfit)));
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
@@ -153,40 +144,61 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     if (analysisId) shareReport(analysisId);
   }, [analysisId, shareReport]);
 
-  // Warnings as risk flags
+  // Top 3 risk flags
   const topRisks = useMemo(() => {
-    const risks: { label: string; severity: 'red' | 'yellow' }[] = [];
-    if (cashRunwayMonths < 12) risks.push({ label: `Cash runway < 12 months (${cashRunwayMonths}mo)`, severity: 'red' });
-    if (scenarioMetrics.margin < 10) risks.push({ label: `Net margin below 10% (${scenarioMetrics.margin.toFixed(1)}%)`, severity: scenarioMetrics.margin < 0 ? 'red' : 'yellow' });
+    const risks: { label: string; impact: string; mitigation: string; severity: 'red' | 'orange' | 'yellow' }[] = [];
+    if (cashRunwayMonths < 12) risks.push({
+      label: `Cash runway under 12 months`,
+      impact: `Only ${cashRunwayMonths} months of runway at current burn rate.`,
+      mitigation: 'Reduce monthly expenses or secure additional funding.',
+      severity: 'red',
+    });
+    if (scenarioMetrics.margin < 10) risks.push({
+      label: `Net margin below 10%`,
+      impact: `Current margin is ${scenarioMetrics.margin.toFixed(1)}%, leaving little buffer.`,
+      mitigation: 'Optimize COGS or increase pricing by 10-15%.',
+      severity: scenarioMetrics.margin < 0 ? 'red' : 'orange',
+    });
     const cacPayback = result.financial_analysis?.unit_economics?.cac_payback_months;
-    if (cacPayback && cacPayback > 6) risks.push({ label: `CAC recovery ${cacPayback.toFixed(1)} months`, severity: cacPayback > 12 ? 'red' : 'yellow' });
+    if (cacPayback && cacPayback > 6) risks.push({
+      label: `Slow CAC recovery`,
+      impact: `${cacPayback.toFixed(1)} months to recover customer acquisition cost.`,
+      mitigation: 'Focus on organic channels or improve conversion rates.',
+      severity: cacPayback > 12 ? 'red' : 'yellow',
+    });
     if (result.validation?.warnings?.length) {
-      result.validation.warnings.slice(0, 2).forEach(w => {
-        risks.push({ label: w.message || 'Financial model uncertainty', severity: 'yellow' });
+      result.validation.warnings.slice(0, 1).forEach(w => {
+        risks.push({
+          label: w.message || 'Financial model uncertainty',
+          impact: 'Model assumptions may not hold under stress.',
+          mitigation: 'Validate with real market data within 30 days.',
+          severity: 'yellow',
+        });
       });
     }
-    return risks.slice(0, 4);
+    return risks.slice(0, 3);
   }, [cashRunwayMonths, scenarioMetrics.margin, result]);
 
-  // Executive summary from business plan
   const executiveSummary = result.business_plan?.executive_summary || result.business_plan?.product_description || '';
 
   return (
     <div className="space-y-0" ref={contentRef}>
-      {/* Sticky Top Bar */}
-      <ResultsTopBar
-        ideaName={result.metadata.idea}
-        location={result.metadata.location}
-        confidenceScore={result.confidence_score || 70}
-        onExportPDF={handleExportPDF}
-        onShare={analysisId ? handleShare : undefined}
-        onReset={onReset}
-        isGeneratingPdf={isGenerating}
-        isSharing={isSharing}
-      />
+      {/* Sticky Top Bar — t=0 fade in */}
+      <div className="animate-fade-in" style={{ animationFillMode: 'both' }}>
+        <ResultsTopBar
+          ideaName={result.metadata.idea}
+          location={result.metadata.location}
+          confidenceScore={result.confidence_score || 70}
+          onExportPDF={handleExportPDF}
+          onShare={analysisId ? handleShare : undefined}
+          onReset={onReset}
+          isGeneratingPdf={isGenerating}
+          isSharing={isSharing}
+        />
+      </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
-        {/* Hero Summary Strip */}
+        {/* Hero KPI Strip — t=0 with count-up at t=200 */}
         <ResultsHeroStrip
           breakEvenMonths={breakEvenMonths}
           month12Revenue={scenarioMetrics.revenue}
@@ -196,19 +208,30 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           netProfit={scenarioMetrics.profit}
         />
 
-        {/* Two-Column Main Content */}
+        {/* Two-Column Main Content — 60/40 split */}
         <div className="grid grid-cols-1 lg:grid-cols-5 gap-5">
-          {/* Left Column (60%) */}
+          {/* LEFT COLUMN (60%) */}
           <div className="lg:col-span-3 space-y-5">
-            {/* Stress Map */}
-            <div className="q-card animate-fade-in p-4" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+            {/* Stress Map — t=400 */}
+            <div className="q-card animate-fade-in p-5" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <StressMap {...calculateStressScores(result)} />
             </div>
 
-            {/* Scenario Selector + Metrics */}
+            {/* 36-Month Revenue Chart — t=700 */}
+            <div className="q-card animate-fade-in p-5 space-y-3" style={{ animationDelay: '700ms', animationFillMode: 'both' }}>
+              <h3 className="text-sm font-semibold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
+                36-Month Revenue Projection
+              </h3>
+              <RevenueChart
+                baseRevenue={scenarioMetrics.revenue}
+                margin={scenarioMetrics.margin}
+              />
+            </div>
+
+            {/* Scenario metrics */}
             <div className="q-card animate-fade-in p-4 space-y-3" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Revenue Corridor</h3>
+                <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Scenario Comparison</h3>
                 <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
               </div>
               <div className="grid grid-cols-3 gap-3">
@@ -219,11 +242,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
           </div>
 
-          {/* Right Column (40%) */}
-          <div className="lg:col-span-2 space-y-5">
-            {/* Executive Summary */}
-            <div className="q-card animate-fade-in p-4 space-y-2" style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
-              <h3 className="text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
+          {/* RIGHT COLUMN (40%) — sticky on scroll */}
+          <div className="lg:col-span-2 space-y-5 lg:sticky lg:top-[72px] lg:self-start">
+            {/* Executive Summary — t=600, border-left accent */}
+            <div
+              className="q-card animate-fade-in p-5 space-y-2 border-l-[3px] border-l-[var(--q-accent-primary)]"
+              style={{ animationDelay: '600ms', animationFillMode: 'both' }}
+            >
+              <h3 className="text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2" style={{ fontFamily: 'var(--q-font-heading)' }}>
                 <DualEngineBadge crossValidation={(result as any).cross_validation} />
                 Executive Summary
               </h3>
@@ -232,30 +258,44 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               </p>
             </div>
 
-            {/* Top Risks */}
-            <div className="q-card animate-slide-in-right p-4 space-y-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
-              <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Top Risks</h3>
+            {/* Top Risk Flags — t=900, staggered slide-in */}
+            <div className="q-card p-5 space-y-3 animate-fade-in" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
+              <h3 className="text-sm font-semibold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
+                Top Risk Flags
+              </h3>
               {topRisks.length === 0 ? (
                 <p className="text-sm text-[var(--q-status-green)] flex items-center gap-1.5">
                   <CheckCircle2 className="w-4 h-4" /> No critical risks detected
                 </p>
               ) : (
-                <div className="space-y-1.5">
+                <div className="space-y-3">
                   {topRisks.map((risk, i) => (
-                    <div key={i} className="flex items-center gap-2 text-sm">
-                      <span className={cn(
-                        'w-2.5 h-2.5 rounded-full shrink-0',
-                        risk.severity === 'red' ? 'bg-[var(--q-status-red)]' : 'bg-[var(--q-status-yellow)]'
-                      )} />
-                      <span className="text-[var(--q-text-secondary)]">{risk.label}</span>
+                    <div
+                      key={i}
+                      className="animate-fade-in space-y-1"
+                      style={{ animationDelay: `${900 + i * 100}ms`, animationFillMode: 'both' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          'w-2.5 h-2.5 rounded-full shrink-0',
+                          risk.severity === 'red' ? 'bg-[var(--q-status-red)]' :
+                          risk.severity === 'orange' ? 'bg-[var(--q-status-orange)]' :
+                          'bg-[var(--q-status-yellow)]'
+                        )} />
+                        <span className="text-sm font-medium text-[var(--q-text-primary)]">{risk.label}</span>
+                      </div>
+                      <p className="text-xs text-[var(--q-text-secondary)] ml-[18px]">{risk.impact} {risk.mitigation}</p>
+                      <button className="text-xs text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[18px] flex items-center gap-1 transition-colors">
+                        <ArrowRight className="w-3 h-3" /> View mitigation plan
+                      </button>
                     </div>
                   ))}
                 </div>
               )}
             </div>
 
-            {/* SCORE export + actions */}
-            <div className="animate-fade-in flex flex-wrap gap-2" style={{ animationDelay: '1100ms', animationFillMode: 'both' }}>
+            {/* SCORE export + social */}
+            <div className="animate-fade-in flex flex-wrap gap-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
               <Button onClick={handleExportSCORE} variant="outline" size="sm" className="gap-1.5 text-xs">
                 <Download className="w-3.5 h-3.5" /> SCORE CSV
               </Button>
@@ -276,7 +316,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </div>
         </div>
 
-        {/* Accordion Detail Sections */}
+        {/* Accordion Detail Sections — t=1100 */}
         <ResultsAccordionSections
           financialContent={
             <div className="space-y-4">
@@ -304,16 +344,28 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <BenchmarkConfidenceIndicator confidence={(result as any).benchmark_confidence} />
             </div>
           }
+          unitEconomicsContent={
+            result.financial_analysis?.unit_economics ? (
+              <div className="space-y-3">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                  <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString()}`} positive={true} />
+                  <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString()}`} positive={true} />
+                  <MetricMini label="LTV:CAC" value={`${(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0).toFixed(1)}×`} positive={(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0) >= 3} />
+                  <MetricMini label="CAC Payback" value={`${(result.financial_analysis.unit_economics.cac_payback_months ?? 0).toFixed(1)}mo`} positive={(result.financial_analysis.unit_economics.cac_payback_months ?? 99) <= 6} />
+                </div>
+              </div>
+            ) : undefined
+          }
           analysisId={analysisId}
         />
 
-        {/* Reliability & Validation (collapsed by default, no accordion for now) */}
+        {/* Reliability & Validation */}
         <details className="q-card animate-fade-in" style={{ animationDelay: '1400ms', animationFillMode: 'both' }}>
-          <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
-            <Shield className="w-4 h-4 text-[var(--q-accent-primary)]" />
+          <summary className="px-5 h-16 cursor-pointer text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2.5">
+            <Shield className="w-4.5 h-4.5 text-[var(--q-accent-primary)]" />
             Reliability & Validation
           </summary>
-          <div className="px-4 pb-4 space-y-4">
+          <div className="px-5 pb-5 space-y-4">
             <ModelConfidenceBadge confidence={result.model_confidence} />
             <OutputConfidenceBadge
               confidence={calculateOutputConfidence({
@@ -401,13 +453,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   );
 }
 
-// --- Sub-components ---
-
 function MetricMini({ label, value, positive }: { label: string; value: string; positive: boolean }) {
   return (
     <div className="q-card p-2.5 text-center">
-      <p className="text-label-sm mb-0.5">{label}</p>
-      <p className={cn('text-metric-xs', positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]')}>
+      <p className="text-xs uppercase tracking-wide text-[var(--q-text-tertiary)] mb-0.5">{label}</p>
+      <p className={cn(
+        'text-sm font-bold tabular-nums',
+        positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
+      )} style={{ fontFamily: 'var(--q-font-mono, JetBrains Mono, monospace)' }}>
         {value}
       </p>
     </div>
