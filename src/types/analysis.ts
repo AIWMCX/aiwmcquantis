@@ -456,6 +456,7 @@ export interface AnalysisRequest {
   location: string;
   financial_inputs?: OptionalFinancialInputs;
   documents?: DocumentData[];
+  analysis_depth?: 'quick' | 'full' | 'deep';
 }
 
 // 10 Key Outputs that every analysis must show

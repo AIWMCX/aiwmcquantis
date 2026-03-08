@@ -289,7 +289,7 @@ export function applyGeoCalibration(
         multiplier = 1.0;
     }
 
-    calibrated[param] = Math.round(value * multiplier * 100) / 100;
+    calibrated[param] = QuantisMath.roundTo(QuantisMath.multiply(value, multiplier), 2);
     appliedCoefficients[param] = multiplier;
 
     if (Math.abs(multiplier - 1.0) > 0.02) {
