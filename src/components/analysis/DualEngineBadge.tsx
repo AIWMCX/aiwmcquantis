@@ -75,8 +75,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   uncertain: {
     icon: AlertTriangle,
-    label: '⚠ Low Confidence',
-    emoji: '⚠',
+    label: 'Low Confidence',
+    emoji: '',
     bgClass: 'bg-orange-500/10',
     borderClass: 'border-orange-500/30',
     textClass: 'text-orange-700 dark:text-orange-400',
