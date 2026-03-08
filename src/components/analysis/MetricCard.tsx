@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { HelpCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExplainPanel, type ExplainPanelProps } from './ExplainPanel';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MetricCardProps {
   label: string;
@@ -13,8 +14,11 @@ interface MetricCardProps {
   explainData?: Omit<ExplainPanelProps, 'isOpen' | 'onClose'>;
 }
 
+const isBlocked = (tier?: string) => tier === 'blocked';
+
 export function ExplainableMetricCard({ label, value, positive = true, unit, trend, delta, explainData }: MetricCardProps) {
   const [explainOpen, setExplainOpen] = useState(false);
+  const blocked = isBlocked(explainData?.confidenceTier);
 
   return (
     <>
@@ -44,6 +48,20 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
 
         <p className="text-xs text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
         <div className="flex items-center justify-center gap-1">
+          {blocked ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-metric-sm text-[var(--q-text-disabled)] select-none" style={{ filter: 'blur(4px)' }}>
+                    {value}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Low confidence — data insufficient</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
           <p className={cn(
             'text-metric-sm transition-all duration-300',
             positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
