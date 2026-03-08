@@ -311,13 +311,13 @@ function FinancialField({
   }, [industryType, config.benchmarkParam, onUseMedian]);
 
   return (
-    <div className="space-y-1.5">
-      <Label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-        <span className="text-muted-foreground">{config.icon}</span>
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+        <span className="text-[var(--q-text-tertiary)]">{config.icon}</span>
         {config.label}
         <Tooltip>
           <TooltipTrigger asChild>
-            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+            <HelpCircle className="w-3.5 h-3.5 text-[var(--q-text-tertiary)] cursor-help" />
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[250px]">
             <p className="text-sm">{config.tooltip}</p>
@@ -326,7 +326,7 @@ function FinancialField({
       </Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
             {config.prefix}
           </span>
         )}
@@ -338,15 +338,15 @@ function FinancialField({
           placeholder={config.placeholder}
           disabled={disabled}
           className={cn(
-            "transition-colors",
-            config.prefix && "pl-7",
-            config.suffix && "pr-8",
-            validation?.warningLevel === 'critical' && "border-destructive/50",
-            validation?.warningLevel === 'strong' && "border-amber-500/50",
+            "h-12 text-[15px] transition-colors",
+            config.prefix && "pl-8",
+            config.suffix && "pr-9",
+            validation?.warningLevel === 'critical' && "border-[var(--q-status-red)]/50",
+            validation?.warningLevel === 'strong' && "border-[var(--q-status-yellow)]/50",
           )}
         />
         {config.suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
             {config.suffix}
           </span>
         )}

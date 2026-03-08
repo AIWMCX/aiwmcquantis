@@ -153,12 +153,24 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       label: `Cash runway under 12 months`,
       impact: `Only ${cashRunwayMonths} months of runway at current burn rate.`,
       mitigation: 'Reduce monthly expenses or secure additional funding.',
+      mitigationPlan: [
+        'Cut non-essential operating costs by 15-20%',
+        'Negotiate payment terms with vendors (net-60 or net-90)',
+        'Explore bridge financing or revenue-based lending',
+        'Build a 3-month emergency reserve before scaling',
+      ],
       severity: 'red',
     });
     if (scenarioMetrics.margin < 10) risks.push({
       label: `Net margin below 10%`,
       impact: `Current margin is ${scenarioMetrics.margin.toFixed(1)}%, leaving little buffer.`,
       mitigation: 'Optimize COGS or increase pricing by 10-15%.',
+      mitigationPlan: [
+        'Audit top 3 cost categories for 10% reduction opportunities',
+        'Test a 10-15% price increase with a small customer segment',
+        'Renegotiate supplier contracts or switch to bulk purchasing',
+        'Automate manual processes to reduce labor costs',
+      ],
       severity: scenarioMetrics.margin < 0 ? 'red' : 'orange',
     });
     const cacPayback = result.financial_analysis?.unit_economics?.cac_payback_months;
@@ -166,6 +178,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       label: `Slow CAC recovery`,
       impact: `${cacPayback.toFixed(1)} months to recover customer acquisition cost.`,
       mitigation: 'Focus on organic channels or improve conversion rates.',
+      mitigationPlan: [
+        'Shift 30% of paid ad budget to content marketing and SEO',
+        'Implement a referral program with 2-sided incentives',
+        'Optimize landing page conversion rate (target >3%)',
+        'Focus on high-LTV customer segments to improve unit economics',
+      ],
       severity: cacPayback > 12 ? 'red' : 'yellow',
     });
     if (result.validation?.warnings?.length) {
@@ -174,6 +192,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           label: w.message || 'Financial model uncertainty',
           impact: 'Model assumptions may not hold under stress.',
           mitigation: 'Validate with real market data within 30 days.',
+          mitigationPlan: [
+            'Interview 10 potential customers this week',
+            'Run a pre-sale or waitlist to validate willingness to pay',
+            'Compare your assumptions against published industry benchmarks',
+            'Set up weekly metric tracking to catch deviations early',
+          ],
           severity: 'yellow',
         });
       });
