@@ -29,32 +29,32 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   verified: {
     label: 'VERIFIED',
     icon: Shield,
-    prefix: '⚡',
+    prefix: '',
     classes: 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)] border-[var(--q-status-green-border)]',
     glow: 'shadow-[0_0_12px_var(--q-status-green-bg)]',
   },
   confirmed: {
     label: 'CONFIRMED',
     icon: CheckCircle2,
-    prefix: '✓',
+    prefix: '',
     classes: 'bg-[rgba(79,142,247,0.08)] text-[var(--q-accent-primary)] border-[rgba(79,142,247,0.2)]',
   },
   estimated: {
     label: 'ESTIMATED',
     icon: Info,
-    prefix: '~',
+    prefix: '',
     classes: 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)] border-[var(--q-status-yellow-border)]',
   },
   uncertain: {
     label: 'UNCERTAIN',
     icon: AlertTriangle,
-    prefix: '⚠',
+    prefix: '',
     classes: 'bg-[var(--q-status-orange-bg)] text-[var(--q-status-orange)] border-[var(--q-status-orange-border)]',
   },
   blocked: {
     label: 'INSUFFICIENT DATA',
     icon: XCircle,
-    prefix: '✕',
+    prefix: '',
     classes: 'bg-muted/50 text-muted-foreground border-border',
   },
 };

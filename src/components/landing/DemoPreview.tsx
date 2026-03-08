@@ -9,13 +9,16 @@ import {
   AlertTriangle,
   CheckCircle2,
   BarChart3,
+  Coffee,
+  Monitor,
+  ShoppingBag,
 } from 'lucide-react';
 import { trackCtaClick } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
 interface IndustryDemo {
   label: string;
-  emoji: string;
+  icon: React.ElementType;
   idea: string;
   location: string;
   metrics: { label: string; value: string; numericValue: number; prefix: string; suffix: string; subValue?: string; color: string }[];
@@ -26,7 +29,7 @@ interface IndustryDemo {
 const INDUSTRY_DEMOS: IndustryDemo[] = [
   {
     label: 'Coffee Shop',
-    emoji: '☕',
+    icon: Coffee,
     idea: 'Coffee shop with remote work focus',
     location: 'Denver, CO',
     metrics: [
@@ -46,7 +49,7 @@ const INDUSTRY_DEMOS: IndustryDemo[] = [
   },
   {
     label: 'SaaS App',
-    emoji: '💻',
+    icon: Monitor,
     idea: 'Project management SaaS for small teams',
     location: 'San Francisco, CA',
     metrics: [
@@ -66,7 +69,7 @@ const INDUSTRY_DEMOS: IndustryDemo[] = [
   },
   {
     label: 'E-commerce',
-    emoji: '🛍️',
+    icon: ShoppingBag,
     idea: 'Sustainable fashion e-commerce brand',
     location: 'New York, NY',
     metrics: [
@@ -202,7 +205,7 @@ export function DemoPreview() {
                   : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
             >
-              <span>{d.emoji}</span>
+              <d.icon className="w-4 h-4" />
               {d.label}
             </button>
           ))}
@@ -226,7 +229,7 @@ export function DemoPreview() {
                   )}
                 >
                   <div className="font-semibold text-foreground text-sm md:text-base">Business Analysis Report</div>
-                  <div className="text-xs text-muted-foreground">{demo.emoji} {demo.idea} • {demo.location}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1"><demo.icon className="w-3 h-3" /> {demo.idea} • {demo.location}</div>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">

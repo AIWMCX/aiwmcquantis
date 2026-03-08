@@ -48,8 +48,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
 }> = {
   verified: {
     icon: ShieldCheck,
-    label: '⚡ GPT + Gemini Verified',
-    emoji: '⚡',
+    label: 'GPT + Gemini Verified',
+    emoji: '',
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',
     textClass: 'text-emerald-700 dark:text-emerald-400',
@@ -57,8 +57,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   confident: {
     icon: CheckCircle2,
-    label: '✓ Dual Engine Checked',
-    emoji: '✓',
+    label: 'Dual Engine Checked',
+    emoji: '',
     bgClass: 'bg-blue-500/10',
     borderClass: 'border-blue-500/30',
     textClass: 'text-blue-700 dark:text-blue-400',
@@ -66,8 +66,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   estimated: {
     icon: Info,
-    label: '~ AI Estimated',
-    emoji: '~',
+    label: 'AI Estimated',
+    emoji: '',
     bgClass: 'bg-amber-500/10',
     borderClass: 'border-amber-500/30',
     textClass: 'text-amber-700 dark:text-amber-400',
@@ -75,8 +75,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   uncertain: {
     icon: AlertTriangle,
-    label: '⚠ Low Confidence',
-    emoji: '⚠',
+    label: 'Low Confidence',
+    emoji: '',
     bgClass: 'bg-orange-500/10',
     borderClass: 'border-orange-500/30',
     textClass: 'text-orange-700 dark:text-orange-400',
@@ -84,8 +84,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   blocked: {
     icon: XCircle,
-    label: '✗ Insufficient Data',
-    emoji: '✗',
+    label: 'Insufficient Data',
+    emoji: '',
     bgClass: 'bg-destructive/10',
     borderClass: 'border-destructive/30',
     textClass: 'text-destructive',

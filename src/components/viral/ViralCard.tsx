@@ -102,7 +102,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
             {idea}
           </div>
           <div style={{ display: 'flex', gap: '16px', marginTop: '10px', fontSize: '13px', color: '#94a3b8' }}>
-            <span>📍 {location}</span>
+            <span>{location}</span>
             <span>•</span>
             <span style={{ textTransform: 'capitalize' }}>{industry.replace(/_/g, ' ')}</span>
           </div>
@@ -118,10 +118,10 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
           zIndex: 1,
         }}>
           {[
-            { label: 'Monthly Profit', value: fmt(profit), icon: '💰', highlight: isProfitable },
-            { label: 'Monthly Revenue', value: fmt(revenue), icon: '📈' },
-            { label: 'Gross Margin', value: pct(grossMargin), icon: '📊' },
-            { label: 'Payback', value: formatPaybackDisplay(payback, profit), icon: '⏱️' },
+            { label: 'Monthly Profit', value: fmt(profit), icon: '$', highlight: isProfitable },
+            { label: 'Monthly Revenue', value: fmt(revenue), icon: '↗' },
+            { label: 'Gross Margin', value: pct(grossMargin), icon: '%' },
+            { label: 'Payback', value: formatPaybackDisplay(payback, profit), icon: '⏳' },
           ].map((m, i) => (
             <div key={i} style={{
               backgroundColor: 'rgba(30,41,59,0.7)',
