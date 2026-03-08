@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useMemo } from 'react';
-import { CheckCircle2, Loader2, AlertCircle, Zap } from 'lucide-react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { CheckCircle2, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
@@ -11,22 +11,29 @@ interface AnalysisStage {
   endTime: number;
 }
 
-const ANALYSIS_STAGES: AnalysisStage[] = [
-  { id: 'benchmarks', label: 'Loading industry benchmarks...', completedLabel: 'Industry benchmarks loaded', startTime: 0, endTime: 3 },
-  { id: 'gpt', label: 'GPT-4o mini analysis in progress...', completedLabel: 'GPT-4o mini analysis complete', startTime: 3, endTime: 10 },
-  { id: 'gemini', label: 'Gemini cross-validation in progress...', completedLabel: 'Gemini cross-validation complete', startTime: 10, endTime: 18 },
-  { id: 'consensus', label: 'Running consensus scoring...', completedLabel: 'Consensus scoring complete', startTime: 18, endTime: 24 },
-  { id: 'reconciliation', label: 'Running reconciliation check...', completedLabel: 'Reconciliation check passed', startTime: 24, endTime: 30 },
-  { id: 'stressmap', label: 'Generating Stress Map...', completedLabel: 'Stress Map generated', startTime: 30, endTime: 36 },
-  { id: 'report', label: 'Compiling report...', completedLabel: 'Report compiled', startTime: 36, endTime: 45 },
-];
-
 interface AnalysisProgressProps {
   isLoading: boolean;
   startTime?: number;
   onRetry?: () => void;
   onCancel?: () => void;
+  onComplete?: () => void;
+  businessType?: string;
+  location?: string;
+  isComplete?: boolean;
   className?: string;
+}
+
+function buildStages(location?: string): AnalysisStage[] {
+  const geoLabel = location ? `Applying ${location} geo calibration` : 'Applying geo calibration';
+  return [
+    { id: 'benchmarks', label: 'Loading industry benchmarks...', completedLabel: 'Industry benchmarks loaded', startTime: 0, endTime: 3 },
+    { id: 'geo', label: `${geoLabel}...`, completedLabel: `${geoLabel} ✓`, startTime: 3, endTime: 6 },
+    { id: 'gpt', label: 'GPT-4o mini analysis in progress...', completedLabel: 'GPT-4o mini analysis complete', startTime: 6, endTime: 14 },
+    { id: 'gemini', label: 'Gemini cross-validation in progress...', completedLabel: 'Gemini cross-validation complete', startTime: 14, endTime: 22 },
+    { id: 'consensus', label: 'Running consensus scoring...', completedLabel: 'Consensus scoring complete', startTime: 22, endTime: 28 },
+    { id: 'reconciliation', label: 'Running reconciliation check...', completedLabel: 'Reconciliation check passed', startTime: 28, endTime: 34 },
+    { id: 'stressmap', label: 'Generating Stress Map...', completedLabel: 'Stress Map generated', startTime: 34, endTime: 42 },
+  ];
 }
 
 export const AnalysisProgress = React.memo(function AnalysisProgress({
@@ -34,14 +41,22 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   startTime,
   onRetry,
   onCancel,
+  onComplete,
+  businessType,
+  location,
+  isComplete = false,
 }: AnalysisProgressProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
+  const [completionPhase, setCompletionPhase] = useState<'none' | 'filling' | 'checkmarks' | 'done'>('none');
+
+  const stages = useMemo(() => buildStages(location), [location]);
 
   useEffect(() => {
     if (!isLoading) {
       setElapsedSeconds(0);
       setShowTimeout(false);
+      setCompletionPhase('none');
       return;
     }
     const interval = setInterval(() => {
@@ -52,60 +67,80 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
     return () => clearInterval(interval);
   }, [isLoading, startTime]);
 
+  // Completion animation sequence
+  useEffect(() => {
+    if (!isComplete || completionPhase !== 'none') return;
+    setCompletionPhase('filling');
+    const t1 = setTimeout(() => setCompletionPhase('checkmarks'), 200);
+    const t2 = setTimeout(() => setCompletionPhase('done'), 200 + stages.length * 80 + 500);
+    const t3 = setTimeout(() => onComplete?.(), 200 + stages.length * 80 + 1000);
+    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+  }, [isComplete, completionPhase, stages.length, onComplete]);
+
   const { overallProgress, completedStages, currentStageId } = useMemo(() => {
+    if (isComplete || completionPhase !== 'none') {
+      return { overallProgress: 100, completedStages: stages.map(s => s.id), currentStageId: null as string | null };
+    }
     if (!isLoading) return { overallProgress: 0, completedStages: [] as string[], currentStageId: null as string | null };
     const completed: string[] = [];
     let currentId: string | null = null;
-    for (const stage of ANALYSIS_STAGES) {
+    for (const stage of stages) {
       if (elapsedSeconds >= stage.endTime) {
         completed.push(stage.id);
       } else if (elapsedSeconds >= stage.startTime && !currentId) {
         currentId = stage.id;
       }
     }
-    if (!currentId && completed.length < ANALYSIS_STAGES.length) currentId = ANALYSIS_STAGES[0].id;
-    // Progress: smooth to 90% then holds
+    if (!currentId && completed.length < stages.length) currentId = stages[0].id;
+    const lastStage = stages[stages.length - 1];
     let progress: number;
-    const lastStage = ANALYSIS_STAGES[ANALYSIS_STAGES.length - 1];
     if (elapsedSeconds >= lastStage.endTime) {
       progress = Math.min(90 + ((elapsedSeconds - lastStage.endTime) / 15) * 9, 99);
     } else {
       progress = (elapsedSeconds / lastStage.endTime) * 90;
     }
     return { overallProgress: progress, completedStages: completed, currentStageId: currentId };
-  }, [isLoading, elapsedSeconds]);
+  }, [isLoading, isComplete, completionPhase, elapsedSeconds, stages]);
 
   const estimatedRemaining = useMemo(() => {
     const total = 45;
-    const remaining = Math.max(0, total - elapsedSeconds);
-    return remaining;
+    return Math.max(0, total - elapsedSeconds);
   }, [elapsedSeconds]);
 
   if (!isLoading) return null;
 
+  const subtitle = [businessType, location].filter(Boolean).join(' · ');
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--q-gradient-accent, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%))' }}>
+    <div className="fixed inset-0 z-[1000] flex items-center justify-center" style={{ background: 'var(--q-gradient-hero, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%))' }}>
       <div className="absolute inset-0 q-grid-pattern opacity-40" />
 
-      <div className="relative w-full max-w-[440px] mx-4 rounded-2xl border border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)] shadow-2xl p-6 sm:p-8 space-y-6">
+      <div className="relative w-full max-w-[480px] mx-4 rounded-[var(--q-radius-xl)] border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] shadow-[var(--q-shadow-elevated)] p-10 space-y-6">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-xl bg-[var(--q-accent-glow)]">
-            <Zap className="w-5 h-5 text-[var(--q-accent-primary)]" />
+        <div className="flex flex-col items-center text-center gap-3">
+          <div className="p-3 rounded-xl bg-[var(--q-accent-glow)] animate-[q-icon-rotate_3s_ease-in-out_infinite]">
+            <Zap className="w-6 h-6 text-[var(--q-accent-primary)]" />
           </div>
-          <h2 className="text-lg font-bold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading, Sora, sans-serif)' }}>
-            Running Dual-AI Analysis
-          </h2>
+          <div>
+            <h2 className="text-xl font-bold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading, Sora, sans-serif)' }}>
+              {completionPhase === 'done' ? 'Complete!' : 'Analyzing your business'}
+            </h2>
+            {subtitle && (
+              <p className="mt-1 text-sm text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
+                {subtitle}
+              </p>
+            )}
+          </div>
         </div>
 
         {/* Progress bar */}
         <div className="space-y-2">
-          <div className="h-2.5 w-full rounded-full bg-[var(--q-bg-elevated)] overflow-hidden">
+          <div className="h-1.5 w-full rounded-[3px] bg-[var(--q-bg-overlay)] overflow-hidden">
             <div
-              className="h-full rounded-full transition-all duration-700 ease-out"
+              className="h-full rounded-[3px] transition-all duration-700 ease-out"
               style={{
                 width: `${overallProgress}%`,
-                background: 'linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover))',
+                background: 'var(--q-gradient-accent, linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover)))',
               }}
             />
           </div>
@@ -116,18 +151,23 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
 
         {/* Stage list */}
         <div className="space-y-1.5">
-          <p className="text-xs font-medium text-[var(--q-text-tertiary)] mb-2">Currently running:</p>
-          {ANALYSIS_STAGES.map((stage) => {
+          {stages.map((stage, idx) => {
             const isCompleted = completedStages.includes(stage.id);
             const isCurrent = currentStageId === stage.id && !isCompleted;
+            // Staggered checkmark delay during completion
+            const staggerDelay = completionPhase === 'checkmarks' || completionPhase === 'done'
+              ? `${idx * 80}ms` : '0ms';
             return (
               <div key={stage.id} className={cn('flex items-center gap-2.5 py-1 text-sm transition-all duration-300', !isCompleted && !isCurrent && 'opacity-40')}>
                 {isCompleted ? (
-                  <CheckCircle2 className="w-4 h-4 text-[var(--q-status-green)] shrink-0 animate-scale-in" />
+                  <CheckCircle2
+                    className="w-4 h-4 text-[var(--q-status-green)] shrink-0 animate-scale-in"
+                    style={{ animationDelay: staggerDelay }}
+                  />
                 ) : isCurrent ? (
-                  <Loader2 className="w-4 h-4 text-[var(--q-accent-primary)] shrink-0 animate-spin" />
+                  <span className="w-3 h-3 rounded-full bg-[var(--q-accent-primary)] animate-pulse shrink-0 ml-0.5" />
                 ) : (
-                  <span className="w-4 h-4 rounded-full border border-[var(--q-border-default)] shrink-0" />
+                  <span className="w-4 h-4 rounded-full border border-[var(--q-border-default)] shrink-0 text-[var(--q-text-tertiary)]" />
                 )}
                 <span className={cn(
                   isCompleted ? 'text-[var(--q-text-secondary)] line-through decoration-[var(--q-status-green)]/30' :
@@ -142,9 +182,9 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
         </div>
 
         {/* Estimated time */}
-        {estimatedRemaining > 0 && !showTimeout && (
-          <p className="text-xs text-[var(--q-text-tertiary)] tabular-nums">
-            Estimated: {estimatedRemaining} seconds remaining
+        {estimatedRemaining > 0 && !showTimeout && completionPhase === 'none' && (
+          <p className="text-sm text-center text-[var(--q-text-tertiary)] tabular-nums">
+            ~{estimatedRemaining}s remaining
           </p>
         )}
 
@@ -170,28 +210,35 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
           <EducationalTip elapsedSeconds={elapsedSeconds} />
         </div>
       </div>
+
+      <style>{`
+        @keyframes q-icon-rotate {
+          0%, 100% { transform: rotate(0deg); }
+          25% { transform: rotate(8deg); }
+          75% { transform: rotate(-8deg); }
+        }
+      `}</style>
     </div>
   );
 });
 
 const EDUCATIONAL_TIPS = [
-  'Coffee shops average 12-18% net margins in the US.',
-  'A healthy LTV:CAC ratio is 3:1 or higher.',
-  'Location costs vary up to 4x between cities globally.',
-  '82% of startups fail due to cash flow problems, not bad ideas.',
-  'SaaS companies typically need 18-24 months to reach profitability.',
-  'Customer acquisition cost drops 60% with referral programs.',
-  'We analyze costs across 50+ cities with real cost indices.',
-  'Average payback period for small businesses is 6-18 months.',
-  'Our engine cross-checks your numbers against 1,000+ benchmarks.',
-  'Businesses with a clear financial plan are 2.5x more likely to get funded.',
+  '💡 Coffee shops average 12-18% net margins in the US.',
+  '💡 A healthy LTV:CAC ratio is 3:1 or higher.',
+  '💡 Location costs vary up to 4x between cities globally.',
+  '💡 82% of startups fail due to cash flow problems, not bad ideas.',
+  '💡 SaaS companies typically need 18-24 months to reach profitability.',
+  '💡 Customer acquisition cost drops 60% with referral programs.',
+  '💡 We analyze costs across 50+ cities with real cost indices.',
+  '💡 Average payback period for small businesses is 6-18 months.',
+  '💡 Our engine cross-checks your numbers against 1,000+ benchmarks.',
+  '💡 Businesses with a clear financial plan are 2.5x more likely to get funded.',
 ];
 
 function EducationalTip({ elapsedSeconds }: { elapsedSeconds: number }) {
-  const tipIndex = Math.floor(elapsedSeconds / 5) % EDUCATIONAL_TIPS.length;
+  const tipIndex = Math.floor(elapsedSeconds / 6) % EDUCATIONAL_TIPS.length;
   return (
-    <div className="space-y-1">
-      <p className="text-xs font-medium text-[var(--q-text-tertiary)] flex items-center gap-1.5">💡 While you wait:</p>
+    <div className="bg-[var(--q-bg-overlay)] rounded-[var(--q-radius-md)] p-3">
       <p className="text-sm text-[var(--q-text-secondary)] animate-fade-in" key={tipIndex}>
         {EDUCATIONAL_TIPS[tipIndex]}
       </p>
