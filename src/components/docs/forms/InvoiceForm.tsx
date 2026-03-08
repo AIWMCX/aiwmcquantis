@@ -321,6 +321,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       subtotal: calculations.subtotal,
       tax_rate: data.tax_rate / 100,
       tax_amount: calculations.taxAmount,
+      discount_amount: calculations.discount,
       total_amount: calculations.total,
       issue_date: invoiceDate,
       due_date: dueDate || undefined,
