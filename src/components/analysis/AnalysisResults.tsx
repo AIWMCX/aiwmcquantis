@@ -34,6 +34,7 @@ import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import { ValidationJourney } from './ValidationJourney';
 import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
+import { RealityCheck } from './RealityCheck';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';

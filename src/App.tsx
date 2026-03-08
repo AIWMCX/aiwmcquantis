@@ -121,6 +121,11 @@ const App = () => {
                     <AdminBenchmarkUpload />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/health" element={
+                  <ProtectedRoute requireAdmin>
+                    <QuantisHealth />
+                  </ProtectedRoute>
+                } />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
