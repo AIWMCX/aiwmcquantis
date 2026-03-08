@@ -6,6 +6,8 @@
  * Data sourced from BLS, Census Bureau, CoStar, and SBA.
  */
 
+import { QuantisMath } from './quantis-math';
+
 // ─── Types ───
 
 export interface GeoCoefficients {
