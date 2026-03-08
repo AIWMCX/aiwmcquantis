@@ -358,6 +358,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </Tabs>
         </TabsContent>
 
+        {/* TAB: Scenarios */}
+        <TabsContent value="scenarios" className="space-y-4 animate-in fade-in duration-200">
+          <ScenarioLibrary
+            analysisId={analysisId}
+            currentParams={result.financial_analysis?.inputs as any}
+            currentOutput={result as any}
+            currentConfidence={result.confidence_score}
+          />
+        </TabsContent>
+
         {/* TAB: Risk Map */}
         <TabsContent value="riskmap" className="space-y-4 animate-in fade-in duration-200">
           <StressMap {...calculateStressScores(result)} />
