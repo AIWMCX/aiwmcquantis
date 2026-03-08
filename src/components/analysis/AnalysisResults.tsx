@@ -24,6 +24,8 @@ import { DualEngineBadge } from './DualEngineBadge';
 import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
 import { AssumptionGraph } from './AssumptionGraph';
 import { ModelConfidenceBadge } from './ModelConfidenceBadge';
+import { ConfidenceBadge as OutputConfidenceBadge } from './ConfidenceBadge';
+import { calculateOutputConfidence } from '@/services/confidence-scorer';
 import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
