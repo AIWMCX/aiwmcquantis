@@ -57,8 +57,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   confident: {
     icon: CheckCircle2,
-    label: '✓ Dual Engine Checked',
-    emoji: '✓',
+    label: 'Dual Engine Checked',
+    emoji: '',
     bgClass: 'bg-blue-500/10',
     borderClass: 'border-blue-500/30',
     textClass: 'text-blue-700 dark:text-blue-400',
