@@ -274,119 +274,312 @@
   }
   
   /* ============================================
-   * Quantis Typography System
-   * Financial-grade display hierarchy
+   * QUANTIS DESIGN SYSTEM v2.0
+   * Trading Terminal Components
    * ============================================ */
   
-  /* Hero display - largest headlines */
-  .quantis-display-xl {
+  /* ── TYPOGRAPHY HIERARCHY ── */
+  
+  /* Hero display - Bloomberg-style headline */
+  .q-display-xl {
     @apply text-4xl sm:text-5xl md:text-6xl font-black tracking-tight leading-none;
     font-feature-settings: "kern" 1, "liga" 1;
+    color: var(--q-text-primary);
   }
   
-  .quantis-display-lg {
+  .q-display-lg {
     @apply text-3xl sm:text-4xl md:text-5xl font-extrabold tracking-tight leading-tight;
+    color: var(--q-text-primary);
   }
   
-  /* Financial metrics - tabular alignment */
-  .quantis-metric {
-    @apply text-2xl sm:text-3xl md:text-4xl font-bold tabular-nums tracking-tight;
+  .q-display-md {
+    @apply text-2xl sm:text-3xl font-bold tracking-tight;
+    color: var(--q-text-primary);
+  }
+  
+  /* Financial metrics - tabular alignment for numbers */
+  .q-metric-xl {
+    @apply text-4xl sm:text-5xl md:text-6xl font-black tabular-nums tracking-tight;
+    font-feature-settings: "tnum" 1, "kern" 1;
+    color: var(--q-text-primary);
+  }
+  
+  .q-metric-lg {
+    @apply text-3xl sm:text-4xl font-bold tabular-nums tracking-tight;
     font-feature-settings: "tnum" 1, "kern" 1;
   }
   
-  .quantis-metric-lg {
-    @apply text-3xl sm:text-4xl md:text-5xl font-black tabular-nums tracking-tight;
-    font-feature-settings: "tnum" 1, "kern" 1;
-  }
-  
-  .quantis-metric-sm {
-    @apply text-lg sm:text-xl font-semibold tabular-nums;
+  .q-metric {
+    @apply text-2xl sm:text-3xl font-semibold tabular-nums;
     font-feature-settings: "tnum" 1;
   }
   
-  /* Dashboard card title */
-  .quantis-card-title {
-    @apply text-sm font-medium uppercase tracking-wider text-muted-foreground;
-  }
-  
-  /* Label for metrics */
-  .quantis-label {
-    @apply text-xs font-medium uppercase tracking-widest text-muted-foreground;
-  }
-  
-  /* Monospace for precise numbers */
-  .quantis-mono {
-    @apply font-mono tabular-nums;
+  .q-metric-sm {
+    @apply text-lg sm:text-xl font-medium tabular-nums;
     font-feature-settings: "tnum" 1;
   }
   
-  /* ============================================
-   * Quantis Metric Cards
-   * Data-dense dashboard components
-   * ============================================ */
-  
-  .quantis-card {
-    @apply bg-card rounded-lg border border-border p-4 transition-all duration-200;
+  /* Label hierarchy */
+  .q-label {
+    @apply text-xs font-semibold uppercase tracking-widest;
+    color: var(--q-text-tertiary);
   }
   
-  .quantis-card-dense {
-    @apply bg-card rounded-md border border-border p-3 transition-all duration-200;
+  .q-label-lg {
+    @apply text-sm font-semibold uppercase tracking-wider;
+    color: var(--q-text-secondary);
   }
   
-  .quantis-card:hover {
-    @apply border-primary/30 shadow-md;
+  /* Body text */
+  .q-body {
+    @apply text-base leading-relaxed;
+    color: var(--q-text-secondary);
   }
   
-  /* Score-based border colors */
-  .quantis-score-excellent {
-    @apply border-l-4;
-    border-left-color: hsl(var(--quantis-profit));
+  .q-body-sm {
+    @apply text-sm leading-relaxed;
+    color: var(--q-text-tertiary);
   }
   
-  .quantis-score-good {
-    @apply border-l-4;
-    border-left-color: hsl(var(--quantis-cyan));
+  /* Monospace for precise data */
+  .q-mono {
+    @apply font-mono tabular-nums text-sm;
+    font-feature-settings: "tnum" 1;
   }
   
-  .quantis-score-caution {
-    @apply border-l-4;
-    border-left-color: hsl(var(--quantis-caution));
+  /* ── CARD SYSTEM ── */
+  
+  .q-card {
+    background: var(--q-bg-surface);
+    border: 1px solid var(--q-border-default);
+    border-radius: var(--q-radius-lg);
+    box-shadow: var(--q-shadow-card);
+    @apply p-5 transition-all duration-200;
   }
   
-  .quantis-score-poor {
-    @apply border-l-4;
-    border-left-color: hsl(var(--quantis-loss));
+  .q-card:hover {
+    border-color: var(--q-border-strong);
+    box-shadow: var(--q-shadow-elevated);
   }
   
-  /* Semantic metric coloring */
-  .quantis-profit-text {
-    color: hsl(var(--quantis-profit));
+  .q-card-elevated {
+    background: var(--q-bg-elevated);
+    border: 1px solid var(--q-border-subtle);
+    border-radius: var(--q-radius-lg);
+    box-shadow: var(--q-shadow-elevated);
+    @apply p-5;
   }
   
-  .quantis-loss-text {
-    color: hsl(var(--quantis-loss));
+  .q-card-dense {
+    background: var(--q-bg-surface);
+    border: 1px solid var(--q-border-subtle);
+    border-radius: var(--q-radius-md);
+    @apply p-3;
   }
   
-  .quantis-caution-text {
-    color: hsl(var(--quantis-caution));
+  /* ── STATUS CARDS ── */
+  
+  .q-card-success {
+    background: var(--q-status-green-bg);
+    border: 1px solid var(--q-status-green-border);
+    border-radius: var(--q-radius-md);
+    @apply p-4;
   }
   
-  .quantis-gold-text {
-    color: hsl(var(--quantis-gold));
+  .q-card-warning {
+    background: var(--q-status-yellow-bg);
+    border: 1px solid var(--q-status-yellow-border);
+    border-radius: var(--q-radius-md);
+    @apply p-4;
   }
   
-  .quantis-cyan-text {
-    color: hsl(var(--quantis-cyan));
+  .q-card-danger {
+    background: var(--q-status-red-bg);
+    border: 1px solid var(--q-status-red-border);
+    border-radius: var(--q-radius-md);
+    @apply p-4;
   }
   
-  /* Financial glow effects */
-  .quantis-glow-profit {
-    box-shadow: 0 0 20px hsl(var(--quantis-glow-profit) / 0.25);
+  .q-card-ai {
+    background: var(--q-status-ai-bg);
+    border: 1px solid var(--q-status-ai-border);
+    border-radius: var(--q-radius-md);
+    @apply p-4;
   }
   
-  .quantis-glow-primary {
-    box-shadow: 0 0 30px hsl(var(--quantis-glow-primary) / 0.2);
+  /* ── SCORE BORDERS ── */
+  
+  .q-score-excellent {
+    border-left: 4px solid var(--q-status-green);
   }
+  
+  .q-score-good {
+    border-left: 4px solid var(--q-accent-primary);
+  }
+  
+  .q-score-caution {
+    border-left: 4px solid var(--q-status-yellow);
+  }
+  
+  .q-score-poor {
+    border-left: 4px solid var(--q-status-red);
+  }
+  
+  /* ── SEMANTIC TEXT COLORS ── */
+  
+  .q-text-profit {
+    color: var(--q-status-green);
+  }
+  
+  .q-text-loss {
+    color: var(--q-status-red);
+  }
+  
+  .q-text-caution {
+    color: var(--q-status-yellow);
+  }
+  
+  .q-text-ai {
+    color: var(--q-status-ai);
+  }
+  
+  .q-text-accent {
+    color: var(--q-accent-primary);
+  }
+  
+  /* ── GLOW EFFECTS ── */
+  
+  .q-glow-blue {
+    box-shadow: var(--q-shadow-glow-blue);
+  }
+  
+  .q-glow-green {
+    box-shadow: var(--q-shadow-glow-green);
+  }
+  
+  .q-glow-pulse {
+    animation: glow-pulse 2s ease-in-out infinite;
+  }
+  
+  @keyframes glow-pulse {
+    0%, 100% { box-shadow: var(--q-shadow-glow-blue); }
+    50% { box-shadow: 0 0 40px rgba(79,142,247,0.35); }
+  }
+  
+  /* ── BADGE SYSTEM ── */
+  
+  .q-badge {
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold;
+    background: var(--q-bg-elevated);
+    color: var(--q-text-secondary);
+    border: 1px solid var(--q-border-subtle);
+  }
+  
+  .q-badge-success {
+    background: var(--q-status-green-bg);
+    color: var(--q-status-green);
+    border-color: var(--q-status-green-border);
+  }
+  
+  .q-badge-warning {
+    background: var(--q-status-yellow-bg);
+    color: var(--q-status-yellow);
+    border-color: var(--q-status-yellow-border);
+  }
+  
+  .q-badge-danger {
+    background: var(--q-status-red-bg);
+    color: var(--q-status-red);
+    border-color: var(--q-status-red-border);
+  }
+  
+  .q-badge-ai {
+    background: var(--q-status-ai-bg);
+    color: var(--q-status-ai);
+    border-color: var(--q-status-ai-border);
+  }
+  
+  /* ── INPUT SYSTEM ── */
+  
+  .q-input {
+    @apply w-full px-4 py-3 rounded-q-md text-base transition-all duration-200;
+    background: var(--q-bg-input);
+    border: 1px solid var(--q-border-default);
+    color: var(--q-text-primary);
+  }
+  
+  .q-input::placeholder {
+    color: var(--q-text-tertiary);
+  }
+  
+  .q-input:focus {
+    outline: none;
+    border-color: var(--q-accent-primary);
+    box-shadow: 0 0 0 3px var(--q-accent-glow);
+  }
+  
+  /* ── BUTTON SYSTEM ── */
+  
+  .q-btn {
+    @apply inline-flex items-center justify-center px-5 py-2.5 font-semibold transition-all duration-200;
+    border-radius: var(--q-radius-md);
+  }
+  
+  .q-btn-primary {
+    background: var(--q-accent-primary);
+    color: var(--q-text-inverse);
+    box-shadow: var(--q-shadow-glow-blue);
+  }
+  
+  .q-btn-primary:hover {
+    background: var(--q-accent-hover);
+  }
+  
+  .q-btn-primary:active {
+    background: var(--q-accent-pressed);
+  }
+  
+  .q-btn-secondary {
+    background: var(--q-bg-elevated);
+    color: var(--q-text-primary);
+    border: 1px solid var(--q-border-default);
+  }
+  
+  .q-btn-secondary:hover {
+    background: var(--q-bg-overlay);
+    border-color: var(--q-border-strong);
+  }
+  
+  .q-btn-ghost {
+    background: transparent;
+    color: var(--q-text-secondary);
+  }
+  
+  .q-btn-ghost:hover {
+    background: var(--q-bg-elevated);
+    color: var(--q-text-primary);
+  }
+  
+  /* Legacy quantis- prefixed classes for backward compatibility */
+  .quantis-display-xl { @apply q-display-xl; }
+  .quantis-display-lg { @apply q-display-lg; }
+  .quantis-metric { @apply q-metric; }
+  .quantis-metric-lg { @apply q-metric-lg; }
+  .quantis-metric-sm { @apply q-metric-sm; }
+  .quantis-card-title { @apply q-label-lg; }
+  .quantis-label { @apply q-label; }
+  .quantis-mono { @apply q-mono; }
+  .quantis-card { @apply q-card; }
+  .quantis-card-dense { @apply q-card-dense; }
+  .quantis-score-excellent { @apply q-score-excellent; }
+  .quantis-score-good { @apply q-score-good; }
+  .quantis-score-caution { @apply q-score-caution; }
+  .quantis-score-poor { @apply q-score-poor; }
+  .quantis-profit-text { @apply q-text-profit; }
+  .quantis-loss-text { @apply q-text-loss; }
+  .quantis-caution-text { @apply q-text-caution; }
+  .quantis-glow-profit { @apply q-glow-green; }
+  .quantis-glow-primary { @apply q-glow-blue; }
 }
 
 @layer utilities {
