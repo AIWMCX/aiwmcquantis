@@ -4,6 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, FileText, Building2 } from 'lucide-react';
+import { RateIntelligenceBadge } from '@/components/docs/RateIntelligenceBadge';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
 import { useDocFormDraft } from '@/hooks/useDocFormDraft';
