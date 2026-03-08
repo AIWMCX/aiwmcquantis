@@ -335,8 +335,8 @@ export function WizardForm({
                           disabled={isLoading}
                           aria-invalid={!!errors.idea}
                           className={cn(
-                            "resize-none transition-colors text-sm",
-                            errors.idea && "border-destructive focus-visible:ring-destructive"
+                            "resize-none transition-all text-[15px]",
+                            errors.idea && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]"
                           )}
                         />
                         <div className="flex justify-between items-center">
