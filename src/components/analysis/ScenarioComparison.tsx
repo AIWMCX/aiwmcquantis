@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Minus, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { QuantisMath } from '@/lib/quantis-math';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area,
 } from 'recharts';
