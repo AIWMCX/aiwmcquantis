@@ -201,7 +201,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           {/* Left Column (60%) */}
           <div className="lg:col-span-3 space-y-5">
             {/* Stress Map */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <StressMap {...calculateStressScores(result)} />
             </div>
 
