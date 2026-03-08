@@ -237,12 +237,12 @@ export function WizardForm({
                 type="button"
                 onClick={() => setActiveStep(step.num)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all duration-200 text-left',
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-[var(--q-radius-md)] border transition-all duration-[var(--q-duration-fast)] text-left',
                   isActive
-                    ? 'border-primary/40 bg-primary/5 shadow-sm'
+                    ? 'border-[var(--q-accent-primary)]/40 bg-[var(--q-accent-glow)] shadow-sm'
                     : step.complete
-                    ? 'border-border bg-card hover:bg-accent/50'
-                    : 'border-border bg-card/50 hover:bg-accent/30'
+                    ? 'border-[var(--q-border-default)] bg-card hover:bg-accent/50'
+                    : 'border-[var(--q-border-subtle)] bg-card/50 hover:bg-accent/30'
                 )}
               >
                 {/* Step number circle */}
