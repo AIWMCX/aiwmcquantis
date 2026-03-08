@@ -1,23 +1,24 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { CheckCircle2, Loader2, Brain, Database, Calculator, Lightbulb, FileText, AlertCircle } from 'lucide-react';
-import { Progress } from '@/components/ui/progress';
+import { CheckCircle2, Loader2, AlertCircle, Zap } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 interface AnalysisStage {
   id: string;
   label: string;
-  icon: React.ElementType;
-  startTime: number; // seconds when this stage starts
-  endTime: number; // seconds when this stage ends
+  completedLabel: string;
+  startTime: number;
+  endTime: number;
 }
 
 const ANALYSIS_STAGES: AnalysisStage[] = [
-  { id: 'context', label: 'Analyzing business context...', icon: Brain, startTime: 0, endTime: 3 },
-  { id: 'market', label: 'Gathering market data...', icon: Database, startTime: 3, endTime: 8 },
-  { id: 'financial', label: 'Calculating financial metrics...', icon: Calculator, startTime: 8, endTime: 15 },
-  { id: 'recommendations', label: 'Generating recommendations...', icon: Lightbulb, startTime: 15, endTime: 25 },
-  { id: 'finalizing', label: 'Finalizing your report...', icon: FileText, startTime: 25, endTime: 45 },
+  { id: 'benchmarks', label: 'Loading industry benchmarks...', completedLabel: 'Industry benchmarks loaded', startTime: 0, endTime: 3 },
+  { id: 'gpt', label: 'GPT-4o mini analysis in progress...', completedLabel: 'GPT-4o mini analysis complete', startTime: 3, endTime: 10 },
+  { id: 'gemini', label: 'Gemini cross-validation in progress...', completedLabel: 'Gemini cross-validation complete', startTime: 10, endTime: 18 },
+  { id: 'consensus', label: 'Running consensus scoring...', completedLabel: 'Consensus scoring complete', startTime: 18, endTime: 24 },
+  { id: 'reconciliation', label: 'Running reconciliation check...', completedLabel: 'Reconciliation check passed', startTime: 24, endTime: 30 },
+  { id: 'stressmap', label: 'Generating Stress Map...', completedLabel: 'Stress Map generated', startTime: 30, endTime: 36 },
+  { id: 'report', label: 'Compiling report...', completedLabel: 'Report compiled', startTime: 36, endTime: 45 },
 ];
 
 interface AnalysisProgressProps {
@@ -33,212 +34,166 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   startTime,
   onRetry,
   onCancel,
-  className,
 }: AnalysisProgressProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
 
-  // Calculate elapsed time
   useEffect(() => {
     if (!isLoading) {
       setElapsedSeconds(0);
       setShowTimeout(false);
       return;
     }
-
     const interval = setInterval(() => {
       const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
       setElapsedSeconds(elapsed);
-
-      // Show timeout after 45 seconds
-      if (elapsed >= 45) {
-        setShowTimeout(true);
-      }
+      if (elapsed >= 60) setShowTimeout(true);
     }, 100);
-
     return () => clearInterval(interval);
   }, [isLoading, startTime]);
 
-  // Calculate current stage and progress
-  const { currentStage, overallProgress, completedStages } = useMemo(() => {
-    if (!isLoading) {
-      return { currentStage: null, overallProgress: 0, completedStages: [] as string[] };
-    }
-
-    let current: AnalysisStage | null = null;
+  const { overallProgress, completedStages, currentStageId } = useMemo(() => {
+    if (!isLoading) return { overallProgress: 0, completedStages: [] as string[], currentStageId: null as string | null };
     const completed: string[] = [];
-
+    let currentId: string | null = null;
     for (const stage of ANALYSIS_STAGES) {
       if (elapsedSeconds >= stage.endTime) {
         completed.push(stage.id);
-      } else if (elapsedSeconds >= stage.startTime && !current) {
-        current = stage;
+      } else if (elapsedSeconds >= stage.startTime && !currentId) {
+        currentId = stage.id;
       }
     }
-
-    // If past all stages, stay on last
-    if (!current && completed.length === ANALYSIS_STAGES.length) {
-      current = ANALYSIS_STAGES[ANALYSIS_STAGES.length - 1];
-    } else if (!current) {
-      current = ANALYSIS_STAGES[0];
-    }
-
-    // Non-linear progress curve: fast start, slow middle, fast finish
-    // This creates more perceived activity
+    if (!currentId && completed.length < ANALYSIS_STAGES.length) currentId = ANALYSIS_STAGES[0].id;
+    // Progress: smooth to 90% then holds
     let progress: number;
-    if (elapsedSeconds <= 3) {
-      // 0-3s: 0-20% (fast start)
-      progress = (elapsedSeconds / 3) * 20;
-    } else if (elapsedSeconds <= 15) {
-      // 3-15s: 20-60% (medium pace)
-      progress = 20 + ((elapsedSeconds - 3) / 12) * 40;
-    } else if (elapsedSeconds <= 25) {
-      // 15-25s: 60-90% (slower)
-      progress = 60 + ((elapsedSeconds - 15) / 10) * 30;
+    const lastStage = ANALYSIS_STAGES[ANALYSIS_STAGES.length - 1];
+    if (elapsedSeconds >= lastStage.endTime) {
+      progress = Math.min(90 + ((elapsedSeconds - lastStage.endTime) / 15) * 9, 99);
     } else {
-      // 25s+: 90-99% (very slow, never hits 100 until done)
-      progress = Math.min(90 + ((elapsedSeconds - 25) / 20) * 9, 99);
+      progress = (elapsedSeconds / lastStage.endTime) * 90;
     }
-
-    return { currentStage: current, overallProgress: progress, completedStages: completed };
+    return { overallProgress: progress, completedStages: completed, currentStageId: currentId };
   }, [isLoading, elapsedSeconds]);
 
-  if (!isLoading) {
-    return null;
-  }
+  const estimatedRemaining = useMemo(() => {
+    const total = 45;
+    const remaining = Math.max(0, total - elapsedSeconds);
+    return remaining;
+  }, [elapsedSeconds]);
+
+  if (!isLoading) return null;
 
   return (
-    <div className={cn('p-6 rounded-xl bg-primary/5 border border-primary/20', className)}>
-      {/* Header with elapsed time */}
-      <div className="flex items-center justify-between mb-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center" style={{ background: 'var(--q-gradient-accent, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%))' }}>
+      <div className="absolute inset-0 q-grid-pattern opacity-40" />
+
+      <div className="relative w-full max-w-[440px] mx-4 rounded-2xl border border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)] shadow-2xl p-6 sm:p-8 space-y-6">
+        {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Loader2 className="w-5 h-5 text-primary animate-spin" />
+          <div className="p-2 rounded-xl bg-[var(--q-accent-glow)]">
+            <Zap className="w-5 h-5 text-[var(--q-accent-primary)]" />
           </div>
-          <div>
-            <p className="font-semibold text-foreground">Running AI Analysis</p>
-            <p className="text-xs text-muted-foreground">
-              {formatTime(elapsedSeconds)} elapsed
-            </p>
-          </div>
+          <h2 className="text-lg font-bold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading, Sora, sans-serif)' }}>
+            Running Dual-AI Analysis
+          </h2>
         </div>
-        <div className="text-right">
-          <p className="text-2xl font-bold text-primary">{Math.round(overallProgress)}%</p>
-        </div>
-      </div>
 
-      {/* Progress bar */}
-      <Progress value={overallProgress} className="h-2 mb-6" />
-
-      {/* Stage indicators */}
-      <div className="space-y-3">
-        {ANALYSIS_STAGES.map((stage) => {
-          const isCompleted = completedStages.includes(stage.id);
-          const isCurrent = currentStage?.id === stage.id && !isCompleted;
-          const Icon = stage.icon;
-
-          return (
+        {/* Progress bar */}
+        <div className="space-y-2">
+          <div className="h-2.5 w-full rounded-full bg-[var(--q-bg-elevated)] overflow-hidden">
             <div
-              key={stage.id}
-              className={cn(
-                'flex items-center gap-3 p-2 rounded-lg transition-all duration-300',
-                isCompleted && 'bg-success/10',
-                isCurrent && 'bg-primary/10 animate-pulse',
-                !isCompleted && !isCurrent && 'opacity-50'
-              )}
-            >
-              <div
-                className={cn(
-                  'p-1.5 rounded-lg transition-colors',
-                  isCompleted ? 'bg-success/20' : isCurrent ? 'bg-primary/20' : 'bg-muted'
-                )}
-              >
-                {isCompleted ? (
-                  <CheckCircle2 className="w-4 h-4 text-success" />
-                ) : isCurrent ? (
-                  <Icon className="w-4 h-4 text-primary animate-pulse" />
-                ) : (
-                  <Icon className="w-4 h-4 text-muted-foreground" />
-                )}
-              </div>
-              <span
-                className={cn(
-                  'text-sm transition-colors',
-                  isCompleted ? 'text-success font-medium' : isCurrent ? 'text-foreground font-medium' : 'text-muted-foreground'
-                )}
-              >
-                {stage.label}
-              </span>
-            </div>
-          );
-        })}
-      </div>
+              className="h-full rounded-full transition-all duration-700 ease-out"
+              style={{
+                width: `${overallProgress}%`,
+                background: 'linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover))',
+              }}
+            />
+          </div>
+          <div className="flex justify-between text-xs tabular-nums">
+            <span className="text-[var(--q-text-tertiary)]">{Math.round(overallProgress)}%</span>
+          </div>
+        </div>
 
-      {/* Timeout warning */}
-      {showTimeout && (
-        <div className="mt-6 p-4 rounded-lg bg-warning/10 border border-warning/20">
-          <div className="flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-warning flex-shrink-0 mt-0.5" />
-            <div className="flex-1">
-              <p className="text-sm font-medium text-foreground">Taking longer than usual</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                Complex analyses may take up to 60 seconds. You can wait or try again.
-              </p>
-              <div className="flex items-center gap-2 mt-3">
-                {onRetry && (
-                  <Button size="sm" variant="outline" onClick={onRetry}>
-                    Try Again
-                  </Button>
+        {/* Stage list */}
+        <div className="space-y-1.5">
+          <p className="text-xs font-medium text-[var(--q-text-tertiary)] mb-2">Currently running:</p>
+          {ANALYSIS_STAGES.map((stage) => {
+            const isCompleted = completedStages.includes(stage.id);
+            const isCurrent = currentStageId === stage.id && !isCompleted;
+            return (
+              <div key={stage.id} className={cn('flex items-center gap-2.5 py-1 text-sm transition-all duration-300', !isCompleted && !isCurrent && 'opacity-40')}>
+                {isCompleted ? (
+                  <CheckCircle2 className="w-4 h-4 text-[var(--q-status-green)] shrink-0 animate-scale-in" />
+                ) : isCurrent ? (
+                  <Loader2 className="w-4 h-4 text-[var(--q-accent-primary)] shrink-0 animate-spin" />
+                ) : (
+                  <span className="w-4 h-4 rounded-full border border-[var(--q-border-default)] shrink-0" />
                 )}
-                {onCancel && (
-                  <Button size="sm" variant="ghost" onClick={onCancel}>
-                    Cancel
-                  </Button>
-                )}
+                <span className={cn(
+                  isCompleted ? 'text-[var(--q-text-secondary)] line-through decoration-[var(--q-status-green)]/30' :
+                  isCurrent ? 'text-[var(--q-text-primary)] font-medium' :
+                  'text-[var(--q-text-tertiary)]'
+                )}>
+                  {isCompleted ? stage.completedLabel : stage.label}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Estimated time */}
+        {estimatedRemaining > 0 && !showTimeout && (
+          <p className="text-xs text-[var(--q-text-tertiary)] tabular-nums">
+            Estimated: {estimatedRemaining} seconds remaining
+          </p>
+        )}
+
+        {/* Timeout warning */}
+        {showTimeout && (
+          <div className="p-3 rounded-lg bg-[var(--q-status-yellow-bg)] border border-[var(--q-status-yellow-border)]">
+            <div className="flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-[var(--q-status-yellow)] shrink-0 mt-0.5" />
+              <div className="flex-1 space-y-2">
+                <p className="text-sm font-medium text-[var(--q-text-primary)]">Taking longer than usual</p>
+                <p className="text-xs text-[var(--q-text-tertiary)]">Complex analyses may take up to 90 seconds.</p>
+                <div className="flex gap-2">
+                  {onRetry && <Button size="sm" variant="outline" onClick={onRetry} className="text-xs h-7">Try Again</Button>}
+                  {onCancel && <Button size="sm" variant="ghost" onClick={onCancel} className="text-xs h-7">Cancel</Button>}
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
-      {/* Educational micro-content — rotating industry insights */}
-      <EducationalTip elapsedSeconds={elapsedSeconds} />
+        {/* Separator + Rotating tip */}
+        <div className="border-t border-[var(--q-border-subtle)] pt-4">
+          <EducationalTip elapsedSeconds={elapsedSeconds} />
+        </div>
+      </div>
     </div>
   );
 });
 
-function formatTime(seconds: number): string {
-  const mins = Math.floor(seconds / 60);
-  const secs = seconds % 60;
-  if (mins > 0) {
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }
-  return `${secs}s`;
-}
-
 const EDUCATIONAL_TIPS = [
-  { text: 'Coffee shops average 12-18% net margins in the US.' },
-  { text: 'A healthy LTV:CAC ratio is 3:1 or higher.' },
-  { text: 'Location costs vary up to 4x between cities globally.' },
-  { text: '82% of startups fail due to cash flow problems, not bad ideas.' },
-  { text: 'SaaS companies typically need 18-24 months to reach profitability.' },
-  { text: 'Customer acquisition cost drops 60% with referral programs.' },
-  { text: 'We analyze costs across 50+ cities with real cost indices.' },
-  { text: 'Average payback period for small businesses is 6-18 months.' },
-  { text: 'Our engine cross-checks your numbers against 1,000+ benchmarks.' },
-  { text: 'Businesses with a clear financial plan are 2.5x more likely to get funded.' },
+  'Coffee shops average 12-18% net margins in the US.',
+  'A healthy LTV:CAC ratio is 3:1 or higher.',
+  'Location costs vary up to 4x between cities globally.',
+  '82% of startups fail due to cash flow problems, not bad ideas.',
+  'SaaS companies typically need 18-24 months to reach profitability.',
+  'Customer acquisition cost drops 60% with referral programs.',
+  'We analyze costs across 50+ cities with real cost indices.',
+  'Average payback period for small businesses is 6-18 months.',
+  'Our engine cross-checks your numbers against 1,000+ benchmarks.',
+  'Businesses with a clear financial plan are 2.5x more likely to get funded.',
 ];
 
 function EducationalTip({ elapsedSeconds }: { elapsedSeconds: number }) {
-  // Rotate tips every 5 seconds
   const tipIndex = Math.floor(elapsedSeconds / 5) % EDUCATIONAL_TIPS.length;
-  const tip = EDUCATIONAL_TIPS[tipIndex];
-
   return (
-    <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border transition-all duration-500">
-      <p className="text-xs font-medium text-muted-foreground mb-1">Did you know?</p>
-      <p className="text-sm text-foreground animate-fade-in" key={tipIndex}>
-        {tip.text}
+    <div className="space-y-1">
+      <p className="text-xs font-medium text-[var(--q-text-tertiary)] flex items-center gap-1.5">💡 While you wait:</p>
+      <p className="text-sm text-[var(--q-text-secondary)] animate-fade-in" key={tipIndex}>
+        {EDUCATIONAL_TIPS[tipIndex]}
       </p>
     </div>
   );
