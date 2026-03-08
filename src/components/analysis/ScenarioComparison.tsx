@@ -171,7 +171,7 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                       const isBest = val !== null && val === best && numericValues.length > 1;
                       const isWorst = val !== null && val === worst && numericValues.length > 1 && best !== worst;
                       const delta = val !== null && baseValue !== null && scenarios[idx] !== baseScenario
-                        ? ((val - baseValue) / Math.abs(baseValue || 1)) * 100
+                        ? QuantisMath.toNumber(QuantisMath.multiply(QuantisMath.divide(QuantisMath.subtract(val, baseValue), QuantisMath.abs(baseValue || 1)), 100))
                         : null;
 
                       return (
