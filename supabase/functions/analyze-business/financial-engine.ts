@@ -574,7 +574,7 @@ function generateScenarios(
     },
     optimistic: {
       revenue: optimisticRevenue,
-      variableCosts: optimisticCogs + optimisticMarketing,
+      variableCosts: QMath.round(QMath.add(optimisticCogs, optimisticMarketing)),
       fixedCosts: optimisticFixed,
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
