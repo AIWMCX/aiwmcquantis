@@ -122,8 +122,11 @@ class QuantisLogger {
     const userId = await this.resolveUserId();
 
     const rows = batch.map(entry => ({
-      ...entry,
-      user_id: entry.user_id || userId,
+      analysis_id: entry.analysis_id,
+      event_type: entry.event_type,
+      payload: entry.payload as Record<string, unknown> & { [key: string]: string | number | boolean | null },
+      severity: entry.severity,
+      user_id: entry.user_id || userId || undefined,
     }));
 
     try {
