@@ -310,7 +310,7 @@ export function generateCashFlow(
     // Runway: trailing 3-month avg burn
     const recentFlows = cashFlows.slice(-2).map(cf => cf.netCashFlow).concat([n(netCF)]);
     const avgBurn = recentFlows.reduce((a, b) => a + b, 0) / recentFlows.length;
-    const runway = avgBurn < 0 ? n(Q.divide(Q.abs(cumulative), Q.abs(avgBurn))) : 999;
+    const runway = avgBurn < 0 ? Math.abs(n(cumulative) / avgBurn) : 999;
 
     // Reconciliation: operatingCashFlow should match netIncome within $1
     const divergence = Math.abs(n(opCashFlow) - pl.netIncome);
