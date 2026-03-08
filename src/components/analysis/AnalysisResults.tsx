@@ -285,7 +285,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-6 mb-3">
+        <TabsList className="w-full grid grid-cols-7 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
@@ -309,6 +309,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           <TabsTrigger value="reliability" className="text-xs sm:text-sm gap-1">
             <Shield className="w-3.5 h-3.5 hidden sm:block" />
             Reliability
+          </TabsTrigger>
+          <TabsTrigger value="validate" className="text-xs sm:text-sm gap-1">
+            <ClipboardCheck className="w-3.5 h-3.5 hidden sm:block" />
+            Validate
           </TabsTrigger>
         </TabsList>
 
