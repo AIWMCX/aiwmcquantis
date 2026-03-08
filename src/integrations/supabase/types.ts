@@ -2226,6 +2226,63 @@ export type Database = {
         }
         Relationships: []
       }
+      template_improvement_suggestions: {
+        Row: {
+          ai_confidence: number | null
+          created_at: string
+          id: string
+          status: string
+          suggestion: Json
+          template_id: string
+        }
+        Insert: {
+          ai_confidence?: number | null
+          created_at?: string
+          id?: string
+          status?: string
+          suggestion?: Json
+          template_id: string
+        }
+        Update: {
+          ai_confidence?: number | null
+          created_at?: string
+          id?: string
+          status?: string
+          suggestion?: Json
+          template_id?: string
+        }
+        Relationships: []
+      }
+      template_performance_history: {
+        Row: {
+          avg_rating: number | null
+          id: string
+          performance_score: number | null
+          recorded_date: string
+          sample_size: number | null
+          template_id: string
+          total_signals: number | null
+        }
+        Insert: {
+          avg_rating?: number | null
+          id?: string
+          performance_score?: number | null
+          recorded_date?: string
+          sample_size?: number | null
+          template_id: string
+          total_signals?: number | null
+        }
+        Update: {
+          avg_rating?: number | null
+          id?: string
+          performance_score?: number | null
+          recorded_date?: string
+          sample_size?: number | null
+          template_id?: string
+          total_signals?: number | null
+        }
+        Relationships: []
+      }
       usage_tracking: {
         Row: {
           analyses_count: number
