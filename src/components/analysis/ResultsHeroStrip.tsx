@@ -80,21 +80,25 @@ export function ResultsHeroStrip({
         {kpis.map((kpi, i) => (
           <div
             key={kpi.label}
-            className="q-metric-reveal p-3 sm:p-4 rounded-xl bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center space-y-1"
+            className={cn(
+              "q-metric-reveal q-card p-3 sm:p-4 text-center space-y-1 border-l-[3px]",
+              kpi.confidence === 'VERIFIED' ? 'q-score-excellent' :
+              kpi.confidence === 'CONFIDENT' ? 'q-score-good' : 'q-score-caution'
+            )}
             style={{ animationDelay: `${200 + i * 80}ms` }}
           >
-            <p className="text-[10px] sm:text-xs font-medium text-[var(--q-text-tertiary)] uppercase tracking-wide">{kpi.label}</p>
+            <p className="text-label-sm uppercase tracking-wide">{kpi.label}</p>
             <p className={cn(
-              'text-lg sm:text-xl font-bold tabular-nums',
+              'text-metric-md',
               kpi.positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
             )}>
               {kpi.animatedValue}
             </p>
             <span className={cn(
               'inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase tracking-wider',
-              kpi.confidence === 'VERIFIED' ? 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]' :
-              kpi.confidence === 'CONFIDENT' ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]' :
-              'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)]'
+              kpi.confidence === 'VERIFIED' ? 'q-badge-success' :
+              kpi.confidence === 'CONFIDENT' ? 'q-badge-ai' :
+              'q-badge-warning'
             )}>
               {kpi.confidence}
             </span>

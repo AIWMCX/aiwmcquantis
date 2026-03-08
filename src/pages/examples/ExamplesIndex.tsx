@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, TrendingUp, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { EXAMPLE_LIST } from './exampleData';
@@ -50,7 +51,11 @@ export default function ExamplesIndex() {
           {EXAMPLE_LIST.map((ex, index) => (
             <Link key={ex.slug} to={`/examples/${ex.slug}`}>
               <div
-                className="q-card q-stagger h-full group"
+                className={cn(
+                  "q-card q-card-hover q-gradient-card q-stagger h-full group border-l-[3px]",
+                  ex.score && ex.score >= 8 ? 'q-score-excellent' :
+                  ex.score && ex.score >= 6 ? 'q-score-good' : 'q-score-caution'
+                )}
                 style={{ '--index': index } as React.CSSProperties}
               >
                 <div className="p-6">
@@ -62,7 +67,7 @@ export default function ExamplesIndex() {
                       {ex.location}
                     </span>
                     {ex.score && (
-                      <span className="ml-auto text-metric-xs text-[var(--q-accent-primary)]">
+                      <span className="ml-auto text-metric-sm text-[var(--q-accent-primary)]">
                         {ex.score}/10
                       </span>
                     )}

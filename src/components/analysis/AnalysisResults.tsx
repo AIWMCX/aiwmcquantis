@@ -201,12 +201,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           {/* Left Column (60%) */}
           <div className="lg:col-span-3 space-y-5">
             {/* Stress Map */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
               <StressMap {...calculateStressScores(result)} />
             </div>
 
             {/* Scenario Selector + Metrics */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-3" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4 space-y-3" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Revenue Corridor</h3>
                 <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
@@ -222,7 +222,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           {/* Right Column (40%) */}
           <div className="lg:col-span-2 space-y-5">
             {/* Executive Summary */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-2" style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4 space-y-2" style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
                 <DualEngineBadge crossValidation={(result as any).cross_validation} />
                 Executive Summary
@@ -233,7 +233,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
 
             {/* Top Risks */}
-            <div className="animate-slide-in-right rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-slide-in-right p-4 space-y-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Top Risks</h3>
               {topRisks.length === 0 ? (
                 <p className="text-sm text-[var(--q-status-green)] flex items-center gap-1.5">
@@ -308,7 +308,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         />
 
         {/* Reliability & Validation (collapsed by default, no accordion for now) */}
-        <details className="rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] animate-fade-in" style={{ animationDelay: '1400ms', animationFillMode: 'both' }}>
+        <details className="q-card animate-fade-in" style={{ animationDelay: '1400ms', animationFillMode: 'both' }}>
           <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
             <Shield className="w-4 h-4 text-[var(--q-accent-primary)]" />
             Reliability & Validation
@@ -405,9 +405,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
 function MetricMini({ label, value, positive }: { label: string; value: string; positive: boolean }) {
   return (
-    <div className="p-2.5 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center">
-      <p className="text-[10px] font-medium text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
-      <p className={cn('text-sm font-bold tabular-nums', positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]')}>
+    <div className="q-card p-2.5 text-center">
+      <p className="text-label-sm mb-0.5">{label}</p>
+      <p className={cn('text-metric-xs', positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]')}>
         {value}
       </p>
     </div>
