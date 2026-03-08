@@ -278,7 +278,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
       notes: `Using user-provided monthly costs: $${userProvidedCosts.toLocaleString()}`,
     });
   } else {
-    totalExpenses = cogs + fixedCosts + marketing;
+    totalExpenses = QMath.round(QMath.add(QMath.add(cogs, fixedCosts), marketing));
     
     audit.push({
       formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
