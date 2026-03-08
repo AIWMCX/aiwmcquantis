@@ -528,7 +528,7 @@ function generateScenarios(
   
   const mult = SCENARIO_MULTIPLIERS;
   
-  const baseCogsPercent = mrr > 0 ? cogs / mrr : 0;
+  const baseCogsPercent = mrr > 0 ? QMath.roundTo(QMath.divide(cogs, mrr).toNumber(), 4) : 0;
   
   // Pessimistic (Conservative)
   const pessimisticRevenue = QMath.round(QMath.multiply(mrr, mult.conservative.revenue));
@@ -536,12 +536,12 @@ function generateScenarios(
   const pessimisticCogs = QMath.round(QMath.multiply(pessimisticRevenue, pessimisticCogsRatio));
   const pessimisticMarketing = QMath.round(QMath.multiply(marketing, mult.conservative.costs));
   const pessimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.conservative.costs));
-  const pessimisticTotal = pessimisticCogs + pessimisticFixed + pessimisticMarketing;
-  const pessimisticNetProfit = pessimisticRevenue - pessimisticTotal;
-  const pessimisticGrossProfit = pessimisticRevenue - pessimisticCogs;
+  const pessimisticTotal = QMath.round(QMath.add(QMath.add(pessimisticCogs, pessimisticFixed), pessimisticMarketing));
+  const pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  const pessimisticGrossProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticCogs));
   
   // Base case
-  const baseTotal = cogs + fixedCosts + marketing;
+  const baseTotal = QMath.round(QMath.add(QMath.add(cogs, fixedCosts), marketing));
   
   // Optimistic (Aggressive)
   const optimisticRevenue = QMath.round(QMath.multiply(mrr, mult.aggressive.revenue));
@@ -549,9 +549,9 @@ function generateScenarios(
   const optimisticCogs = QMath.round(QMath.multiply(optimisticRevenue, optimisticCogsRatio));
   const optimisticMarketing = QMath.round(QMath.multiply(marketing, mult.aggressive.costs));
   const optimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.aggressive.costs));
-  const optimisticTotal = optimisticCogs + optimisticFixed + optimisticMarketing;
-  const optimisticNetProfit = optimisticRevenue - optimisticTotal;
-  const optimisticGrossProfit = optimisticRevenue - optimisticCogs;
+  const optimisticTotal = QMath.round(QMath.add(QMath.add(optimisticCogs, optimisticFixed), optimisticMarketing));
+  const optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  const optimisticGrossProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticCogs));
   
   return {
     pessimistic: {
