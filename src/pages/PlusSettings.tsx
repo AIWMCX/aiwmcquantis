@@ -67,18 +67,8 @@ export default function PlusSettings() {
   // Not Plus subscriber
   if (!isPlus) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
-        <main className="flex-1 container max-w-4xl px-4 sm:px-6 py-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/app')}
-            className="mb-6 gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Button>
-
+      <AppLayout title="Settings">
+        <div className="container max-w-4xl px-4 sm:px-6 py-8">
           <Card className="border-primary/30 bg-gradient-to-br from-primary/5 to-background">
             <CardHeader className="text-center">
               <div className="mx-auto mb-4 p-4 rounded-full bg-primary/10 w-fit">
@@ -113,34 +103,23 @@ export default function PlusSettings() {
               </div>
             </CardContent>
           </Card>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </AppLayout>
     );
   }
 
   // Plus subscriber - show settings
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <AppLayout title="Plus Settings">
       <PageSEO
         title="Plus Settings | AIWMC Quantis"
         description="Manage your Plus subscription settings and custom branding."
         canonical="/plus-settings"
         noindex={true}
       />
-      <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
       
-      <main className="flex-1 container max-w-4xl px-4 sm:px-6 py-8">
+      <div className="container max-w-4xl px-4 sm:px-6 py-8">
         <div className="mb-8">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/app')}
-            className="mb-4 gap-2"
-          >
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Button>
-
           <div className="flex items-center gap-3">
             <h1 className="text-3xl font-bold">Plus Settings</h1>
             <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
@@ -173,9 +152,7 @@ export default function PlusSettings() {
             <BrandingSettings />
           </TabsContent>
         </Tabs>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </AppLayout>
   );
 }
