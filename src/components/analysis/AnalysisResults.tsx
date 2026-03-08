@@ -206,7 +206,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
 
             {/* Scenario Selector + Metrics */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-3" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4 space-y-3" style={{ animationDelay: '800ms', animationFillMode: 'both' }}>
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold text-[var(--q-text-primary)]">Revenue Corridor</h3>
                 <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
