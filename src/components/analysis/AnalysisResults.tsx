@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame, ClipboardCheck, Upload } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame, ClipboardCheck, Upload, GitCompare } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -32,6 +32,7 @@ import { AnomalyCard } from './AnomalyCard';
 import { StressMap, calculateStressScores } from './StressMap';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import { ValidationJourney } from './ValidationJourney';
+import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
@@ -285,10 +286,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-7 mb-3">
+        <TabsList className="w-full grid grid-cols-8 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="scenarios" className="text-xs sm:text-sm gap-1">
+            <GitCompare className="w-3.5 h-3.5 hidden sm:block" />
+            Scenarios
           </TabsTrigger>
           <TabsTrigger value="riskmap" className="text-xs sm:text-sm gap-1">
             <Flame className="w-3.5 h-3.5 hidden sm:block" />
@@ -351,6 +356,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             <TabsContent value="marketing"><MarketingSection marketing={result.marketing_plan} /></TabsContent>
             <TabsContent value="market"><MarketAnalysisSection market={result.market_analysis} /></TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* TAB: Scenarios */}
+        <TabsContent value="scenarios" className="space-y-4 animate-in fade-in duration-200">
+          <ScenarioLibrary
+            analysisId={analysisId}
+            currentParams={result.financial_analysis?.inputs as any}
+            currentOutput={result as any}
+            currentConfidence={result.confidence_score}
+          />
         </TabsContent>
 
         {/* TAB: Risk Map */}

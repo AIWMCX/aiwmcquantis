@@ -1391,6 +1391,27 @@ export type Database = {
         }
         Relationships: []
       }
+      scenario_comparisons: {
+        Row: {
+          created_at: string
+          id: string
+          scenario_ids: string[]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          scenario_ids: string[]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          scenario_ids?: string[]
+          user_id?: string
+        }
+        Relationships: []
+      }
       scenario_library: {
         Row: {
           business_context: Json
@@ -1447,6 +1468,56 @@ export type Database = {
           user_query?: string
         }
         Relationships: []
+      }
+      scenarios: {
+        Row: {
+          analysis_id: string | null
+          confidence_score: number | null
+          created_at: string
+          id: string
+          is_pinned: boolean
+          monte_carlo_result: Json | null
+          name: string
+          output: Json | null
+          params: Json
+          scenario_type: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          monte_carlo_result?: Json | null
+          name: string
+          output?: Json | null
+          params: Json
+          scenario_type?: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          confidence_score?: number | null
+          created_at?: string
+          id?: string
+          is_pinned?: boolean
+          monte_carlo_result?: Json | null
+          name?: string
+          output?: Json | null
+          params?: Json
+          scenario_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scenarios_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       security_logs: {
         Row: {
