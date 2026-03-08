@@ -137,7 +137,7 @@ export function calculateUnitEconomics(params: UnitEconomicsParams): UnitEconomi
     // (1+r)^t via repeated multiply
     let df = Q.multiply(1, 1);
     for (let i = 0; i < t; i++) df = Q.multiply(df, discountFactor);
-    ltvNpv = Q.add(ltvNpv, Q.divide(marginPerCustomer, discountFactor));
+    ltvNpv = Q.add(ltvNpv, Q.divide(marginPerCustomer, df));
   }
 
   const ltvCacRatio = Q.divide(ltv, cacBlended);
