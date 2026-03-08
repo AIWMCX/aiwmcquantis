@@ -66,8 +66,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   estimated: {
     icon: Info,
-    label: '~ AI Estimated',
-    emoji: '~',
+    label: 'AI Estimated',
+    emoji: '',
     bgClass: 'bg-amber-500/10',
     borderClass: 'border-amber-500/30',
     textClass: 'text-amber-700 dark:text-amber-400',
