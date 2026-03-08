@@ -107,7 +107,7 @@ export function SensitivityTornado(props: SensitivityTornadoProps) {
   const [expanded, setExpanded] = useState(false);
 
   // Normalize to new format
-  const { baseValue, title, unit, items, maxBars, summary, mostSensitive } = useMemo(() => {
+  const normalized = useMemo(() => {
     if ('sensitivities' in props && props.sensitivities) {
       const sorted = [...props.sensitivities].sort((a, b) => b.impact - a.impact);
       const max = props.maxBars ?? 8;
