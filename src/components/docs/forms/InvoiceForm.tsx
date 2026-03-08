@@ -57,6 +57,8 @@ interface InvoiceFormProps {
 }
 
 export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating }: InvoiceFormProps) {
+  const { profile: brandProfile, isLoading: brandLoading } = useBrandProfile();
+  const createInvoice = useCreateInvoice();
   const defaultValues = useMemo(() => {
     const templateJson = template?.template_json as Record<string, any> | undefined;
     const prefilled = templateJson?.prefilled_content;
