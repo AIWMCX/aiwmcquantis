@@ -141,7 +141,7 @@ export function DocumentLibrary({ userId }: DocumentLibraryProps) {
         title: doc.title,
       });
       // Copy share link to clipboard
-      const shareUrl = `${window.location.origin}/shared/${doc.share_token || doc.id}`;
+      const shareUrl = `${window.location.origin}/shared/${(doc as any).share_token || doc.id}`;
       navigator.clipboard.writeText(shareUrl).catch(() => {});
     },
     [recordSignal],

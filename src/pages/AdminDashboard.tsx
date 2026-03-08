@@ -119,6 +119,11 @@ export default function AdminDashboard() {
             </div>
           </TabsContent>
 
+          {/* Templates Tab */}
+          <TabsContent value="templates" className="space-y-6">
+            <TemplateInsightsCard />
+          </TabsContent>
+
           {/* Experiments Tab */}
           <TabsContent value="experiments" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
