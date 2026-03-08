@@ -115,7 +115,7 @@ export function useAnalysis() {
     },
   });
 
-  const handleSubmit = useCallback((e?: React.FormEvent) => {
+  const handleSubmit = useCallback((e?: React.FormEvent, depth?: string) => {
     e?.preventDefault();
     
     if (!validate()) return;
@@ -140,7 +140,8 @@ export function useAnalysis() {
       idea: idea.trim(), 
       location: location.trim(),
       ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
-      ...(documents.length > 0 && { documents })
+      ...(documents.length > 0 && { documents }),
+      ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
     });
   }, [idea, location, financialInputs, validate, mutation, fileUpload]);
   
