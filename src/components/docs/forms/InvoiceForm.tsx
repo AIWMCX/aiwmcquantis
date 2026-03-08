@@ -175,9 +175,10 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       0
     ) || 0;
     const taxAmount = subtotal * ((formValues.tax_rate || 0) / 100);
-    const total = subtotal + taxAmount;
-    return { subtotal, taxAmount, total };
-  }, [formValues.line_items, formValues.tax_rate]);
+    const discount = formValues.discount_amount || 0;
+    const total = subtotal + taxAmount - discount;
+    return { subtotal, taxAmount, discount, total };
+  }, [formValues.line_items, formValues.tax_rate, formValues.discount_amount]);
 
   // Debounced preview update to prevent constant re-renders during typing
   useEffect(() => {
