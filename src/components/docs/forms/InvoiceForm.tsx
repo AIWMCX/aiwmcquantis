@@ -59,7 +59,7 @@ interface InvoiceFormProps {
   industryType?: string;
 }
 
-export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating }: InvoiceFormProps) {
+export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating, industryType }: InvoiceFormProps) {
   const { profile: brandProfile, isLoading: brandLoading } = useBrandProfile();
   const createInvoice = useCreateInvoice();
   const defaultValues = useMemo(() => {
