@@ -293,6 +293,29 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
 
   const onSubmit = (data: InvoiceFormData) => {
     clearDraft(); // Clear draft on successful submit
+
+    const lineItemsWithAmount = data.line_items.map(item => ({
+      ...item,
+      amount: item.quantity * item.unit_price,
+    }));
+
+    // Persist invoice record in DB
+    createInvoice.mutate({
+      client_name: data.client_name,
+      client_email: data.client_email,
+      client_company: data.client_company || undefined,
+      client_address: `${data.client_address}, ${data.client_city}`,
+      line_items: lineItemsWithAmount,
+      subtotal: calculations.subtotal,
+      tax_rate: data.tax_rate / 100,
+      tax_amount: calculations.taxAmount,
+      total_amount: calculations.total,
+      issue_date: invoiceDate,
+      due_date: dueDate || undefined,
+      payment_terms: data.payment_terms,
+      notes: data.notes || undefined,
+    });
+
     onGenerate({
       header: {
         company_name: data.company_name,
@@ -311,10 +334,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       invoice_details: {
         payment_terms: data.payment_terms,
       },
-      line_items: data.line_items.map(item => ({
-        ...item,
-        amount: item.quantity * item.unit_price,
-      })),
+      line_items: lineItemsWithAmount,
       tax_rate: data.tax_rate / 100,
       notes: data.notes,
       calculated: calculations,
