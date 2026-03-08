@@ -341,7 +341,7 @@ export function WizardForm({
                         />
                         <div className="flex justify-between items-center">
                           {errors.idea ? (
-                            <p className="text-xs text-destructive">{errors.idea}</p>
+                            <p className="text-xs text-[var(--q-status-red)]">{errors.idea}</p>
                           ) : (
                             <span className="text-xs text-muted-foreground">Min 10 chars — more detail = better analysis</span>
                           )}
