@@ -255,6 +255,69 @@ export type Database = {
           },
         ]
       }
+      benchmark_store: {
+        Row: {
+          created_at: string | null
+          geo_scope: string
+          id: string
+          industry_type: string
+          is_active: boolean | null
+          notes: string | null
+          p10: number
+          p25: number
+          p50: number
+          p75: number
+          p90: number
+          parameter: string
+          sample_size: number | null
+          source: string
+          source_year: number
+          unit: string
+          updated_at: string | null
+          version: number
+        }
+        Insert: {
+          created_at?: string | null
+          geo_scope?: string
+          id?: string
+          industry_type: string
+          is_active?: boolean | null
+          notes?: string | null
+          p10: number
+          p25: number
+          p50: number
+          p75: number
+          p90: number
+          parameter: string
+          sample_size?: number | null
+          source: string
+          source_year: number
+          unit: string
+          updated_at?: string | null
+          version?: number
+        }
+        Update: {
+          created_at?: string | null
+          geo_scope?: string
+          id?: string
+          industry_type?: string
+          is_active?: boolean | null
+          notes?: string | null
+          p10?: number
+          p25?: number
+          p50?: number
+          p75?: number
+          p90?: number
+          parameter?: string
+          sample_size?: number | null
+          source?: string
+          source_year?: number
+          unit?: string
+          updated_at?: string | null
+          version?: number
+        }
+        Relationships: []
+      }
       branding_settings: {
         Row: {
           accent_color: string | null
