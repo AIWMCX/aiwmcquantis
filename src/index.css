@@ -83,6 +83,18 @@
     --q-radius-xl: 24px;
     --q-radius-pill: 999px;
     
+    /* ── MOTION TOKENS ── */
+    --q-duration-instant: 80ms;
+    --q-duration-fast: 150ms;
+    --q-duration-normal: 250ms;
+    --q-duration-slow: 400ms;
+    --q-duration-slower: 600ms;
+    --q-duration-dramatic: 1000ms;
+    --q-ease-out: cubic-bezier(0.0, 0.0, 0.2, 1);
+    --q-ease-in: cubic-bezier(0.4, 0.0, 1, 1);
+    --q-ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+    --q-ease-linear: linear;
+    
     /* Legacy HSL tokens for shadcn compatibility */
     --background: 210 40% 98%;
     --foreground: 222 47% 11%;
