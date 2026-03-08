@@ -48,7 +48,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   uncertain: {
     label: 'UNCERTAIN',
     icon: AlertTriangle,
-    prefix: '⚠',
+    prefix: '',
     classes: 'bg-[var(--q-status-orange-bg)] text-[var(--q-status-orange)] border-[var(--q-status-orange-border)]',
   },
   blocked: {
