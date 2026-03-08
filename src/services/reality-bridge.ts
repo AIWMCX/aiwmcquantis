@@ -3,7 +3,7 @@
  * and recalibrates parameters based on real-world performance.
  */
 
-import { QMath } from '@/lib/quantis-math';
+import { QuantisMath as QMath } from '@/lib/quantis-math';
 
 // ==================== TYPES ====================
 
