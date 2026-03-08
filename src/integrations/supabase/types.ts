@@ -1430,6 +1430,44 @@ export type Database = {
           },
         ]
       }
+      report_outputs: {
+        Row: {
+          analysis_id: string | null
+          created_at: string | null
+          id: string
+          pdf_url: string | null
+          report_json: Json
+          user_id: string | null
+          version: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string | null
+          id?: string
+          pdf_url?: string | null
+          report_json: Json
+          user_id?: string | null
+          version: string
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string | null
+          id?: string
+          pdf_url?: string | null
+          report_json?: Json
+          user_id?: string | null
+          version?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "report_outputs_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       risk_factors: {
         Row: {
           applicable_industries: string[] | null
@@ -2088,6 +2126,30 @@ export type Database = {
           created_at?: string | null
           id?: string
           role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      user_settings: {
+        Row: {
+          created_at: string | null
+          id: string
+          updated_at: string | null
+          use_v2_engine: boolean
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          use_v2_engine?: boolean
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          updated_at?: string | null
+          use_v2_engine?: boolean
           user_id?: string
         }
         Relationships: []
