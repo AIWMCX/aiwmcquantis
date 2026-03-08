@@ -48,8 +48,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
 }> = {
   verified: {
     icon: ShieldCheck,
-    label: '⚡ GPT + Gemini Verified',
-    emoji: '⚡',
+    label: 'GPT + Gemini Verified',
+    emoji: '',
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',
     textClass: 'text-emerald-700 dark:text-emerald-400',
