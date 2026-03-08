@@ -454,7 +454,7 @@ export function WizardForm({
         </div>
 
         {/* RIGHT: Financial Parameters */}
-        <div className="space-y-5" key={industryAnimKey}>
+        <div className="space-y-6" key={industryAnimKey}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
             Financial Parameters
           </h2>

@@ -480,3 +480,57 @@ function MetricMini({ label, value, positive }: { label: string; value: string; 
     </div>
   );
 }
+
+function RiskFlagCard({ risk, index }: { risk: { label: string; impact: string; mitigation: string; mitigationPlan: string[]; severity: 'red' | 'orange' | 'yellow' }; index: number }) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <div
+      className="animate-fade-in rounded-lg border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] overflow-hidden"
+      style={{ animationDelay: `${900 + index * 100}ms`, animationFillMode: 'both' }}
+    >
+      {/* Header */}
+      <div className="p-4 space-y-2">
+        <div className="flex items-start gap-3">
+          <span className={cn(
+            'w-2.5 h-2.5 rounded-full shrink-0 mt-1',
+            risk.severity === 'red' ? 'bg-[var(--q-status-red)]' :
+            risk.severity === 'orange' ? 'bg-[var(--q-status-orange)]' :
+            'bg-[var(--q-status-yellow)]'
+          )} />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <span className="text-sm font-semibold text-[var(--q-text-primary)] leading-tight block">{risk.label}</span>
+            <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed">{risk.impact} {risk.mitigation}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 text-xs font-medium text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[22px] transition-colors cursor-pointer group"
+        >
+          <ArrowRight className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-90")} />
+          {isExpanded ? 'Hide mitigation plan' : 'View mitigation plan'}
+        </button>
+      </div>
+
+      {/* Expandable Mitigation Plan */}
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-0 ml-[22px] animate-fade-in" style={{ animationDuration: '200ms' }}>
+          <div className="p-3 rounded-lg bg-[var(--q-bg-base)] border border-[var(--q-border-subtle)] space-y-2.5">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--q-text-tertiary)]">Action Plan</p>
+            <ol className="space-y-2">
+              {risk.mitigationPlan.map((step, j) => (
+                <li key={j} className="flex items-start gap-2.5 text-xs text-[var(--q-text-secondary)] leading-relaxed">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--q-accent-primary)]/10 text-[var(--q-accent-primary)] text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    {j + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
