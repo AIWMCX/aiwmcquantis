@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
-import { WizardForm } from '@/components/analysis/WizardForm';
+import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { AnalysisTopBar } from '@/components/analysis/AnalysisTopBar';
