@@ -52,6 +52,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const { queueExport, status: exportStatus } = useExportQueue();
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
+  const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showActualsImporter, setShowActualsImporter] = useState(false);
 
