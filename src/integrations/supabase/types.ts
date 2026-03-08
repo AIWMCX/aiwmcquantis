@@ -133,6 +133,36 @@ export type Database = {
           },
         ]
       }
+      analysis_logs: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          event_type: string
+          id: string
+          payload: Json
+          severity: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          event_type: string
+          id?: string
+          payload?: Json
+          severity?: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          event_type?: string
+          id?: string
+          payload?: Json
+          severity?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       anonymous_usage: {
         Row: {
           created_at: string | null
@@ -1212,6 +1242,54 @@ export type Database = {
           id?: string
           phone_encrypted?: string | null
           updated_at?: string | null
+        }
+        Relationships: []
+      }
+      quality_metrics_daily: {
+        Row: {
+          avg_confidence_score: number | null
+          avg_consensus_score: number | null
+          benchmark_coverage_rate: number | null
+          created_at: string
+          error_rate_by_code: Json | null
+          id: string
+          inconsistency_rate: number | null
+          metric_date: string
+          p50_latency_ms: number | null
+          p95_latency_ms: number | null
+          p99_latency_ms: number | null
+          reconciliation_rate: number | null
+          total_analyses: number | null
+        }
+        Insert: {
+          avg_confidence_score?: number | null
+          avg_consensus_score?: number | null
+          benchmark_coverage_rate?: number | null
+          created_at?: string
+          error_rate_by_code?: Json | null
+          id?: string
+          inconsistency_rate?: number | null
+          metric_date: string
+          p50_latency_ms?: number | null
+          p95_latency_ms?: number | null
+          p99_latency_ms?: number | null
+          reconciliation_rate?: number | null
+          total_analyses?: number | null
+        }
+        Update: {
+          avg_confidence_score?: number | null
+          avg_consensus_score?: number | null
+          benchmark_coverage_rate?: number | null
+          created_at?: string
+          error_rate_by_code?: Json | null
+          id?: string
+          inconsistency_rate?: number | null
+          metric_date?: string
+          p50_latency_ms?: number | null
+          p95_latency_ms?: number | null
+          p99_latency_ms?: number | null
+          reconciliation_rate?: number | null
+          total_analyses?: number | null
         }
         Relationships: []
       }
