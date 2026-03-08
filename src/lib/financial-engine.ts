@@ -361,7 +361,7 @@ export function calculatePaybackPeriod(cashFlows: CashFlowStatement[]): number |
   for (const cf of cashFlows) {
     cumulativeOp += cf.operatingCashFlow;
     // Find month where cumulative operating CF covers the initial negative position
-    if (cumulativeOp >= Math.abs(cashFlows[0]?.cumulativeCash - cashFlows[0]?.netCashFlow)) {
+    if (cumulativeOp >= n(Q.abs(Q.subtract(cashFlows[0]?.cumulativeCash ?? 0, cashFlows[0]?.netCashFlow ?? 0)))) {
       return cf.month;
     }
   }
