@@ -336,6 +336,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           financialContent={
             <div className="space-y-4">
               <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
+              <CashFlowVisualization result={result} />
               {result.actionable_insights && result.actionable_insights.insights.length > 0 && (
                 <ActionableInsights insights={result.actionable_insights} />
               )}
