@@ -29,7 +29,7 @@ interface IndustryDemo {
 const INDUSTRY_DEMOS: IndustryDemo[] = [
   {
     label: 'Coffee Shop',
-    emoji: '☕',
+    icon: Coffee,
     idea: 'Coffee shop with remote work focus',
     location: 'Denver, CO',
     metrics: [
