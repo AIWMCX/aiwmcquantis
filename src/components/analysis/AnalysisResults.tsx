@@ -87,10 +87,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
   const ideaScoreLabel = ideaScore >= 8 ? 'Strong Opportunity' : ideaScore >= 5 ? 'Needs Work' : 'High Risk';
   const ideaScoreColor = ideaScore >= 8 
-    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
+    ? 'q-score-excellent' 
     : ideaScore >= 5 
-    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-    : 'bg-destructive/10 text-destructive border-destructive/30';
+    ? 'q-score-good'
+    : 'q-score-poor';
 
   // === SWOT ===
   const swot = useMemo(() => {
@@ -207,11 +207,11 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   return (
     <div className="space-y-4" ref={contentRef}>
       {/* Compact Header Card */}
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="q-card relative overflow-hidden p-4" style={{ borderLeftWidth: '3px', borderLeftColor: ideaScore >= 8 ? 'var(--q-status-green)' : ideaScore >= 5 ? 'var(--q-status-yellow)' : 'var(--q-status-red)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border font-bold text-sm", ideaScoreColor)}>
             <Trophy className="w-4 h-4" />
-            <span className="text-xl font-black tabular-nums">{ideaScore}/10</span>
+            <span className="text-metric-lg">{ideaScore}/10</span>
             <span className="text-xs font-semibold">{ideaScoreLabel}</span>
           </div>
           <DualEngineBadge crossValidation={(result as any).cross_validation} />
@@ -219,26 +219,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
         {/* 2x2 Key Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-          <MetricCard
-            label="Monthly Revenue"
-            value={`$${scenarioMetrics.revenue.toLocaleString()}`}
-            positive={true}
-          />
-          <MetricCard
-            label="Net Margin"
-            value={`${scenarioMetrics.margin.toFixed(1)}%`}
-            positive={scenarioMetrics.margin >= 0}
-          />
-          <MetricCard
-            label="LTV:CAC"
-            value={`${(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0).toFixed(1)}x`}
-            positive={(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0) >= 3}
-          />
-          <MetricCard
-            label="Payback"
-            value={formatPaybackDisplay(result.financial_analysis?.payback_period_months ?? 999, scenarioMetrics.profit)}
-            positive={(result.financial_analysis?.payback_period_months ?? 999) <= 18}
-          />
+          <MetricCard label="Monthly Revenue" value={`$${scenarioMetrics.revenue.toLocaleString()}`} positive={true} index={0} />
+          <MetricCard label="Net Margin" value={`${scenarioMetrics.margin.toFixed(1)}%`} positive={scenarioMetrics.margin >= 0} index={1} />
+          <MetricCard label="LTV:CAC" value={`${(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0).toFixed(1)}x`} positive={(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0) >= 3} index={2} />
+          <MetricCard label="Payback" value={formatPaybackDisplay(result.financial_analysis?.payback_period_months ?? 999, scenarioMetrics.profit)} positive={(result.financial_analysis?.payback_period_months ?? 999) <= 18} index={3} />
         </div>
 
         {/* Scenario + Actions row */}
@@ -571,13 +555,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
 // --- Sub-components ---
 
-function MetricCard({ label, value, positive }: { label: string; value: string; positive: boolean }) {
+function MetricCard({ label, value, positive, index = 0 }: { label: string; value: string; positive: boolean; index?: number }) {
   return (
-    <div className="p-3 rounded-lg bg-muted/30 border border-border text-center">
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
+    <div
+      className="q-metric-reveal p-3 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <p className="text-label text-[var(--q-text-secondary)] mb-0.5">{label}</p>
       <p className={cn(
-        "text-base sm:text-lg font-bold tabular-nums transition-all duration-300",
-        positive ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+        "text-metric-sm transition-all duration-300",
+        positive ? "text-[var(--q-status-green)]" : "text-destructive"
       )}>
         {value}
       </p>
@@ -593,16 +580,16 @@ function SwotQuadrant({ title, items, color, icon: Icon, itemIcon: ItemIcon }: {
   itemIcon: React.ElementType;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
-    amber: 'bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400',
-    blue: 'bg-blue-500/5 border-blue-500/20 text-blue-700 dark:text-blue-400',
-    red: 'bg-destructive/5 border-destructive/20 text-destructive',
+    emerald: 'bg-[var(--q-status-green-bg)] border-[var(--q-status-green-border)] text-[var(--q-status-green)]',
+    amber: 'bg-[var(--q-status-yellow-bg)] border-[var(--q-status-yellow-border)] text-[var(--q-status-yellow)]',
+    blue: 'bg-[rgba(79,142,247,0.05)] border-[rgba(79,142,247,0.2)] text-[var(--q-accent-primary)]',
+    red: 'bg-[var(--q-status-red-bg)] border-[var(--q-status-red-border)] text-[var(--q-status-red)]',
   };
   const iconColorMap: Record<string, string> = {
-    emerald: 'text-emerald-500',
-    amber: 'text-amber-500',
-    blue: 'text-blue-500',
-    red: 'text-destructive',
+    emerald: 'text-[var(--q-status-green)]',
+    amber: 'text-[var(--q-status-yellow)]',
+    blue: 'text-[var(--q-accent-primary)]',
+    red: 'text-[var(--q-status-red)]',
   };
 
   return (

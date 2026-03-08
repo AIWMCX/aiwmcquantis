@@ -85,10 +85,10 @@ export const HeroVariantDisplay = React.memo(function HeroVariantDisplay({
   
   return (
     <div className={className}>
-      <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground leading-tight">
+      <h1 className="text-display text-[var(--q-text-primary)] leading-tight">
         {content.title}
       </h1>
-      <p className="mt-4 text-base sm:text-lg md:text-xl text-muted-foreground max-w-2xl">
+      <p className="mt-4 text-body text-[var(--q-text-secondary)] max-w-2xl">
         {content.subtitle}
       </p>
     </div>
