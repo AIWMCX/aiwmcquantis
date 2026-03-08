@@ -506,7 +506,12 @@ function RiskFlagCard({ risk, index }: { risk: { label: string; impact: string; 
 
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-1.5 text-xs font-medium text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[22px] transition-colors cursor-pointer group"
+          className={cn(
+            "inline-flex items-center gap-1.5 text-[13px] font-medium ml-[22px] transition-all duration-150 cursor-pointer",
+            "text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)]",
+            "underline underline-offset-[3px] decoration-[var(--q-accent-primary)]/40 hover:decoration-[var(--q-accent-hover)]/60"
+          )}
+          style={{ padding: '4px 0' }}
         >
           <ArrowRight className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-90")} />
           {isExpanded ? 'Hide mitigation plan' : 'View mitigation plan'}
