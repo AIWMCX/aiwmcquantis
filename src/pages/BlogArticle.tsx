@@ -136,7 +136,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
       
       <h2>How to Get Accurate Startup Cost Estimates</h2>
-      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 3 minutes.</p>
+      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 90 seconds.</p>
     </>
   ),
   'unit-economics-explained-for-founders': (
