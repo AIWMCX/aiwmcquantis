@@ -205,7 +205,7 @@ export function DemoPreview() {
                   : 'bg-muted text-muted-foreground hover:bg-accent hover:text-foreground'
               )}
             >
-              <span>{d.emoji}</span>
+              <d.icon className="w-4 h-4" />
               {d.label}
             </button>
           ))}
