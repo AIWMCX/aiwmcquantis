@@ -219,26 +219,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
         {/* 2x2 Key Metrics Grid */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-3">
-          <MetricCard
-            label="Monthly Revenue"
-            value={`$${scenarioMetrics.revenue.toLocaleString()}`}
-            positive={true}
-          />
-          <MetricCard
-            label="Net Margin"
-            value={`${scenarioMetrics.margin.toFixed(1)}%`}
-            positive={scenarioMetrics.margin >= 0}
-          />
-          <MetricCard
-            label="LTV:CAC"
-            value={`${(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0).toFixed(1)}x`}
-            positive={(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0) >= 3}
-          />
-          <MetricCard
-            label="Payback"
-            value={formatPaybackDisplay(result.financial_analysis?.payback_period_months ?? 999, scenarioMetrics.profit)}
-            positive={(result.financial_analysis?.payback_period_months ?? 999) <= 18}
-          />
+          <MetricCard label="Monthly Revenue" value={`$${scenarioMetrics.revenue.toLocaleString()}`} positive={true} index={0} />
+          <MetricCard label="Net Margin" value={`${scenarioMetrics.margin.toFixed(1)}%`} positive={scenarioMetrics.margin >= 0} index={1} />
+          <MetricCard label="LTV:CAC" value={`${(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0).toFixed(1)}x`} positive={(result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0) >= 3} index={2} />
+          <MetricCard label="Payback" value={formatPaybackDisplay(result.financial_analysis?.payback_period_months ?? 999, scenarioMetrics.profit)} positive={(result.financial_analysis?.payback_period_months ?? 999) <= 18} index={3} />
         </div>
 
         {/* Scenario + Actions row */}
