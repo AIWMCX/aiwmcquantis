@@ -66,21 +66,20 @@ export function MobileHero() {
 
           {/* Headline */}
           <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-3 leading-tight tracking-tight">
-            AI Business Validation and Risk Stress&#8209;Testing
-            <span className="text-primary block mt-1">for Startups</span>
+            Find Out Where Your Business Model Breaks
+            <span className="text-primary block mt-1">Before You Spend a Dollar</span>
           </h1>
 
-          {/* Core promise — non-negotiable copy */}
+          {/* Core promise */}
           <p className="text-base sm:text-lg text-foreground/80 font-medium mb-2 md:mb-3">
-            Validate your business idea with AI-powered financial analysis.
-            Get structured revenue projections, risk signals, and an action plan &mdash; free, in under 3 minutes.
+            Enter your idea. Get a full financial stress-test with risk map, cash-flow projection, and scenario analysis &mdash; free, in under 3 minutes.
           </p>
 
           {/* Supporting bullets */}
           <ul className="text-sm sm:text-base text-muted-foreground space-y-1.5 mb-4 md:mb-6 max-w-xl mx-auto text-left">
-            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> Find out if your model survives revenue and cost shocks.</li>
-            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> See which assumptions are fragile before you talk to investors.</li>
-            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> Get an AI-generated action plan, not just a score.</li>
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> GPT + Gemini dual-verified financial projections.</li>
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> See which assumptions break under stress scenarios.</li>
+            <li className="flex items-start gap-2"><span className="text-primary font-bold">&#8226;</span> Click any number to see the formula and benchmark behind it.</li>
           </ul>
 
           {/* FORM FIRST on mobile - above badges */}

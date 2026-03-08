@@ -9,8 +9,8 @@ export function UrgencyBanner() {
         <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
           <span className="text-sm font-medium flex items-center gap-2">
             <Zap className="w-4 h-4" />
-            <span className="hidden sm:inline">AI business validation for founders — structured financial logic in 3 min</span>
-            <span className="sm:hidden">Validate your idea free</span>
+            <span className="hidden sm:inline">Financial stress-test for founders — risk map, scenarios, and projections in 3 min</span>
+            <span className="sm:hidden">Stress-test your idea free</span>
           </span>
           <Link 
             to="/app" 

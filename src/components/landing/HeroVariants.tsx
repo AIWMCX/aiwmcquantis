@@ -12,19 +12,19 @@ export interface HeroContent {
 // Extended CTA variants beyond the existing headlines
 export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   control: {
-    title: 'AI Business Validation & Financial Structuring in Under 3 Minutes',
-    subtitle: 'Upload your idea. Get structured financial logic, risk signals, projections, and clarity before you build.',
-    ctaText: 'Validate My Idea — Free',
+    title: 'Find Out Exactly Where Your Business Model Breaks — Before You Spend a Dollar',
+    subtitle: 'Enter your idea. Get a full financial stress-test with risk map, cash-flow projection, and scenario analysis. Powered by dual AI engines + 1,000+ verified benchmarks.',
+    ctaText: 'Run Free Stress-Test',
   },
   numbers_first: {
-    title: 'Financial Logic, Risk Signals & Projections — in 3 Minutes',
-    subtitle: 'Stop guessing. Get structured validation backed by 1,000+ industry benchmarks.',
-    ctaText: 'Get My Free Validation',
+    title: 'Stress-Test Your Business Model with Dual AI Engines — in 3 Minutes',
+    subtitle: 'See which assumptions are fragile. Get risk flags, revenue corridors, and an investor-ready action plan backed by 1,000+ benchmarks.',
+    ctaText: 'Get My Free Analysis',
   },
   action_focused: {
-    title: 'Validate Before You Build — AI Financial Structuring',
-    subtitle: 'Business model clarity, structured projections, and risk red flags — all AI-generated in minutes.',
-    ctaText: 'Start Free Validation',
+    title: 'Revenue Projections, Risk Map & Scenario Stress-Tests — Before You Build',
+    subtitle: 'GPT + Gemini dual-verified financial analysis. Click any number to see the formula and benchmark behind it.',
+    ctaText: 'Start Free Stress-Test',
   },
 };
 
