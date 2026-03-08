@@ -3,7 +3,7 @@ import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
-import { WizardForm } from '@/components/analysis/WizardForm';
+import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { AnalysisTopBar } from '@/components/analysis/AnalysisTopBar';
@@ -245,47 +245,44 @@ export default function Index() {
               gainHint={reliabilityData.gainHint}
             />
 
-            {/* Main Split Layout */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
-              {/* Left: Wizard */}
-              <div ref={formRef} className="lg:col-span-1 order-1">
-                <div className="lg:sticky lg:top-20 space-y-3">
-                  {rateLimitError && (
-                    <RateLimitBanner message={rateLimitError} isAuthenticated={isAuthenticated} onDismiss={clearRateLimitError} />
-                  )}
-                  <WizardForm
-                    idea={idea}
-                    location={location}
-                    financialInputs={financialInputs}
-                    errors={errors}
-                    isLoading={isLoading}
-                    isFormValid={isFormValid}
-                    onIdeaChange={setIdea}
-                    onLocationChange={setLocation}
-                    onFinancialInputsChange={setFinancialInputs}
-                    onClearError={clearError}
-                    onSubmit={handleSubmit}
-                    files={files}
-                    isUploading={isUploading}
-                    maxFiles={maxFiles}
-                    allowedExtensions={allowedExtensions}
-                    onUploadFiles={uploadFiles}
-                    onRemoveFile={removeFile}
-                    isAuthenticated={isAuthenticated}
-                  />
-                  {isAuthenticated && (
-                    <button
-                      onClick={() => setActiveTab('history')}
-                      className="w-full p-2.5 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground min-h-[44px]"
-                    >
-                      <History className="w-3.5 h-3.5" /> Analysis History
-                    </button>
-                  )}
-                </div>
-              </div>
+            {/* Compact Analysis Form */}
+            <div ref={formRef}>
+              {rateLimitError && (
+                <RateLimitBanner message={rateLimitError} isAuthenticated={isAuthenticated} onDismiss={clearRateLimitError} />
+              )}
+              <CompactAnalysisForm
+                idea={idea}
+                location={location}
+                financialInputs={financialInputs}
+                errors={errors}
+                isLoading={isLoading}
+                isFormValid={isFormValid}
+                onIdeaChange={setIdea}
+                onLocationChange={setLocation}
+                onFinancialInputsChange={setFinancialInputs}
+                onClearError={clearError}
+                onSubmit={handleSubmit}
+                files={files}
+                isUploading={isUploading}
+                maxFiles={maxFiles}
+                allowedExtensions={allowedExtensions}
+                onUploadFiles={uploadFiles}
+                onRemoveFile={removeFile}
+                isAuthenticated={isAuthenticated}
+              />
+            </div>
 
-              {/* Right: Results */}
-              <div className="lg:col-span-2 order-2">
+            {/* Results / History */}
+            <div className="mt-6">
+              {isAuthenticated && (
+                <button
+                  onClick={() => setActiveTab('history')}
+                  className="mb-3 w-full p-2.5 rounded-lg border border-border bg-card hover:bg-accent/50 transition-colors flex items-center justify-center gap-2 text-xs font-medium text-muted-foreground hover:text-foreground min-h-[44px]"
+                >
+                  <History className="w-3.5 h-3.5" /> Analysis History
+                </button>
+              )}
+              <div>
                 <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
                   {isAuthenticated && (
                     <TabsList className="mb-3 grid w-full grid-cols-2">
