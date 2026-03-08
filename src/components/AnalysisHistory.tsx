@@ -2,6 +2,7 @@
 import React from 'react';
 import { HistoryEntry } from '@/types';
 import { Trash2 } from 'lucide-react';
+import { QIconAnalysis, QIconDashboard } from '@/components/icons';
 
 interface AnalysisHistoryProps {
   history: HistoryEntry[];
