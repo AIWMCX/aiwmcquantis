@@ -1,6 +1,5 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent, Sparkles } from 'lucide-react';
-import { Input } from '@/components/ui/input';
+import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent, Sparkles, Zap } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -16,7 +15,6 @@ interface AdvancedFinancialInputsProps {
   industryType?: string;
 }
 
-// Numeric-only keys from OptionalFinancialInputs (excluding selected_industry)
 type NumericFinancialKeys = Exclude<keyof OptionalFinancialInputs, 'selected_industry'>;
 
 interface FieldConfig {
@@ -24,34 +22,40 @@ interface FieldConfig {
   label: string;
   placeholder: string;
   tooltip: string;
+  subtext: string;
   icon: React.ReactNode;
   prefix?: string;
   suffix?: string;
-  benchmarkParam?: string; // maps to benchmark-calibrator parameter name
+  benchmarkParam?: string;
+  groupEnd?: boolean; // show divider after this field
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
   {
     key: 'startup_investment',
     label: 'Initial Investment',
-    placeholder: '50000',
-    tooltip: 'Total amount you plan to invest to start the business (equipment, inventory, setup costs)',
+    placeholder: '50,000',
+    tooltip: 'Total amount you plan to invest to start the business',
+    subtext: 'Typical: $25,000–$100,000 for this industry',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
   },
   {
     key: 'monthly_revenue',
     label: 'Expected Monthly Revenue',
-    placeholder: '15000',
-    tooltip: 'How much revenue you expect to generate per month once operational',
+    placeholder: '15,000',
+    tooltip: 'How much revenue you expect per month once operational',
+    subtext: 'Estimated target — we\'ll validate this',
     icon: <TrendingUp className="w-4 h-4" />,
     prefix: '$',
+    groupEnd: true,
   },
   {
     key: 'average_price',
     label: 'Average Price per Sale',
-    placeholder: '100',
+    placeholder: '89',
     tooltip: 'Average price customers pay for your product or service',
+    subtext: 'Per transaction / per month / per unit',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
     benchmarkParam: 'avg_ticket_size',
@@ -59,23 +63,27 @@ const FIELD_CONFIGS: FieldConfig[] = [
   {
     key: 'expected_customers',
     label: 'Monthly Customers',
-    placeholder: '150',
+    placeholder: '30',
     tooltip: 'Expected number of paying customers per month',
+    subtext: 'Expected at launch',
     icon: <Users className="w-4 h-4" />,
+    groupEnd: true,
   },
   {
     key: 'monthly_costs',
     label: 'Monthly Operating Costs',
-    placeholder: '8000',
+    placeholder: '10,000',
     tooltip: 'Total monthly expenses including rent, salaries, utilities, etc.',
+    subtext: 'Rent + staff + utilities + software',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
   },
   {
     key: 'cac',
     label: 'Customer Acquisition Cost',
-    placeholder: '50',
-    tooltip: 'How much it costs to acquire one new customer (marketing spend / new customers)',
+    placeholder: '150',
+    tooltip: 'How much it costs to acquire one new customer',
+    subtext: 'Cost to acquire one customer',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
     benchmarkParam: 'cac',
@@ -85,6 +93,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
     label: 'Monthly Churn Rate',
     placeholder: '5',
     tooltip: 'Percentage of customers who stop using your service each month',
+    subtext: '% of customers lost per month',
     icon: <Percent className="w-4 h-4" />,
     suffix: '%',
     benchmarkParam: 'churn_rate',
@@ -149,20 +158,20 @@ export function AdvancedFinancialInputs({
         <CollapsibleTrigger
           disabled={disabled}
           className={cn(
-            "w-full flex items-center justify-between p-4 rounded-lg border transition-all",
-            "bg-muted/30 hover:bg-muted/50 border-border/50",
+            "w-full flex items-center justify-between p-4 rounded-xl border transition-all",
+            "bg-[var(--q-bg-surface)] hover:bg-[var(--q-bg-elevated)] border-[var(--q-border-default)]",
             disabled && "opacity-50 cursor-not-allowed"
           )}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-md bg-primary/10">
-              <TrendingUp className="w-4 h-4 text-primary" />
+            <div className="p-2 rounded-lg bg-[var(--q-accent-primary)]/10">
+              <TrendingUp className="w-4 h-4 text-[var(--q-accent-primary)]" />
             </div>
             <div className="text-left">
-              <p className="font-medium text-foreground">Advanced Financial Details</p>
-              <p className="text-xs text-muted-foreground">
+              <p className="font-semibold text-sm text-[var(--q-text-primary)]">Advanced Financial Details</p>
+              <p className="text-xs text-[var(--q-text-tertiary)]">
                 {filledCount > 0 
-                  ? `${filledCount}/${totalFields} fields filled • +${confidenceBoost}% confidence`
+                  ? `${filledCount}/${totalFields} fields filled · +${confidenceBoost}% confidence`
                   : 'Optional — boosts confidence up to 40%'
                 }
               </p>
@@ -170,113 +179,72 @@ export function AdvancedFinancialInputs({
           </div>
           <div className="flex items-center gap-2">
             {filledCount > 0 && (
-              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-primary/20 text-primary">
+              <span className="px-2.5 py-1 text-xs font-semibold rounded-full bg-[var(--q-accent-primary)]/15 text-[var(--q-accent-primary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
                 +{confidenceBoost}%
               </span>
             )}
             {isOpen ? (
-              <ChevronUp className="w-5 h-5 text-muted-foreground" />
+              <ChevronUp className="w-5 h-5 text-[var(--q-text-tertiary)]" />
             ) : (
-              <ChevronDown className="w-5 h-5 text-muted-foreground" />
+              <ChevronDown className="w-5 h-5 text-[var(--q-text-tertiary)]" />
             )}
           </div>
         </CollapsibleTrigger>
 
         <CollapsibleContent className="mt-4">
-          <div className="p-5 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] space-y-6">
-            {/* Confidence Boost Banner */}
-            <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/15">
-              <TrendingUp className="w-5 h-5 text-[var(--q-accent-primary)] mt-0.5 flex-shrink-0" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-[var(--q-text-primary)]">
-                  Boost your analysis confidence
-                </p>
-                <p className="text-xs text-[var(--q-text-secondary)] mt-1 leading-relaxed">
-                  Providing real financial data instead of estimates increases accuracy by ~40%. 
-                  All fields are optional.
-                </p>
-              </div>
+          <div className="p-5 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)]">
+            {/* Compact Confidence Boost Banner */}
+            <div className="flex items-center gap-3 px-4 py-3 rounded-lg bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/15 mb-6">
+              <TrendingUp className="w-4 h-4 text-[var(--q-accent-primary)] flex-shrink-0" />
+              <p className="text-xs text-[var(--q-text-secondary)] leading-snug flex-1">
+                Real financial data increases accuracy by ~40%. All fields optional.
+              </p>
               {industryType && (
                 <button
                   type="button"
                   onClick={handleAutofill}
                   disabled={disabled}
                   className={cn(
-                    "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all flex-shrink-0",
+                    "flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg transition-all flex-shrink-0",
                     "bg-[var(--q-accent-primary)]/15 text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-primary)]/25",
                     disabled && "opacity-50 cursor-not-allowed"
                   )}
                 >
-                  <Sparkles className="w-3.5 h-3.5" />
+                  <Sparkles className="w-3 h-3" />
                   Auto-fill
                 </button>
               )}
             </div>
 
-            {/* Investment & Revenue Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {FIELD_CONFIGS.slice(0, 2).map((field) => (
-                <FinancialField
-                  key={field.key}
-                  config={field}
-                  value={financialInputs[field.key]}
-                  onChange={(value) => handleChange(field.key, value)}
-                  disabled={disabled}
-                  industryType={industryType}
-                  onUseMedian={(median) => handleChange(field.key, median.toString())}
-                />
+            {/* Single-column full-width fields */}
+            <div className="space-y-0">
+              {FIELD_CONFIGS.map((field, i) => (
+                <React.Fragment key={field.key}>
+                  <FinancialField
+                    config={field}
+                    value={financialInputs[field.key]}
+                    onChange={(value) => handleChange(field.key, value)}
+                    disabled={disabled}
+                    industryType={industryType}
+                    onUseMedian={(median) => handleChange(field.key, median.toString())}
+                  />
+                  {field.groupEnd && i < FIELD_CONFIGS.length - 1 && (
+                    <div className="h-px bg-[var(--q-border-subtle)] my-5" />
+                  )}
+                </React.Fragment>
               ))}
             </div>
 
-            {/* Pricing & Customers Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {FIELD_CONFIGS.slice(2, 4).map((field) => (
-                <FinancialField
-                  key={field.key}
-                  config={field}
-                  value={financialInputs[field.key]}
-                  onChange={(value) => handleChange(field.key, value)}
-                  disabled={disabled}
-                  industryType={industryType}
-                  onUseMedian={(median) => handleChange(field.key, median.toString())}
-                />
-              ))}
-            </div>
-
-            {/* Costs & CAC Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {FIELD_CONFIGS.slice(4, 6).map((field) => (
-                <FinancialField
-                  key={field.key}
-                  config={field}
-                  value={financialInputs[field.key]}
-                  onChange={(value) => handleChange(field.key, value)}
-                  disabled={disabled}
-                  industryType={industryType}
-                  onUseMedian={(median) => handleChange(field.key, median.toString())}
-                />
-              ))}
-            </div>
-
-            {/* Churn Rate + Summary */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              <FinancialField
-                config={FIELD_CONFIGS[6]}
-                value={financialInputs.churn_rate}
-                onChange={(value) => handleChange('churn_rate', value)}
-                disabled={disabled}
-                industryType={industryType}
-                onUseMedian={(median) => handleChange('churn_rate', median.toString())}
-              />
-              
-              {/* Summary */}
-              <div className="flex items-center justify-center p-4 rounded-xl bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)]">
-                <div className="text-center space-y-1">
-                  <p className="text-2xl font-bold text-[var(--q-accent-primary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>+{confidenceBoost}%</p>
-                  <p className="text-xs text-[var(--q-text-tertiary)]">Confidence boost</p>
-                </div>
+            {/* Confidence Boost Pill */}
+            {filledCount > 0 && (
+              <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-full w-fit"
+                style={{ background: 'hsla(160, 84%, 39%, 0.08)', border: '1px solid hsla(160, 84%, 39%, 0.2)' }}>
+                <Zap className="w-3.5 h-3.5 text-[var(--q-status-green)]" />
+                <span className="text-[13px] font-medium text-[var(--q-status-green)]" style={{ fontFamily: 'var(--q-font-mono)' }}>
+                  +{confidenceBoost}% confidence boost · {filledCount}/{totalFields} fields filled
+                </span>
               </div>
-            </div>
+            )}
           </div>
         </CollapsibleContent>
       </Collapsible>
@@ -311,26 +279,46 @@ function FinancialField({
   }, [industryType, config.benchmarkParam, onUseMedian]);
 
   return (
-    <div className="space-y-2">
-      <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
-        <span className="text-[var(--q-text-tertiary)]">{config.icon}</span>
-        {config.label}
+    <div className="mb-5 last:mb-0">
+      {/* Label row */}
+      <label className="flex items-center gap-1.5 mb-2">
+        <span className="text-[13px] font-medium tracking-wide uppercase text-[var(--q-text-tertiary)]" style={{ letterSpacing: '0.04em' }}>
+          {config.label}
+        </span>
+        <span className="text-[10px] text-[var(--q-text-tertiary)]/60 font-normal normal-case tracking-normal ml-1">
+          optional
+        </span>
         <Tooltip>
           <TooltipTrigger asChild>
-            <HelpCircle className="w-3.5 h-3.5 text-[var(--q-text-tertiary)] cursor-help" />
+            <HelpCircle className="w-3.5 h-3.5 text-[var(--q-text-tertiary)]/50 cursor-help ml-auto" />
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[250px]">
             <p className="text-sm">{config.tooltip}</p>
           </TooltipContent>
         </Tooltip>
-      </Label>
-      <div className="relative">
+      </label>
+
+      {/* Input wrapper — 56px height */}
+      <div
+        className={cn(
+          "flex items-center h-14 rounded-[10px] border transition-all duration-150",
+          "bg-[var(--q-bg-input)] border-[var(--q-border-default)]",
+          "focus-within:border-[var(--q-accent-primary)] focus-within:shadow-[0_0_0_3px_var(--q-accent-glow)]",
+          "hover:border-[var(--q-border-hover)]",
+          validation?.warningLevel === 'critical' && "border-[var(--q-status-red)]/50",
+          validation?.warningLevel === 'strong' && "border-[var(--q-status-yellow)]/50",
+          disabled && "opacity-50 cursor-not-allowed"
+        )}
+      >
         {config.prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
+          <span
+            className="pl-4 text-[15px] font-medium text-[var(--q-text-tertiary)] select-none pointer-events-none flex-shrink-0"
+            style={{ fontFamily: 'var(--q-font-mono)' }}
+          >
             {config.prefix}
           </span>
         )}
-        <Input
+        <input
           type="text"
           inputMode="numeric"
           value={value !== undefined ? value.toString() : ''}
@@ -338,27 +326,43 @@ function FinancialField({
           placeholder={config.placeholder}
           disabled={disabled}
           className={cn(
-            "h-12 text-[15px] transition-colors",
-            config.prefix && "pl-8",
-            config.suffix && "pr-9",
-            validation?.warningLevel === 'critical' && "border-[var(--q-status-red)]/50",
-            validation?.warningLevel === 'strong' && "border-[var(--q-status-yellow)]/50",
+            "flex-1 h-full bg-transparent border-none outline-none text-[var(--q-text-primary)]",
+            "text-lg font-semibold placeholder:text-[var(--q-text-tertiary)]/40",
+            config.prefix ? "pl-2 pr-4" : "pl-4 pr-4",
+            config.suffix && "pr-2",
           )}
+          style={{
+            fontFamily: 'var(--q-font-mono)',
+            WebkitAppearance: 'none',
+            MozAppearance: 'textfield',
+          }}
         />
         {config.suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
+          <span
+            className="pr-4 text-[15px] font-medium text-[var(--q-text-tertiary)] select-none pointer-events-none flex-shrink-0"
+            style={{ fontFamily: 'var(--q-font-mono)' }}
+          >
             {config.suffix}
           </span>
         )}
       </div>
+
+      {/* Subtext */}
+      <p className="text-[11px] text-[var(--q-text-tertiary)]/70 mt-1.5 pl-0.5">
+        {config.subtext}
+      </p>
+
+      {/* Benchmark warning */}
       {validation && validation.warningLevel !== 'none' && (
-        <BenchmarkWarning
-          warningLevel={validation.warningLevel}
-          message={validation.message}
-          benchmarkRange={validation.benchmarkRange}
-          percentile={validation.percentile}
-          onUseMedian={handleUseMedian}
-        />
+        <div className="mt-2">
+          <BenchmarkWarning
+            warningLevel={validation.warningLevel}
+            message={validation.message}
+            benchmarkRange={validation.benchmarkRange}
+            percentile={validation.percentile}
+            onUseMedian={handleUseMedian}
+          />
+        </div>
       )}
     </div>
   );

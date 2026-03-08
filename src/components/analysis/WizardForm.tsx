@@ -461,14 +461,23 @@ export function WizardForm({
 
           {/* 4. Starting capital */}
           <div className="space-y-2 q-metric-reveal" style={{ '--index': 0 } as React.CSSProperties}>
-            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+            <label className="flex items-center gap-1.5">
               <FieldCompletionDot isComplete={!!financialInputs.startup_investment && financialInputs.startup_investment > 0} />
-              <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
-              4. Starting capital
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm">$</span>
-              <Input
+              <span className="text-[13px] font-medium tracking-wide uppercase text-[var(--q-text-tertiary)]" style={{ letterSpacing: '0.04em' }}>
+                4. Starting capital
+              </span>
+              <span className="text-[10px] text-[var(--q-text-tertiary)]/60 font-normal normal-case tracking-normal ml-1">optional</span>
+            </label>
+            <div
+              className={cn(
+                "flex items-center h-14 rounded-[10px] border transition-all duration-150",
+                "bg-[var(--q-bg-input)] border-[var(--q-border-default)]",
+                "focus-within:border-[var(--q-accent-primary)] focus-within:shadow-[0_0_0_3px_var(--q-accent-glow)]",
+                "hover:border-[var(--q-border-hover)]",
+              )}
+            >
+              <span className="pl-4 text-[15px] font-medium text-[var(--q-text-tertiary)] select-none pointer-events-none flex-shrink-0" style={{ fontFamily: 'var(--q-font-mono)' }}>$</span>
+              <input
                 type="text"
                 inputMode="numeric"
                 value={financialInputs.startup_investment || ''}
@@ -478,24 +487,34 @@ export function WizardForm({
                 }}
                 placeholder="50,000"
                 disabled={isLoading}
-                className="pl-7 text-[15px]"
+                className="flex-1 h-full bg-transparent border-none outline-none text-[var(--q-text-primary)] text-lg font-semibold pl-2 pr-4 placeholder:text-[var(--q-text-tertiary)]/40"
+                style={{ fontFamily: 'var(--q-font-mono)', WebkitAppearance: 'none', MozAppearance: 'textfield' } as React.CSSProperties}
               />
             </div>
-            <span className="text-xs text-[var(--q-text-tertiary)]">
+            <p className="text-[11px] text-[var(--q-text-tertiary)]/70 pl-0.5">
               {investmentHint || 'Industry typical range shown after industry selection'}
-            </span>
+            </p>
           </div>
 
           {/* 5. Target price per customer */}
           <div className="space-y-2 q-metric-reveal" style={{ '--index': 1 } as React.CSSProperties}>
-            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+            <label className="flex items-center gap-1.5">
               <FieldCompletionDot isComplete={!!financialInputs.average_price && financialInputs.average_price > 0} />
-              <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
-              5. Target price per customer
-            </Label>
-            <div className="relative">
-              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm">$</span>
-              <Input
+              <span className="text-[13px] font-medium tracking-wide uppercase text-[var(--q-text-tertiary)]" style={{ letterSpacing: '0.04em' }}>
+                5. Target price per customer
+              </span>
+              <span className="text-[10px] text-[var(--q-text-tertiary)]/60 font-normal normal-case tracking-normal ml-1">optional</span>
+            </label>
+            <div
+              className={cn(
+                "flex items-center h-14 rounded-[10px] border transition-all duration-150",
+                "bg-[var(--q-bg-input)] border-[var(--q-border-default)]",
+                "focus-within:border-[var(--q-accent-primary)] focus-within:shadow-[0_0_0_3px_var(--q-accent-glow)]",
+                "hover:border-[var(--q-border-hover)]",
+              )}
+            >
+              <span className="pl-4 text-[15px] font-medium text-[var(--q-text-tertiary)] select-none pointer-events-none flex-shrink-0" style={{ fontFamily: 'var(--q-font-mono)' }}>$</span>
+              <input
                 type="text"
                 inputMode="numeric"
                 value={financialInputs.average_price || ''}
@@ -505,12 +524,13 @@ export function WizardForm({
                 }}
                 placeholder="89"
                 disabled={isLoading}
-                className="pl-7 text-[15px]"
+                className="flex-1 h-full bg-transparent border-none outline-none text-[var(--q-text-primary)] text-lg font-semibold pl-2 pr-4 placeholder:text-[var(--q-text-tertiary)]/40"
+                style={{ fontFamily: 'var(--q-font-mono)', WebkitAppearance: 'none', MozAppearance: 'textfield' } as React.CSSProperties}
               />
             </div>
-            {priceHint && (
-              <span className="text-xs text-[var(--q-text-tertiary)]">{priceHint}</span>
-            )}
+            <p className="text-[11px] text-[var(--q-text-tertiary)]/70 pl-0.5">
+              {priceHint || 'Per transaction / per month / per unit'}
+            </p>
             {priceValidation && priceValidation.warningLevel !== 'none' && (
               <BenchmarkWarning
                 warningLevel={priceValidation.warningLevel}
@@ -528,54 +548,68 @@ export function WizardForm({
 
           {/* 6. Expected customers */}
           <div className="space-y-2 q-metric-reveal" style={{ '--index': 2 } as React.CSSProperties}>
-            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+            <label className="flex items-center gap-1.5">
               <FieldCompletionDot isComplete={!!financialInputs.expected_customers && financialInputs.expected_customers > 0} />
-              <Users className="w-4 h-4 text-[var(--q-text-tertiary)]" />
-              6. Expected customers at launch
-            </Label>
-            <Input
-              type="text"
-              inputMode="numeric"
-              value={financialInputs.expected_customers || ''}
-              onChange={(e) => {
-                const val = e.target.value.replace(/[^\d]/g, '');
-                onFinancialInputsChange({ ...financialInputs, expected_customers: val ? Number(val) : undefined });
-              }}
-              placeholder="30"
-              disabled={isLoading}
-              className="text-[15px]"
-            />
+              <span className="text-[13px] font-medium tracking-wide uppercase text-[var(--q-text-tertiary)]" style={{ letterSpacing: '0.04em' }}>
+                6. Expected customers at launch
+              </span>
+            </label>
+            <div
+              className={cn(
+                "flex items-center h-14 rounded-[10px] border transition-all duration-150",
+                "bg-[var(--q-bg-input)] border-[var(--q-border-default)]",
+                "focus-within:border-[var(--q-accent-primary)] focus-within:shadow-[0_0_0_3px_var(--q-accent-glow)]",
+                "hover:border-[var(--q-border-hover)]",
+              )}
+            >
+              <input
+                type="text"
+                inputMode="numeric"
+                value={financialInputs.expected_customers || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^\d]/g, '');
+                  onFinancialInputsChange({ ...financialInputs, expected_customers: val ? Number(val) : undefined });
+                }}
+                placeholder="30"
+                disabled={isLoading}
+                className="flex-1 h-full bg-transparent border-none outline-none text-[var(--q-text-primary)] text-lg font-semibold pl-4 pr-4 placeholder:text-[var(--q-text-tertiary)]/40"
+                style={{ fontFamily: 'var(--q-font-mono)', WebkitAppearance: 'none', MozAppearance: 'textfield' } as React.CSSProperties}
+              />
+            </div>
+            <p className="text-[11px] text-[var(--q-text-tertiary)]/70 pl-0.5">Expected at launch</p>
           </div>
 
           {/* 7. Analysis depth */}
           <div className="space-y-3 q-metric-reveal" style={{ '--index': 3 } as React.CSSProperties}>
-            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+            <Label className="flex items-center gap-2 text-[13px] font-medium tracking-wide uppercase text-[var(--q-text-tertiary)]" style={{ letterSpacing: '0.04em' }}>
               <FieldCompletionDot isComplete={true} />
-              <Lightbulb className="w-4 h-4 text-[var(--q-text-tertiary)]" />
               7. Analysis depth
             </Label>
             <RadioGroup
               value={analysisDepth}
               onValueChange={(v) => setAnalysisDepth(v as 'quick' | 'full' | 'deep')}
-              className="flex gap-3"
+              className="flex gap-2.5"
             >
               {([
-                { value: 'quick', label: 'Quick', time: '30s' },
-                { value: 'full', label: 'Full', time: '90s' },
-                { value: 'deep', label: 'Deep', time: '3min' },
+                { value: 'quick', label: 'Quick', time: '30s', desc: 'Basic projections' },
+                { value: 'full', label: 'Full', time: '90s', desc: 'P&L + Cash Flow + Stress Map' },
+                { value: 'deep', label: 'Deep', time: '3min', desc: 'Full + Monte Carlo + Scenarios' },
               ] as const).map((opt) => (
                 <label
                   key={opt.value}
                   className={cn(
-                    'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-[var(--q-radius-md)] border cursor-pointer transition-all duration-[var(--q-duration-fast)]',
+                    'flex-1 flex flex-col items-center gap-1 px-3 py-3 rounded-[var(--q-radius-md)] border cursor-pointer transition-all duration-150',
                     analysisDepth === opt.value
                       ? 'bg-[var(--q-accent-glow)] border-[var(--q-accent-primary)]/40 text-[var(--q-accent-primary)]'
-                      : 'bg-[var(--q-bg-surface)] border-[var(--q-border-default)] text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)]'
+                      : 'bg-[var(--q-bg-surface)] border-[var(--q-border-default)] text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)] hover:border-[var(--q-border-hover)]'
                   )}
                 >
                   <RadioGroupItem value={opt.value} className="sr-only" />
-                  <span className="text-sm font-medium" style={{ fontFamily: 'var(--q-font-body)' }}>{opt.label}</span>
-                  <span className="text-xs text-[var(--q-text-tertiary)]">({opt.time})</span>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm font-semibold" style={{ fontFamily: 'var(--q-font-body)' }}>{opt.label}</span>
+                    <span className="text-xs text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>({opt.time})</span>
+                  </div>
+                  <span className="text-[10px] text-[var(--q-text-tertiary)] text-center leading-tight">{opt.desc}</span>
                 </label>
               ))}
             </RadioGroup>
