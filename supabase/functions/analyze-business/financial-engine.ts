@@ -868,3 +868,45 @@ $${metrics.mrr.toLocaleString()} - $${metrics.totalExpenses.toLocaleString()} = 
 ${audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 `.trim();
 }
+
+// ========== TRACED COMPUTATION WRAPPER ==========
+
+export interface CalculationStep {
+  label: string;
+  operation: string;
+  value: number;
+}
+
+export interface TracedResult {
+  result: ComputedMetrics;
+  steps: CalculationStep[];
+  confidence: number;
+}
+
+/**
+ * Wrapper around computeFinancials that returns a structured trace
+ * with { result, steps, confidence } for full auditability.
+ */
+export function computeFinancialsWithTrace(input: FinancialEngineInput): TracedResult {
+  const output = computeFinancials(input);
+
+  const steps: CalculationStep[] = output.audit.map(a => ({
+    label: a.formula.split('=')[0]?.trim() ?? a.formula,
+    operation: a.formula,
+    value: typeof a.result === 'number' ? a.result : 0,
+  }));
+
+  // Confidence: start at 100, deduct per issue severity
+  let confidence = 100;
+  for (const issue of output.validation.issues) {
+    if (issue.severity === 'error') confidence -= 15;
+    else if (issue.severity === 'warning') confidence -= 5;
+  }
+  confidence = Math.max(0, Math.min(100, confidence));
+
+  return {
+    result: output.metrics,
+    steps,
+    confidence,
+  };
+}
