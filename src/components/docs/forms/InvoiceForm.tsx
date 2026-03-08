@@ -553,7 +553,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           <CardTitle>Additional Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Payment Terms</Label>
               <Controller
@@ -583,6 +583,17 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 max={100}
                 {...form.register('tax_rate', { valueAsNumber: true })}
                 className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Discount ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                {...form.register('discount_amount', { valueAsNumber: true })}
+                className="mt-1"
+                placeholder="0.00"
               />
             </div>
           </div>
