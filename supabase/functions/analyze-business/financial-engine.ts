@@ -403,7 +403,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const breakEvenRevenue = QMath.round(QMath.breakEvenRevenue(fixedCosts, contributionMargin));
   
   const breakEvenUnits = avgCheck > 0
-    ? Math.ceil(breakEvenRevenue / avgCheck)
+    ? Math.ceil(QMath.divide(breakEvenRevenue, avgCheck).toNumber())
     : 0;
   
   const targetProfit = 45000;
