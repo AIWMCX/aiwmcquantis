@@ -25,6 +25,7 @@ import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
 import { AssumptionGraph } from './AssumptionGraph';
 import { ModelConfidenceBadge } from './ModelConfidenceBadge';
 import { ConfidenceBadge as OutputConfidenceBadge } from './ConfidenceBadge';
+import { MonteCarloResults } from './MonteCarloResults';
 import { calculateOutputConfidence } from '@/services/confidence-scorer';
 import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
