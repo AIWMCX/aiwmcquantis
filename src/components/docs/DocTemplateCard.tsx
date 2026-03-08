@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Scale, Settings, Code, Crown, Lock, Loader2, Download, RefreshCw } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { useDocSignals } from '@/hooks/useDocSignals';
 import type { TemplateCategory } from '@/types/document';
 import type { DocTemplate } from '@/services/docs-engine';
 
@@ -14,6 +15,7 @@ interface DocTemplateCardProps {
   fileUrl?: string;
   onGenerate: () => void;
   isLocked: boolean;
+  documentId?: string;
 }
 
 const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
@@ -37,14 +39,28 @@ export function DocTemplateCard({
   fileUrl,
   onGenerate,
   isLocked,
+  documentId,
 }: DocTemplateCardProps) {
   const category = (template.category as TemplateCategory) || 'finance';
   const estimatedTime = template.tier === 'plus' ? '~12s' : '~3s';
+  const { recordSignal } = useDocSignals();
 
   const handleDownload = () => {
     if (fileUrl) {
+      recordSignal(documentId ?? null, 'downloaded', undefined, {
+        template_id: template.template_id,
+        template_name: template.name,
+      });
       window.open(fileUrl, '_blank');
     }
+  };
+
+  const handleRegenerate = () => {
+    recordSignal(documentId ?? null, 'regenerated', undefined, {
+      template_id: template.template_id,
+      template_name: template.name,
+    });
+    onGenerate();
   };
 
   return (
@@ -114,7 +130,7 @@ export function DocTemplateCard({
               <Download className="w-4 h-4 mr-2" />
               Download
             </Button>
-            <Button variant="ghost" size="icon" onClick={onGenerate} title="Regenerate">
+            <Button variant="ghost" size="icon" onClick={handleRegenerate} title="Regenerate">
               <RefreshCw className="w-4 h-4" />
             </Button>
           </div>
