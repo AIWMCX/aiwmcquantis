@@ -110,6 +110,11 @@ const App = () => {
                     <DocsStudio />
                   </ProtectedRoute>
                 } />
+                <Route path="/app/invoices" element={
+                  <ProtectedRoute>
+                    <InvoiceManager />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Admin routes - require authentication + admin role */}
                 <Route path="/admin" element={
