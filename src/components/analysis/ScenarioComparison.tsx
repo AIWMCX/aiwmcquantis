@@ -80,12 +80,12 @@ function extractMetric(scenario: SavedScenario, metric: string): number | null {
     case 'revenue_month_6': {
       const monthly = base.revenue || fa?.mrr || 0;
       const growth = (scenario.params?.monthly_growth_rate || 0.05);
-      return Math.round(monthly * Math.pow(1 + growth, 5));
+      return QuantisMath.round(QuantisMath.multiply(monthly, QuantisMath.compound(1, growth, 5)));
     }
     case 'revenue_month_12': {
       const monthly = base.revenue || fa?.mrr || 0;
       const growth = (scenario.params?.monthly_growth_rate || 0.05);
-      return Math.round(monthly * Math.pow(1 + growth, 11));
+      return QuantisMath.round(QuantisMath.multiply(monthly, QuantisMath.compound(1, growth, 11)));
     }
     case 'break_even_month': return fa?.breakeven?.breakeven_months ?? ret?.payback_period_months ?? null;
     case 'net_margin': return base.net_margin ?? null;
