@@ -317,13 +317,13 @@ export function validateParamAgainstBenchmarks(
   }
 
   // Beyond p10/p90 but within 2× range: strong
-  const lowerBound = QMath.divide(p10, 2);
-  const upperBound = QMath.multiply(p90, 2);
+  const lowerBound = p10 / 2;
+  const upperBound = p90 * 2;
   if (value >= lowerBound && value <= upperBound) {
     const direction = value < p10 ? 'below' : 'above';
     const ratio = value < p10
-      ? QMath.round(QMath.divide(p10, Math.max(value, 0.01)), 1)
-      : QMath.round(QMath.divide(value, Math.max(p90, 0.01)), 1);
+      ? round(p10 / Math.max(value, 0.01), 1)
+      : round(value / Math.max(p90, 0.01), 1);
     return {
       isValid: false,
       warningLevel: 'strong',
