@@ -124,7 +124,7 @@ class QuantisLogger {
     const rows = batch.map(entry => ({
       analysis_id: entry.analysis_id,
       event_type: entry.event_type,
-      payload: entry.payload as Record<string, unknown> & { [key: string]: string | number | boolean | null },
+      payload: JSON.parse(JSON.stringify(entry.payload)),
       severity: entry.severity,
       user_id: entry.user_id || userId || undefined,
     }));
