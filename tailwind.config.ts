@@ -20,7 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Inter', ...fontFamily.sans],
+				sans: ['DM Sans', ...fontFamily.sans],
+				display: ['Sora', 'DM Sans', ...fontFamily.sans],
 				mono: ['JetBrains Mono', 'Fira Code', ...fontFamily.mono],
 			},
 			colors: {
