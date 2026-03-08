@@ -1,11 +1,10 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Send, Loader2, ChevronDown, FileText, Zap, CheckCircle2, ChevronRight, DollarSign, BarChart3, Lightbulb } from 'lucide-react';
-import { QuickStartTemplates } from './QuickStartTemplates';
+import { Brain, MapPin, Loader2, FileText, Zap, DollarSign, Users, Lightbulb } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { Badge } from '@/components/ui/badge';
+import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
@@ -13,6 +12,9 @@ import { FileUploader } from './FileUploader';
 import { AnalysisProgress } from './AnalysisProgress';
 import { AnonymousUsageNotice } from './AnonymousUsageNotice';
 import { DraftRecoveryBanner } from './DraftRecoveryBanner';
+import { QuickIndustryPicks } from './QuickIndustryPicks';
+import { FieldCompletionDot } from './FieldCompletionDot';
+import { FormProgressBar } from './FormProgressBar';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
@@ -50,22 +52,21 @@ interface WizardFormProps {
   isAuthenticated?: boolean;
 }
 
-// Compute step completeness
-function getStepStatus(step: number, idea: string, location: string, financialInputs: OptionalFinancialInputs, isAuthenticated: boolean, files: UploadedFile[]) {
-  if (step === 1) {
-    return idea.trim().length >= 10 && location.trim().length >= 2;
-  }
-  if (step === 2) {
-    const f = financialInputs;
-    const hasAny = !!(f.startup_investment || f.monthly_revenue || f.average_price || f.expected_customers || f.monthly_costs || f.cac);
-    return hasAny;
-  }
-  if (step === 3) {
-    const hasChurn = !!financialInputs.churn_rate;
-    const hasDocs = files.length > 0;
-    return hasChurn || hasDocs;
-  }
-  return false;
+function countCompletedFields(
+  idea: string,
+  location: string,
+  financialInputs: OptionalFinancialInputs,
+): number {
+  let count = 0;
+  if (financialInputs.selected_industry && financialInputs.selected_industry !== 'auto') count++;
+  if (location.trim().length >= 2) count++;
+  if (idea.trim().length >= 10) count++;
+  if (financialInputs.startup_investment && financialInputs.startup_investment > 0) count++;
+  if (financialInputs.average_price && financialInputs.average_price > 0) count++;
+  if (financialInputs.expected_customers && financialInputs.expected_customers > 0) count++;
+  // depth always has a default so count it
+  count++;
+  return count;
 }
 
 export function WizardForm({
@@ -89,24 +90,14 @@ export function WizardForm({
   onRemoveFile,
   isAuthenticated = false,
 }: WizardFormProps) {
-  const [activeStep, setActiveStep] = useState(1);
+  const [analysisDepth, setAnalysisDepth] = useState<'quick' | 'full' | 'deep'>('full');
   const [hasDraft, setHasDraft] = useState(false);
   const [draftAge, setDraftAge] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
   const analysisStartTime = useRef<number | null>(null);
 
-  const step1Complete = getStepStatus(1, idea, location, financialInputs, isAuthenticated, files);
-  const step2Complete = getStepStatus(2, idea, location, financialInputs, isAuthenticated, files);
-  const step3Complete = getStepStatus(3, idea, location, financialInputs, isAuthenticated, files);
-
-  // Auto-advance to step 2 when step 1 is complete
-  useEffect(() => {
-    if (step1Complete && activeStep === 1 && !isLoading) {
-      // Don't auto-advance if user just loaded the page with prefill
-      const timer = setTimeout(() => setActiveStep(2), 400);
-      return () => clearTimeout(timer);
-    }
-  }, [step1Complete]);
+  const filledCount = countCompletedFields(idea, location, financialInputs);
+  const TOTAL_FIELDS = 7;
 
   // Track when analysis starts
   useEffect(() => {
@@ -208,292 +199,309 @@ export function WizardForm({
     if (errors.location) onClearError('location');
   };
 
-  const steps = [
-    { num: 1, label: 'Idea & Market', icon: Brain, complete: step1Complete },
-    { num: 2, label: 'Core Numbers', icon: DollarSign, complete: step2Complete },
-    { num: 3, label: 'Advanced', icon: BarChart3, complete: step3Complete },
-  ];
-
-  const reliabilityGain = step2Complete ? (step3Complete ? 0 : 15) : 25;
+  const handleQuickIndustryPick = (industryId: string) => {
+    onFinancialInputsChange({
+      ...financialInputs,
+      selected_industry: industryId,
+    });
+  };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      {/* Draft Recovery */}
-      {hasDraft && !isRestored && (
-        <DraftRecoveryBanner draftAge={draftAge || 'recently'} onRestore={restoreDraft} onDismiss={dismissDraft} />
-      )}
-      {!isAuthenticated && <AnonymousUsageNotice />}
-
-      {/* Vertical Stepper */}
-      <div className="space-y-2">
-        {steps.map((step) => {
-          const isActive = activeStep === step.num;
-          const StepIcon = step.icon;
-
-          return (
-            <div key={step.num} className="relative">
-              {/* Step Header — always visible */}
-              <button
-                type="button"
-                onClick={() => setActiveStep(step.num)}
-                className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-[var(--q-radius-md)] border transition-all duration-[var(--q-duration-fast)] text-left',
-                  isActive
-                    ? 'border-[var(--q-accent-primary)]/40 bg-[var(--q-accent-glow)] shadow-sm'
-                    : step.complete
-                    ? 'border-[var(--q-border-default)] bg-card hover:bg-accent/50'
-                    : 'border-[var(--q-border-subtle)] bg-card/50 hover:bg-accent/30'
-                )}
-              >
-                {/* Step number circle */}
-                <div className={cn(
-                  'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
-                  step.complete
-                    ? 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]'
-                    : isActive
-                    ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]'
-                    : 'bg-muted text-muted-foreground'
-                )}>
-                  {step.complete ? (
-                    <CheckCircle2 className="w-4 h-4" />
-                  ) : (
-                    step.num
-                  )}
-                </div>
-
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className={cn(
-                      'text-sm font-medium',
-                      isActive ? 'text-foreground' : 'text-muted-foreground'
-                    )}>
-                      {step.label}
-                    </span>
-                    {step.num === 2 && step.complete && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-[var(--q-status-green-bg)] text-[var(--q-status-green)] border-[var(--q-status-green-border)]">
-                        +25% accuracy
-                      </Badge>
-                    )}
-                    {step.num === 3 && !step.complete && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 text-muted-foreground">
-                        Optional
-                      </Badge>
-                    )}
-                  </div>
-                  {/* Collapsed summary for completed, non-active steps */}
-                  {step.complete && !isActive && step.num === 1 && (
-                    <p className="text-xs text-muted-foreground truncate mt-0.5">
-                      {idea.slice(0, 60)}{idea.length > 60 ? '...' : ''} — {location}
-                    </p>
-                  )}
-                  {step.complete && !isActive && step.num === 2 && (
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      {[
-                        financialInputs.startup_investment && `$${Number(financialInputs.startup_investment).toLocaleString()} invest`,
-                        financialInputs.monthly_revenue && `$${Number(financialInputs.monthly_revenue).toLocaleString()}/mo`,
-                      ].filter(Boolean).join(' · ') || 'Numbers added'}
-                    </p>
-                  )}
-                </div>
-
-                <ChevronRight className={cn(
-                  'w-4 h-4 text-muted-foreground transition-transform shrink-0',
-                  isActive && 'rotate-90'
-                )} />
-              </button>
-
-              {/* Step Content — expanded */}
-              <div className={cn(
-                'overflow-hidden transition-all duration-300 ease-in-out',
-                isActive ? 'max-h-[800px] opacity-100 mt-2' : 'max-h-0 opacity-0'
-              )}>
-                <div className="px-4 py-3 rounded-[var(--q-radius-md)] border border-[var(--q-border-default)] bg-card space-y-4">
-                  {step.num === 1 && (
-                    <>
-                      {/* Quick-start templates */}
-                      {!idea.trim() && !location.trim() && !isLoading && (
-                        <QuickStartTemplates
-                          onSelect={(templateIdea, templateLocation) => {
-                            onIdeaChange(templateIdea);
-                            onLocationChange(templateLocation);
-                          }}
-                          disabled={isLoading}
-                        />
-                      )}
-
-                      <div className="space-y-2">
-                        <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
-                          <Brain className="w-4 h-4 text-[var(--q-text-tertiary)]" />
-                          Business Idea
-                        </Label>
-                        <Textarea
-                          id="idea"
-                          value={idea}
-                          onChange={(e) => handleIdeaChange(e.target.value)}
-                          placeholder="e.g. Coffee shop with remote work focus in a high-foot-traffic neighborhood"
-                          rows={3}
-                          disabled={isLoading}
-                          aria-invalid={!!errors.idea}
-                          className={cn(
-                            "resize-none transition-all text-[15px]",
-                            errors.idea && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]"
-                          )}
-                        />
-                        <div className="flex justify-between items-center">
-                          {errors.idea ? (
-                            <p className="text-xs text-[var(--q-status-red)]">{errors.idea}</p>
-                          ) : (
-                            <span className="text-xs text-[var(--q-text-tertiary)]">Min 10 chars — more detail = better analysis</span>
-                          )}
-                          <span className={cn("text-xs tabular-nums", idea.length > 5000 ? "text-destructive" : "text-muted-foreground")}>
-                            {idea.length.toLocaleString()}/5,000
-                          </span>
-                        </div>
-                      </div>
-
-                      <div className="space-y-2">
-                        <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
-                          <MapPin className="w-4 h-4 text-[var(--q-text-tertiary)]" />
-                          Location
-                        </Label>
-                        <Input
-                          id="location"
-                          value={location}
-                          onChange={(e) => handleLocationChange(e.target.value)}
-                          placeholder="e.g. Denver, Colorado"
-                          disabled={isLoading}
-                          aria-invalid={!!errors.location}
-                          className={cn("transition-all text-[15px]", errors.location && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]")}
-                        />
-                        {errors.location && <p className="text-xs text-[var(--q-status-red)]">{errors.location}</p>}
-                      </div>
-
-                      {/* Industry selector */}
-                      <IndustrySelector
-                        value={financialInputs.selected_industry || 'auto'}
-                        onChange={(value) => onFinancialInputsChange({
-                          ...financialInputs,
-                          selected_industry: value === 'auto' ? undefined : value
-                        })}
-                        disabled={isLoading}
-                      />
-                    </>
-                  )}
-
-                  {step.num === 2 && (
-                    <>
-                      <p className="text-xs text-muted-foreground">
-                        Add your estimates for more accurate projections. Leave empty to use industry benchmarks.
-                      </p>
-                      <AdvancedFinancialInputs
-                        financialInputs={financialInputs}
-                        onChange={onFinancialInputsChange}
-                        disabled={isLoading}
-                      />
-                    </>
-                  )}
-
-                  {step.num === 3 && (
-                    <>
-                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Lightbulb className="w-3.5 h-3.5 text-primary" />
-                        <span>Optional but strongly recommended for reliable projections</span>
-                      </div>
-
-                      {/* Churn + additional details */}
-                      <div className="grid grid-cols-2 gap-3">
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Monthly Churn Rate (%)</Label>
-                          <Input
-                            type="number"
-                            value={financialInputs.churn_rate || ''}
-                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, churn_rate: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="5"
-                            disabled={isLoading}
-                            className="text-sm h-9"
-                          />
-                        </div>
-                        <div className="space-y-1.5">
-                          <Label className="text-xs text-muted-foreground">Monthly Costs ($)</Label>
-                          <Input
-                            type="number"
-                            value={financialInputs.monthly_costs || ''}
-                            onChange={(e) => onFinancialInputsChange({ ...financialInputs, monthly_costs: e.target.value ? Number(e.target.value) : undefined })}
-                            placeholder="8,000"
-                            disabled={isLoading}
-                            className="text-sm h-9"
-                          />
-                        </div>
-                      </div>
-
-                      {/* Document upload */}
-                      {isAuthenticated && onUploadFiles && onRemoveFile ? (
-                        <div className="space-y-2">
-                          <div className="flex items-center gap-2">
-                            <FileText className="w-3.5 h-3.5 text-muted-foreground" />
-                            <Label className="text-xs font-medium text-foreground">
-                              Upload Documents
-                            </Label>
-                          </div>
-                          <FileUploader
-                            files={files}
-                            isUploading={isUploading}
-                            disabled={isLoading}
-                            maxFiles={maxFiles}
-                            allowedExtensions={allowedExtensions}
-                            onUpload={onUploadFiles}
-                            onRemove={onRemoveFile}
-                          />
-                        </div>
-                      ) : (
-                        <div className="p-3 rounded-lg bg-muted/50 border border-dashed border-muted-foreground/30 text-center">
-                          <FileText className="w-6 h-6 text-muted-foreground mx-auto mb-1" />
-                          <p className="text-xs font-medium text-foreground">Document Analysis</p>
-                          <p className="text-xs text-muted-foreground">Sign in to upload financial documents.</p>
-                        </div>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
-            </div>
-          );
-        })}
+    <form onSubmit={handleSubmit} className="space-y-0">
+      {/* Dark Hero Header */}
+      <div className="relative overflow-hidden rounded-t-[var(--q-radius-lg)] bg-[var(--q-bg-base)] dark:bg-[#0B1120] px-6 py-10 md:py-12 q-grid-pattern">
+        <div className="relative z-10 max-w-2xl">
+          <h1
+            className="text-3xl md:text-[40px] font-bold leading-tight text-[var(--q-text-primary)]"
+            style={{ fontFamily: 'var(--q-font-display)' }}
+          >
+            Stress-test your idea
+          </h1>
+          <p
+            className="mt-2 text-base text-[var(--q-text-secondary)]"
+            style={{ fontFamily: 'var(--q-font-body)' }}
+          >
+            Enter your details. We'll tell you exactly where it breaks.
+          </p>
+        </div>
       </div>
 
-      {/* Submit Button */}
-      <Button
-        type="submit"
-        disabled={!isFormValid || isLoading}
-        className="w-full gap-2 min-h-[48px] text-sm font-semibold shadow-lg hover:shadow-xl transition-all duration-200 hover:scale-[1.01]"
-        size="lg"
-      >
-        {isLoading ? (
-          <>
-            <Loader2 className="w-4 h-4 animate-spin" />
-            Analyzing...
-          </>
-        ) : (
-          <>
-            <Zap className="w-4 h-4" />
-            Analyze
-          </>
+      {/* Draft Recovery + Anonymous Notice */}
+      <div className="px-6 pt-4 space-y-3">
+        {hasDraft && !isRestored && (
+          <DraftRecoveryBanner draftAge={draftAge || 'recently'} onRestore={restoreDraft} onDismiss={dismissDraft} />
         )}
-      </Button>
+        {!isAuthenticated && <AnonymousUsageNotice />}
+      </div>
 
-      {/* Loading Progress */}
-      {isLoading && (
-        <AnalysisProgress
-          isLoading={isLoading}
-          startTime={analysisStartTime.current || undefined}
-          onRetry={() => {
-            analysisStartTime.current = Date.now();
-            const form = document.querySelector('form');
-            if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
-          }}
-          onCancel={onCancel}
-        />
-      )}
+      {/* Progress Bar */}
+      <div className="px-6 pt-4">
+        <FormProgressBar filledCount={filledCount} totalCount={TOTAL_FIELDS} />
+      </div>
+
+      {/* Two-Column Form */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pt-6">
+        {/* LEFT: Business Details */}
+        <div className="space-y-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
+            Business Details
+          </h2>
+
+          {/* 1. Industry */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={!!financialInputs.selected_industry && financialInputs.selected_industry !== 'auto'} />
+              1. What's your business?
+            </Label>
+            <IndustrySelector
+              value={financialInputs.selected_industry || 'auto'}
+              onChange={(value) => onFinancialInputsChange({
+                ...financialInputs,
+                selected_industry: value === 'auto' ? undefined : value
+              })}
+              disabled={isLoading}
+            />
+            <QuickIndustryPicks
+              selected={financialInputs.selected_industry}
+              onSelect={handleQuickIndustryPick}
+              disabled={isLoading}
+            />
+          </div>
+
+          {/* 2. Location */}
+          <div className="space-y-2">
+            <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={location.trim().length >= 2} />
+              <MapPin className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              2. Where are you launching?
+            </Label>
+            <Input
+              id="location"
+              value={location}
+              onChange={(e) => handleLocationChange(e.target.value)}
+              placeholder="City, State — e.g. Denver, Colorado"
+              disabled={isLoading}
+              aria-invalid={!!errors.location}
+              className={cn(
+                "transition-all text-[15px]",
+                errors.location && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]"
+              )}
+            />
+            {errors.location && <p className="text-xs text-[var(--q-status-red)]">{errors.location}</p>}
+          </div>
+
+          {/* 3. Description */}
+          <div className="space-y-2">
+            <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={idea.trim().length >= 10} />
+              <Brain className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              3. Describe it in one line
+            </Label>
+            <Textarea
+              id="idea"
+              value={idea}
+              onChange={(e) => handleIdeaChange(e.target.value)}
+              placeholder="e.g. Boutique fitness studio near LoDo with cycling and strength classes"
+              rows={3}
+              disabled={isLoading}
+              aria-invalid={!!errors.idea}
+              className={cn(
+                "resize-none transition-all text-[15px]",
+                errors.idea && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]"
+              )}
+            />
+            <div className="flex justify-between items-center">
+              {errors.idea ? (
+                <p className="text-xs text-[var(--q-status-red)]">{errors.idea}</p>
+              ) : (
+                <span className="text-xs text-[var(--q-text-tertiary)]">Min 10 chars — more detail = better analysis</span>
+              )}
+              <span className={cn("text-xs tabular-nums", idea.length > 5000 ? "text-[var(--q-status-red)]" : "text-[var(--q-text-tertiary)]")}>
+                {idea.length.toLocaleString()}/5,000
+              </span>
+            </div>
+          </div>
+
+          {/* Document upload (desktop: below left column) */}
+          {isAuthenticated && onUploadFiles && onRemoveFile && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-[var(--q-text-tertiary)]" />
+                <Label className="text-xs font-medium text-[var(--q-text-secondary)]">
+                  Upload Documents (optional)
+                </Label>
+              </div>
+              <FileUploader
+                files={files}
+                isUploading={isUploading}
+                disabled={isLoading}
+                maxFiles={maxFiles}
+                allowedExtensions={allowedExtensions}
+                onUpload={onUploadFiles}
+                onRemove={onRemoveFile}
+              />
+            </div>
+          )}
+        </div>
+
+        {/* RIGHT: Financial Parameters */}
+        <div className="space-y-5">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
+            Financial Parameters
+          </h2>
+
+          {/* 4. Starting capital */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={!!financialInputs.startup_investment && financialInputs.startup_investment > 0} />
+              <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              4. Starting capital
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm">$</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={financialInputs.startup_investment || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^\d]/g, '');
+                  onFinancialInputsChange({ ...financialInputs, startup_investment: val ? Number(val) : undefined });
+                }}
+                placeholder="50,000"
+                disabled={isLoading}
+                className="pl-7 text-[15px]"
+              />
+            </div>
+            <span className="text-xs text-[var(--q-text-tertiary)]">Industry typical range shown after industry selection</span>
+          </div>
+
+          {/* 5. Target price per customer */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={!!financialInputs.average_price && financialInputs.average_price > 0} />
+              <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              5. Target price per customer
+            </Label>
+            <div className="relative">
+              <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm">$</span>
+              <Input
+                type="text"
+                inputMode="numeric"
+                value={financialInputs.average_price || ''}
+                onChange={(e) => {
+                  const val = e.target.value.replace(/[^\d.]/g, '');
+                  onFinancialInputsChange({ ...financialInputs, average_price: val ? Number(val) : undefined });
+                }}
+                placeholder="89"
+                disabled={isLoading}
+                className="pl-7 text-[15px]"
+              />
+            </div>
+          </div>
+
+          {/* 6. Expected customers */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={!!financialInputs.expected_customers && financialInputs.expected_customers > 0} />
+              <Users className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              6. Expected customers at launch
+            </Label>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={financialInputs.expected_customers || ''}
+              onChange={(e) => {
+                const val = e.target.value.replace(/[^\d]/g, '');
+                onFinancialInputsChange({ ...financialInputs, expected_customers: val ? Number(val) : undefined });
+              }}
+              placeholder="30"
+              disabled={isLoading}
+              className="text-[15px]"
+            />
+          </div>
+
+          {/* 7. Analysis depth */}
+          <div className="space-y-3">
+            <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+              <FieldCompletionDot isComplete={true} />
+              <Lightbulb className="w-4 h-4 text-[var(--q-text-tertiary)]" />
+              7. Analysis depth
+            </Label>
+            <RadioGroup
+              value={analysisDepth}
+              onValueChange={(v) => setAnalysisDepth(v as 'quick' | 'full' | 'deep')}
+              className="flex gap-3"
+            >
+              {([
+                { value: 'quick', label: 'Quick', time: '30s' },
+                { value: 'full', label: 'Full', time: '90s' },
+                { value: 'deep', label: 'Deep', time: '3min' },
+              ] as const).map((opt) => (
+                <label
+                  key={opt.value}
+                  className={cn(
+                    'flex-1 flex items-center justify-center gap-2 px-3 py-2.5 rounded-[var(--q-radius-md)] border cursor-pointer transition-all duration-[var(--q-duration-fast)]',
+                    analysisDepth === opt.value
+                      ? 'bg-[var(--q-accent-glow)] border-[var(--q-accent-primary)]/40 text-[var(--q-accent-primary)]'
+                      : 'bg-[var(--q-bg-surface)] border-[var(--q-border-default)] text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)]'
+                  )}
+                >
+                  <RadioGroupItem value={opt.value} className="sr-only" />
+                  <span className="text-sm font-medium" style={{ fontFamily: 'var(--q-font-body)' }}>{opt.label}</span>
+                  <span className="text-xs text-[var(--q-text-tertiary)]">({opt.time})</span>
+                </label>
+              ))}
+            </RadioGroup>
+          </div>
+
+          {/* Advanced Collapsible */}
+          <AdvancedFinancialInputs
+            financialInputs={financialInputs}
+            onChange={onFinancialInputsChange}
+            disabled={isLoading}
+            industryType={financialInputs.selected_industry}
+          />
+        </div>
+      </div>
+
+      {/* Submit Section */}
+      <div className="px-6 pt-6 pb-6 space-y-4">
+        <Button
+          type="submit"
+          disabled={!isFormValid || isLoading}
+          className={cn(
+            "w-full h-14 text-base font-semibold rounded-[var(--q-radius-md)] gap-2 transition-all duration-200",
+            "q-btn-ai text-[var(--q-text-inverse)]",
+            (!isFormValid || isLoading) && "opacity-50 cursor-not-allowed"
+          )}
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="w-5 h-5 animate-spin" />
+              Analyzing...
+            </>
+          ) : (
+            <>
+              <Zap className="w-5 h-5" />
+              Run Stress-Test Analysis →
+            </>
+          )}
+        </Button>
+
+        {/* Loading Progress */}
+        {isLoading && (
+          <AnalysisProgress
+            isLoading={isLoading}
+            startTime={analysisStartTime.current || undefined}
+            onRetry={() => {
+              analysisStartTime.current = Date.now();
+              const form = document.querySelector('form');
+              if (form) form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+            }}
+            onCancel={onCancel}
+          />
+        )}
+      </div>
     </form>
   );
 }
