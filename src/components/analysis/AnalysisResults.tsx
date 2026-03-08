@@ -405,9 +405,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
 function MetricMini({ label, value, positive }: { label: string; value: string; positive: boolean }) {
   return (
-    <div className="p-2.5 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center">
-      <p className="text-[10px] font-medium text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
-      <p className={cn('text-sm font-bold tabular-nums', positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]')}>
+    <div className="q-card p-2.5 text-center">
+      <p className="text-label-sm mb-0.5">{label}</p>
+      <p className={cn('text-metric-xs', positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]')}>
         {value}
       </p>
     </div>

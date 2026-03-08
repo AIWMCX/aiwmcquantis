@@ -67,7 +67,7 @@ export default function ExamplesIndex() {
                       {ex.location}
                     </span>
                     {ex.score && (
-                      <span className="ml-auto text-metric-xs text-[var(--q-accent-primary)]">
+                      <span className="ml-auto text-metric-sm text-[var(--q-accent-primary)]">
                         {ex.score}/10
                       </span>
                     )}
