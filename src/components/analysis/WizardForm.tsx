@@ -621,6 +621,8 @@ export function WizardForm({
           <AnalysisProgress
             isLoading={isLoading}
             startTime={analysisStartTime.current || undefined}
+            businessType={financialInputs.selected_industry || undefined}
+            location={location || undefined}
             onRetry={() => {
               analysisStartTime.current = Date.now();
               const form = document.querySelector('form');
