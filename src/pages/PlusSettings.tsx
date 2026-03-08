@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandingSettings } from '@/components/pro/BrandingSettings';
 import { PlusValueIndicator } from '@/components/pro/PlusValueIndicator';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -17,7 +16,8 @@ import {
   Zap, 
   ArrowLeft, 
   Lock,
-  TrendingUp
+  TrendingUp,
+  Loader2
 } from 'lucide-react';
 
 export default function PlusSettings() {
