@@ -352,8 +352,8 @@ export function WizardForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+                          <MapPin className="w-4 h-4 text-[var(--q-text-tertiary)]" />
                           Location
                         </Label>
                         <Input
