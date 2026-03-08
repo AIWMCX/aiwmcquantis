@@ -187,7 +187,7 @@ export async function requestDocGeneration(
   }
 
   const report = reportResult.data.result as unknown as QuantisReport;
-  const brandProfile = (brandResult?.data ?? null) as UserBrandProfile | null;
+  const brandProfile = (brandResult?.data as unknown as UserBrandProfile) ?? null;
   const template = templateResult.data as unknown as DocTemplate;
   const templateVersion = (template as any).version ? Number((template as any).version) : 1;
 
