@@ -24,13 +24,13 @@ export function useDocSignals() {
       // Fire-and-forget — don't block UI
       supabase
         .from('doc_performance_signals')
-        .insert({
+        .insert([{
           document_id: documentId,
           user_id: user.id,
           signal_type: signalType,
           signal_value: signalValue ?? null,
-          context: context ?? {},
-        })
+          context: (context ?? {}) as unknown as Record<string, unknown>,
+        }])
         .then(({ error }) => {
           if (error) console.warn('Signal recording failed:', error.message);
         });

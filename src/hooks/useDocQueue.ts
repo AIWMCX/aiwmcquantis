@@ -62,15 +62,15 @@ export function useDocQueue() {
 
       const jobId = `job_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 
-      const { error } = await supabase.from('doc_generation_jobs').insert({
+      const { error } = await supabase.from('doc_generation_jobs').insert([{
         job_id: jobId,
         user_id: user.id,
         analysis_id: analysisId,
         template_id: templateId,
-        input_data: inputData,
+        input_data: inputData as unknown as Record<string, unknown>,
         status: 'queued',
         priority: 5,
-      });
+      }]);
 
       if (error) {
         toast.error(`Failed to queue: ${error.message}`);
