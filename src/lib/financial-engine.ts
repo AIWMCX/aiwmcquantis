@@ -133,7 +133,10 @@ export function calculateUnitEconomics(params: UnitEconomicsParams): UnitEconomi
   let ltvNpv = Q.multiply(1, 0);
   const ltMonths = Math.min(Q.toNumber(lifetimeMonths), 120);
   for (let t = 1; t <= Math.ceil(ltMonths); t++) {
-    const discountFactor = Q.power(Q.add(1, monthlyDiscount), t);
+    const discountFactor = Q.add(1, monthlyDiscount);
+    // (1+r)^t via repeated multiply
+    let df = Q.multiply(1, 1);
+    for (let i = 0; i < t; i++) df = Q.multiply(df, discountFactor);
     ltvNpv = Q.add(ltvNpv, Q.divide(marginPerCustomer, discountFactor));
   }
 
