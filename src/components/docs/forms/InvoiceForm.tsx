@@ -295,8 +295,10 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     clearDraft(); // Clear draft on successful submit
 
     const lineItemsWithAmount = data.line_items.map(item => ({
-      ...item,
-      amount: item.quantity * item.unit_price,
+      description: item.description || '',
+      quantity: item.quantity || 0,
+      unit_price: item.unit_price || 0,
+      amount: (item.quantity || 0) * (item.unit_price || 0),
     }));
 
     // Persist invoice record in DB
