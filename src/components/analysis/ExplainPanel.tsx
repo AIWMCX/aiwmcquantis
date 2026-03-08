@@ -1,33 +1,84 @@
 import React, { useEffect, useCallback } from 'react';
-import { X } from 'lucide-react';
+import { X, Zap, ExternalLink } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { CONFIDENCE_BADGE_CONFIG, type ConfidenceTier } from '@/services/confidence-scorer';
+
+export interface FormulaStep {
+  label: string;
+  value: number;
+  operation: string;
+  /** Optional sub-explanation shown indented below */
+  detail?: string;
+  /** '+' | '-' | '=' to prefix the value */
+  sign?: '+' | '-' | '=';
+}
+
+export interface BenchmarkData {
+  industryType: string;
+  location?: string;
+  p10?: number;
+  p25: number;
+  p50: number;
+  p75: number;
+  p90?: number;
+  source?: string;
+  sourceYear?: number;
+  version?: string;
+  updatedDaysAgo?: number;
+}
+
+export interface ModelContribution {
+  model: string;
+  value: number;
+  weight: number;
+}
+
+export interface GeoContext {
+  location: string;
+  rentMultiplier?: number;
+  salaryMultiplier?: number;
+}
 
 export interface ExplainPanelProps {
   metricName: string;
   metricValue: number;
   unit: string;
-  formulaSteps: { label: string; operation: string; value: number }[];
-  benchmark: { p25: number; p50: number; p75: number; industryType: string };
+  formulaSteps: FormulaStep[];
+  benchmark: BenchmarkData;
   explanation: string;
   confidence: number;
-  confidenceTier: ConfidenceTier;
-  modelContributions: { model: string; weight: number; value: number }[];
+  confidenceTier: 'verified' | 'confident' | 'estimated' | 'uncertain' | 'blocked';
+  modelContributions: ModelContribution[];
+  geoContext?: GeoContext;
   isOpen: boolean;
   onClose: () => void;
+  onViewFullPnL?: () => void;
 }
 
-function getBenchmarkZone(value: number, b: { p25: number; p75: number }) {
-  if (value >= b.p25 && value <= b.p75) return 'emerald';
-  return 'destructive';
-}
+const TIER_CONFIG: Record<string, { label: string; color: string; border: string }> = {
+  verified: { label: 'VERIFIED', color: 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]', border: 'var(--q-status-green)' },
+  confident: { label: 'CONFIDENT', color: 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]', border: 'var(--q-accent-primary)' },
+  estimated: { label: 'ESTIMATED', color: 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)]', border: 'var(--q-status-yellow)' },
+  uncertain: { label: 'UNCERTAIN', color: 'bg-[var(--q-status-orange-bg,var(--q-status-yellow-bg))] text-[var(--q-status-orange,var(--q-status-yellow))]', border: 'var(--q-status-orange, var(--q-status-yellow))' },
+  blocked: { label: 'BLOCKED', color: 'bg-[var(--q-status-red-bg)] text-[var(--q-status-red)]', border: 'var(--q-status-red)' },
+};
 
-function getMarkerPosition(value: number, b: { p25: number; p50: number; p75: number }) {
-  const range = b.p75 - b.p25;
+function getPercentilePosition(value: number, b: BenchmarkData): number {
+  const min = b.p10 ?? b.p25 * 0.6;
+  const max = b.p90 ?? b.p75 * 1.4;
+  const range = max - min;
   if (range === 0) return 50;
-  // Map value to 10–90% of bar width, with p25 at 25% and p75 at 75%
-  const normalized = ((value - b.p25) / range) * 50 + 25;
-  return Math.max(2, Math.min(98, normalized));
+  return Math.max(2, Math.min(98, ((value - min) / range) * 100));
+}
+
+function estimatePercentile(value: number, b: BenchmarkData): number {
+  if (value <= (b.p10 ?? b.p25 * 0.6)) return 10;
+  if (value <= b.p25) return 25;
+  if (value <= b.p50) return 50;
+  if (value <= b.p75) return 75;
+  if (value >= (b.p90 ?? b.p75 * 1.4)) return 90;
+  // Interpolate between p75 and p90
+  const p90 = b.p90 ?? b.p75 * 1.4;
+  return Math.round(75 + ((value - b.p75) / (p90 - b.p75)) * 15);
 }
 
 export function ExplainPanel({
@@ -40,8 +91,10 @@ export function ExplainPanel({
   confidence,
   confidenceTier,
   modelContributions,
+  geoContext,
   isOpen,
   onClose,
+  onViewFullPnL,
 }: ExplainPanelProps) {
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if (e.key === 'Escape') onClose();
@@ -50,21 +103,38 @@ export function ExplainPanel({
   useEffect(() => {
     if (isOpen) {
       document.addEventListener('keydown', handleKeyDown);
-      return () => document.removeEventListener('keydown', handleKeyDown);
+      document.body.style.overflow = 'hidden';
+      return () => {
+        document.removeEventListener('keydown', handleKeyDown);
+        document.body.style.overflow = '';
+      };
     }
   }, [isOpen, handleKeyDown]);
 
-  const badgeConfig = CONFIDENCE_BADGE_CONFIG[confidenceTier];
-  const zone = getBenchmarkZone(metricValue, benchmark);
-  const markerPos = getMarkerPosition(metricValue, benchmark);
-  const totalWeight = modelContributions.reduce((sum, m) => sum + m.weight, 0) || 1;
+  const tier = TIER_CONFIG[confidenceTier] || TIER_CONFIG.estimated;
+  const markerPos = getPercentilePosition(metricValue, benchmark);
+  const userPercentile = estimatePercentile(metricValue, benchmark);
+  const aboveMedian = metricValue >= benchmark.p50;
+  const totalWeight = modelContributions.reduce((s, m) => s + m.weight, 0) || 1;
+
+  // Agreement calculation
+  const modelValues = modelContributions.map(m => m.value);
+  const agreement = modelValues.length >= 2
+    ? Math.round((1 - Math.abs(modelValues[0] - modelValues[1]) / Math.max(modelValues[0], modelValues[1], 1)) * 100)
+    : null;
+  const delta = modelValues.length >= 2
+    ? Math.abs(modelValues[0] - modelValues[1])
+    : null;
+  const deltaPercent = modelValues.length >= 2 && modelValues[0] > 0
+    ? ((delta! / modelValues[0]) * 100).toFixed(1)
+    : null;
 
   return (
     <>
       {/* Backdrop */}
       {isOpen && (
         <div
-          className="fixed inset-0 bg-background/60 backdrop-blur-sm z-40"
+          className="fixed inset-0 bg-[var(--q-bg-base)]/60 backdrop-blur-sm z-40 transition-opacity duration-200"
           onClick={onClose}
           aria-hidden
         />
@@ -73,136 +143,189 @@ export function ExplainPanel({
       {/* Drawer */}
       <div
         className={cn(
-          'fixed top-0 right-0 h-full w-full max-w-md bg-card border-l border-border shadow-2xl z-50',
-          'transition-transform duration-300 ease-out overflow-y-auto',
-          isOpen ? 'translate-x-0' : 'translate-x-full'
+          'fixed top-0 right-0 h-full w-full sm:max-w-[420px] z-50',
+          'bg-[var(--q-bg-surface)] shadow-2xl overflow-y-auto',
+          'transition-transform ease-out',
+          isOpen ? 'translate-x-0 duration-300' : 'translate-x-full duration-200'
         )}
+        style={{ borderLeft: `3px solid ${tier.border}` }}
         role="dialog"
         aria-label={`Explanation for ${metricName}`}
       >
         {/* Header */}
-        <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
-          <div>
-            <h2 className="text-sm font-semibold text-foreground">{metricName}</h2>
-            <p className="text-xs text-muted-foreground">
-              <span className="font-mono font-bold text-foreground">{metricValue.toLocaleString()}</span> {unit}
-            </p>
+        <div className="sticky top-0 bg-[var(--q-bg-surface)] border-b border-[var(--q-border-subtle)] p-4 z-10">
+          <div className="flex items-start justify-between gap-3">
+            <div className="space-y-1 min-w-0">
+              <h2 className="text-sm font-semibold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
+                {metricName}
+              </h2>
+              <p className="text-xl font-bold text-[var(--q-text-primary)] tabular-nums" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
+                {unit === '$' ? '$' : ''}{metricValue.toLocaleString()}{unit !== '$' ? ` ${unit}` : ''}
+              </p>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={cn('inline-flex items-center gap-1 px-2 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider', tier.color)}>
+                {tier.label} <Zap className="w-3 h-3" /> {confidence}%
+              </span>
+              <button
+                onClick={onClose}
+                className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-[var(--q-bg-elevated)] transition-colors"
+                aria-label="Close"
+              >
+                <X className="w-4 h-4 text-[var(--q-text-secondary)]" />
+              </button>
+            </div>
           </div>
-          <button
-            onClick={onClose}
-            className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-muted transition-colors"
-            aria-label="Close"
-          >
-            <X className="w-4 h-4" />
-          </button>
         </div>
 
-        <div className="p-4 space-y-6">
-          {/* Section 1: Calculation Chain */}
+        <div className="p-4 space-y-5">
+          {/* ── CALCULATION ── */}
           <section>
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Calculation Chain</h3>
-            <div className="space-y-2">
+            <h3 className="text-[11px] font-bold text-[var(--q-text-tertiary)] uppercase tracking-widest mb-3">Calculation</h3>
+            <div className="space-y-1">
               {formulaSteps.map((step, i) => (
-                <div key={i} className="flex items-start gap-2 p-2 rounded-lg bg-muted/30">
-                  <span className="w-5 h-5 rounded-full bg-primary/10 text-primary text-[10px] font-bold flex items-center justify-center shrink-0 mt-0.5">
-                    {i + 1}
-                  </span>
-                  <div className="text-xs">
-                    <span className="text-foreground">{step.label}</span>
-                    <span className="text-muted-foreground"> = </span>
-                    <span className="text-muted-foreground">{step.operation}</span>
-                    <span className="text-muted-foreground"> = </span>
-                    <span className="font-mono font-bold text-foreground">
-                      {typeof step.value === 'number' ? step.value.toLocaleString() : step.value}
+                <div key={i} className="space-y-0.5">
+                  <div className="flex items-center gap-2 p-2 rounded-lg bg-[var(--q-bg-elevated)]">
+                    <span className="w-5 h-5 rounded-full bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] text-[10px] font-bold flex items-center justify-center shrink-0">
+                      {i + 1}
+                    </span>
+                    <span className="text-xs text-[var(--q-text-primary)] flex-1">{step.label}</span>
+                    <span className="text-xs font-bold tabular-nums text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
+                      {step.sign === '-' ? '−' : step.sign === '=' ? '=' : ''} ${Math.abs(step.value).toLocaleString()}
                     </span>
                   </div>
+                  {step.detail && (
+                    <p className="text-[11px] text-[var(--q-text-tertiary)] pl-9 pb-1">
+                      └ {step.detail}
+                    </p>
+                  )}
                 </div>
               ))}
               {formulaSteps.length === 0 && (
-                <p className="text-xs text-muted-foreground italic">No detailed calculation steps available.</p>
+                <p className="text-xs text-[var(--q-text-tertiary)] italic">No detailed calculation steps available.</p>
               )}
             </div>
+            {onViewFullPnL && (
+              <button onClick={onViewFullPnL} className="mt-2 text-xs text-[var(--q-accent-primary)] hover:underline flex items-center gap-1">
+                View full 36-month P&L <ExternalLink className="w-3 h-3" />
+              </button>
+            )}
           </section>
 
-          {/* Section 2: Benchmark Position */}
+          <hr className="border-[var(--q-border-subtle)]" />
+
+          {/* ── BENCHMARK POSITION ── */}
           <section>
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Benchmark Position</h3>
-            <p className="text-[10px] text-muted-foreground mb-2">
-              Industry: {benchmark.industryType.replace(/_/g, ' ')}
+            <h3 className="text-[11px] font-bold text-[var(--q-text-tertiary)] uppercase tracking-widest mb-1">Benchmark Position</h3>
+            <p className="text-[11px] text-[var(--q-text-tertiary)] mb-3">
+              {benchmark.industryType.replace(/_/g, ' ')}
+              {benchmark.location ? ` · ${benchmark.location}` : ''}
             </p>
-            <div className="relative h-8 rounded-lg bg-muted/30 border border-border">
-              {/* P25 / P50 / P75 markers */}
-              <div className="absolute top-0 h-full w-px bg-border" style={{ left: '25%' }} />
-              <div className="absolute top-0 h-full w-px bg-primary/40" style={{ left: '50%' }} />
-              <div className="absolute top-0 h-full w-px bg-border" style={{ left: '75%' }} />
 
-              {/* Value marker */}
-              <div
-                className={cn(
-                  'absolute top-1/2 -translate-y-1/2 w-3 h-3 rounded-full border-2 border-card shadow-sm transition-all duration-500',
-                  zone === 'emerald' ? 'bg-emerald-500' : 'bg-destructive'
-                )}
-                style={{ left: `${markerPos}%` }}
-              />
-
-              {/* Labels */}
-              <div className="absolute -bottom-4 text-[9px] text-muted-foreground font-mono" style={{ left: '25%', transform: 'translateX(-50%)' }}>
-                p25: {benchmark.p25}
-              </div>
-              <div className="absolute -bottom-4 text-[9px] text-primary font-mono font-semibold" style={{ left: '50%', transform: 'translateX(-50%)' }}>
-                p50: {benchmark.p50}
-              </div>
-              <div className="absolute -bottom-4 text-[9px] text-muted-foreground font-mono" style={{ left: '75%', transform: 'translateX(-50%)' }}>
-                p75: {benchmark.p75}
-              </div>
+            {/* Percentile labels row */}
+            <div className="flex justify-between text-[9px] tabular-nums text-[var(--q-text-tertiary)] mb-1 px-0.5" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
+              {benchmark.p10 !== undefined && <span>p10</span>}
+              <span>p25</span>
+              <span>p50</span>
+              <span>p75</span>
+              {benchmark.p90 !== undefined && <span>p90</span>}
             </div>
-            <div className="mt-6" />
+
+            {/* Values row */}
+            <div className="flex justify-between text-[9px] tabular-nums text-[var(--q-text-secondary)] mb-2 px-0.5" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
+              {benchmark.p10 !== undefined && <span>{benchmark.p10}%</span>}
+              <span>{benchmark.p25}%</span>
+              <span>{benchmark.p50}%</span>
+              <span>{benchmark.p75}%</span>
+              {benchmark.p90 !== undefined && <span>{benchmark.p90}%</span>}
+            </div>
+
+            {/* Track */}
+            <div className="relative h-3 rounded-full bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] mb-2">
+              {/* IQR highlight */}
+              <div
+                className="absolute top-0 h-full rounded-full bg-[var(--q-accent-glow)]"
+                style={{
+                  left: `${getPercentilePosition(benchmark.p25, benchmark)}%`,
+                  width: `${getPercentilePosition(benchmark.p75, benchmark) - getPercentilePosition(benchmark.p25, benchmark)}%`,
+                }}
+              />
+              {/* User marker */}
+              <div
+                className="absolute top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-[var(--q-bg-surface)] shadow-md transition-all duration-500"
+                style={{
+                  left: `${markerPos}%`,
+                  transform: `translateX(-50%) translateY(-50%)`,
+                  background: aboveMedian ? 'var(--q-status-green)' : 'var(--q-status-yellow)',
+                }}
+              />
+            </div>
+
+            <p className="text-xs text-[var(--q-text-secondary)]">
+              <span className="font-medium">↑ You are here (p{userPercentile})</span>
+            </p>
+            <p className={cn('text-xs mt-1', aboveMedian ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-yellow)]')}>
+              {aboveMedian
+                ? `Above median for ${benchmark.industryType.replace(/_/g, ' ')} ✓`
+                : `Below median — room for improvement`}
+            </p>
           </section>
 
-          {/* Section 3: AI Model Contributions */}
+          <hr className="border-[var(--q-border-subtle)]" />
+
+          {/* ── AI MODELS ── */}
           {modelContributions.length > 0 && (
             <section>
-              <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">AI Model Contributions</h3>
-              <div className="space-y-2">
+              <h3 className="text-[11px] font-bold text-[var(--q-text-tertiary)] uppercase tracking-widest mb-3">AI Models</h3>
+              <div className="space-y-2.5">
                 {modelContributions.map((m, i) => (
-                  <div key={i} className="flex items-center gap-2">
-                    <span className="text-xs text-foreground w-20 truncate">{m.model}</span>
-                    <div className="flex-1 h-2 rounded-full bg-muted/40 overflow-hidden">
+                  <div key={i} className="flex items-center gap-2.5">
+                    <span className="text-xs text-[var(--q-text-primary)] w-24 truncate font-medium">{m.model}</span>
+                    <span className="text-xs tabular-nums text-[var(--q-text-secondary)] w-16 text-right" style={{ fontFamily: 'var(--q-font-mono, ui-monospace, monospace)' }}>
+                      ${m.value.toLocaleString()}
+                    </span>
+                    <div className="flex-1 h-2 rounded-full bg-[var(--q-bg-elevated)] overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-primary/70 transition-all duration-500"
+                        className="h-full rounded-full bg-[var(--q-accent-primary)] transition-all duration-500"
                         style={{ width: `${(m.weight / totalWeight) * 100}%` }}
                       />
                     </div>
-                    <span className="text-[10px] text-muted-foreground font-mono w-14 text-right">
-                      {(m.weight * 100).toFixed(0)}% · {m.value.toLocaleString()}
+                    <span className="text-[10px] tabular-nums text-[var(--q-text-tertiary)] w-8 text-right">
+                      {Math.round((m.weight / totalWeight) * 100)}%
                     </span>
                   </div>
                 ))}
               </div>
+              {agreement !== null && delta !== null && (
+                <p className="text-xs text-[var(--q-text-secondary)] mt-2 tabular-nums">
+                  Agreement: <span className="font-bold text-[var(--q-text-primary)]">{agreement}%</span>
+                  {' '}∆ ${delta.toLocaleString()} ({deltaPercent}%)
+                </p>
+              )}
             </section>
           )}
 
-          {/* Section 4: Confidence */}
-          <section>
-            <h3 className="text-xs font-semibold text-foreground uppercase tracking-wider mb-3">Confidence</h3>
-            <div className="flex items-center gap-2 mb-2">
-              <span className={cn(
-                'inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold border',
-                `bg-${badgeConfig.color}-500/10 text-${badgeConfig.color}-700 dark:text-${badgeConfig.color}-400 border-${badgeConfig.color}-500/30`
-              )}>
-                {badgeConfig.label}
-              </span>
-              <span className="text-sm font-mono font-bold text-foreground">{confidence.toFixed(1)}</span>
-            </div>
-            <p className="text-xs text-muted-foreground">{explanation}</p>
-          </section>
+          <hr className="border-[var(--q-border-subtle)]" />
 
-          {/* Footer */}
-          <div className="pt-3 border-t border-border">
-            <p className="text-[10px] text-muted-foreground">
-              Data refreshed within this session
+          {/* ── FOOTER: Sources ── */}
+          <section className="space-y-1">
+            <p className="text-[10px] text-[var(--q-text-tertiary)]">
+              Benchmark source: {benchmark.source || 'Industry reports'}{benchmark.sourceYear ? ` ${benchmark.sourceYear}` : ''}
+              {benchmark.version ? ` · ${benchmark.version}` : ''}
             </p>
-          </div>
+            {geoContext && (
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">
+                Geo: {geoContext.location}
+                {geoContext.rentMultiplier ? ` · Rent ×${geoContext.rentMultiplier.toFixed(2)}` : ''}
+                {geoContext.salaryMultiplier ? ` · Salary ×${geoContext.salaryMultiplier.toFixed(2)}` : ''}
+              </p>
+            )}
+            {benchmark.updatedDaysAgo !== undefined && (
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">
+                Updated: {benchmark.updatedDaysAgo === 0 ? 'today' : `${benchmark.updatedDaysAgo} days ago`}
+              </p>
+            )}
+          </section>
         </div>
       </div>
     </>

@@ -18,45 +18,45 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
 
   return (
     <>
-      <div className="relative p-3 rounded-lg bg-muted/30 border border-border text-center group">
+      <div className="relative p-3 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center group">
         {/* Confidence dot */}
         {explainData && (
           <div className={cn(
             'absolute top-1.5 right-1.5 w-2 h-2 rounded-full',
-            explainData.confidenceTier === 'verified' ? 'bg-emerald-500' :
-            explainData.confidenceTier === 'confident' ? 'bg-blue-500' :
-            explainData.confidenceTier === 'estimated' ? 'bg-amber-500' :
-            explainData.confidenceTier === 'uncertain' ? 'bg-orange-500' :
-            'bg-destructive'
+            explainData.confidenceTier === 'verified' ? 'bg-[var(--q-status-green)]' :
+            explainData.confidenceTier === 'confident' ? 'bg-[var(--q-accent-primary)]' :
+            explainData.confidenceTier === 'estimated' ? 'bg-[var(--q-status-yellow)]' :
+            explainData.confidenceTier === 'uncertain' ? 'bg-[var(--q-status-orange)]' :
+            'bg-[var(--q-status-red)]'
           )} />
         )}
 
-        {/* Explain button */}
+        {/* Explain [?] button — appears on hover */}
         {explainData && (
           <button
             onClick={() => setExplainOpen(true)}
-            className="absolute top-1 left-1 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-muted"
+            className="absolute top-1 left-1 w-5 h-5 rounded flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-[var(--q-bg-overlay)]"
             aria-label={`Explain ${label}`}
           >
-            <HelpCircle className="w-3 h-3 text-muted-foreground" />
+            <HelpCircle className="w-3 h-3 text-[var(--q-text-tertiary)]" />
           </button>
         )}
 
-        <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
+        <p className="text-xs text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
         <div className="flex items-center justify-center gap-1">
           <p className={cn(
             'text-base sm:text-lg font-bold tabular-nums transition-all duration-300',
-            positive ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
+            positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
           )}>
             {value}
           </p>
           {trend && (
             trend === 'up'
-              ? <TrendingUp className="w-3 h-3 text-emerald-500" />
-              : <TrendingDown className="w-3 h-3 text-destructive" />
+              ? <TrendingUp className="w-3 h-3 text-[var(--q-status-green)]" />
+              : <TrendingDown className="w-3 h-3 text-[var(--q-status-red)]" />
           )}
         </div>
-        {delta && <p className="text-[10px] text-muted-foreground mt-0.5">{delta}</p>}
+        {delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
       </div>
 
       {explainData && (
