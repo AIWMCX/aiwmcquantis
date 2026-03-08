@@ -6,7 +6,9 @@
  * realistic ranges with graduated warning levels.
  */
 
-import { QMath } from './quantis-math';
+import { QuantisMath } from './quantis-math';
+
+const QMath = new QuantisMath();
 
 // ─── Interfaces ──────────────────────────────────────────────
 
