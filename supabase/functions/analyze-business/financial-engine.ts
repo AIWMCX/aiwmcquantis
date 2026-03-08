@@ -565,7 +565,7 @@ function generateScenarios(
     },
     base: {
       revenue: mrr,
-      variableCosts: cogs + marketing,
+      variableCosts: QMath.round(QMath.add(cogs, marketing)),
       fixedCosts,
       grossProfit,
       netProfit,
