@@ -51,11 +51,11 @@ const CATEGORY_ICON_MAP: Record<string, React.ReactNode> = {
   tech: <Code className="w-4 h-4 text-[var(--q-accent-secondary)]" />,
 };
 
-const FILTER_TABS: { value: FilterTab; label: string }[] = [
-  { value: 'all', label: 'All' },
-  { value: 'starred', label: '⭐ Starred' },
-  { value: 'invoices', label: '📄 Invoices' },
-  { value: 'reports', label: 'Reports' },
+const FILTER_TABS: { value: FilterTab; label: string; icon: React.ReactNode }[] = [
+  { value: 'all', label: 'All', icon: null },
+  { value: 'starred', label: 'Starred', icon: <Star className="w-3.5 h-3.5" /> },
+  { value: 'invoices', label: 'Invoices', icon: <FileText className="w-3.5 h-3.5" /> },
+  { value: 'reports', label: 'Reports', icon: null },
 ];
 
 export function DocumentLibrary({ userId }: DocumentLibraryProps) {

@@ -120,7 +120,7 @@ export function DocGeneratorPanel({ analysisId, report, userId }: DocGeneratorPa
         <div>
           <h3 className="text-lg font-semibold text-[var(--q-text-primary)] flex items-center gap-2" style={{ fontFamily: 'var(--q-font-heading)' }}>
             <FileText className="w-5 h-5 text-[var(--q-accent-primary)]" />
-            📄 Generate Documents
+            Generate Documents
           </h3>
           <p className="text-sm text-[var(--q-text-secondary)] mt-1">
             Turn your analysis into professional documents instantly

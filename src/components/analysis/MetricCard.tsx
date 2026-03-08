@@ -68,13 +68,14 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
           )}>
             {value}
           </p>
-          {trend && (
+          )}
+          {!blocked && trend && (
             trend === 'up'
               ? <TrendingUp className="w-3 h-3 text-[var(--q-status-green)]" />
               : <TrendingDown className="w-3 h-3 text-[var(--q-status-red)]" />
           )}
         </div>
-        {delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
+        {!blocked && delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
       </div>
 
       {explainData && (

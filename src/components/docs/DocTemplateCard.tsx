@@ -67,7 +67,7 @@ export function DocTemplateCard({
       {isLocked && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[var(--q-radius-lg)] bg-[var(--q-bg-surface)]/40 backdrop-blur-[2px]">
           <Lock className="w-5 h-5 text-[var(--q-text-tertiary)] mb-1" />
-          <span className="text-xs font-medium text-[var(--q-text-secondary)]">🔒 Plus Plan</span>
+          <span className="text-xs font-medium text-[var(--q-text-secondary)]">Plus Plan</span>
         </div>
       )}
 

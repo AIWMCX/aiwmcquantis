@@ -91,7 +91,7 @@ export function ConfidenceBadge({ confidence }: ConfidenceBadgeProps) {
         <div className="space-y-1 mb-3">
           {confidence.warnings.map((w, i) => (
             <div key={i} className="flex items-start gap-1.5 text-xs text-muted-foreground">
-              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-amber-500" />
+              <AlertTriangle className="w-3 h-3 mt-0.5 shrink-0 text-[var(--q-status-yellow)]" />
               {w}
             </div>
           ))}

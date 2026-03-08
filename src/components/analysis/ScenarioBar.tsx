@@ -74,7 +74,7 @@ export function ScenarioBar({ activeScenario, onScenarioChange }: ScenarioBarPro
                   : 'bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)] border-[var(--q-border-default)]'
               )}
             >
-              {s.emoji ? `${s.emoji} ${s.label}` : s.label}
+              {s.icon && <span className="mr-1 inline-flex">{s.icon}</span>}{s.label}
             </button>
           );
         })}
