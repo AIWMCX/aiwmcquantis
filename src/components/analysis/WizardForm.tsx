@@ -322,8 +322,8 @@ export function WizardForm({
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <Brain className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+                          <Brain className="w-4 h-4 text-[var(--q-text-tertiary)]" />
                           Business Idea
                         </Label>
                         <Textarea
