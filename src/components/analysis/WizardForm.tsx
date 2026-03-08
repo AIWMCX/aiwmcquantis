@@ -343,7 +343,7 @@ export function WizardForm({
                           {errors.idea ? (
                             <p className="text-xs text-[var(--q-status-red)]">{errors.idea}</p>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Min 10 chars — more detail = better analysis</span>
+                            <span className="text-xs text-[var(--q-text-tertiary)]">Min 10 chars — more detail = better analysis</span>
                           )}
                           <span className={cn("text-xs tabular-nums", idea.length > 5000 ? "text-destructive" : "text-muted-foreground")}>
                             {idea.length.toLocaleString()}/5,000
