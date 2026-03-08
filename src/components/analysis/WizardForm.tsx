@@ -307,7 +307,7 @@ export function WizardForm({
                 'overflow-hidden transition-all duration-300 ease-in-out',
                 isActive ? 'max-h-[800px] opacity-100 mt-2' : 'max-h-0 opacity-0'
               )}>
-                <div className="px-4 py-3 rounded-lg border border-border bg-card space-y-4">
+                <div className="px-4 py-3 rounded-[var(--q-radius-md)] border border-[var(--q-border-default)] bg-card space-y-4">
                   {step.num === 1 && (
                     <>
                       {/* Quick-start templates */}
