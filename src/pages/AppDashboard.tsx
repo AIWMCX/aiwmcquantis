@@ -165,16 +165,15 @@ export default function Index() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <AppLayout title="Dashboard">
       <PageSEO
         title="Dashboard | AIWMC Quantis"
         description="Access your AI-powered business analyses, financial projections, and business plans."
         canonical="/app"
         noindex={true}
       />
-      <Header />
 
-      <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-6">
+      <div className="container max-w-7xl px-4 sm:px-6 py-6">
         {isAuthenticated && isInitialLoad ? (
           <DashboardSkeleton />
         ) : (
