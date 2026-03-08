@@ -24,50 +24,27 @@ export default function PlusSettings() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
   const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
-  
-  const [darkMode, setDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('theme') === 'dark' ||
-        (!localStorage.getItem('theme') && window.matchMedia('(prefers-color-scheme: dark)').matches);
-    }
-    return false;
-  });
-
-  React.useEffect(() => {
-    const root = document.documentElement;
-    if (darkMode) {
-      root.classList.add('dark');
-      localStorage.setItem('theme', 'dark');
-    } else {
-      root.classList.remove('dark');
-      localStorage.setItem('theme', 'light');
-    }
-  }, [darkMode]);
 
   const isLoading = authLoading || subscriptionLoading;
 
   // Loading state
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
-        <main className="flex-1 container max-w-4xl px-4 sm:px-6 py-8">
-          <div className="space-y-6">
-            <Skeleton className="h-10 w-48" />
-            <Skeleton className="h-96 w-full" />
+      <AppLayout title="Settings">
+        <div className="container max-w-4xl px-4 sm:px-6 py-8">
+          <div className="flex items-center justify-center min-h-[400px]">
+            <Loader2 className="w-8 h-8 animate-spin text-[var(--q-accent-primary)]" />
           </div>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </AppLayout>
     );
   }
 
   // Not authenticated
   if (!user) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex flex-col">
-        <Header darkMode={darkMode} onToggleTheme={() => setDarkMode(!darkMode)} />
-        <main className="flex-1 container max-w-4xl px-4 sm:px-6 py-8">
+      <AppLayout title="Settings">
+        <div className="container max-w-4xl px-4 sm:px-6 py-8">
           <Card>
             <CardHeader className="text-center">
               <Lock className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
@@ -82,9 +59,8 @@ export default function PlusSettings() {
               </Button>
             </CardContent>
           </Card>
-        </main>
-        <Footer />
-      </div>
+        </div>
+      </AppLayout>
     );
   }
 
