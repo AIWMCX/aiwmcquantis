@@ -36,6 +36,7 @@ const UseCases = lazy(() => import("./pages/UseCases"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const RiskGallery = lazy(() => import("./pages/RiskGallery"));
 const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
+const InvoiceManager = lazy(() => import("./pages/InvoiceManager"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
