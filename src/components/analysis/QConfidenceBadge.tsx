@@ -54,7 +54,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   blocked: {
     label: 'INSUFFICIENT DATA',
     icon: XCircle,
-    prefix: '✕',
+    prefix: '',
     classes: 'bg-muted/50 text-muted-foreground border-border',
   },
 };

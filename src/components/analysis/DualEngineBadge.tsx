@@ -84,8 +84,8 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   blocked: {
     icon: XCircle,
-    label: '✗ Insufficient Data',
-    emoji: '✗',
+    label: 'Insufficient Data',
+    emoji: '',
     bgClass: 'bg-destructive/10',
     borderClass: 'border-destructive/30',
     textClass: 'text-destructive',

@@ -238,7 +238,6 @@ function EducationalTip({ elapsedSeconds }: { elapsedSeconds: number }) {
     <div className="mt-6 p-4 rounded-lg bg-muted/50 border border-border transition-all duration-500">
       <p className="text-xs font-medium text-muted-foreground mb-1">Did you know?</p>
       <p className="text-sm text-foreground animate-fade-in" key={tipIndex}>
-        <span className="mr-1.5">{tip.emoji}</span>
         {tip.text}
       </p>
     </div>

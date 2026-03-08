@@ -229,7 +229,7 @@ export function DemoPreview() {
                   )}
                 >
                   <div className="font-semibold text-foreground text-sm md:text-base">Business Analysis Report</div>
-                  <div className="text-xs text-muted-foreground">{demo.emoji} {demo.idea} • {demo.location}</div>
+                  <div className="text-xs text-muted-foreground flex items-center gap-1"><demo.icon className="w-3 h-3" /> {demo.idea} • {demo.location}</div>
                 </div>
               </div>
               <div className="hidden sm:flex items-center gap-2 px-3 py-1 rounded-full bg-muted text-muted-foreground text-xs font-medium">
