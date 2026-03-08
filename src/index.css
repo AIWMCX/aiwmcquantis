@@ -957,4 +957,14 @@
       linear-gradient(rgba(79, 142, 247, 0.08) 1px, transparent 1px),
       linear-gradient(90deg, rgba(79, 142, 247, 0.08) 1px, transparent 1px);
   }
+
+  /* Results entrance animations */
+  @keyframes q-slide-in-right {
+    from { opacity: 0; transform: translateX(20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+
+  .animate-slide-in-right {
+    animation: q-slide-in-right 0.4s ease-out both;
+  }
 }
