@@ -2695,7 +2695,8 @@ serve(async (req) => {
       );
     }
 
-    const { idea, location, financial_inputs, selected_industry, documents } = requestBody;
+    const { idea, location, financial_inputs, selected_industry, documents, analysis_depth } = requestBody;
+    const depthLevel = analysis_depth || 'full';
 
     // ========== INPUT VALIDATION & SANITIZATION ==========
     

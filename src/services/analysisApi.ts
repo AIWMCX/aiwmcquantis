@@ -43,6 +43,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
           ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
           ...(request.financial_inputs?.selected_industry && { selected_industry: request.financial_inputs.selected_industry }),
           ...(request.documents && request.documents.length > 0 && { documents: request.documents }),
+          ...(request.analysis_depth && { analysis_depth: request.analysis_depth }),
         },
       });
 
