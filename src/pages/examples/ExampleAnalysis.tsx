@@ -188,7 +188,7 @@ export default function ExampleAnalysis() {
               Want This Analysis for Your Idea?
             </h2>
             <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-              Get the same CFO-level analysis — revenue projections, risk flags, and action plan — free, in under 3 minutes.
+              Get the same CFO-level analysis — revenue projections, risk flags, and action plan — free, in under 90 seconds.
             </p>
             <Link to="/app">
               <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">

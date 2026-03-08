@@ -200,7 +200,7 @@ export default function Landing() {
                 </h2>
                 <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
                   Risk map, scenario stress-tests, and investor-ready projections —
-                  dual AI-verified, no credit card, results in under 3 minutes.
+                  dual AI-verified, no credit card, results in under 90 seconds.
                 </p>
                 <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">

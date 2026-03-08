@@ -97,7 +97,7 @@ export default function ExamplesIndex() {
               Ready to Analyze Your Own Idea?
             </h2>
             <p className="text-body text-white/80 mb-6 max-w-xl mx-auto">
-              Get the same CFO-level analysis — free, no credit card, results in under 3 minutes.
+              Get the same CFO-level analysis — free, no credit card, results in under 90 seconds.
             </p>
             <Link to="/app">
               <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">

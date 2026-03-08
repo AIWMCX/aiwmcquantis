@@ -386,7 +386,7 @@ export default function BlogArticle() {
         {/* CTA */}
         <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 3 minutes.</p>
+          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
               See My Numbers — Free <ArrowRight className="w-5 h-5" />
