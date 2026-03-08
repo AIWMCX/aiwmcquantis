@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { Zap } from 'lucide-react';
+import { Zap, CheckCircle2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { formatPaybackDisplay } from '@/lib/formatPayback';
 
 interface KPICard {
   label: string;
@@ -57,41 +56,28 @@ export function ResultsHeroStrip({
 
   const kpis: (KPICard & { animatedValue: string })[] = [
     { label: 'Break-Even', value: `Month ${breakEvenMonths}`, animatedValue: `Month ${animatedBreakEven}`, confidence: confLabel(confidenceScore) as any, positive: breakEvenMonths <= 18 },
-    { label: 'Month 12', value: `$${month12Revenue.toLocaleString()}/mo`, animatedValue: `$${animatedRevenue.toLocaleString()}/mo`, confidence: confLabel(confidenceScore) as any, positive: true },
+    { label: 'Revenue Mo. 12', value: `$${month12Revenue.toLocaleString()}/mo`, animatedValue: `$${animatedRevenue.toLocaleString()}/mo`, confidence: confLabel(confidenceScore) as any, positive: true },
     { label: 'Cash Runway', value: `${cashRunwayMonths} months`, animatedValue: `${animatedRunway} months`, confidence: confLabel(Math.max(confidenceScore - 5, 50)) as any, positive: cashRunwayMonths >= 12 },
     { label: 'LTV:CAC', value: `${ltvCacRatio.toFixed(1)}×`, animatedValue: `${(animatedLtv / 10).toFixed(1)}×`, confidence: confLabel(confidenceScore) as any, positive: ltvCacRatio >= 3 },
   ];
 
   return (
-    <div className="q-results-hero-strip animate-fade-in rounded-xl border border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)] p-5 sm:p-6 space-y-5">
-      {/* Headline */}
-      <div className="space-y-1">
-        <h2 className="text-lg sm:text-xl font-bold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
-          Business validated in {analysisTimeSeconds} seconds
-        </h2>
-        <p className="text-sm text-[var(--q-text-tertiary)] flex items-center gap-1.5">
-          <Zap className="w-3.5 h-3.5 text-[var(--q-accent-primary)]" />
-          Dual-AI Consensus · GPT-4o mini + Gemini · {confidenceScore}% Agreement
-        </p>
-      </div>
-
+    <div className="animate-fade-in bg-[var(--q-bg-elevated)] rounded-xl border border-[var(--q-border-subtle)] overflow-hidden">
       {/* 4 KPI Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--q-border-subtle)]">
         {kpis.map((kpi, i) => (
           <div
             key={kpi.label}
-            className={cn(
-              "q-metric-reveal q-card p-3 sm:p-4 text-center space-y-1 border-l-[3px]",
-              kpi.confidence === 'VERIFIED' ? 'q-score-excellent' :
-              kpi.confidence === 'CONFIDENT' ? 'q-score-good' : 'q-score-caution'
-            )}
-            style={{ animationDelay: `${200 + i * 80}ms` }}
+            className="q-metric-reveal bg-[var(--q-bg-elevated)] p-4 sm:p-5 text-center space-y-1.5"
+            style={{ '--index': i } as React.CSSProperties}
           >
-            <p className="text-label-sm uppercase tracking-wide">{kpi.label}</p>
+            <p className="text-xs uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
+              {kpi.label}
+            </p>
             <p className={cn(
-              'text-metric-md',
+              'text-lg sm:text-xl font-bold tabular-nums',
               kpi.positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
-            )}>
+            )} style={{ fontFamily: 'var(--q-font-mono, JetBrains Mono, monospace)' }}>
               {kpi.animatedValue}
             </p>
             <span className={cn(
@@ -104,6 +90,23 @@ export function ResultsHeroStrip({
             </span>
           </div>
         ))}
+      </div>
+
+      {/* Bottom info strip */}
+      <div className="flex items-center justify-center gap-3 py-2.5 px-4 border-t border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]">
+        <span className="flex items-center gap-1 text-xs text-[var(--q-text-secondary)]">
+          <Zap className="w-3 h-3 text-[var(--q-accent-primary)]" />
+          Analyzed in {analysisTimeSeconds}s
+        </span>
+        <span className="w-1 h-1 rounded-full bg-[var(--q-border-default)]" />
+        <span className="flex items-center gap-1 text-xs text-[var(--q-text-secondary)]">
+          <CheckCircle2 className="w-3 h-3 text-[var(--q-status-green)]" />
+          Dual-AI Verified
+        </span>
+        <span className="w-1 h-1 rounded-full bg-[var(--q-border-default)]" />
+        <span className="text-xs font-medium text-[var(--q-text-secondary)] tabular-nums">
+          {confidenceScore}% Confidence
+        </span>
       </div>
     </div>
   );
