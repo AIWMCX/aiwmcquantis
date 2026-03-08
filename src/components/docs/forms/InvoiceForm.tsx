@@ -500,6 +500,13 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                     min={0}
                     {...form.register(`line_items.${index}.unit_price`, { valueAsNumber: true })}
                   />
+                  {industryType && (
+                    <RateIntelligenceBadge
+                      industryType={industryType}
+                      unitPrice={form.watch(`line_items.${index}.unit_price`) || 0}
+                      onApplyMarketRate={(p50) => form.setValue(`line_items.${index}.unit_price`, p50)}
+                    />
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Amount</Label>
