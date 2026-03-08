@@ -80,7 +80,11 @@ export function ResultsHeroStrip({
         {kpis.map((kpi, i) => (
           <div
             key={kpi.label}
-            className="q-metric-reveal p-3 sm:p-4 rounded-xl bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center space-y-1"
+            className={cn(
+              "q-metric-reveal q-card p-3 sm:p-4 text-center space-y-1 border-l-[3px]",
+              kpi.confidence === 'VERIFIED' ? 'q-score-excellent' :
+              kpi.confidence === 'CONFIDENT' ? 'q-score-good' : 'q-score-caution'
+            )}
             style={{ animationDelay: `${200 + i * 80}ms` }}
           >
             <p className="text-label-sm uppercase tracking-wide">{kpi.label}</p>

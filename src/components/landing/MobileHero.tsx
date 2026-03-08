@@ -142,11 +142,12 @@ export function MobileHero() {
               Built for early-stage founders, consultants, and indie builders
               validating ideas before investing time and money.
             </p>
-            <div className="flex flex-wrap items-center justify-center gap-3">
-              {VALUE_BADGES.map(({ icon: Icon, text }) => (
+            <div className="q-stagger flex flex-wrap items-center justify-center gap-3">
+              {VALUE_BADGES.map(({ icon: Icon, text }, i) => (
                 <div
                   key={text}
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/20 text-sm font-semibold text-[var(--q-text-primary)]"
+                  className="q-metric-reveal inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/20 text-sm font-semibold text-[var(--q-text-primary)]"
+                  style={{ '--index': i } as React.CSSProperties}
                 >
                   <Icon className="w-4 h-4 text-[var(--q-accent-primary)]" />
                   {text}

@@ -308,7 +308,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         />
 
         {/* Reliability & Validation (collapsed by default, no accordion for now) */}
-        <details className="rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] animate-fade-in" style={{ animationDelay: '1400ms', animationFillMode: 'both' }}>
+        <details className="q-card animate-fade-in" style={{ animationDelay: '1400ms', animationFillMode: 'both' }}>
           <summary className="px-4 py-3 cursor-pointer text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
             <Shield className="w-4 h-4 text-[var(--q-accent-primary)]" />
             Reliability & Validation

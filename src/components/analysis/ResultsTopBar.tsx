@@ -2,6 +2,7 @@ import React from 'react';
 import { ArrowLeft, FileDown, Share2, RefreshCw, Loader2, Zap, MapPin } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
 interface ResultsTopBarProps {
   ideaName: string;

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Zap, TrendingUp, Target } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { EXAMPLE_LIST } from './exampleData';
