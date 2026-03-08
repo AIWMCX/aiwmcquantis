@@ -49,7 +49,7 @@ interface LegacySensitivityTornadoProps {
 }
 
 type SensitivityTornadoProps =
-  | (TornadoChartProps & { tornado?: never })
+  | (TornadoChartProps & { tornado?: never; summary?: string; mostSensitiveVariable?: string; leastSensitiveVariable?: string })
   | (LegacySensitivityTornadoProps & { sensitivities?: never; baseValue?: never; title?: never; unit?: never; maxBars?: never });
 
 // ── calculateSensitivities utility ──
