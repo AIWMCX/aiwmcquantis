@@ -250,7 +250,7 @@ export function estimatePercentile(value: number, benchmark: IndustryBenchmark):
     const range = points[points.length - 1].val - points[points.length - 2].val;
     if (range <= 0) return 99;
     const excess = value - points[points.length - 1].val;
-    return QMath.round(Math.min(90 + (excess / range) * 10, 99), 1);
+    return round(Math.min(90 + (excess / range) * 10, 99), 1);
   }
 
   // Interpolate between known points
