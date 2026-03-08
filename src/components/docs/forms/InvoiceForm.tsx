@@ -56,6 +56,7 @@ interface InvoiceFormProps {
   onGenerate: (data: any) => void;
   onPreviewUpdate: (html: string) => void;
   isGenerating: boolean;
+  industryType?: string;
 }
 
 export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating }: InvoiceFormProps) {
