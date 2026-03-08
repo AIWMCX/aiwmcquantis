@@ -7,6 +7,7 @@ import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { useDocSignals } from '@/hooks/useDocSignals';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,7 @@ import {
   Plus,
   X,
   TrendingUp,
+  Receipt,
 } from 'lucide-react';
 import type { DocTemplate } from '@/types/document';
 import type { Document } from '@/types/document';
@@ -228,6 +230,9 @@ export default function DocsStudio() {
     isLoading: limitLoading,
   } = useDocDownloadLimit();
 
+  // Doc performance signal tracking
+  const { recordSignal } = useDocSignals();
+
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
     setPreviewHTML(html);
@@ -287,9 +292,12 @@ export default function DocsStudio() {
       if (error) console.warn('Failed to increment template usage:', error.message);
     });
 
+    // Record performance signal
+    recordSignal(null, 'downloaded', undefined, { templateId, format });
+
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar
@@ -649,6 +657,13 @@ export default function DocsStudio() {
             </div>
           </div>
         )}
+        {/* Invoices link */}
+        <div className="mb-6">
+          <Button variant="outline" onClick={() => navigate('/app/invoices')} className="gap-2">
+            <Receipt className="w-4 h-4" />
+            Invoice Manager
+          </Button>
+        </div>
 
         {/* Tabs: Templates / My Documents */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'templates' | 'documents')} className="mb-8">

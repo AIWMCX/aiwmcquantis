@@ -390,6 +390,101 @@ export type Database = {
         }
         Relationships: []
       }
+      doc_generation_jobs: {
+        Row: {
+          analysis_id: string | null
+          cache_hit: boolean | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          input_data: Json
+          job_id: string
+          output_size_kb: number | null
+          output_url: string | null
+          priority: number | null
+          processing_ms: number | null
+          retry_count: number | null
+          status: string | null
+          template_id: string
+          user_id: string
+        }
+        Insert: {
+          analysis_id?: string | null
+          cache_hit?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          job_id: string
+          output_size_kb?: number | null
+          output_url?: string | null
+          priority?: number | null
+          processing_ms?: number | null
+          retry_count?: number | null
+          status?: string | null
+          template_id: string
+          user_id: string
+        }
+        Update: {
+          analysis_id?: string | null
+          cache_hit?: boolean | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          input_data?: Json
+          job_id?: string
+          output_size_kb?: number | null
+          output_url?: string | null
+          priority?: number | null
+          processing_ms?: number | null
+          retry_count?: number | null
+          status?: string | null
+          template_id?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      doc_performance_signals: {
+        Row: {
+          context: Json | null
+          created_at: string | null
+          document_id: string | null
+          id: string
+          signal_type: string
+          signal_value: number | null
+          user_id: string
+        }
+        Insert: {
+          context?: Json | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          signal_type: string
+          signal_value?: number | null
+          user_id: string
+        }
+        Update: {
+          context?: Json | null
+          created_at?: string | null
+          document_id?: string | null
+          id?: string
+          signal_type?: string
+          signal_value?: number | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "doc_performance_signals_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       doc_templates: {
         Row: {
           category: string
@@ -981,6 +1076,92 @@ export type Database = {
           stddev?: number
         }
         Relationships: []
+      }
+      invoices: {
+        Row: {
+          analysis_ref_id: string | null
+          client_address: string | null
+          client_company: string | null
+          client_email: string | null
+          client_name: string
+          created_at: string | null
+          currency: string | null
+          discount_amount: number
+          document_id: string | null
+          due_date: string | null
+          id: string
+          invoice_number: string
+          issue_date: string
+          line_items: Json
+          notes: string | null
+          paid_at: string | null
+          payment_terms: string | null
+          status: string | null
+          subtotal: number
+          tax_amount: number
+          tax_rate: number
+          total_amount: number
+          user_id: string
+        }
+        Insert: {
+          analysis_ref_id?: string | null
+          client_address?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_name: string
+          created_at?: string | null
+          currency?: string | null
+          discount_amount?: number
+          document_id?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_terms?: string | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total_amount?: number
+          user_id: string
+        }
+        Update: {
+          analysis_ref_id?: string | null
+          client_address?: string | null
+          client_company?: string | null
+          client_email?: string | null
+          client_name?: string
+          created_at?: string | null
+          currency?: string | null
+          discount_amount?: number
+          document_id?: string | null
+          due_date?: string | null
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          line_items?: Json
+          notes?: string | null
+          paid_at?: string | null
+          payment_terms?: string | null
+          status?: string | null
+          subtotal?: number
+          tax_amount?: number
+          tax_rate?: number
+          total_amount?: number
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "documents"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       launch_checklists: {
         Row: {
@@ -2072,6 +2253,78 @@ export type Database = {
         }
         Relationships: []
       }
+      user_brand_profiles: {
+        Row: {
+          accent_color: string | null
+          address_line1: string | null
+          address_line2: string | null
+          city: string | null
+          company_name: string | null
+          created_at: string | null
+          email: string | null
+          font_preference: string | null
+          id: string
+          invoice_counter: number | null
+          invoice_prefix: string | null
+          logo_url: string | null
+          phone: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          state: string | null
+          tax_id: string | null
+          updated_at: string | null
+          user_id: string
+          website: string | null
+          zip: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          font_preference?: string | null
+          id?: string
+          invoice_counter?: number | null
+          invoice_prefix?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          state?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+          user_id: string
+          website?: string | null
+          zip?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          address_line1?: string | null
+          address_line2?: string | null
+          city?: string | null
+          company_name?: string | null
+          created_at?: string | null
+          email?: string | null
+          font_preference?: string | null
+          id?: string
+          invoice_counter?: number | null
+          invoice_prefix?: string | null
+          logo_url?: string | null
+          phone?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          state?: string | null
+          tax_id?: string | null
+          updated_at?: string | null
+          user_id?: string
+          website?: string | null
+          zip?: string | null
+        }
+        Relationships: []
+      }
       user_engagement: {
         Row: {
           activity_score: number
@@ -2389,6 +2642,7 @@ export type Database = {
         }[]
       }
       get_my_phone: { Args: never; Returns: string }
+      get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       get_recent_users: {
         Args: { days_back?: number }
         Returns: {

@@ -3,10 +3,12 @@ import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Loader2, CheckCircle, FileText } from 'lucide-react';
+import { Plus, Trash2, Loader2, CheckCircle, FileText, Building2 } from 'lucide-react';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
 import { useDocFormDraft } from '@/hooks/useDocFormDraft';
+import { useBrandProfile } from '@/hooks/useBrandProfile';
+import { useCreateInvoice } from '@/hooks/useInvoices';
 import type { AutoFillData } from '@/hooks/useAnalysisAutoFill';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -55,6 +57,8 @@ interface InvoiceFormProps {
 }
 
 export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating }: InvoiceFormProps) {
+  const { profile: brandProfile, isLoading: brandLoading } = useBrandProfile();
+  const createInvoice = useCreateInvoice();
   const defaultValues = useMemo(() => {
     const templateJson = template?.template_json as Record<string, any> | undefined;
     const prefilled = templateJson?.prefilled_content;
@@ -129,6 +133,31 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
   const [invoiceNumber, setInvoiceNumber] = useState('INV-000001');
   const [invoiceDate, setInvoiceDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDueDate);
+
+  // Auto-populate from brand profile
+  useEffect(() => {
+    if (!brandProfile) return;
+    const currentName = form.getValues('company_name');
+    if (!currentName && brandProfile.company_name) {
+      form.setValue('company_name', brandProfile.company_name);
+    }
+    if (!form.getValues('company_email') && brandProfile.email) {
+      form.setValue('company_email', brandProfile.email);
+    }
+    if (!form.getValues('company_phone') && brandProfile.phone) {
+      form.setValue('company_phone', brandProfile.phone);
+    }
+    if (!form.getValues('company_address') && brandProfile.address_line1) {
+      form.setValue('company_address', brandProfile.address_line1);
+    }
+    if (!form.getValues('company_city') && brandProfile.city) {
+      const cityState = [brandProfile.city, brandProfile.state, brandProfile.zip].filter(Boolean).join(', ');
+      form.setValue('company_city', cityState);
+    }
+    if (brandProfile.invoice_prefix && brandProfile.invoice_counter) {
+      setInvoiceNumber(`${brandProfile.invoice_prefix}-${String(brandProfile.invoice_counter + 1).padStart(6, '0')}`);
+    }
+  }, [brandProfile, form]);
 
   // Watch form values for preview and calculations
   const formValues = form.watch();
@@ -264,6 +293,31 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
 
   const onSubmit = (data: InvoiceFormData) => {
     clearDraft(); // Clear draft on successful submit
+
+    const lineItemsWithAmount = data.line_items.map(item => ({
+      description: item.description || '',
+      quantity: item.quantity || 0,
+      unit_price: item.unit_price || 0,
+      amount: (item.quantity || 0) * (item.unit_price || 0),
+    }));
+
+    // Persist invoice record in DB
+    createInvoice.mutate({
+      client_name: data.client_name,
+      client_email: data.client_email,
+      client_company: data.client_company || undefined,
+      client_address: `${data.client_address}, ${data.client_city}`,
+      line_items: lineItemsWithAmount,
+      subtotal: calculations.subtotal,
+      tax_rate: data.tax_rate / 100,
+      tax_amount: calculations.taxAmount,
+      total_amount: calculations.total,
+      issue_date: invoiceDate,
+      due_date: dueDate || undefined,
+      payment_terms: data.payment_terms,
+      notes: data.notes || undefined,
+    });
+
     onGenerate({
       header: {
         company_name: data.company_name,
@@ -282,10 +336,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       invoice_details: {
         payment_terms: data.payment_terms,
       },
-      line_items: data.line_items.map(item => ({
-        ...item,
-        amount: item.quantity * item.unit_price,
-      })),
+      line_items: lineItemsWithAmount,
       tax_rate: data.tax_rate / 100,
       notes: data.notes,
       calculated: calculations,
