@@ -657,6 +657,13 @@ export default function DocsStudio() {
             </div>
           </div>
         )}
+        {/* Invoices link */}
+        <div className="mb-6">
+          <Button variant="outline" onClick={() => navigate('/app/invoices')} className="gap-2">
+            <Receipt className="w-4 h-4" />
+            Invoice Manager
+          </Button>
+        </div>
 
         {/* Tabs: Templates / My Documents */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'templates' | 'documents')} className="mb-8">
