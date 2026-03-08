@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { WizardForm } from '@/components/analysis/WizardForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
