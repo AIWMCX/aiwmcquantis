@@ -292,9 +292,12 @@ export default function DocsStudio() {
       if (error) console.warn('Failed to increment template usage:', error.message);
     });
 
+    // Record performance signal
+    recordSignal(null, 'downloaded', undefined, { templateId, format });
+
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar
