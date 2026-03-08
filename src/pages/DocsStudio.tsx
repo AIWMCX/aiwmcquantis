@@ -42,6 +42,7 @@ import {
   Plus,
   X,
   TrendingUp,
+  Receipt,
 } from 'lucide-react';
 import type { DocTemplate } from '@/types/document';
 import type { Document } from '@/types/document';
