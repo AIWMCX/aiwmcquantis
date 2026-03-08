@@ -134,6 +134,31 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
   const [invoiceDate, setInvoiceDate] = useState(today);
   const [dueDate, setDueDate] = useState(defaultDueDate);
 
+  // Auto-populate from brand profile
+  useEffect(() => {
+    if (!brandProfile) return;
+    const currentName = form.getValues('company_name');
+    if (!currentName && brandProfile.company_name) {
+      form.setValue('company_name', brandProfile.company_name);
+    }
+    if (!form.getValues('company_email') && brandProfile.email) {
+      form.setValue('company_email', brandProfile.email);
+    }
+    if (!form.getValues('company_phone') && brandProfile.phone) {
+      form.setValue('company_phone', brandProfile.phone);
+    }
+    if (!form.getValues('company_address') && brandProfile.address_line1) {
+      form.setValue('company_address', brandProfile.address_line1);
+    }
+    if (!form.getValues('company_city') && brandProfile.city) {
+      const cityState = [brandProfile.city, brandProfile.state, brandProfile.zip].filter(Boolean).join(', ');
+      form.setValue('company_city', cityState);
+    }
+    if (brandProfile.invoice_prefix && brandProfile.invoice_counter) {
+      setInvoiceNumber(`${brandProfile.invoice_prefix}-${String(brandProfile.invoice_counter + 1).padStart(6, '0')}`);
+    }
+  }, [brandProfile, form]);
+
   // Watch form values for preview and calculations
   const formValues = form.watch();
   
