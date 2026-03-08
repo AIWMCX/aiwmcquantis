@@ -131,14 +131,18 @@ export default function QuantisHealth() {
   const runSelfTest = async () => {
     setTestRunning(true);
     try {
-      const raw = QMath.runSelfTest();
-      const results: SelfTestResult[] = raw.map((r: any) => ({
-        name: r.name || r.test || 'Test',
-        passed: r.passed ?? r.pass ?? true,
-        expected: String(r.expected ?? ''),
-        actual: String(r.actual ?? r.result ?? ''),
-      }));
-      setSelfTestResults(results);
+      // Run known-answer tests against QuantisMath
+      const tests: SelfTestResult[] = [
+        { name: 'Addition: 0.1 + 0.2', passed: QuantisMath.add(0.1, 0.2).toNumber() === 0.3, expected: '0.3', actual: String(QuantisMath.add(0.1, 0.2).toNumber()) },
+        { name: 'Division by zero guard', passed: QuantisMath.divide(100, 0).toNumber() === 0, expected: '0', actual: String(QuantisMath.divide(100, 0).toNumber()) },
+        { name: 'Percentage: 25 of 200', passed: QuantisMath.percentage(25, 200).toNumber() === 50, expected: '50', actual: String(QuantisMath.percentage(25, 200).toNumber()) },
+        { name: 'Margin: rev=1000, cost=600', passed: QuantisMath.margin(1000, 600).toNumber() === 40, expected: '40', actual: String(QuantisMath.margin(1000, 600).toNumber()) },
+        { name: 'Clamp: 150 in [0,100]', passed: QuantisMath.clamp(150, 0, 100).toNumber() === 100, expected: '100', actual: String(QuantisMath.clamp(150, 0, 100).toNumber()) },
+        { name: 'Round: 3.456 to 2dp', passed: QuantisMath.round(3.456, 2) === 3.46, expected: '3.46', actual: String(QuantisMath.round(3.456, 2)) },
+        { name: 'Multiply precision', passed: QuantisMath.multiply(0.1, 0.2).toNumber() === 0.02, expected: '0.02', actual: String(QuantisMath.multiply(0.1, 0.2).toNumber()) },
+        { name: 'Subtract precision', passed: QuantisMath.subtract(1, 0.9).toNumber() === 0.1, expected: '0.1', actual: String(QuantisMath.subtract(1, 0.9).toNumber()) },
+      ];
+      setSelfTestResults(tests);
     } catch {
       setSelfTestResults([{ name: 'Self-Test', passed: false, expected: 'No errors', actual: 'Execution failed' }]);
     } finally {
