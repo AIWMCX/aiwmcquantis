@@ -110,7 +110,10 @@ export interface CashFlowStatement {
 // ─── Helpers ────────────────────────────────────────────────
 
 const Q = QuantisMath;
-const n = (v: DecimalInput) => Q.toNumber(Q.round(v, 2));
+const n = (v: DecimalInput) => {
+  const d = typeof v === 'object' && 'toNumber' in v ? v : Q.add(v, 0);
+  return Q.toNumber(d);
+};
 
 // ─── Unit Economics ─────────────────────────────────────────
 
