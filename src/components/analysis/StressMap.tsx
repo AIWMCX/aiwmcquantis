@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import { Globe, TrendingUp, Wallet, Settings } from 'lucide-react';
 
 // ─── Types ───
 
@@ -123,36 +124,255 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
   };
 }
 
-// ─── Helpers ───
+// ─── 5-Tier Color System ───
 
-function getRiskTier(index: number) {
-  if (index <= 30) return { label: 'Low Risk', colorClass: 'text-emerald-500', strokeClass: 'stroke-emerald-500', bgGradient: 'from-emerald-500/5 to-emerald-500/10' };
-  if (index <= 60) return { label: 'Moderate Risk', colorClass: 'text-amber-500', strokeClass: 'stroke-amber-500', bgGradient: 'from-amber-500/5 to-amber-500/10' };
-  if (index <= 80) return { label: 'High Risk', colorClass: 'text-orange-500', strokeClass: 'stroke-orange-500', bgGradient: 'from-orange-500/5 to-orange-500/10' };
-  return { label: 'Critical Risk', colorClass: 'text-destructive', strokeClass: 'stroke-destructive', bgGradient: 'from-destructive/5 to-destructive/10' };
+interface ScoreStyle {
+  text: string;
+  bar: string;
+  bg: string;
+  border: string;
+  label: string;
 }
 
-function getBlockColor(score: number) {
-  if (score >= 86) return 'bg-emerald-500';
-  if (score >= 66) return 'bg-lime-500';
-  if (score >= 41) return 'bg-amber-500';
-  return 'bg-destructive';
+function getScoreStyle(score: number): ScoreStyle {
+  if (score <= 30) {
+    return {
+      text: 'text-[var(--q-status-red)]',
+      bar: 'bg-[var(--q-status-red)]',
+      bg: 'bg-[var(--q-status-red-bg)]',
+      border: 'border-l-[var(--q-status-red)]',
+      label: 'Critical',
+    };
+  }
+  if (score <= 50) {
+    return {
+      text: 'text-[var(--q-status-orange)]',
+      bar: 'bg-[var(--q-status-orange)]',
+      bg: 'bg-[var(--q-status-orange-bg)]',
+      border: 'border-l-[var(--q-status-orange)]',
+      label: 'At Risk',
+    };
+  }
+  if (score <= 70) {
+    return {
+      text: 'text-[var(--q-status-yellow)]',
+      bar: 'bg-[var(--q-status-yellow)]',
+      bg: 'bg-[var(--q-status-yellow-bg)]',
+      border: 'border-l-[var(--q-status-yellow)]',
+      label: 'Moderate',
+    };
+  }
+  if (score <= 85) {
+    return {
+      text: 'text-[#6EE7B7]',
+      bar: 'bg-[#6EE7B7]',
+      bg: 'bg-[rgba(16,185,129,0.06)]',
+      border: 'border-l-[#6EE7B7]',
+      label: 'Good',
+    };
+  }
+  return {
+    text: 'text-[var(--q-status-green)]',
+    bar: 'bg-[var(--q-status-green)]',
+    bg: 'bg-[var(--q-status-green-bg)]',
+    border: 'border-l-[var(--q-status-green)]',
+    label: 'Excellent',
+  };
 }
 
-function getBlockBorder(score: number) {
-  if (score >= 66) return 'border-emerald-500/20';
-  if (score >= 41) return 'border-amber-500/20';
-  return 'border-destructive/20';
+function getRiskTierLabel(index: number): { label: string; style: ScoreStyle } {
+  // For risk index, lower is better (inverted from scores)
+  if (index <= 30) return { label: 'Low Risk', style: getScoreStyle(100) };
+  if (index <= 50) return { label: 'Moderate', style: getScoreStyle(65) };
+  if (index <= 70) return { label: 'Elevated', style: getScoreStyle(45) };
+  return { label: 'Critical', style: getScoreStyle(20) };
 }
 
-const BLOCKS: { key: 'market' | 'margin' | 'capital' | 'operations'; title: string; icon: string }[] = [
-  { key: 'market', title: 'Market', icon: '🌍' },
-  { key: 'margin', title: 'Margin', icon: '📊' },
-  { key: 'capital', title: 'Capital', icon: '💰' },
-  { key: 'operations', title: 'Operations', icon: '⚙️' },
+// ─── Animated Counter Hook ───
+
+function useCountUp(target: number, duration: number = 600, delay: number = 0): number {
+  const [value, setValue] = useState(0);
+  const startTimeRef = useRef<number | null>(null);
+  const rafRef = useRef<number>();
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const animate = (timestamp: number) => {
+        if (startTimeRef.current === null) {
+          startTimeRef.current = timestamp;
+        }
+        const elapsed = timestamp - startTimeRef.current;
+        const progress = Math.min(elapsed / duration, 1);
+        // Ease-out cubic
+        const eased = 1 - Math.pow(1 - progress, 3);
+        setValue(Math.round(target * eased));
+
+        if (progress < 1) {
+          rafRef.current = requestAnimationFrame(animate);
+        }
+      };
+      rafRef.current = requestAnimationFrame(animate);
+    }, delay);
+
+    return () => {
+      clearTimeout(timeout);
+      if (rafRef.current) cancelAnimationFrame(rafRef.current);
+    };
+  }, [target, duration, delay]);
+
+  return value;
+}
+
+// ─── Block Config ───
+
+const BLOCKS: { key: 'market' | 'margin' | 'capital' | 'operations'; title: string; Icon: React.ElementType }[] = [
+  { key: 'market', title: 'MARKET', Icon: Globe },
+  { key: 'margin', title: 'MARGIN', Icon: TrendingUp },
+  { key: 'capital', title: 'CAPITAL', Icon: Wallet },
+  { key: 'operations', title: 'OPERATIONS', Icon: Settings },
 ];
 
-// ─── Component ───
+// ─── Ring Gauge Component ───
+
+interface RingGaugeProps {
+  value: number;
+  label: string;
+  style: ScoreStyle;
+}
+
+function RingGauge({ value, label, style }: RingGaugeProps) {
+  const radius = 90;
+  const circumference = 2 * Math.PI * radius; // ~565
+  const animatedValue = useCountUp(value, 1000, 300);
+  const [offset, setOffset] = useState(circumference);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      const targetOffset = circumference - (circumference * value) / 100;
+      setOffset(targetOffset);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [value, circumference]);
+
+  // Get stroke color based on risk level (inverted - lower risk = green)
+  const getStrokeColor = () => {
+    if (value <= 30) return 'var(--q-status-green)';
+    if (value <= 50) return '#6EE7B7';
+    if (value <= 70) return 'var(--q-status-yellow)';
+    if (value <= 85) return 'var(--q-status-orange)';
+    return 'var(--q-status-red)';
+  };
+
+  return (
+    <div className="relative w-48 h-48 mx-auto">
+      <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
+        {/* Background ring */}
+        <circle
+          cx="100"
+          cy="100"
+          r={radius}
+          fill="none"
+          strokeWidth="12"
+          className="stroke-[var(--q-bg-overlay)]"
+        />
+        {/* Animated score ring */}
+        <circle
+          cx="100"
+          cy="100"
+          r={radius}
+          fill="none"
+          strokeWidth="12"
+          strokeLinecap="round"
+          stroke={getStrokeColor()}
+          strokeDasharray={circumference}
+          strokeDashoffset={offset}
+          className="transition-[stroke-dashoffset] duration-1000 ease-out"
+        />
+      </svg>
+      <div className="absolute inset-0 flex flex-col items-center justify-center">
+        <span className="text-metric-xl font-mono text-[var(--q-text-primary)]">
+          {animatedValue}
+        </span>
+        <span className={cn('text-xs font-semibold uppercase tracking-wider mt-1', style.text)}>
+          {label}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// ─── Block Card Component ───
+
+interface BlockCardProps {
+  block: typeof BLOCKS[number];
+  score: number;
+  explanation: string;
+  recommendation: string;
+  index: number;
+  onClick?: () => void;
+}
+
+function BlockCard({ block, score, explanation, recommendation, index, onClick }: BlockCardProps) {
+  const style = getScoreStyle(score);
+  const animatedScore = useCountUp(score, 600, 300 + index * 200);
+  const [barWidth, setBarWidth] = useState(0);
+  const Icon = block.Icon;
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setBarWidth(score);
+    }, 300 + index * 200);
+    return () => clearTimeout(timeout);
+  }, [score, index]);
+
+  return (
+    <button
+      onClick={onClick}
+      style={{ '--index': index } as React.CSSProperties}
+      className={cn(
+        'q-card q-stagger relative rounded-lg border bg-[var(--q-bg-elevated)] p-4 text-left',
+        'transition-all hover:shadow-lg hover:scale-[1.02]',
+        'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]',
+        'border-l-[3px]',
+        style.border
+      )}
+    >
+      {/* Header row */}
+      <div className="flex items-center justify-between mb-3">
+        <span className="flex items-center gap-2 text-label text-[var(--q-text-secondary)]">
+          <Icon className="w-4 h-4" />
+          {block.title}
+        </span>
+        <span className={cn('text-metric-sm font-mono', style.text)}>
+          {animatedScore}
+        </span>
+      </div>
+
+      {/* Progress bar */}
+      <div className="h-2 w-full rounded-full bg-[var(--q-bg-overlay)] mb-3 overflow-hidden">
+        <div
+          className={cn('h-full rounded-full transition-all duration-600 ease-out', style.bar)}
+          style={{ width: `${barWidth}%` }}
+        />
+      </div>
+
+      {/* Explanation */}
+      <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed line-clamp-2 mb-1.5">
+        {explanation}
+      </p>
+
+      {/* Recommendation */}
+      <p className="text-[11px] text-[var(--q-text-muted)] italic line-clamp-1">
+        {recommendation}
+      </p>
+
+      {/* Status indicator */}
+      <div className={cn('absolute top-2 right-2 w-2 h-2 rounded-full', style.bar)} />
+    </button>
+  );
+}
+
+// ─── Main Component ───
 
 export function StressMap({
   marketScore,
@@ -164,80 +384,42 @@ export function StressMap({
   recommendations,
   onBlockClick,
 }: StressMapProps) {
-  const [animatedOffset, setAnimatedOffset] = useState(283);
-  const tier = getRiskTier(overallRiskIndex);
-
-  const circumference = 2 * Math.PI * 45; // ~283
-  const targetOffset = circumference - (circumference * overallRiskIndex) / 100;
-
-  useEffect(() => {
-    const raf = requestAnimationFrame(() => setAnimatedOffset(targetOffset));
-    return () => cancelAnimationFrame(raf);
-  }, [targetOffset]);
-
-  const scores: Record<string, number> = { market: marketScore, margin: marginScore, capital: capitalScore, operations: operationsScore };
+  const { label, style } = getRiskTierLabel(overallRiskIndex);
+  const scores: Record<string, number> = {
+    market: marketScore,
+    margin: marginScore,
+    capital: capitalScore,
+    operations: operationsScore,
+  };
 
   return (
-    <div className={cn('rounded-xl border border-border bg-gradient-to-br p-5 space-y-5 relative overflow-hidden', tier.bgGradient)}>
-      {/* Animated background mesh */}
-      <div className="absolute inset-0 opacity-[0.03] pointer-events-none stress-mesh" />
+    <div className="q-card rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-6 space-y-6 relative overflow-hidden">
+      {/* Header */}
+      <h3 className="text-h2 text-center text-[var(--q-text-primary)]">
+        RISK ASSESSMENT
+      </h3>
 
-      {/* Risk Index Gauge */}
-      <div className="flex flex-col items-center gap-2">
-        <div className="relative w-32 h-32">
-          <svg viewBox="0 0 100 100" className="w-full h-full -rotate-90">
-            <circle cx="50" cy="50" r="45" fill="none" strokeWidth="8" className="stroke-muted/30" />
-            <circle
-              cx="50" cy="50" r="45"
-              fill="none"
-              strokeWidth="8"
-              strokeLinecap="round"
-              className={cn('transition-all duration-1000 ease-out', tier.strokeClass)}
-              strokeDasharray={circumference}
-              strokeDashoffset={animatedOffset}
-            />
-          </svg>
-          <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className={cn('text-3xl font-black tabular-nums', tier.colorClass)}>{overallRiskIndex}</span>
-            <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Risk</span>
-          </div>
-        </div>
-        <span className={cn('text-sm font-semibold', tier.colorClass)}>{tier.label}</span>
+      {/* Animated background mesh */}
+      <div className="absolute inset-0 opacity-[0.02] pointer-events-none stress-mesh" />
+
+      {/* Risk Index Ring Gauge */}
+      <div className="q-metric-reveal">
+        <RingGauge value={overallRiskIndex} label={label} style={style} />
       </div>
 
-      {/* 2×2 Grid */}
-      <div className="grid grid-cols-2 gap-3">
-        {BLOCKS.map(({ key, title, icon }) => {
-          const score = scores[key];
-          return (
-            <button
-              key={key}
-              onClick={() => onBlockClick?.(key)}
-              className={cn(
-                'rounded-lg border bg-card p-3 text-left transition-all hover:shadow-md hover:scale-[1.01] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
-                getBlockBorder(score)
-              )}
-            >
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <span>{icon}</span> {title}
-                </span>
-                <span className={cn('text-lg font-black tabular-nums', score >= 66 ? 'text-emerald-600 dark:text-emerald-400' : score >= 41 ? 'text-amber-600 dark:text-amber-400' : 'text-destructive')}>
-                  {score}
-                </span>
-              </div>
-              {/* Progress bar */}
-              <div className="h-1.5 w-full rounded-full bg-muted/40 mb-2">
-                <div
-                  className={cn('h-full rounded-full transition-all duration-700 ease-out', getBlockColor(score))}
-                  style={{ width: `${score}%` }}
-                />
-              </div>
-              <p className="text-xs text-muted-foreground leading-snug line-clamp-2">{explanations[key]}</p>
-              <p className="text-[11px] text-muted-foreground/70 italic mt-1 line-clamp-1">{recommendations[key]}</p>
-            </button>
-          );
-        })}
+      {/* 2×2 Grid of Block Cards */}
+      <div className="grid grid-cols-2 gap-4">
+        {BLOCKS.map((block, index) => (
+          <BlockCard
+            key={block.key}
+            block={block}
+            score={scores[block.key]}
+            explanation={explanations[block.key]}
+            recommendation={recommendations[block.key]}
+            index={index}
+            onClick={() => onBlockClick?.(block.key)}
+          />
+        ))}
       </div>
 
       {/* CSS keyframes for background mesh */}
