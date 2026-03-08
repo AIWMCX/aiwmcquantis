@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -25,6 +25,7 @@ import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
 import { AssumptionGraph } from './AssumptionGraph';
 import { ModelConfidenceBadge } from './ModelConfidenceBadge';
 import { ConfidenceBadge as OutputConfidenceBadge } from './ConfidenceBadge';
+import { MonteCarloResults } from './MonteCarloResults';
 import { calculateOutputConfidence } from '@/services/confidence-scorer';
 import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
@@ -281,10 +282,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-4 mb-3">
+        <TabsList className="w-full grid grid-cols-5 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="simulation" className="text-xs sm:text-sm gap-1">
+            <Activity className="w-3.5 h-3.5 hidden sm:block" />
+            Simulation
           </TabsTrigger>
           <TabsTrigger value="sensitivity" className="text-xs sm:text-sm gap-1">
             <TrendingUp className="w-3.5 h-3.5 hidden sm:block" />
@@ -335,6 +340,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             <TabsContent value="marketing"><MarketingSection marketing={result.marketing_plan} /></TabsContent>
             <TabsContent value="market"><MarketAnalysisSection market={result.market_analysis} /></TabsContent>
           </Tabs>
+        </TabsContent>
+
+        {/* TAB: Simulation */}
+        <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">
+          <MonteCarloResults
+            simulation={(result as any).monte_carlo}
+            scenarios={(result as any).scenario_comparison}
+          />
         </TabsContent>
 
         {/* TAB: Sensitivity */}
