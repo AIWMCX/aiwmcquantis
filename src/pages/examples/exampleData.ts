@@ -518,6 +518,15 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
   },
 };
 
+/** Derive a score from ROI percentage */
+function deriveScore(roi: string): number {
+  const num = parseFloat(roi.replace('%', ''));
+  if (num > 200) return 9;
+  if (num > 100) return 8;
+  if (num > 80) return 7;
+  return 6;
+}
+
 /** Index page data */
 export const EXAMPLE_LIST = Object.entries(EXAMPLE_ANALYSES).map(([slug, data]) => ({
   slug,
@@ -527,4 +536,5 @@ export const EXAMPLE_LIST = Object.entries(EXAMPLE_ANALYSES).map(([slug, data]) 
   description: data.description,
   profit: data.metrics.monthlyProfit,
   roi: data.metrics.roi,
+  score: deriveScore(data.metrics.roi),
 }));

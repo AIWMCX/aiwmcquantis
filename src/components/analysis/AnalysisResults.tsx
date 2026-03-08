@@ -580,16 +580,16 @@ function SwotQuadrant({ title, items, color, icon: Icon, itemIcon: ItemIcon }: {
   itemIcon: React.ElementType;
 }) {
   const colorMap: Record<string, string> = {
-    emerald: 'bg-emerald-500/5 border-emerald-500/20 text-emerald-700 dark:text-emerald-400',
-    amber: 'bg-amber-500/5 border-amber-500/20 text-amber-700 dark:text-amber-400',
-    blue: 'bg-blue-500/5 border-blue-500/20 text-blue-700 dark:text-blue-400',
-    red: 'bg-destructive/5 border-destructive/20 text-destructive',
+    emerald: 'bg-[var(--q-status-green-bg)] border-[var(--q-status-green-border)] text-[var(--q-status-green)]',
+    amber: 'bg-[var(--q-status-yellow-bg)] border-[var(--q-status-yellow-border)] text-[var(--q-status-yellow)]',
+    blue: 'bg-[rgba(79,142,247,0.05)] border-[rgba(79,142,247,0.2)] text-[var(--q-accent-primary)]',
+    red: 'bg-[var(--q-status-red-bg)] border-[var(--q-status-red-border)] text-[var(--q-status-red)]',
   };
   const iconColorMap: Record<string, string> = {
-    emerald: 'text-emerald-500',
-    amber: 'text-amber-500',
-    blue: 'text-blue-500',
-    red: 'text-destructive',
+    emerald: 'text-[var(--q-status-green)]',
+    amber: 'text-[var(--q-status-yellow)]',
+    blue: 'text-[var(--q-accent-primary)]',
+    red: 'text-[var(--q-status-red)]',
   };
 
   return (
