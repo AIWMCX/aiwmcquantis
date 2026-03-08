@@ -148,17 +148,29 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
   // Top 3 risk flags
   const topRisks = useMemo(() => {
-    const risks: { label: string; impact: string; mitigation: string; severity: 'red' | 'orange' | 'yellow' }[] = [];
+    const risks: { label: string; impact: string; mitigation: string; mitigationPlan: string[]; severity: 'red' | 'orange' | 'yellow' }[] = [];
     if (cashRunwayMonths < 12) risks.push({
       label: `Cash runway under 12 months`,
       impact: `Only ${cashRunwayMonths} months of runway at current burn rate.`,
       mitigation: 'Reduce monthly expenses or secure additional funding.',
+      mitigationPlan: [
+        'Cut non-essential operating costs by 15-20%',
+        'Negotiate payment terms with vendors (net-60 or net-90)',
+        'Explore bridge financing or revenue-based lending',
+        'Build a 3-month emergency reserve before scaling',
+      ],
       severity: 'red',
     });
     if (scenarioMetrics.margin < 10) risks.push({
       label: `Net margin below 10%`,
       impact: `Current margin is ${scenarioMetrics.margin.toFixed(1)}%, leaving little buffer.`,
       mitigation: 'Optimize COGS or increase pricing by 10-15%.',
+      mitigationPlan: [
+        'Audit top 3 cost categories for 10% reduction opportunities',
+        'Test a 10-15% price increase with a small customer segment',
+        'Renegotiate supplier contracts or switch to bulk purchasing',
+        'Automate manual processes to reduce labor costs',
+      ],
       severity: scenarioMetrics.margin < 0 ? 'red' : 'orange',
     });
     const cacPayback = result.financial_analysis?.unit_economics?.cac_payback_months;
@@ -166,6 +178,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       label: `Slow CAC recovery`,
       impact: `${cacPayback.toFixed(1)} months to recover customer acquisition cost.`,
       mitigation: 'Focus on organic channels or improve conversion rates.',
+      mitigationPlan: [
+        'Shift 30% of paid ad budget to content marketing and SEO',
+        'Implement a referral program with 2-sided incentives',
+        'Optimize landing page conversion rate (target >3%)',
+        'Focus on high-LTV customer segments to improve unit economics',
+      ],
       severity: cacPayback > 12 ? 'red' : 'yellow',
     });
     if (result.validation?.warnings?.length) {
@@ -174,6 +192,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           label: w.message || 'Financial model uncertainty',
           impact: 'Model assumptions may not hold under stress.',
           mitigation: 'Validate with real market data within 30 days.',
+          mitigationPlan: [
+            'Interview 10 potential customers this week',
+            'Run a pre-sale or waitlist to validate willingness to pay',
+            'Compare your assumptions against published industry benchmarks',
+            'Set up weekly metric tracking to catch deviations early',
+          ],
           severity: 'yellow',
         });
       });
@@ -267,7 +291,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
 
             {/* Top Risk Flags — t=900, staggered slide-in */}
-            <div className="q-card p-5 space-y-3 animate-fade-in" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
+            <div className="q-card p-5 space-y-4 animate-fade-in" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
                 Top Risk Flags
               </h3>
@@ -276,27 +300,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   <CheckCircle2 className="w-4 h-4" /> No critical risks detected
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {topRisks.map((risk, i) => (
-                    <div
-                      key={i}
-                      className="animate-fade-in space-y-1"
-                      style={{ animationDelay: `${900 + i * 100}ms`, animationFillMode: 'both' }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          'w-2.5 h-2.5 rounded-full shrink-0',
-                          risk.severity === 'red' ? 'bg-[var(--q-status-red)]' :
-                          risk.severity === 'orange' ? 'bg-[var(--q-status-orange)]' :
-                          'bg-[var(--q-status-yellow)]'
-                        )} />
-                        <span className="text-sm font-medium text-[var(--q-text-primary)]">{risk.label}</span>
-                      </div>
-                      <p className="text-xs text-[var(--q-text-secondary)] ml-[18px]">{risk.impact} {risk.mitigation}</p>
-                      <button className="text-xs text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[18px] flex items-center gap-1 transition-colors">
-                        <ArrowRight className="w-3 h-3" /> View mitigation plan
-                      </button>
-                    </div>
+                    <RiskFlagCard key={i} risk={risk} index={i} />
                   ))}
                 </div>
               )}
@@ -471,6 +477,60 @@ function MetricMini({ label, value, positive }: { label: string; value: string; 
       )} style={{ fontFamily: 'var(--q-font-mono, JetBrains Mono, monospace)' }}>
         {value}
       </p>
+    </div>
+  );
+}
+
+function RiskFlagCard({ risk, index }: { risk: { label: string; impact: string; mitigation: string; mitigationPlan: string[]; severity: 'red' | 'orange' | 'yellow' }; index: number }) {
+  const [isExpanded, setIsExpanded] = React.useState(false);
+
+  return (
+    <div
+      className="animate-fade-in rounded-lg border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] overflow-hidden"
+      style={{ animationDelay: `${900 + index * 100}ms`, animationFillMode: 'both' }}
+    >
+      {/* Header */}
+      <div className="p-4 space-y-2">
+        <div className="flex items-start gap-3">
+          <span className={cn(
+            'w-2.5 h-2.5 rounded-full shrink-0 mt-1',
+            risk.severity === 'red' ? 'bg-[var(--q-status-red)]' :
+            risk.severity === 'orange' ? 'bg-[var(--q-status-orange)]' :
+            'bg-[var(--q-status-yellow)]'
+          )} />
+          <div className="flex-1 min-w-0 space-y-1.5">
+            <span className="text-sm font-semibold text-[var(--q-text-primary)] leading-tight block">{risk.label}</span>
+            <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed">{risk.impact} {risk.mitigation}</p>
+          </div>
+        </div>
+
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="flex items-center gap-1.5 text-xs font-medium text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[22px] transition-colors cursor-pointer group"
+        >
+          <ArrowRight className={cn("w-3 h-3 transition-transform duration-200", isExpanded && "rotate-90")} />
+          {isExpanded ? 'Hide mitigation plan' : 'View mitigation plan'}
+        </button>
+      </div>
+
+      {/* Expandable Mitigation Plan */}
+      {isExpanded && (
+        <div className="px-4 pb-4 pt-0 ml-[22px] animate-fade-in" style={{ animationDuration: '200ms' }}>
+          <div className="p-3 rounded-lg bg-[var(--q-bg-base)] border border-[var(--q-border-subtle)] space-y-2.5">
+            <p className="text-[10px] uppercase tracking-wider font-semibold text-[var(--q-text-tertiary)]">Action Plan</p>
+            <ol className="space-y-2">
+              {risk.mitigationPlan.map((step, j) => (
+                <li key={j} className="flex items-start gap-2.5 text-xs text-[var(--q-text-secondary)] leading-relaxed">
+                  <span className="flex-shrink-0 w-5 h-5 rounded-full bg-[var(--q-accent-primary)]/10 text-[var(--q-accent-primary)] text-[10px] font-bold flex items-center justify-center mt-0.5">
+                    {j + 1}
+                  </span>
+                  {step}
+                </li>
+              ))}
+            </ol>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

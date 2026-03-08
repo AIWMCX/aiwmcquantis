@@ -182,16 +182,16 @@ export function AdvancedFinancialInputs({
           </div>
         </CollapsibleTrigger>
 
-        <CollapsibleContent className="mt-3">
-          <div className="p-4 rounded-lg border border-border/50 bg-card/50 space-y-5">
+        <CollapsibleContent className="mt-4">
+          <div className="p-5 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] space-y-6">
             {/* Confidence Boost Banner */}
-            <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
-              <TrendingUp className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <p className="text-sm font-medium text-foreground">
+            <div className="flex items-start gap-4 p-4 rounded-lg bg-[var(--q-accent-glow)] border border-[var(--q-accent-primary)]/15">
+              <TrendingUp className="w-5 h-5 text-[var(--q-accent-primary)] mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-[var(--q-text-primary)]">
                   Boost your analysis confidence
                 </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-xs text-[var(--q-text-secondary)] mt-1 leading-relaxed">
                   Providing real financial data instead of estimates increases accuracy by ~40%. 
                   All fields are optional.
                 </p>
@@ -202,19 +202,19 @@ export function AdvancedFinancialInputs({
                   onClick={handleAutofill}
                   disabled={disabled}
                   className={cn(
-                    "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0",
-                    "bg-primary/10 text-primary hover:bg-primary/20",
+                    "flex items-center gap-1.5 px-4 py-2 text-xs font-semibold rounded-lg transition-all flex-shrink-0",
+                    "bg-[var(--q-accent-primary)]/15 text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-primary)]/25",
                     disabled && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Sparkles className="w-3.5 h-3.5" />
-                  Auto-fill from benchmarks
+                  Auto-fill
                 </button>
               )}
             </div>
 
             {/* Investment & Revenue Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {FIELD_CONFIGS.slice(0, 2).map((field) => (
                 <FinancialField
                   key={field.key}
@@ -229,7 +229,7 @@ export function AdvancedFinancialInputs({
             </div>
 
             {/* Pricing & Customers Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {FIELD_CONFIGS.slice(2, 4).map((field) => (
                 <FinancialField
                   key={field.key}
@@ -244,7 +244,7 @@ export function AdvancedFinancialInputs({
             </div>
 
             {/* Costs & CAC Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               {FIELD_CONFIGS.slice(4, 6).map((field) => (
                 <FinancialField
                   key={field.key}
@@ -258,8 +258,8 @@ export function AdvancedFinancialInputs({
               ))}
             </div>
 
-            {/* Churn Rate */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Churn Rate + Summary */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
               <FinancialField
                 config={FIELD_CONFIGS[6]}
                 value={financialInputs.churn_rate}
@@ -270,10 +270,10 @@ export function AdvancedFinancialInputs({
               />
               
               {/* Summary */}
-              <div className="flex items-center justify-center p-3 rounded-lg bg-muted/30">
-                <div className="text-center">
-                  <p className="text-2xl font-bold text-primary">+{confidenceBoost}%</p>
-                  <p className="text-xs text-muted-foreground">Confidence boost</p>
+              <div className="flex items-center justify-center p-4 rounded-xl bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)]">
+                <div className="text-center space-y-1">
+                  <p className="text-2xl font-bold text-[var(--q-accent-primary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>+{confidenceBoost}%</p>
+                  <p className="text-xs text-[var(--q-text-tertiary)]">Confidence boost</p>
                 </div>
               </div>
             </div>
@@ -311,13 +311,13 @@ function FinancialField({
   }, [industryType, config.benchmarkParam, onUseMedian]);
 
   return (
-    <div className="space-y-1.5">
-      <Label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
-        <span className="text-muted-foreground">{config.icon}</span>
+    <div className="space-y-2">
+      <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+        <span className="text-[var(--q-text-tertiary)]">{config.icon}</span>
         {config.label}
         <Tooltip>
           <TooltipTrigger asChild>
-            <HelpCircle className="w-3.5 h-3.5 text-muted-foreground cursor-help" />
+            <HelpCircle className="w-3.5 h-3.5 text-[var(--q-text-tertiary)] cursor-help" />
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[250px]">
             <p className="text-sm">{config.tooltip}</p>
@@ -326,7 +326,7 @@ function FinancialField({
       </Label>
       <div className="relative">
         {config.prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
             {config.prefix}
           </span>
         )}
@@ -338,15 +338,15 @@ function FinancialField({
           placeholder={config.placeholder}
           disabled={disabled}
           className={cn(
-            "transition-colors",
-            config.prefix && "pl-7",
-            config.suffix && "pr-8",
-            validation?.warningLevel === 'critical' && "border-destructive/50",
-            validation?.warningLevel === 'strong' && "border-amber-500/50",
+            "h-12 text-[15px] transition-colors",
+            config.prefix && "pl-8",
+            config.suffix && "pr-9",
+            validation?.warningLevel === 'critical' && "border-[var(--q-status-red)]/50",
+            validation?.warningLevel === 'strong' && "border-[var(--q-status-yellow)]/50",
           )}
         />
         {config.suffix && (
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">
+          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--q-text-tertiary)] text-sm font-medium">
             {config.suffix}
           </span>
         )}
