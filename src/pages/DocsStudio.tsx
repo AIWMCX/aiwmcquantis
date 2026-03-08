@@ -230,6 +230,9 @@ export default function DocsStudio() {
     isLoading: limitLoading,
   } = useDocDownloadLimit();
 
+  // Doc performance signal tracking
+  const { recordSignal } = useDocSignals();
+
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
     setPreviewHTML(html);
