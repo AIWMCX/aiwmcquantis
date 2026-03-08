@@ -397,6 +397,16 @@ export class QuantisMath {
     const db = sanitize(b);
     return da.lte(db) ? da : db;
   }
+
+  /** Absolute value */
+  static abs(value: DecimalInput): Decimal {
+    return sanitize(value).abs();
+  }
+
+  /** Round to N decimal places */
+  static roundTo(value: DecimalInput, decimals: number): number {
+    return sanitize(value).toDecimalPlaces(decimals, Decimal.ROUND_HALF_UP).toNumber();
+  }
 }
 
 export { Decimal, sanitize, sanitizeWithOrigin };

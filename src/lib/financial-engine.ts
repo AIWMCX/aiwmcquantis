@@ -131,8 +131,8 @@ export function calculateUnitEconomics(params: UnitEconomicsParams): UnitEconomi
   // NPV-discounted LTV: sum of margin / (1+r)^t for t=1..lifetime
   const monthlyDiscount = Q.divide(discountRatePct, 12);
   let ltvNpv = Q.multiply(1, 0);
-  const ltMonths = Math.min(Q.toNumber(lifetimeMonths), 120);
-  for (let t = 1; t <= Math.ceil(ltMonths); t++) {
+  const ltMonths = Q.toNumber(Q.min(lifetimeMonths, 120));
+  for (let t = 1; t <= Q.ceil(ltMonths); t++) {
     const discountFactor = Q.add(1, monthlyDiscount);
     // (1+r)^t via repeated multiply
     let df = Q.multiply(1, 1);
@@ -196,7 +196,7 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
   let prevActive = Q.multiply(1, 0);
 
   for (let m = 1; m <= 36; m++) {
-    const year = Math.ceil(m / 12);
+    const year = Q.ceil(Q.divide(m, 12));
 
     // Customer dynamics
     let activeStart = m === 1 ? Q.multiply(1, initialCustomers) : prevActive;
@@ -309,11 +309,11 @@ export function generateCashFlow(
 
     // Runway: trailing 3-month avg burn
     const recentFlows = cashFlows.slice(-2).map(cf => cf.netCashFlow).concat([n(netCF)]);
-    const avgBurn = recentFlows.reduce((a, b) => a + b, 0) / recentFlows.length;
-    const runway = avgBurn < 0 ? Math.abs(n(cumulative) / avgBurn) : 999;
+    const avgBurn = n(Q.divide(recentFlows.reduce((a, b) => a + b, 0), recentFlows.length));
+    const runway = avgBurn < 0 ? n(Q.divide(Q.abs(n(cumulative)), Q.abs(avgBurn))) : 999;
 
     // Reconciliation: operatingCashFlow should match netIncome within $1
-    const divergence = Math.abs(n(opCashFlow) - pl.netIncome);
+    const divergence = n(Q.abs(Q.subtract(n(opCashFlow), pl.netIncome)));
     if (divergence > 1) {
       // Flag on the PL statement if mutable — for now just log
       console.warn(`[BottomUpEngine] Cash-flow reconciliation gap: $${divergence} in month ${pl.month}`);
@@ -361,9 +361,35 @@ export function calculatePaybackPeriod(cashFlows: CashFlowStatement[]): number |
   for (const cf of cashFlows) {
     cumulativeOp += cf.operatingCashFlow;
     // Find month where cumulative operating CF covers the initial negative position
-    if (cumulativeOp >= Math.abs(cashFlows[0]?.cumulativeCash - cashFlows[0]?.netCashFlow)) {
+    if (cumulativeOp >= n(Q.abs(Q.subtract(cashFlows[0]?.cumulativeCash ?? 0, cashFlows[0]?.netCashFlow ?? 0)))) {
       return cf.month;
     }
   }
   return null;
+}
+
+// ─── Engine Version ─────────────────────────────────────────
+
+export const ENGINE_VERSION = '2.0.0-precision';
+
+// ─── Trace Wrapper ──────────────────────────────────────────
+
+export interface CalculationStep {
+  label: string;
+  formula: string;
+  value: number;
+}
+
+export interface TraceResult<T> {
+  result: T;
+  steps: CalculationStep[];
+  confidence: number;
+}
+
+export function calculateWithTrace(
+  fn: () => { result: any; steps: CalculationStep[] },
+  confidenceBase: number = 85,
+): TraceResult<any> {
+  const { result, steps } = fn();
+  return { result, steps, confidence: confidenceBase };
 }

@@ -6,10 +6,11 @@
  * realistic ranges with graduated warning levels.
  */
 
-// Pure arithmetic helpers — no external dependency needed for simple math
+import { QuantisMath } from '@/lib/quantis-math';
+
+// Rounding helper using QMath for consistency
 function round(v: number, decimals: number): number {
-  const f = Math.pow(10, decimals);
-  return Math.round(v * f) / f;
+  return QuantisMath.roundTo(v, decimals);
 }
 
 // ─── Interfaces ──────────────────────────────────────────────

@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Minus, FileDown } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
+import { QuantisMath } from '@/lib/quantis-math';
 import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area,
 } from 'recharts';
@@ -79,17 +80,17 @@ function extractMetric(scenario: SavedScenario, metric: string): number | null {
     case 'revenue_month_6': {
       const monthly = base.revenue || fa?.mrr || 0;
       const growth = (scenario.params?.monthly_growth_rate || 0.05);
-      return Math.round(monthly * Math.pow(1 + growth, 5));
+      return QuantisMath.round(QuantisMath.multiply(monthly, QuantisMath.compound(1, growth, 5)));
     }
     case 'revenue_month_12': {
       const monthly = base.revenue || fa?.mrr || 0;
       const growth = (scenario.params?.monthly_growth_rate || 0.05);
-      return Math.round(monthly * Math.pow(1 + growth, 11));
+      return QuantisMath.round(QuantisMath.multiply(monthly, QuantisMath.compound(1, growth, 11)));
     }
     case 'break_even_month': return fa?.breakeven?.breakeven_months ?? ret?.payback_period_months ?? null;
     case 'net_margin': return base.net_margin ?? null;
     case 'gross_margin': return base.gross_margin ?? null;
-    case 'survival_probability': return mc?.probabilityPositive != null ? Math.round(mc.probabilityPositive * 100) : null;
+    case 'survival_probability': return mc?.probabilityPositive != null ? QuantisMath.round(QuantisMath.multiply(mc.probabilityPositive, 100)) : null;
     case 'monthly_profit': return base.net_profit ?? null;
     case 'ltv_cac_ratio': return ue?.ltv_cac_ratio ?? null;
     case 'cac_payback_months': return ue?.cac_payback_months ?? null;
@@ -105,7 +106,7 @@ function formatValue(metric: string, value: number | null): string {
   if (metric.includes('revenue') || metric === 'monthly_profit')
     return `$${value.toLocaleString()}`;
   if (metric === 'ltv_cac_ratio') return `${value.toFixed(1)}x`;
-  if (metric.includes('month')) return `${Math.round(value)} mo`;
+  if (metric.includes('month')) return `${QuantisMath.round(value)} mo`;
   return String(value);
 }
 
@@ -121,12 +122,12 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
       scenarios.forEach((s, idx) => {
         const rev = s.output?.financial_analysis?.scenarios?.base?.revenue || s.output?.financial_analysis?.mrr || 0;
         const growth = s.params?.monthly_growth_rate || 0.05;
-        point[`s${idx}`] = Math.round(rev * Math.pow(1 + growth, i));
+        point[`s${idx}`] = QuantisMath.round(QuantisMath.multiply(rev, QuantisMath.compound(1, growth, i)));
         // Monte Carlo corridor
         const mc = s.monte_carlo_result || s.output?.monte_carlo;
         if (mc?.percentiles) {
-          point[`s${idx}_p10`] = Math.round((mc.percentiles.p10 || rev * 0.7) * Math.pow(1 + growth * 0.5, i));
-          point[`s${idx}_p90`] = Math.round((mc.percentiles.p90 || rev * 1.3) * Math.pow(1 + growth * 1.5, i));
+          point[`s${idx}_p10`] = QuantisMath.round(QuantisMath.multiply(mc.percentiles.p10 || QuantisMath.multiply(rev, 0.7), QuantisMath.compound(1, QuantisMath.multiply(growth, 0.5), i)));
+          point[`s${idx}_p90`] = QuantisMath.round(QuantisMath.multiply(mc.percentiles.p90 || QuantisMath.multiply(rev, 1.3), QuantisMath.compound(1, QuantisMath.multiply(growth, 1.5), i)));
         }
       });
       return point;
@@ -170,7 +171,7 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                       const isBest = val !== null && val === best && numericValues.length > 1;
                       const isWorst = val !== null && val === worst && numericValues.length > 1 && best !== worst;
                       const delta = val !== null && baseValue !== null && scenarios[idx] !== baseScenario
-                        ? ((val - baseValue) / Math.abs(baseValue || 1)) * 100
+                        ? QuantisMath.toNumber(QuantisMath.multiply(QuantisMath.divide(QuantisMath.subtract(val, baseValue), QuantisMath.abs(baseValue || 1)), 100))
                         : null;
 
                       return (
@@ -189,7 +190,7 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                               (higherBetter ? delta > 0 : delta < 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                             )}>
                               {delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-                              {Math.abs(delta).toFixed(0)}%
+                              {QuantisMath.toNumber(QuantisMath.abs(delta)).toFixed(0)}%
                             </span>
                           )}
                         </td>
