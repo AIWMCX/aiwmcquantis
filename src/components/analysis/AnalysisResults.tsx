@@ -87,10 +87,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
   const ideaScoreLabel = ideaScore >= 8 ? 'Strong Opportunity' : ideaScore >= 5 ? 'Needs Work' : 'High Risk';
   const ideaScoreColor = ideaScore >= 8 
-    ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-500/30' 
+    ? 'q-score-excellent' 
     : ideaScore >= 5 
-    ? 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/30'
-    : 'bg-destructive/10 text-destructive border-destructive/30';
+    ? 'q-score-good'
+    : 'q-score-poor';
 
   // === SWOT ===
   const swot = useMemo(() => {
