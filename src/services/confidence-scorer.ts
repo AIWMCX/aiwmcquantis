@@ -5,8 +5,6 @@
  * freshness, and sample size into a single 0–100 score with tier.
  */
 
-import { QuantisMath } from '@/lib/quantis-math';
-
 // ── Types ──
 
 export type ConfidenceTier = 'verified' | 'confident' | 'estimated' | 'uncertain' | 'blocked';
@@ -93,17 +91,17 @@ export function calculateOutputConfidence(params: ConfidenceInput): ConfidenceOu
   const warnings: string[] = [];
 
   // Weighted base score
-  const consensusContrib = QuantisMath.multiply(params.consensusScore, WEIGHTS.consensus);
-  const completenessContrib = QuantisMath.multiply(params.dataCompleteness, WEIGHTS.completeness);
-  const benchmarkContrib = QuantisMath.multiply(params.benchmarkAlignment, WEIGHTS.benchmark);
+  const consensusContrib = params.consensusScore * WEIGHTS.consensus;
+  const completenessContrib = params.dataCompleteness * WEIGHTS.completeness;
+  const benchmarkContrib = params.benchmarkAlignment * WEIGHTS.benchmark;
 
-  let baseScore = QuantisMath.add(QuantisMath.add(consensusContrib, completenessContrib), benchmarkContrib);
+  const baseScore = consensusContrib + completenessContrib + benchmarkContrib;
 
   // Freshness penalty: -5% per 24h stale, max -20%
-  const stalenessDays = QuantisMath.divide(params.dataFreshnessHours, 24);
-  const freshnessPenalty = QuantisMath.clamp(QuantisMath.multiply(stalenessDays, 5), 0, 20);
+  const stalenessDays = params.dataFreshnessHours / 24;
+  const freshnessPenalty = Math.min(stalenessDays * 5, 20);
   if (freshnessPenalty > 0) {
-    warnings.push(`Data is ${Math.round(stalenessDays)} day(s) old (−${QuantisMath.round(freshnessPenalty, 1)}% penalty)`);
+    warnings.push(`Data is ${Math.round(stalenessDays)} day(s) old (−${Math.round(freshnessPenalty * 10) / 10}% penalty)`);
   }
 
   // Sample size bonus
@@ -116,11 +114,8 @@ export function calculateOutputConfidence(params: ConfidenceInput): ConfidenceOu
     warnings.push(`Small sample size (${params.sampleSize}) — results may not be representative`);
   }
 
-  const finalScore = QuantisMath.clamp(
-    QuantisMath.round(QuantisMath.add(QuantisMath.subtract(baseScore, freshnessPenalty), sampleBonus), 1),
-    0,
-    100
-  );
+  const rawScore = baseScore - freshnessPenalty + sampleBonus;
+  const finalScore = Math.round(Math.max(0, Math.min(100, rawScore)) * 10) / 10;
 
   // Additional warnings
   if (params.consensusScore < 70) {
@@ -137,10 +132,10 @@ export function calculateOutputConfidence(params: ConfidenceInput): ConfidenceOu
     score: finalScore,
     tier: getTier(finalScore),
     breakdown: {
-      consensus: QuantisMath.round(consensusContrib, 2),
-      completeness: QuantisMath.round(completenessContrib, 2),
-      benchmark: QuantisMath.round(benchmarkContrib, 2),
-      freshness_penalty: QuantisMath.round(-freshnessPenalty, 2),
+      consensus: Math.round(consensusContrib * 100) / 100,
+      completeness: Math.round(completenessContrib * 100) / 100,
+      benchmark: Math.round(benchmarkContrib * 100) / 100,
+      freshness_penalty: Math.round(-freshnessPenalty * 100) / 100,
       sample_bonus: sampleBonus,
     },
     warnings,
