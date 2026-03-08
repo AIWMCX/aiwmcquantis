@@ -240,7 +240,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   const revenuePerClient = QMath.round(QMath.multiply(avgCheck, benchmarks.orders_per_client));
   const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
     ? userProvidedCustomers 
-    : Math.max(1, Math.ceil(QMath.divide(mrr, Math.max(revenuePerClient, 1)).toNumber()));
+    : Math.max(1, Math.ceil(QMath.divide(mrr, QMath.max(revenuePerClient, 1)).toNumber()));
   
   const churnRate = userProvidedChurnRate && userProvidedChurnRate > 0 
     ? userProvidedChurnRate / 100 
