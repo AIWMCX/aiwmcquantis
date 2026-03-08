@@ -290,7 +290,7 @@ function RingGauge({ value, label, style }: RingGaugeProps) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-metric-xl font-mono text-[var(--q-text-primary)]">
+        <span className="text-metric-lg font-mono text-[var(--q-text-primary)]">
           {animatedValue}
         </span>
         <span className={cn('text-xs font-semibold uppercase tracking-wider mt-1', style.text)}>
@@ -330,7 +330,7 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
       onClick={onClick}
       style={{ '--index': index } as React.CSSProperties}
       className={cn(
-        'q-card q-stagger relative rounded-lg border bg-[var(--q-bg-elevated)] p-4 text-left',
+        'q-card q-stagger relative rounded-[var(--q-radius-lg)] border bg-[var(--q-bg-elevated)] p-4 text-left overflow-hidden',
         'transition-all hover:shadow-lg hover:scale-[1.02]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]',
         'border-l-[3px]',
@@ -408,7 +408,7 @@ export function StressMap({
       </div>
 
       {/* 2×2 Grid of Block Cards */}
-      <div className="grid grid-cols-2 gap-4">
+      <div className="grid grid-cols-2 gap-2">
         {BLOCKS.map((block, index) => (
           <BlockCard
             key={block.key}

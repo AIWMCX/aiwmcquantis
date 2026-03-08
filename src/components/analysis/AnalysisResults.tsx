@@ -11,6 +11,7 @@ import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
+import { ScenarioBar, SCENARIO_CONFIGS, type ScenarioId } from './ScenarioBar';
 import { IndustryComparison } from './IndustryComparison';
 import { ShareSuccessModal } from './ShareSuccessModal';
 import { DualEngineBadge } from './DualEngineBadge';
@@ -51,6 +52,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const { queueExport, status: exportStatus } = useExportQueue();
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
+  const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
   const [showShareModal, setShowShareModal] = useState(false);
   const [showActualsImporter, setShowActualsImporter] = useState(false);
 
@@ -225,7 +227,13 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <RevenueChart
                 baseRevenue={scenarioMetrics.revenue}
                 margin={scenarioMetrics.margin}
+                activeScenario={activeScenario}
               />
+            </div>
+
+            {/* Scenario Bar — below chart */}
+            <div className="q-card animate-fade-in p-4" style={{ animationDelay: '750ms', animationFillMode: 'both' }}>
+              <ScenarioBar activeScenario={activeScenario} onScenarioChange={setActiveScenario} />
             </div>
 
             {/* Scenario metrics */}

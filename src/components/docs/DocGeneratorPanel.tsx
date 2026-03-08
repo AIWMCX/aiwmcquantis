@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useTemplates } from '@/hooks/useTemplates';
 import { useSubscription } from '@/hooks/useSubscription';
-import { useAuth } from '@/hooks/useAuth';
 import { useToast } from '@/hooks/use-toast';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
 import { DocTemplateCard } from './DocTemplateCard';
@@ -12,6 +9,7 @@ import { requestDocGeneration, type DocTemplate } from '@/services/docs-engine';
 import type { TemplateCategory } from '@/types/document';
 import type { QuantisReport } from '@/types/report-schema';
 import { FileText } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface DocGeneratorPanelProps {
   analysisId: string;
@@ -23,10 +21,10 @@ type TabValue = 'all' | TemplateCategory;
 
 const TABS: { value: TabValue; label: string }[] = [
   { value: 'all', label: 'All' },
-  { value: 'finance', label: 'Finance' },
-  { value: 'legal', label: 'Legal' },
-  { value: 'operations', label: 'Operations' },
-  { value: 'tech', label: 'Tech' },
+  { value: 'finance', label: 'Investor' },
+  { value: 'legal', label: 'Invoices' },
+  { value: 'operations', label: 'Reports' },
+  { value: 'tech', label: 'Plans' },
 ];
 
 interface CompletedDoc {
@@ -117,81 +115,81 @@ export function DocGeneratorPanel({ analysisId, report, userId }: DocGeneratorPa
 
   return (
     <>
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
-            Generate Documents
-          </CardTitle>
-          <CardDescription>
-            Turn your analysis into professional documents
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {activeJob && (
-            <DocGenerationProgress
-              jobId={activeJob.jobId}
-              templateName={activeJob.templateName}
-              estimatedMs={activeJob.estimatedMs}
-              onComplete={handleJobComplete}
-              onError={handleJobError}
-            />
-          )}
+      <div className="q-card rounded-[var(--q-radius-lg)] border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-6 space-y-5">
+        {/* Header */}
+        <div>
+          <h3 className="text-lg font-semibold text-[var(--q-text-primary)] flex items-center gap-2" style={{ fontFamily: 'var(--q-font-heading)' }}>
+            <FileText className="w-5 h-5 text-[var(--q-accent-primary)]" />
+            📄 Generate Documents
+          </h3>
+          <p className="text-sm text-[var(--q-text-secondary)] mt-1">
+            Turn your analysis into professional documents instantly
+          </p>
+        </div>
 
-          <Tabs
-            value={activeTab}
-            onValueChange={(v) => setActiveTab(v as TabValue)}
-          >
-            <TabsList>
-              {TABS.map((tab) => (
-                <TabsTrigger key={tab.value} value={tab.value}>
-                  {tab.label}
-                </TabsTrigger>
-              ))}
-            </TabsList>
+        {activeJob && (
+          <DocGenerationProgress
+            jobId={activeJob.jobId}
+            templateName={activeJob.templateName}
+            estimatedMs={activeJob.estimatedMs}
+            onComplete={handleJobComplete}
+            onError={handleJobError}
+          />
+        )}
 
-            <TabsContent value={activeTab} className="mt-4">
-              {isLoading ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {Array.from({ length: 6 }).map((_, i) => (
-                    <div
-                      key={i}
-                      className="h-48 rounded-lg bg-muted animate-pulse"
-                    />
-                  ))}
-                </div>
-              ) : templates && templates.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {templates.map((t) => {
-                    const completed = completedDocs.find(
-                      (d) => d.templateId === t.template_id
-                    );
-                    return (
-                      <DocTemplateCard
-                        key={t.id}
-                        template={t as unknown as import('@/services/docs-engine').DocTemplate}
-                        isGenerating={generatingDocId === t.template_id}
-                        isComplete={!!completed}
-                        fileUrl={completed?.fileUrl}
-                        onGenerate={() =>
-                          handleGenerate(
-                            t as unknown as import('@/services/docs-engine').DocTemplate
-                          )
-                        }
-                        isLocked={t.tier === 'plus' && !isPlus}
-                      />
-                    );
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-8">
-                  No templates available in this category.
-                </p>
+        {/* Underline tabs */}
+        <div className="flex gap-4 border-b border-[var(--q-border-subtle)]">
+          {TABS.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => setActiveTab(tab.value)}
+              className={cn(
+                'pb-2 text-sm font-medium transition-all border-b-2 -mb-px',
+                activeTab === tab.value
+                  ? 'text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]'
+                  : 'text-[var(--q-text-tertiary)] border-transparent hover:text-[var(--q-text-secondary)]'
               )}
-            </TabsContent>
-          </Tabs>
-        </CardContent>
-      </Card>
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Template grid */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div
+                key={i}
+                className="h-48 rounded-[var(--q-radius-lg)] bg-[var(--q-bg-elevated)] animate-pulse"
+              />
+            ))}
+          </div>
+        ) : templates && templates.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {templates.map((t) => {
+              const completed = completedDocs.find(
+                (d) => d.templateId === t.template_id
+              );
+              return (
+                <DocTemplateCard
+                  key={t.id}
+                  template={t as unknown as DocTemplate}
+                  isGenerating={generatingDocId === t.template_id}
+                  isComplete={!!completed}
+                  fileUrl={completed?.fileUrl}
+                  onGenerate={() => handleGenerate(t as unknown as DocTemplate)}
+                  isLocked={t.tier === 'plus' && !isPlus}
+                />
+              );
+            })}
+          </div>
+        ) : (
+          <p className="text-sm text-[var(--q-text-tertiary)] text-center py-8">
+            No templates available in this category.
+          </p>
+        )}
+      </div>
 
       <UpgradePrompt
         open={upgradeOpen}
