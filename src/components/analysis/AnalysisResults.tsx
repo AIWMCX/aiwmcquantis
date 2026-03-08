@@ -506,7 +506,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         open={showActualsImporter}
         onOpenChange={setShowActualsImporter}
         projections={[]}
-        currentParams={(result.financial_analysis?.inputs as Record<string, number | undefined>) || {}}
+        currentParams={({ ...result.financial_analysis?.inputs }) as any || {}}
       />
 
       {/* Signup Prompt for anonymous users */}
