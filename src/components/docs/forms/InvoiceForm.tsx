@@ -103,6 +103,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         { description: '', quantity: 1, unit_price: 0 },
       ],
       tax_rate: (prefilled.tax_rate || 0) * 100,
+      discount_amount: prefilled.discount_amount || 0,
       notes: prefilled.notes || '',
     };
   }, [template]);
