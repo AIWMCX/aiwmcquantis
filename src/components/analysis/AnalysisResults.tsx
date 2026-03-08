@@ -148,7 +148,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
   // Top 3 risk flags
   const topRisks = useMemo(() => {
-    const risks: { label: string; impact: string; mitigation: string; severity: 'red' | 'orange' | 'yellow' }[] = [];
+    const risks: { label: string; impact: string; mitigation: string; mitigationPlan: string[]; severity: 'red' | 'orange' | 'yellow' }[] = [];
     if (cashRunwayMonths < 12) risks.push({
       label: `Cash runway under 12 months`,
       impact: `Only ${cashRunwayMonths} months of runway at current burn rate.`,
