@@ -349,9 +349,7 @@ export default function Index() {
             </div>
           </>
         )}
-      </main>
-
-      <Footer />
+      </div>
 
       <UpgradePrompt
         open={showUpgradePrompt}
