@@ -532,6 +532,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 <span className="text-muted-foreground">Tax ({formValues.tax_rate || 0}%):</span>
                 <span className="font-medium">${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
+              {calculations.discount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Discount:</span>
+                  <span className="font-medium text-destructive">-${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-primary/20">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold text-lg text-primary">${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
