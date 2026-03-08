@@ -555,13 +555,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
 // --- Sub-components ---
 
-function MetricCard({ label, value, positive }: { label: string; value: string; positive: boolean }) {
+function MetricCard({ label, value, positive, index = 0 }: { label: string; value: string; positive: boolean; index?: number }) {
   return (
-    <div className="p-3 rounded-lg bg-muted/30 border border-border text-center">
-      <p className="text-xs text-muted-foreground uppercase tracking-wide mb-0.5">{label}</p>
+    <div
+      className="q-metric-reveal p-3 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-default)] text-center"
+      style={{ animationDelay: `${index * 80}ms` }}
+    >
+      <p className="text-label text-[var(--q-text-secondary)] mb-0.5">{label}</p>
       <p className={cn(
-        "text-base sm:text-lg font-bold tabular-nums transition-all duration-300",
-        positive ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
+        "text-metric-sm transition-all duration-300",
+        positive ? "text-[var(--q-status-green)]" : "text-destructive"
       )}>
         {value}
       </p>
