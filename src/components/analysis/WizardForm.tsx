@@ -363,9 +363,9 @@ export function WizardForm({
                           placeholder="e.g. Denver, Colorado"
                           disabled={isLoading}
                           aria-invalid={!!errors.location}
-                          className={cn("transition-colors text-sm", errors.location && "border-destructive focus-visible:ring-destructive")}
+                          className={cn("transition-all text-[15px]", errors.location && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]")}
                         />
-                        {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
+                        {errors.location && <p className="text-xs text-[var(--q-status-red)]">{errors.location}</p>}
                       </div>
 
                       {/* Industry selector */}
