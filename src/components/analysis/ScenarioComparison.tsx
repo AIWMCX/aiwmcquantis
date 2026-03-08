@@ -122,12 +122,12 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
       scenarios.forEach((s, idx) => {
         const rev = s.output?.financial_analysis?.scenarios?.base?.revenue || s.output?.financial_analysis?.mrr || 0;
         const growth = s.params?.monthly_growth_rate || 0.05;
-        point[`s${idx}`] = Math.round(rev * Math.pow(1 + growth, i));
+        point[`s${idx}`] = QuantisMath.round(QuantisMath.multiply(rev, QuantisMath.compound(1, growth, i)));
         // Monte Carlo corridor
         const mc = s.monte_carlo_result || s.output?.monte_carlo;
         if (mc?.percentiles) {
-          point[`s${idx}_p10`] = Math.round((mc.percentiles.p10 || rev * 0.7) * Math.pow(1 + growth * 0.5, i));
-          point[`s${idx}_p90`] = Math.round((mc.percentiles.p90 || rev * 1.3) * Math.pow(1 + growth * 1.5, i));
+          point[`s${idx}_p10`] = QuantisMath.round(QuantisMath.multiply(mc.percentiles.p10 || QuantisMath.multiply(rev, 0.7), QuantisMath.compound(1, QuantisMath.multiply(growth, 0.5), i)));
+          point[`s${idx}_p90`] = QuantisMath.round(QuantisMath.multiply(mc.percentiles.p90 || QuantisMath.multiply(rev, 1.3), QuantisMath.compound(1, QuantisMath.multiply(growth, 1.5), i)));
         }
       });
       return point;
