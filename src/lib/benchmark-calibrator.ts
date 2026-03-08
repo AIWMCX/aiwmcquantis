@@ -10,7 +10,7 @@ import { QuantisMath } from '@/lib/quantis-math';
 
 // Rounding helper using QMath for consistency
 function round(v: number, decimals: number): number {
-  return QuantisMath.round(v, decimals);
+  return QuantisMath.roundTo(v, decimals);
 }
 
 // ─── Interfaces ──────────────────────────────────────────────
