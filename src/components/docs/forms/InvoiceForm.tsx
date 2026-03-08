@@ -45,6 +45,7 @@ const InvoiceFormSchema = z.object({
     })
   ).min(1, 'At least one item required'),
   tax_rate: z.number().min(0).max(100),
+  discount_amount: z.number().min(0).default(0),
   notes: z.string().optional(),
 });
 
