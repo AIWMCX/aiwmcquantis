@@ -160,8 +160,8 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                 const values = scenarios.map(s => extractMetric(s, metric));
                 const numericValues = values.filter((v): v is number => v !== null);
                 const higherBetter = HIGHER_IS_BETTER.has(metric);
-                const best = numericValues.length > 0 ? (higherBetter ? QuantisMath.toNumber(QuantisMath.max(...numericValues)) : QuantisMath.toNumber(QuantisMath.min(...numericValues))) : null;
-                const worst = numericValues.length > 0 ? (higherBetter ? QuantisMath.toNumber(QuantisMath.min(...numericValues)) : QuantisMath.toNumber(QuantisMath.max(...numericValues))) : null;
+                const best = numericValues.length > 0 ? (higherBetter ? Math.max(...numericValues) : Math.min(...numericValues)) : null;
+                const worst = numericValues.length > 0 ? (higherBetter ? Math.min(...numericValues) : Math.max(...numericValues)) : null;
                 const baseValue = baseScenario ? extractMetric(baseScenario, metric) : null;
 
                 return (
