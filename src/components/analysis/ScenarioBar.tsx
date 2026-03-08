@@ -53,7 +53,7 @@ export function ScenarioBar({ activeScenario, onScenarioChange }: ScenarioBarPro
       {/* Scenario label when non-base */}
       {activeScenario !== 'base' && activeConfig && (
         <p className="text-xs font-medium text-[var(--q-accent-primary)]">
-          Scenario: {activeConfig.emoji} {activeConfig.label}
+          Scenario: {activeConfig.label}
         </p>
       )}
 
