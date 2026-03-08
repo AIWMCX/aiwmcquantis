@@ -49,7 +49,11 @@ export function ResultsTopBar({
         </div>
 
         {/* Center: confidence badge */}
-        <Badge className="shrink-0 gap-1 bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/20 hover:bg-[var(--q-accent-glow)]">
+        <Badge className={cn(
+          "shrink-0 gap-1",
+          confidenceScore >= 90 ? 'q-badge-success' :
+          confidenceScore >= 70 ? 'q-badge-ai' : 'q-badge-warning'
+        )}>
           <Zap className="w-3 h-3" />
           <span className="text-xs font-bold tabular-nums">{confidenceLabel} {confidenceScore}%</span>
         </Badge>
