@@ -36,7 +36,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   confirmed: {
     label: 'CONFIRMED',
     icon: CheckCircle2,
-    prefix: '✓',
+    prefix: '',
     classes: 'bg-[rgba(79,142,247,0.08)] text-[var(--q-accent-primary)] border-[rgba(79,142,247,0.2)]',
   },
   estimated: {
