@@ -82,6 +82,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           { description: '', quantity: 1, unit_price: 0 },
         ],
         tax_rate: 0,
+        discount_amount: 0,
         notes: '',
       };
     }
