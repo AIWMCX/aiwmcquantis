@@ -283,10 +283,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-5 mb-3">
+        <TabsList className="w-full grid grid-cols-6 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="riskmap" className="text-xs sm:text-sm gap-1">
+            <Flame className="w-3.5 h-3.5 hidden sm:block" />
+            Risk Map
           </TabsTrigger>
           <TabsTrigger value="simulation" className="text-xs sm:text-sm gap-1">
             <Activity className="w-3.5 h-3.5 hidden sm:block" />
