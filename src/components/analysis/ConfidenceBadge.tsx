@@ -20,29 +20,29 @@ const ICON_MAP: Record<string, React.ElementType> = {
 
 const COLOR_MAP: Record<string, { text: string; bg: string; bar: string }> = {
   emerald: {
-    text: 'text-emerald-700 dark:text-emerald-400',
-    bg: 'bg-emerald-500/10 border-emerald-500/30',
-    bar: 'bg-emerald-500',
+    text: 'text-[var(--q-status-green)]',
+    bg: 'bg-[var(--q-status-green-bg)] border-[var(--q-status-green-border)]',
+    bar: 'bg-[var(--q-status-green)]',
   },
   blue: {
-    text: 'text-blue-700 dark:text-blue-400',
-    bg: 'bg-blue-500/10 border-blue-500/30',
-    bar: 'bg-blue-500',
+    text: 'text-[var(--q-status-ai)]',
+    bg: 'bg-[var(--q-status-ai-bg)] border-[var(--q-status-ai-border)]',
+    bar: 'bg-[var(--q-status-ai)]',
   },
   amber: {
-    text: 'text-amber-700 dark:text-amber-400',
-    bg: 'bg-amber-500/10 border-amber-500/30',
-    bar: 'bg-amber-500',
+    text: 'text-[var(--q-status-yellow)]',
+    bg: 'bg-[var(--q-status-yellow-bg)] border-[var(--q-status-yellow-border)]',
+    bar: 'bg-[var(--q-status-yellow)]',
   },
   orange: {
-    text: 'text-orange-700 dark:text-orange-400',
-    bg: 'bg-orange-500/10 border-orange-500/30',
-    bar: 'bg-orange-500',
+    text: 'text-[var(--q-status-orange)]',
+    bg: 'bg-[var(--q-status-orange-bg)] border-[var(--q-status-orange-border)]',
+    bar: 'bg-[var(--q-status-orange)]',
   },
   red: {
-    text: 'text-destructive',
-    bg: 'bg-destructive/10 border-destructive/30',
-    bar: 'bg-destructive',
+    text: 'text-[var(--q-status-red)]',
+    bg: 'bg-[var(--q-status-red-bg)] border-[var(--q-status-red-border)]',
+    bar: 'bg-[var(--q-status-red)]',
   },
 };
 
