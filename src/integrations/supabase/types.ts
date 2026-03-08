@@ -1242,6 +1242,39 @@ export type Database = {
         }
         Relationships: []
       }
+      reconciliation_log: {
+        Row: {
+          analysis_id: string | null
+          checks_json: Json
+          created_at: string
+          id: string
+          reconciled: boolean
+          run_id: string
+          summary: string | null
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          checks_json?: Json
+          created_at?: string
+          id?: string
+          reconciled?: boolean
+          run_id: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          checks_json?: Json
+          created_at?: string
+          id?: string
+          reconciled?: boolean
+          run_id?: string
+          summary?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       referral_codes: {
         Row: {
           code: string
