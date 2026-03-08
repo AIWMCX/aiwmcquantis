@@ -222,7 +222,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           {/* Right Column (40%) */}
           <div className="lg:col-span-2 space-y-5">
             {/* Executive Summary */}
-            <div className="animate-fade-in rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 space-y-2" style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
+            <div className="q-card animate-fade-in p-4 space-y-2" style={{ animationDelay: '600ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)] flex items-center gap-2">
                 <DualEngineBadge crossValidation={(result as any).cross_validation} />
                 Executive Summary
