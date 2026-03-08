@@ -943,4 +943,18 @@
     transform: translateY(0);
     filter: brightness(0.95);
   }
+
+  /* Grid pattern for hero headers */
+  .q-grid-pattern {
+    background-image:
+      linear-gradient(rgba(79, 142, 247, 0.06) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79, 142, 247, 0.06) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+
+  .dark .q-grid-pattern {
+    background-image:
+      linear-gradient(rgba(79, 142, 247, 0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(79, 142, 247, 0.08) 1px, transparent 1px);
+  }
 }
