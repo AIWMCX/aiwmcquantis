@@ -116,6 +116,11 @@ const App = () => {
                     <InvoiceManager />
                   </ProtectedRoute>
                 } />
+                <Route path="/settings/brand" element={
+                  <ProtectedRoute>
+                    <BrandProfileSettings />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Admin routes - require authentication + admin role */}
                 <Route path="/admin" element={
