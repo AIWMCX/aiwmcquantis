@@ -290,7 +290,7 @@ function RingGauge({ value, label, style }: RingGaugeProps) {
         />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-metric-xl font-mono text-[var(--q-text-primary)]">
+        <span className="text-metric-lg font-mono text-[var(--q-text-primary)]">
           {animatedValue}
         </span>
         <span className={cn('text-xs font-semibold uppercase tracking-wider mt-1', style.text)}>

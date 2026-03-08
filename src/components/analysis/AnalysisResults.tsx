@@ -227,7 +227,13 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <RevenueChart
                 baseRevenue={scenarioMetrics.revenue}
                 margin={scenarioMetrics.margin}
+                activeScenario={activeScenario}
               />
+            </div>
+
+            {/* Scenario Bar — below chart */}
+            <div className="q-card animate-fade-in p-4" style={{ animationDelay: '750ms', animationFillMode: 'both' }}>
+              <ScenarioBar activeScenario={activeScenario} onScenarioChange={setActiveScenario} />
             </div>
 
             {/* Scenario metrics */}
