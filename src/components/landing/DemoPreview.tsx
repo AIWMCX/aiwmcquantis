@@ -18,7 +18,7 @@ import { cn } from '@/lib/utils';
 
 interface IndustryDemo {
   label: string;
-  emoji: string;
+  icon: React.ElementType;
   idea: string;
   location: string;
   metrics: { label: string; value: string; numericValue: number; prefix: string; suffix: string; subValue?: string; color: string }[];
