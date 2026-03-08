@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame, ClipboardCheck, Upload } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -31,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
 import { StressMap, calculateStressScores } from './StressMap';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
+import { ValidationJourney } from './ValidationJourney';
+import { ActualsImporter } from './ActualsImporter';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -54,7 +56,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [showShareModal, setShowShareModal] = useState(false);
   const [activeTab, setActiveTab] = useState('overview');
-
+  const [showActualsImporter, setShowActualsImporter] = useState(false);
   useEffect(() => {
     const key = `quantis_shared_${result.metadata.generated_at}`;
     if (!sessionStorage.getItem(key)) {
@@ -283,7 +285,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-6 mb-3">
+        <TabsList className="w-full grid grid-cols-7 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
@@ -307,6 +309,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           <TabsTrigger value="reliability" className="text-xs sm:text-sm gap-1">
             <Shield className="w-3.5 h-3.5 hidden sm:block" />
             Reliability
+          </TabsTrigger>
+          <TabsTrigger value="validate" className="text-xs sm:text-sm gap-1">
+            <ClipboardCheck className="w-3.5 h-3.5 hidden sm:block" />
+            Validate
           </TabsTrigger>
         </TabsList>
 
@@ -482,7 +488,26 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </p>
           </div>
         </TabsContent>
+
+        {/* TAB: Validate */}
+        <TabsContent value="validate" className="space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Validation Journey</h3>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowActualsImporter(true)}>
+              <Upload className="w-3.5 h-3.5" /> Import Actuals
+            </Button>
+          </div>
+          <ValidationJourney analysisId={analysisId} />
+        </TabsContent>
       </Tabs>
+
+      {/* Actuals Importer Modal */}
+      <ActualsImporter
+        open={showActualsImporter}
+        onOpenChange={setShowActualsImporter}
+        projections={[]}
+        currentParams={{ ...result.financial_analysis?.inputs } as any}
+      />
 
       {/* Signup Prompt for anonymous users */}
       {!isAuthenticated && <SignupPrompt ideaScore={ideaScore} />}
