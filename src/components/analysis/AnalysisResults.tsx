@@ -347,6 +347,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </Tabs>
         </TabsContent>
 
+        {/* TAB: Risk Map */}
+        <TabsContent value="riskmap" className="space-y-4 animate-in fade-in duration-200">
+          <StressMap {...calculateStressScores(result)} />
+        </TabsContent>
         {/* TAB: Simulation */}
         <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">
           <MonteCarloResults
