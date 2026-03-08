@@ -102,7 +102,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
             {idea}
           </div>
           <div style={{ display: 'flex', gap: '16px', marginTop: '10px', fontSize: '13px', color: '#94a3b8' }}>
-            <span>📍 {location}</span>
+            <span>{location}</span>
             <span>•</span>
             <span style={{ textTransform: 'capitalize' }}>{industry.replace(/_/g, ' ')}</span>
           </div>
