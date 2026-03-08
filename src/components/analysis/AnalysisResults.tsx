@@ -11,6 +11,7 @@ import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { ActionableInsights } from './ActionableInsights';
 import { ConfidenceIndicator } from './ConfidenceIndicator';
 import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
+import { ScenarioBar, SCENARIO_CONFIGS, type ScenarioId } from './ScenarioBar';
 import { IndustryComparison } from './IndustryComparison';
 import { ShareSuccessModal } from './ShareSuccessModal';
 import { DualEngineBadge } from './DualEngineBadge';
