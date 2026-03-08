@@ -330,7 +330,7 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
       onClick={onClick}
       style={{ '--index': index } as React.CSSProperties}
       className={cn(
-        'q-card q-stagger relative rounded-lg border bg-[var(--q-bg-elevated)] p-4 text-left',
+        'q-card q-stagger relative rounded-[var(--q-radius-lg)] border bg-[var(--q-bg-elevated)] p-4 text-left overflow-hidden',
         'transition-all hover:shadow-lg hover:scale-[1.02]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]',
         'border-l-[3px]',
