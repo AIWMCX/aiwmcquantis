@@ -51,7 +51,11 @@ export default function ExamplesIndex() {
           {EXAMPLE_LIST.map((ex, index) => (
             <Link key={ex.slug} to={`/examples/${ex.slug}`}>
               <div
-                className="q-card q-stagger h-full group"
+                className={cn(
+                  "q-card q-card-hover q-gradient-card q-stagger h-full group border-l-[3px]",
+                  ex.score && ex.score >= 8 ? 'q-score-excellent' :
+                  ex.score && ex.score >= 6 ? 'q-score-good' : 'q-score-caution'
+                )}
                 style={{ '--index': index } as React.CSSProperties}
               >
                 <div className="p-6">
