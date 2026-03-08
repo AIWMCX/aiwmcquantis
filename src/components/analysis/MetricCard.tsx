@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { HelpCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExplainPanel, type ExplainPanelProps } from './ExplainPanel';
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 interface MetricCardProps {
   label: string;
@@ -13,8 +14,11 @@ interface MetricCardProps {
   explainData?: Omit<ExplainPanelProps, 'isOpen' | 'onClose'>;
 }
 
+const isBlocked = (tier?: string) => tier === 'blocked';
+
 export function ExplainableMetricCard({ label, value, positive = true, unit, trend, delta, explainData }: MetricCardProps) {
   const [explainOpen, setExplainOpen] = useState(false);
+  const blocked = isBlocked(explainData?.confidenceTier);
 
   return (
     <>
@@ -44,19 +48,34 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
 
         <p className="text-xs text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
         <div className="flex items-center justify-center gap-1">
+          {blocked ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <p className="text-metric-sm text-[var(--q-text-disabled)] select-none" style={{ filter: 'blur(4px)' }}>
+                    {value}
+                  </p>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p className="text-xs">Low confidence — data insufficient</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
           <p className={cn(
-            'text-base sm:text-lg font-bold tabular-nums transition-all duration-300',
+            'text-metric-sm transition-all duration-300',
             positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
           )}>
             {value}
           </p>
-          {trend && (
+          )}
+          {!blocked && trend && (
             trend === 'up'
               ? <TrendingUp className="w-3 h-3 text-[var(--q-status-green)]" />
               : <TrendingDown className="w-3 h-3 text-[var(--q-status-red)]" />
           )}
         </div>
-        {delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
+        {!blocked && delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
       </div>
 
       {explainData && (

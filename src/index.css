@@ -36,6 +36,7 @@
     
     /* ── SEMANTIC STATUS COLORS ── */
     --q-status-green: #10B981;
+    --q-status-green-light: #6EE7B7;
     --q-status-green-bg: #ECFDF5;
     --q-status-green-border: #A7F3D0;
     
@@ -150,6 +151,7 @@
     
     /* ── SEMANTIC STATUS COLORS ── */
     --q-status-green: #10B981;
+    --q-status-green-light: #6EE7B7;
     --q-status-green-bg: #0D2B22;
     --q-status-green-border: #164D3A;
     

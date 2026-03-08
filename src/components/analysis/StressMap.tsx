@@ -257,7 +257,7 @@ function RingGauge({ value, label, style }: RingGaugeProps) {
   // Get stroke color based on risk level (inverted - lower risk = green)
   const getStrokeColor = () => {
     if (value <= 30) return 'var(--q-status-green)';
-    if (value <= 50) return '#6EE7B7';
+    if (value <= 50) return 'var(--q-status-green-light)';
     if (value <= 70) return 'var(--q-status-yellow)';
     if (value <= 85) return 'var(--q-status-orange)';
     return 'var(--q-status-red)';
