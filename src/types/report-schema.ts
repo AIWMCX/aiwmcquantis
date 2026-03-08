@@ -244,9 +244,7 @@ export function mapBusinessAnalysisToReport(
       headline: bp.executive_summary?.slice(0, 200) ?? '',
       riskLevel,
       viabilityScore: result.confidence_score,
-      keyFindings: result.actionable_insights?.key_insights?.map(i =>
-        typeof i === 'string' ? i : (i as { text?: string }).text ?? String(i)
-      ) ?? [],
+      keyFindings: result.actionable_insights?.insights?.map(i => i.headline) ?? [],
       recommendation: bp.executive_summary ?? '',
     },
     financials: {

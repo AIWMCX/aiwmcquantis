@@ -33,13 +33,13 @@ export async function saveReportOutput(
 ): Promise<string> {
   const { data, error } = await supabase
     .from('report_outputs')
-    .insert({
+    .insert([{
       analysis_id: analysisId,
       user_id: userId,
       report_json: report as unknown as Record<string, unknown>,
       pdf_url: pdfUrl ?? null,
       version: report.version,
-    })
+    }])
     .select('id')
     .single();
 
