@@ -12,6 +12,8 @@
  * 5. Precision - uses QMath (decimal.js) to eliminate floating-point drift
  */
 
+export const ENGINE_VERSION = '2.0.0-precision';
+
 import type { 
   ComputedMetrics, 
   ScenarioMetrics, 
@@ -231,13 +233,14 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   });
   
   // Fixed costs
-  const fixedCosts = adjustedSalaries + adjustedRent + adjustedUtilities + adjustedOther;
+  /** Fixed costs = sum of all location-adjusted overhead */
+  const fixedCosts = QMath.round(QMath.add(QMath.add(QMath.add(adjustedSalaries, adjustedRent), adjustedUtilities), adjustedOther));
   
   // Calculate active clients and marketing spend
   const revenuePerClient = QMath.round(QMath.multiply(avgCheck, benchmarks.orders_per_client));
   const clientsActive = userProvidedCustomers && userProvidedCustomers > 0 
     ? userProvidedCustomers 
-    : Math.max(1, Math.ceil(QMath.divide(mrr, Math.max(revenuePerClient, 1)).toNumber()));
+    : Math.max(1, Math.ceil(QMath.divide(mrr, QMath.max(revenuePerClient, 1)).toNumber()));
   
   const churnRate = userProvidedChurnRate && userProvidedChurnRate > 0 
     ? userProvidedChurnRate / 100 
@@ -275,7 +278,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
       notes: `Using user-provided monthly costs: $${userProvidedCosts.toLocaleString()}`,
     });
   } else {
-    totalExpenses = cogs + fixedCosts + marketing;
+    totalExpenses = QMath.round(QMath.add(QMath.add(cogs, fixedCosts), marketing));
     
     audit.push({
       formula: 'Total_Expenses = COGS + Fixed_Costs + Marketing',
@@ -295,10 +298,12 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 7: Calculate profit metrics =====
   
-  const grossProfit = mrr - cogs;
+  /** Gross profit = MRR - COGS */
+  const grossProfit = QMath.round(QMath.subtract(mrr, cogs));
   const grossMarginPercent = QMath.marginPercent(grossProfit, mrr);
   
-  const netProfit = mrr - totalExpenses;
+  /** Net profit = MRR - Total Expenses */
+  const netProfit = QMath.round(QMath.subtract(mrr, totalExpenses));
   const netMarginPercent = QMath.marginPercent(netProfit, mrr);
   const isProfitable = netProfit > 0;
   
@@ -393,17 +398,17 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     ).toNumber(),
     4
   );
-  const contributionMargin = 1 - variableCostRatio;
+  const contributionMargin = QMath.roundTo(QMath.subtract(1, variableCostRatio).toNumber(), 4);
   
   const breakEvenRevenue = QMath.round(QMath.breakEvenRevenue(fixedCosts, contributionMargin));
   
   const breakEvenUnits = avgCheck > 0
-    ? Math.ceil(breakEvenRevenue / avgCheck)
+    ? Math.ceil(QMath.divide(breakEvenRevenue, avgCheck).toNumber())
     : 0;
   
   const targetProfit = 45000;
   const revenueFor45kProfit = contributionMargin > 0.01
-    ? QMath.round(QMath.divide(fixedCosts + targetProfit, contributionMargin))
+    ? QMath.round(QMath.divide(QMath.add(fixedCosts, targetProfit), contributionMargin))
     : 0;
   
   audit.push({
@@ -452,7 +457,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   const metrics: ComputedMetrics = {
     mrr,
-    arr: mrr * 12,
+    arr: QMath.round(QMath.multiply(mrr, 12)),
     grossProfit,
     grossMarginPercent,
     netProfit,
@@ -523,7 +528,7 @@ function generateScenarios(
   
   const mult = SCENARIO_MULTIPLIERS;
   
-  const baseCogsPercent = mrr > 0 ? cogs / mrr : 0;
+  const baseCogsPercent = mrr > 0 ? QMath.roundTo(QMath.divide(cogs, mrr).toNumber(), 4) : 0;
   
   // Pessimistic (Conservative)
   const pessimisticRevenue = QMath.round(QMath.multiply(mrr, mult.conservative.revenue));
@@ -531,12 +536,12 @@ function generateScenarios(
   const pessimisticCogs = QMath.round(QMath.multiply(pessimisticRevenue, pessimisticCogsRatio));
   const pessimisticMarketing = QMath.round(QMath.multiply(marketing, mult.conservative.costs));
   const pessimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.conservative.costs));
-  const pessimisticTotal = pessimisticCogs + pessimisticFixed + pessimisticMarketing;
-  const pessimisticNetProfit = pessimisticRevenue - pessimisticTotal;
-  const pessimisticGrossProfit = pessimisticRevenue - pessimisticCogs;
+  const pessimisticTotal = QMath.round(QMath.add(QMath.add(pessimisticCogs, pessimisticFixed), pessimisticMarketing));
+  const pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  const pessimisticGrossProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticCogs));
   
   // Base case
-  const baseTotal = cogs + fixedCosts + marketing;
+  const baseTotal = QMath.round(QMath.add(QMath.add(cogs, fixedCosts), marketing));
   
   // Optimistic (Aggressive)
   const optimisticRevenue = QMath.round(QMath.multiply(mrr, mult.aggressive.revenue));
@@ -544,14 +549,14 @@ function generateScenarios(
   const optimisticCogs = QMath.round(QMath.multiply(optimisticRevenue, optimisticCogsRatio));
   const optimisticMarketing = QMath.round(QMath.multiply(marketing, mult.aggressive.costs));
   const optimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.aggressive.costs));
-  const optimisticTotal = optimisticCogs + optimisticFixed + optimisticMarketing;
-  const optimisticNetProfit = optimisticRevenue - optimisticTotal;
-  const optimisticGrossProfit = optimisticRevenue - optimisticCogs;
+  const optimisticTotal = QMath.round(QMath.add(QMath.add(optimisticCogs, optimisticFixed), optimisticMarketing));
+  const optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  const optimisticGrossProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticCogs));
   
   return {
     pessimistic: {
       revenue: pessimisticRevenue,
-      variableCosts: pessimisticCogs + pessimisticMarketing,
+      variableCosts: QMath.round(QMath.add(pessimisticCogs, pessimisticMarketing)),
       fixedCosts: pessimisticFixed,
       grossProfit: pessimisticGrossProfit,
       netProfit: pessimisticNetProfit,
@@ -560,7 +565,7 @@ function generateScenarios(
     },
     base: {
       revenue: mrr,
-      variableCosts: cogs + marketing,
+      variableCosts: QMath.round(QMath.add(cogs, marketing)),
       fixedCosts,
       grossProfit,
       netProfit,
@@ -569,7 +574,7 @@ function generateScenarios(
     },
     optimistic: {
       revenue: optimisticRevenue,
-      variableCosts: optimisticCogs + optimisticMarketing,
+      variableCosts: QMath.round(QMath.add(optimisticCogs, optimisticMarketing)),
       fixedCosts: optimisticFixed,
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
@@ -606,13 +611,13 @@ export function generate12MonthProjections(
   
   for (let month = 1; month <= 12; month++) {
     if (month > 1) {
-      revenue = QMath.round(QMath.multiply(revenue, 1 + monthlyGrowthRate));
-      costs = QMath.round(QMath.multiply(costs, 1 + monthlyGrowthRate * 0.5));
+      revenue = QMath.round(QMath.multiply(revenue, QMath.add(1, monthlyGrowthRate).toNumber()));
+      costs = QMath.round(QMath.multiply(costs, QMath.add(1, QMath.multiply(monthlyGrowthRate, 0.5)).toNumber()));
     }
     
-    const profit = revenue - costs;
-    cumulativeProfit += profit;
-    cash += profit;
+    const profit = QMath.round(QMath.subtract(revenue, costs));
+    cumulativeProfit = QMath.round(QMath.add(cumulativeProfit, profit));
+    cash = QMath.round(QMath.add(cash, profit));
     
     projections.push({
       month,
@@ -862,4 +867,46 @@ $${metrics.mrr.toLocaleString()} - $${metrics.totalExpenses.toLocaleString()} = 
 ### Formula Audit
 ${audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 `.trim();
+}
+
+// ========== TRACED COMPUTATION WRAPPER ==========
+
+export interface CalculationStep {
+  label: string;
+  operation: string;
+  value: number;
+}
+
+export interface TracedResult {
+  result: ComputedMetrics;
+  steps: CalculationStep[];
+  confidence: number;
+}
+
+/**
+ * Wrapper around computeFinancials that returns a structured trace
+ * with { result, steps, confidence } for full auditability.
+ */
+export function computeFinancialsWithTrace(input: FinancialEngineInput): TracedResult {
+  const output = computeFinancials(input);
+
+  const steps: CalculationStep[] = output.audit.map(a => ({
+    label: a.formula.split('=')[0]?.trim() ?? a.formula,
+    operation: a.formula,
+    value: typeof a.result === 'number' ? a.result : 0,
+  }));
+
+  // Confidence: start at 100, deduct per issue severity
+  let confidence = 100;
+  for (const issue of output.validation.issues) {
+    if (issue.severity === 'error') confidence -= 15;
+    else if (issue.severity === 'warning') confidence -= 5;
+  }
+  confidence = Math.max(0, Math.min(100, confidence));
+
+  return {
+    result: output.metrics,
+    steps,
+    confidence,
+  };
 }

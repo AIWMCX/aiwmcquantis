@@ -178,6 +178,83 @@ export class QMath {
     return QMath.sanitize(ltv).dividedBy(cacVal).toDecimalPlaces(1, Decimal.ROUND_HALF_UP).toNumber();
   }
 
+  // ========== STATISTICAL METHODS ==========
+
+  /** Arithmetic mean of a dataset */
+  static mean(dataset: unknown[]): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    let sum = new Decimal(0);
+    for (const v of dataset) sum = sum.plus(QMath.sanitize(v));
+    return sum.dividedBy(dataset.length);
+  }
+
+  /** Median (sorted middle value) */
+  static median(dataset: unknown[]): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    const sorted = dataset.map(d => QMath.sanitize(d)).sort((a, b) => a.cmp(b));
+    const mid = Math.floor(sorted.length / 2);
+    if (sorted.length % 2 === 0) {
+      return sorted[mid - 1].plus(sorted[mid]).dividedBy(2);
+    }
+    return sorted[mid];
+  }
+
+  /** Z-score: (value - mean) / stdDev. Returns 0 if stdDev is 0. */
+  static zScore(value: unknown, meanVal: unknown, stdDev: unknown): Decimal {
+    const s = QMath.sanitize(stdDev);
+    if (s.isZero()) return new Decimal(0);
+    return QMath.sanitize(value).minus(QMath.sanitize(meanVal)).dividedBy(s);
+  }
+
+  /** Standard deviation (sample) */
+  static standardDeviation(dataset: unknown[]): Decimal {
+    if (dataset.length < 2) return new Decimal(0);
+    const values = dataset.map(d => QMath.sanitize(d));
+    let sum = new Decimal(0);
+    for (const v of values) sum = sum.plus(v);
+    const mean = sum.dividedBy(values.length);
+    let varianceSum = new Decimal(0);
+    for (const v of values) {
+      const diff = v.minus(mean);
+      varianceSum = varianceSum.plus(diff.times(diff));
+    }
+    return varianceSum.dividedBy(values.length - 1).sqrt();
+  }
+
+  /** Percentile (linear interpolation). p is 0–100. */
+  static percentile(dataset: unknown[], p: number): Decimal {
+    if (dataset.length === 0) return new Decimal(0);
+    const sorted = dataset.map(d => QMath.sanitize(d)).sort((a, b) => a.cmp(b));
+    const pClamped = Math.max(0, Math.min(100, p));
+    const rank = (pClamped / 100) * (sorted.length - 1);
+    const lower = Math.floor(rank);
+    const upper = Math.ceil(rank);
+    if (lower === upper) return sorted[lower];
+    const frac = new Decimal(rank - lower);
+    return sorted[lower].plus(sorted[upper].minus(sorted[lower]).times(frac));
+  }
+
+  /** Self-test: 10 known-answer checks */
+  static runSelfTest(): { passed: number; failed: number; errors: string[] } {
+    const errors: string[] = [];
+    let passed = 0;
+    const check = (label: string, actual: number | string, expected: number | string) => {
+      if (String(actual) === String(expected)) passed++;
+      else errors.push(`${label}: expected ${expected}, got ${actual}`);
+    };
+    check('add(0.1,0.2)', QMath.roundTo(QMath.add(0.1, 0.2).toNumber(), 1), 0.3);
+    check('multiply(3,7)', QMath.round(QMath.multiply(3, 7)), 21);
+    check('divide(10,0)', QMath.round(QMath.divide(10, 0)), 0);
+    check('mean([10,20,30])', QMath.round(QMath.mean([10, 20, 30])), 20);
+    check('median([1,3,5,7])', QMath.round(QMath.median([1, 3, 5, 7])), 4);
+    check('zScore(10,8,2)', QMath.roundTo(QMath.zScore(10, 8, 2).toNumber(), 1), 1);
+    check('percentile([1,2,3,4,5],50)', QMath.round(QMath.percentile([1, 2, 3, 4, 5], 50)), 3);
+    check('stdDev([2,4,4,4,5,5,7,9])', QMath.roundTo(QMath.standardDeviation([2, 4, 4, 4, 5, 5, 7, 9]).toNumber(), 2), 2.14);
+    check('paybackMonths(10000,500)', QMath.paybackMonths(10000, 500), 20);
+    check('marginPercent(20,100)', QMath.marginPercent(20, 100), 20);
+    return { passed, failed: errors.length, errors };
+  }
+
   // ========== COMPARISON ==========
 
   static equals(a: unknown, b: unknown, tolerance: number = 0.01): boolean {
