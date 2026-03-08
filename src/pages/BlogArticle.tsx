@@ -40,7 +40,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>With structured financial logic, risk signals, and projections in hand, you can make a clear-headed decision: build, pivot, or move on. This is validation — not motivation, not vibes, not gut feel.</p>
       
       <h2>How AIWMC Quantis Automates This</h2>
-      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections — in under 3 minutes.</p>
+      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections — in under 90 seconds.</p>
       <p>It's the same framework VCs and accelerators use, made accessible to founders who are just getting started.</p>
     </>
   ),
