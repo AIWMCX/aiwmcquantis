@@ -24,6 +24,8 @@ import { DualEngineBadge } from './DualEngineBadge';
 import { BenchmarkConfidenceIndicator } from './BenchmarkConfidenceIndicator';
 import { AssumptionGraph } from './AssumptionGraph';
 import { ModelConfidenceBadge } from './ModelConfidenceBadge';
+import { ConfidenceBadge as OutputConfidenceBadge } from './ConfidenceBadge';
+import { calculateOutputConfidence } from '@/services/confidence-scorer';
 import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
@@ -364,6 +366,23 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         {/* TAB: Reliability */}
         <TabsContent value="reliability" className="space-y-4 animate-in fade-in duration-200">
           <ModelConfidenceBadge confidence={result.model_confidence} />
+
+          {/* Output-level confidence from multi-factor scoring */}
+          <OutputConfidenceBadge
+            confidence={calculateOutputConfidence({
+              consensusScore: (result as any).cross_validation?.agreement_score
+                ? (result as any).cross_validation.agreement_score * 100
+                : (result.confidence_score || 70),
+              dataCompleteness: result.model_confidence
+                ? Math.round(result.model_confidence.confidence * 100)
+                : 60,
+              benchmarkAlignment: (result as any).benchmark_confidence?.overall_confidence
+                ? (result as any).benchmark_confidence.overall_confidence * 100
+                : 65,
+              dataFreshnessHours: 0,
+              sampleSize: result.model_confidence?.similar_cases_count || 5,
+            })}
+          />
 
           {/* Market Prior Anomaly Card */}
           {result.market_prior?.anomaly_card && result.market_prior.anomaly_card.length > 0 && (
