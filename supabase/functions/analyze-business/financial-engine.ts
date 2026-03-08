@@ -12,6 +12,8 @@
  * 5. Precision - uses QMath (decimal.js) to eliminate floating-point drift
  */
 
+export const ENGINE_VERSION = '2.0.0-precision';
+
 import type { 
   ComputedMetrics, 
   ScenarioMetrics, 
