@@ -106,7 +106,7 @@ function formatValue(metric: string, value: number | null): string {
   if (metric.includes('revenue') || metric === 'monthly_profit')
     return `$${value.toLocaleString()}`;
   if (metric === 'ltv_cac_ratio') return `${value.toFixed(1)}x`;
-  if (metric.includes('month')) return `${Math.round(value)} mo`;
+  if (metric.includes('month')) return `${QuantisMath.round(value)} mo`;
   return String(value);
 }
 
