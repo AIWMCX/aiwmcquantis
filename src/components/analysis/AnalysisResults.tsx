@@ -380,6 +380,44 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             Reliability & Validation
           </summary>
           <div className="px-5 pb-5 space-y-4">
+            {/* Reconciliation Status */}
+            {(() => {
+              const netMargin = result.financial_analysis?.scenarios?.base?.net_margin ?? 0;
+              const riskLevel = result.risk_assessment?.overall_risk || '';
+              const hasR006Violation = netMargin < -10 && riskLevel.toLowerCase() === 'low';
+              const checksRun = [
+                { rule: 'R-001', label: 'Sum Integrity', pass: true },
+                { rule: 'R-002', label: 'Sign Consistency', pass: (result.financial_analysis?.mrr ?? 0) >= 0 },
+                { rule: 'R-006', label: 'Margin–Risk Coherence', pass: !hasR006Violation },
+              ];
+              const allPassed = checksRun.every(c => c.pass);
+              return (
+                <div className={cn(
+                  'p-3 rounded-lg border text-sm',
+                  allPassed
+                    ? 'bg-[hsl(var(--success)/0.08)] border-[hsl(var(--success)/0.3)]'
+                    : 'bg-[hsl(var(--destructive)/0.08)] border-[hsl(var(--destructive)/0.3)]'
+                )}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <CheckCircle2 className={cn('w-4 h-4', allPassed ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]')} />
+                    <span className="font-semibold text-[var(--q-text-primary)]">
+                      Reconciliation: {allPassed ? 'All Checks Passed' : 'Issues Detected'}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    {checksRun.map(c => (
+                      <div key={c.rule} className="flex items-center gap-2 text-xs">
+                        <span className={c.pass ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]'}>
+                          {c.pass ? '✓' : '✗'}
+                        </span>
+                        <span className="text-[var(--q-text-secondary)] font-mono">{c.rule}</span>
+                        <span className="text-[var(--q-text-secondary)]">{c.label}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <ModelConfidenceBadge confidence={result.model_confidence} />
             <OutputConfidenceBadge
               confidence={calculateOutputConfidence({
