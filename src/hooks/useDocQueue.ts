@@ -67,7 +67,7 @@ export function useDocQueue() {
         user_id: user.id,
         analysis_id: analysisId,
         template_id: templateId,
-        input_data: inputData as unknown as Record<string, unknown>,
+        input_data: inputData as any,
         status: 'queued',
         priority: 5,
       }]);
