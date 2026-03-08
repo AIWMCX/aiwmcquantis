@@ -398,7 +398,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
     ).toNumber(),
     4
   );
-  const contributionMargin = 1 - variableCostRatio;
+  const contributionMargin = QMath.roundTo(QMath.subtract(1, variableCostRatio).toNumber(), 4);
   
   const breakEvenRevenue = QMath.round(QMath.breakEvenRevenue(fixedCosts, contributionMargin));
   
