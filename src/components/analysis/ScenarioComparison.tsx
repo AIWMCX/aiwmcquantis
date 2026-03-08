@@ -90,7 +90,7 @@ function extractMetric(scenario: SavedScenario, metric: string): number | null {
     case 'break_even_month': return fa?.breakeven?.breakeven_months ?? ret?.payback_period_months ?? null;
     case 'net_margin': return base.net_margin ?? null;
     case 'gross_margin': return base.gross_margin ?? null;
-    case 'survival_probability': return mc?.probabilityPositive != null ? Math.round(mc.probabilityPositive * 100) : null;
+    case 'survival_probability': return mc?.probabilityPositive != null ? QuantisMath.round(QuantisMath.multiply(mc.probabilityPositive, 100)) : null;
     case 'monthly_profit': return base.net_profit ?? null;
     case 'ltv_cac_ratio': return ue?.ltv_cac_ratio ?? null;
     case 'cac_payback_months': return ue?.cac_payback_months ?? null;
