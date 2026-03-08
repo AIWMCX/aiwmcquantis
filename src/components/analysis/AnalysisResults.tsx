@@ -291,7 +291,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </div>
 
             {/* Top Risk Flags — t=900, staggered slide-in */}
-            <div className="q-card p-5 space-y-3 animate-fade-in" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
+            <div className="q-card p-5 space-y-4 animate-fade-in" style={{ animationDelay: '900ms', animationFillMode: 'both' }}>
               <h3 className="text-sm font-semibold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading)' }}>
                 Top Risk Flags
               </h3>
@@ -300,27 +300,9 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   <CheckCircle2 className="w-4 h-4" /> No critical risks detected
                 </p>
               ) : (
-                <div className="space-y-3">
+                <div className="space-y-4">
                   {topRisks.map((risk, i) => (
-                    <div
-                      key={i}
-                      className="animate-fade-in space-y-1"
-                      style={{ animationDelay: `${900 + i * 100}ms`, animationFillMode: 'both' }}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          'w-2.5 h-2.5 rounded-full shrink-0',
-                          risk.severity === 'red' ? 'bg-[var(--q-status-red)]' :
-                          risk.severity === 'orange' ? 'bg-[var(--q-status-orange)]' :
-                          'bg-[var(--q-status-yellow)]'
-                        )} />
-                        <span className="text-sm font-medium text-[var(--q-text-primary)]">{risk.label}</span>
-                      </div>
-                      <p className="text-xs text-[var(--q-text-secondary)] ml-[18px]">{risk.impact} {risk.mitigation}</p>
-                      <button className="text-xs text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] ml-[18px] flex items-center gap-1 transition-colors">
-                        <ArrowRight className="w-3 h-3" /> View mitigation plan
-                      </button>
-                    </div>
+                    <RiskFlagCard key={i} risk={risk} index={i} />
                   ))}
                 </div>
               )}
