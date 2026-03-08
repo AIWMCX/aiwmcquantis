@@ -190,7 +190,7 @@ export function ScenarioComparison({ scenarios, metrics, onExportPDF }: Scenario
                               (higherBetter ? delta > 0 : delta < 0) ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive'
                             )}>
                               {delta > 0 ? <TrendingUp className="w-2.5 h-2.5" /> : <TrendingDown className="w-2.5 h-2.5" />}
-                              {Math.abs(delta).toFixed(0)}%
+                              {QuantisMath.toNumber(QuantisMath.abs(delta)).toFixed(0)}%
                             </span>
                           )}
                         </td>

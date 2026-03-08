@@ -367,3 +367,29 @@ export function calculatePaybackPeriod(cashFlows: CashFlowStatement[]): number |
   }
   return null;
 }
+
+// ─── Engine Version ─────────────────────────────────────────
+
+export const ENGINE_VERSION = '2.0.0-precision';
+
+// ─── Trace Wrapper ──────────────────────────────────────────
+
+export interface CalculationStep {
+  label: string;
+  formula: string;
+  value: number;
+}
+
+export interface TraceResult<T> {
+  result: T;
+  steps: CalculationStep[];
+  confidence: number;
+}
+
+export function calculateWithTrace(
+  fn: () => { result: any; steps: CalculationStep[] },
+  confidenceBase: number = 85,
+): TraceResult<any> {
+  const { result, steps } = fn();
+  return { result, steps, confidence: confidenceBase };
+}

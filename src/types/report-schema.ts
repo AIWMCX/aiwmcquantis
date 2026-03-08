@@ -22,13 +22,14 @@ import type {
 
 // ─── Confidence ─────────────────────────────────────────────
 
-export type ConfidenceTier = 'high' | 'medium' | 'low' | 'very_low';
+export type ConfidenceTier = 'verified' | 'confident' | 'estimated' | 'uncertain' | 'blocked';
 
 export function confidenceTierFromScore(score: number): ConfidenceTier {
-  if (score >= 80) return 'high';
-  if (score >= 60) return 'medium';
-  if (score >= 40) return 'low';
-  return 'very_low';
+  if (score >= 95) return 'verified';
+  if (score >= 80) return 'confident';
+  if (score >= 65) return 'estimated';
+  if (score >= 50) return 'uncertain';
+  return 'blocked';
 }
 
 // ─── Report Metadata ────────────────────────────────────────
