@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { Brain, MapPin, Loader2, FileText, Zap, DollarSign, Users, Lightbulb } from 'lucide-react';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { Brain, MapPin, Loader2, FileText, Zap, DollarSign, Users, Lightbulb, Navigation } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -15,6 +15,8 @@ import { DraftRecoveryBanner } from './DraftRecoveryBanner';
 import { QuickIndustryPicks } from './QuickIndustryPicks';
 import { FieldCompletionDot } from './FieldCompletionDot';
 import { FormProgressBar } from './FormProgressBar';
+import { BenchmarkWarning } from './BenchmarkWarning';
+import { getBenchmark, validateParamAgainstBenchmarks } from '@/lib/benchmark-calibrator';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
@@ -69,6 +71,15 @@ function countCompletedFields(
   return count;
 }
 
+/** Returns "Typical: $X–$Y" hint from benchmark DB */
+function getBenchmarkHint(industryType: string | undefined, parameter: string): string | null {
+  if (!industryType || industryType === 'auto') return null;
+  const b = getBenchmark(industryType, parameter);
+  if (!b) return null;
+  const fmt = (v: number) => b.unit === '$' ? `$${v.toLocaleString()}` : `${v}${b.unit}`;
+  return `Typical: ${fmt(b.p25)}–${fmt(b.p75)}`;
+}
+
 export function WizardForm({
   idea,
   location,
@@ -94,10 +105,38 @@ export function WizardForm({
   const [hasDraft, setHasDraft] = useState(false);
   const [draftAge, setDraftAge] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
+  const [geoState, setGeoState] = useState<'idle' | 'loading' | 'detected'>('idle');
+  const [detectedCity, setDetectedCity] = useState<string | null>(null);
+  const [industryAnimKey, setIndustryAnimKey] = useState(0);
+  const prevIndustryRef = useRef(financialInputs.selected_industry);
   const analysisStartTime = useRef<number | null>(null);
 
   const filledCount = countCompletedFields(idea, location, financialInputs);
   const TOTAL_FIELDS = 7;
+
+  const industryType = financialInputs.selected_industry;
+
+  // Stagger animation when industry changes from empty to a value
+  useEffect(() => {
+    const prev = prevIndustryRef.current;
+    const curr = financialInputs.selected_industry;
+    if ((!prev || prev === 'auto') && curr && curr !== 'auto') {
+      setIndustryAnimKey(k => k + 1);
+    }
+    prevIndustryRef.current = curr;
+  }, [financialInputs.selected_industry]);
+
+  // Benchmark validations for financial fields
+  const investmentValidation = useMemo(() => {
+    if (!industryType || industryType === 'auto' || !financialInputs.startup_investment) return null;
+    // No direct "startup_investment" benchmark param; skip validation for this field
+    return null;
+  }, [industryType, financialInputs.startup_investment]);
+
+  const priceValidation = useMemo(() => {
+    if (!industryType || industryType === 'auto' || !financialInputs.average_price) return null;
+    return validateParamAgainstBenchmarks('avg_ticket_size', financialInputs.average_price, industryType);
+  }, [industryType, financialInputs.average_price]);
 
   // Track when analysis starts
   useEffect(() => {
@@ -206,8 +245,54 @@ export function WizardForm({
     });
   };
 
+  const handleUseMyLocation = useCallback(async () => {
+    if (!navigator.geolocation) return;
+    setGeoState('loading');
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          const res = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?lat=${pos.coords.latitude}&lon=${pos.coords.longitude}&format=json&addressdetails=1`,
+            { headers: { 'Accept-Language': 'en' } }
+          );
+          const data = await res.json();
+          const city = data.address?.city || data.address?.town || data.address?.village || '';
+          const state = data.address?.state || '';
+          const label = [city, state].filter(Boolean).join(', ');
+          if (label) {
+            setDetectedCity(label);
+            setGeoState('detected');
+          } else {
+            setGeoState('idle');
+          }
+        } catch {
+          setGeoState('idle');
+        }
+      },
+      () => setGeoState('idle'),
+      { timeout: 8000 }
+    );
+  }, []);
+
+  const acceptDetectedLocation = useCallback(() => {
+    if (detectedCity) {
+      onLocationChange(detectedCity);
+      setGeoState('idle');
+      setDetectedCity(null);
+    }
+  }, [detectedCity, onLocationChange]);
+
+  const dismissDetectedLocation = useCallback(() => {
+    setGeoState('idle');
+    setDetectedCity(null);
+  }, []);
+
+  // Benchmark hints
+  const investmentHint = getBenchmarkHint(industryType, 'break_even_months'); // No direct startup_investment benchmark; use generic
+  const priceHint = getBenchmarkHint(industryType, 'avg_ticket_size');
+
   return (
-    <form onSubmit={handleSubmit} className="space-y-0">
+    <form onSubmit={handleSubmit} className="max-w-[900px] mx-auto space-y-0">
       {/* Dark Hero Header */}
       <div className="relative overflow-hidden rounded-t-[var(--q-radius-lg)] bg-[var(--q-bg-base)] dark:bg-[#0B1120] px-6 py-10 md:py-12 q-grid-pattern">
         <div className="relative z-10 max-w-2xl">
@@ -215,13 +300,13 @@ export function WizardForm({
             className="text-3xl md:text-[40px] font-bold leading-tight text-[var(--q-text-primary)]"
             style={{ fontFamily: 'var(--q-font-display)' }}
           >
-            Stress-test your idea
+            Stress-test your business idea
           </h1>
           <p
             className="mt-2 text-base text-[var(--q-text-secondary)]"
             style={{ fontFamily: 'var(--q-font-body)' }}
           >
-            Enter your details. We'll tell you exactly where it breaks.
+            Two AI engines. 1,000+ benchmarks. Your numbers in 90 seconds.
           </p>
         </div>
       </div>
@@ -240,7 +325,7 @@ export function WizardForm({
       </div>
 
       {/* Two-Column Form */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 px-6 pt-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 px-6 pt-6">
         {/* LEFT: Business Details */}
         <div className="space-y-5">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
@@ -288,6 +373,30 @@ export function WizardForm({
               )}
             />
             {errors.location && <p className="text-xs text-[var(--q-status-red)]">{errors.location}</p>}
+
+            {/* Geolocation */}
+            {geoState === 'idle' && !location.trim() && (
+              <button
+                type="button"
+                onClick={handleUseMyLocation}
+                className="flex items-center gap-1.5 text-xs text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] transition-colors duration-[var(--q-duration-fast)]"
+              >
+                <Navigation className="w-3.5 h-3.5" />
+                📍 Use my location
+              </button>
+            )}
+            {geoState === 'loading' && (
+              <span className="flex items-center gap-1.5 text-xs text-[var(--q-text-tertiary)]">
+                <Loader2 className="w-3 h-3 animate-spin" /> Detecting location…
+              </span>
+            )}
+            {geoState === 'detected' && detectedCity && (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-[var(--q-text-secondary)]">📍 {detectedCity} detected · Use this?</span>
+                <button type="button" onClick={acceptDetectedLocation} className="font-semibold text-[var(--q-accent-primary)] hover:text-[var(--q-accent-hover)] transition-colors">Yes</button>
+                <button type="button" onClick={dismissDetectedLocation} className="text-[var(--q-text-tertiary)] hover:text-[var(--q-text-secondary)] transition-colors">Change</button>
+              </div>
+            )}
           </div>
 
           {/* 3. Description */}
@@ -345,13 +454,13 @@ export function WizardForm({
         </div>
 
         {/* RIGHT: Financial Parameters */}
-        <div className="space-y-5">
+        <div className="space-y-5" key={industryAnimKey}>
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
             Financial Parameters
           </h2>
 
           {/* 4. Starting capital */}
-          <div className="space-y-2">
+          <div className="space-y-2 q-metric-reveal" style={{ '--index': 0 } as React.CSSProperties}>
             <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
               <FieldCompletionDot isComplete={!!financialInputs.startup_investment && financialInputs.startup_investment > 0} />
               <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
@@ -372,11 +481,13 @@ export function WizardForm({
                 className="pl-7 text-[15px]"
               />
             </div>
-            <span className="text-xs text-[var(--q-text-tertiary)]">Industry typical range shown after industry selection</span>
+            <span className="text-xs text-[var(--q-text-tertiary)]">
+              {investmentHint || 'Industry typical range shown after industry selection'}
+            </span>
           </div>
 
           {/* 5. Target price per customer */}
-          <div className="space-y-2">
+          <div className="space-y-2 q-metric-reveal" style={{ '--index': 1 } as React.CSSProperties}>
             <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
               <FieldCompletionDot isComplete={!!financialInputs.average_price && financialInputs.average_price > 0} />
               <DollarSign className="w-4 h-4 text-[var(--q-text-tertiary)]" />
@@ -397,10 +508,26 @@ export function WizardForm({
                 className="pl-7 text-[15px]"
               />
             </div>
+            {priceHint && (
+              <span className="text-xs text-[var(--q-text-tertiary)]">{priceHint}</span>
+            )}
+            {priceValidation && priceValidation.warningLevel !== 'none' && (
+              <BenchmarkWarning
+                warningLevel={priceValidation.warningLevel}
+                message={priceValidation.message}
+                benchmarkRange={priceValidation.benchmarkRange}
+                percentile={priceValidation.percentile}
+                unit="$"
+                onUseMedian={() => {
+                  const b = getBenchmark(industryType!, 'avg_ticket_size');
+                  if (b) onFinancialInputsChange({ ...financialInputs, average_price: b.p50 });
+                }}
+              />
+            )}
           </div>
 
           {/* 6. Expected customers */}
-          <div className="space-y-2">
+          <div className="space-y-2 q-metric-reveal" style={{ '--index': 2 } as React.CSSProperties}>
             <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
               <FieldCompletionDot isComplete={!!financialInputs.expected_customers && financialInputs.expected_customers > 0} />
               <Users className="w-4 h-4 text-[var(--q-text-tertiary)]" />
@@ -421,7 +548,7 @@ export function WizardForm({
           </div>
 
           {/* 7. Analysis depth */}
-          <div className="space-y-3">
+          <div className="space-y-3 q-metric-reveal" style={{ '--index': 3 } as React.CSSProperties}>
             <Label className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
               <FieldCompletionDot isComplete={true} />
               <Lightbulb className="w-4 h-4 text-[var(--q-text-tertiary)]" />
@@ -472,18 +599,19 @@ export function WizardForm({
           className={cn(
             "w-full h-14 text-base font-semibold rounded-[var(--q-radius-md)] gap-2 transition-all duration-200",
             "q-btn-ai text-[var(--q-text-inverse)]",
+            "hover:-translate-y-px hover:shadow-[0_0_20px_var(--q-accent-glow)]",
             (!isFormValid || isLoading) && "opacity-50 cursor-not-allowed"
           )}
         >
           {isLoading ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              Analyzing...
+              Analyzing your business...
             </>
           ) : (
             <>
               <Zap className="w-5 h-5" />
-              Run Stress-Test Analysis →
+              ⚡ Run Stress-Test →
             </>
           )}
         </Button>

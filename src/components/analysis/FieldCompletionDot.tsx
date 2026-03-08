@@ -1,4 +1,5 @@
 import React from 'react';
+import { Check } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface FieldCompletionDotProps {
@@ -10,13 +11,15 @@ export function FieldCompletionDot({ isComplete, className }: FieldCompletionDot
   return (
     <span
       className={cn(
-        'inline-block w-2 h-2 rounded-full transition-all duration-300 ease-out',
-        isComplete
-          ? 'bg-[var(--q-status-green)] scale-100 opacity-100'
-          : 'bg-transparent scale-0 opacity-0',
+        'inline-flex items-center justify-center w-4 h-4 transition-all duration-300 ease-out',
+        isComplete ? 'opacity-100 scale-100' : 'opacity-0 scale-0',
         className
       )}
       aria-hidden="true"
-    />
+    >
+      {isComplete && (
+        <Check className="w-3.5 h-3.5 text-[var(--q-status-green)]" strokeWidth={3} />
+      )}
+    </span>
   );
 }
