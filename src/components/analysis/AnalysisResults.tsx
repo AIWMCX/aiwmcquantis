@@ -32,6 +32,7 @@ import { AnomalyCard } from './AnomalyCard';
 import { StressMap, calculateStressScores } from './StressMap';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import { ValidationJourney } from './ValidationJourney';
+import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
