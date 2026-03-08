@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity } from 'lucide-react';
+import { FileDown, RefreshCw, CheckCircle2, AlertCircle, Info, Loader2, Share2, Twitter, Linkedin, MessageCircle, Copy, Trophy, Target, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, BarChart3, Shield, Lightbulb, Download, Activity, Flame } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -29,6 +29,7 @@ import { MonteCarloResults } from './MonteCarloResults';
 import { calculateOutputConfidence } from '@/services/confidence-scorer';
 import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
+import { StressMap, calculateStressScores } from './StressMap';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
@@ -282,10 +283,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
       {/* 4-Tab Mini Dashboard */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="w-full grid grid-cols-5 mb-3">
+        <TabsList className="w-full grid grid-cols-6 mb-3">
           <TabsTrigger value="overview" className="text-xs sm:text-sm gap-1">
             <BarChart3 className="w-3.5 h-3.5 hidden sm:block" />
             Overview
+          </TabsTrigger>
+          <TabsTrigger value="riskmap" className="text-xs sm:text-sm gap-1">
+            <Flame className="w-3.5 h-3.5 hidden sm:block" />
+            Risk Map
           </TabsTrigger>
           <TabsTrigger value="simulation" className="text-xs sm:text-sm gap-1">
             <Activity className="w-3.5 h-3.5 hidden sm:block" />
@@ -342,6 +347,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </Tabs>
         </TabsContent>
 
+        {/* TAB: Risk Map */}
+        <TabsContent value="riskmap" className="space-y-4 animate-in fade-in duration-200">
+          <StressMap {...calculateStressScores(result)} />
+        </TabsContent>
         {/* TAB: Simulation */}
         <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">
           <MonteCarloResults
