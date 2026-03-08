@@ -259,7 +259,7 @@ export function estimatePercentile(value: number, benchmark: IndustryBenchmark):
       const range = points[i + 1].val - points[i].val;
       if (range === 0) return points[i].pct;
       const fraction = (value - points[i].val) / range;
-      return QMath.round(points[i].pct + fraction * (points[i + 1].pct - points[i].pct), 1);
+      return round(points[i].pct + fraction * (points[i + 1].pct - points[i].pct), 1);
     }
   }
 
