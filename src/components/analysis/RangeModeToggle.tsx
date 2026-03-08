@@ -19,18 +19,18 @@ interface RangeModeToggleProps {
   disabled?: boolean;
 }
 
-/** Tiny SVG distribution preview */
+/** Distribution shape SVG between min/base/max fields */
 function DistributionPreview({ type }: { type: 'uniform' | 'normal' | 'triangular' }) {
   return (
-    <svg viewBox="0 0 40 20" className="w-8 h-4 text-primary opacity-60" fill="none" stroke="currentColor" strokeWidth="1.5">
+    <svg viewBox="0 0 48 24" className="w-10 h-5 text-[var(--q-accent-primary)] opacity-70" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       {type === 'normal' && (
-        <path d="M2 18 Q10 18 15 8 Q20 0 25 8 Q30 18 38 18" />
+        <path d="M4 22 Q12 22 18 10 Q24 0 30 10 Q36 22 44 22" />
       )}
       {type === 'triangular' && (
-        <path d="M2 18 L20 2 L38 18" />
+        <path d="M4 22 L24 3 L44 22" />
       )}
       {type === 'uniform' && (
-        <path d="M2 18 L2 6 L38 6 L38 18" />
+        <path d="M4 22 L4 6 L44 6 L44 22" />
       )}
     </svg>
   );
@@ -69,9 +69,9 @@ export default function RangeModeToggle({
   return (
     <div className="space-y-2">
       <div className="flex items-center justify-between">
-        <Label className="text-sm font-medium text-foreground">{label}</Label>
+        <Label className="text-sm font-medium text-[var(--q-text-secondary)]">{label}</Label>
         <div className="flex items-center gap-2">
-          <span className="text-[10px] text-muted-foreground uppercase tracking-wider">Range</span>
+          <span className="text-[10px] text-[var(--q-text-tertiary)] uppercase tracking-wider font-semibold">Range</span>
           <Switch
             checked={rangeMode}
             onCheckedChange={onToggle}
@@ -83,52 +83,68 @@ export default function RangeModeToggle({
 
       {rangeMode ? (
         <div className={cn(
-          "p-3 rounded-lg border border-primary/20",
-          "bg-gradient-to-r from-primary/5 via-primary/3 to-primary/5",
-          "space-y-2.5 transition-all duration-200"
+          "p-3 rounded-[var(--q-radius-md)] border border-[var(--q-accent-primary)]/20",
+          "bg-[var(--q-accent-glow)]",
+          "space-y-3 transition-all duration-[var(--q-duration-normal)]",
+          "animate-in slide-in-from-top-1 fade-in duration-200"
         )}>
-          {/* Min / Base / Max inputs */}
-          <div className="grid grid-cols-3 gap-2">
-            <div className="space-y-1">
-              <span className="text-[10px] text-muted-foreground font-medium">Min</span>
+          {/* Min / Distribution Shape / Base / Distribution Shape / Max */}
+          <div className="flex items-end gap-1">
+            {/* Min */}
+            <div className="flex-1 space-y-1">
+              <span className="text-[10px] text-[var(--q-text-tertiary)] font-medium uppercase tracking-wide">Min</span>
               <div className="relative">
-                {prefix && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>}
+                {prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{prefix}</span>}
                 <Input
                   type="number"
                   value={currentParam.minValue}
                   onChange={(e) => handleFieldChange('minValue', e.target.value)}
-                  className={cn("h-8 text-xs", prefix && "pl-5")}
+                  className={cn("h-10 text-xs", prefix && "pl-5")}
                   disabled={disabled}
                 />
-                {suffix && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{suffix}</span>}
+                {suffix && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{suffix}</span>}
               </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-[10px] text-primary font-semibold">Base</span>
+
+            {/* Distribution shape between min and base */}
+            <div className="flex items-center justify-center pb-1">
+              <div className="w-6 h-px bg-[var(--q-border-default)]" />
+            </div>
+
+            {/* Base */}
+            <div className="flex-1 space-y-1">
+              <span className="text-[10px] text-[var(--q-accent-primary)] font-semibold uppercase tracking-wide">Base</span>
               <div className="relative">
-                {prefix && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>}
+                {prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{prefix}</span>}
                 <Input
                   type="number"
                   value={currentParam.baseValue}
                   onChange={(e) => handleFieldChange('baseValue', e.target.value)}
-                  className={cn("h-8 text-xs border-primary/30", prefix && "pl-5")}
+                  className={cn("h-10 text-xs border-[var(--q-accent-primary)]/30", prefix && "pl-5")}
                   disabled={disabled}
                 />
-                {suffix && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{suffix}</span>}
+                {suffix && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{suffix}</span>}
               </div>
             </div>
-            <div className="space-y-1">
-              <span className="text-[10px] text-muted-foreground font-medium">Max</span>
+
+            {/* Connector */}
+            <div className="flex items-center justify-center pb-1">
+              <div className="w-6 h-px bg-[var(--q-border-default)]" />
+            </div>
+
+            {/* Max */}
+            <div className="flex-1 space-y-1">
+              <span className="text-[10px] text-[var(--q-text-tertiary)] font-medium uppercase tracking-wide">Max</span>
               <div className="relative">
-                {prefix && <span className="absolute left-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{prefix}</span>}
+                {prefix && <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{prefix}</span>}
                 <Input
                   type="number"
                   value={currentParam.maxValue}
                   onChange={(e) => handleFieldChange('maxValue', e.target.value)}
-                  className={cn("h-8 text-xs", prefix && "pl-5")}
+                  className={cn("h-10 text-xs", prefix && "pl-5")}
                   disabled={disabled}
                 />
-                {suffix && <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">{suffix}</span>}
+                {suffix && <span className="absolute right-2.5 top-1/2 -translate-y-1/2 text-xs text-[var(--q-text-tertiary)]">{suffix}</span>}
               </div>
             </div>
           </div>
@@ -142,7 +158,7 @@ export default function RangeModeToggle({
                 onValueChange={(v) => handleFieldChange('distribution', v)}
                 disabled={disabled}
               >
-                <SelectTrigger className="h-7 text-[10px] w-[100px] border-border/50">
+                <SelectTrigger className="h-7 text-[10px] w-[100px] border-[var(--q-border-default)]/50 bg-[var(--q-bg-input)]">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -152,8 +168,8 @@ export default function RangeModeToggle({
                 </SelectContent>
               </Select>
             </div>
-            <span className="text-[10px] text-muted-foreground">
-              Range: {prefix}{currentParam.minValue.toLocaleString()}{suffix} – {prefix}{currentParam.maxValue.toLocaleString()}{suffix}
+            <span className="text-[10px] text-[var(--q-text-tertiary)] font-mono tabular-nums">
+              {prefix}{currentParam.minValue.toLocaleString()}{suffix} – {prefix}{currentParam.maxValue.toLocaleString()}{suffix}
             </span>
           </div>
         </div>

@@ -237,21 +237,21 @@ export function WizardForm({
                 type="button"
                 onClick={() => setActiveStep(step.num)}
                 className={cn(
-                  'w-full flex items-center gap-3 px-4 py-3 rounded-lg border transition-all duration-200 text-left',
+                  'w-full flex items-center gap-3 px-4 py-3 rounded-[var(--q-radius-md)] border transition-all duration-[var(--q-duration-fast)] text-left',
                   isActive
-                    ? 'border-primary/40 bg-primary/5 shadow-sm'
+                    ? 'border-[var(--q-accent-primary)]/40 bg-[var(--q-accent-glow)] shadow-sm'
                     : step.complete
-                    ? 'border-border bg-card hover:bg-accent/50'
-                    : 'border-border bg-card/50 hover:bg-accent/30'
+                    ? 'border-[var(--q-border-default)] bg-card hover:bg-accent/50'
+                    : 'border-[var(--q-border-subtle)] bg-card/50 hover:bg-accent/30'
                 )}
               >
                 {/* Step number circle */}
                 <div className={cn(
                   'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
                   step.complete
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]'
                     : isActive
-                    ? 'bg-primary/15 text-primary'
+                    ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]'
                     : 'bg-muted text-muted-foreground'
                 )}>
                   {step.complete ? (
@@ -270,7 +270,7 @@ export function WizardForm({
                       {step.label}
                     </span>
                     {step.num === 2 && step.complete && (
-                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border-emerald-500/30">
+                      <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4 bg-[var(--q-status-green-bg)] text-[var(--q-status-green)] border-[var(--q-status-green-border)]">
                         +25% accuracy
                       </Badge>
                     )}
@@ -307,7 +307,7 @@ export function WizardForm({
                 'overflow-hidden transition-all duration-300 ease-in-out',
                 isActive ? 'max-h-[800px] opacity-100 mt-2' : 'max-h-0 opacity-0'
               )}>
-                <div className="px-4 py-3 rounded-lg border border-border bg-card space-y-4">
+                <div className="px-4 py-3 rounded-[var(--q-radius-md)] border border-[var(--q-border-default)] bg-card space-y-4">
                   {step.num === 1 && (
                     <>
                       {/* Quick-start templates */}
@@ -322,8 +322,8 @@ export function WizardForm({
                       )}
 
                       <div className="space-y-2">
-                        <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <Brain className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="idea" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+                          <Brain className="w-4 h-4 text-[var(--q-text-tertiary)]" />
                           Business Idea
                         </Label>
                         <Textarea
@@ -335,15 +335,15 @@ export function WizardForm({
                           disabled={isLoading}
                           aria-invalid={!!errors.idea}
                           className={cn(
-                            "resize-none transition-colors text-sm",
-                            errors.idea && "border-destructive focus-visible:ring-destructive"
+                            "resize-none transition-all text-[15px]",
+                            errors.idea && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]"
                           )}
                         />
                         <div className="flex justify-between items-center">
                           {errors.idea ? (
-                            <p className="text-xs text-destructive">{errors.idea}</p>
+                            <p className="text-xs text-[var(--q-status-red)]">{errors.idea}</p>
                           ) : (
-                            <span className="text-xs text-muted-foreground">Min 10 chars — more detail = better analysis</span>
+                            <span className="text-xs text-[var(--q-text-tertiary)]">Min 10 chars — more detail = better analysis</span>
                           )}
                           <span className={cn("text-xs tabular-nums", idea.length > 5000 ? "text-destructive" : "text-muted-foreground")}>
                             {idea.length.toLocaleString()}/5,000
@@ -352,8 +352,8 @@ export function WizardForm({
                       </div>
 
                       <div className="space-y-2">
-                        <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-foreground">
-                          <MapPin className="w-4 h-4 text-muted-foreground" />
+                        <Label htmlFor="location" className="flex items-center gap-2 text-sm font-medium text-[var(--q-text-secondary)]">
+                          <MapPin className="w-4 h-4 text-[var(--q-text-tertiary)]" />
                           Location
                         </Label>
                         <Input
@@ -363,9 +363,9 @@ export function WizardForm({
                           placeholder="e.g. Denver, Colorado"
                           disabled={isLoading}
                           aria-invalid={!!errors.location}
-                          className={cn("transition-colors text-sm", errors.location && "border-destructive focus-visible:ring-destructive")}
+                          className={cn("transition-all text-[15px]", errors.location && "border-[var(--q-status-red)] focus-visible:shadow-[0_0_0_3px_rgba(239,68,68,0.12)] border-l-[3px] border-l-[var(--q-status-red)]")}
                         />
-                        {errors.location && <p className="text-xs text-destructive">{errors.location}</p>}
+                        {errors.location && <p className="text-xs text-[var(--q-status-red)]">{errors.location}</p>}
                       </div>
 
                       {/* Industry selector */}
