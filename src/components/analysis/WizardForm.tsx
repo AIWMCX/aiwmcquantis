@@ -249,9 +249,9 @@ export function WizardForm({
                 <div className={cn(
                   'w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 transition-colors',
                   step.complete
-                    ? 'bg-emerald-500/15 text-emerald-600 dark:text-emerald-400'
+                    ? 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]'
                     : isActive
-                    ? 'bg-primary/15 text-primary'
+                    ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]'
                     : 'bg-muted text-muted-foreground'
                 )}>
                   {step.complete ? (
