@@ -457,7 +457,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   const metrics: ComputedMetrics = {
     mrr,
-    arr: mrr * 12,
+    arr: QMath.round(QMath.multiply(mrr, 12)),
     grossProfit,
     grossMarginPercent,
     netProfit,
