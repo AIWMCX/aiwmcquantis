@@ -342,6 +342,14 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           </Tabs>
         </TabsContent>
 
+        {/* TAB: Simulation */}
+        <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">
+          <MonteCarloResults
+            simulation={(result as any).monte_carlo}
+            scenarios={(result as any).scenario_comparison}
+          />
+        </TabsContent>
+
         {/* TAB: Sensitivity */}
         <TabsContent value="sensitivity" className="space-y-4 animate-in fade-in duration-200">
           {(result as any).sensitivity_analysis && (
