@@ -131,8 +131,8 @@ export function calculateUnitEconomics(params: UnitEconomicsParams): UnitEconomi
   // NPV-discounted LTV: sum of margin / (1+r)^t for t=1..lifetime
   const monthlyDiscount = Q.divide(discountRatePct, 12);
   let ltvNpv = Q.multiply(1, 0);
-  const ltMonths = Math.min(Q.toNumber(lifetimeMonths), 120);
-  for (let t = 1; t <= Math.ceil(ltMonths); t++) {
+  const ltMonths = Q.toNumber(Q.min(lifetimeMonths, 120));
+  for (let t = 1; t <= Q.ceil(ltMonths); t++) {
     const discountFactor = Q.add(1, monthlyDiscount);
     // (1+r)^t via repeated multiply
     let df = Q.multiply(1, 1);
