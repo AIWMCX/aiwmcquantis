@@ -65,6 +65,12 @@ export default function AdminDashboard() {
                 Benchmarks
               </Link>
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/health">
+                <Activity className="w-4 h-4 mr-2" />
+                Quantis Health
+              </Link>
+            </Button>
           </div>
         </div>
 

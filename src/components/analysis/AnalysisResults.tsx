@@ -34,6 +34,7 @@ import { SCOREComplianceBadge } from './SCOREComplianceBadge';
 import { ValidationJourney } from './ValidationJourney';
 import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
+import { RealityCheck } from './RealityCheck';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -371,6 +372,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         {/* TAB: Risk Map */}
         <TabsContent value="riskmap" className="space-y-4 animate-in fade-in duration-200">
           <StressMap {...calculateStressScores(result)} />
+          <RealityCheck
+            industryType={result.metadata?.industry_detected}
+            overallRiskIndex={calculateStressScores(result).overallRiskIndex}
+          />
         </TabsContent>
         {/* TAB: Simulation */}
         <TabsContent value="simulation" className="space-y-4 animate-in fade-in duration-200">

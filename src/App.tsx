@@ -35,6 +35,7 @@ const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const UseCases = lazy(() => import("./pages/UseCases"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const RiskGallery = lazy(() => import("./pages/RiskGallery"));
+const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -118,6 +119,11 @@ const App = () => {
                 <Route path="/admin/benchmarks" element={
                   <ProtectedRoute requireAdmin>
                     <AdminBenchmarkUpload />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/health" element={
+                  <ProtectedRoute requireAdmin>
+                    <QuantisHealth />
                   </ProtectedRoute>
                 } />
                 
