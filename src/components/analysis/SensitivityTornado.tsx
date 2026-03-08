@@ -148,6 +148,8 @@ export function SensitivityTornado(props: SensitivityTornadoProps) {
     };
   }, [props]);
 
+  const { baseValue, title, unit, items, summary, mostSensitive } = normalized;
+
   if (items.length === 0) return null;
 
   const chartData = items.map((s) => ({
