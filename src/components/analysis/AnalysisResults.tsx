@@ -488,7 +488,26 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             </p>
           </div>
         </TabsContent>
+
+        {/* TAB: Validate */}
+        <TabsContent value="validate" className="space-y-4 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between mb-2">
+            <h3 className="text-sm font-semibold text-foreground">Validation Journey</h3>
+            <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={() => setShowActualsImporter(true)}>
+              <Upload className="w-3.5 h-3.5" /> Import Actuals
+            </Button>
+          </div>
+          <ValidationJourney analysisId={analysisId} />
+        </TabsContent>
       </Tabs>
+
+      {/* Actuals Importer Modal */}
+      <ActualsImporter
+        open={showActualsImporter}
+        onOpenChange={setShowActualsImporter}
+        projections={[]}
+        currentParams={result.financial_analysis?.inputs || {}}
+      />
 
       {/* Signup Prompt for anonymous users */}
       {!isAuthenticated && <SignupPrompt ideaScore={ideaScore} />}
