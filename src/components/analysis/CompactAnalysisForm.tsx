@@ -292,7 +292,7 @@ export function CompactAnalysisForm({
   const depthTime = DEPTH_OPTIONS.find(d => d.id === depth)?.time || '90s';
 
   return (
-    <form onSubmit={onSubmit} className="space-y-4">
+    <form onSubmit={(e) => onSubmit(e, depth)} className="space-y-4">
       {/* Loading overlay */}
       {isLoading && <AnalysisProgress isLoading={isLoading} businessType={selectedIndustry} location={location} />}
 
