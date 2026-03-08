@@ -313,7 +313,7 @@ export function generateCashFlow(
     const runway = avgBurn < 0 ? n(Q.abs(Q.divide(n(cumulative), avgBurn))) : 999;
 
     // Reconciliation: operatingCashFlow should match netIncome within $1
-    const divergence = Math.abs(n(opCashFlow) - pl.netIncome);
+    const divergence = n(Q.abs(Q.subtract(n(opCashFlow), pl.netIncome)));
     if (divergence > 1) {
       // Flag on the PL statement if mutable — for now just log
       console.warn(`[BottomUpEngine] Cash-flow reconciliation gap: $${divergence} in month ${pl.month}`);
