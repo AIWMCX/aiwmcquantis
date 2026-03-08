@@ -36,7 +36,7 @@ export async function saveReportOutput(
     .insert([{
       analysis_id: analysisId,
       user_id: userId,
-      report_json: report as unknown as Record<string, unknown>,
+      report_json: JSON.parse(JSON.stringify(report)),
       pdf_url: pdfUrl ?? null,
       version: report.version,
     }])
