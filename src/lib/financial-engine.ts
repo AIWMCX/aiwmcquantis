@@ -196,7 +196,7 @@ export function generate3YearPL(params: FinancialModelParams): PLStatement[] {
   let prevActive = Q.multiply(1, 0);
 
   for (let m = 1; m <= 36; m++) {
-    const year = Math.ceil(m / 12);
+    const year = Q.ceil(Q.divide(m, 12));
 
     // Customer dynamics
     let activeStart = m === 1 ? Q.multiply(1, initialCustomers) : prevActive;
