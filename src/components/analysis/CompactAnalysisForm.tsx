@@ -294,7 +294,7 @@ export function CompactAnalysisForm({
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       {/* Loading overlay */}
-      {isLoading && <AnalysisProgress idea={idea} location={location} />}
+      {isLoading && <AnalysisProgress isLoading={isLoading} businessType={selectedIndustry} location={location} />}
 
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
