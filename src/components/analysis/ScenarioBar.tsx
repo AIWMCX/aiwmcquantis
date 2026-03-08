@@ -1,27 +1,27 @@
 import React from 'react';
 import { cn } from '@/lib/utils';
-import { RotateCcw } from 'lucide-react';
+import { RotateCcw, TrendingDown, Home, Megaphone, Snail, Sun, AlertTriangle, Swords } from 'lucide-react';
 
 export type ScenarioId = 'base' | 'recession' | 'rent_2x' | 'ad_surge' | 'slow_launch' | 'best_case' | 'worst_case' | 'competitor';
 
 export interface ScenarioConfig {
   id: ScenarioId;
   label: string;
-  emoji: string;
+  icon: React.ReactNode | null;
   multiplier: number;
   volatility: number;
   marginDelta: number;
 }
 
 export const SCENARIO_CONFIGS: ScenarioConfig[] = [
-  { id: 'base', label: 'Base', emoji: '', multiplier: 1, volatility: 0.15, marginDelta: 0 },
-  { id: 'recession', label: 'Recession', emoji: '📉', multiplier: 0.7, volatility: 0.25, marginDelta: -8 },
-  { id: 'rent_2x', label: 'Rent ×2', emoji: '🏠', multiplier: 0.85, volatility: 0.18, marginDelta: -12 },
-  { id: 'ad_surge', label: 'Ad Surge', emoji: '📣', multiplier: 1.25, volatility: 0.22, marginDelta: -5 },
-  { id: 'slow_launch', label: 'Slow Launch', emoji: '🐌', multiplier: 0.6, volatility: 0.30, marginDelta: -3 },
-  { id: 'best_case', label: 'Best Case', emoji: '✨', multiplier: 1.4, volatility: 0.12, marginDelta: 5 },
-  { id: 'worst_case', label: 'Worst Case', emoji: '😱', multiplier: 0.45, volatility: 0.35, marginDelta: -15 },
-  { id: 'competitor', label: 'Competitor', emoji: '⚔', multiplier: 0.75, volatility: 0.28, marginDelta: -10 },
+  { id: 'base', label: 'Base', icon: null, multiplier: 1, volatility: 0.15, marginDelta: 0 },
+  { id: 'recession', label: 'Recession', icon: <TrendingDown className="w-3 h-3" />, multiplier: 0.7, volatility: 0.25, marginDelta: -8 },
+  { id: 'rent_2x', label: 'Rent ×2', icon: <Home className="w-3 h-3" />, multiplier: 0.85, volatility: 0.18, marginDelta: -12 },
+  { id: 'ad_surge', label: 'Ad Surge', icon: <Megaphone className="w-3 h-3" />, multiplier: 1.25, volatility: 0.22, marginDelta: -5 },
+  { id: 'slow_launch', label: 'Slow Launch', icon: <Snail className="w-3 h-3" />, multiplier: 0.6, volatility: 0.30, marginDelta: -3 },
+  { id: 'best_case', label: 'Best Case', icon: <Sun className="w-3 h-3" />, multiplier: 1.4, volatility: 0.12, marginDelta: 5 },
+  { id: 'worst_case', label: 'Worst Case', icon: <AlertTriangle className="w-3 h-3" />, multiplier: 0.45, volatility: 0.35, marginDelta: -15 },
+  { id: 'competitor', label: 'Competitor', icon: <Swords className="w-3 h-3" />, multiplier: 0.75, volatility: 0.28, marginDelta: -10 },
 ];
 
 interface ScenarioBarProps {
