@@ -392,10 +392,7 @@ export function autofillMissingParams(
   // Confidence: higher when more fields were already provided by user
   const totalFields = benchmarks.length;
   const userProvidedCount = totalFields - autofilledFields.length;
-  const confidence = QMath.round(
-    QMath.add(40, QMath.multiply(QMath.divide(userProvidedCount, totalFields), 50)),
-    0
-  );
+  const confidence = round(40 + (userProvidedCount / totalFields) * 50, 0);
 
   return {
     filledParams: filled,
