@@ -45,7 +45,7 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
         <p className="text-xs text-[var(--q-text-tertiary)] uppercase tracking-wide mb-0.5">{label}</p>
         <div className="flex items-center justify-center gap-1">
           <p className={cn(
-            'text-base sm:text-lg font-bold tabular-nums transition-all duration-300',
+            'text-metric-sm transition-all duration-300',
             positive ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'
           )}>
             {value}
