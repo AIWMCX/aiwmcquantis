@@ -20,7 +20,7 @@
     --secondary-foreground: 222 47% 11%;
 
     --muted: 220 14% 96%;
-    --muted-foreground: 220 13% 40%; /* Improved contrast: 4.5:1+ on white */
+    --muted-foreground: 220 13% 40%;
 
     --accent: 220 14% 96%;
     --accent-foreground: 222 47% 11%;
@@ -39,42 +39,110 @@
     
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
+    
+    /* ============================================
+     * Quantis Financial Design System
+     * Bloomberg Terminal for Founders
+     * ============================================ */
+    
+    /* Semantic Financial Colors */
+    --quantis-profit: 152 82% 39%;
+    --quantis-profit-foreground: 0 0% 100%;
+    --quantis-loss: 0 84% 60%;
+    --quantis-loss-foreground: 0 0% 100%;
+    --quantis-caution: 38 92% 50%;
+    --quantis-caution-foreground: 0 0% 0%;
+    --quantis-neutral: 215 20% 65%;
+    --quantis-neutral-foreground: 222 47% 11%;
+    
+    /* Premium Accent Colors */
+    --quantis-gold: 45 93% 47%;
+    --quantis-gold-foreground: 0 0% 0%;
+    --quantis-cyan: 187 92% 45%;
+    --quantis-cyan-foreground: 0 0% 0%;
+    
+    /* Data Visualization Palette */
+    --quantis-chart-1: 221 83% 53%;
+    --quantis-chart-2: 152 82% 39%;
+    --quantis-chart-3: 280 68% 60%;
+    --quantis-chart-4: 38 92% 50%;
+    --quantis-chart-5: 187 92% 45%;
+    
+    /* Surface Depth Layers */
+    --quantis-surface-raised: 0 0% 100%;
+    --quantis-surface-sunken: 220 14% 94%;
+    
+    /* Glow Effects */
+    --quantis-glow-profit: 152 82% 39%;
+    --quantis-glow-primary: 221 83% 53%;
   }
 
   .dark {
-    --background: 222 47% 6%;
+    /* Bloomberg-style deep black */
+    --background: 230 35% 4%;
     --foreground: 0 0% 98%;
 
-    --card: 222 47% 9%;
+    --card: 230 30% 7%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 222 47% 9%;
+    --popover: 230 30% 7%;
     --popover-foreground: 0 0% 98%;
 
     --primary: 217 91% 60%;
-    --primary-foreground: 222 47% 6%;
+    --primary-foreground: 230 35% 4%;
 
-    --secondary: 222 47% 14%;
+    --secondary: 230 25% 12%;
     --secondary-foreground: 0 0% 98%;
 
-    --muted: 222 47% 14%;
-    --muted-foreground: 220 15% 70%; /* Improved contrast: 4.5:1+ on dark */
+    --muted: 230 25% 12%;
+    --muted-foreground: 220 15% 65%;
 
-    --accent: 222 47% 14%;
+    --accent: 230 25% 12%;
     --accent-foreground: 0 0% 98%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 0 0% 98%;
 
-    --border: 222 47% 16%;
-    --input: 222 47% 16%;
+    --border: 230 25% 14%;
+    --input: 230 25% 14%;
     --ring: 217 91% 60%;
     
-    --success: 142 70% 45%;
+    --success: 152 76% 50%;
     --success-foreground: 0 0% 100%;
     
     --warning: 38 92% 55%;
     --warning-foreground: 0 0% 0%;
+    
+    /* Semantic Financial Colors - Dark Mode */
+    --quantis-profit: 152 82% 48%;
+    --quantis-profit-foreground: 0 0% 100%;
+    --quantis-loss: 0 84% 65%;
+    --quantis-loss-foreground: 0 0% 100%;
+    --quantis-caution: 38 92% 58%;
+    --quantis-caution-foreground: 0 0% 0%;
+    --quantis-neutral: 215 15% 55%;
+    --quantis-neutral-foreground: 0 0% 98%;
+    
+    /* Premium Accent Colors - Dark Mode */
+    --quantis-gold: 45 93% 55%;
+    --quantis-gold-foreground: 0 0% 0%;
+    --quantis-cyan: 187 92% 55%;
+    --quantis-cyan-foreground: 0 0% 0%;
+    
+    /* Data Visualization Palette - Dark Mode */
+    --quantis-chart-1: 217 91% 65%;
+    --quantis-chart-2: 152 82% 50%;
+    --quantis-chart-3: 280 68% 65%;
+    --quantis-chart-4: 38 92% 60%;
+    --quantis-chart-5: 187 92% 55%;
+    
+    /* Surface Depth Layers - Dark Mode */
+    --quantis-surface-raised: 230 28% 10%;
+    --quantis-surface-sunken: 230 35% 3%;
+    
+    /* Glow Effects - Dark Mode */
+    --quantis-glow-profit: 152 82% 48%;
+    --quantis-glow-primary: 217 91% 60%;
   }
 }
 
