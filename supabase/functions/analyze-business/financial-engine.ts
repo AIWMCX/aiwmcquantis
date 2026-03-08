@@ -233,7 +233,8 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   });
   
   // Fixed costs
-  const fixedCosts = adjustedSalaries + adjustedRent + adjustedUtilities + adjustedOther;
+  /** Fixed costs = sum of all location-adjusted overhead */
+  const fixedCosts = QMath.round(QMath.add(QMath.add(QMath.add(adjustedSalaries, adjustedRent), adjustedUtilities), adjustedOther));
   
   // Calculate active clients and marketing spend
   const revenuePerClient = QMath.round(QMath.multiply(avgCheck, benchmarks.orders_per_client));
