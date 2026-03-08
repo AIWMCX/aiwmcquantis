@@ -28,6 +28,7 @@ import { ValidationJourney } from './ValidationJourney';
 import { ScenarioLibrary } from './ScenarioLibrary';
 import { ActualsImporter } from './ActualsImporter';
 import { ValidationSection } from './ValidationSection';
+import { CashFlowVisualization } from './CashFlowVisualization';
 import { ResultsTopBar } from './ResultsTopBar';
 import { ResultsHeroStrip } from './ResultsHeroStrip';
 import { ResultsAccordionSections } from './ResultsAccordionSections';
