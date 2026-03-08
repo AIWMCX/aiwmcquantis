@@ -327,7 +327,7 @@ export function WizardForm({
       {/* Two-Column Form */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8 px-6 pt-6">
         {/* LEFT: Business Details */}
-        <div className="space-y-5">
+        <div className="space-y-6">
           <h2 className="text-xs font-semibold uppercase tracking-wider text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
             Business Details
           </h2>
