@@ -380,19 +380,22 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             Reliability & Validation
           </summary>
           <div className="px-5 pb-5 space-y-4">
-            {/* Reconciliation Status */}
+            {/* Reconciliation Status — uses server-side checks when available */}
             {(() => {
-              const netMargin = result.financial_analysis?.scenarios?.base?.net_margin ?? 0;
-              const confidence = result.confidence_score || 50;
-              // Infer risk level from confidence (matching mapRiskLevel in report-schema)
-              const inferredRisk = confidence >= 80 ? 'low' : confidence >= 60 ? 'moderate' : confidence >= 40 ? 'high' : 'very high';
-              const hasR006Violation = netMargin < -10 && inferredRisk === 'low';
-              const checksRun = [
-                { rule: 'R-001', label: 'Sum Integrity', pass: true },
-                { rule: 'R-002', label: 'Sign Consistency', pass: (result.financial_analysis?.mrr ?? 0) >= 0 },
-                { rule: 'R-006', label: 'Margin–Risk Coherence', pass: !hasR006Violation },
-              ];
-              const allPassed = checksRun.every(c => c.pass);
+              const serverRecon = (result as any).reconciliation_status;
+              const checksRun = serverRecon?.checks || (() => {
+                // Fallback: inline checks if server didn't provide them
+                const netMargin = result.financial_analysis?.scenarios?.base?.net_margin ?? 0;
+                const confidence = result.confidence_score || 50;
+                const inferredRisk = confidence >= 80 ? 'low' : confidence >= 60 ? 'moderate' : confidence >= 40 ? 'high' : 'very high';
+                const hasR006Violation = netMargin < -10 && inferredRisk === 'low';
+                return [
+                  { rule: 'R-001', label: 'Sum Integrity', pass: true },
+                  { rule: 'R-002', label: 'Sign Consistency', pass: (result.financial_analysis?.mrr ?? 0) >= 0 },
+                  { rule: 'R-006', label: 'Margin–Risk Coherence', pass: !hasR006Violation },
+                ];
+              })();
+              const allPassed = serverRecon?.all_passed ?? checksRun.every((c: any) => c.pass);
               return (
                 <div className={cn(
                   'p-3 rounded-lg border text-sm',
@@ -403,11 +406,16 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   <div className="flex items-center gap-2 mb-2">
                     <CheckCircle2 className={cn('w-4 h-4', allPassed ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]')} />
                     <span className="font-semibold text-[var(--q-text-primary)]">
-                      Reconciliation: {allPassed ? 'All Checks Passed' : 'Issues Detected'}
+                      Reconciliation: {allPassed ? `All ${checksRun.length} Checks Passed` : 'Issues Detected'}
                     </span>
+                    {serverRecon && (
+                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--q-bg-input)] text-[var(--q-text-disabled)]">
+                        Server-verified
+                      </span>
+                    )}
                   </div>
                   <div className="space-y-1">
-                    {checksRun.map(c => (
+                    {checksRun.map((c: any) => (
                       <div key={c.rule} className="flex items-center gap-2 text-xs">
                         <span className={c.pass ? 'text-[hsl(var(--success))]' : 'text-[hsl(var(--destructive))]'}>
                           {c.pass ? '✓' : '✗'}
