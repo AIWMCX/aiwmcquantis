@@ -4,6 +4,7 @@ import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
 import { Plus, Trash2, Loader2, CheckCircle, FileText, Building2 } from 'lucide-react';
+import { RateIntelligenceBadge } from '@/components/docs/RateIntelligenceBadge';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
 import { useDocFormDraft } from '@/hooks/useDocFormDraft';
@@ -44,6 +45,7 @@ const InvoiceFormSchema = z.object({
     })
   ).min(1, 'At least one item required'),
   tax_rate: z.number().min(0).max(100),
+  discount_amount: z.number().min(0).default(0),
   notes: z.string().optional(),
 });
 
@@ -54,9 +56,10 @@ interface InvoiceFormProps {
   onGenerate: (data: any) => void;
   onPreviewUpdate: (html: string) => void;
   isGenerating: boolean;
+  industryType?: string;
 }
 
-export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating }: InvoiceFormProps) {
+export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGenerating, industryType }: InvoiceFormProps) {
   const { profile: brandProfile, isLoading: brandLoading } = useBrandProfile();
   const createInvoice = useCreateInvoice();
   const defaultValues = useMemo(() => {
@@ -79,6 +82,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           { description: '', quantity: 1, unit_price: 0 },
         ],
         tax_rate: 0,
+        discount_amount: 0,
         notes: '',
       };
     }
@@ -99,6 +103,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         { description: '', quantity: 1, unit_price: 0 },
       ],
       tax_rate: (prefilled.tax_rate || 0) * 100,
+      discount_amount: prefilled.discount_amount || 0,
       notes: prefilled.notes || '',
     };
   }, [template]);
@@ -172,9 +177,10 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       0
     ) || 0;
     const taxAmount = subtotal * ((formValues.tax_rate || 0) / 100);
-    const total = subtotal + taxAmount;
-    return { subtotal, taxAmount, total };
-  }, [formValues.line_items, formValues.tax_rate]);
+    const discount = formValues.discount_amount || 0;
+    const total = subtotal + taxAmount - discount;
+    return { subtotal, taxAmount, discount, total };
+  }, [formValues.line_items, formValues.tax_rate, formValues.discount_amount]);
 
   // Debounced preview update to prevent constant re-renders during typing
   useEffect(() => {
@@ -257,6 +263,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
                 <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
+              ${calculations.discount > 0 ? `
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                <span style="color: #6b7280;">Discount:</span>
+                <span style="font-weight: 500; color: #dc2626;">-$${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              ` : ''}
               <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
                 <span style="font-weight: 600;">Total Due:</span>
                 <span style="font-weight: 700; font-size: 18px;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -311,6 +323,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       subtotal: calculations.subtotal,
       tax_rate: data.tax_rate / 100,
       tax_amount: calculations.taxAmount,
+      discount_amount: calculations.discount,
       total_amount: calculations.total,
       issue_date: invoiceDate,
       due_date: dueDate || undefined,
@@ -489,6 +502,13 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                     min={0}
                     {...form.register(`line_items.${index}.unit_price`, { valueAsNumber: true })}
                   />
+                  {industryType && (
+                    <RateIntelligenceBadge
+                      industryType={industryType}
+                      unitPrice={form.watch(`line_items.${index}.unit_price`) || 0}
+                      onApplyMarketRate={(p50) => form.setValue(`line_items.${index}.unit_price`, p50)}
+                    />
+                  )}
                 </div>
                 <div>
                   <Label className="text-xs text-muted-foreground">Amount</Label>
@@ -514,6 +534,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 <span className="text-muted-foreground">Tax ({formValues.tax_rate || 0}%):</span>
                 <span className="font-medium">${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
+              {calculations.discount > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Discount:</span>
+                  <span className="font-medium text-destructive">-${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                </div>
+              )}
               <div className="flex justify-between pt-2 border-t border-primary/20">
                 <span className="font-semibold">Total:</span>
                 <span className="font-bold text-lg text-primary">${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -529,7 +555,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           <CardTitle>Additional Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
               <Label>Payment Terms</Label>
               <Controller
@@ -559,6 +585,17 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 max={100}
                 {...form.register('tax_rate', { valueAsNumber: true })}
                 className="mt-1"
+              />
+            </div>
+            <div>
+              <Label>Discount ($)</Label>
+              <Input
+                type="number"
+                step="0.01"
+                min={0}
+                {...form.register('discount_amount', { valueAsNumber: true })}
+                className="mt-1"
+                placeholder="0.00"
               />
             </div>
           </div>
