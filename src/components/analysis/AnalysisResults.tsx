@@ -207,11 +207,11 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   return (
     <div className="space-y-4" ref={contentRef}>
       {/* Compact Header Card */}
-      <div className="rounded-xl border border-border bg-card p-4">
+      <div className="q-card relative overflow-hidden p-4" style={{ borderLeftWidth: '3px', borderLeftColor: ideaScore >= 8 ? 'var(--q-status-green)' : ideaScore >= 5 ? 'var(--q-status-yellow)' : 'var(--q-status-red)' }}>
         <div className="flex items-center justify-between mb-3">
           <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border font-bold text-sm", ideaScoreColor)}>
             <Trophy className="w-4 h-4" />
-            <span className="text-xl font-black tabular-nums">{ideaScore}/10</span>
+            <span className="text-metric-lg">{ideaScore}/10</span>
             <span className="text-xs font-semibold">{ideaScoreLabel}</span>
           </div>
           <DualEngineBadge crossValidation={(result as any).cross_validation} />
