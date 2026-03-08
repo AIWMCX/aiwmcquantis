@@ -261,6 +261,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
                 <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
+              ${calculations.discount > 0 ? `
+              <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
+                <span style="color: #6b7280;">Discount:</span>
+                <span style="font-weight: 500; color: #dc2626;">-$${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+              ` : ''}
               <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
                 <span style="font-weight: 600;">Total Due:</span>
                 <span style="font-weight: 700; font-size: 18px;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
