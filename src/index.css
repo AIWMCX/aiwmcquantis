@@ -495,6 +495,35 @@
   .q-text-ai { color: var(--q-status-ai); }
   .q-text-accent { color: var(--q-accent-primary); }
   
+  /* ── NAVIGATION ITEMS ── */
+  
+  .nav-item {
+    height: 44px;
+    padding: 0 16px;
+    font: 500 14px/1 'DM Sans', sans-serif;
+    color: var(--q-text-secondary);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border-radius: var(--q-radius-md);
+    transition: all var(--q-duration-fast) var(--q-ease-out);
+  }
+  
+  .nav-item:hover {
+    background: var(--q-bg-elevated);
+    color: var(--q-text-primary);
+  }
+  
+  .nav-item-active {
+    background: rgba(79, 142, 247, 0.08);
+    border-left: 2px solid var(--q-accent-primary);
+    color: var(--q-accent-primary);
+  }
+  
+  .nav-item-active .nav-item-icon {
+    color: var(--q-accent-primary);
+  }
+  
   /* ── GLOW EFFECTS ── */
   
   .q-glow-blue { box-shadow: var(--q-shadow-glow-blue); }

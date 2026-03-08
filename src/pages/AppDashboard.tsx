@@ -1,8 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Header } from '@/components/layout/Header';
-import { Footer } from '@/components/layout/Footer';
+import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { WizardForm } from '@/components/analysis/WizardForm';
 import { AnalysisResults } from '@/components/analysis/AnalysisResults';
@@ -166,16 +165,15 @@ export default function Index() {
   );
 
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
+    <AppLayout title="Dashboard">
       <PageSEO
         title="Dashboard | AIWMC Quantis"
         description="Access your AI-powered business analyses, financial projections, and business plans."
         canonical="/app"
         noindex={true}
       />
-      <Header />
 
-      <main id="main-content" className="flex-1 container max-w-7xl px-4 sm:px-6 py-6">
+      <div className="container max-w-7xl px-4 sm:px-6 py-6">
         {isAuthenticated && isInitialLoad ? (
           <DashboardSkeleton />
         ) : (
@@ -351,9 +349,7 @@ export default function Index() {
             </div>
           </>
         )}
-      </main>
-
-      <Footer />
+      </div>
 
       <UpgradePrompt
         open={showUpgradePrompt}
@@ -377,6 +373,6 @@ export default function Index() {
         analysisCount={1}
         remainingFreeAnalyses={remainingAnalyses}
       />
-    </div>
+    </AppLayout>
   );
 }
