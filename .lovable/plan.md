@@ -1,168 +1,88 @@
 
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+# Phase 13 — API Versioning + Report Schema Standardization
 
-## Current State Assessment
+## Overview
 
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
+Create a unified report schema (`QuantisReport`), a version-routing edge function, a `report_outputs` table for stored report JSON, and a feature flag system via a `user_settings` table.
 
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
+## Database Changes (2 migrations)
 
-### Critical Gaps Identified
-
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
-
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
-
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
-
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
-
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
-
----
-
-## Plan: 5 High-Impact Upgrades
-
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
-
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
-
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
-
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
-
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
-
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
-
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
-
-**Solution**: After both engines run, compare their outputs:
-
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
-}
+### Migration 1: `user_settings` table
+```sql
+CREATE TABLE user_settings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  use_v2_engine BOOLEAN NOT NULL DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now(),
+  UNIQUE(user_id)
+);
+-- RLS: users read/update own row; admins read/update all
 ```
 
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
-
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
-
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
+### Migration 2: `report_outputs` table
+```sql
+CREATE TABLE report_outputs (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  analysis_id UUID,
+  user_id UUID,
+  report_json JSONB NOT NULL,
+  pdf_url TEXT,
+  version TEXT NOT NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+-- RLS: users select/insert own rows; admins select all
 ```
 
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
+## File 1: `src/types/report-schema.ts` (New)
 
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
+Canonical `QuantisReport` interface with:
+- **Meta**: `reportId`, `version` ("v1"|"v2"), `generatedAt`, `analysisParams`, `metadata: ReportMetadata`
+- **ReportMetadata**: `engineVersion`, `benchmarkVersions[]`, `geoCalibration`, `dualModelConsensus?`, `overallConfidence`, `confidenceTier`, `processingMs`, `reconciled`, `reconciliationNotes?`
+- **Core sections** (both v1/v2): `executiveSummary`, `financials: FinancialsSection`, `marketAnalysis`, `riskAssessment`
+- **v2-only optional sections**: `scenarios?`, `explainability?`, `monteCarlo?`, `unitEconomics?`, `reconciliation?`, `goalSolver?`, `validationJourney?`
+- **FinancialsSection**: v1 fields (`revenueProjections`) + v2 optional (`plStatements?`, `cashFlows?`, `unitEconomics?`, `breakEvenMonth?`, `cashRunwayMonths?`, `roi?`, `paybackPeriodMonths?`)
 
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
+Import types from `financial-engine.ts` and `reconciliation-engine.ts` where needed.
 
-### Upgrade 4: Sensitivity Analysis Module
+Also export:
+- `mapBusinessAnalysisToReport(result: BusinessAnalysisResult, version: "v1"|"v2"): QuantisReport` — adapter from existing result type to new schema
+- `isV2Report(report: QuantisReport): boolean` — type guard
 
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
+## File 2: `src/services/report-store.ts` (New)
 
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
+- `saveReportOutput(analysisId, userId, report: QuantisReport): Promise<string>` — inserts into `report_outputs`, returns id
+- `getReportOutput(reportId: string): Promise<QuantisReport | null>` — fetches stored JSON
+- `getReportsForUser(userId: string): Promise<ReportOutputRecord[]>` — list user's reports
 
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
-}
+## File 3: `supabase/functions/api-analyze/index.ts` (New edge function)
+
+Version-routing proxy:
+- Accepts `POST /api-analyze` with optional `?version=v1|v2` query param
+- If no version specified: checks `user_settings.use_v2_engine` for authenticated user (default false → v1)
+- **v1**: forwards request to `analyze-business` function (existing)
+- **v2**: forwards request to `analyze-business` function but with `engine_version: "v2"` flag in the payload, which the existing function can read to enable extended output
+- Returns the response, wrapping v2 output in `QuantisReport` schema with additive fields
+- CORS headers included, `verify_jwt = false` (validates in code)
+
+The existing `analyze-business` function is NOT modified — the routing layer just passes through. The v2 enrichment (P&L, cash flow, reconciliation) happens client-side using the Phase 11/12 engines after receiving the base analysis.
+
+## Config update
+
+Add to `supabase/config.toml`:
+```toml
+[functions.api-analyze]
+verify_jwt = false
 ```
+(Already present in config.)
 
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
-
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
-
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
-
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
-
-**Solution**: Add a `computeBenchmarkConfidence()` function:
-
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
-```
-
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
-
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
-
----
-
-## Implementation Priority
-
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
-
-## What This Does NOT Include (Flagged for Later)
-
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
-
-## Files Changed Summary
+## Files Summary
 
 | File | Action |
 |------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+| `src/types/report-schema.ts` | New — QuantisReport interfaces + adapter |
+| `src/services/report-store.ts` | New — CRUD for report_outputs table |
+| `supabase/functions/api-analyze/index.ts` | New — version routing proxy |
+| Migration | New — `user_settings` + `report_outputs` tables with RLS |
 
