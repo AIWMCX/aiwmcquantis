@@ -243,7 +243,7 @@ export function estimatePercentile(value: number, benchmark: IndustryBenchmark):
   if (value <= points[0].val) {
     // Below p10 — extrapolate down
     const ratio = points[0].val > 0 ? value / points[0].val : 0;
-    return QMath.round(ratio * 10, 1);
+    return round(ratio * 10, 1);
   }
   if (value >= points[points.length - 1].val) {
     // Above p90 — extrapolate up
