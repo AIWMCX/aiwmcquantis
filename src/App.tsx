@@ -139,6 +139,11 @@ const App = () => {
                     <QuantisHealth />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/formulas" element={
+                  <ProtectedRoute requireAdmin>
+                    <FormulasDashboard />
+                  </ProtectedRoute>
+                } />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
