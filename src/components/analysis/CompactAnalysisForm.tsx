@@ -202,7 +202,7 @@ interface CompactAnalysisFormProps {
   onLocationChange: (v: string) => void;
   onFinancialInputsChange: (inputs: OptionalFinancialInputs) => void;
   onClearError: (field: 'idea' | 'location') => void;
-  onSubmit: (e: React.FormEvent) => void;
+  onSubmit: (e: React.FormEvent, depth?: string) => void;
   files?: UploadedFile[];
   isUploading?: boolean;
   maxFiles?: number;
