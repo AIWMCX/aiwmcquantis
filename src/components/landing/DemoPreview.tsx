@@ -69,7 +69,7 @@ const INDUSTRY_DEMOS: IndustryDemo[] = [
   },
   {
     label: 'E-commerce',
-    emoji: '🛍️',
+    icon: ShoppingBag,
     idea: 'Sustainable fashion e-commerce brand',
     location: 'New York, NY',
     metrics: [
