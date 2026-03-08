@@ -1,16 +1,19 @@
 import React from 'react';
-import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent } from 'lucide-react';
+import { ChevronDown, ChevronUp, HelpCircle, TrendingUp, DollarSign, Users, Percent, Sparkles } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { BenchmarkWarning } from './BenchmarkWarning';
+import { validateParamAgainstBenchmarks, autofillMissingParams, getBenchmark } from '@/lib/benchmark-calibrator';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
 interface AdvancedFinancialInputsProps {
   financialInputs: OptionalFinancialInputs;
   onChange: (inputs: OptionalFinancialInputs) => void;
   disabled?: boolean;
+  industryType?: string;
 }
 
 // Numeric-only keys from OptionalFinancialInputs (excluding selected_industry)
@@ -24,6 +27,7 @@ interface FieldConfig {
   icon: React.ReactNode;
   prefix?: string;
   suffix?: string;
+  benchmarkParam?: string; // maps to benchmark-calibrator parameter name
 }
 
 const FIELD_CONFIGS: FieldConfig[] = [
@@ -50,6 +54,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
     tooltip: 'Average price customers pay for your product or service',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
+    benchmarkParam: 'avg_ticket_size',
   },
   {
     key: 'expected_customers',
@@ -73,6 +78,7 @@ const FIELD_CONFIGS: FieldConfig[] = [
     tooltip: 'How much it costs to acquire one new customer (marketing spend / new customers)',
     icon: <DollarSign className="w-4 h-4" />,
     prefix: '$',
+    benchmarkParam: 'cac',
   },
   {
     key: 'churn_rate',
@@ -81,11 +87,11 @@ const FIELD_CONFIGS: FieldConfig[] = [
     tooltip: 'Percentage of customers who stop using your service each month',
     icon: <Percent className="w-4 h-4" />,
     suffix: '%',
+    benchmarkParam: 'churn_rate',
   },
 ];
 
 function countFilledFields(inputs: OptionalFinancialInputs): number {
-  // Only count numeric fields, not selected_industry
   const numericKeys: NumericFinancialKeys[] = ['startup_investment', 'monthly_revenue', 'average_price', 'expected_customers', 'monthly_costs', 'cac', 'churn_rate'];
   return numericKeys.filter(key => {
     const v = inputs[key];
@@ -94,7 +100,6 @@ function countFilledFields(inputs: OptionalFinancialInputs): number {
 }
 
 function formatNumber(value: string): string {
-  // Remove non-numeric characters except decimal
   const cleaned = value.replace(/[^\d.]/g, '');
   const num = parseFloat(cleaned);
   return isNaN(num) ? '' : cleaned;
@@ -103,7 +108,8 @@ function formatNumber(value: string): string {
 export function AdvancedFinancialInputs({ 
   financialInputs, 
   onChange,
-  disabled = false 
+  disabled = false,
+  industryType,
 }: AdvancedFinancialInputsProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const filledCount = countFilledFields(financialInputs);
@@ -117,6 +123,24 @@ export function AdvancedFinancialInputs({
       ...financialInputs,
       [key]: numValue,
     });
+  };
+
+  const handleAutofill = () => {
+    if (!industryType) return;
+    const partial: Record<string, number | undefined> = {};
+    for (const field of FIELD_CONFIGS) {
+      if (field.benchmarkParam) {
+        partial[field.benchmarkParam] = financialInputs[field.key] as number | undefined;
+      }
+    }
+    const result = autofillMissingParams(partial, industryType);
+    const updated = { ...financialInputs };
+    for (const field of FIELD_CONFIGS) {
+      if (field.benchmarkParam && result.autofilledFields.includes(field.benchmarkParam)) {
+        (updated as any)[field.key] = result.filledParams[field.benchmarkParam];
+      }
+    }
+    onChange(updated);
   };
 
   return (
@@ -163,7 +187,7 @@ export function AdvancedFinancialInputs({
             {/* Confidence Boost Banner */}
             <div className="flex items-start gap-3 p-3 rounded-lg bg-primary/5 border border-primary/10">
               <TrendingUp className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
-              <div>
+              <div className="flex-1">
                 <p className="text-sm font-medium text-foreground">
                   Boost your analysis confidence
                 </p>
@@ -172,6 +196,21 @@ export function AdvancedFinancialInputs({
                   All fields are optional.
                 </p>
               </div>
+              {industryType && (
+                <button
+                  type="button"
+                  onClick={handleAutofill}
+                  disabled={disabled}
+                  className={cn(
+                    "flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-md transition-colors flex-shrink-0",
+                    "bg-primary/10 text-primary hover:bg-primary/20",
+                    disabled && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Sparkles className="w-3.5 h-3.5" />
+                  Auto-fill from benchmarks
+                </button>
+              )}
             </div>
 
             {/* Investment & Revenue Row */}
@@ -183,6 +222,8 @@ export function AdvancedFinancialInputs({
                   value={financialInputs[field.key]}
                   onChange={(value) => handleChange(field.key, value)}
                   disabled={disabled}
+                  industryType={industryType}
+                  onUseMedian={(median) => handleChange(field.key, median.toString())}
                 />
               ))}
             </div>
@@ -196,6 +237,8 @@ export function AdvancedFinancialInputs({
                   value={financialInputs[field.key]}
                   onChange={(value) => handleChange(field.key, value)}
                   disabled={disabled}
+                  industryType={industryType}
+                  onUseMedian={(median) => handleChange(field.key, median.toString())}
                 />
               ))}
             </div>
@@ -209,6 +252,8 @@ export function AdvancedFinancialInputs({
                   value={financialInputs[field.key]}
                   onChange={(value) => handleChange(field.key, value)}
                   disabled={disabled}
+                  industryType={industryType}
+                  onUseMedian={(median) => handleChange(field.key, median.toString())}
                 />
               ))}
             </div>
@@ -220,6 +265,8 @@ export function AdvancedFinancialInputs({
                 value={financialInputs.churn_rate}
                 onChange={(value) => handleChange('churn_rate', value)}
                 disabled={disabled}
+                industryType={industryType}
+                onUseMedian={(median) => handleChange('churn_rate', median.toString())}
               />
               
               {/* Summary */}
@@ -241,13 +288,28 @@ function FinancialField({
   config, 
   value, 
   onChange,
-  disabled 
+  disabled,
+  industryType,
+  onUseMedian,
 }: { 
   config: FieldConfig; 
   value?: number;
   onChange: (value: string) => void;
   disabled?: boolean;
+  industryType?: string;
+  onUseMedian?: (median: number) => void;
 }) {
+  const validation = React.useMemo(() => {
+    if (!industryType || !config.benchmarkParam || !value || value <= 0) return null;
+    return validateParamAgainstBenchmarks(config.benchmarkParam, value, industryType);
+  }, [industryType, config.benchmarkParam, value]);
+
+  const handleUseMedian = React.useCallback(() => {
+    if (!industryType || !config.benchmarkParam || !onUseMedian) return;
+    const benchmark = getBenchmark(industryType, config.benchmarkParam);
+    if (benchmark) onUseMedian(benchmark.p50);
+  }, [industryType, config.benchmarkParam, onUseMedian]);
+
   return (
     <div className="space-y-1.5">
       <Label className="flex items-center gap-1.5 text-sm font-medium text-foreground">
@@ -278,7 +340,9 @@ function FinancialField({
           className={cn(
             "transition-colors",
             config.prefix && "pl-7",
-            config.suffix && "pr-8"
+            config.suffix && "pr-8",
+            validation?.warningLevel === 'critical' && "border-destructive/50",
+            validation?.warningLevel === 'strong' && "border-amber-500/50",
           )}
         />
         {config.suffix && (
@@ -287,6 +351,15 @@ function FinancialField({
           </span>
         )}
       </div>
+      {validation && validation.warningLevel !== 'none' && (
+        <BenchmarkWarning
+          warningLevel={validation.warningLevel}
+          message={validation.message}
+          benchmarkRange={validation.benchmarkRange}
+          percentile={validation.percentile}
+          onUseMedian={handleUseMedian}
+        />
+      )}
     </div>
   );
 }
