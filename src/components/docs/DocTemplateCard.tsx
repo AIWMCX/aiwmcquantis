@@ -1,5 +1,4 @@
 import React from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { FileText, Scale, Settings, Code, Crown, Lock, Loader2, Download, RefreshCw } from 'lucide-react';
@@ -25,13 +24,6 @@ const CATEGORY_ICONS: Record<TemplateCategory, React.ReactNode> = {
   tech: <Code className="w-5 h-5" />,
 };
 
-const CATEGORY_COLORS: Record<TemplateCategory, string> = {
-  finance: 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400',
-  legal: 'bg-amber-500/10 text-amber-700 dark:text-amber-400',
-  operations: 'bg-blue-500/10 text-blue-700 dark:text-blue-400',
-  tech: 'bg-purple-500/10 text-purple-700 dark:text-purple-400',
-};
-
 export function DocTemplateCard({
   template,
   isGenerating,
@@ -42,7 +34,7 @@ export function DocTemplateCard({
   documentId,
 }: DocTemplateCardProps) {
   const category = (template.category as TemplateCategory) || 'finance';
-  const estimatedTime = template.tier === 'plus' ? '~12s' : '~3s';
+  const estimatedTime = template.tier === 'plus' ? '~12 seconds' : '~3 seconds';
   const { recordSignal } = useDocSignals();
 
   const handleDownload = () => {
@@ -64,82 +56,88 @@ export function DocTemplateCard({
   };
 
   return (
-    <Card
+    <div
       className={cn(
-        'relative transition-all hover:shadow-md',
-        isLocked && 'opacity-60',
-        isComplete && 'border-green-500/50'
+        'q-card relative rounded-[var(--q-radius-lg)] border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] p-5',
+        'transition-all duration-200 hover:shadow-lg hover:-translate-y-0.5 hover:border-[var(--q-border-strong)]',
+        isComplete && 'border-[var(--q-status-green)]/50',
       )}
     >
+      {/* Locked overlay */}
       {isLocked && (
-        <div className="absolute inset-0 z-10 flex items-center justify-center rounded-lg bg-background/30 backdrop-blur-[1px]">
-          <Lock className="w-6 h-6 text-muted-foreground" />
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-[var(--q-radius-lg)] bg-[var(--q-bg-surface)]/40 backdrop-blur-[2px]">
+          <Lock className="w-5 h-5 text-[var(--q-text-tertiary)] mb-1" />
+          <span className="text-xs font-medium text-[var(--q-text-secondary)]">🔒 Plus Plan</span>
         </div>
       )}
 
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between">
-          <div className={cn('p-2 rounded-lg', CATEGORY_COLORS[category])}>
-            {CATEGORY_ICONS[category]}
-          </div>
-          <div className="flex items-center gap-2">
-            {template.tier === 'plus' ? (
-              <Badge variant="secondary" className="gap-1">
-                <Crown className="w-3 h-3" />
-                Plus
-              </Badge>
-            ) : (
-              <Badge variant="outline">Free</Badge>
-            )}
-          </div>
+      {/* Top row: icon + tier badge */}
+      <div className="flex items-start justify-between mb-3">
+        <div className="p-2 rounded-[var(--q-radius-md)] bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)]">
+          {CATEGORY_ICONS[category] ?? <FileText className="w-5 h-5" />}
         </div>
-        <CardTitle className="text-lg mt-3">{template.name}</CardTitle>
-        <CardDescription className="line-clamp-2">
-          {(template as any).description ?? 'Generate this document from your analysis.'}
-        </CardDescription>
-      </CardHeader>
-
-      <CardContent className="space-y-3">
-        <div className="flex items-center justify-between text-xs text-muted-foreground">
-          <span className="capitalize">{template.category}</span>
-          <span>Est. {estimatedTime}</span>
-        </div>
-
-        {/* Button states */}
-        {isLocked ? (
-          <Button
-            variant="default"
-            className="w-full bg-purple-600 hover:bg-purple-700 text-white"
-            onClick={onGenerate}
-          >
-            <Crown className="w-4 h-4 mr-2" />
-            Upgrade to Plus
-          </Button>
-        ) : isGenerating ? (
-          <Button variant="outline" className="w-full" disabled>
-            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-            Generating...
-          </Button>
-        ) : isComplete ? (
-          <div className="flex gap-2">
-            <Button
-              variant="default"
-              className="flex-1 bg-green-600 hover:bg-green-700 text-white"
-              onClick={handleDownload}
-            >
-              <Download className="w-4 h-4 mr-2" />
-              Download
-            </Button>
-            <Button variant="ghost" size="icon" onClick={handleRegenerate} title="Regenerate">
-              <RefreshCw className="w-4 h-4" />
-            </Button>
-          </div>
+        {template.tier === 'plus' ? (
+          <Badge className="bg-gradient-to-r from-[var(--q-accent-primary)] to-[var(--q-accent-secondary)] text-white border-0 gap-1 text-[10px]">
+            <Crown className="w-3 h-3" /> Plus
+          </Badge>
         ) : (
-          <Button variant="default" className="w-full" onClick={onGenerate}>
-            Generate →
-          </Button>
+          <Badge variant="outline" className="text-[10px] text-[var(--q-text-tertiary)]">Free</Badge>
         )}
-      </CardContent>
-    </Card>
+      </div>
+
+      {/* Title + description */}
+      <h4 className="text-sm font-semibold text-[var(--q-text-primary)] mb-1" style={{ fontFamily: 'var(--q-font-heading)' }}>
+        {template.name}
+      </h4>
+      <p className="text-xs text-[var(--q-text-secondary)] line-clamp-2 mb-3">
+        {(template as any).description ?? 'Generate this document from your analysis.'}
+      </p>
+
+      {/* Generation time */}
+      <p className="text-[11px] text-[var(--q-text-tertiary)] mb-3">{estimatedTime}</p>
+
+      {/* Button states */}
+      {isLocked ? (
+        <Button
+          className="w-full bg-gradient-to-r from-[var(--q-accent-primary)] to-[var(--q-accent-secondary)] text-white border-0 text-xs h-9"
+          onClick={onGenerate}
+        >
+          <Crown className="w-3.5 h-3.5 mr-1.5" />
+          Upgrade to unlock →
+        </Button>
+      ) : isGenerating ? (
+        <div className="w-full h-9 rounded-[var(--q-radius-md)] bg-[var(--q-bg-overlay)] overflow-hidden relative">
+          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-[var(--q-accent-primary)]/20 to-transparent animate-[shimmer_1.5s_infinite]" />
+          <div className="flex items-center justify-center h-full text-xs font-medium text-[var(--q-text-secondary)]">
+            <Loader2 className="w-3.5 h-3.5 mr-1.5 animate-spin" />
+            Generating...
+          </div>
+        </div>
+      ) : isComplete ? (
+        <div className="flex gap-2">
+          <Button
+            className="flex-1 bg-[var(--q-status-green)] hover:bg-[var(--q-status-green)]/90 text-white text-xs h-9"
+            onClick={handleDownload}
+          >
+            <Download className="w-3.5 h-3.5 mr-1.5" />
+            Download
+          </Button>
+          <Button variant="ghost" size="icon" className="h-9 w-9 text-[var(--q-text-tertiary)]" onClick={handleRegenerate} title="Regenerate">
+            <RefreshCw className="w-3.5 h-3.5" />
+          </Button>
+        </div>
+      ) : (
+        <Button className="w-full text-xs h-9" onClick={onGenerate}>
+          Generate →
+        </Button>
+      )}
+
+      <style>{`
+        @keyframes shimmer {
+          0% { transform: translateX(-100%); }
+          100% { transform: translateX(100%); }
+        }
+      `}</style>
+    </div>
   );
 }
