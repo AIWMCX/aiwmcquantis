@@ -42,7 +42,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   estimated: {
     label: 'ESTIMATED',
     icon: Info,
-    prefix: '~',
+    prefix: '',
     classes: 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)] border-[var(--q-status-yellow-border)]',
   },
   uncertain: {
