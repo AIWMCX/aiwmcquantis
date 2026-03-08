@@ -373,6 +373,6 @@ export default function Index() {
         analysisCount={1}
         remainingFreeAnalyses={remainingAnalyses}
       />
-    </div>
+    </AppLayout>
   );
 }
