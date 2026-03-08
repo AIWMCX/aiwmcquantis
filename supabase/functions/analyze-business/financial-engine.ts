@@ -408,7 +408,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   const targetProfit = 45000;
   const revenueFor45kProfit = contributionMargin > 0.01
-    ? QMath.round(QMath.divide(fixedCosts + targetProfit, contributionMargin))
+    ? QMath.round(QMath.divide(QMath.add(fixedCosts, targetProfit), contributionMargin))
     : 0;
   
   audit.push({
