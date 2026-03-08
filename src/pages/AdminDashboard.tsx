@@ -6,6 +6,7 @@ import { UptimeStatusCard } from '@/components/admin/UptimeStatusCard';
 import { WebVitalsCard } from '@/components/admin/WebVitalsCard';
 import { EngagementMetricsCard } from '@/components/admin/EngagementMetricsCard';
 import { ABTestingCard } from '@/components/admin/ABTestingCard';
+import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Shield, Database, ArrowLeft, Activity } from 'lucide-react';
