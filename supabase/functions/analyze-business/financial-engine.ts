@@ -611,13 +611,13 @@ export function generate12MonthProjections(
   
   for (let month = 1; month <= 12; month++) {
     if (month > 1) {
-      revenue = QMath.round(QMath.multiply(revenue, 1 + monthlyGrowthRate));
-      costs = QMath.round(QMath.multiply(costs, 1 + monthlyGrowthRate * 0.5));
+      revenue = QMath.round(QMath.multiply(revenue, QMath.add(1, monthlyGrowthRate).toNumber()));
+      costs = QMath.round(QMath.multiply(costs, QMath.add(1, QMath.multiply(monthlyGrowthRate, 0.5)).toNumber()));
     }
     
-    const profit = revenue - costs;
-    cumulativeProfit += profit;
-    cash += profit;
+    const profit = QMath.round(QMath.subtract(revenue, costs));
+    cumulativeProfit = QMath.round(QMath.add(cumulativeProfit, profit));
+    cash = QMath.round(QMath.add(cash, profit));
     
     projections.push({
       month,
