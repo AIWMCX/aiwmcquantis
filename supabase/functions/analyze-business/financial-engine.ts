@@ -723,6 +723,21 @@ export function analyzeRisks(
   else if (highCount >= 2) overallLevel = 'high';
   else if (highCount === 1 || risks.length >= 3) overallLevel = 'medium';
   else overallLevel = 'low';
+
+  // R-006: Negative margin MUST force minimum "medium" risk
+  if (metrics.netProfit < 0 && metrics.mrr > 0) {
+    const netMarginPct = (metrics.netProfit / metrics.mrr) * 100;
+    if (netMarginPct < -10 && overallLevel === 'low') {
+      overallLevel = 'medium';
+      risks.push({
+        id: 'r006-margin-risk-override',
+        severity: 'medium',
+        title: 'Negative Margin Risk Override',
+        description: `Net margin is ${netMarginPct.toFixed(1)}% — risk level elevated from Low to Moderate per R-006`,
+        mitigation: 'Reduce operating costs or increase revenue to reach positive margins',
+      });
+    }
+  }
   
   return { risks, overallLevel };
 }

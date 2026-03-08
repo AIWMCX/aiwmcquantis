@@ -17,7 +17,7 @@ const COMPARISONS = [
   {
     competitor: 'Consultants',
     weakness: '$2,000+ and 2 weeks',
-    quantis: 'Free in 3 minutes',
+    quantis: 'Free in 90 seconds',
   },
 ];
 

@@ -114,11 +114,11 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
   };
 
   return {
-    marketScore: Math.round(marketScore),
-    marginScore: Math.round(marginScore),
-    capitalScore: Math.round(capitalScore),
-    operationsScore: Math.round(operationsScore),
-    overallRiskIndex: Math.round(overallRiskIndex),
+    marketScore: Math.round(clamp(marketScore)),
+    marginScore: Math.round(clamp(marginScore)),
+    capitalScore: Math.round(clamp(capitalScore)),
+    operationsScore: Math.round(clamp(operationsScore)),
+    overallRiskIndex: Math.round(clamp(overallRiskIndex)),
     explanations,
     recommendations,
   };

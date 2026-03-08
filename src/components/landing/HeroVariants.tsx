@@ -17,7 +17,7 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
     ctaText: 'Run Free Stress-Test',
   },
   numbers_first: {
-    title: 'Stress-Test Your Business Model with Dual AI Engines — in 3 Minutes',
+    title: 'Stress-Test Your Business Model with Dual AI Engines — in 90 Seconds',
     subtitle: 'See which assumptions are fragile. Get risk flags, revenue corridors, and an investor-ready action plan backed by 1,000+ benchmarks.',
     ctaText: 'Get My Free Analysis',
   },

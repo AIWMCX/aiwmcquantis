@@ -40,7 +40,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>With structured financial logic, risk signals, and projections in hand, you can make a clear-headed decision: build, pivot, or move on. This is validation — not motivation, not vibes, not gut feel.</p>
       
       <h2>How AIWMC Quantis Automates This</h2>
-      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections — in under 3 minutes.</p>
+      <p>Quantis runs all five steps automatically. You describe your idea and location, and the AI returns structured financial analysis, risk assessment, and 3-scenario projections — in under 90 seconds.</p>
       <p>It's the same framework VCs and accelerators use, made accessible to founders who are just getting started.</p>
     </>
   ),
@@ -136,7 +136,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
       
       <h2>How to Get Accurate Startup Cost Estimates</h2>
-      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 3 minutes.</p>
+      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 90 seconds.</p>
     </>
   ),
   'unit-economics-explained-for-founders': (
@@ -386,7 +386,7 @@ export default function BlogArticle() {
         {/* CTA */}
         <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
           <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 3 minutes.</p>
+          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
               See My Numbers — Free <ArrowRight className="w-5 h-5" />
