@@ -31,6 +31,8 @@ import { cn } from '@/lib/utils';
 import { AnomalyCard } from './AnomalyCard';
 import { StressMap, calculateStressScores } from './StressMap';
 import { SCOREComplianceBadge } from './SCOREComplianceBadge';
+import { ValidationJourney } from './ValidationJourney';
+import { ActualsImporter } from './ActualsImporter';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import type { ExtractedFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import { usePdfExport } from '@/hooks/usePdfExport';

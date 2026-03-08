@@ -3,7 +3,7 @@
  * and recalibrates parameters based on real-world performance.
  */
 
-import { QuantisMath as QMath } from '@/lib/quantis-math';
+import { QuantisMath } from '@/lib/quantis-math';
 
 // ==================== TYPES ====================
 
@@ -71,7 +71,11 @@ function classifySeverity(absPctDiff: number): DivergenceItem['severity'] {
 
 function pctDiff(actual: number, projected: number): number {
   if (projected === 0) return actual === 0 ? 0 : 100;
-  return QMath.sub(actual, projected).div(Math.abs(projected)).mul(100).toNumber();
+  return QuantisMath.subtract(actual, projected).dividedBy(Math.abs(projected)).times(100).toNumber();
+}
+
+function sumValues(arr: number[]): number {
+  return arr.reduce((acc, v) => QuantisMath.add(acc, v).toNumber(), 0);
 }
 
 // ==================== CORE FUNCTIONS ====================
@@ -84,12 +88,11 @@ export function compareActualsToModel(
   const divergences: DivergenceItem[] = [];
   const absDiffs: number[] = [];
 
-  // Compare each month across revenue, costs, customers
   for (const actual of actuals) {
     const proj = projections.find(p => p.month === actual.month);
     if (!proj) continue;
 
-    const metrics: { metric: string; actual: number; projected: number }[] = [
+    const metrics = [
       { metric: `Month ${actual.month} Revenue`, actual: actual.revenue, projected: proj.revenue },
       { metric: `Month ${actual.month} Costs`, actual: actual.costs, projected: proj.costs },
       { metric: `Month ${actual.month} Customers`, actual: actual.customers, projected: proj.customers },
@@ -109,51 +112,49 @@ export function compareActualsToModel(
     }
   }
 
-  // Accuracy score: 100 - average absolute % difference, clamped [0, 100]
   const avgAbsDiff = absDiffs.length > 0
-    ? QMath.sum(...absDiffs).div(absDiffs.length).toNumber()
+    ? sumValues(absDiffs) / absDiffs.length
     : 50;
   const modelAccuracyScore = Math.max(0, Math.min(100, Math.round(100 - avgAbsDiff)));
 
-  // Suggest param updates based on actual trends
   const suggestedParamUpdates: ParamUpdate[] = [];
 
-  // Implied growth rate from revenue trend
+  // Implied growth rate
   if (actuals.length >= 2) {
     const sorted = [...actuals].sort((a, b) => a.month - b.month);
     const firstRev = sorted[0].revenue;
     const lastRev = sorted[sorted.length - 1].revenue;
     if (firstRev > 0) {
-      const impliedMonthlyGrowth = QMath.sub(lastRev, firstRev)
-        .div(firstRev)
-        .div(sorted.length - 1)
-        .mul(100)
+      const impliedMonthlyGrowth = QuantisMath.subtract(lastRev, firstRev)
+        .dividedBy(firstRev)
+        .dividedBy(sorted.length - 1)
+        .times(100)
         .toNumber();
       suggestedParamUpdates.push({
         paramName: 'monthly_growth_rate',
         oldValue: 0,
         newValue: Math.round(impliedMonthlyGrowth * 10) / 10,
-        rationale: `Actual revenue grew from $${firstRev.toLocaleString()} to $${lastRev.toLocaleString()} over ${sorted.length - 1} months`,
+        rationale: `Revenue grew from $${firstRev.toLocaleString()} to $${lastRev.toLocaleString()} over ${sorted.length - 1} months`,
       });
     }
   }
 
-  // Implied CAC from total costs & customers
-  const totalCosts = QMath.sum(...actuals.map(a => a.costs)).toNumber();
-  const totalCustomers = QMath.sum(...actuals.map(a => a.customers)).toNumber();
+  // Implied CAC
+  const totalCosts = sumValues(actuals.map(a => a.costs));
+  const totalCustomers = sumValues(actuals.map(a => a.customers));
   if (totalCustomers > 0) {
-    const impliedCAC = QMath.div(totalCosts * 0.3, totalCustomers).toNumber(); // ~30% of costs as acquisition
+    const impliedCAC = QuantisMath.divide(totalCosts * 0.3, totalCustomers).toNumber();
     if (currentParams.cac && Math.abs(pctDiff(impliedCAC, currentParams.cac)) > 15) {
       suggestedParamUpdates.push({
         paramName: 'cac',
         oldValue: currentParams.cac,
         newValue: Math.round(impliedCAC),
-        rationale: `Implied CAC from actual data (~30% of costs / customers) differs from model`,
+        rationale: `Implied CAC from actual data differs from model`,
       });
     }
   }
 
-  // Implied churn from customer retention
+  // Implied churn
   if (actuals.length >= 2) {
     const sorted = [...actuals].sort((a, b) => a.month - b.month);
     const churnRates: number[] = [];
@@ -165,13 +166,13 @@ export function compareActualsToModel(
       }
     }
     if (churnRates.length > 0) {
-      const avgChurn = QMath.sum(...churnRates).div(churnRates.length).toNumber();
+      const avgChurn = sumValues(churnRates) / churnRates.length;
       if (currentParams.churn_rate !== undefined && Math.abs(avgChurn - currentParams.churn_rate) > 0.02) {
         suggestedParamUpdates.push({
           paramName: 'churn_rate',
           oldValue: currentParams.churn_rate,
           newValue: Math.round(avgChurn * 1000) / 1000,
-          rationale: `Actual average monthly churn is ${(avgChurn * 100).toFixed(1)}% vs projected ${(currentParams.churn_rate * 100).toFixed(1)}%`,
+          rationale: `Actual monthly churn is ${(avgChurn * 100).toFixed(1)}% vs projected ${(currentParams.churn_rate * 100).toFixed(1)}%`,
         });
       }
     }
@@ -205,7 +206,7 @@ export function compareActualsToModel(
   if (avgRevDiff > 15) {
     insights.push('Revenue is consistently above projections — you may be underestimating demand.');
   } else if (avgRevDiff < -15) {
-    insights.push('Revenue is consistently below projections — review pricing and customer acquisition strategy.');
+    insights.push('Revenue is consistently below projections — review pricing and customer acquisition.');
   }
 
   return {
@@ -222,26 +223,21 @@ export function recalibrateParams(
   currentParams: AnalysisParams
 ): AnalysisParams {
   const updated = { ...currentParams };
-
   if (actuals.length < 1) return updated;
 
   const sorted = [...actuals].sort((a, b) => a.month - b.month);
 
-  // Derive average revenue per customer → price_per_unit proxy
-  const totalRev = QMath.sum(...sorted.map(a => a.revenue)).toNumber();
-  const totalCust = QMath.sum(...sorted.map(a => a.customers)).toNumber();
+  const totalRev = sumValues(sorted.map(a => a.revenue));
+  const totalCust = sumValues(sorted.map(a => a.customers));
   if (totalCust > 0) {
-    updated.price_per_unit = Math.round(QMath.div(totalRev, totalCust).toNumber());
+    updated.price_per_unit = Math.round(QuantisMath.divide(totalRev, totalCust).toNumber());
   }
 
-  // Derive average monthly customers
   updated.units_sold_monthly = Math.round(totalCust / sorted.length);
 
-  // Derive average costs → fixed_opex proxy
-  const totalCosts = QMath.sum(...sorted.map(a => a.costs)).toNumber();
+  const totalCosts = sumValues(sorted.map(a => a.costs));
   updated.fixed_opex = Math.round(totalCosts / sorted.length);
 
-  // Derive churn from retention
   if (sorted.length >= 2) {
     const churnRates: number[] = [];
     for (let i = 1; i < sorted.length; i++) {
@@ -252,16 +248,14 @@ export function recalibrateParams(
       }
     }
     if (churnRates.length > 0) {
-      updated.churn_rate = Math.round(QMath.sum(...churnRates).div(churnRates.length).toNumber() * 1000) / 1000;
+      updated.churn_rate = Math.round((sumValues(churnRates) / churnRates.length) * 1000) / 1000;
     }
   }
 
-  // Derive CAC if leads/conversions available
-  const leadsTotal = QMath.sum(...sorted.filter(a => a.leads).map(a => a.leads!)).toNumber();
-  const conversionsTotal = QMath.sum(...sorted.filter(a => a.conversions).map(a => a.conversions!)).toNumber();
+  const conversionsTotal = sumValues(sorted.filter(a => a.conversions).map(a => a.conversions!));
   if (conversionsTotal > 0 && totalCosts > 0) {
     const marketingShare = totalCosts * 0.25;
-    updated.cac = Math.round(QMath.div(marketingShare, conversionsTotal).toNumber());
+    updated.cac = Math.round(QuantisMath.divide(marketingShare, conversionsTotal).toNumber());
   }
 
   return updated;
