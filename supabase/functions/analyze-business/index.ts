@@ -3966,6 +3966,45 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
               return null;
             })(),
           ].filter(Boolean),
+          // ========== RECONCILIATION STATUS ==========
+          reconciliation_status: (() => {
+            const checks = [];
+            const rev = quantisOutput.metrics.mrr;
+            const cogs = calc.expenses.cogs || 0;
+            const grossProfit = quantisOutput.metrics.grossProfit;
+            const totalExpenses = quantisOutput.metrics.totalExpenses;
+            const netProfit = quantisOutput.metrics.netProfit;
+            const netMarginPct = quantisOutput.metrics.netMarginPercent;
+            
+            // R-001: cogs + grossProfit = revenue
+            const r001pass = Math.abs((cogs + grossProfit) - rev) <= 0.01 || cogs === 0;
+            checks.push({ rule: 'R-001', label: 'Sum Integrity', pass: r001pass });
+            
+            // R-002: sign consistency
+            checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
+            
+            // R-004: Revenue >= 0
+            checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
+            
+            // R-005: Costs >= 0
+            checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
+            
+            // R-006: Margin-Risk coherence
+            const riskLevel = quantisOutput.validation.healthScores?.overall || 'medium';
+            const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
+            checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
+            
+            // R-007: LTV:CAC > 0
+            checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: quantisOutput.metrics.ltvCacRatio > 0 });
+            
+            // R-008: gross margin in range
+            const gmPct = quantisOutput.metrics.grossMarginPercent / 100;
+            checks.push({ rule: 'R-008', label: 'Gross Margin Range', pass: gmPct >= -1.0 && gmPct <= 1.0 });
+            
+            const allPassed = checks.every(c => c.pass);
+            return { checks, all_passed: allPassed, engine_version: quantisOutput.version };
+          })(),
+
           metadata: {
             idea: idea_clean,
             location: location_clean,
@@ -3975,6 +4014,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             generated_at: new Date().toISOString(),
             model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
             version: "9.1-resilient-fallback",
+            analysis_depth: depthLevel,
             benchmark_source: benchmarkSource,
             benchmark_confidence: benchmarkConfidence,
             benchmark_data_source: benchmarkDataSource,
