@@ -895,6 +895,7 @@ export type Database = {
         Row: {
           business_type: string
           confidence_threshold: number | null
+          consecutive_passes: number | null
           created_at: string | null
           created_by: string | null
           description: string | null
@@ -907,13 +908,16 @@ export type Database = {
           last_passed_at: string | null
           location: string
           tags: string[] | null
+          tolerance_pct: number | null
           total_runs: number | null
           updated_at: string | null
+          vector_code: string | null
           version: string | null
         }
         Insert: {
           business_type: string
           confidence_threshold?: number | null
+          consecutive_passes?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -926,13 +930,16 @@ export type Database = {
           last_passed_at?: string | null
           location: string
           tags?: string[] | null
+          tolerance_pct?: number | null
           total_runs?: number | null
           updated_at?: string | null
+          vector_code?: string | null
           version?: string | null
         }
         Update: {
           business_type?: string
           confidence_threshold?: number | null
+          consecutive_passes?: number | null
           created_at?: string | null
           created_by?: string | null
           description?: string | null
@@ -945,8 +952,10 @@ export type Database = {
           last_passed_at?: string | null
           location?: string
           tags?: string[] | null
+          tolerance_pct?: number | null
           total_runs?: number | null
           updated_at?: string | null
+          vector_code?: string | null
           version?: string | null
         }
         Relationships: [
@@ -1859,12 +1868,16 @@ export type Database = {
           blocking_issues: Json | null
           confidence_score: number
           created_at: string | null
+          engine_version: string | null
           evaluated_at: string | null
           evaluation_duration_ms: number | null
+          evaluator: string | null
           evaluator_version: string | null
+          geo_calibration: Json | null
           id: string
           override_by: string | null
           override_reason: string | null
+          passed_checks: Json | null
           safety_level: number
           updated_at: string | null
         }
@@ -1874,12 +1887,16 @@ export type Database = {
           blocking_issues?: Json | null
           confidence_score: number
           created_at?: string | null
+          engine_version?: string | null
           evaluated_at?: string | null
           evaluation_duration_ms?: number | null
+          evaluator?: string | null
           evaluator_version?: string | null
+          geo_calibration?: Json | null
           id?: string
           override_by?: string | null
           override_reason?: string | null
+          passed_checks?: Json | null
           safety_level: number
           updated_at?: string | null
         }
@@ -1889,12 +1906,16 @@ export type Database = {
           blocking_issues?: Json | null
           confidence_score?: number
           created_at?: string | null
+          engine_version?: string | null
           evaluated_at?: string | null
           evaluation_duration_ms?: number | null
+          evaluator?: string | null
           evaluator_version?: string | null
+          geo_calibration?: Json | null
           id?: string
           override_by?: string | null
           override_reason?: string | null
+          passed_checks?: Json | null
           safety_level?: number
           updated_at?: string | null
         }
@@ -2624,25 +2645,37 @@ export type Database = {
       user_realism_feedback: {
         Row: {
           analysis_id: string | null
+          business_type: string | null
           created_at: string
+          dimension_scores: Json | null
+          engine_version: string | null
           feedback_text: string | null
           id: string
+          location: string | null
           realism_score: number
           user_id: string | null
         }
         Insert: {
           analysis_id?: string | null
+          business_type?: string | null
           created_at?: string
+          dimension_scores?: Json | null
+          engine_version?: string | null
           feedback_text?: string | null
           id?: string
+          location?: string | null
           realism_score: number
           user_id?: string | null
         }
         Update: {
           analysis_id?: string | null
+          business_type?: string | null
           created_at?: string
+          dimension_scores?: Json | null
+          engine_version?: string | null
           feedback_text?: string | null
           id?: string
+          location?: string | null
           realism_score?: number
           user_id?: string | null
         }
@@ -2735,7 +2768,17 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      realism_by_industry: {
+        Row: {
+          avg_score: number | null
+          business_type: string | null
+          responses: number | null
+          std_dev: number | null
+          too_optimistic: number | null
+          too_pessimistic: number | null
+        }
+        Relationships: []
+      }
     }
     Functions: {
       admin_force_sync_subscription: {
@@ -2849,6 +2892,7 @@ export type Database = {
           signup_date: string
         }[]
       }
+      get_latest_audit_timestamp: { Args: never; Returns: string }
       get_lead_email: { Args: { p_lead_id: string }; Returns: string }
       get_monthly_analyses: {
         Args: { months_back?: number }
