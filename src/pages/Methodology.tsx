@@ -18,7 +18,7 @@ export default function Methodology() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-12">
         <div className="space-y-4 text-center">
           <div className="flex justify-center mb-4">
-            <LastAuditedBadge />
+            <LastAuditedBadge size="md" />
           </div>
           <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Accuracy & Safety Methodology</h1>
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
