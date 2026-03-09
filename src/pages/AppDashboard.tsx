@@ -297,7 +297,7 @@ export default function Index() {
 
                   <TabsContent value="analyze">
                     {result ? (
-                      <AnalysisResults 
+                      <AccuracyTransparentResults 
                         result={result} 
                         analysisId={currentAnalysisId || undefined}
                         onReset={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }} 
