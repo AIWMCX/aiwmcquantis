@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback, useRef } from 'react';
-import { ArrowRight, ArrowLeft, ShieldAlert, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import React, { useState, useMemo, useCallback } from 'react';
+import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersistentResultsHeader } from './PersistentResultsHeader';
 import { StressMap, calculateStressScores } from './StressMap';
@@ -12,9 +12,8 @@ import { RealismFeedbackWidget } from './RealismFeedbackWidget';
 import { ActionableInsights } from './ActionableInsights';
 import { ValidationSection } from './ValidationSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
-import { DualEngineBadge } from './DualEngineBadge';
 import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
-import { ExplainableMetricCard } from './MetricCard';
+import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
