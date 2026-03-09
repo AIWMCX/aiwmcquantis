@@ -69,6 +69,9 @@ export function Footer() {
             <Link to="/blog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Blog
             </Link>
+            <Link to="/methodology" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Methodology
+            </Link>
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>

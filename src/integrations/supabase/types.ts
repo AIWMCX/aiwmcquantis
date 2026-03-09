@@ -2621,6 +2621,41 @@ export type Database = {
           },
         ]
       }
+      user_realism_feedback: {
+        Row: {
+          analysis_id: string | null
+          created_at: string
+          feedback_text: string | null
+          id: string
+          realism_score: number
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          realism_score: number
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          created_at?: string
+          feedback_text?: string | null
+          id?: string
+          realism_score?: number
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_realism_feedback_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       user_roles: {
         Row: {
           created_at: string | null

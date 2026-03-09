@@ -40,6 +40,7 @@ const InvoiceManager = lazy(() => import("./pages/InvoiceManager"));
 const BrandProfileSettings = lazy(() => import("./pages/settings/BrandProfile"));
 const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
+const Methodology = lazy(() => import("./pages/Methodology"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -95,6 +96,7 @@ const App = () => {
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/methodology" element={<Methodology />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 
