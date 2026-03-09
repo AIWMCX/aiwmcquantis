@@ -120,7 +120,7 @@ export default function AccuracyDashboard() {
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Golden Test Vectors</CardDescription>
-                <CardTitle className="text-4xl text-green-600">
+                <CardTitle className="text-4xl text-primary">
                   100%
                 </CardTitle>
               </CardHeader>
