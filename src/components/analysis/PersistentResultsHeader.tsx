@@ -96,6 +96,7 @@ export function PersistentResultsHeader({
   engineVersion = '2.0.0',
   consensusScore = 94,
 }: PersistentResultsHeaderProps) {
+  const { label: auditLabel, loading: auditLoading } = useAuditFreshness();
   const financials = result.financial_analysis;
   const scenarios = financials?.scenarios;
   const baseScenario = scenarios?.base;
