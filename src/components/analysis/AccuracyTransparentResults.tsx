@@ -181,10 +181,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <div className="p-3 rounded-lg border border-[var(--q-status-green)]/30 bg-[var(--q-status-green)]/5">
                       <h4 className="text-xs font-semibold text-[var(--q-status-green)] mb-2 uppercase tracking-wide">Key Strengths</h4>
                       <ul className="space-y-1.5 text-sm text-muted-foreground">
-                        {(result.actionable_insights?.strengths || ['Strong unit economics', 'Growing market', 'Low competition']).slice(0, 3).map((s, i) => (
+                        {(insights.filter(i => i.status === 'healthy' || i.status === 'excellent').slice(0, 3).map(i => i.headline) || ['Strong unit economics', 'Growing market', 'Low competition']).map((s, i) => (
                           <li key={i} className="flex items-start gap-1.5">
                             <CheckCircle2 className="w-3.5 h-3.5 text-[var(--q-status-green)] mt-0.5 shrink-0" />
-                            <span>{typeof s === 'string' ? s : s.title || 'Strength'}</span>
+                            <span>{s}</span>
                           </li>
                         ))}
                       </ul>
@@ -192,10 +192,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <div className="p-3 rounded-lg border border-[var(--q-status-red)]/30 bg-[var(--q-status-red)]/5">
                       <h4 className="text-xs font-semibold text-[var(--q-status-red)] mb-2 uppercase tracking-wide">Key Risks</h4>
                       <ul className="space-y-1.5 text-sm text-muted-foreground">
-                        {(result.actionable_insights?.risks || risks.slice(0, 3).map(r => r.message) || ['Market uncertainty', 'Cash flow timing', 'Competition']).slice(0, 3).map((r, i) => (
+                        {(insights.filter(i => i.status === 'danger' || i.status === 'warning').slice(0, 3).map(i => i.headline) || risks.slice(0, 3).map(r => r.message) || ['Market uncertainty', 'Cash flow timing', 'Competition']).map((r, i) => (
                           <li key={i} className="flex items-start gap-1.5">
                             <AlertTriangle className="w-3.5 h-3.5 text-[var(--q-status-red)] mt-0.5 shrink-0" />
-                            <span>{typeof r === 'string' ? r : r.title || 'Risk'}</span>
+                            <span>{r}</span>
                           </li>
                         ))}
                       </ul>
