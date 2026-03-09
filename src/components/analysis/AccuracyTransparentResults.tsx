@@ -214,32 +214,32 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               <div className="lg:sticky lg:top-[120px] space-y-5 self-start">
                 {/* 2x3 Metric Grid */}
                 <div className="grid grid-cols-2 gap-3">
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="Monthly Revenue M12" 
                     value={`$${(metrics.monthlyRevenue / 1000).toFixed(1)}k`}
                     variant="standard"
                   />
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="Net Profit M12" 
                     value={`$${(metrics.netProfit / 1000).toFixed(1)}k`}
                     variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
                   />
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="Gross Margin %" 
                     value={`${(metrics.grossMargin * 100).toFixed(1)}%`}
                     variant="standard"
                   />
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="LTV:CAC Ratio" 
                     value={metrics.ltvCac.toFixed(1)}
                     variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
                   />
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="Break-even Month" 
                     value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
                     variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
                   />
-                  <MetricCard 
+                  <SimpleMetricCard 
                     title="Cash Runway" 
                     value={`${metrics.runway} mo`}
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
