@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import { useAuditFreshness } from '@/components/analysis/LastAuditedBadge';
 
 interface PersistentResultsHeaderProps {
   result: BusinessAnalysisResult;
@@ -95,6 +96,7 @@ export function PersistentResultsHeader({
   engineVersion = '2.0.0',
   consensusScore = 94,
 }: PersistentResultsHeaderProps) {
+  const { label: auditLabel, loading: auditLoading } = useAuditFreshness();
   const financials = result.financial_analysis;
   const scenarios = financials?.scenarios;
   const baseScenario = scenarios?.base;
@@ -219,6 +221,12 @@ export function PersistentResultsHeader({
             <span>v{engineVersion}</span>
             <span className="opacity-50">·</span>
             <span>{consensusScore}% AI</span>
+            {!auditLoading && auditLabel && (
+              <>
+                <span className="opacity-50">·</span>
+                <span>Audited {auditLabel}</span>
+              </>
+            )}
           </div>
 
           <Button

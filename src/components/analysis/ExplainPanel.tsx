@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
-import { X, Zap, ExternalLink } from 'lucide-react';
+import { X, Zap, ExternalLink, BookOpen } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { Link } from 'react-router-dom';
 
 export interface FormulaStep {
   label: string;
@@ -325,6 +326,14 @@ export function ExplainPanel({
                 Updated: {benchmark.updatedDaysAgo === 0 ? 'today' : `${benchmark.updatedDaysAgo} days ago`}
               </p>
             )}
+            <Link
+              to="/methodology"
+              target="_blank"
+              className="inline-flex items-center gap-1 text-[10px] text-[var(--q-accent-primary)] hover:underline mt-2"
+            >
+              <BookOpen className="w-3 h-3" />
+              How we calculate this →
+            </Link>
           </section>
         </div>
       </div>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
+import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 export function Footer() {
@@ -87,13 +88,15 @@ export function Footer() {
             </a>
           </div>
           
-          {/* Bottom Row: Copyright + Compliance */}
+          {/* Bottom Row: Copyright + Compliance + Audit Badge */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground">
               © {new Date().getFullYear()} AIWMC™ LLC
             </p>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
             <p className="text-xs text-muted-foreground">GDPR & CCPA Compliant</p>
+            <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
+            <LastAuditedBadge size="sm" />
           </div>
         </div>
       </div>
