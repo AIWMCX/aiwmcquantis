@@ -183,9 +183,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             </div>
             <div className="space-y-6">
               <InlineAssumptionEditor 
-                initialCac={result.financial_analysis?.unit_economics?.cac_typical || 50}
+                initialCac={result.financial_analysis?.unit_economics?.cac || 50}
                 initialRent={result.financial_analysis?.monthly_expenses?.fixed_costs || 1000}
-                initialTicketSize={result.financial_analysis?.unit_economics?.average_ticket || 100}
+                initialTicketSize={result.financial_analysis?.inputs?.price_per_unit || 100}
                 onRecalculate={(newOverrides) => setOverrides(newOverrides)}
               />
             </div>
