@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { cn } from '@/lib/utils';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import { useAuditFreshness } from '@/components/analysis/LastAuditedBadge';
 
 interface PersistentResultsHeaderProps {
   result: BusinessAnalysisResult;
