@@ -1,5 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
-import { AnalysisResult } from "@/types/analysis";
+import { BusinessAnalysisResult } from "@/types/analysis";
 
 export type SafetyLevel = 1 | 2 | 3 | 4;
 
