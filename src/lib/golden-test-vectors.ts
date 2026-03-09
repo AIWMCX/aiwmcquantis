@@ -192,7 +192,7 @@ export function validateAgainstGoldenVector(
   }
 
   if (expectedRanges.grossMargin || expectedRanges.grossMarginPct) {
-    const grossMargin = result.financial_analysis?.gross_margin_percent;
+    const grossMargin = (result.financial_analysis as any)?.gross_margin_percent;
     checkRange(
       grossMargin, 
       expectedRanges.grossMargin || expectedRanges.grossMarginPct, 
@@ -201,7 +201,7 @@ export function validateAgainstGoldenVector(
   }
 
   if (expectedRanges.netMarginPct) {
-    const netMargin = result.financial_analysis?.net_margin_percent;
+    const netMargin = (result.financial_analysis as any)?.net_margin_percent;
     checkRange(netMargin, expectedRanges.netMarginPct, 'netMarginPct');
   }
 

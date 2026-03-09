@@ -37,14 +37,19 @@ export default function AccuracyDashboard() {
             .select('*')
             .order('evaluated_at', { ascending: false })
             .limit(100),
-          BenchmarkGovernance.getFreshnessReport().catch(err => null),
-          supabase
-            .from('realism_by_industry')
-            .select('*')
-            .order('responses', { ascending: false })
-            .limit(20)
-            .then(res => res.data || [])
-            .catch(() => [])
+          BenchmarkGovernance.getFreshnessReport().catch(() => null),
+          (async () => {
+            try {
+              const { data } = await supabase
+                .from('realism_by_industry')
+                .select('*')
+                .order('responses', { ascending: false })
+                .limit(20);
+              return data || [];
+            } catch {
+              return [];
+            }
+          })()
         ]);
 
         const { data: evals, error } = evalsRes;
