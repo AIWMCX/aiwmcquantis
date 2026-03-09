@@ -47,15 +47,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     }
     
     // Apply local overrides linearly for demo purposes
-    if (overrides.cac && result.financial_analysis?.unit_economics?.cac_typical) {
-      const ratio = overrides.cac / result.financial_analysis.unit_economics.cac_typical;
-      baseProfit -= (overrides.cac - result.financial_analysis.unit_economics.cac_typical) * (result.financial_analysis?.monthly_expenses?.total || 10) / 100;
+    if (overrides.cac && result.financial_analysis?.unit_economics?.cac) {
+      const ratio = overrides.cac / result.financial_analysis.unit_economics.cac;
+      baseProfit -= (overrides.cac - result.financial_analysis.unit_economics.cac) * (result.financial_analysis?.monthly_expenses?.total || 10) / 100;
     }
     if (overrides.rent && result.financial_analysis?.monthly_expenses?.fixed_costs) {
       baseProfit -= (overrides.rent - (result.financial_analysis.monthly_expenses.fixed_costs * 0.3));
     }
-    if (overrides.ticketSize && result.financial_analysis?.unit_economics?.average_ticket) {
-      const ratio = overrides.ticketSize / result.financial_analysis.unit_economics.average_ticket;
+    if (overrides.ticketSize && result.financial_analysis?.inputs?.price_per_unit) {
+      const ratio = overrides.ticketSize / result.financial_analysis.inputs.price_per_unit;
       baseRevenue *= ratio;
       baseProfit += (baseRevenue * 0.5); // Arbitrary margin expansion
     }
