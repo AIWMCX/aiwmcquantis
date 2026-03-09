@@ -1,168 +1,81 @@
 
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+# Phase 3 & 4 Master Synthesis — Upgrade Plan
 
-## Current State Assessment
+## Current State vs. Target
 
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
-
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
-
-### Critical Gaps Identified
-
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
-
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
-
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
-
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
-
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
+All three tables (`safety_evaluations`, `golden_test_vectors`, `user_realism_feedback`) and all UI components already exist. The user's master spec describes **enhanced versions** with additional columns, views, seed data, and richer component logic. This plan upgrades the existing implementation to match the authoritative spec.
 
 ---
 
-## Plan: 5 High-Impact Upgrades
+## 1. Database Migration — Schema Enhancements
 
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
+A single migration to add missing columns, views, and functions:
 
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
+**`user_realism_feedback`** — add columns: `dimension_scores JSONB`, `business_type TEXT`, `location TEXT`, `engine_version TEXT DEFAULT '2.0.0-precision'`
 
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
+**`safety_evaluations`** — add columns: `passed_checks JSONB DEFAULT '[]'`, `geo_calibration JSONB`, `engine_version TEXT DEFAULT '2.0.0-precision'`, `evaluator TEXT DEFAULT 'safety_agent'`
 
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
+**`golden_test_vectors`** — add columns: `vector_code TEXT UNIQUE`, `tolerance_pct DECIMAL(4,2) DEFAULT 15.0`, `consecutive_passes INTEGER DEFAULT 0`
 
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
+**New view**: `realism_by_industry` — aggregates realism scores by business_type for Research Agent calibration monitoring.
 
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
+**New function**: `get_latest_audit_timestamp()` — returns MAX(evaluated_at) for the LastAuditedBadge.
 
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
-
-**Solution**: After both engines run, compare their outputs:
-
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
-}
-```
-
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
-
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
-
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
-```
-
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
-
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
-
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
-
-### Upgrade 4: Sensitivity Analysis Module
-
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
-
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
-
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
-}
-```
-
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
-
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
-
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
-
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
-
-**Solution**: Add a `computeBenchmarkConfidence()` function:
-
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
-```
-
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
-
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+**Seed data**: Insert the 3 enhanced golden test vectors (GTV-FIT-DENVER-001, GTV-COFFEE-DEN-001, GTV-SAAS-GENERIC-001) and the initial QSL-2 safety evaluation from the spec.
 
 ---
 
-## Implementation Priority
+## 2. Enhanced RealismFeedbackWidget
 
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+Update `src/components/analysis/RealismFeedbackWidget.tsx`:
+- Accept `businessType` and `location` props from the parent wizard
+- Add per-dimension scoring (Revenue, Costs, Timeline) as optional sub-ratings
+- Submit `dimension_scores`, `business_type`, `location`, and `engine_version` alongside the existing fields
 
-## What This Does NOT Include (Flagged for Later)
+---
 
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+## 3. Enhanced Safety Agent Service
 
-## Files Changed Summary
+Update `src/services/quantis-safety-agent.ts`:
+- Log `passed_checks`, `engine_version`, and `evaluator` fields when inserting evaluations
+- Add a `getLatestAuditTimestamp()` static method calling the new DB function
 
-| File | Action |
-|------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+---
+
+## 4. Enhanced LastAuditedBadge
+
+Update `src/components/analysis/LastAuditedBadge.tsx`:
+- Use the new `get_latest_audit_timestamp()` RPC call instead of raw table query for cleaner access
+
+---
+
+## 5. Enhanced Golden Test Vectors
+
+Update `src/lib/golden-test-vectors.ts`:
+- Replace the 3 existing vectors with the spec's enhanced vectors (fitness boutique Denver, coffee shop Denver, SaaS generic) including `vector_code`, `tolerance_pct`, and `consecutive_passes` fields
+
+---
+
+## 6. Enhanced AccuracyTransparentResults
+
+Update `src/components/analysis/AccuracyTransparentResults.tsx`:
+- Pass `businessType` and `location` from `result.metadata` down to `RealismFeedbackWidget`
+
+---
+
+## 7. Enhanced Methodology Page
+
+Update `src/pages/Methodology.tsx`:
+- Add a "Known Limitations" section addressing the 5 gaps from the spec
+- Add a "Golden Test Vectors" section showing the canonical archetypes
+- Reference `engine_version: 2.0.0-precision`
+
+---
+
+## 8. Enhanced AccuracyDashboard
+
+Update `src/pages/admin/AccuracyDashboard.tsx`:
+- Add a "Realism Calibration" card pulling from the `realism_by_industry` view
+- Show industries where avg_score < 2.5 (overestimating) or > 4.0 (underestimating)
 
