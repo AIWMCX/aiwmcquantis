@@ -1,168 +1,228 @@
 
+# AIWMC Quantis: Anthropic-Style Accuracy & Safety Architecture
+## Comprehensive Analysis & Implementation Plan
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+Based on deep codebase analysis, here's how to systematically implement accuracy-as-a-first-class-function for aiwmcquantis.com:
 
-## Current State Assessment
+## CURRENT STATE ANALYSIS
 
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
+### What's Already Production-Ready
+- **QMath Precision Layer**: Full decimal.js implementation eliminating float drift
+- **Reconciliation Engine**: 10-rule validation system (R-001 to R-010) with auto-correction
+- **Dual-AI Consensus**: GPT-4o mini + Gemini cross-validation with 5-factor confidence scoring
+- **Benchmark System**: 120+ industries with p10-p90 distributions, geo-calibration for 16 cities
+- **Financial Engine**: Bottom-up 36-month P&L, cash-flow, Monte Carlo simulations
+- **Audit Trail**: FormulaRegistry with versioned formulas, QuantisLogger for all operations
 
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
+### Critical Gaps (Anthropic-Style)
+1. **No Safety Governance**: Research Agent exists conceptually but lacks veto authority
+2. **Confidence Theater**: Badges shown but no systematic accuracy measurement
+3. **UX Trust Gap**: Long vertical scroll hides critical assumptions/inputs
+4. **Ad-Hoc Auditing**: Manual checks instead of continuous evaluation pipeline
+5. **Benchmark Staleness**: No systematic refresh/validation of industry data
 
-### Critical Gaps Identified
+## ANTHROPIC-INSPIRED ACCURACY STACK
 
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
+### Phase 1: Safety-First Governance (Sprint 1)
+**Quantis Safety Levels (QSL)**
+- QSL-1 (Exploratory): Free-tier, confidence <70%, clear disclaimers
+- QSL-2 (Planning): Plus-tier, confidence 70-85%, business planning use
+- QSL-3 (Investor-Grade): confidence >85%, suitable for funding decisions
+- QSL-4 (Loan-Grade): Reserved, requires human expert validation
 
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
-
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
-
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
-
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
-
----
-
-## Plan: 5 High-Impact Upgrades
-
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
-
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
-
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
-
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
-
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
-
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
-
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
-
-**Solution**: After both engines run, compare their outputs:
-
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
+**Research Agent Authority Structure**
+```typescript
+// New: src/services/quantis-safety-agent.ts
+interface SafetyVeto {
+  canDeploy: boolean;
+  blockingIssues: SafetyIssue[];
+  overrideRequired: boolean;
+  confidence: SafetyLevel;
 }
 ```
 
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
+**Implementation**:
+- Create `safety_evaluations` table logging every analysis against QSL criteria
+- Research Agent runs on all production analyses, flagging QSL violations
+- Add deployment gates: changes that degrade accuracy scores require explicit override
+- Weekly "Quantis Safety Report" showing accuracy drift, outlier patterns
 
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
+### Phase 2: Systematic Accuracy Infrastructure (Sprint 2)
 
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
-```
-
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
-
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
-
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
-
-### Upgrade 4: Sensitivity Analysis Module
-
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
-
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
-
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
+**Golden Test Vector Library**
+```typescript
+// New: src/lib/golden-test-vectors.ts
+interface GoldenVector {
+  id: string;
+  businessType: string;
+  location: string;
+  inputs: BusinessInputs;
+  expectedRanges: {
+    monthlyProfit: [number, number];
+    paybackMonths: [number, number];
+    grossMargin: [number, number];
+  };
+  confidenceThreshold: number;
 }
 ```
 
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
+**Continuous Evaluation Pipeline**
+- 30+ canonical test cases across industries/locations
+- Regression testing on every model/benchmark change
+- Synthetic fuzzing: random input perturbations to check output stability
+- A/B testing framework for prompt changes
 
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
+**Benchmark Provenance & Freshness**
+- Version every benchmark with source, sample size, date range
+- Automated staleness detection (>6 months = warning flag)
+- Systematic outlier detection using statistical process control
+- Public methodology page showing data sources and limitations
 
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
+### Phase 3: UX of Trust & Transparency (Sprint 3)
 
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
+**Analysis Wizard Redesign** (Fix the "vertical well" problem)
+- Multi-step wizard with persistent summary at top
+- Key outputs visible without scrolling: profit, payback, confidence
+- Inline assumption editing with live recalculation
+- "Why these numbers?" expandable for each major figure
 
-**Solution**: Add a `computeBenchmarkConfidence()` function:
+**Confidence Visualization**
+- Traffic light system: Green (QSL-3), Yellow (QSL-2), Red (QSL-1)
+- Sensitivity tornado showing top 3 drivers
+- Range displays instead of false precision (±15% corridors)
+- Benchmark percentile positioning ("75th percentile for SaaS gross margin")
 
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
+**Realism Feedback Loop**
+- Post-analysis: "How realistic do these projections feel?" slider
+- User edits tracked as ground truth for calibration
+- Systematic collection of "this seems too optimistic/pessimistic"
+
+### Phase 4: External Credibility (Sprint 4)
+
+**Public Methodology Transparency**
+- "How Quantis Works" page with data sources, calculation methods
+- Limitations clearly stated (not marketing claims)
+- "Last audited" badge referencing most recent safety evaluation
+- Open source key calculation modules for expert review
+
+**Anthropic-Style Safety Reports**
+- Quarterly "Quantis Reliability Report" showing accuracy metrics
+- Systematic bias analysis by industry/geography
+- Known failure modes and mitigation efforts
+- Roadmap for accuracy improvements
+
+## TECHNICAL IMPLEMENTATION PLAN
+
+### Current Stack Integration
+Based on codebase analysis:
+- **React + TypeScript + Supabase + Edge Functions**
+- **Dual-AI via Lovable gateway** (GPT-4o mini + Gemini)
+- **QMath precision layer** for all financial arithmetic
+- **Benchmark data** in PostgreSQL with RLS policies
+
+### New Components Required
+
+**1. Safety Agent Service**
+```typescript
+// supabase/functions/quantis-safety-agent/index.ts
+export class SafetyAgent {
+  async evaluateAnalysis(result: AnalysisResult): Promise<SafetyEvaluation>
+  async checkBenchmarkFreshness(): Promise<FreshnessReport>
+  async runGoldenVectorTests(): Promise<TestResults>
+  async generateSafetyReport(): Promise<SafetyReport>
+}
 ```
 
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
+**2. Accuracy Dashboard (Admin)**
+```typescript
+// src/pages/admin/AccuracyDashboard.tsx
+- Real-time accuracy metrics
+- Golden vector test results
+- Benchmark staleness alerts
+- Safety level distribution
+- User feedback analysis
+```
 
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+**3. Enhanced Analysis UI**
+```typescript
+// src/components/analysis/AccuracyTransparentResults.tsx
+- Wizard-style layout with persistent summary
+- Inline confidence indicators
+- Assumption editing with live updates
+- Methodology links for each calculation
+```
 
----
+**4. Benchmark Management System**
+```typescript
+// src/services/benchmark-governance.ts
+- Automated benchmark validation
+- Source attribution and versioning
+- Staleness detection and alerts
+- Quality scoring based on sample size/recency
+```
 
-## Implementation Priority
+### Database Changes Required
 
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+**Safety Evaluation Schema**
+```sql
+CREATE TABLE safety_evaluations (
+  id UUID PRIMARY KEY,
+  analysis_id UUID REFERENCES analyses(id),
+  safety_level INTEGER, -- 1-4 (QSL levels)
+  confidence_score DECIMAL(5,2),
+  blocking_issues JSONB,
+  benchmark_versions JSONB,
+  evaluated_at TIMESTAMP
+);
+```
 
-## What This Does NOT Include (Flagged for Later)
+**Golden Test Vectors**
+```sql
+CREATE TABLE golden_test_vectors (
+  id UUID PRIMARY KEY,
+  business_type TEXT,
+  location TEXT,
+  input_data JSONB,
+  expected_ranges JSONB,
+  last_passed_at TIMESTAMP,
+  failure_count INTEGER DEFAULT 0
+);
+```
 
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+### Deployment Pipeline Changes
 
-## Files Changed Summary
+**Pre-Deploy Safety Gates**
+1. Run full golden vector regression suite
+2. Safety Agent evaluates sample of recent outputs
+3. Benchmark freshness check passes
+4. No degradation in average confidence scores
+5. Manual override required if any checks fail
 
-| File | Action |
-|------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+**Continuous Monitoring**
+- Real-time accuracy metrics dashboard
+- Automated alerts for confidence score degradation
+- Weekly safety reports to stakeholders
+- Monthly external methodology updates
 
+## MEASUREMENT & SUCCESS CRITERIA
+
+### Accuracy Metrics (Anthropic-Style)
+- **Structural Correctness**: 99%+ reconciliation rule compliance
+- **Benchmark Alignment**: 85%+ outputs within p10-p90 industry ranges  
+- **User Calibration**: User "realism" ratings average >3.5/5
+- **Confidence Precision**: Stated confidence correlates with user feedback
+- **Safety Level Compliance**: <5% of analyses require QSL downgrades
+
+### Trust & Transparency Metrics
+- **Methodology Page Views**: Track engagement with "How it works"
+- **Assumption Editing**: % users who modify default assumptions
+- **Confidence Understanding**: A/B testing comprehension of confidence badges
+- **Expert Review**: External validation from financial professionals
+
+### Operational Reliability
+- **Golden Vector Pass Rate**: >95% on canonical test cases
+- **Benchmark Freshness**: <10% of data older than 6 months
+- **Safety Agent Uptime**: 99.5% availability for evaluation pipeline
+- **Override Rate**: <2% of changes require safety overrides
+
+This transforms Quantis from "AI that gives business advice" to "systematic financial modeling platform with AI assistance and continuous accuracy validation" - much closer to Anthropic's approach where safety and reliability are structural, not afterthoughts.
