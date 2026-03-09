@@ -145,6 +145,11 @@ const App = () => {
                     <FormulasDashboard />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/accuracy" element={
+                  <ProtectedRoute requireAdmin>
+                    <AccuracyDashboard />
+                  </ProtectedRoute>
+                } />
                 
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
