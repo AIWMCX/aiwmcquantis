@@ -1,4 +1,4 @@
-import { AnalysisResult } from "@/types/analysis";
+import { BusinessAnalysisResult } from "@/types/analysis";
 
 export interface BusinessInputs {
   businessType: string;
