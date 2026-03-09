@@ -6,28 +6,36 @@ import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
+import { BenchmarkGovernance, FreshnessReport } from "@/services/benchmark-governance";
+
 export default function AccuracyDashboard() {
   const [stats, setStats] = useState({
     totalEvals: 0,
     avgConfidence: 0,
     levelDistribution: { 1: 0, 2: 0, 3: 0, 4: 0 },
-    recentIssues: [] as any[]
+    recentIssues: [] as any[],
+    benchmarkReport: null as FreshnessReport | null
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const { data: evals, error } = await supabase
-          .from('safety_evaluations')
-          .select('*')
-          .order('evaluated_at', { ascending: false })
-          .limit(100);
+        const [evalsRes, freshnessReport] = await Promise.all([
+          supabase
+            .from('safety_evaluations')
+            .select('*')
+            .order('evaluated_at', { ascending: false })
+            .limit(100),
+          BenchmarkGovernance.getFreshnessReport().catch(err => null)
+        ]);
+
+        const { data: evals, error } = evalsRes;
 
         if (error) throw error;
 
-        if (evals && evals.length > 0) {
-          const avgConf = evals.reduce((sum, e) => sum + Number(e.confidence_score), 0) / evals.length;
+        if (evals) {
+          const avgConf = evals.length > 0 ? evals.reduce((sum, e) => sum + Number(e.confidence_score), 0) / evals.length : 0;
           
           const dist = { 1: 0, 2: 0, 3: 0, 4: 0 };
           evals.forEach(e => {
@@ -45,11 +53,34 @@ export default function AccuracyDashboard() {
             }
           });
 
+          // Append benchmark issues
+          if (freshnessReport) {
+            freshnessReport.staleList.slice(0, 5).forEach(stale => {
+              issuesList.push({
+                code: 'BENCHMARK-WARN',
+                severity: 'warning',
+                description: `Stale data: ${stale.industry_name} (${stale.days_old} days old)`,
+                date: new Date().toISOString(),
+                analysis_id: 'System Check'
+              });
+            });
+            freshnessReport.validationErrors.slice(0, 5).forEach(err => {
+              issuesList.push({
+                code: 'BENCHMARK-ERR',
+                severity: 'blocking',
+                description: `Validation: ${err.industry_name} - ${err.error}`,
+                date: new Date().toISOString(),
+                analysis_id: 'System Check'
+              });
+            });
+          }
+
           setStats({
             totalEvals: evals.length,
             avgConfidence: avgConf,
             levelDistribution: dist,
-            recentIssues: issuesList.slice(0, 10)
+            recentIssues: issuesList,
+            benchmarkReport: freshnessReport
           });
         }
       } catch (err) {
