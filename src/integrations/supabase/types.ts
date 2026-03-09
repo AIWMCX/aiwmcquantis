@@ -285,6 +285,48 @@ export type Database = {
           },
         ]
       }
+      benchmark_sources: {
+        Row: {
+          benchmark_id: string | null
+          created_at: string | null
+          id: string
+          metric_name: string | null
+          provenance_id: string | null
+          weight: number | null
+        }
+        Insert: {
+          benchmark_id?: string | null
+          created_at?: string | null
+          id?: string
+          metric_name?: string | null
+          provenance_id?: string | null
+          weight?: number | null
+        }
+        Update: {
+          benchmark_id?: string | null
+          created_at?: string | null
+          id?: string
+          metric_name?: string | null
+          provenance_id?: string | null
+          weight?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benchmark_sources_benchmark_id_fkey"
+            columns: ["benchmark_id"]
+            isOneToOne: false
+            referencedRelation: "industry_benchmarks"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "benchmark_sources_provenance_id_fkey"
+            columns: ["provenance_id"]
+            isOneToOne: false
+            referencedRelation: "data_provenance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benchmark_store: {
         Row: {
           created_at: string | null
@@ -387,6 +429,57 @@ export type Database = {
           primary_color?: string | null
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      data_provenance: {
+        Row: {
+          allowed_uses: string[] | null
+          coverage_description: string | null
+          created_at: string | null
+          dataset_type: string
+          date_range_end: string | null
+          date_range_start: string | null
+          id: string
+          last_ingested_at: string | null
+          license_type: string
+          notes: string | null
+          record_count: number | null
+          restricted_uses: string[] | null
+          source_name: string
+          source_url: string | null
+        }
+        Insert: {
+          allowed_uses?: string[] | null
+          coverage_description?: string | null
+          created_at?: string | null
+          dataset_type: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          last_ingested_at?: string | null
+          license_type: string
+          notes?: string | null
+          record_count?: number | null
+          restricted_uses?: string[] | null
+          source_name: string
+          source_url?: string | null
+        }
+        Update: {
+          allowed_uses?: string[] | null
+          coverage_description?: string | null
+          created_at?: string | null
+          dataset_type?: string
+          date_range_end?: string | null
+          date_range_start?: string | null
+          id?: string
+          last_ingested_at?: string | null
+          license_type?: string
+          notes?: string | null
+          record_count?: number | null
+          restricted_uses?: string[] | null
+          source_name?: string
+          source_url?: string | null
         }
         Relationships: []
       }
@@ -988,6 +1081,10 @@ export type Database = {
           gross_margin_avg: number | null
           gross_margin_max: number | null
           gross_margin_min: number | null
+          gross_margin_p10: number | null
+          gross_margin_p25: number | null
+          gross_margin_p75: number | null
+          gross_margin_p90: number | null
           growth_rate_percent: number | null
           id: string
           industry_id: string
@@ -1003,14 +1100,22 @@ export type Database = {
           net_margin_avg: number | null
           net_margin_max: number | null
           net_margin_min: number | null
+          net_margin_p10: number | null
+          net_margin_p25: number | null
+          net_margin_p75: number | null
+          net_margin_p90: number | null
           orders_per_client: number | null
           other_fixed: number | null
           region: string | null
           rent_fixed: number | null
+          revenue_volatility_pct: number | null
           salaries_fixed: number | null
           sample_size: number | null
           seasonality_coefficients: Json | null
           source: string | null
+          source_count: number | null
+          survival_rate_1yr: number | null
+          survival_rate_3yr: number | null
           utilities_fixed: number | null
         }
         Insert: {
@@ -1032,6 +1137,10 @@ export type Database = {
           gross_margin_avg?: number | null
           gross_margin_max?: number | null
           gross_margin_min?: number | null
+          gross_margin_p10?: number | null
+          gross_margin_p25?: number | null
+          gross_margin_p75?: number | null
+          gross_margin_p90?: number | null
           growth_rate_percent?: number | null
           id?: string
           industry_id: string
@@ -1047,14 +1156,22 @@ export type Database = {
           net_margin_avg?: number | null
           net_margin_max?: number | null
           net_margin_min?: number | null
+          net_margin_p10?: number | null
+          net_margin_p25?: number | null
+          net_margin_p75?: number | null
+          net_margin_p90?: number | null
           orders_per_client?: number | null
           other_fixed?: number | null
           region?: string | null
           rent_fixed?: number | null
+          revenue_volatility_pct?: number | null
           salaries_fixed?: number | null
           sample_size?: number | null
           seasonality_coefficients?: Json | null
           source?: string | null
+          source_count?: number | null
+          survival_rate_1yr?: number | null
+          survival_rate_3yr?: number | null
           utilities_fixed?: number | null
         }
         Update: {
@@ -1076,6 +1193,10 @@ export type Database = {
           gross_margin_avg?: number | null
           gross_margin_max?: number | null
           gross_margin_min?: number | null
+          gross_margin_p10?: number | null
+          gross_margin_p25?: number | null
+          gross_margin_p75?: number | null
+          gross_margin_p90?: number | null
           growth_rate_percent?: number | null
           id?: string
           industry_id?: string
@@ -1091,14 +1212,22 @@ export type Database = {
           net_margin_avg?: number | null
           net_margin_max?: number | null
           net_margin_min?: number | null
+          net_margin_p10?: number | null
+          net_margin_p25?: number | null
+          net_margin_p75?: number | null
+          net_margin_p90?: number | null
           orders_per_client?: number | null
           other_fixed?: number | null
           region?: string | null
           rent_fixed?: number | null
+          revenue_volatility_pct?: number | null
           salaries_fixed?: number | null
           sample_size?: number | null
           seasonality_coefficients?: Json | null
           source?: string | null
+          source_count?: number | null
+          survival_rate_1yr?: number | null
+          survival_rate_3yr?: number | null
           utilities_fixed?: number | null
         }
         Relationships: []
@@ -2427,6 +2556,59 @@ export type Database = {
           total_signals?: number | null
         }
         Relationships: []
+      }
+      training_cases: {
+        Row: {
+          accuracy_score: number | null
+          actual_quantis_outputs: Json | null
+          case_name: string
+          created_at: string | null
+          expected_outputs: Json
+          id: string
+          industry_id: string
+          input_params: Json
+          is_active: boolean | null
+          last_tested_at: string | null
+          provenance_id: string | null
+          tags: string[] | null
+        }
+        Insert: {
+          accuracy_score?: number | null
+          actual_quantis_outputs?: Json | null
+          case_name: string
+          created_at?: string | null
+          expected_outputs: Json
+          id?: string
+          industry_id: string
+          input_params: Json
+          is_active?: boolean | null
+          last_tested_at?: string | null
+          provenance_id?: string | null
+          tags?: string[] | null
+        }
+        Update: {
+          accuracy_score?: number | null
+          actual_quantis_outputs?: Json | null
+          case_name?: string
+          created_at?: string | null
+          expected_outputs?: Json
+          id?: string
+          industry_id?: string
+          input_params?: Json
+          is_active?: boolean | null
+          last_tested_at?: string | null
+          provenance_id?: string | null
+          tags?: string[] | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "training_cases_provenance_id_fkey"
+            columns: ["provenance_id"]
+            isOneToOne: false
+            referencedRelation: "data_provenance"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       usage_tracking: {
         Row: {
