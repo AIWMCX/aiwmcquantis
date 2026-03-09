@@ -63,7 +63,7 @@ export default function AccuracyDashboard() {
   }, []);
 
   return (
-    <AppLayout hideSidebar={false}>
+    <AppLayout>
       <div className="container mx-auto py-8 px-4 max-w-6xl">
         <div className="flex justify-between items-center mb-8">
           <div>
@@ -73,7 +73,7 @@ export default function AccuracyDashboard() {
             </h1>
             <p className="text-muted-foreground mt-1">Anthropic-style governance and reliability metrics</p>
           </div>
-          <Badge variant="outline" className="text-sm py-1 bg-green-50 text-green-700 border-green-200">
+          <Badge variant="outline" className="text-sm py-1 bg-primary/10 text-primary border-primary/20">
             <CheckCircle2 className="h-4 w-4 mr-1" /> All Systems Nominal
           </Badge>
         </div>
