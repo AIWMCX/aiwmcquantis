@@ -891,6 +891,74 @@ export type Database = {
           },
         ]
       }
+      golden_test_vectors: {
+        Row: {
+          business_type: string
+          confidence_threshold: number | null
+          created_at: string | null
+          created_by: string | null
+          description: string | null
+          expected_ranges: Json
+          failure_count: number | null
+          id: string
+          input_data: Json
+          is_active: boolean | null
+          last_failed_at: string | null
+          last_passed_at: string | null
+          location: string
+          tags: string[] | null
+          total_runs: number | null
+          updated_at: string | null
+          version: string | null
+        }
+        Insert: {
+          business_type: string
+          confidence_threshold?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expected_ranges: Json
+          failure_count?: number | null
+          id?: string
+          input_data: Json
+          is_active?: boolean | null
+          last_failed_at?: string | null
+          last_passed_at?: string | null
+          location: string
+          tags?: string[] | null
+          total_runs?: number | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Update: {
+          business_type?: string
+          confidence_threshold?: number | null
+          created_at?: string | null
+          created_by?: string | null
+          description?: string | null
+          expected_ranges?: Json
+          failure_count?: number | null
+          id?: string
+          input_data?: Json
+          is_active?: boolean | null
+          last_failed_at?: string | null
+          last_passed_at?: string | null
+          location?: string
+          tags?: string[] | null
+          total_runs?: number | null
+          updated_at?: string | null
+          version?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "golden_test_vectors_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null
@@ -1783,6 +1851,62 @@ export type Database = {
           warning_signs?: string[] | null
         }
         Relationships: []
+      }
+      safety_evaluations: {
+        Row: {
+          analysis_id: string | null
+          benchmark_versions: Json | null
+          blocking_issues: Json | null
+          confidence_score: number
+          created_at: string | null
+          evaluated_at: string | null
+          evaluation_duration_ms: number | null
+          evaluator_version: string | null
+          id: string
+          override_by: string | null
+          override_reason: string | null
+          safety_level: number
+          updated_at: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          benchmark_versions?: Json | null
+          blocking_issues?: Json | null
+          confidence_score: number
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluation_duration_ms?: number | null
+          evaluator_version?: string | null
+          id?: string
+          override_by?: string | null
+          override_reason?: string | null
+          safety_level: number
+          updated_at?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          benchmark_versions?: Json | null
+          blocking_issues?: Json | null
+          confidence_score?: number
+          created_at?: string | null
+          evaluated_at?: string | null
+          evaluation_duration_ms?: number | null
+          evaluator_version?: string | null
+          id?: string
+          override_by?: string | null
+          override_reason?: string | null
+          safety_level?: number
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "safety_evaluations_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scenario_comparisons: {
         Row: {
