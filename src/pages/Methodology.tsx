@@ -160,6 +160,11 @@ export default function Methodology() {
             </div>
           </div>
         </section>
+
+        {/* System Audit Status - Large Badge */}
+        <section className="flex justify-center">
+          <LastAuditedBadge size="lg" />
+        </section>
         
         <div className="flex items-start gap-3 p-4 bg-primary/5 text-primary-foreground/90 border border-primary/20 rounded-xl text-sm">
           <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />

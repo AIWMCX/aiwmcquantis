@@ -326,6 +326,14 @@ export function ExplainPanel({
                 Updated: {benchmark.updatedDaysAgo === 0 ? 'today' : `${benchmark.updatedDaysAgo} days ago`}
               </p>
             )}
+            <Link
+              to="/methodology"
+              target="_blank"
+              className="inline-flex items-center gap-1 text-[10px] text-[var(--q-accent-primary)] hover:underline mt-2"
+            >
+              <BookOpen className="w-3 h-3" />
+              How we calculate this →
+            </Link>
           </section>
         </div>
       </div>

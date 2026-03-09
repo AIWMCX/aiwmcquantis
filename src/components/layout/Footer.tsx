@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { Mail, Linkedin, Github, Instagram } from 'lucide-react';
 import { FooterEmailSignup } from './FooterEmailSignup';
+import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 export function Footer() {

@@ -221,6 +221,12 @@ export function PersistentResultsHeader({
             <span>v{engineVersion}</span>
             <span className="opacity-50">·</span>
             <span>{consensusScore}% AI</span>
+            {!auditLoading && auditLabel && (
+              <>
+                <span className="opacity-50">·</span>
+                <span>Audited {auditLabel}</span>
+              </>
+            )}
           </div>
 
           <Button
