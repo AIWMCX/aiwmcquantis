@@ -72,6 +72,12 @@ export default function AdminDashboard() {
                 Quantis Health
               </Link>
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/accuracy">
+                <Target className="w-4 h-4 mr-2" />
+                Accuracy & Safety
+              </Link>
+            </Button>
           </div>
         </div>
 
