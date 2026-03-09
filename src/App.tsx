@@ -96,6 +96,7 @@ const App = () => {
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/methodology" element={<Methodology />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 
