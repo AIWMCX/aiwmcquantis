@@ -1,0 +1,104 @@
+import React from 'react';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { PageSEO } from '@/components/seo/PageSEO';
+import { ShieldCheck, Database, Bot, FileCheck, Info } from 'lucide-react';
+import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
+
+export default function Methodology() {
+  return (
+    <AppLayout title="Methodology & Safety">
+      <PageSEO
+        title="Methodology | AIWMC Quantis"
+        description="Learn about the Quantis Safety Levels (QSL), our data provenance, and the Dual-AI validation engine powering our business analysis."
+        canonical="/methodology"
+      />
+      
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-12 space-y-12">
+        <div className="space-y-4 text-center">
+          <div className="flex justify-center mb-4">
+            <LastAuditedBadge />
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-bold tracking-tight">Accuracy & Safety Methodology</h1>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Transparency is at the core of Quantis. Discover how we source our data, validate assumptions, and assign safety levels to our financial models.
+          </p>
+        </div>
+
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <ShieldCheck className="w-6 h-6 text-primary" />
+            Quantis Safety Levels (QSL)
+          </h2>
+          <div className="grid gap-4 sm:grid-cols-2">
+            {[
+              { level: 'QSL-4', name: 'Deterministic Verification', color: 'border-blue-500 bg-blue-500/5', desc: 'Mathematical certainty. Outputs are calculated using absolute formulas (e.g., Gross Profit = Revenue - COGS) with strict bounds.' },
+              { level: 'QSL-3', name: 'Golden Benchmark Aligned', color: 'border-green-500 bg-green-500/5', desc: 'High confidence. The model\'s assumptions fall well within the P25-P75 interquartile range of verified industry data.' },
+              { level: 'QSL-2', name: 'Plausible Extrapolation', color: 'border-amber-500 bg-amber-500/5', desc: 'Moderate confidence. Some inputs deviate from typical benchmarks, triggering stress tests. Manual review is recommended.' },
+              { level: 'QSL-1', name: 'Speculative Warning', color: 'border-red-500 bg-red-500/5', desc: 'Low confidence. Assumptions break physical or economic constraints (e.g., negative CAC, >100% market capture). Hard warnings apply.' }
+            ].map((qsl) => (
+              <div key={qsl.level} className={`p-5 rounded-xl border-l-4 ${qsl.color} space-y-2 bg-card`}>
+                <h3 className="font-semibold text-lg flex items-center gap-2">
+                  <span className="bg-background px-2 py-1 rounded text-xs font-mono border border-border">{qsl.level}</span>
+                  {qsl.name}
+                </h3>
+                <p className="text-sm text-muted-foreground">{qsl.desc}</p>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <Database className="w-6 h-6 text-primary" />
+            Data Provenance & Freshness
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              Our financial baseline is built on the proprietary <strong className="text-foreground">Kerry Dataset</strong>, containing over 1,000 real-world business scenarios across 50+ industries. 
+              We do not rely on raw AI hallucinations for core economics.
+            </p>
+            <ul className="space-y-3">
+              <li className="flex items-start gap-3 text-sm">
+                <FileCheck className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                <span><strong>Continuous Audits:</strong> Benchmarks are programmatically verified. Any data point older than 180 days is flagged as stale by our Research Agent.</span>
+              </li>
+              <li className="flex items-start gap-3 text-sm">
+                <FileCheck className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
+                <span><strong>Location Calibration:</strong> Base metrics are adjusted using cost-of-living indices, typical rent variations, and salary expectations for over 50 global hubs.</span>
+              </li>
+            </ul>
+          </div>
+        </section>
+
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <Bot className="w-6 h-6 text-primary" />
+            Dual-Engine Consensus
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              To eliminate single-model bias, Quantis employs a multi-agent architecture:
+            </p>
+            <div className="grid sm:grid-cols-2 gap-4 mt-4">
+              <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+                <h4 className="font-medium mb-1">Generative Engine</h4>
+                <p className="text-xs text-muted-foreground">Extracts qualitative nuances from the user's idea, matching it to sub-industries and identifying unique value propositions.</p>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg border border-border/50">
+                <h4 className="font-medium mb-1">Reconciliation Engine</h4>
+                <p className="text-xs text-muted-foreground">Acts as an adversarial critic. It compares the Generative Engine's assumptions against the Golden Test Vectors, strictly bounding outputs.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+        
+        <div className="flex items-start gap-3 p-4 bg-primary/5 text-primary-foreground/90 border border-primary/20 rounded-xl text-sm">
+          <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+          <p className="text-primary">
+            <strong>Disclaimer:</strong> Quantis is a stress-testing tool intended to validate hypotheses. While our methodology minimizes hallucinations, real-world execution carries inherent risks. Always consult with certified financial advisors before deploying capital.
+          </p>
+        </div>
+      </div>
+    </AppLayout>
+  );
+}
