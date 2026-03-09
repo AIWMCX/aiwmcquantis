@@ -42,7 +42,7 @@ export function LastAuditedBadge() {
     : 'Today';
 
   return (
-    <Link to="/methodology" className="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 bg-green-500/10 hover:bg-green-500/20 transition-colors px-3 py-1.5 rounded-full w-fit border border-green-500/20">
+    <Link to="/methodology" className="flex items-center gap-1.5 text-xs text-[var(--q-status-green)] bg-[var(--q-status-green)]/10 hover:bg-[var(--q-status-green)]/20 transition-colors px-3 py-1.5 rounded-full w-fit border border-[var(--q-status-green)]/20">
       <ShieldCheck className="w-3.5 h-3.5" />
       <span className="font-medium">System Last Audited: {dateStr} | QSL-3 Standard</span>
     </Link>

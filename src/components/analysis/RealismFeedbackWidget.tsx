@@ -39,8 +39,8 @@ export function RealismFeedbackWidget({ analysisId }: RealismFeedbackWidgetProps
   if (submitted) {
     return (
       <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center justify-center text-center space-y-3 animate-in fade-in zoom-in duration-300">
-        <div className="w-12 h-12 bg-green-500/10 rounded-full flex items-center justify-center">
-          <CheckCircle2 className="w-6 h-6 text-green-600 dark:text-green-400" />
+        <div className="w-12 h-12 bg-success/10 rounded-full flex items-center justify-center">
+          <CheckCircle2 className="w-6 h-6 text-success" />
         </div>
         <div>
           <h4 className="font-semibold text-foreground">Thank you for your feedback!</h4>
