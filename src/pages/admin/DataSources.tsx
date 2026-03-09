@@ -29,7 +29,7 @@ interface ProvenanceRecord {
 const LICENSE_COLORS: Record<string, string> = {
   public_domain: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
   cc0: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/20',
-  cc_by_4.0: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
+  'cc_by_4.0': 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-500/20',
   public_reference: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-500/20',
   academic_reference: 'bg-purple-500/10 text-purple-700 dark:text-purple-400 border-purple-500/20',
 };
