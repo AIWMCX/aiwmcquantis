@@ -457,7 +457,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               {/* Document Generator - Full Width */}
               <div className="q-card p-6">
                 <h3 className="font-semibold mb-4">Generate Documents</h3>
-                <DocGeneratorPanel analysisId={analysisId} result={result} />
+                <p className="text-sm text-muted-foreground">
+                  Document generation available in the Documents Studio.
+                </p>
               </div>
 
               {/* Realism Feedback Widget */}
