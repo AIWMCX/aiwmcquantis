@@ -196,7 +196,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           <div className="grid lg:grid-cols-2 gap-6">
             <div className="space-y-6">
               <ValidationSection validation={result.validation} />
-              <ActionableInsights strategy={result.action_plan} />
+              {result.actionable_insights ? (
+                <ActionableInsights insights={result.actionable_insights} />
+              ) : (
+                <div className="text-sm text-muted-foreground p-4 bg-muted/30 rounded-lg">No actionable insights available.</div>
+              )}
             </div>
             <div className="space-y-6">
               <RealismFeedbackWidget analysisId={analysisId} />
