@@ -99,9 +99,19 @@ export function PersistentResultsHeader({
   const scenarios = financials?.scenarios;
   const baseScenario = scenarios?.base;
 
-  // Calculate metrics
+  // Calculate metrics - handle both number and object shapes for monthly_revenue
   const month12Profit = useMemo(() => {
-    return baseScenario?.net_profit ?? financials?.monthly_revenue ?? 0;
+    if (baseScenario?.net_profit !== undefined) {
+      return baseScenario.net_profit;
+    }
+    const monthlyRev = financials?.monthly_revenue;
+    if (typeof monthlyRev === 'number') {
+      return monthlyRev;
+    }
+    if (monthlyRev && typeof monthlyRev === 'object' && 'realistic' in monthlyRev) {
+      return monthlyRev.realistic;
+    }
+    return 0;
   }, [baseScenario, financials]);
 
   const breakEvenMonths = useMemo(() => {
