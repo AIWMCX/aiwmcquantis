@@ -137,7 +137,7 @@ export default function AccuracyDashboard() {
         )}
 
         <h2 className="text-2xl font-semibold mb-4 mt-12 flex items-center gap-2">
-          <AlertTriangle className="h-6 w-6 text-amber-500" />
+          <AlertTriangle className="h-6 w-6 text-destructive" />
           Recent Safety Flags
         </h2>
         <Card>

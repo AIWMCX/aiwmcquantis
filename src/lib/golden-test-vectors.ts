@@ -75,7 +75,7 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
 ];
 
 export function validateAgainstGoldenVector(
-  result: AnalysisResult,
+  result: BusinessAnalysisResult,
   vector: GoldenVector
 ): { passed: boolean; failures: string[] } {
   const failures: string[] = [];
@@ -90,12 +90,12 @@ export function validateAgainstGoldenVector(
     }
   };
 
-  checkRange(result.monthly_profit, vector.expectedRanges.monthlyProfit, "monthlyProfit");
-  checkRange(result.payback_months, vector.expectedRanges.paybackMonths, "paybackMonths");
+  checkRange(result.financial_analysis?.monthly_profit, vector.expectedRanges.monthlyProfit, "monthlyProfit");
+  checkRange(result.financial_analysis?.returns?.payback_period_months, vector.expectedRanges.paybackMonths, "paybackMonths");
 
   // Approximate gross margin check if available in result
-  const revenue = result.result?.revenue?.base || vector.inputs.monthlyRevenue;
-  const costs = result.result?.costs?.monthly || 0;
+  const revenue = result.financial_analysis?.mrr || vector.inputs.monthlyRevenue;
+  const costs = result.financial_analysis?.monthly_expenses?.total || 0;
   
   if (revenue && costs) {
     // Assuming simple gross margin for illustration

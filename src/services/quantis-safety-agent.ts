@@ -65,7 +65,7 @@ export class QuantisSafetyAgent {
         analysis_id: analysisId,
         safety_level: evaluation.safetyLevel,
         confidence_score: evaluation.confidenceScore,
-        blocking_issues: evaluation.blockingIssues,
+        blocking_issues: evaluation.blockingIssues as any,
         evaluator_version: '1.0.0'
       });
     } catch (e) {
