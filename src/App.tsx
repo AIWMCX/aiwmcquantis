@@ -39,6 +39,7 @@ const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
 const InvoiceManager = lazy(() => import("./pages/InvoiceManager"));
 const BrandProfileSettings = lazy(() => import("./pages/settings/BrandProfile"));
 const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
+const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
