@@ -112,7 +112,7 @@ export default function AccuracyDashboard() {
         {loading ? (
           <div className="h-64 flex items-center justify-center text-muted-foreground">Loading accuracy metrics...</div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
             <Card>
               <CardHeader className="pb-2">
                 <CardDescription>Average Confidence</CardDescription>
@@ -162,6 +162,22 @@ export default function AccuracyDashboard() {
                   <Badge variant="secondary">B2B SaaS</Badge>
                   <Badge variant="secondary">Barbershop</Badge>
                 </div>
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader className="pb-2">
+                <CardDescription>Benchmark Health</CardDescription>
+                <CardTitle className="text-4xl flex items-baseline gap-2">
+                  {stats.benchmarkReport ? Math.round((stats.benchmarkReport.healthyCount / Math.max(1, stats.benchmarkReport.totalBenchmarks)) * 100) : 0}%
+                  <RefreshCw className="h-5 w-5 text-primary" />
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Progress value={stats.benchmarkReport ? (stats.benchmarkReport.healthyCount / Math.max(1, stats.benchmarkReport.totalBenchmarks)) * 100 : 0} className="h-2" />
+                <p className="text-xs text-muted-foreground mt-2">
+                  {stats.benchmarkReport?.staleCount || 0} stale benchmarks detected
+                </p>
               </CardContent>
             </Card>
           </div>
