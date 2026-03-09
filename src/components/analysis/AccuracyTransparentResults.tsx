@@ -34,6 +34,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
   const [overrides, setOverrides] = useState<{cac?: number; rent?: number; ticketSize?: number}>({});
 
+  // Extract business type and location from metadata for feedback widget
+  const businessType = result.metadata?.idea || (result.metadata as any)?.business_type || undefined;
+  const location = result.metadata?.location || undefined;
+
   const scenarioMetrics = useMemo(() => {
     const scenarios = result.financial_analysis?.scenarios;
     let baseRevenue = result.financial_analysis?.mrr || 0;
@@ -203,7 +207,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               )}
             </div>
             <div className="space-y-6">
-              <RealismFeedbackWidget analysisId={analysisId} />
+              <RealismFeedbackWidget 
+                analysisId={analysisId} 
+                businessType={businessType}
+                location={location}
+              />
             </div>
           </div>
         )}
