@@ -87,7 +87,7 @@ export default function AccuracyDashboard() {
                 <CardDescription>Average Confidence</CardDescription>
                 <CardTitle className="text-4xl flex items-baseline gap-2">
                   {stats.avgConfidence.toFixed(1)}%
-                  <TrendingUp className="h-5 w-5 text-green-500" />
+                  <TrendingUp className="h-5 w-5 text-primary" />
                 </CardTitle>
               </CardHeader>
               <CardContent>
