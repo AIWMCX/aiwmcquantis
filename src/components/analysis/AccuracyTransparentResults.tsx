@@ -112,9 +112,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   // Determine animation direction
   const animationClass = currentStep > prevStep ? 'step-enter' : 'step-enter-reverse';
 
-  // Extract risks and action items
+  // Extract risks and action items from validation/insights
   const risks = result.validation?.warnings || [];
-  const actionItems = result.actionable_insights?.next_steps || [];
+  const insights = result.actionable_insights?.insights || [];
+  const actionItems = result.actionable_insights?.summary?.quick_wins || [];
 
   // Metric values for Step 1 grid
   const metrics = useMemo(() => {
