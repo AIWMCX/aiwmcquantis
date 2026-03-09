@@ -1,12 +1,21 @@
 import React, { useEffect, useState } from "react";
 import { AppLayout } from "@/components/layout/AppLayout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Shield, AlertTriangle, CheckCircle2, TrendingUp, RefreshCw, BarChart } from "lucide-react";
+import { Shield, AlertTriangle, CheckCircle2, TrendingUp, RefreshCw, BarChart, Users } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
 import { BenchmarkGovernance, FreshnessReport } from "@/services/benchmark-governance";
+
+interface RealismByIndustry {
+  business_type: string;
+  responses: number;
+  avg_score: number;
+  std_dev: number;
+  too_optimistic: number;
+  too_pessimistic: number;
+}
 
 export default function AccuracyDashboard() {
   const [stats, setStats] = useState({
@@ -14,20 +23,28 @@ export default function AccuracyDashboard() {
     avgConfidence: 0,
     levelDistribution: { 1: 0, 2: 0, 3: 0, 4: 0 },
     recentIssues: [] as any[],
-    benchmarkReport: null as FreshnessReport | null
+    benchmarkReport: null as FreshnessReport | null,
+    realismData: [] as RealismByIndustry[]
   });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function loadStats() {
       try {
-        const [evalsRes, freshnessReport] = await Promise.all([
+        const [evalsRes, freshnessReport, realismRes] = await Promise.all([
           supabase
             .from('safety_evaluations')
             .select('*')
             .order('evaluated_at', { ascending: false })
             .limit(100),
-          BenchmarkGovernance.getFreshnessReport().catch(err => null)
+          BenchmarkGovernance.getFreshnessReport().catch(err => null),
+          supabase
+            .from('realism_by_industry')
+            .select('*')
+            .order('responses', { ascending: false })
+            .limit(20)
+            .then(res => res.data || [])
+            .catch(() => [])
         ]);
 
         const { data: evals, error } = evalsRes;
@@ -80,7 +97,8 @@ export default function AccuracyDashboard() {
             avgConfidence: avgConf,
             levelDistribution: dist,
             recentIssues: issuesList,
-            benchmarkReport: freshnessReport
+            benchmarkReport: freshnessReport,
+            realismData: realismRes as RealismByIndustry[]
           });
         }
       } catch (err) {
@@ -92,6 +110,10 @@ export default function AccuracyDashboard() {
     
     loadStats();
   }, []);
+
+  // Identify industries needing calibration
+  const overestimatingIndustries = stats.realismData.filter(r => r.avg_score < 2.5);
+  const underestimatingIndustries = stats.realismData.filter(r => r.avg_score > 4.0);
 
   return (
     <AppLayout>
@@ -157,10 +179,10 @@ export default function AccuracyDashboard() {
               </CardHeader>
               <CardContent>
                 <p className="text-sm text-muted-foreground mb-4">Pass rate on 3 canonical archetypes</p>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
+                  <Badge variant="secondary">Fitness Boutique</Badge>
                   <Badge variant="secondary">Coffee Shop</Badge>
                   <Badge variant="secondary">B2B SaaS</Badge>
-                  <Badge variant="secondary">Barbershop</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -182,6 +204,67 @@ export default function AccuracyDashboard() {
             </Card>
           </div>
         )}
+
+        {/* Realism Calibration Card */}
+        <h2 className="text-2xl font-semibold mb-4 mt-12 flex items-center gap-2">
+          <Users className="h-6 w-6 text-primary" />
+          Realism Calibration (User Feedback)
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+          <Card className={overestimatingIndustries.length > 0 ? 'border-amber-500/30' : ''}>
+            <CardHeader className="pb-2">
+              <CardDescription>Industries Overestimating</CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-amber-500 rotate-180" />
+                Users say projections are too optimistic
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {overestimatingIndustries.length > 0 ? (
+                <div className="space-y-2">
+                  {overestimatingIndustries.map(ind => (
+                    <div key={ind.business_type} className="flex justify-between items-center p-2 bg-amber-500/10 rounded">
+                      <span className="text-sm capitalize">{ind.business_type?.replace(/_/g, ' ') || 'Unknown'}</span>
+                      <div className="text-right">
+                        <span className="text-xs font-mono text-amber-600">avg: {ind.avg_score}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({ind.responses} responses)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No industries flagged as overestimating (avg_score &lt; 2.5)</p>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card className={underestimatingIndustries.length > 0 ? 'border-blue-500/30' : ''}>
+            <CardHeader className="pb-2">
+              <CardDescription>Industries Underestimating</CardDescription>
+              <CardTitle className="text-lg flex items-center gap-2">
+                <TrendingUp className="h-5 w-5 text-blue-500" />
+                Users say projections are too conservative
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {underestimatingIndustries.length > 0 ? (
+                <div className="space-y-2">
+                  {underestimatingIndustries.map(ind => (
+                    <div key={ind.business_type} className="flex justify-between items-center p-2 bg-blue-500/10 rounded">
+                      <span className="text-sm capitalize">{ind.business_type?.replace(/_/g, ' ') || 'Unknown'}</span>
+                      <div className="text-right">
+                        <span className="text-xs font-mono text-blue-600">avg: {ind.avg_score}</span>
+                        <span className="text-xs text-muted-foreground ml-2">({ind.responses} responses)</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No industries flagged as underestimating (avg_score &gt; 4.0)</p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
         <h2 className="text-2xl font-semibold mb-4 mt-12 flex items-center gap-2">
           <AlertTriangle className="h-6 w-6 text-destructive" />

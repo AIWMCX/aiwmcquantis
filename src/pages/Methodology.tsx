@@ -1,8 +1,10 @@
 import React from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { ShieldCheck, Database, Bot, FileCheck, Info } from 'lucide-react';
+import { ShieldCheck, Database, Bot, FileCheck, Info, AlertTriangle, TestTube, Wrench } from 'lucide-react';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
+import { GOLDEN_VECTORS } from '@/lib/golden-test-vectors';
+import { Badge } from '@/components/ui/badge';
 
 export default function Methodology() {
   return (
@@ -22,6 +24,9 @@ export default function Methodology() {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Transparency is at the core of Quantis. Discover how we source our data, validate assumptions, and assign safety levels to our financial models.
           </p>
+          <Badge variant="outline" className="text-xs font-mono">
+            Engine Version: 2.0.0-precision
+          </Badge>
         </div>
 
         <section className="space-y-6">
@@ -88,6 +93,70 @@ export default function Methodology() {
                 <h4 className="font-medium mb-1">Reconciliation Engine</h4>
                 <p className="text-xs text-muted-foreground">Acts as an adversarial critic. It compares the Generative Engine's assumptions against the Golden Test Vectors, strictly bounding outputs.</p>
               </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Golden Test Vectors Section */}
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <TestTube className="w-6 h-6 text-primary" />
+            Golden Test Vectors
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              Every engine update is regression-tested against canonical business archetypes. These vectors define expected financial outcomes with ±15% tolerance.
+            </p>
+            <div className="grid gap-3">
+              {GOLDEN_VECTORS.map((vector) => (
+                <div key={vector.id} className="p-4 bg-muted/30 rounded-lg border border-border/50">
+                  <div className="flex items-center justify-between mb-2">
+                    <Badge variant="outline" className="font-mono text-xs">{vector.vectorCode}</Badge>
+                    <span className="text-xs text-muted-foreground">{vector.location}</span>
+                  </div>
+                  <h4 className="font-medium text-sm capitalize">{vector.businessType.replace(/_/g, ' ')}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">{vector.description}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+
+        {/* Known Limitations Section */}
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <AlertTriangle className="w-6 h-6 text-amber-500" />
+            Known Limitations & Roadmap
+          </h2>
+          <div className="bg-card border border-amber-500/20 rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              We believe in transparent reporting of our system's current limitations. The following gaps are actively being addressed:
+            </p>
+            <div className="space-y-3">
+              {[
+                { id: 'GOV-001', title: 'Safety Governance', desc: 'Research Agent lacks formal veto authority over deployments. QSL gates being implemented.', status: 'In Progress' },
+                { id: 'UX-001', title: 'Confidence Theater', desc: 'Confidence badges now connected to systematic safety_evaluations pipeline as of v2.0.0.', status: 'Resolved' },
+                { id: 'DATA-001', title: 'Benchmark Staleness', desc: 'Implementing benchmark_versions freshness checks with 180-day staleness warnings.', status: 'In Progress' },
+                { id: 'TEST-001', title: 'Regression Coverage', desc: 'Golden test vector suite expanded to 3 canonical archetypes with weekly automated runs.', status: 'Active' },
+                { id: 'FB-001', title: 'User Feedback Loop', desc: 'Realism feedback widget now captures per-dimension scoring for model calibration.', status: 'Resolved' }
+              ].map((item) => (
+                <div key={item.id} className="flex items-start gap-3 p-3 bg-muted/30 rounded-lg">
+                  <Wrench className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                  <div className="flex-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium">{item.title}</span>
+                      <Badge 
+                        variant={item.status === 'Resolved' ? 'default' : 'secondary'} 
+                        className="text-xs"
+                      >
+                        {item.status}
+                      </Badge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{item.desc}</p>
+                    <span className="text-xs font-mono text-muted-foreground/70">{item.id}</span>
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
         </section>

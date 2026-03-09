@@ -9,27 +9,43 @@ export interface SafetyIssue {
   severity: 'warning' | 'blocking';
 }
 
+export interface PassedCheck {
+  check: string;
+  details?: string;
+}
+
 export interface SafetyEvaluation {
   safetyLevel: SafetyLevel;
   confidenceScore: number;
   blockingIssues: SafetyIssue[];
+  passedChecks: PassedCheck[];
   passed: boolean;
 }
+
+const ENGINE_VERSION = '2.0.0-precision';
 
 export class QuantisSafetyAgent {
   /**
    * Evaluates an analysis result against QSL criteria
    */
-  static async evaluateAnalysis(analysisId: string, result: any, confidenceScore: number): Promise<SafetyEvaluation> {
+  static async evaluateAnalysis(
+    analysisId: string, 
+    result: any, 
+    confidenceScore: number,
+    geoCalibration?: any
+  ): Promise<SafetyEvaluation> {
     const issues: SafetyIssue[] = [];
+    const passedChecks: PassedCheck[] = [];
     
     // Evaluate Confidence
     let safetyLevel: SafetyLevel = 1; // Exploratory default
     
     if (confidenceScore >= 85) {
       safetyLevel = 3; // Investor-Grade
+      passedChecks.push({ check: 'confidence_threshold', details: 'Score >= 85%' });
     } else if (confidenceScore >= 70) {
       safetyLevel = 2; // Planning
+      passedChecks.push({ check: 'confidence_threshold', details: 'Score >= 70%' });
     }
 
     // Basic heuristic checks
@@ -37,18 +53,48 @@ export class QuantisSafetyAgent {
       issues.push({ code: 'QSL-ERR-01', description: 'Empty analysis result', severity: 'blocking' });
       safetyLevel = 1;
     } else {
+      // Check core metrics presence
       if (result.monthly_profit === undefined || result.payback_months === undefined) {
-         issues.push({ code: 'QSL-ERR-02', description: 'Missing core financial metrics', severity: 'blocking' });
-         safetyLevel = 1;
+        issues.push({ code: 'QSL-ERR-02', description: 'Missing core financial metrics', severity: 'blocking' });
+        safetyLevel = 1;
+      } else {
+        passedChecks.push({ check: 'core_metrics_present' });
       }
       
       // Look for extreme margins
       if (result.revenue?.base && result.costs?.monthly) {
         const margin = (result.revenue.base - result.costs.monthly) / result.revenue.base;
         if (margin > 0.95) {
-           issues.push({ code: 'QSL-WARN-01', description: 'Suspiciously high gross margin (>95%)', severity: 'warning' });
-           if (safetyLevel > 2) safetyLevel = 2; // Downgrade
+          issues.push({ code: 'QSL-WARN-01', description: 'Suspiciously high gross margin (>95%)', severity: 'warning' });
+          if (safetyLevel > 2) safetyLevel = 2; // Downgrade
+        } else {
+          passedChecks.push({ check: 'margin_sanity' });
         }
+      }
+
+      // Check for QMath precision
+      if (result.financial_analysis?.precision_validated) {
+        passedChecks.push({ check: 'qmath_precision' });
+      }
+
+      // Check reconciliation
+      if (result.reconciliation?.passed) {
+        passedChecks.push({ check: 'reconciliation_10_rules' });
+      }
+
+      // Check dual-AI consensus
+      if (result.cross_validation?.consensus_score) {
+        passedChecks.push({ check: 'dual_ai_consensus', details: `Score: ${result.cross_validation.consensus_score}` });
+      }
+
+      // Check geo calibration
+      if (geoCalibration || result.geo_calibration) {
+        passedChecks.push({ check: 'geo_calibration' });
+      }
+
+      // Check benchmark freshness
+      if (result.benchmark_freshness?.is_fresh !== false) {
+        passedChecks.push({ check: 'benchmark_freshness' });
       }
     }
 
@@ -56,6 +102,7 @@ export class QuantisSafetyAgent {
       safetyLevel,
       confidenceScore,
       blockingIssues: issues.filter(i => i.severity === 'blocking'),
+      passedChecks,
       passed: issues.filter(i => i.severity === 'blocking').length === 0
     };
 
@@ -66,13 +113,43 @@ export class QuantisSafetyAgent {
         safety_level: evaluation.safetyLevel,
         confidence_score: evaluation.confidenceScore,
         blocking_issues: evaluation.blockingIssues as any,
-        evaluator_version: '1.0.0'
+        passed_checks: evaluation.passedChecks as any,
+        geo_calibration: geoCalibration || null,
+        engine_version: ENGINE_VERSION,
+        evaluator: 'safety_agent'
       });
     } catch (e) {
       console.error("Failed to log safety evaluation:", e);
     }
 
     return evaluation;
+  }
+
+  /**
+   * Gets the latest audit timestamp from the safety_evaluations table
+   */
+  static async getLatestAuditTimestamp(): Promise<Date | null> {
+    try {
+      const { data, error } = await supabase.rpc('get_latest_audit_timestamp');
+      
+      if (error) {
+        console.error("Failed to fetch latest audit timestamp via RPC:", error);
+        // Fallback to direct query
+        const { data: fallbackData } = await supabase
+          .from('safety_evaluations')
+          .select('evaluated_at')
+          .order('evaluated_at', { ascending: false })
+          .limit(1)
+          .single();
+        
+        return fallbackData?.evaluated_at ? new Date(fallbackData.evaluated_at) : null;
+      }
+
+      return data ? new Date(data) : null;
+    } catch (e) {
+      console.error("Error fetching latest audit timestamp:", e);
+      return null;
+    }
   }
 
   /**

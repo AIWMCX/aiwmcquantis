@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { QuantisSafetyAgent } from '@/services/quantis-safety-agent';
 import { ShieldCheck, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
@@ -10,16 +10,8 @@ export function LastAuditedBadge() {
   useEffect(() => {
     async function fetchAuditTime() {
       try {
-        const { data, error } = await supabase
-          .from('safety_evaluations')
-          .select('evaluated_at')
-          .order('evaluated_at', { ascending: false })
-          .limit(1)
-          .single();
-
-        if (data?.evaluated_at) {
-          setLastAudited(new Date(data.evaluated_at));
-        }
+        const timestamp = await QuantisSafetyAgent.getLatestAuditTimestamp();
+        setLastAudited(timestamp);
       } catch (err) {
         console.error("Failed to fetch last audited time", err);
       } finally {
