@@ -442,9 +442,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                 {priority.label}
                               </span>
                             </div>
-                            <p className="font-medium text-sm">{typeof action === 'string' ? action : action.title || action}</p>
+                            <p className="font-medium text-sm">{action}</p>
                             <p className="text-xs text-muted-foreground mt-1">
-                              {typeof action === 'object' && action.description ? action.description : 'Execute within timeline to maximize impact.'}
+                              Execute within timeline to maximize impact.
                             </p>
                           </div>
                         </div>
