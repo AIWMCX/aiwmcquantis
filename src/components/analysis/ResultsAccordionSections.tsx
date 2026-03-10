@@ -1,6 +1,6 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Calculator, GitCompare, BarChart3, FileText, Coins } from 'lucide-react';
+import { Calculator, GitCompare, BarChart3, FileText, Coins, Search } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -9,6 +9,7 @@ interface ResultsAccordionSectionsProps {
   scenarioContent: React.ReactNode;
   marketContent: React.ReactNode;
   unitEconomicsContent?: React.ReactNode;
+  forensicContent?: React.ReactNode;
   analysisId?: string;
 }
 
@@ -22,6 +23,7 @@ export function ResultsAccordionSections({
   scenarioContent,
   marketContent,
   unitEconomicsContent,
+  forensicContent,
   analysisId,
 }: ResultsAccordionSectionsProps) {
   return (
@@ -62,6 +64,20 @@ export function ResultsAccordionSections({
             {marketContent}
           </AccordionContent>
         </AccordionItem>
+
+        {forensicContent && (
+          <AccordionItem value="forensic" className={sectionStyle}>
+            <AccordionTrigger className={triggerStyle}>
+              <span className={labelStyle}>
+                <Search className={iconStyle} />
+                Forensic Analysis
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-5 pb-5">
+              {forensicContent}
+            </AccordionContent>
+          </AccordionItem>
+        )}
 
         {unitEconomicsContent && (
           <AccordionItem value="unit-economics" className={sectionStyle}>
