@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { ShieldCheck, Database, Bot, FileCheck, Info, AlertTriangle, TestTube, Wrench, ExternalLink, Shield } from 'lucide-react';
+import { ShieldCheck, Database, Bot, FileCheck, Info, AlertTriangle, TestTube, Wrench, ExternalLink, Shield, Brain, ArrowRight, Zap, Scale, Award } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import { GOLDEN_VECTORS } from '@/lib/golden-test-vectors';
 import { Badge } from '@/components/ui/badge';
@@ -153,6 +154,78 @@ export default function Methodology() {
                 <p className="text-xs text-muted-foreground">Acts as an adversarial critic. It compares the Generative Engine's assumptions against the Golden Test Vectors, strictly bounding outputs.</p>
               </div>
             </div>
+          </div>
+        </section>
+
+        {/* QIM Explainer Section */}
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <Brain className="w-6 h-6 text-primary" />
+            Quantis Information Metric (QIM)
+          </h2>
+
+          {/* Mathematical Definition */}
+          <div className="bg-card border border-border rounded-xl p-6 space-y-4">
+            <p className="text-muted-foreground leading-relaxed">
+              The Quantis Information Metric is a theoretical framework developed by the <Link to="/research" className="text-primary underline underline-offset-2 hover:text-primary/80">AIWMC Research Foundation</Link> to quantify the reliability of AI-generated financial outputs. It combines two orthogonal signals into a single score:
+            </p>
+            <div className="bg-muted/50 border border-border rounded-lg p-6 text-center space-y-3">
+              <p className="font-mono text-2xl font-bold tracking-wider text-foreground">QIM = A × C</p>
+              <div className="grid sm:grid-cols-2 gap-4 text-left mt-4">
+                <div className="p-3 bg-background rounded-lg border border-border/50">
+                  <p className="text-sm font-semibold mb-1">A — Activation Magnitude</p>
+                  <p className="text-xs text-muted-foreground">How strongly the model responds to the input. High activation indicates the model has a strong "opinion" — but not necessarily a correct one.</p>
+                </div>
+                <div className="p-3 bg-background rounded-lg border border-border/50">
+                  <p className="text-sm font-semibold mb-1">C — Causal Leverage</p>
+                  <p className="text-xs text-muted-foreground font-mono mb-1">C<sub>i</sub> = ‖ ∂L / ∂A<sub>i</sub> ‖₂</p>
+                  <p className="text-xs text-muted-foreground">The L2 norm of the gradient of the objective function with respect to a given internal state. Measures actual influence on outputs.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Proto-QIM Visual Diagram */}
+          <div className="bg-card border border-primary/20 rounded-xl p-6 space-y-5">
+            <div className="flex items-center gap-2">
+              <Badge className="bg-primary/10 text-primary border-primary/20 font-mono text-xs">Proto-QIM Active</Badge>
+              <span className="text-sm text-muted-foreground">How Quantis already implements QIM principles</span>
+            </div>
+
+            {/* Flow diagram */}
+            <div className="grid sm:grid-cols-3 gap-4 items-stretch">
+              <div className="p-4 bg-muted/50 rounded-lg border border-border/50 space-y-2 flex flex-col">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Zap className="w-4 h-4 text-primary" />
+                  Activation (A)
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
+                <p className="text-xs text-muted-foreground flex-1">Dual-AI Consensus measures how strongly both GPT and Gemini "activate" on the same conclusion. High agreement = high A.</p>
+                <Badge variant="outline" className="text-xs w-fit mt-auto">Consensus Agreement Score</Badge>
+              </div>
+              <div className="p-4 bg-muted/50 rounded-lg border border-border/50 space-y-2 flex flex-col">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Scale className="w-4 h-4 text-primary" />
+                  Causal Leverage (C)
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
+                <p className="text-xs text-muted-foreground flex-1">The 10-rule Anti-BS Reconciliation Engine tests whether each output actually influences the bottom line. Margins that don't affect P&L have near-zero C.</p>
+                <Badge variant="outline" className="text-xs w-fit mt-auto">Reconciliation Rules</Badge>
+              </div>
+              <div className="p-4 bg-primary/5 rounded-lg border border-primary/20 space-y-2 flex flex-col">
+                <div className="flex items-center gap-2 text-sm font-semibold">
+                  <Award className="w-4 h-4 text-primary" />
+                  QIM Score
+                </div>
+                <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
+                <p className="text-xs text-muted-foreground flex-1">The final Confidence Badge (QSL 1–4) is the product of both signals: outputs must be both strongly supported (high A) and causally grounded (high C).</p>
+                <Badge variant="outline" className="text-xs w-fit mt-auto">QSL Confidence Badge</Badge>
+              </div>
+            </div>
+
+            <p className="text-xs text-muted-foreground text-center italic">
+              AIWMC Research Foundation · <Link to="/research" className="text-primary underline underline-offset-2">Read the full theoretical framework →</Link>
+            </p>
           </div>
         </section>
 

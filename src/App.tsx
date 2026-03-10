@@ -42,6 +42,7 @@ const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
+const Research = lazy(() => import("./pages/Research"));
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -98,6 +99,7 @@ const App = () => {
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
                 <Route path="/methodology" element={<Methodology />} />
+                <Route path="/research" element={<Research />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 
