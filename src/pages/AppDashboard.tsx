@@ -300,8 +300,22 @@ export default function Index() {
               />
             </div>
 
+            {/* Scroll-down banner */}
+            {showScrollBanner && result && (
+              <button
+                onClick={scrollToResults}
+                className="mt-4 w-full p-3 rounded-xl border-2 border-green-500/40 bg-green-500/10 dark:bg-green-500/5 flex items-center justify-center gap-3 animate-fade-in cursor-pointer hover:bg-green-500/15 transition-colors group"
+              >
+                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                <span className="text-sm font-medium text-foreground">
+                  Analysis complete — scroll down to view full results
+                </span>
+                <ChevronDown className="w-5 h-5 text-green-500 animate-bounce shrink-0" />
+              </button>
+            )}
+
             {/* Results / History */}
-            <div className="mt-6">
+            <div className="mt-6" ref={resultsRef}>
               {isAuthenticated && (
                 <button
                   onClick={() => setActiveTab('history')}
