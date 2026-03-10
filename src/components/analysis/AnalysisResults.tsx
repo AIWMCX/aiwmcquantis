@@ -313,6 +313,11 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               )}
             </div>
 
+            {/* Key Metric Spotlight — after risk flags */}
+            <div className="animate-fade-in" style={{ animationDelay: '950ms', animationFillMode: 'both' }}>
+              <KeyMetricSpotlight result={result} />
+            </div>
+
             {/* SCORE export + social */}
             <div className="animate-fade-in flex flex-wrap gap-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
               <Button onClick={handleExportSCORE} variant="outline" size="sm" className="gap-1.5 text-xs">
