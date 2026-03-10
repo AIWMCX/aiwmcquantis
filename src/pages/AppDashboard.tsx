@@ -107,6 +107,31 @@ export default function Index() {
     }
   }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
 
+  // Auto-scroll & banner when result appears
+  useEffect(() => {
+    const hadResult = prevResultRef.current;
+    prevResultRef.current = !!result;
+    
+    if (result && !hadResult) {
+      setShowScrollBanner(true);
+      // Auto-scroll after a short delay for render
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+      // Auto-hide banner after 8s
+      const timer = setTimeout(() => setShowScrollBanner(false), 8000);
+      return () => clearTimeout(timer);
+    }
+    if (!result) {
+      setShowScrollBanner(false);
+    }
+  }, [result]);
+
+  const scrollToResults = useCallback(() => {
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setShowScrollBanner(false);
+  }, []);
+
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
     const successStatus = searchParams.get('success');
