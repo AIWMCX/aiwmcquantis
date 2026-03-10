@@ -50,7 +50,10 @@ export function useAnalysis() {
     mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
     onSuccess: async (data) => {
       setResult(data);
-      toast.success('Analysis complete!');
+      toast.success('Analysis complete! ✅', {
+        description: 'Scroll down to view your full results',
+        duration: 6000,
+      });
       
       const trimmedIdea = idea.trim();
       const trimmedLocation = location.trim();
