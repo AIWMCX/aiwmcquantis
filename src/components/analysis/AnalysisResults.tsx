@@ -377,6 +377,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               </div>
             ) : undefined
           }
+          forensicContent={
+            <div className="space-y-4">
+              <BeatMissEngine result={result} />
+              <QualityOfEarnings result={result} />
+            </div>
+          }
           analysisId={analysisId}
         />
 
