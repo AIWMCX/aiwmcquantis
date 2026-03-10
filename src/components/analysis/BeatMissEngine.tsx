@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { BENCHMARK_DATABASE, getBenchmarksForIndustry } from '@/lib/benchmark-calibrator';
+import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { cn } from '@/lib/utils';
 
