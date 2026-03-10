@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain } from 'lucide-react';
+import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 export default function Index() {
@@ -33,6 +33,9 @@ export default function Index() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasPrefill, setHasPrefill] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const [showScrollBanner, setShowScrollBanner] = useState(false);
+  const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
   
@@ -103,6 +106,31 @@ export default function Index() {
       incrementAnalysisCount();
     }
   }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
+
+  // Auto-scroll & banner when result appears
+  useEffect(() => {
+    const hadResult = prevResultRef.current;
+    prevResultRef.current = !!result;
+    
+    if (result && !hadResult) {
+      setShowScrollBanner(true);
+      // Auto-scroll after a short delay for render
+      setTimeout(() => {
+        resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }, 400);
+      // Auto-hide banner after 8s
+      const timer = setTimeout(() => setShowScrollBanner(false), 8000);
+      return () => clearTimeout(timer);
+    }
+    if (!result) {
+      setShowScrollBanner(false);
+    }
+  }, [result]);
+
+  const scrollToResults = useCallback(() => {
+    resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    setShowScrollBanner(false);
+  }, []);
 
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
@@ -272,8 +300,22 @@ export default function Index() {
               />
             </div>
 
+            {/* Scroll-down banner */}
+            {showScrollBanner && result && (
+              <button
+                onClick={scrollToResults}
+                className="mt-4 w-full p-3 rounded-xl border-2 border-green-500/40 bg-green-500/10 dark:bg-green-500/5 flex items-center justify-center gap-3 animate-fade-in cursor-pointer hover:bg-green-500/15 transition-colors group"
+              >
+                <CheckCircle2 className="w-5 h-5 text-green-500 shrink-0" />
+                <span className="text-sm font-medium text-foreground">
+                  Analysis complete — scroll down to view full results
+                </span>
+                <ChevronDown className="w-5 h-5 text-green-500 animate-bounce shrink-0" />
+              </button>
+            )}
+
             {/* Results / History */}
-            <div className="mt-6">
+            <div className="mt-6" ref={resultsRef}>
               {isAuthenticated && (
                 <button
                   onClick={() => setActiveTab('history')}
