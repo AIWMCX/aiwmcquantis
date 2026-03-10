@@ -360,6 +360,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 metrics={{ revenue: scenarioMetrics.revenue, margin: scenarioMetrics.margin, ltvCacRatio: result.financial_analysis?.unit_economics?.ltv_cac_ratio || 0 }}
                 industryName={result.metadata.industry_detected}
               />
+              <CompetitiveMatrix result={result} />
               <MarketAnalysisSection market={result.market_analysis} />
               <BenchmarkConfidenceIndicator confidence={(result as any).benchmark_confidence} />
             </div>
