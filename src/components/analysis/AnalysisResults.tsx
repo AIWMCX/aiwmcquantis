@@ -32,6 +32,10 @@ import { CashFlowVisualization } from './CashFlowVisualization';
 import { ResultsTopBar } from './ResultsTopBar';
 import { ResultsHeroStrip } from './ResultsHeroStrip';
 import { ResultsAccordionSections } from './ResultsAccordionSections';
+import { BeatMissEngine } from './BeatMissEngine';
+import { QualityOfEarnings } from './QualityOfEarnings';
+import { CompetitiveMatrix } from './CompetitiveMatrix';
+import { KeyMetricSpotlight } from './KeyMetricSpotlight';
 import { RevenueChart } from './RevenueChart';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -309,6 +313,11 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               )}
             </div>
 
+            {/* Key Metric Spotlight — after risk flags */}
+            <div className="animate-fade-in" style={{ animationDelay: '950ms', animationFillMode: 'both' }}>
+              <KeyMetricSpotlight result={result} />
+            </div>
+
             {/* SCORE export + social */}
             <div className="animate-fade-in flex flex-wrap gap-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
               <Button onClick={handleExportSCORE} variant="outline" size="sm" className="gap-1.5 text-xs">
@@ -356,6 +365,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 metrics={{ revenue: scenarioMetrics.revenue, margin: scenarioMetrics.margin, ltvCacRatio: result.financial_analysis?.unit_economics?.ltv_cac_ratio || 0 }}
                 industryName={result.metadata.industry_detected}
               />
+              <CompetitiveMatrix result={result} />
               <MarketAnalysisSection market={result.market_analysis} />
               <BenchmarkConfidenceIndicator confidence={(result as any).benchmark_confidence} />
             </div>
@@ -371,6 +381,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                 </div>
               </div>
             ) : undefined
+          }
+          forensicContent={
+            <div className="space-y-4">
+              <BeatMissEngine result={result} />
+              <QualityOfEarnings result={result} />
+            </div>
           }
           analysisId={analysisId}
         />
