@@ -124,6 +124,187 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
     confidenceThreshold: 80.0,
     consecutivePasses: 0,
     isActive: true
+  },
+
+  // ── 7 new vectors (Restaurant, E-commerce, Agency, Food Truck, Fitness LA, Dropshipping, Fintech) ──
+
+  {
+    id: "gtv-rest-miami-001",
+    vectorCode: "GTV-REST-MIAMI-001",
+    businessType: "restaurant",
+    location: "Miami, FL",
+    description: "Full-service restaurant, 80 covers/day, $42 avg ticket, $18K opex",
+    inputs: {
+      businessType: "restaurant",
+      location: "Miami, FL",
+      dailyCustomers: 80,
+      avgTicket: 42,
+      monthlyOpex: 18000,
+      cac: 35,
+      capital: 120000
+    },
+    expectedRanges: {
+      netMarginPct: { min: 5, max: 15 },
+      breakEven: { min: 6, max: 14 },
+      grossMarginPct: { min: 55, max: 72 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 75.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-ecom-dtc-001",
+    vectorCode: "GTV-ECOM-DTC-001",
+    businessType: "ecommerce",
+    location: "Remote",
+    description: "DTC e-commerce, $65 AOV, 2.1 orders/yr, $8K opex, $200 CAC",
+    inputs: {
+      businessType: "ecommerce",
+      location: "Remote",
+      arpu: 65,
+      churn: 0.06,
+      newPerMonth: 40,
+      opex: 8000,
+      cac: 200,
+      capital: 25000
+    },
+    expectedRanges: {
+      grossMarginPct: { min: 45, max: 65 },
+      ltvCac: { min: 2, max: 8 },
+      breakEven: { min: 4, max: 12 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 70.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-agency-nyc-001",
+    vectorCode: "GTV-AGENCY-NYC-001",
+    businessType: "consulting",
+    location: "New York, NY",
+    description: "Digital agency, $8K avg project, 4 clients/mo, $22K opex",
+    inputs: {
+      businessType: "consulting",
+      location: "New York, NY",
+      arpu: 8000,
+      newPerMonth: 4,
+      opex: 22000,
+      cac: 600,
+      capital: 40000
+    },
+    expectedRanges: {
+      netMarginPct: { min: 15, max: 35 },
+      breakEven: { min: 3, max: 8 },
+      grossMarginPct: { min: 50, max: 75 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 75.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-truck-atx-001",
+    vectorCode: "GTV-TRUCK-ATX-001",
+    businessType: "food_truck",
+    location: "Austin, TX",
+    description: "Food truck, 90 customers/day, $14 avg ticket, $6K opex",
+    inputs: {
+      businessType: "food_truck",
+      location: "Austin, TX",
+      dailyCustomers: 90,
+      avgTicket: 14,
+      monthlyOpex: 6000,
+      cac: 10,
+      capital: 35000
+    },
+    expectedRanges: {
+      netMarginPct: { min: 8, max: 20 },
+      breakEven: { min: 2, max: 6 },
+      grossMarginPct: { min: 55, max: 70 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 75.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-fit-la-001",
+    vectorCode: "GTV-FIT-LA-001",
+    businessType: "fitness_boutique",
+    location: "Los Angeles, CA",
+    description: "Fitness studio LA, $150 ARPU, 6% churn, 15 new/mo, $14K opex",
+    inputs: {
+      businessType: "fitness_boutique",
+      location: "Los Angeles, CA",
+      arpu: 150,
+      churn: 0.06,
+      newPerMonth: 15,
+      opex: 14000,
+      cac: 120,
+      capital: 75000
+    },
+    expectedRanges: {
+      m12Profit: { min: 1000, max: 5000 },
+      ltvCac: { min: 6, max: 18 },
+      breakEven: { min: 6, max: 14 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 75.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-drop-online-001",
+    vectorCode: "GTV-DROP-ONLINE-001",
+    businessType: "ecommerce",
+    location: "Remote",
+    description: "Dropshipping store, $35 AOV, 200 orders/mo, $3K opex, $25 CAC",
+    inputs: {
+      businessType: "ecommerce",
+      location: "Remote",
+      arpu: 35,
+      newPerMonth: 200,
+      opex: 3000,
+      cac: 25,
+      capital: 8000
+    },
+    expectedRanges: {
+      grossMarginPct: { min: 20, max: 40 },
+      breakEven: { min: 2, max: 5 },
+      netMarginPct: { min: 5, max: 18 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 65.0,
+    consecutivePasses: 0,
+    isActive: true
+  },
+  {
+    id: "gtv-fintech-sf-001",
+    vectorCode: "GTV-FINTECH-SF-001",
+    businessType: "saas",
+    location: "San Francisco, CA",
+    description: "Fintech app, $29 ARPU, 3% churn, 50 new/mo, $25K opex",
+    inputs: {
+      businessType: "saas",
+      location: "San Francisco, CA",
+      arpu: 29,
+      churn: 0.03,
+      newPerMonth: 50,
+      opex: 25000,
+      cac: 150,
+      capital: 100000
+    },
+    expectedRanges: {
+      grossMarginPct: { min: 80, max: 95 },
+      ltvCac: { min: 4, max: 15 },
+      breakEven: { min: 8, max: 18 }
+    },
+    tolerancePct: 15.0,
+    confidenceThreshold: 75.0,
+    consecutivePasses: 0,
+    isActive: true
   }
 ];
 
