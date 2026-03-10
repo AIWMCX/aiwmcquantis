@@ -33,6 +33,9 @@ export default function Index() {
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasPrefill, setHasPrefill] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
+  const resultsRef = useRef<HTMLDivElement>(null);
+  const [showScrollBanner, setShowScrollBanner] = useState(false);
+  const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
   
