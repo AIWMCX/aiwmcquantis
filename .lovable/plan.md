@@ -1,168 +1,118 @@
 
 
-# CTO-Level Accuracy & Precision Upgrade Plan
+# Comprehensive Test Suite — 6 Layers of Engine Validation
 
-## Current State Assessment
+## Overview
 
-After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
+Build a complete test infrastructure covering formulas, reconciliation, benchmarks/golden vectors, Monte Carlo/scenarios, QSL/confidence behavior, and non-functional regression. This expands the existing 4 test files (~1,750 lines) into a comprehensive 10-file suite.
 
-### What's Strong
-- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
-- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
-- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
-- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
-- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
-- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
+## What Exists Today
 
-### Critical Gaps Identified
+| File | Coverage |
+|------|----------|
+| `quantis-math.test.ts` | QMath arithmetic, sanitization, FormulaRegistry (15+ formulas) |
+| `financial-engine.test.ts` | LTV, LTV:CAC, expenses, payback, ROI, edge cases |
+| `financial-engine-v2.test.ts` | 7 bug-fix regressions (LTV margin, NPV DCF, margin ceiling, scenarios, break-even) |
+| `bulletproof-validator.test.ts` | Expense reconciliation, margin validation, revenue reconciliation, payback |
+| `prompt-injection.test.ts` | AI safety guardrails |
 
-**Gap 1: Two calculation engines, no shared precision**
-The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
+## What We're Building
 
-**Gap 2: No cross-validation between the two server paths**
-`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
+### Layer 1 — `src/__tests__/formula-registry-complete.test.ts` (NEW)
+Exhaustive tests for **all 25+ registered formulas** individually, beyond the existing `testAll()` bulk check.
 
-**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
-The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
+- Import `FormulaRegistry` and test each formula by ID with multiple input vectors
+- Cover: `ltv`, `payback_months`, `net_profit`, `gross_margin_pct`, `net_margin_pct`, `break_even_revenue`, `roi_year1`, `cac_payback`, `arr`, `npv`, `compound_growth`, `monthly_discount_rate`, `mini_annual_roi`, `mini_payback`, `mini_net_margin`, and all others
+- Each formula gets 3–5 input vectors including edge cases (zero, negative, large values)
+- Tolerance: exact for integer outputs, ±0.01 for currency, ±0.1 for percentages
+- Assert `isValid`, `confidence`, `auditTrail` presence on every execution
 
-**Gap 4: Benchmark data is static — no confidence degradation for stale data**
-The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
+### Layer 2 — `src/__tests__/reconciliation-engine.test.ts` (NEW)
+Tests the 10-rule reconciliation engine by importing `reconcileFinancialOutput` directly.
 
-**Gap 5: No sensitivity analysis**
-The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
+- **R-001 to R-003 (Sum Integrity)**: Construct `PLStatement[]` with deliberate mismatches (revenue ≠ COGS + gross profit, itemized opex ≠ total opex, GP − opex ≠ EBITDA) → assert auto-correction and `autoResolved: true`
+- **R-004 to R-005 (Sign Consistency)**: Inject negative revenue, negative COGS, negative runway → assert `severity: 'critical'`
+- **R-006 (Margin/Risk Contradiction)**: Net margin < −10% with `riskLevel: 'Low'` → assert critical flag and force to Moderate
+- **R-007 to R-008 (Logical Constraints)**: Negative active customers, gross margin > 100%, year-1 net margin > 60% → assert major flags
+- **R-009 to R-010 (Benchmark Boundaries)**: LTV outside [100, 50000], CAC payback outside [1, 36], LTV:CAC outside [0.5, 15] → assert minor flags
+- **Edge cases**: Zero revenue months, all-zero P&L, extreme opex
+- Build minimal mock `PLStatement`, `CashFlowStatement`, `UnitEconomicsResult` objects matching the types from `financial-engine.ts`
 
----
+### Layer 3 — `src/__tests__/golden-vectors.test.ts` (NEW)
+Validates the 10 golden test vectors against the financial engine's expected output ranges.
 
-## Plan: 5 High-Impact Upgrades
+- Import `GOLDEN_VECTORS` from `golden-test-vectors.ts`
+- For each vector: construct engine inputs, run a simplified financial model (reuse the `computeTestFinancials` pattern from existing tests), assert outputs fall within `expectedRanges`
+- Metrics checked: `netMarginPct`, `breakEven`, `grossMarginPct`, `ltvCac`, `m12Profit`, `runway`
+- Pass criteria: all 10 vectors within their defined tolerance (typically ±15%)
+- Test that all 10 vectors are `isActive: true`
+- Test that vector codes are unique and follow `GTV-*` pattern
 
-### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
+### Layer 4 — `src/__tests__/monte-carlo.test.ts` (NEW)
+Tests Monte Carlo simulation correctness and scenario engine directional consistency.
 
-**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
+**Monte Carlo:**
+- Seeded PRNG determinism: same seed → identical results across runs
+- Uniform distribution: p50 ≈ midpoint within ±5% over 2000 iterations
+- Normal distribution: mean ≈ baseValue, ~68% of samples within 1 stdDev
+- Triangular distribution: mode ≈ peak value
+- `probabilityPositive`: 100% when all inputs positive, ~50% when centered at 0
+- Edge: single iteration, zero-range params, negative outputs
 
-**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
+**Scenario Engine:**
+- `applyScenario` with `recession` preset: assert revenue decreases, CAC increases
+- `applyScenario` with `best_case`: assert revenue increases, costs decrease
+- `applyScenario` with `worst_case`: assert revenue decreases, costs increase
+- All 8 built-in scenarios maintain directional consistency (not exact values, just directions)
+- Scenario shocks are multiplicative (verify multiplier math)
 
-- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
-- Use `npm:decimal.js` specifier per the project's edge function deployment standard
-- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
-- Refactor `computeFinancials` in `financial-engine.ts` the same way
-- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
+### Layer 5 — `src/__tests__/qsl-confidence.test.ts` (NEW)
+Tests QSL tier assignment and confidence scorer behavior.
 
-**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
+**QSL:**
+- Score 0–69 → `QSL.EXPLORATORY`
+- Score 70–84 → `QSL.PLANNING`
+- Score 85–94 → `QSL.INVESTOR`
+- Score 95–100 → `QSL.LOAN`
+- Boundary tests: 69→EXPLORATORY, 70→PLANNING, 84→PLANNING, 85→INVESTOR, 94→INVESTOR, 95→LOAN
+- `shouldPulse`: true only for INVESTOR and LOAN
+- Clamping: score -10 → EXPLORATORY, score 150 → LOAN
 
-### Upgrade 2: Cross-Validation Between Dual Engine Paths
+**Confidence Scorer:**
+- High consensus (95) + high completeness (95) + high benchmark (90) + fresh data → tier `verified`, score ≥ 95
+- Low consensus (40) + low completeness (30) + low benchmark (20) → tier `blocked`, score < 50
+- Stale data (72h) → freshness penalty applied, warnings include "days old"
+- Small sample (5) → warning about sample size
+- Consensus < 70 → warning about AI disagreement
+- Dual-engine disagreement beyond threshold: score drops below INVESTOR grade
 
-**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
+**Synthetic QSL scenarios:**
+- High activation + low leverage (high completeness, low benchmark alignment) → score in PLANNING range (QSL-2), not INVESTOR
+- High activation + high leverage → INVESTOR or LOAN
+- Missing benchmarks (alignment = 0) → cannot reach QSL-4
+- Reconciliation failure (simulate via low consensus) → downgrades result
 
-**Solution**: After both engines run, compare their outputs:
+### Layer 6 — `src/__tests__/regression-suite.test.ts` (NEW)
+Integration-level regression that ties all layers together.
 
-```text
-compareEngineOutputs(strictResult, quantisResult) → {
-  agreementScore: 0-100,
-  divergences: [{ metric, pathA, pathB, delta% }],
-  finalOutput: "strict" | "quantis" | "merged"
-}
-```
+- Import and run `FormulaRegistry.testAll()` → assert 0 failures
+- Import `QMath.runSelfTest()` → assert all pass
+- Verify `GOLDEN_VECTORS` count ≥ 10 and all active
+- Verify `BUILT_IN_SCENARIOS` count ≥ 8
+- Verify `FormulaRegistry.size` ≥ 25
+- Run confidence scorer on 5 synthetic profiles and assert tier assignments match expected
+- Summary: acts as the nightly "full suite" gate — if this file passes, the engine is consistent
 
-- If agreement > 95%: use strict result (higher audit trail fidelity)
-- If agreement 80-95%: use strict result + flag divergences in audit
-- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
+## File Summary
 
-Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
+| File | Layer | Tests |
+|------|-------|-------|
+| `src/__tests__/formula-registry-complete.test.ts` | 1 | ~60 tests across 25+ formulas |
+| `src/__tests__/reconciliation-engine.test.ts` | 2 | ~25 tests for 10 rules + edges |
+| `src/__tests__/golden-vectors.test.ts` | 3 | ~15 tests for 10 vectors + meta |
+| `src/__tests__/monte-carlo.test.ts` | 4 | ~20 tests for MC + scenarios |
+| `src/__tests__/qsl-confidence.test.ts` | 5 | ~25 tests for QSL + scorer |
+| `src/__tests__/regression-suite.test.ts` | 6 | ~10 integration gate tests |
 
-**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
-
-### Upgrade 3: AI Narrator Number Anchoring
-
-**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
-
-**Solution**: Enhance the system prompt and post-validation:
-
-1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
-```text
-IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
-- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
-DO NOT invent, estimate, or modify these numbers.
-```
-
-2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
-
-3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
-
-**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
-
-### Upgrade 4: Sensitivity Analysis Module
-
-**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
-
-**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
-
-```text
-sensitivityAnalysis(baseMetrics, benchmarks) → {
-  tornado: [
-    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
-    { variable: "CAC", ... },
-    { variable: "Churn Rate", ... },
-    { variable: "Fixed Costs", ... },
-  ],
-  mostSensitiveVariable: "Price",
-  leastSensitiveVariable: "Fixed Costs"
-}
-```
-
-This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
-
-**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
-
-### Upgrade 5: Benchmark Confidence Decay + Source Scoring
-
-**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
-
-**Solution**: Add a `computeBenchmarkConfidence()` function:
-
-```text
-confidence = base_score
-  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
-  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
-  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
-```
-
-This confidence feeds into:
-- The reliability score shown to users
-- The AI prompt (lower confidence → more hedging language)
-- The consensus evaluator thresholds (lower confidence → wider tolerance)
-
-**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
-
----
-
-## Implementation Priority
-
-| Order | Upgrade | Impact | Effort | Risk |
-|-------|---------|--------|--------|------|
-| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
-| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
-| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
-| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
-| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
-
-## What This Does NOT Include (Flagged for Later)
-
-- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
-- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
-- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
-- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
-
-## Files Changed Summary
-
-| File | Action |
-|------|--------|
-| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
-| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
-| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
-| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
-| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
-| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
-| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
-| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
-| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
+No existing files are modified. All new test files.
 
