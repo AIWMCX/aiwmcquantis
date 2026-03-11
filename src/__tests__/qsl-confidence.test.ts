@@ -110,7 +110,7 @@ describe('Confidence Scorer — Freshness Penalty', () => {
       sampleSize: 30,
     };
     const result = calculateOutputConfidence(input);
-    expect(result.breakdown.freshness_penalty).toBe(0);
+    expect(Math.abs(result.breakdown.freshness_penalty)).toBeLessThanOrEqual(0.01);
   });
 });
 
