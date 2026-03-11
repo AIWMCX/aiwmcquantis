@@ -23,11 +23,11 @@ describe('Regression Gate — FormulaRegistry', () => {
 });
 
 describe('Regression Gate — QMath Self-Test', () => {
-  it('QMath.runSelfTest passes', () => {
-    const results = QuantisMath.runSelfTest();
-    for (const r of results) {
-      expect(r.passed).toBe(true);
-    }
+  it('QMath.runSelfTest passes with zero failures', () => {
+    const result = QuantisMath.runSelfTest();
+    expect(result.failed).toBe(0);
+    expect(result.passed).toBeGreaterThan(0);
+    expect(result.errors.length).toBe(0);
   });
 });
 
