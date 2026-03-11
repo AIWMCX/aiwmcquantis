@@ -3,35 +3,36 @@ import * as Sentry from '@sentry/react';
 const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 
 export function initSentry() {
-  if (!SENTRY_DSN) {
+  if (!SENTRY_DSN || !import.meta.env.PROD) {
+    if (!import.meta.env.PROD) return;
     console.warn('Sentry DSN not configured - error tracking disabled');
     return;
   }
 
-  Sentry.init({
-    dsn: SENTRY_DSN,
-    environment: import.meta.env.PROD ? 'production' : 'development',
-    integrations: [
-      Sentry.browserTracingIntegration(),
-      Sentry.replayIntegration({
-        maskAllText: false,
-        blockAllMedia: false,
-      }),
-    ],
-    // Performance monitoring - 10% of transactions
-    tracesSampleRate: 0.1,
-    // Session replay - 10% of sessions, 100% on error
-    replaysSessionSampleRate: 0.1,
-    replaysOnErrorSampleRate: 1.0,
-    // Only send errors in production
-    enabled: import.meta.env.PROD,
-    // Ignore common non-actionable errors
-    ignoreErrors: [
-      'ResizeObserver loop limit exceeded',
-      'ResizeObserver loop completed with undelivered notifications',
-      'Non-Error promise rejection captured',
-    ],
-  });
+  try {
+    Sentry.init({
+      dsn: SENTRY_DSN,
+      environment: 'production',
+      integrations: [
+        Sentry.browserTracingIntegration(),
+        Sentry.replayIntegration({
+          maskAllText: false,
+          blockAllMedia: false,
+        }),
+      ],
+      tracesSampleRate: 0.1,
+      replaysSessionSampleRate: 0.1,
+      replaysOnErrorSampleRate: 1.0,
+      enabled: true,
+      ignoreErrors: [
+        'ResizeObserver loop limit exceeded',
+        'ResizeObserver loop completed with undelivered notifications',
+        'Non-Error promise rejection captured',
+      ],
+    });
+  } catch (e) {
+    console.warn('Sentry init failed:', e);
+  }
 }
 
 export function captureError(error: Error, context?: Record<string, unknown>) {
