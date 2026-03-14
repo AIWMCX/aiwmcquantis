@@ -14,6 +14,7 @@ interface AdvancedFinancialInputsProps {
   onChange: (inputs: OptionalFinancialInputs) => void;
   disabled?: boolean;
   industryType?: string;
+  location?: string;
 }
 
 type NumericFinancialKeys = Exclude<keyof OptionalFinancialInputs, 'selected_industry'>;
