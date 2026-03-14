@@ -36,7 +36,7 @@ export function AnalysisTopBar({
       {/* Left: Idea + Location */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground truncate max-w-[300px] lg:max-w-[500px]">
+          <p className="text-sm font-medium text-foreground truncate max-w-[180px] sm:max-w-[300px] lg:max-w-[500px]">
             {idea || 'Describe your business idea...'}
           </p>
         </div>
