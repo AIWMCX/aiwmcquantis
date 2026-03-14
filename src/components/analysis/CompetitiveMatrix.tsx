@@ -69,7 +69,15 @@ export function CompetitiveMatrix({ result }: CompetitiveMatrixProps) {
       return String(val);
     };
 
-    return { cols, userRow, medianRow, p75Row, formatCell };
+    // Build citation from first available benchmark
+    const anyBm = gmBm || cacBm || priceBm;
+    const citation = anyBm ? buildCitation(anyBm) : null;
+    const freshness = anyBm ? checkFreshness(anyBm.lastUpdated) : null;
+    const sourceLabel = citation
+      ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
+      : 'Proprietary Industry Benchmark Database';
+
+    return { cols, userRow, medianRow, p75Row, formatCell, sourceLabel };
   }, [result]);
 
   return (
