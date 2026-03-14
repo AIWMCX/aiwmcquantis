@@ -59,13 +59,13 @@ export function BeforeAfterComparison() {
         </div>
 
         <div className="text-center">
-          <Link to="/app" onClick={() => trackCtaClick('switch_60_seconds', 'before_after')}>
+          <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'before_after')}>
             <Button size="lg" className="gap-2 min-h-[52px] px-6 text-base font-semibold hover:scale-[1.02] transition-transform">
-              Switch in 60 Seconds
+              Run Your Pre-Mortem — Free
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground mt-2">3 free analyses · No credit card required</p>
+          <p className="text-xs text-muted-foreground mt-2">No credit card · Results in 90 seconds</p>
         </div>
       </div>
     </section>);

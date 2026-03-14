@@ -196,15 +196,15 @@ export default function Landing() {
               <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
               <div className="relative">
                 <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
-                  Stress-Test Your Business Model — Free
+                  Run a Pre-Mortem on Your Business Model — Free
                 </h2>
                 <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
-                  Risk map, scenario stress-tests, and investor-ready projections —
-                  dual AI-verified, no credit card, results in under 90 seconds.
+                  See fatal assumptions, stress-test scenarios, and get a clear
+                  proceed/pivot/kill verdict. Dual AI-verified, no credit card.
                 </p>
-                <Link to="/app" onClick={() => trackCtaClick('start_free_analysis', 'bottom_cta')}>
+                <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
-                    See My Numbers — Free
+                    Run Free Pre-Mortem
                     <ArrowRight className="w-5 h-5" />
                   </Button>
                 </Link>

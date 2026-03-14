@@ -291,7 +291,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-          )}
+            </div>
+            );
+          })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 2 — FINANCIALS & ASSUMPTIONS */}

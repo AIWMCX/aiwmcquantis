@@ -96,7 +96,7 @@ export function MobileHero() {
               size="lg"
               className="gap-2 text-base font-medium px-7 h-[52px] text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)] border border-[var(--q-border-default)]"
             >
-              See Sample Report
+              See a Sample Pre-Mortem
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
