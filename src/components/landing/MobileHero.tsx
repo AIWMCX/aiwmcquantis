@@ -69,9 +69,9 @@ export function MobileHero() {
             className="animate-fade-in text-base md:text-lg text-[var(--q-text-secondary)] max-w-[580px] mx-auto leading-relaxed"
             style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both' }}
           >
-            Enter your idea. Get a precision stress-test with risk map,
-            3-year projections, and the scenarios where your business
-            survives — and doesn't. In 90 seconds.
+            Quantis runs a financial pre-mortem on your business model.
+            See fatal assumptions, stress-test scenarios, and get a clear
+            proceed/pivot/kill verdict. In 90 seconds.
           </p>
 
           {/* CTA Row */}
