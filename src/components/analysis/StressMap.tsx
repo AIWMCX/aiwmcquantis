@@ -91,7 +91,7 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
   const monthlyExpenses = Math.max(result.financial_analysis?.monthly_expenses?.total ?? 0, 1);
   const monthlyProfit = result.financial_analysis?.scenarios?.base?.net_profit ?? 0;
   const revenue = Math.max(result.financial_analysis?.mrr ?? 0, 1);
-  const burnRate = Math.max(monthlyExpenses - revenue, 0);
+  
 
   const profitCoverage = monthlyProfit / monthlyExpenses;
   const runwayMonths = monthlyProfit >= 0
