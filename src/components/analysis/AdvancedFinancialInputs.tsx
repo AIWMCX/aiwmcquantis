@@ -238,6 +238,19 @@ export function AdvancedFinancialInputs({
               ))}
             </div>
 
+            {/* Bottom-up OpEx validation */}
+            {industryType && location && financialInputs.monthly_costs && financialInputs.monthly_costs > 0 && (
+              <OpExWarning
+                industry={industryType}
+                inputs={{
+                  customers: financialInputs.expected_customers,
+                  revenue: financialInputs.monthly_revenue,
+                }}
+                location={location}
+                userOpEx={financialInputs.monthly_costs}
+              />
+            )}
+
             {/* Confidence Boost Pill */}
             {filledCount > 0 && (
               <div className="flex items-center gap-2 mt-6 px-4 py-2.5 rounded-full w-fit"
