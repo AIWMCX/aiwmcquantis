@@ -161,11 +161,11 @@ function ConfidenceRing({ score }: { score: number }) {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative" style={{ width: 88, height: 88 }}>
-        <svg width={88} height={88} className="block">
-          <circle cx={44} cy={44} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
-          <circle
-            cx={44} cy={44} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
+        <div className="relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px]">
+          <svg viewBox="0 0 88 88" className="w-full h-full block">
+            <circle cx={44} cy={44} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
+            <circle
+              cx={44} cy={44} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
             stroke={color}
             strokeDasharray={circ}
             strokeDashoffset={offset}
@@ -303,7 +303,7 @@ export function CompactAnalysisForm({
             style={{ background: 'var(--q-status-ai-bg)', border: '1px solid var(--q-status-ai-border)', color: 'var(--q-status-ai)' }}>
             ⚡ DUAL-AI · GPT-4o mini + GEMINI
           </span>
-          <h1 className="text-[26px] font-bold leading-tight" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
+          <h1 className="text-[22px] sm:text-[26px] font-bold leading-tight" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
             Stress-test your business idea
           </h1>
           <p className="text-[13px] mt-0.5" style={{ color: 'var(--q-text-tertiary)' }}>
@@ -313,7 +313,7 @@ export function CompactAnalysisForm({
       </div>
 
       {/* 3-column grid */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1.6fr 260px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_260px] gap-4">
 
         {/* ═══ COLUMN 1 — Business Identity ═══ */}
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
@@ -431,7 +431,7 @@ export function CompactAnalysisForm({
           </div>
           <div className="p-4 space-y-3">
             {/* 2×2 core fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FinancialField
                 label="Starting Capital" prefix="$" placeholder="50,000"
                 value={financialInputs.startup_investment}
@@ -475,7 +475,7 @@ export function CompactAnalysisForm({
             </div>
 
             {/* Optional fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FinancialField
                 label="Cust. Acquisition Cost" prefix="$" placeholder="150"
                 value={financialInputs.cac}
@@ -602,19 +602,19 @@ export function CompactAnalysisForm({
       </div>
 
       {/* "What you'll get" strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl px-5 py-3" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>You'll receive:</span>
+      <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2 rounded-xl px-4 sm:px-5 py-3" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] w-full sm:w-auto" style={{ color: 'var(--q-text-disabled)' }}>You'll receive:</span>
         {[
-          ['📊', '36-month P&L model'],
-          ['🗺', 'Risk Stress Map'],
-          ['🎯', 'Break-even timeline'],
-          ['⚡', 'Dual-AI verified'],
-          ['🌍', 'Geo-calibrated benchmarks'],
-          ['📄', 'Investor documents'],
-        ].map(([icon, text]) => (
-          <span key={text} className="flex items-center gap-1.5">
+          ['📊', '36-month P&L'],
+          ['🗺', 'Stress Map'],
+          ['🎯', 'Break-even'],
+          ['⚡', 'Dual-AI'],
+          ['🌍', 'Geo-calibrated', true],
+          ['📄', 'Investor docs', true],
+        ].map(([icon, text, hideMobile]) => (
+          <span key={text as string} className={`flex items-center gap-1.5 ${hideMobile ? 'hidden sm:flex' : ''}`}>
             <span className="text-sm">{icon}</span>
-            <span className="text-[12px]" style={{ color: 'var(--q-text-tertiary)' }}>{text}</span>
+            <span className="text-[11px] sm:text-[12px]" style={{ color: 'var(--q-text-tertiary)' }}>{text}</span>
           </span>
         ))}
       </div>

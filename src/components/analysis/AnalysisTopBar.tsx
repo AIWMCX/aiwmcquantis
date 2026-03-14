@@ -36,7 +36,7 @@ export function AnalysisTopBar({
       {/* Left: Idea + Location */}
       <div className="flex items-center gap-3 min-w-0 flex-1">
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-medium text-foreground truncate max-w-[300px] lg:max-w-[500px]">
+          <p className="text-sm font-medium text-foreground truncate max-w-[180px] sm:max-w-[300px] lg:max-w-[500px]">
             {idea || 'Describe your business idea...'}
           </p>
         </div>
@@ -84,7 +84,7 @@ export function AnalysisTopBar({
             <TrendingUp className="w-3 h-3" />
             +{reliabilityGain}%
             {gainHint && (
-              <span className="hidden sm:inline text-primary/70 ml-0.5">{gainHint}</span>
+              <span className="hidden md:inline text-primary/70 ml-0.5">{gainHint}</span>
             )}
             <ChevronRight className="w-3 h-3" />
           </button>

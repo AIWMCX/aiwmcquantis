@@ -177,7 +177,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   </p>
                   
                   {/* Strengths & Risks 2-column */}
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div className="p-3 rounded-lg border border-[var(--q-status-green)]/30 bg-[var(--q-status-green)]/5">
                       <h4 className="text-xs font-semibold text-[var(--q-status-green)] mb-2 uppercase tracking-wide">Key Strengths</h4>
                       <ul className="space-y-1.5 text-sm text-muted-foreground">
@@ -473,24 +473,30 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         </div>
 
         {/* Navigation Footer */}
-        <div className="flex justify-between items-center pt-6 mt-6 border-t border-border">
+        <div className="flex justify-between items-center pt-6 mt-6 border-t border-border gap-2">
           <Button 
             variant="ghost" 
+            size="sm"
             onClick={() => handleStepChange(Math.max(1, currentStep - 1))}
             disabled={currentStep === 1}
-            className="gap-2"
+            className="gap-1.5 text-xs sm:text-sm sm:gap-2"
           >
-            <ArrowLeft className="w-4 h-4" /> Previous
+            <ArrowLeft className="w-4 h-4" /> <span className="hidden sm:inline">Previous</span><span className="sm:hidden">Prev</span>
           </Button>
           
-          <LastAuditedBadge />
+          <div className="hidden sm:block">
+            <LastAuditedBadge />
+          </div>
           
           <Button 
+            size="sm"
             onClick={() => handleStepChange(Math.min(3, currentStep + 1))}
             disabled={currentStep === 3}
-            className="gap-2"
+            className="gap-1.5 text-xs sm:text-sm sm:gap-2"
           >
-            Next: {currentStep === 1 ? 'Financials' : 'Risks'} <ArrowRight className="w-4 h-4" />
+            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Financials' : 'Risks'}</span>
+            <span className="sm:hidden">Next</span>
+            <ArrowRight className="w-4 h-4" />
           </Button>
         </div>
       </div>
