@@ -121,6 +121,7 @@ export function AdvancedFinancialInputs({
   onChange,
   disabled = false,
   industryType,
+  location,
 }: AdvancedFinancialInputsProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const filledCount = countFilledFields(financialInputs);
