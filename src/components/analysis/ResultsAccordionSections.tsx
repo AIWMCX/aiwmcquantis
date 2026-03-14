@@ -1,6 +1,6 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Calculator, GitCompare, BarChart3, FileText, Coins, Search } from 'lucide-react';
+import { Calculator, GitCompare, BarChart3, FileText, Coins, Search, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
