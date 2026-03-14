@@ -602,19 +602,19 @@ export function CompactAnalysisForm({
       </div>
 
       {/* "What you'll get" strip */}
-      <div className="flex flex-wrap items-center gap-x-6 gap-y-2 rounded-xl px-5 py-3" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
-        <span className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>You'll receive:</span>
+      <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-6 gap-y-2 rounded-xl px-4 sm:px-5 py-3" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
+        <span className="text-[11px] font-semibold uppercase tracking-[0.06em] w-full sm:w-auto" style={{ color: 'var(--q-text-disabled)' }}>You'll receive:</span>
         {[
-          ['📊', '36-month P&L model'],
-          ['🗺', 'Risk Stress Map'],
-          ['🎯', 'Break-even timeline'],
-          ['⚡', 'Dual-AI verified'],
-          ['🌍', 'Geo-calibrated benchmarks'],
-          ['📄', 'Investor documents'],
-        ].map(([icon, text]) => (
-          <span key={text} className="flex items-center gap-1.5">
+          ['📊', '36-month P&L'],
+          ['🗺', 'Stress Map'],
+          ['🎯', 'Break-even'],
+          ['⚡', 'Dual-AI'],
+          ['🌍', 'Geo-calibrated', true],
+          ['📄', 'Investor docs', true],
+        ].map(([icon, text, hideMobile]) => (
+          <span key={text as string} className={`flex items-center gap-1.5 ${hideMobile ? 'hidden sm:flex' : ''}`}>
             <span className="text-sm">{icon}</span>
-            <span className="text-[12px]" style={{ color: 'var(--q-text-tertiary)' }}>{text}</span>
+            <span className="text-[11px] sm:text-[12px]" style={{ color: 'var(--q-text-tertiary)' }}>{text}</span>
           </span>
         ))}
       </div>

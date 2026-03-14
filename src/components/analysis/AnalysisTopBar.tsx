@@ -84,7 +84,7 @@ export function AnalysisTopBar({
             <TrendingUp className="w-3 h-3" />
             +{reliabilityGain}%
             {gainHint && (
-              <span className="hidden sm:inline text-primary/70 ml-0.5">{gainHint}</span>
+              <span className="hidden md:inline text-primary/70 ml-0.5">{gainHint}</span>
             )}
             <ChevronRight className="w-3 h-3" />
           </button>

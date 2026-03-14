@@ -187,7 +187,7 @@ export function PersistentResultsHeader({
         </div>
 
         {/* CENTER: KPI Chips */}
-        <div className="flex-1 flex items-center justify-center gap-0 overflow-x-auto">
+        <div className="flex-1 flex items-center justify-center gap-0 overflow-x-auto scrollbar-hide">
           <KPIChip
             label="Mo.12 Profit"
             value={formatProfit(Math.round(animatedProfit))}
