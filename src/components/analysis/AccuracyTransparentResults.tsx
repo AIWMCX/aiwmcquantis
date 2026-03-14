@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
-import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ShieldAlert, Rocket, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersistentResultsHeader } from './PersistentResultsHeader';
 import { StressMap, calculateStressScores } from './StressMap';
@@ -158,49 +158,67 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         <div key={currentStep} className={cn('min-h-[500px]', animationClass)}>
           
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 1 — EXECUTIVE SUMMARY & STRESS MAP */}
+          {/* STEP 1 — DECISION VERDICT & RISK INTELLIGENCE */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 1 && (
-            <div className="grid lg:grid-cols-[58%_42%] gap-5">
-              {/* LEFT: Summary + Stress Map */}
-              <div className="space-y-5">
-                {/* Summary Panel */}
-                <div className="q-card p-6 border-l-4 border-l-[var(--q-accent-primary)]">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="font-semibold flex items-center gap-2">
-                      Executive Summary
-                    </h3>
-                    <TrafficLightBadge confidenceScore={result.confidence_score || 70} size="md" />
+          {currentStep === 1 && (() => {
+            const confidence = result.confidence_score || 70;
+            const criticalInsights = insights.filter(i => i.status === 'danger' || i.status === 'warning');
+            const criticalRisks = criticalInsights.length;
+            const fatalAssumptions = criticalInsights.slice(0, 3);
+            
+            const verdict = confidence >= 80 && criticalRisks === 0
+              ? { level: 'fast-track', label: 'FAST-TRACK', description: 'Capital efficient, low downside. Proceed with execution.', color: 'var(--q-status-green)', bg: 'var(--q-status-green)', Icon: Rocket }
+              : confidence >= 60 && criticalRisks <= 2
+              ? { level: 'caution', label: 'PROCEED WITH CAUTION', description: `Address ${fatalAssumptions.map(i => i.headline).slice(0, 2).join(' and ')} before committing capital.`, color: 'var(--q-status-yellow)', bg: 'var(--q-status-yellow)', Icon: ShieldCheck }
+              : { level: 'stop', label: 'DO NOT PROCEED', description: 'Resolve these fatal assumptions before investing.', color: 'var(--q-status-red)', bg: 'var(--q-status-red)', Icon: ShieldAlert };
+
+            return (
+            <div className="space-y-5">
+              {/* Decision Verdict Banner */}
+              <div 
+                className="q-card p-5 sm:p-6 border-l-4 flex items-start gap-4"
+                style={{ borderLeftColor: verdict.color, backgroundColor: `color-mix(in srgb, ${verdict.bg} 6%, transparent)` }}
+              >
+                <verdict.Icon className="w-7 h-7 shrink-0 mt-0.5" style={{ color: verdict.color }} />
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ color: 'white', backgroundColor: verdict.color }}>{verdict.label}</span>
+                    <TrafficLightBadge confidenceScore={confidence} size="md" />
                   </div>
-                  <p className="text-muted-foreground leading-relaxed mb-4">
+                  <p className="text-sm text-muted-foreground leading-relaxed">{verdict.description}</p>
+                </div>
+              </div>
+
+              <div className="grid lg:grid-cols-[58%_42%] gap-5">
+              {/* LEFT: Fatal Assumptions + Stress Map */}
+              <div className="space-y-5">
+                {/* Fatal Assumptions — Risk Intelligence Card */}
+                {fatalAssumptions.length > 0 && (
+                <div className="q-card p-6 border-l-4 border-l-[var(--q-status-red)]">
+                  <h3 className="font-semibold flex items-center gap-2 mb-4">
+                    <AlertTriangle className="w-4 h-4 text-[var(--q-status-red)]" />
+                    Fatal Assumptions
+                  </h3>
+                  <ul className="space-y-3">
+                    {fatalAssumptions.map((insight, i) => (
+                      <li key={i} className="flex items-start gap-2.5 text-sm">
+                        <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--q-status-red)] text-white flex items-center justify-center text-[10px] font-bold mt-0.5">{i + 1}</span>
+                        <div>
+                          <p className="font-medium text-foreground">{insight.headline}</p>
+                          {insight.explanation && <p className="text-xs text-muted-foreground mt-0.5">{insight.explanation}</p>}
+                        </div>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+                )}
+
+                {/* Executive Summary (demoted, shorter) */}
+                <div className="q-card p-5">
+                  <h3 className="font-semibold text-sm mb-2">Executive Summary</h3>
+                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
                     {result.business_plan?.executive_summary || result.business_plan?.product_description || 'Analysis complete.'}
                   </p>
-                  
-                  {/* Strengths & Risks 2-column */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
-                    <div className="p-3 rounded-lg border border-[var(--q-status-green)]/30 bg-[var(--q-status-green)]/5">
-                      <h4 className="text-xs font-semibold text-[var(--q-status-green)] mb-2 uppercase tracking-wide">Key Strengths</h4>
-                      <ul className="space-y-1.5 text-sm text-muted-foreground">
-                        {(insights.filter(i => i.status === 'healthy' || i.status === 'excellent').slice(0, 3).map(i => i.headline) || ['Strong unit economics', 'Growing market', 'Low competition']).map((s, i) => (
-                          <li key={i} className="flex items-start gap-1.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 text-[var(--q-status-green)] mt-0.5 shrink-0" />
-                            <span>{s}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                    <div className="p-3 rounded-lg border border-[var(--q-status-red)]/30 bg-[var(--q-status-red)]/5">
-                      <h4 className="text-xs font-semibold text-[var(--q-status-red)] mb-2 uppercase tracking-wide">Key Risks</h4>
-                      <ul className="space-y-1.5 text-sm text-muted-foreground">
-                        {(insights.filter(i => i.status === 'danger' || i.status === 'warning').slice(0, 3).map(i => i.headline) || risks.slice(0, 3).map(r => r.message) || ['Market uncertainty', 'Cash flow timing', 'Competition']).map((r, i) => (
-                          <li key={i} className="flex items-start gap-1.5">
-                            <AlertTriangle className="w-3.5 h-3.5 text-[var(--q-status-red)] mt-0.5 shrink-0" />
-                            <span>{r}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  </div>
                 </div>
 
                 {/* Stress Map */}
@@ -273,7 +291,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-          )}
+            </div>
+            );
+          })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 2 — FINANCIALS & ASSUMPTIONS */}

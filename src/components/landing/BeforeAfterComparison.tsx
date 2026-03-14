@@ -5,24 +5,24 @@ import { Button } from '@/components/ui/button';
 import { trackCtaClick } from '@/lib/analytics';
 
 const WITHOUT_ITEMS = [
-'Pay consultant $500–2,000 per analysis',
-'Wait 2–3 weeks for results',
-'Spend 10+ hours gathering data',
-"Get static PDF reports you can\u2019t update"];
+'Commit $30k+ based on gut feeling',
+'Discover fatal flaw 6 months in — after the money is gone',
+'No way to stress-test assumptions before launch',
+'Optimism bias goes unchecked'];
 
 
 const WITH_ITEMS = [
-'Unlimited analyses (worth $2,000+ each)',
-'Get insights in 60 seconds, not weeks',
-'AI extracts data from PDFs/Excel automatically',
-'Interactive dashboards you can update anytime'];
+'Know your 3 fatal assumptions before spending $1',
+'Stress-test against 1,000+ industry benchmarks',
+'Get a clear proceed / pivot / kill verdict',
+'See exactly which number will break your model'];
 
 
 export function BeforeAfterComparison() {
   return (
     <section className="py-12 md:py-16 bg-muted/20">
       <div className="container max-w-5xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">Our Differentiation
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">Before vs. After Your Pre-Mortem
 
         </h2>
 
@@ -30,7 +30,7 @@ export function BeforeAfterComparison() {
           {/* Without */}
           <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-5 md:p-6">
             <p className="text-sm font-semibold text-destructive uppercase tracking-wider mb-4 flex items-center gap-2">
-              <XCircle className="w-4 h-4" /> Without Quantis
+              <XCircle className="w-4 h-4" /> Without a Pre-Mortem
             </p>
             <ul className="space-y-3">
               {WITHOUT_ITEMS.map((item) =>
@@ -45,7 +45,7 @@ export function BeforeAfterComparison() {
           {/* With */}
           <div className="rounded-2xl border border-success/20 bg-success/5 p-5 md:p-6 shadow-md">
             <p className="text-sm font-semibold text-success uppercase tracking-wider mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" /> With Quantis — $17/mo
+              <CheckCircle2 className="w-4 h-4" /> With Quantis Pre-Mortem
             </p>
             <ul className="space-y-3">
               {WITH_ITEMS.map((item) =>
@@ -59,13 +59,13 @@ export function BeforeAfterComparison() {
         </div>
 
         <div className="text-center">
-          <Link to="/app" onClick={() => trackCtaClick('switch_60_seconds', 'before_after')}>
+          <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'before_after')}>
             <Button size="lg" className="gap-2 min-h-[52px] px-6 text-base font-semibold hover:scale-[1.02] transition-transform">
-              Switch in 60 Seconds
+              Run Your Pre-Mortem — Free
               <ArrowRight className="w-4 h-4" />
             </Button>
           </Link>
-          <p className="text-xs text-muted-foreground mt-2">3 free analyses · No credit card required</p>
+          <p className="text-xs text-muted-foreground mt-2">No credit card · Results in 90 seconds</p>
         </div>
       </div>
     </section>);

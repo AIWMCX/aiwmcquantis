@@ -48,7 +48,7 @@ export function MobileHero() {
           <div className="flex justify-center animate-fade-in" style={{ animationFillMode: 'both' }}>
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-[var(--q-status-ai-bg)] border border-[var(--q-status-ai-border)] text-[var(--q-status-ai)]">
               <Zap className="w-3.5 h-3.5" />
-              Dual-AI Verified &middot; GPT-4o mini + Gemini
+              Pre-Mortem Engine &middot; Dual-AI Verified
             </span>
           </div>
 
@@ -57,11 +57,11 @@ export function MobileHero() {
             className="animate-fade-in text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.1] font-bold text-[var(--q-text-primary)]"
             style={{ fontFamily: 'var(--q-font-heading)', animationDelay: '80ms', animationFillMode: 'both' }}
           >
-            Find out exactly where{' '}
+            Find out what will kill{' '}
             <br className="hidden sm:block" />
-            your business breaks —{' '}
+            your business — before it{' '}
             <br className="hidden sm:block" />
-            before you spend a dollar.
+            costs you everything.
           </h1>
 
           {/* Subheadline */}
@@ -69,9 +69,9 @@ export function MobileHero() {
             className="animate-fade-in text-base md:text-lg text-[var(--q-text-secondary)] max-w-[580px] mx-auto leading-relaxed"
             style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both' }}
           >
-            Enter your idea. Get a precision stress-test with risk map,
-            3-year projections, and the scenarios where your business
-            survives — and doesn't. In 90 seconds.
+            Quantis runs a financial pre-mortem on your business model.
+            See fatal assumptions, stress-test scenarios, and get a clear
+            proceed/pivot/kill verdict. In 90 seconds.
           </p>
 
           {/* CTA Row */}
@@ -87,7 +87,7 @@ export function MobileHero() {
               data-event-id="start_validation_click"
             >
               <Zap className="w-5 h-5" />
-              Run Free Stress-Test
+              Run Free Pre-Mortem
               <ArrowRight className="w-4 h-4" />
             </Button>
             <Button
@@ -96,7 +96,7 @@ export function MobileHero() {
               size="lg"
               className="gap-2 text-base font-medium px-7 h-[52px] text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)] border border-[var(--q-border-default)]"
             >
-              See Sample Report
+              See a Sample Pre-Mortem
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>

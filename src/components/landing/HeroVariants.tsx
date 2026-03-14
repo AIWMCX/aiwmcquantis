@@ -12,19 +12,19 @@ export interface HeroContent {
 // Extended CTA variants beyond the existing headlines
 export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   control: {
-    title: 'Find Out Exactly Where Your Business Model Breaks — Before You Spend a Dollar',
-    subtitle: 'Enter your idea. Get a full financial stress-test with risk map, cash-flow projection, and scenario analysis. Powered by dual AI engines + 1,000+ verified benchmarks.',
-    ctaText: 'Run Free Stress-Test',
+    title: 'Find out what will kill your business — before it costs you everything.',
+    subtitle: 'Quantis runs a financial pre-mortem on your business model. See fatal assumptions, stress-test scenarios, and get a clear proceed/pivot/kill verdict. In 90 seconds.',
+    ctaText: 'Run Free Pre-Mortem',
   },
   numbers_first: {
-    title: 'Stress-Test Your Business Model with Dual AI Engines — in 90 Seconds',
-    subtitle: 'See which assumptions are fragile. Get risk flags, revenue corridors, and an investor-ready action plan backed by 1,000+ benchmarks.',
-    ctaText: 'Get My Free Analysis',
+    title: '3 fatal assumptions. 36-month stress-test. One clear verdict.',
+    subtitle: 'Every number sourced. Every assumption challenged. Know exactly where your model breaks before you invest a dollar.',
+    ctaText: 'Run Free Pre-Mortem',
   },
   action_focused: {
-    title: 'Revenue Projections, Risk Map & Scenario Stress-Tests — Before You Build',
-    subtitle: 'GPT + Gemini dual-verified financial analysis. Click any number to see the formula and benchmark behind it.',
-    ctaText: 'Start Free Stress-Test',
+    title: 'Should you commit $50k to this idea? Find out in 90 seconds.',
+    subtitle: 'Dual AI engines run a forensic pre-mortem on your business model — financial, market, and operational. Get a proceed/pivot/kill verdict.',
+    ctaText: 'Run Free Pre-Mortem',
   },
 };
 
