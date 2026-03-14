@@ -1,6 +1,6 @@
 import React from 'react';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-import { Calculator, GitCompare, BarChart3, FileText, Coins, Search } from 'lucide-react';
+import { Calculator, GitCompare, BarChart3, FileText, Coins, Search, Shield } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 
@@ -10,6 +10,7 @@ interface ResultsAccordionSectionsProps {
   marketContent: React.ReactNode;
   unitEconomicsContent?: React.ReactNode;
   forensicContent?: React.ReactNode;
+  capitalReadinessContent?: React.ReactNode;
   analysisId?: string;
 }
 
@@ -24,6 +25,7 @@ export function ResultsAccordionSections({
   marketContent,
   unitEconomicsContent,
   forensicContent,
+  capitalReadinessContent,
   analysisId,
 }: ResultsAccordionSectionsProps) {
   return (
@@ -75,6 +77,20 @@ export function ResultsAccordionSections({
             </AccordionTrigger>
             <AccordionContent className="px-5 pb-5">
               {forensicContent}
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
+        {capitalReadinessContent && (
+          <AccordionItem value="capital-readiness" className={sectionStyle}>
+            <AccordionTrigger className={triggerStyle}>
+              <span className={labelStyle}>
+                <Shield className={iconStyle} />
+                Capital Readiness
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-5 pb-5">
+              {capitalReadinessContent}
             </AccordionContent>
           </AccordionItem>
         )}

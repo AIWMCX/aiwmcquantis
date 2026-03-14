@@ -1,113 +1,168 @@
 
 
-# Institutional Transformation — Pillars 1, 6, 7, 8 + OpEx Labor Model
+# CTO-Level Accuracy & Precision Upgrade Plan
 
-## Overview
+## Current State Assessment
 
-Add 5 infrastructure layers (source citations, benchmark freshness, capital readiness, coherence check, bottom-up OpEx) as new library files and UI components, then wire them into the existing results and form views.
+After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
 
-## New Library Files
+### What's Strong
+- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
+- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
+- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
+- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
+- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
+- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
 
-### `src/lib/benchmark-citations.ts`
-- `BenchmarkCitation` type: `{ source, reportName, reportDate, sampleSize, geographicScope, lastRefreshed, dataVersion }`
-- `SourcedMetric<T>` type wrapping any value with citation + `isEstimated` + `isStale` + `confidence`
-- `SOURCE_REGISTRY` map: translates `source` field values (e.g. `'kerry_dataset'`) into human-readable names + report IDs + sample sizes
-- `buildCitation(benchmark: IndustryBenchmark): BenchmarkCitation` — constructs from existing `source` + `lastUpdated` fields
-- `formatCitation(citation): string` → `"IBISWorld OD6113 · Q1 2025 · n=1,247"`
-- `formatCitationCompact(citation): string` → shorter version for table footers
+### Critical Gaps Identified
 
-### `src/lib/benchmark-freshness.ts`
-- `FRESHNESS_THRESHOLDS` by data category (30/90/365 days)
-- `FreshnessResult` type: `{ isStale, warningLevel, daysOld, colorToken }`
-- `checkFreshness(lastUpdated: string, category?: string): FreshnessResult`
-- `warningLevel`: `'fresh' | 'aging' | 'stale' | 'critical'`
-- `getFreshnessIcon(level): string` → `✓ / ⚠ / ⚡`
-- Used by citation rendering to append age badge
+**Gap 1: Two calculation engines, no shared precision**
+The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
 
-### `src/lib/coherence-check.ts`
-- `CoherenceFlag` type: `{ type, message, suggestion }`
-- `checkNarrativeCoherence(description, inputs, industryType): { passed, flags }`
-- Checks: premium language + low ARPU, volume language + high CAC, zero churn, luxury + high volume targets
-- Uses `BENCHMARK_DATABASE` p50 values for comparison thresholds
+**Gap 2: No cross-validation between the two server paths**
+`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
 
-### `src/lib/opex-calculator.ts`
-- `BottomUpOpEx` type: `{ labor, rent, utilities, insurance, supplies, marketing, total, userInputted, delta, deltaWarning }`
-- `STAFFING_MODELS` for 10+ industries: `coffee_shop`, `fitness_boutique`, `restaurant`, `retail`, `salon`, `spa`, `coworking`, `tutoring`, `cleaning`, `food_truck`
-- `BLS_WAGES` constants by MSA (Denver, LA, NYC, Chicago, etc.) with fallback national average
-- `estimateOpEx(industry, inputs, location): BottomUpOpEx`
-- `deltaWarning: boolean` when `|delta| / total > 0.25`
+**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
+The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
 
-### `src/lib/quantis-safety-levels.ts` — Extend
-- Add `CAPITAL_READINESS` map alongside existing `QSL_CONFIG`:
-  ```
-  [QSL.EXPLORATORY]: { fundingPath, verdict, whatMustChange, nextMilestone }
-  [QSL.PLANNING]: { ... }
-  [QSL.INVESTOR]: { ... }
-  [QSL.LOAN]: { ... }
-  ```
-- Export `getCapitalReadiness(score: number)` helper
-- No changes to existing functions/types
+**Gap 4: Benchmark data is static — no confidence degradation for stale data**
+The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
 
-## New UI Components
+**Gap 5: No sensitivity analysis**
+The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
 
-### `src/components/analysis/CapitalReadinessSection.tsx`
-- Props: `confidenceScore: number`
-- Uses `getCapitalReadiness()` to render: QSL badge, funding paths list, verdict paragraph, "what must change" bullet list, next milestone
-- Styled with `q-card` + left border matching QSL color
+---
 
-### `src/components/analysis/CoherenceFlags.tsx`
-- Props: `description: string, inputs: any, industryType: string`
-- Calls `checkNarrativeCoherence()` internally
-- If `passed`: renders nothing
-- If flags exist: renders each flag as a warning card with suggestion text
+## Plan: 5 High-Impact Upgrades
 
-### `src/components/analysis/OpExWarning.tsx`
-- Props: `industry: string, inputs: any, location: string, userOpEx: number`
-- Calls `estimateOpEx()` internally
-- If `deltaWarning` is false: renders nothing
-- If true: renders yellow/orange alert card showing bottom-up estimate vs user input with BLS source citation
+### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
 
-## Modified Files
+**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
 
-### `src/components/analysis/BeatMissEngine.tsx`
-- Import `buildCitation`, `formatCitationCompact`, `checkFreshness` from new libs
-- Replace hardcoded `"Proprietary Industry Benchmark Database"` source text with `formatCitationCompact(buildCitation(bm))`
-- Add freshness icon next to each row's source text
-- Update footer to show full citation with freshness badge
+**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
 
-### `src/components/analysis/CompetitiveMatrix.tsx`
-- Same pattern: replace `"Proprietary Industry Benchmark Database"` with formatted citation
-- Add freshness badge to footer
+- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
+- Use `npm:decimal.js` specifier per the project's edge function deployment standard
+- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
+- Refactor `computeFinancials` in `financial-engine.ts` the same way
+- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
 
-### `src/components/analysis/ResultsAccordionSections.tsx`
-- Add `capitalReadinessContent?: React.ReactNode` prop
-- Add new accordion section "Capital Readiness" with `Shield` icon, after Forensic Analysis
+**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
 
-### `src/components/analysis/AnalysisResults.tsx`
-- Import `CapitalReadinessSection`, `CoherenceFlags`
-- Add `CoherenceFlags` inside the existing `forensicContent` wrapper (after QoE)
-- Wire `capitalReadinessContent` prop with `<CapitalReadinessSection confidenceScore={result.confidence_score || 70} />`
-- Import `OpExWarning` — but note this goes in the form, not results (see below)
+### Upgrade 2: Cross-Validation Between Dual Engine Paths
 
-### `src/components/analysis/AdvancedFinancialInputs.tsx`
-- Import `OpExWarning`
-- Render `<OpExWarning>` below the monthly expenses field, passing `industryType`, user's expense input, and location
+**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
 
-## File Summary
+**Solution**: After both engines run, compare their outputs:
 
-| File | Change |
+```text
+compareEngineOutputs(strictResult, quantisResult) → {
+  agreementScore: 0-100,
+  divergences: [{ metric, pathA, pathB, delta% }],
+  finalOutput: "strict" | "quantis" | "merged"
+}
+```
+
+- If agreement > 95%: use strict result (higher audit trail fidelity)
+- If agreement 80-95%: use strict result + flag divergences in audit
+- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
+
+Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
+
+**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
+
+### Upgrade 3: AI Narrator Number Anchoring
+
+**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
+
+**Solution**: Enhance the system prompt and post-validation:
+
+1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
+```text
+IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
+- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
+DO NOT invent, estimate, or modify these numbers.
+```
+
+2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
+
+3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
+
+**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
+
+### Upgrade 4: Sensitivity Analysis Module
+
+**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
+
+**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
+
+```text
+sensitivityAnalysis(baseMetrics, benchmarks) → {
+  tornado: [
+    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
+    { variable: "CAC", ... },
+    { variable: "Churn Rate", ... },
+    { variable: "Fixed Costs", ... },
+  ],
+  mostSensitiveVariable: "Price",
+  leastSensitiveVariable: "Fixed Costs"
+}
+```
+
+This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
+
+**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
+
+### Upgrade 5: Benchmark Confidence Decay + Source Scoring
+
+**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
+
+**Solution**: Add a `computeBenchmarkConfidence()` function:
+
+```text
+confidence = base_score
+  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
+  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
+  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
+```
+
+This confidence feeds into:
+- The reliability score shown to users
+- The AI prompt (lower confidence → more hedging language)
+- The consensus evaluator thresholds (lower confidence → wider tolerance)
+
+**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+
+---
+
+## Implementation Priority
+
+| Order | Upgrade | Impact | Effort | Risk |
+|-------|---------|--------|--------|------|
+| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
+| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
+| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
+| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
+| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+
+## What This Does NOT Include (Flagged for Later)
+
+- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
+- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
+- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
+- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+
+## Files Changed Summary
+
+| File | Action |
 |------|--------|
-| `src/lib/benchmark-citations.ts` | New |
-| `src/lib/benchmark-freshness.ts` | New |
-| `src/lib/coherence-check.ts` | New |
-| `src/lib/opex-calculator.ts` | New |
-| `src/lib/quantis-safety-levels.ts` | Extend with CAPITAL_READINESS |
-| `src/components/analysis/CapitalReadinessSection.tsx` | New |
-| `src/components/analysis/CoherenceFlags.tsx` | New |
-| `src/components/analysis/OpExWarning.tsx` | New |
-| `src/components/analysis/BeatMissEngine.tsx` | Add citation + freshness |
-| `src/components/analysis/CompetitiveMatrix.tsx` | Add citation + freshness |
-| `src/components/analysis/ResultsAccordionSections.tsx` | Add Capital Readiness section |
-| `src/components/analysis/AnalysisResults.tsx` | Wire new components |
-| `src/components/analysis/AdvancedFinancialInputs.tsx` | Add OpExWarning |
+| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
+| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
+| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
+| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
+| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
+| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
+| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
+| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
+| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
 

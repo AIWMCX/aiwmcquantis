@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BenchmarkWarning } from './BenchmarkWarning';
+import { OpExWarning } from './OpExWarning';
 import { validateParamAgainstBenchmarks, autofillMissingParams, getBenchmark } from '@/lib/benchmark-calibrator';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
@@ -13,6 +14,7 @@ interface AdvancedFinancialInputsProps {
   onChange: (inputs: OptionalFinancialInputs) => void;
   disabled?: boolean;
   industryType?: string;
+  location?: string;
 }
 
 type NumericFinancialKeys = Exclude<keyof OptionalFinancialInputs, 'selected_industry'>;
@@ -119,6 +121,7 @@ export function AdvancedFinancialInputs({
   onChange,
   disabled = false,
   industryType,
+  location,
 }: AdvancedFinancialInputsProps) {
   const [isOpen, setIsOpen] = React.useState(false);
   const filledCount = countFilledFields(financialInputs);
@@ -234,6 +237,19 @@ export function AdvancedFinancialInputs({
                 </React.Fragment>
               ))}
             </div>
+
+            {/* Bottom-up OpEx validation */}
+            {industryType && location && financialInputs.monthly_costs && financialInputs.monthly_costs > 0 && (
+              <OpExWarning
+                industry={industryType}
+                inputs={{
+                  customers: financialInputs.expected_customers,
+                  revenue: financialInputs.monthly_revenue,
+                }}
+                location={location}
+                userOpEx={financialInputs.monthly_costs}
+              />
+            )}
 
             {/* Confidence Boost Pill */}
             {filledCount > 0 && (

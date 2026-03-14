@@ -36,6 +36,8 @@ import { BeatMissEngine } from './BeatMissEngine';
 import { QualityOfEarnings } from './QualityOfEarnings';
 import { CompetitiveMatrix } from './CompetitiveMatrix';
 import { KeyMetricSpotlight } from './KeyMetricSpotlight';
+import { CapitalReadinessSection } from './CapitalReadinessSection';
+import { CoherenceFlags } from './CoherenceFlags';
 import { RevenueChart } from './RevenueChart';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -386,7 +388,20 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             <div className="space-y-4">
               <BeatMissEngine result={result} />
               <QualityOfEarnings result={result} />
+              <CoherenceFlags
+                description={result.metadata.idea || ''}
+                inputs={{
+                  arpu: result.financial_analysis?.inputs?.price_per_unit,
+                  cac: result.financial_analysis?.unit_economics?.cac,
+                  churnRate: result.financial_analysis?.inputs?.churn_rate,
+                  expectedCustomers: (result.financial_analysis?.inputs as any)?.expected_customers,
+                }}
+                industryType={result.metadata.industry_detected || 'default'}
+              />
             </div>
+          }
+          capitalReadinessContent={
+            <CapitalReadinessSection confidenceScore={result.confidence_score || 70} />
           }
           analysisId={analysisId}
         />

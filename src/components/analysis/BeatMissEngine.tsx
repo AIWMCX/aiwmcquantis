@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
+import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
+import { checkFreshness, getFreshnessIcon, getFreshnessLabel } from '@/lib/benchmark-freshness';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { cn } from '@/lib/utils';
 
@@ -76,6 +78,12 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       }
 
       const { verdict, deltaPct } = classify(item.value, effectiveP50, item.higherBetter);
+      const citation = bm ? buildCitation(bm) : null;
+      const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
+      const sourceText = citation
+        ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
+        : 'Derived';
+
       return {
         label: item.label,
         userValue: item.value,
@@ -84,7 +92,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         unit: item.unit,
         verdict,
         deltaPct,
-        source: bm?.source === 'kerry_dataset' ? 'Proprietary Industry Benchmark Database' : (bm?.source || 'Derived'),
+        source: sourceText,
       };
     });
   }, [result]);
