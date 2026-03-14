@@ -2009,24 +2009,58 @@ function generateDeterministicFallbackResult(
       first_3_months_plan: `Month 1: Execute soft launch with founding customers, validate product-market fit, optimize operations based on feedback. Target: 20-30 paying customers. Month 2: Activate paid advertising channels, launch referral program, begin content marketing. Target: 50-70 customers, establish CAC baselines. Month 3: Scale successful channels, optimize underperformers, hire additional team if needed. Target: 100+ customers, achieve unit economics targets.`
     }),
     market_json: JSON.stringify({
-      tam: `Total Addressable Market for ${benchmarks.name} in the broader region represents a multi-billion dollar opportunity globally, with consistent growth driven by increasing consumer demand and market maturation.`,
-      sam: `Serviceable Available Market in the ${location} area and surrounding regions represents approximately $50-200M in annual spending, depending on market density and demographic factors.`,
+      tam: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `The global ${benchmarks.name} market represents a multi-billion dollar opportunity, driven by enterprise digital transformation, workflow automation demand, and increasing software adoption across industries.`
+          : `Total Addressable Market for ${benchmarks.name} in the broader region represents a multi-billion dollar opportunity globally, with consistent growth driven by increasing consumer demand and market maturation.`;
+      })(),
+      sam: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Serviceable Available Market targets ${benchmarks.name} buyers in North America and ${location}-adjacent markets, representing approximately $500M-$2B in annual software spending for this category.`
+          : `Serviceable Available Market in the ${location} area represents approximately $50-200M in annual spending, depending on market density and demographic factors.`;
+      })(),
       som: `Serviceable Obtainable Market targets realistic first-year revenue of $${(monthlyRevenue * 12).toLocaleString()} based on capacity constraints and market penetration assumptions. Year 2-3 growth targets 50-100% annually.`,
-      trends: [
-        "Digital transformation accelerating customer expectations for convenience and transparency",
-        "Increasing preference for local, trusted service providers over large national chains",
-        "Growing focus on customer experience as a key differentiator in competitive markets",
-        `Economic factors in ${location} creating opportunities for value-focused offerings`
-      ],
-      competitors: [
-        { name: "Established Local Provider", strengths: "Market presence, customer relationships", weaknesses: "Outdated operations, poor digital experience" },
-        { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service, higher overhead" },
-        { name: "Emerging Competitors", strengths: "Fresh approach, low costs", weaknesses: "Unproven, limited track record" }
-      ],
-      competitive_landscape: `The ${benchmarks.name} market in ${location} is moderately competitive with a mix of established players and emerging alternatives. Opportunity exists for differentiated offerings that combine quality with modern customer experience expectations.`,
-      market_gaps: `Underserved segments include busy professionals seeking convenience, quality-conscious customers frustrated with inconsistent service, and digitally-savvy consumers expecting modern service delivery.`,
-      barriers_to_entry: `Initial capital requirements of $${investmentAmount.toLocaleString()}, time to build customer trust and reputation, competitive response from established players, and operational complexity.`,
-      growth_opportunities: `Geographic expansion within ${location} region, service line extensions, strategic partnerships with complementary businesses, and technology-enabled scaling.`
+      trends: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? [
+              "Enterprise AI adoption accelerating demand for intelligent automation platforms",
+              "Shift from point solutions to integrated platforms reducing tool sprawl",
+              "Growing demand for API-first, composable software architectures",
+              `${location} emerging as a technology hub with growing talent pool and enterprise customers`
+            ]
+          : [
+              "Digital transformation accelerating customer expectations for convenience and transparency",
+              "Increasing preference for local, trusted service providers over large national chains",
+              "Growing focus on customer experience as a key differentiator in competitive markets",
+              `Economic factors in ${location} creating opportunities for value-focused offerings`
+            ];
+      })(),
+      competitors: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? [
+              { name: "Incumbent Enterprise Solutions", strengths: "Market share, brand trust, enterprise relationships", weaknesses: "Legacy architecture, slow innovation, high pricing" },
+              { name: "Well-Funded SaaS Startups", strengths: "Modern UX, venture capital, fast iteration", weaknesses: "Unproven at scale, feature gaps, high burn rate" },
+              { name: "Open-Source Alternatives", strengths: "Free tier, developer community, transparency", weaknesses: "No enterprise support, fragmented, integration complexity" }
+            ]
+          : [
+              { name: "Established Local Provider", strengths: "Market presence, customer relationships", weaknesses: "Outdated operations, poor digital experience" },
+              { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service, higher overhead" },
+              { name: "Emerging Competitors", strengths: "Fresh approach, low costs", weaknesses: "Unproven, limited track record" }
+            ];
+      })(),
+      competitive_landscape: `The ${benchmarks.name} market is moderately competitive with a mix of established players and emerging alternatives. Opportunity exists for differentiated offerings that combine ${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'superior technology with ease of use' : 'quality with modern customer experience expectations'}.`,
+      market_gaps: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Underserved segments include mid-market companies too large for basic tools but too small for enterprise solutions, teams needing vertical-specific workflows, and organizations seeking AI-native platforms.`
+          : `Underserved segments include busy professionals seeking convenience, quality-conscious customers frustrated with inconsistent service, and digitally-savvy consumers expecting modern service delivery.`;
+      })(),
+      barriers_to_entry: `Initial capital requirements of $${investmentAmount.toLocaleString()}, ${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'technical complexity, time to achieve product-market fit, and competitive response from well-funded incumbents' : 'time to build customer trust and reputation, competitive response from established players, and operational complexity'}.`,
+      growth_opportunities: `${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'Product-led growth expansion, enterprise tier upselling, API marketplace partnerships, and international market entry' : `Geographic expansion within ${location} region, service line extensions, strategic partnerships with complementary businesses, and technology-enabled scaling`}.`
     }),
     sources: "Industry benchmarks, market analysis, location intelligence",
     limitations: "Analysis based on industry averages; actual results may vary based on execution"
