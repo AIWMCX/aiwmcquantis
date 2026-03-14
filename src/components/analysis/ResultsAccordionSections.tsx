@@ -25,6 +25,7 @@ export function ResultsAccordionSections({
   marketContent,
   unitEconomicsContent,
   forensicContent,
+  capitalReadinessContent,
   analysisId,
 }: ResultsAccordionSectionsProps) {
   return (
