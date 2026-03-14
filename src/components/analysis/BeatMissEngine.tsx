@@ -78,20 +78,12 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       }
 
       const { verdict, deltaPct } = classify(item.value, effectiveP50, item.higherBetter);
-      return {
-        label: item.label,
-        userValue: item.value,
-        p50: effectiveP50,
-        p75: effectiveP75,
-        unit: item.unit,
-        verdict,
-        deltaPct,
-        const citation = bm ? buildCitation(bm) : null;
-        const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
-        const sourceText = citation
-          ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
-          : 'Derived';
-      };
+      const citation = bm ? buildCitation(bm) : null;
+      const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
+      const sourceText = citation
+        ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
+        : 'Derived';
+
       return {
         label: item.label,
         userValue: item.value,
@@ -102,6 +94,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         deltaPct,
         source: sourceText,
       };
+    });
   }, [result]);
 
   const beatCount = rows.filter(r => r.verdict === 'BEAT').length;
