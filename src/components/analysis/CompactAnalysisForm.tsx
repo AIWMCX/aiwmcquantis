@@ -303,7 +303,7 @@ export function CompactAnalysisForm({
             style={{ background: 'var(--q-status-ai-bg)', border: '1px solid var(--q-status-ai-border)', color: 'var(--q-status-ai)' }}>
             ⚡ DUAL-AI · GPT-4o mini + GEMINI
           </span>
-          <h1 className="text-[26px] font-bold leading-tight" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
+          <h1 className="text-[22px] sm:text-[26px] font-bold leading-tight" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
             Stress-test your business idea
           </h1>
           <p className="text-[13px] mt-0.5" style={{ color: 'var(--q-text-tertiary)' }}>
