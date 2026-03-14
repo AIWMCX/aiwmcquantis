@@ -2298,12 +2298,13 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         };
       })(),
       monthly_expenses: (() => {
-        // CRITICAL FIX: Use expense breakdown as source of truth, ensure total = sum
-        const breakdown = {
+        // INDUSTRY-AWARE: Use appropriate label for COGS based on industry type
+        const cogsLabel = INDUSTRY_COGS_LABELS[benchmarks.id] || INDUSTRY_COGS_LABELS.general;
+        const breakdown: Record<string, number> = {
           rent: calc.expenses.rent,
           utilities: calc.expenses.utilities,
           salaries: calc.expenses.salaries,
-          inventory_replenishment: calc.expenses.cogs,
+          [cogsLabel]: calc.expenses.cogs,
           marketing: calc.expenses.marketing,
           other: calc.expenses.other
         };
