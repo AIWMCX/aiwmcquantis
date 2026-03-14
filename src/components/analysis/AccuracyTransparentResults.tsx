@@ -205,7 +205,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         <span className="shrink-0 w-5 h-5 rounded-full bg-[var(--q-status-red)] text-white flex items-center justify-center text-[10px] font-bold mt-0.5">{i + 1}</span>
                         <div>
                           <p className="font-medium text-foreground">{insight.headline}</p>
-                          {insight.detail && <p className="text-xs text-muted-foreground mt-0.5">{insight.detail}</p>}
+                          {insight.explanation && <p className="text-xs text-muted-foreground mt-0.5">{insight.explanation}</p>}
                         </div>
                       </li>
                     ))}
