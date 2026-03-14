@@ -95,3 +95,66 @@ export function getQSLConfig(score: number): QSLConfig {
 export function shouldPulse(level: QSL): boolean {
   return level === QSL.INVESTOR || level === QSL.LOAN;
 }
+
+// ─── Capital Readiness Layer ─────────────────────────────────
+
+export interface CapitalReadiness {
+  fundingPath: string[];
+  verdict: string;
+  whatMustChange: string[];
+  nextMilestone: string;
+}
+
+export const CAPITAL_READINESS: Record<QSL, CapitalReadiness> = {
+  [QSL.EXPLORATORY]: {
+    fundingPath: ['Friends & Family', 'Self-Funding', 'Microloans'],
+    verdict: 'Exploratory. Not ready for external capital conversations.',
+    whatMustChange: [
+      'Increase confidence to 70%+: add financial inputs (CAC, churn, pricing)',
+      'Validate core assumptions with market research',
+      'Complete at least 5 of 7 advanced financial fields',
+    ],
+    nextMilestone: 'Reach QSL-2 Planning Grade (70%+ confidence)',
+  },
+  [QSL.PLANNING]: {
+    fundingPath: ['SBDC Loan', 'SBA Microloan', 'Local Angel Investors', 'Crowdfunding'],
+    verdict: 'Planning grade. Suitable for SBDC counselors and early angel conversations.',
+    whatMustChange: [
+      'Provide break-even path below Month 16',
+      'Demonstrate LTV:CAC above 5×',
+      'Add location-specific cost validation',
+    ],
+    nextMilestone: 'Reach QSL-3 Investor Grade (85%+ confidence)',
+  },
+  [QSL.INVESTOR]: {
+    fundingPath: ['Angel Investors', 'Pre-Seed Funds', 'Accelerators', 'SBA 7(a) Loan'],
+    verdict: 'Investor grade. Analysis meets projection standards for early funding discussions.',
+    whatMustChange: [
+      'Add founder credentials and team experience',
+      'Validate market size with primary research',
+      'Include competitive differentiation evidence',
+    ],
+    nextMilestone: 'Expert CPA review for formal loan applications',
+  },
+  [QSL.LOAN]: {
+    fundingPath: ['Bank SBA Loans', 'USDA Business Loans', 'Credit Union Business Loans', 'Commercial Lines of Credit'],
+    verdict: 'Loan-grade projection quality. Requires CPA validation before submission.',
+    whatMustChange: [
+      'Obtain CPA review and validation letter',
+      'Prepare supporting documentation package',
+    ],
+    nextMilestone: 'External CPA validation → ready for formal applications',
+  },
+};
+
+/**
+ * Get capital readiness information based on confidence score
+ */
+export function getCapitalReadiness(score: number): CapitalReadiness & { qsl: QSL; config: QSLConfig } {
+  const qsl = getQSLFromConfidence(score);
+  return {
+    ...CAPITAL_READINESS[qsl],
+    qsl,
+    config: QSL_CONFIG[qsl],
+  };
+}
