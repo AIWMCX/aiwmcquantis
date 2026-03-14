@@ -38,79 +38,125 @@ function linearMap(value: number, inMin: number, inMax: number): number {
   return clamp(((value - inMin) / (inMax - inMin)) * 100);
 }
 
+const INDUSTRY_TYPES = new Set(BENCHMARK_DATABASE.map((b) => b.industryType));
+
+function normalizePercent(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return value <= 1 ? value * 100 : value;
+}
+
+function normalizeIndustryType(industryRaw?: string): string {
+  const value = (industryRaw || '').toLowerCase();
+  const slug = value
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/^_+|_+$/g, '');
+
+  if (slug && INDUSTRY_TYPES.has(slug)) return slug;
+
+  if (value.includes('saas') || value.includes('software') || value.includes('ai')) return 'saas_b2b';
+  if (value.includes('coffee') || value.includes('cafe')) return 'coffee_shop';
+  if (value.includes('restaurant') || value.includes('food')) return 'restaurant';
+  if (value.includes('consult')) return 'consulting';
+  if (value.includes('marketplace')) return 'marketplace';
+  if (value.includes('e-commerce') || value.includes('ecommerce')) return 'ecommerce';
+  if (value.includes('retail')) return 'retail';
+
+  return 'service_business';
+}
+
 function getBenchmarkP50(industryType: string, param: string): number {
   const entry = BENCHMARK_DATABASE.find(
-    b => b.industryType === industryType && b.parameter === param
+    (b) => b.industryType === industryType && b.parameter === param
   );
   return entry?.p50 ?? 0;
 }
 
+function scoreLtvCac(ltvCacRatio: number): number {
+  if (ltvCacRatio <= 1) return linearMap(ltvCacRatio, 0, 1) * 0.3;
+  if (ltvCacRatio <= 3) return 30 + linearMap(ltvCacRatio, 1, 3) * 0.3;
+  if (ltvCacRatio <= 6) return 60 + linearMap(ltvCacRatio, 3, 6) * 0.25;
+  return 85 + linearMap(Math.min(ltvCacRatio, 10), 6, 10) * 0.15;
+}
+
 export function calculateStressScores(result: BusinessAnalysisResult): StressMapProps {
-  const industry = result.metadata?.industry_detected || 'service_business';
+  const industry = normalizeIndustryType(result.metadata?.industry_detected || result.validation?.industry_detected);
 
-  // Margin Score: gross margin vs benchmark p50
-  const grossMargin = result.financial_analysis?.scenarios?.base?.gross_margin ?? 0;
-  const benchmarkMargin = getBenchmarkP50(industry, 'gross_margin') || 50;
-  const marginScore = clamp((grossMargin / benchmarkMargin) * 70 + 15);
+  const grossMarginRaw = result.financial_analysis?.scenarios?.base?.gross_margin ?? 0;
+  const grossMargin = normalizePercent(grossMarginRaw);
+  const benchmarkMargin = getBenchmarkP50(industry, 'gross_margin') || 60;
+  const marginGap = grossMargin - benchmarkMargin;
+  const marginScore = clamp(50 + marginGap * 2);
 
-  // Capital Score: runway months (< 3 = 0, > 18 = 100)
   const totalInvestment = result.financial_analysis?.startup_investment?.total ?? 0;
-  const monthlyExpenses = result.financial_analysis?.monthly_expenses?.total ?? 1;
+  const monthlyExpenses = Math.max(result.financial_analysis?.monthly_expenses?.total ?? 0, 1);
   const monthlyProfit = result.financial_analysis?.scenarios?.base?.net_profit ?? 0;
-  const burnRate = Math.max(monthlyExpenses - (result.financial_analysis?.mrr ?? 0), 1);
-  const runwayMonths = monthlyProfit >= 0 ? 24 : totalInvestment / burnRate;
-  const capitalScore = linearMap(runwayMonths, 3, 18);
+  const revenue = Math.max(result.financial_analysis?.mrr ?? 0, 1);
+  
 
-  // Market Score: LTV/CAC ratio (< 1 = 0, > 3 = 100)
+  const profitCoverage = monthlyProfit / monthlyExpenses;
+  const runwayMonths = monthlyProfit >= 0
+    ? 18 + Math.max(0, profitCoverage) * 12
+    : totalInvestment / Math.max(Math.abs(monthlyProfit), 1);
+  const capitalScore = monthlyProfit >= 0
+    ? clamp(55 + clamp(profitCoverage * 45, 0, 45))
+    : linearMap(runwayMonths, 2, 18);
+
   const ltvCacRatio = result.financial_analysis?.unit_economics?.ltv_cac_ratio ?? 0;
-  const marketScore = linearMap(ltvCacRatio, 1, 3);
+  const marketScore = clamp(scoreLtvCac(ltvCacRatio));
 
-  // Operations Score: burn rate + payroll as % of revenue
-  const revenue = result.financial_analysis?.mrr ?? 1;
   const payroll = result.financial_analysis?.monthly_expenses?.breakdown?.salaries ?? 0;
-  const payrollPct = (payroll / Math.max(revenue, 1)) * 100;
-  const burnRatio = burnRate / Math.max(revenue, 1);
-  const opsFromPayroll = payrollPct < 30 ? 80 : payrollPct < 50 ? 60 : payrollPct < 70 ? 40 : 20;
-  const opsFromBurn = burnRatio < 0.3 ? 80 : burnRatio < 0.6 ? 60 : burnRatio < 1 ? 40 : 20;
-  const operationsScore = clamp((opsFromPayroll * 0.5 + opsFromBurn * 0.5));
+  const payrollPct = (payroll / revenue) * 100;
+  const opexRatio = monthlyExpenses / revenue;
+  const payrollTarget = industry.startsWith('saas') ? 25 : 35;
+  const opsFromPayroll = clamp(100 - Math.abs(payrollPct - payrollTarget) * 1.8);
+  const opsFromOpex = clamp(120 - opexRatio * 100);
+  const opsFromBurn = monthlyProfit >= 0
+    ? clamp(70 + (monthlyProfit / revenue) * 30)
+    : clamp(50 - (Math.abs(monthlyProfit) / monthlyExpenses) * 60);
+  const operationsScore = clamp(opsFromPayroll * 0.4 + opsFromOpex * 0.35 + opsFromBurn * 0.25);
 
-  // Overall: weighted average, inverted (high score = low risk → high riskIndex = bad)
+  const insightList = result.actionable_insights?.insights || [];
+  const dangerCount = insightList.filter((insight) => insight.status === 'danger').length;
+  const warningCount = insightList.filter((insight) => insight.status === 'warning').length;
+  const validationWarnings = result.validation?.warnings || [];
+  const errorWarnings = validationWarnings.filter((warning) => warning.severity === 'error').length;
+  const confidence = result.confidence_score ?? 70;
+
   const healthScore = marketScore * 0.30 + marginScore * 0.25 + capitalScore * 0.25 + operationsScore * 0.20;
-  const overallRiskIndex = clamp(100 - healthScore);
+  const confidencePenalty = clamp((85 - confidence) * 0.4, 0, 20);
+  const warningPenalty = Math.min(dangerCount * 8 + warningCount * 4 + errorWarnings * 5, 24);
+  const overallRiskIndex = clamp(100 - healthScore + confidencePenalty + warningPenalty);
 
-  // Explanations
   const explanations = {
-    market: ltvCacRatio >= 3
-      ? `Strong unit economics with ${ltvCacRatio.toFixed(1)}x LTV:CAC`
-      : ltvCacRatio >= 1
-      ? `LTV:CAC at ${ltvCacRatio.toFixed(1)}x — room for improvement`
-      : `LTV:CAC below 1x — acquisition costs exceed lifetime value`,
-    margin: grossMargin >= benchmarkMargin
-      ? `Margins at ${grossMargin.toFixed(0)}% exceed industry median of ${benchmarkMargin.toFixed(0)}%`
-      : `Margins at ${grossMargin.toFixed(0)}% are below industry median of ${benchmarkMargin.toFixed(0)}%`,
-    capital: runwayMonths >= 18
-      ? `Strong runway of ${Math.round(runwayMonths)}+ months`
-      : runwayMonths >= 6
-      ? `${Math.round(runwayMonths)} months runway — monitor cash flow`
-      : `Only ${Math.round(runwayMonths)} months runway — critical`,
-    operations: payrollPct < 40
-      ? `Lean operations with ${payrollPct.toFixed(0)}% payroll ratio`
-      : `Payroll at ${payrollPct.toFixed(0)}% of revenue — consider optimizing`,
+    market: ltvCacRatio >= 4
+      ? `Unit economics at ${ltvCacRatio.toFixed(1)}x LTV:CAC are strong`
+      : ltvCacRatio >= 2
+      ? `LTV:CAC at ${ltvCacRatio.toFixed(1)}x is workable but fragile`
+      : `LTV:CAC at ${ltvCacRatio.toFixed(1)}x is below healthy range`,
+    margin: marginGap >= 0
+      ? `Gross margin ${grossMargin.toFixed(0)}% is +${Math.abs(marginGap).toFixed(0)} pts vs industry median ${benchmarkMargin.toFixed(0)}%`
+      : `Gross margin ${grossMargin.toFixed(0)}% is ${Math.abs(marginGap).toFixed(0)} pts below industry median ${benchmarkMargin.toFixed(0)}%`,
+    capital: monthlyProfit >= 0
+      ? `Positive cash generation with ~${Math.round(runwayMonths)} months equivalent safety`
+      : `Runway around ${Math.round(runwayMonths)} months at current burn`,
+    operations: payrollPct <= payrollTarget + 8
+      ? `Operational load is controlled (${payrollPct.toFixed(0)}% payroll ratio)`
+      : `Payroll pressure is high at ${payrollPct.toFixed(0)}% of revenue`,
   };
 
   const recommendations = {
     market: ltvCacRatio < 3
-      ? `→ Reduce CAC through organic channels or increase retention`
-      : `→ Maintain acquisition efficiency, explore new channels`,
-    margin: grossMargin < benchmarkMargin
-      ? `→ Renegotiate supplier costs or adjust pricing upward`
-      : `→ Protect margins as you scale — avoid discounting`,
-    capital: runwayMonths < 12
-      ? `→ Secure additional funding or reduce monthly burn`
-      : `→ Deploy capital strategically into growth levers`,
-    operations: payrollPct > 40
-      ? `→ Automate repetitive tasks, consider fractional hires`
-      : `→ Invest in key hires to support growth phase`,
+      ? `→ Improve retention or lower CAC before scaling acquisition`
+      : `→ Keep channel efficiency high while expanding pipeline`,
+    margin: marginGap < 0
+      ? `→ Reprice or reduce delivery costs to recover margin`
+      : `→ Protect margin discipline during growth`,
+    capital: monthlyProfit < 0 || runwayMonths < 9
+      ? `→ Extend runway with cost cuts or bridge funding`
+      : `→ Reinvest surplus into growth with controlled burn`,
+    operations: payrollPct > payrollTarget + 10
+      ? `→ Automate low-leverage tasks and rebalance staffing mix`
+      : `→ Scale hiring only as utilization thresholds are hit`,
   };
 
   return {
@@ -163,13 +209,13 @@ function getScoreStyle(score: number): ScoreStyle {
     };
   }
   if (score <= 85) {
-    return {
-      text: 'text-[#6EE7B7]',
-      bar: 'bg-[#6EE7B7]',
-      bg: 'bg-[rgba(16,185,129,0.06)]',
-      border: 'border-l-[#6EE7B7]',
-      label: 'Good',
-    };
+      return {
+        text: 'text-[var(--q-status-green-light)]',
+        bar: 'bg-[var(--q-status-green-light)]',
+        bg: 'bg-[var(--q-status-green-bg)]',
+        border: 'border-l-[var(--q-status-green-light)]',
+        label: 'Good',
+      };
   }
   return {
     text: 'text-[var(--q-status-green)]',

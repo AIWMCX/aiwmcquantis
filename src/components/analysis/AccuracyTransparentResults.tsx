@@ -27,6 +27,11 @@ interface AccuracyTransparentResultsProps {
   onReset?: () => void;
 }
 
+const normalizePercent = (value?: number): number => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return value <= 1 ? value * 100 : value;
+};
+
 export function AccuracyTransparentResults({ result, analysisId, onReset }: AccuracyTransparentResultsProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [prevStep, setPrevStep] = useState(1);
@@ -130,7 +135,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     return {
       monthlyRevenue: revenue,
       netProfit: scenarioMetrics.profit,
-      grossMargin: financials?.scenarios?.base?.gross_margin || 0,
+      grossMargin: normalizePercent(financials?.scenarios?.base?.gross_margin),
       ltvCac: financials?.unit_economics?.ltv_cac_ratio || 0,
       breakEven: breakEvenMonths,
       runway: cashRunwayMonths,
@@ -182,7 +187,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <verdict.Icon className="w-7 h-7 shrink-0 mt-0.5" style={{ color: verdict.color }} />
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ color: 'white', backgroundColor: verdict.color }}>{verdict.label}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ color: 'hsl(var(--primary-foreground))', backgroundColor: verdict.color }}>{verdict.label}</span>
                     <TrafficLightBadge confidenceScore={confidence} size="md" />
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{verdict.description}</p>
@@ -244,7 +249,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   />
                   <SimpleMetricCard 
                     title="Gross Margin %" 
-                    value={`${(metrics.grossMargin * 100).toFixed(1)}%`}
+                    value={`${metrics.grossMargin.toFixed(1)}%`}
                     variant="standard"
                   />
                   <SimpleMetricCard 
