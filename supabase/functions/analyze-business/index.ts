@@ -273,6 +273,32 @@ interface IndustryBenchmarks {
   keywords: string[];
 }
 
+// ========== INDUSTRY COST LABEL MAP ==========
+// Maps industry IDs to the appropriate label for COGS in reports
+// Software companies don't have "inventory" — they have infrastructure/hosting costs
+const INDUSTRY_COGS_LABELS: Record<string, string> = {
+  saas: 'infrastructure_and_hosting',
+  fintech: 'infrastructure_and_hosting',
+  education: 'content_and_platform',
+  media: 'content_production',
+  consulting: 'service_delivery',
+  healthcare: 'medical_supplies',
+  fitness: 'equipment_and_supplies',
+  food_service: 'inventory_replenishment',
+  ecommerce: 'inventory_replenishment',
+  logistics: 'fleet_and_fuel',
+  real_estate: 'property_costs',
+  general: 'cost_of_goods_sold',
+};
+
+// Maps industry IDs to investment categories (no "inventory" for software)
+const INDUSTRY_INVESTMENT_CATEGORIES: Record<string, { labels: Record<string, number> }> = {
+  saas: { labels: { product_development: 0.40, cloud_infrastructure: 0.15, legal: 0.05, marketing_initial: 0.10 } },
+  fintech: { labels: { product_development: 0.35, compliance_and_licensing: 0.15, cloud_infrastructure: 0.10, legal: 0.10, marketing_initial: 0.10 } },
+  consulting: { labels: { office_setup: 0.20, tools_and_software: 0.15, legal: 0.10, marketing_initial: 0.15 } },
+  education: { labels: { content_development: 0.35, platform_setup: 0.15, legal: 0.05, marketing_initial: 0.15 } },
+};
+
 const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
   {
     id: 'saas',
@@ -293,7 +319,7 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     ltv_cac_max: 8,
     net_margin_min: 15,
     net_margin_max: 40,
-    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard']
+    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard', 'neural', 'ai ', 'artificial intelligence', 'machine learning', 'deep learning', 'ml ', 'data analytics', 'analytics platform', 'intelligence', 'operation system', 'operating system', 'b2b software', 'enterprise software', 'devops', 'infrastructure', 'crm', 'erp', 'workflow', 'productivity', 'management system', 'management platform', 'system for']
   },
   {
     id: 'ecommerce',
@@ -1938,11 +1964,39 @@ function generateDeterministicFallbackResult(
       equipment: Math.round(investmentAmount * 0.35)
     }),
     business_json: JSON.stringify({
-      executive_summary: `This ${benchmarks.name} business opportunity in ${location} presents a compelling investment case based on industry benchmarks and market analysis. With a projected monthly revenue of $${monthlyRevenue.toLocaleString()} and an initial investment of $${investmentAmount.toLocaleString()}, the business targets the growing demand in the ${location} market.\n\nThe ${benchmarks.name} industry shows average net margins of ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}%, with customer lifetime values ranging from $${benchmarks.ltv_min?.toLocaleString() || ltvValue.toLocaleString()} to $${benchmarks.ltv_max?.toLocaleString() || (ltvValue * 2).toLocaleString()}. The LTV:CAC ratio potential of ${Math.round(ltvValue / cacValue)}:1 indicates healthy unit economics when customer acquisition is optimized.\n\nKey success factors include building strong customer relationships, optimizing operational efficiency, and maintaining competitive differentiation. The phased launch approach minimizes risk while allowing for iterative improvements based on real market feedback. Location-specific factors in ${location} have been incorporated into financial projections.`,
-      product_description: `A ${benchmarks.name} offering designed to meet the specific needs of customers in the ${location} market. The product/service delivers measurable value through quality, convenience, and customer-centric design. Pricing is set at an average of $${avgCheck.toLocaleString()} per transaction, aligned with market expectations and competitive positioning. The delivery model is optimized for scalability while maintaining service quality.`,
-      target_audience: `Primary target customers in ${location} who are seeking high-quality ${benchmarks.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience. Psychographic profile: busy professionals and families looking for reliable service providers. Key pain points include inconsistent quality from competitors, inconvenient service delivery, and lack of personalized attention.`,
-      competitive_advantages: `1) Customer-centric approach with personalized service delivery. 2) Operational efficiency enabling competitive pricing without sacrificing margins. 3) Technology-enabled processes for superior customer experience. 4) Strong local market knowledge and ${location}-specific expertise. 5) Commitment to continuous improvement based on customer feedback.`,
-      operations: `The operational model focuses on efficiency and scalability. Initial team structure includes core operations staff with clear roles and responsibilities. Technology stack leverages modern tools for customer management, operations, and analytics. Standard operating procedures ensure consistent quality delivery. Supplier relationships are established for reliable inventory/resource management. Quality control processes are built into every customer touchpoint.`,
+      executive_summary: (() => {
+        // Use margin-adjusted, capped LTV:CAC ratio — same formula as strict calculator
+        const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
+        const adjustedLtv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
+        const cappedLtvCacRatio = Math.min(Math.round((adjustedLtv / cacValue) * 10) / 10, benchmarks.ltv_cac_max);
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        
+        return `This ${benchmarks.name} opportunity in ${location} presents a ${cappedLtvCacRatio >= 3 ? 'compelling' : 'moderate'} investment case based on industry benchmarks and market analysis. With projected monthly revenue of $${monthlyRevenue.toLocaleString()} and an initial investment of $${investmentAmount.toLocaleString()}, the business targets the ${isSoftware ? 'growing digital demand' : 'growing demand'} in the ${location} market.\n\nThe ${benchmarks.name} industry shows typical net margins of ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}%, with a target LTV:CAC ratio of ${cappedLtvCacRatio}x — indicating ${cappedLtvCacRatio >= 3 ? 'healthy' : 'developing'} unit economics when customer acquisition is optimized.\n\nKey success factors include ${isSoftware ? 'product-market fit, scalable architecture, and efficient customer onboarding' : 'building strong customer relationships, optimizing operational efficiency, and maintaining competitive differentiation'}. The phased launch approach minimizes risk while allowing for iterative improvements based on real market feedback.`;
+      })(),
+      product_description: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `A ${benchmarks.name} product built to solve specific workflow challenges for its target market. The platform delivers measurable value through automation, efficiency gains, and data-driven insights. Pricing is set at $${avgCheck.toLocaleString()}/month per user, aligned with market expectations. The delivery model leverages cloud infrastructure for instant scalability.`
+          : `A ${benchmarks.name} offering designed to meet the specific needs of customers in the ${location} market. The product/service delivers measurable value through quality, convenience, and customer-centric design. Pricing is set at an average of $${avgCheck.toLocaleString()} per transaction, aligned with market expectations and competitive positioning.`;
+      })(),
+      target_audience: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Primary target: businesses and professionals in the ${location} region seeking ${benchmarks.name.toLowerCase()} solutions to streamline operations. Demographics include decision-makers at SMBs and mid-market companies. Key pain points include manual processes, lack of real-time visibility, and fragmented tooling.`
+          : `Primary target customers in ${location} who are seeking high-quality ${benchmarks.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience. Key pain points include inconsistent quality from competitors and lack of personalized attention.`;
+      })(),
+      competitive_advantages: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `1) Purpose-built solution for specific workflows vs. generic alternatives. 2) Scalable cloud architecture enabling rapid feature iteration. 3) Data-driven insights providing measurable ROI to customers. 4) Lower total cost of ownership vs. incumbent solutions. 5) Modern UX reducing onboarding friction and driving retention.`
+          : `1) Customer-centric approach with personalized service delivery. 2) Operational efficiency enabling competitive pricing without sacrificing margins. 3) Technology-enabled processes for superior customer experience. 4) Strong local market knowledge and ${location}-specific expertise. 5) Commitment to continuous improvement based on customer feedback.`;
+      })(),
+      operations: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `The operational model centers on product development and customer success. Engineering team maintains the core platform with CI/CD deployment pipelines. Customer success handles onboarding, support, and retention. Infrastructure runs on cloud providers (AWS/GCP) with automated scaling. Monitoring and alerting ensure 99.9% uptime targets.`
+          : `The operational model focuses on efficiency and scalability. Initial team structure includes core operations staff with clear roles and responsibilities. Technology stack leverages modern tools for customer management, operations, and analytics. Standard operating procedures ensure consistent quality delivery.`;
+      })(),
       launch_steps: launchSteps,
       risks: risks
     }),
@@ -1955,24 +2009,58 @@ function generateDeterministicFallbackResult(
       first_3_months_plan: `Month 1: Execute soft launch with founding customers, validate product-market fit, optimize operations based on feedback. Target: 20-30 paying customers. Month 2: Activate paid advertising channels, launch referral program, begin content marketing. Target: 50-70 customers, establish CAC baselines. Month 3: Scale successful channels, optimize underperformers, hire additional team if needed. Target: 100+ customers, achieve unit economics targets.`
     }),
     market_json: JSON.stringify({
-      tam: `Total Addressable Market for ${benchmarks.name} in the broader region represents a multi-billion dollar opportunity globally, with consistent growth driven by increasing consumer demand and market maturation.`,
-      sam: `Serviceable Available Market in the ${location} area and surrounding regions represents approximately $50-200M in annual spending, depending on market density and demographic factors.`,
+      tam: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `The global ${benchmarks.name} market represents a multi-billion dollar opportunity, driven by enterprise digital transformation, workflow automation demand, and increasing software adoption across industries.`
+          : `Total Addressable Market for ${benchmarks.name} in the broader region represents a multi-billion dollar opportunity globally, with consistent growth driven by increasing consumer demand and market maturation.`;
+      })(),
+      sam: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Serviceable Available Market targets ${benchmarks.name} buyers in North America and ${location}-adjacent markets, representing approximately $500M-$2B in annual software spending for this category.`
+          : `Serviceable Available Market in the ${location} area represents approximately $50-200M in annual spending, depending on market density and demographic factors.`;
+      })(),
       som: `Serviceable Obtainable Market targets realistic first-year revenue of $${(monthlyRevenue * 12).toLocaleString()} based on capacity constraints and market penetration assumptions. Year 2-3 growth targets 50-100% annually.`,
-      trends: [
-        "Digital transformation accelerating customer expectations for convenience and transparency",
-        "Increasing preference for local, trusted service providers over large national chains",
-        "Growing focus on customer experience as a key differentiator in competitive markets",
-        `Economic factors in ${location} creating opportunities for value-focused offerings`
-      ],
-      competitors: [
-        { name: "Established Local Provider", strengths: "Market presence, customer relationships", weaknesses: "Outdated operations, poor digital experience" },
-        { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service, higher overhead" },
-        { name: "Emerging Competitors", strengths: "Fresh approach, low costs", weaknesses: "Unproven, limited track record" }
-      ],
-      competitive_landscape: `The ${benchmarks.name} market in ${location} is moderately competitive with a mix of established players and emerging alternatives. Opportunity exists for differentiated offerings that combine quality with modern customer experience expectations.`,
-      market_gaps: `Underserved segments include busy professionals seeking convenience, quality-conscious customers frustrated with inconsistent service, and digitally-savvy consumers expecting modern service delivery.`,
-      barriers_to_entry: `Initial capital requirements of $${investmentAmount.toLocaleString()}, time to build customer trust and reputation, competitive response from established players, and operational complexity.`,
-      growth_opportunities: `Geographic expansion within ${location} region, service line extensions, strategic partnerships with complementary businesses, and technology-enabled scaling.`
+      trends: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? [
+              "Enterprise AI adoption accelerating demand for intelligent automation platforms",
+              "Shift from point solutions to integrated platforms reducing tool sprawl",
+              "Growing demand for API-first, composable software architectures",
+              `${location} emerging as a technology hub with growing talent pool and enterprise customers`
+            ]
+          : [
+              "Digital transformation accelerating customer expectations for convenience and transparency",
+              "Increasing preference for local, trusted service providers over large national chains",
+              "Growing focus on customer experience as a key differentiator in competitive markets",
+              `Economic factors in ${location} creating opportunities for value-focused offerings`
+            ];
+      })(),
+      competitors: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? [
+              { name: "Incumbent Enterprise Solutions", strengths: "Market share, brand trust, enterprise relationships", weaknesses: "Legacy architecture, slow innovation, high pricing" },
+              { name: "Well-Funded SaaS Startups", strengths: "Modern UX, venture capital, fast iteration", weaknesses: "Unproven at scale, feature gaps, high burn rate" },
+              { name: "Open-Source Alternatives", strengths: "Free tier, developer community, transparency", weaknesses: "No enterprise support, fragmented, integration complexity" }
+            ]
+          : [
+              { name: "Established Local Provider", strengths: "Market presence, customer relationships", weaknesses: "Outdated operations, poor digital experience" },
+              { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service, higher overhead" },
+              { name: "Emerging Competitors", strengths: "Fresh approach, low costs", weaknesses: "Unproven, limited track record" }
+            ];
+      })(),
+      competitive_landscape: `The ${benchmarks.name} market is moderately competitive with a mix of established players and emerging alternatives. Opportunity exists for differentiated offerings that combine ${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'superior technology with ease of use' : 'quality with modern customer experience expectations'}.`,
+      market_gaps: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Underserved segments include mid-market companies too large for basic tools but too small for enterprise solutions, teams needing vertical-specific workflows, and organizations seeking AI-native platforms.`
+          : `Underserved segments include busy professionals seeking convenience, quality-conscious customers frustrated with inconsistent service, and digitally-savvy consumers expecting modern service delivery.`;
+      })(),
+      barriers_to_entry: `Initial capital requirements of $${investmentAmount.toLocaleString()}, ${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'technical complexity, time to achieve product-market fit, and competitive response from well-funded incumbents' : 'time to build customer trust and reputation, competitive response from established players, and operational complexity'}.`,
+      growth_opportunities: `${['saas', 'fintech', 'education', 'media'].includes(benchmarks.id) ? 'Product-led growth expansion, enterprise tier upselling, API marketplace partnerships, and international market entry' : `Geographic expansion within ${location} region, service line extensions, strategic partnerships with complementary businesses, and technology-enabled scaling`}.`
     }),
     sources: "Industry benchmarks, market analysis, location intelligence",
     limitations: "Analysis based on industry averages; actual results may vary based on execution"
@@ -2191,22 +2279,39 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         })(),
       },
       startup_investment: (() => {
-        // CRITICAL FIX: Calculate breakdown items that sum EXACTLY to total
+        // INDUSTRY-AWARE investment breakdown
         const total = calc.startupInvestment;
+        const industryCategories = INDUSTRY_INVESTMENT_CATEGORIES[benchmarks.id];
+        
+        if (industryCategories) {
+          // Use industry-specific breakdown (no "inventory" for software)
+          const breakdown: Record<string, number> = {};
+          let allocated = 0;
+          for (const [label, pct] of Object.entries(industryCategories.labels)) {
+            breakdown[label] = Math.round(total * pct);
+            allocated += breakdown[label];
+          }
+          // Working capital absorbs remainder
+          breakdown.working_capital = total - allocated;
+          if (breakdown.working_capital < 0) breakdown.working_capital = 0;
+          
+          const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+          if (breakdownSum !== total) {
+            breakdown.working_capital += (total - breakdownSum);
+          }
+          
+          return { total, breakdown, reasoning: `Industry-specific ${benchmarks.name} investment allocation` };
+        }
+        
+        // Default breakdown for physical businesses
         const rentDeposit = Math.round(calc.expenses.rent * 2);
         const equipment = Math.round(total * 0.40);
         const inventory = Math.round(total * 0.15);
         const legal = Math.min(2000, Math.round(total * 0.05));
         const marketingInitial = Math.round(total * 0.10);
-        // Working capital absorbs the remainder to ensure exact sum
         const workingCapital = total - rentDeposit - equipment - inventory - legal - marketingInitial;
         
-        // Validation: log if working capital is negative (indicates rent deposit is too high)
-        if (workingCapital < 0) {
-          console.warn(`⚠️ Investment breakdown issue: working_capital=${workingCapital}. Adjusting rent deposit.`);
-        }
-        
-        const breakdown = {
+        const breakdown: Record<string, number> = {
           rent_deposit: rentDeposit,
           equipment: equipment,
           inventory: inventory,
@@ -2215,10 +2320,8 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
           working_capital: Math.max(0, workingCapital)
         };
         
-        // Final validation: ensure sum matches total
         const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
         if (breakdownSum !== total) {
-          // Adjust working capital to match exactly
           breakdown.working_capital += (total - breakdownSum);
         }
         
@@ -2229,12 +2332,13 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         };
       })(),
       monthly_expenses: (() => {
-        // CRITICAL FIX: Use expense breakdown as source of truth, ensure total = sum
-        const breakdown = {
+        // INDUSTRY-AWARE: Use appropriate label for COGS based on industry type
+        const cogsLabel = INDUSTRY_COGS_LABELS[benchmarks.id] || INDUSTRY_COGS_LABELS.general;
+        const breakdown: Record<string, number> = {
           rent: calc.expenses.rent,
           utilities: calc.expenses.utilities,
           salaries: calc.expenses.salaries,
-          inventory_replenishment: calc.expenses.cogs,
+          [cogsLabel]: calc.expenses.cogs,
           marketing: calc.expenses.marketing,
           other: calc.expenses.other
         };
@@ -3947,24 +4051,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
           ].filter(Boolean),
           limitations: [
-            benchmarkSource === 'hardcoded' ? 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.' : null,
-            'Analysis based on industry benchmarks and AI-assisted estimates',
-            ideaLength < 50 ? 'Brief business description reduces accuracy — add more detail for better results' : null,
-            detectedIndustry.id === 'general' ? 'General industry benchmarks applied. For higher precision, specify your exact business sector.' : null,
-            locationMultiplier === 1.0 ? 'Location-specific cost data not available — specify a major city for adjusted estimates' : null,
+            // Only show "general benchmarks" warning if actually using general fallback
+            detectedIndustry.id === 'general' && benchmarkSource === 'hardcoded' 
+              ? 'General industry benchmarks applied. Selecting your specific industry will improve accuracy.' 
+              : null,
+            // Only show brief description warning for very short inputs
+            ideaLength < 30 ? 'Brief business description — add more detail for improved accuracy' : null,
+            // Only show location warning if truly no location data
+            locationMultiplier === 1.0 ? 'National average costs applied — specify a major city for location-adjusted estimates' : null,
             'Actual results depend on execution, market timing, and competitive dynamics',
-            'Competitive landscape estimates may differ from real market conditions',
             calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
-            // Expense mismatch disclosure — surfaces hidden engine correction to user
-            (() => {
-              const breakdownSum = calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other;
-              const mismatch = Math.abs(breakdownSum - calc.totalExpenses);
-              if (mismatch > 100) {
-                const pct = Math.round((mismatch / Math.max(calc.totalExpenses, 1)) * 100);
-                return `Expense reconciliation applied: expense breakdown sum ($${breakdownSum.toLocaleString()}) differed from initial calculation by $${mismatch.toLocaleString()} (${pct}%). The breakdown total was used as the source of truth.`;
-              }
-              return null;
-            })(),
           ].filter(Boolean),
           // ========== RECONCILIATION STATUS ==========
           reconciliation_status: (() => {
