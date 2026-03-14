@@ -30,7 +30,7 @@ export function BeforeAfterComparison() {
           {/* Without */}
           <div className="rounded-2xl border border-destructive/20 bg-destructive/5 p-5 md:p-6">
             <p className="text-sm font-semibold text-destructive uppercase tracking-wider mb-4 flex items-center gap-2">
-              <XCircle className="w-4 h-4" /> Without Quantis
+              <XCircle className="w-4 h-4" /> Without a Pre-Mortem
             </p>
             <ul className="space-y-3">
               {WITHOUT_ITEMS.map((item) =>
