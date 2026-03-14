@@ -177,7 +177,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   </p>
                   
                   {/* Strengths & Risks 2-column */}
-                  <div className="grid grid-cols-2 gap-4 mt-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4">
                     <div className="p-3 rounded-lg border border-[var(--q-status-green)]/30 bg-[var(--q-status-green)]/5">
                       <h4 className="text-xs font-semibold text-[var(--q-status-green)] mb-2 uppercase tracking-wide">Key Strengths</h4>
                       <ul className="space-y-1.5 text-sm text-muted-foreground">
