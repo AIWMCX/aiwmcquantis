@@ -5,6 +5,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { BenchmarkWarning } from './BenchmarkWarning';
+import { OpExWarning } from './OpExWarning';
 import { validateParamAgainstBenchmarks, autofillMissingParams, getBenchmark } from '@/lib/benchmark-calibrator';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
