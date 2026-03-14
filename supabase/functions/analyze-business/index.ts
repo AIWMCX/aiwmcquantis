@@ -4017,24 +4017,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
           ].filter(Boolean),
           limitations: [
-            benchmarkSource === 'hardcoded' ? 'Analysis uses general industry benchmarks. Selecting your specific industry will improve accuracy.' : null,
-            'Analysis based on industry benchmarks and AI-assisted estimates',
-            ideaLength < 50 ? 'Brief business description reduces accuracy — add more detail for better results' : null,
-            detectedIndustry.id === 'general' ? 'General industry benchmarks applied. For higher precision, specify your exact business sector.' : null,
-            locationMultiplier === 1.0 ? 'Location-specific cost data not available — specify a major city for adjusted estimates' : null,
+            // Only show "general benchmarks" warning if actually using general fallback
+            detectedIndustry.id === 'general' && benchmarkSource === 'hardcoded' 
+              ? 'General industry benchmarks applied. Selecting your specific industry will improve accuracy.' 
+              : null,
+            // Only show brief description warning for very short inputs
+            ideaLength < 30 ? 'Brief business description — add more detail for improved accuracy' : null,
+            // Only show location warning if truly no location data
+            locationMultiplier === 1.0 ? 'National average costs applied — specify a major city for location-adjusted estimates' : null,
             'Actual results depend on execution, market timing, and competitive dynamics',
-            'Competitive landscape estimates may differ from real market conditions',
             calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
-            // Expense mismatch disclosure — surfaces hidden engine correction to user
-            (() => {
-              const breakdownSum = calc.expenses.cogs + calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.marketing + calc.expenses.other;
-              const mismatch = Math.abs(breakdownSum - calc.totalExpenses);
-              if (mismatch > 100) {
-                const pct = Math.round((mismatch / Math.max(calc.totalExpenses, 1)) * 100);
-                return `Expense reconciliation applied: expense breakdown sum ($${breakdownSum.toLocaleString()}) differed from initial calculation by $${mismatch.toLocaleString()} (${pct}%). The breakdown total was used as the source of truth.`;
-              }
-              return null;
-            })(),
           ].filter(Boolean),
           // ========== RECONCILIATION STATUS ==========
           reconciliation_status: (() => {
