@@ -209,13 +209,13 @@ function getScoreStyle(score: number): ScoreStyle {
     };
   }
   if (score <= 85) {
-    return {
-      text: 'text-[#6EE7B7]',
-      bar: 'bg-[#6EE7B7]',
-      bg: 'bg-[rgba(16,185,129,0.06)]',
-      border: 'border-l-[#6EE7B7]',
-      label: 'Good',
-    };
+      return {
+        text: 'text-[var(--q-status-green-light)]',
+        bar: 'bg-[var(--q-status-green-light)]',
+        bg: 'bg-[var(--q-status-green-bg)]',
+        border: 'border-l-[var(--q-status-green-light)]',
+        label: 'Good',
+      };
   }
   return {
     text: 'text-[var(--q-status-green)]',
