@@ -92,7 +92,16 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
           ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
           : 'Derived';
       };
-    });
+      return {
+        label: item.label,
+        userValue: item.value,
+        p50: effectiveP50,
+        p75: effectiveP75,
+        unit: item.unit,
+        verdict,
+        deltaPct,
+        source: sourceText,
+      };
   }, [result]);
 
   const beatCount = rows.filter(r => r.verdict === 'BEAT').length;

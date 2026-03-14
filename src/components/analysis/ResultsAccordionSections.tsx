@@ -81,6 +81,20 @@ export function ResultsAccordionSections({
           </AccordionItem>
         )}
 
+        {capitalReadinessContent && (
+          <AccordionItem value="capital-readiness" className={sectionStyle}>
+            <AccordionTrigger className={triggerStyle}>
+              <span className={labelStyle}>
+                <Shield className={iconStyle} />
+                Capital Readiness
+              </span>
+            </AccordionTrigger>
+            <AccordionContent className="px-5 pb-5">
+              {capitalReadinessContent}
+            </AccordionContent>
+          </AccordionItem>
+        )}
+
         {unitEconomicsContent && (
           <AccordionItem value="unit-economics" className={sectionStyle}>
             <AccordionTrigger className={triggerStyle}>

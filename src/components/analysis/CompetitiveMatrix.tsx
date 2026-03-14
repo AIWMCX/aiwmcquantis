@@ -87,7 +87,7 @@ export function CompetitiveMatrix({ result }: CompetitiveMatrixProps) {
           Competitive Sector Matrix
         </h4>
         <span className="text-[10px] text-[var(--q-text-disabled)]">
-          Proprietary Industry Benchmark Database
+          {data.sourceLabel}
         </span>
       </div>
 
