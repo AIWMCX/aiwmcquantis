@@ -431,7 +431,7 @@ export function CompactAnalysisForm({
           </div>
           <div className="p-4 space-y-3">
             {/* 2×2 core fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FinancialField
                 label="Starting Capital" prefix="$" placeholder="50,000"
                 value={financialInputs.startup_investment}
