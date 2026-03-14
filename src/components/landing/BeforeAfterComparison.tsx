@@ -45,7 +45,7 @@ export function BeforeAfterComparison() {
           {/* With */}
           <div className="rounded-2xl border border-success/20 bg-success/5 p-5 md:p-6 shadow-md">
             <p className="text-sm font-semibold text-success uppercase tracking-wider mb-4 flex items-center gap-2">
-              <CheckCircle2 className="w-4 h-4" /> With Quantis — $17/mo
+              <CheckCircle2 className="w-4 h-4" /> With Quantis Pre-Mortem
             </p>
             <ul className="space-y-3">
               {WITH_ITEMS.map((item) =>
