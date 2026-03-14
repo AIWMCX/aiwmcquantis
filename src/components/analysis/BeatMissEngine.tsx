@@ -1,5 +1,7 @@
 import React, { useMemo } from 'react';
 import { BENCHMARK_DATABASE } from '@/lib/benchmark-calibrator';
+import { buildCitation, formatCitationCompact } from '@/lib/benchmark-citations';
+import { checkFreshness, getFreshnessIcon, getFreshnessLabel } from '@/lib/benchmark-freshness';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { cn } from '@/lib/utils';
 
