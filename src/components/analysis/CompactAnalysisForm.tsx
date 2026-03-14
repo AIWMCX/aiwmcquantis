@@ -475,7 +475,7 @@ export function CompactAnalysisForm({
             </div>
 
             {/* Optional fields */}
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <FinancialField
                 label="Cust. Acquisition Cost" prefix="$" placeholder="150"
                 value={financialInputs.cac}
