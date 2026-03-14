@@ -313,7 +313,7 @@ export function CompactAnalysisForm({
       </div>
 
       {/* 3-column grid */}
-      <div className="grid gap-4" style={{ gridTemplateColumns: '1fr 1.6fr 260px' }}>
+      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_260px] gap-4">
 
         {/* ═══ COLUMN 1 — Business Identity ═══ */}
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
