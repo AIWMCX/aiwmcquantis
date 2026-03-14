@@ -6,12 +6,23 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+type SectionType =
+  | 'executive_summary'
+  | 'market_analysis'
+  | 'risk_assessment'
+  | 'value_proposition'
+  | 'testimonial'
+  | 'market_description'
+  | 'competitive_advantage'
+  | 'market_trends'
+  | 'partnership_objective';
+
 interface GenerateContentRequest {
-  section_type: 'executive_summary' | 'market_analysis' | 'risk_assessment' | 'value_proposition' | 'testimonial';
+  section_type: SectionType;
   context: {
-    business_name: string;
-    industry: string;
-    target_market: string;
+    business_name?: string;
+    industry?: string;
+    target_market?: string;
     revenue?: number;
     roi?: number;
     payback_months?: number;
@@ -22,7 +33,42 @@ interface GenerateContentRequest {
   count?: number;
 }
 
-const SECTION_PROMPTS: Record<string, (ctx: GenerateContentRequest['context']) => string> = {
+function getStringField(ctx: Record<string, unknown>, keys: string[], fallback = ''): string {
+  for (const key of keys) {
+    const value = ctx[key];
+    if (typeof value === 'string' && value.trim().length > 0) return value.trim();
+  }
+  return fallback;
+}
+
+function getNumberField(ctx: Record<string, unknown>, keys: string[]): number | undefined {
+  for (const key of keys) {
+    const value = ctx[key];
+    if (typeof value === 'number' && Number.isFinite(value)) return value;
+  }
+  return undefined;
+}
+
+function normalizeContext(rawContext: GenerateContentRequest['context']): GenerateContentRequest['context'] {
+  const ctx = (rawContext ?? {}) as Record<string, unknown>;
+
+  return {
+    ...ctx,
+    business_name: getStringField(ctx, ['business_name', 'company_name', 'your_company_name', 'market_name'], 'The Business'),
+    industry: getStringField(ctx, ['industry', 'sector'], 'technology'),
+    target_market: getStringField(
+      ctx,
+      ['target_market', 'target_customer_description', 'geographic_focus', 'territory'],
+      'small and medium businesses'
+    ),
+    location: getStringField(ctx, ['location', 'geographic_focus', 'territory']),
+    revenue: getNumberField(ctx, ['revenue', 'monthly_revenue', 'mrr']) ?? 0,
+    roi: getNumberField(ctx, ['roi']) ?? 0,
+    payback_months: getNumberField(ctx, ['payback_months', 'break_even_months']) ?? 0,
+  };
+}
+
+const SECTION_PROMPTS: Record<SectionType, (ctx: GenerateContentRequest['context']) => string> = {
   executive_summary: (ctx) => `
 Generate a compelling executive summary for a business plan.
 
@@ -106,16 +152,78 @@ Create a believable customer testimonial that:
 
 Length: 50-100 words. Include a placeholder name and title.
 `,
+
+  market_description: (ctx) => `
+Generate a market description paragraph for a market analysis report.
+
+Market: ${ctx.market_name || ctx.industry || 'Target Market'}
+Industry: ${ctx.industry}
+Geographic Focus: ${ctx.location || ctx.target_market}
+
+Write 180-260 words covering:
+1. What this market includes
+2. Current market dynamics and demand patterns
+3. Typical buyer behavior and decision criteria
+4. Why this market is strategically relevant now
+
+Use precise, realistic language and avoid vague generic claims.
+`,
+
+  competitive_advantage: (ctx) => `
+Generate a strong competitive advantage section for a business document.
+
+Business: ${ctx.business_name}
+Industry: ${ctx.industry}
+Target Market: ${ctx.target_market}
+
+Write 140-220 words that clearly states:
+1. The top 3 defensible advantages
+2. Why competitors struggle to replicate them
+3. How these advantages improve customer outcomes
+4. How the business will sustain the edge over time
+
+Make it concrete and specific, not buzzword-heavy.
+`,
+
+  market_trends: (ctx) => `
+Generate a market trends section.
+
+Industry: ${ctx.industry}
+Market Focus: ${ctx.target_market}
+Location: ${ctx.location || 'Global'}
+
+Write 170-250 words describing:
+1. 3-5 major trends shaping the market
+2. Which trends are tailwinds vs risks
+3. How these trends impact pricing, demand, and competition
+4. Which trends the business should prioritize in execution
+
+Keep it actionable and specific.
+`,
+
+  partnership_objective: (ctx) => `
+Generate a partnership objective section for a partnership proposal.
+
+Your Company: ${ctx.your_company_name || ctx.business_name || 'Our Company'}
+Partner Company: ${ctx.partner_company_name || 'Partner Company'}
+Partnership Type: ${ctx.partnership_type || 'Strategic Partnership'}
+
+Write 140-220 words that defines:
+1. The strategic objective of the partnership
+2. The mutual value each side should receive
+3. The measurable outcomes expected in 12-24 months
+4. Why this partnership is timely and strategically aligned
+
+Use formal business language and clear strategic intent.
+`,
 };
 
 serve(async (req) => {
-  // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
   try {
-    // Verify authentication
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
       return new Response(
@@ -132,7 +240,6 @@ serve(async (req) => {
       }
     );
 
-    // Get user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
     if (authError || !user) {
       return new Response(
@@ -141,15 +248,14 @@ serve(async (req) => {
       );
     }
 
-    // Verify Plus subscription (Docs Studio is Plus-only)
     const { data: subscription } = await supabase
       .from('subscriptions')
       .select('plan_id, status')
       .eq('user_id', user.id)
       .single();
 
-    const isPlusUser = subscription && 
-      subscription.plan_id === 'plus' && 
+    const isPlusUser = subscription &&
+      subscription.plan_id === 'plus' &&
       (subscription.status === 'active' || subscription.status === 'trialing');
 
     if (!isPlusUser) {
@@ -159,9 +265,9 @@ serve(async (req) => {
       );
     }
 
-    // Parse request
     const body: GenerateContentRequest = await req.json();
-    const { section_type, context, current_content, count = 3 } = body;
+    const { section_type, current_content, count = 3 } = body;
+    const context = normalizeContext(body.context ?? {});
 
     if (!section_type || !SECTION_PROMPTS[section_type]) {
       return new Response(
@@ -170,60 +276,85 @@ serve(async (req) => {
       );
     }
 
-    // Generate prompt
+    const aiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!aiKey) {
+      return new Response(
+        JSON.stringify({ error: 'AI service is not configured' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const basePrompt = SECTION_PROMPTS[section_type](context);
-    const prompt = current_content 
+    const prompt = current_content
       ? `${basePrompt}\n\nCurrent content for reference (improve upon this):\n"${current_content.substring(0, 500)}"`
       : basePrompt;
 
-    // Call Lovable AI (uses OpenRouter internally)
     const suggestions: string[] = [];
-    
-    for (let i = 0; i < Math.min(count, 3); i++) {
+    const safeCount = Math.max(1, Math.min(Number(count) || 3, 3));
+
+    for (let i = 0; i < safeCount; i++) {
       const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${Deno.env.get('LOVABLE_API_KEY')}`,
+          'Authorization': `Bearer ${aiKey}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          model: 'google/gemini-2.5-flash',
+          model: 'google/gemini-3-flash-preview',
           messages: [
             {
               role: 'system',
-              content: 'You are a professional business writer specializing in creating compelling, data-driven business documents. Write clearly and professionally. Do not use markdown formatting - provide plain text only.'
+              content: 'You are a professional business writer specializing in compelling, data-driven business documents. Write clearly, concisely, and in plain text only. No markdown.'
             },
             {
               role: 'user',
-              content: prompt + (i > 0 ? `\n\nProvide a different variation (alternative ${i + 1}).` : '')
+              content: prompt + (i > 0 ? `\n\nProvide a substantially different variation (alternative ${i + 1}).` : '')
             }
           ],
           max_tokens: 800,
-          temperature: 0.7 + (i * 0.1), // Slight variation in temperature for diversity
+          temperature: 0.65 + (i * 0.1),
         }),
       });
 
       if (!response.ok) {
-        console.error(`AI API error for suggestion ${i}:`, await response.text());
+        const errorText = await response.text();
+        console.error(`[generate-document-content] AI API error ${response.status} for suggestion ${i + 1}:`, errorText);
+
+        if (response.status === 429) {
+          return new Response(
+            JSON.stringify({
+              error: 'AI suggestion generation is temporarily rate-limited. Please retry in a moment.',
+              code: 'AI_RATE_LIMIT',
+            }),
+            { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
+        if (response.status === 402) {
+          return new Response(
+            JSON.stringify({
+              error: 'AI credits are currently unavailable. Please top up workspace usage and retry.',
+              code: 'AI_PAYMENT_REQUIRED',
+            }),
+            { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+          );
+        }
+
         continue;
       }
 
       const result = await response.json();
       const content = result.choices?.[0]?.message?.content?.trim();
-      
-      if (content) {
-        suggestions.push(content);
-      }
+      if (content) suggestions.push(content);
     }
 
     if (suggestions.length === 0) {
       return new Response(
-        JSON.stringify({ error: 'Failed to generate suggestions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        JSON.stringify({ error: 'Failed to generate suggestions from AI service' }),
+        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Log usage for analytics
     console.log(`[generate-document-content] User ${user.id} generated ${suggestions.length} suggestions for ${section_type}`);
 
     return new Response(
@@ -232,7 +363,7 @@ serve(async (req) => {
         section_type,
         suggestions,
       }),
-      { 
+      {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       }
     );
