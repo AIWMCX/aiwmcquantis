@@ -86,7 +86,11 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         unit: item.unit,
         verdict,
         deltaPct,
-        source: bm?.source === 'kerry_dataset' ? 'Proprietary Industry Benchmark Database' : (bm?.source || 'Derived'),
+        const citation = bm ? buildCitation(bm) : null;
+        const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
+        const sourceText = citation
+          ? `${formatCitationCompact(citation)} ${freshness ? getFreshnessIcon(freshness.warningLevel) : ''}`
+          : 'Derived';
       };
     });
   }, [result]);
