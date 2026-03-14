@@ -135,7 +135,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     return {
       monthlyRevenue: revenue,
       netProfit: scenarioMetrics.profit,
-      grossMargin: financials?.scenarios?.base?.gross_margin || 0,
+      grossMargin: normalizePercent(financials?.scenarios?.base?.gross_margin),
       ltvCac: financials?.unit_economics?.ltv_cac_ratio || 0,
       breakEven: breakEvenMonths,
       runway: cashRunwayMonths,
