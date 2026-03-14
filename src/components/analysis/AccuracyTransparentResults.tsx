@@ -187,7 +187,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <verdict.Icon className="w-7 h-7 shrink-0 mt-0.5" style={{ color: verdict.color }} />
                 <div>
                   <div className="flex items-center gap-3 mb-1">
-                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ color: 'white', backgroundColor: verdict.color }}>{verdict.label}</span>
+                    <span className="text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded" style={{ color: 'hsl(var(--primary-foreground))', backgroundColor: verdict.color }}>{verdict.label}</span>
                     <TrafficLightBadge confidenceScore={confidence} size="md" />
                   </div>
                   <p className="text-sm text-muted-foreground leading-relaxed">{verdict.description}</p>
