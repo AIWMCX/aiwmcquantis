@@ -36,6 +36,8 @@ import { BeatMissEngine } from './BeatMissEngine';
 import { QualityOfEarnings } from './QualityOfEarnings';
 import { CompetitiveMatrix } from './CompetitiveMatrix';
 import { KeyMetricSpotlight } from './KeyMetricSpotlight';
+import { CapitalReadinessSection } from './CapitalReadinessSection';
+import { CoherenceFlags } from './CoherenceFlags';
 import { RevenueChart } from './RevenueChart';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
