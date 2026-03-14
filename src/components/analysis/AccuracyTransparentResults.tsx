@@ -27,6 +27,11 @@ interface AccuracyTransparentResultsProps {
   onReset?: () => void;
 }
 
+const normalizePercent = (value?: number): number => {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 0;
+  return value <= 1 ? value * 100 : value;
+};
+
 export function AccuracyTransparentResults({ result, analysisId, onReset }: AccuracyTransparentResultsProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [prevStep, setPrevStep] = useState(1);
