@@ -161,11 +161,11 @@ function ConfidenceRing({ score }: { score: number }) {
 
   return (
     <div className="flex flex-col items-center gap-2">
-      <div className="relative" style={{ width: 88, height: 88 }}>
-        <svg width={88} height={88} className="block">
-          <circle cx={44} cy={44} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
-          <circle
-            cx={44} cy={44} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
+        <div className="relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px]">
+          <svg viewBox="0 0 88 88" className="w-full h-full block">
+            <circle cx={44} cy={44} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
+            <circle
+              cx={44} cy={44} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
             stroke={color}
             strokeDasharray={circ}
             strokeDashoffset={offset}
