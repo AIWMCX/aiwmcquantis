@@ -22,7 +22,7 @@ export function BeforeAfterComparison() {
   return (
     <section className="py-12 md:py-16 bg-muted/20">
       <div className="container max-w-5xl mx-auto px-4 sm:px-6">
-        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">Our Differentiation
+        <h2 className="text-2xl md:text-3xl font-bold text-center text-foreground mb-8">Before vs. After Your Pre-Mortem
 
         </h2>
 
