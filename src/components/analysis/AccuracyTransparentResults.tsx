@@ -249,7 +249,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   />
                   <SimpleMetricCard 
                     title="Gross Margin %" 
-                    value={`${(metrics.grossMargin * 100).toFixed(1)}%`}
+                    value={`${metrics.grossMargin.toFixed(1)}%`}
                     variant="standard"
                   />
                   <SimpleMetricCard 
