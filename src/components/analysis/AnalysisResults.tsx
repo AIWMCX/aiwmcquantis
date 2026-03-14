@@ -394,7 +394,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   arpu: result.financial_analysis?.inputs?.price_per_unit,
                   cac: result.financial_analysis?.unit_economics?.cac,
                   churnRate: result.financial_analysis?.inputs?.churn_rate,
-                  expectedCustomers: result.financial_analysis?.inputs?.expected_customers,
+                  expectedCustomers: (result.financial_analysis?.inputs as any)?.expected_customers,
                 }}
                 industryType={result.metadata.industry_detected || 'default'}
               />
