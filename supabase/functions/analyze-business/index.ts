@@ -1964,11 +1964,39 @@ function generateDeterministicFallbackResult(
       equipment: Math.round(investmentAmount * 0.35)
     }),
     business_json: JSON.stringify({
-      executive_summary: `This ${benchmarks.name} business opportunity in ${location} presents a compelling investment case based on industry benchmarks and market analysis. With a projected monthly revenue of $${monthlyRevenue.toLocaleString()} and an initial investment of $${investmentAmount.toLocaleString()}, the business targets the growing demand in the ${location} market.\n\nThe ${benchmarks.name} industry shows average net margins of ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}%, with customer lifetime values ranging from $${benchmarks.ltv_min?.toLocaleString() || ltvValue.toLocaleString()} to $${benchmarks.ltv_max?.toLocaleString() || (ltvValue * 2).toLocaleString()}. The LTV:CAC ratio potential of ${Math.round(ltvValue / cacValue)}:1 indicates healthy unit economics when customer acquisition is optimized.\n\nKey success factors include building strong customer relationships, optimizing operational efficiency, and maintaining competitive differentiation. The phased launch approach minimizes risk while allowing for iterative improvements based on real market feedback. Location-specific factors in ${location} have been incorporated into financial projections.`,
-      product_description: `A ${benchmarks.name} offering designed to meet the specific needs of customers in the ${location} market. The product/service delivers measurable value through quality, convenience, and customer-centric design. Pricing is set at an average of $${avgCheck.toLocaleString()} per transaction, aligned with market expectations and competitive positioning. The delivery model is optimized for scalability while maintaining service quality.`,
-      target_audience: `Primary target customers in ${location} who are seeking high-quality ${benchmarks.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience. Psychographic profile: busy professionals and families looking for reliable service providers. Key pain points include inconsistent quality from competitors, inconvenient service delivery, and lack of personalized attention.`,
-      competitive_advantages: `1) Customer-centric approach with personalized service delivery. 2) Operational efficiency enabling competitive pricing without sacrificing margins. 3) Technology-enabled processes for superior customer experience. 4) Strong local market knowledge and ${location}-specific expertise. 5) Commitment to continuous improvement based on customer feedback.`,
-      operations: `The operational model focuses on efficiency and scalability. Initial team structure includes core operations staff with clear roles and responsibilities. Technology stack leverages modern tools for customer management, operations, and analytics. Standard operating procedures ensure consistent quality delivery. Supplier relationships are established for reliable inventory/resource management. Quality control processes are built into every customer touchpoint.`,
+      executive_summary: (() => {
+        // Use margin-adjusted, capped LTV:CAC ratio — same formula as strict calculator
+        const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
+        const adjustedLtv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * benchmarks.client_lifetime_months);
+        const cappedLtvCacRatio = Math.min(Math.round((adjustedLtv / cacValue) * 10) / 10, benchmarks.ltv_cac_max);
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        
+        return `This ${benchmarks.name} opportunity in ${location} presents a ${cappedLtvCacRatio >= 3 ? 'compelling' : 'moderate'} investment case based on industry benchmarks and market analysis. With projected monthly revenue of $${monthlyRevenue.toLocaleString()} and an initial investment of $${investmentAmount.toLocaleString()}, the business targets the ${isSoftware ? 'growing digital demand' : 'growing demand'} in the ${location} market.\n\nThe ${benchmarks.name} industry shows typical net margins of ${benchmarks.net_margin_min}%-${benchmarks.net_margin_max}%, with a target LTV:CAC ratio of ${cappedLtvCacRatio}x — indicating ${cappedLtvCacRatio >= 3 ? 'healthy' : 'developing'} unit economics when customer acquisition is optimized.\n\nKey success factors include ${isSoftware ? 'product-market fit, scalable architecture, and efficient customer onboarding' : 'building strong customer relationships, optimizing operational efficiency, and maintaining competitive differentiation'}. The phased launch approach minimizes risk while allowing for iterative improvements based on real market feedback.`;
+      })(),
+      product_description: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `A ${benchmarks.name} product built to solve specific workflow challenges for its target market. The platform delivers measurable value through automation, efficiency gains, and data-driven insights. Pricing is set at $${avgCheck.toLocaleString()}/month per user, aligned with market expectations. The delivery model leverages cloud infrastructure for instant scalability.`
+          : `A ${benchmarks.name} offering designed to meet the specific needs of customers in the ${location} market. The product/service delivers measurable value through quality, convenience, and customer-centric design. Pricing is set at an average of $${avgCheck.toLocaleString()} per transaction, aligned with market expectations and competitive positioning.`;
+      })(),
+      target_audience: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `Primary target: businesses and professionals in the ${location} region seeking ${benchmarks.name.toLowerCase()} solutions to streamline operations. Demographics include decision-makers at SMBs and mid-market companies. Key pain points include manual processes, lack of real-time visibility, and fragmented tooling.`
+          : `Primary target customers in ${location} who are seeking high-quality ${benchmarks.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience. Key pain points include inconsistent quality from competitors and lack of personalized attention.`;
+      })(),
+      competitive_advantages: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `1) Purpose-built solution for specific workflows vs. generic alternatives. 2) Scalable cloud architecture enabling rapid feature iteration. 3) Data-driven insights providing measurable ROI to customers. 4) Lower total cost of ownership vs. incumbent solutions. 5) Modern UX reducing onboarding friction and driving retention.`
+          : `1) Customer-centric approach with personalized service delivery. 2) Operational efficiency enabling competitive pricing without sacrificing margins. 3) Technology-enabled processes for superior customer experience. 4) Strong local market knowledge and ${location}-specific expertise. 5) Commitment to continuous improvement based on customer feedback.`;
+      })(),
+      operations: (() => {
+        const isSoftware = ['saas', 'fintech', 'education', 'media'].includes(benchmarks.id);
+        return isSoftware
+          ? `The operational model centers on product development and customer success. Engineering team maintains the core platform with CI/CD deployment pipelines. Customer success handles onboarding, support, and retention. Infrastructure runs on cloud providers (AWS/GCP) with automated scaling. Monitoring and alerting ensure 99.9% uptime targets.`
+          : `The operational model focuses on efficiency and scalability. Initial team structure includes core operations staff with clear roles and responsibilities. Technology stack leverages modern tools for customer management, operations, and analytics. Standard operating procedures ensure consistent quality delivery.`;
+      })(),
       launch_steps: launchSteps,
       risks: risks
     }),
