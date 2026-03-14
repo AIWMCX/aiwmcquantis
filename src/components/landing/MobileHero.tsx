@@ -57,11 +57,11 @@ export function MobileHero() {
             className="animate-fade-in text-[clamp(2rem,5.5vw,3.5rem)] leading-[1.1] font-bold text-[var(--q-text-primary)]"
             style={{ fontFamily: 'var(--q-font-heading)', animationDelay: '80ms', animationFillMode: 'both' }}
           >
-            Find out exactly where{' '}
+            Find out what will kill{' '}
             <br className="hidden sm:block" />
-            your business breaks —{' '}
+            your business — before it{' '}
             <br className="hidden sm:block" />
-            before you spend a dollar.
+            costs you everything.
           </h1>
 
           {/* Subheadline */}
