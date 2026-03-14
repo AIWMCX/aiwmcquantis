@@ -2245,22 +2245,39 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         })(),
       },
       startup_investment: (() => {
-        // CRITICAL FIX: Calculate breakdown items that sum EXACTLY to total
+        // INDUSTRY-AWARE investment breakdown
         const total = calc.startupInvestment;
+        const industryCategories = INDUSTRY_INVESTMENT_CATEGORIES[benchmarks.id];
+        
+        if (industryCategories) {
+          // Use industry-specific breakdown (no "inventory" for software)
+          const breakdown: Record<string, number> = {};
+          let allocated = 0;
+          for (const [label, pct] of Object.entries(industryCategories.labels)) {
+            breakdown[label] = Math.round(total * pct);
+            allocated += breakdown[label];
+          }
+          // Working capital absorbs remainder
+          breakdown.working_capital = total - allocated;
+          if (breakdown.working_capital < 0) breakdown.working_capital = 0;
+          
+          const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+          if (breakdownSum !== total) {
+            breakdown.working_capital += (total - breakdownSum);
+          }
+          
+          return { total, breakdown, reasoning: `Industry-specific ${benchmarks.name} investment allocation` };
+        }
+        
+        // Default breakdown for physical businesses
         const rentDeposit = Math.round(calc.expenses.rent * 2);
         const equipment = Math.round(total * 0.40);
         const inventory = Math.round(total * 0.15);
         const legal = Math.min(2000, Math.round(total * 0.05));
         const marketingInitial = Math.round(total * 0.10);
-        // Working capital absorbs the remainder to ensure exact sum
         const workingCapital = total - rentDeposit - equipment - inventory - legal - marketingInitial;
         
-        // Validation: log if working capital is negative (indicates rent deposit is too high)
-        if (workingCapital < 0) {
-          console.warn(`⚠️ Investment breakdown issue: working_capital=${workingCapital}. Adjusting rent deposit.`);
-        }
-        
-        const breakdown = {
+        const breakdown: Record<string, number> = {
           rent_deposit: rentDeposit,
           equipment: equipment,
           inventory: inventory,
@@ -2269,10 +2286,8 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
           working_capital: Math.max(0, workingCapital)
         };
         
-        // Final validation: ensure sum matches total
         const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
         if (breakdownSum !== total) {
-          // Adjust working capital to match exactly
           breakdown.working_capital += (total - breakdownSum);
         }
         
