@@ -48,7 +48,7 @@ export function MobileHero() {
           <div className="flex justify-center animate-fade-in" style={{ animationFillMode: 'both' }}>
             <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider bg-[var(--q-status-ai-bg)] border border-[var(--q-status-ai-border)] text-[var(--q-status-ai)]">
               <Zap className="w-3.5 h-3.5" />
-              Dual-AI Verified &middot; GPT-4o mini + Gemini
+              Pre-Mortem Engine &middot; Dual-AI Verified
             </span>
           </div>
 
