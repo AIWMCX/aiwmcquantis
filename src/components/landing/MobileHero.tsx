@@ -87,7 +87,7 @@ export function MobileHero() {
               data-event-id="start_validation_click"
             >
               <Zap className="w-5 h-5" />
-              Run Free Stress-Test
+              Run Free Pre-Mortem
               <ArrowRight className="w-4 h-4" />
             </Button>
             <Button
