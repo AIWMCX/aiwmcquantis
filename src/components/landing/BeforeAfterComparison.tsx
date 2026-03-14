@@ -5,17 +5,17 @@ import { Button } from '@/components/ui/button';
 import { trackCtaClick } from '@/lib/analytics';
 
 const WITHOUT_ITEMS = [
-'Pay consultant $500–2,000 per analysis',
-'Wait 2–3 weeks for results',
-'Spend 10+ hours gathering data',
-"Get static PDF reports you can\u2019t update"];
+'Commit $30k+ based on gut feeling',
+'Discover fatal flaw 6 months in — after the money is gone',
+'No way to stress-test assumptions before launch',
+'Optimism bias goes unchecked'];
 
 
 const WITH_ITEMS = [
-'Unlimited analyses (worth $2,000+ each)',
-'Get insights in 60 seconds, not weeks',
-'AI extracts data from PDFs/Excel automatically',
-'Interactive dashboards you can update anytime'];
+'Know your 3 fatal assumptions before spending $1',
+'Stress-test against 1,000+ industry benchmarks',
+'Get a clear proceed / pivot / kill verdict',
+'See exactly which number will break your model'];
 
 
 export function BeforeAfterComparison() {
