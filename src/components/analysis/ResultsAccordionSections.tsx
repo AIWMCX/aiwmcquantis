@@ -10,6 +10,7 @@ interface ResultsAccordionSectionsProps {
   marketContent: React.ReactNode;
   unitEconomicsContent?: React.ReactNode;
   forensicContent?: React.ReactNode;
+  capitalReadinessContent?: React.ReactNode;
   analysisId?: string;
 }
 
