@@ -36,7 +36,12 @@ export const SCORE_FIELDS = [
   { scoreField: 'monthly_rent', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.rent', label: 'Monthly Rent' },
   { scoreField: 'utilities', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.utilities', label: 'Utilities' },
   { scoreField: 'salaries', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.salaries', label: 'Salaries & Wages' },
-  { scoreField: 'inventory_replenishment', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.inventory_replenishment', label: 'Inventory / COGS' },
+  // COGS label varies by industry — try multiple paths
+  { scoreField: 'inventory_replenishment', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.cost_of_goods_sold', label: 'Cost of Goods / Services' },
+  { scoreField: 'inventory_replenishment_alt1', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.inventory_replenishment', label: 'Inventory / COGS' },
+  { scoreField: 'inventory_replenishment_alt2', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.infrastructure_and_hosting', label: 'Infrastructure & Hosting' },
+  { scoreField: 'inventory_replenishment_alt3', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.content_and_platform', label: 'Content & Platform' },
+  { scoreField: 'inventory_replenishment_alt4', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.service_delivery', label: 'Service Delivery' },
   { scoreField: 'marketing_monthly', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.marketing', label: 'Marketing Budget' },
   { scoreField: 'other_expenses', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.breakdown.other', label: 'Other Operating Costs' },
   { scoreField: 'total_monthly_expenses', tab: 'Operating Expenses', quantisPath: 'financial_analysis.monthly_expenses.total', label: 'Total Monthly Expenses' },
