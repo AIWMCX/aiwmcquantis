@@ -273,6 +273,32 @@ interface IndustryBenchmarks {
   keywords: string[];
 }
 
+// ========== INDUSTRY COST LABEL MAP ==========
+// Maps industry IDs to the appropriate label for COGS in reports
+// Software companies don't have "inventory" — they have infrastructure/hosting costs
+const INDUSTRY_COGS_LABELS: Record<string, string> = {
+  saas: 'infrastructure_and_hosting',
+  fintech: 'infrastructure_and_hosting',
+  education: 'content_and_platform',
+  media: 'content_production',
+  consulting: 'service_delivery',
+  healthcare: 'medical_supplies',
+  fitness: 'equipment_and_supplies',
+  food_service: 'inventory_replenishment',
+  ecommerce: 'inventory_replenishment',
+  logistics: 'fleet_and_fuel',
+  real_estate: 'property_costs',
+  general: 'cost_of_goods_sold',
+};
+
+// Maps industry IDs to investment categories (no "inventory" for software)
+const INDUSTRY_INVESTMENT_CATEGORIES: Record<string, { labels: Record<string, number> }> = {
+  saas: { labels: { product_development: 0.40, cloud_infrastructure: 0.15, legal: 0.05, marketing_initial: 0.10 } },
+  fintech: { labels: { product_development: 0.35, compliance_and_licensing: 0.15, cloud_infrastructure: 0.10, legal: 0.10, marketing_initial: 0.10 } },
+  consulting: { labels: { office_setup: 0.20, tools_and_software: 0.15, legal: 0.10, marketing_initial: 0.15 } },
+  education: { labels: { content_development: 0.35, platform_setup: 0.15, legal: 0.05, marketing_initial: 0.15 } },
+};
+
 const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
   {
     id: 'saas',
@@ -293,7 +319,7 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     ltv_cac_max: 8,
     net_margin_min: 15,
     net_margin_max: 40,
-    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard']
+    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard', 'neural', 'ai ', 'artificial intelligence', 'machine learning', 'deep learning', 'ml ', 'data analytics', 'analytics platform', 'intelligence', 'operation system', 'operating system', 'b2b software', 'enterprise software', 'devops', 'infrastructure', 'crm', 'erp', 'workflow', 'productivity', 'management system', 'management platform', 'system for']
   },
   {
     id: 'ecommerce',
