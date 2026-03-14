@@ -61,36 +61,88 @@ export function AISuggestionButton({
     setIsLoading(true);
     setSuggestions([]);
 
+    const readString = (value: unknown): string | undefined =>
+      typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
+    const readNumber = (value: unknown): number | undefined =>
+      typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+
+    const normalizedContext = {
+      ...context,
+      business_name:
+        readString(context.business_name) ||
+        readString(context.company_name) ||
+        readString(context.market_name) ||
+        readString(context.your_company_name) ||
+        'The Business',
+      industry: readString(context.industry) || 'technology',
+      target_market:
+        readString(context.target_market) ||
+        readString(context.target_customer_description) ||
+        readString(context.geographic_focus) ||
+        'small and medium businesses',
+      location: readString(context.location) || readString(context.geographic_focus),
+      revenue: readNumber(context.revenue) ?? readNumber(context.monthly_revenue) ?? readNumber(context.mrr) ?? 0,
+      roi: readNumber(context.roi) ?? 0,
+      payback_months: readNumber(context.payback_months) ?? readNumber(context.break_even_months) ?? 0,
+    };
+
     try {
       const { data, error } = await supabase.functions.invoke('generate-document-content', {
         body: {
           section_type: sectionType,
-          context: {
-            business_name: context.business_name || 'The Business',
-            industry: context.industry || 'technology',
-            target_market: context.target_market || 'small and medium businesses',
-            revenue: context.revenue || 0,
-            roi: context.roi || 0,
-            payback_months: context.payback_months || 0,
-          },
+          context: normalizedContext,
           current_content: currentContent,
-          count: 3, // Generate 3 alternatives
+          count: 3,
         },
       });
 
       if (error) throw error;
 
-      if (data?.suggestions) {
-        setSuggestions(
-          data.suggestions.map((content: string, index: number) => ({
-            id: `suggestion-${index}`,
-            content,
-          }))
-        );
+      if (!data?.success || !Array.isArray(data?.suggestions)) {
+        throw new Error('No suggestions returned from AI service');
       }
-    } catch (error) {
+
+      const nextSuggestions = data.suggestions
+        .filter((content: unknown): content is string => typeof content === 'string' && content.trim().length > 0)
+        .map((content: string, index: number) => ({
+          id: `suggestion-${index}`,
+          content,
+        }));
+
+      if (nextSuggestions.length === 0) {
+        throw new Error('No usable suggestions generated');
+      }
+
+      setSuggestions(nextSuggestions);
+    } catch (error: any) {
       console.error('AI generation error:', error);
-      toast.error('Failed to generate suggestions. Please try again.');
+
+      const status = error?.context?.status;
+      let backendMessage = '';
+      const body = error?.context?.body;
+
+      if (typeof body === 'string') {
+        try {
+          backendMessage = JSON.parse(body)?.error || '';
+        } catch {
+          backendMessage = '';
+        }
+      } else if (body && typeof body === 'object') {
+        backendMessage = (body as { error?: string }).error || '';
+      }
+
+      const message =
+        status === 429
+          ? 'AI suggestions are temporarily rate-limited. Please retry in a minute.'
+          : status === 402
+          ? 'AI credits are currently unavailable. Please try again shortly.'
+          : status === 403
+          ? backendMessage || 'Your current plan does not allow AI document suggestions.'
+          : status === 400
+          ? backendMessage || 'Invalid AI suggestion request. Please refresh and retry.'
+          : backendMessage || 'Failed to generate suggestions. Please try again.';
+
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
