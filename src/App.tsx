@@ -95,6 +95,7 @@ const App = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/viral-content" element={<ViralContent />} />
+                <Route path="/viral-posts" element={<ViralPosts />} />
                 <Route path="/examples" element={<ExamplesIndex />} />
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
