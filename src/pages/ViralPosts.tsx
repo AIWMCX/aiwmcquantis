@@ -16,6 +16,7 @@ const platformMeta: Record<Platform, { label: string; icon: React.ReactNode; col
 };
 
 export default function ViralPosts() {
+  useDocumentTitle('Marketing Copy Library — AIWMC Quantis');
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
   const copy = async (id: string, text: string) => {
@@ -31,11 +32,6 @@ export default function ViralPosts() {
   };
 
   return (
-    <>
-      <PageSEO
-        title="Marketing Copy Library — AIWMC Quantis"
-        description="15 ready-to-publish social media posts for LinkedIn, X, and Reddit. Pre-mortem positioning, metric-driven, SEO-optimized."
-      />
 
       <div className="min-h-screen bg-background">
         <div className="max-w-4xl mx-auto px-4 py-8 sm:py-12">
