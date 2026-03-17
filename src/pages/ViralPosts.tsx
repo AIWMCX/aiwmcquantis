@@ -123,6 +123,6 @@ export default function ViralPosts() {
           </Tabs>
         </div>
       </div>
-    </>
+    
   );
 }
