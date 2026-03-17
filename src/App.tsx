@@ -29,6 +29,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const ViralContent = lazy(() => import("./pages/ViralContent"));
+const ViralPosts = lazy(() => import("./pages/ViralPosts"));
 const ExamplesIndex = lazy(() => import("./pages/examples/ExamplesIndex"));
 const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
