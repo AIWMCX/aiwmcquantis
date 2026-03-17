@@ -29,6 +29,7 @@ const Blog = lazy(() => import("./pages/Blog"));
 const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const ViralContent = lazy(() => import("./pages/ViralContent"));
+const ViralPosts = lazy(() => import("./pages/ViralPosts"));
 const ExamplesIndex = lazy(() => import("./pages/examples/ExamplesIndex"));
 const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
@@ -94,6 +95,7 @@ const App = () => {
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />
                 <Route path="/viral-content" element={<ViralContent />} />
+                <Route path="/viral-posts" element={<ViralPosts />} />
                 <Route path="/examples" element={<ExamplesIndex />} />
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
