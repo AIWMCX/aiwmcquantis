@@ -65,8 +65,8 @@ export default function UseCases() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Use Cases — AIWMC Quantis | Who Uses It"
-        description="Founders validate ideas, consultants scale analysis, operators stress-test expansion. See how AIWMC Quantis serves your role."
+        title="Who Uses Quantis — Founders, Consultants & Builders"
+        description="Quantis helps founders validate ideas, consultants scale client analysis, and operators stress-test expansion plans. See how it serves your role."
         canonical="/use-cases"
       />
       <StructuredData

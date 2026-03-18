@@ -46,7 +46,21 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
-      <StructuredData />
+      <StructuredData 
+        includeFAQ
+        faqItems={[
+          { question: 'What is Quantis?', answer: 'Quantis is an AI-powered business validation platform that runs a financial pre-mortem on any startup idea in 90 seconds. It stress-tests 12 financial variables using 1,000+ industry benchmarks and 50+ city-level cost indices.' },
+          { question: 'Is Quantis free to use?', answer: 'Yes. The free plan includes 3 full analyses per month with revenue projections, risk flags, and action plans. No credit card required.' },
+          { question: 'How accurate are the financial projections?', answer: 'Quantis uses a deterministic financial engine calibrated against 1,000+ industry benchmarks from public datasets (BLS, Census, IBISWorld). Every projection includes a confidence score and assumption transparency so you know exactly what drives each number.' },
+          { question: 'What does a "financial pre-mortem" mean?', answer: 'A pre-mortem identifies how your business could fail before you launch. Quantis stress-tests revenue assumptions, cost structures, and unit economics to surface fatal flaws — like a rent-to-revenue ratio that guarantees losses.' },
+          { question: 'How is Quantis different from ChatGPT or a spreadsheet?', answer: 'ChatGPT gives qualitative opinions. Spreadsheets require you to know the right formulas. Quantis combines a deterministic math engine with AI-generated insights — giving you both precise numbers and strategic context, validated by dual-AI consensus.' },
+          { question: 'What industries does Quantis support?', answer: 'Quantis covers 100+ industry types including SaaS, restaurants, e-commerce, consulting, fitness studios, food trucks, real estate, and more. Each industry has calibrated benchmarks for margins, CAC, LTV, churn, and fixed costs.' },
+          { question: 'Can I export my analysis as a PDF?', answer: 'Yes. Plus plan users ($17/mo) can export branded PDF reports, generate business plan documents, pitch decks, and NDAs through the Document Studio.' },
+          { question: 'Does Quantis adjust for my city or location?', answer: 'Yes. Quantis includes location intelligence for 50+ global cities, adjusting rent, salary, utilities, and cost-of-living multipliers to give you location-specific projections.' },
+          { question: 'What is the Plus plan?', answer: 'Plus costs $17/month and includes unlimited analyses, PDF export, Document Studio (business plans, pitch decks, NDAs), custom branding, Monte Carlo simulation, and priority support.' },
+          { question: 'Is my data secure?', answer: 'Yes. All data is encrypted in transit and at rest. We use Supabase with Row-Level Security, and personal data is never shared with third parties. See our Privacy Policy for details.' }
+        ]}
+      />
       
       {/* 1. UrgencyBanner */}
       <UrgencyBanner />
