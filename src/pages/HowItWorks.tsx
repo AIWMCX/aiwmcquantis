@@ -67,8 +67,8 @@ export default function HowItWorks() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="How AIWMC Quantis Works — AI Business Validation"
-        description="See how AIWMC Quantis stress-tests your business model in 60 seconds. 3 steps: describe your idea, AI runs financial analysis, get your risk report."
+        title="How Quantis Works — AI Financial Stress-Testing"
+        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 1,000+ benchmarks, get your risk report with 3-scenario projections — in 90 seconds."
         canonical="/how-it-works"
         jsonLd={{
           '@context': 'https://schema.org',

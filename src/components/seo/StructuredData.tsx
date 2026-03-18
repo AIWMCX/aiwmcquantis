@@ -24,34 +24,62 @@ export function StructuredData({
   const location = useLocation();
 
   useEffect(() => {
-    // Organization Schema
+    // Organization Schema — enriched
     const organizationSchema = {
       '@context': 'https://schema.org',
       '@type': 'Organization',
+      '@id': `${SITE_URL}/#organization`,
       name: 'AIWMC Quantis',
+      alternateName: 'Quantis',
       url: SITE_URL,
-      logo: `${SITE_URL}/og-image.png`,
-      description: 'AI-powered business analysis platform for financial projections, market analysis, and comprehensive business planning.',
+      logo: {
+        '@type': 'ImageObject',
+        url: `${SITE_URL}/og-image.png`,
+        width: 1200,
+        height: 630
+      },
+      description: 'AI-powered business validation platform. Run a financial pre-mortem on any startup idea in 90 seconds.',
       email: 'support@aiwmcquantis.com',
       foundingDate: '2024',
-      sameAs: []
+      sameAs: [
+        'https://www.linkedin.com/company/aiwmc-quantis',
+        'https://twitter.com/aiwmcquantis'
+      ],
+      contactPoint: {
+        '@type': 'ContactPoint',
+        email: 'support@aiwmcquantis.com',
+        contactType: 'customer support',
+        availableLanguage: ['English']
+      },
+      address: {
+        '@type': 'PostalAddress',
+        addressCountry: 'US'
+      }
     };
 
-    // SoftwareApplication Schema - Without unverified ratings
+    // SoftwareApplication Schema — enriched
     const softwareSchema = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
+      '@id': `${SITE_URL}/#software`,
       name: 'AIWMC Quantis',
       applicationCategory: 'BusinessApplication',
+      applicationSubCategory: 'Financial Analysis',
       operatingSystem: 'Web',
-      description: 'AI-powered business analysis platform that generates financial projections, market analysis, and complete business plans in under 2 minutes.',
+      browserRequirements: 'Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.',
+      description: 'AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using 1,000+ industry benchmarks in 90 seconds.',
+      url: SITE_URL,
+      datePublished: '2024-06-01',
+      dateModified: '2026-03-01',
+      author: { '@id': `${SITE_URL}/#organization` },
+      publisher: { '@id': `${SITE_URL}/#organization` },
       offers: [
         {
           '@type': 'Offer',
           name: 'Free',
           price: '0',
           priceCurrency: 'USD',
-          description: '3 analyses per month with basic financial projections'
+          description: '3 analyses per month with financial projections and risk flags'
         },
         {
           '@type': 'Offer',
@@ -59,32 +87,40 @@ export function StructuredData({
           price: '17',
           priceCurrency: 'USD',
           priceValidUntil: '2026-12-31',
-          description: 'Unlimited analyses with advanced financial modeling, document intelligence, PDF export, and custom branding'
+          description: 'Unlimited analyses with PDF export, document studio, custom branding, and priority support'
         }
       ],
       featureList: [
-        'Financial Projections',
-        'Market Analysis',
-        'Business Plan Generation',
-        'Document Intelligence',
-        'Location-Based Insights',
-        'PDF Export',
-        'Custom Branding'
+        'Financial Pre-Mortem Analysis',
+        '3-Scenario Revenue Projections',
+        'Unit Economics Calculator (CAC, LTV, Payback)',
+        'Monte Carlo Risk Simulation',
+        'Industry Benchmark Comparison (1,000+ benchmarks)',
+        'Location-Adjusted Cost Intelligence (50+ cities)',
+        'Sensitivity & Tornado Analysis',
+        'Document Studio (Business Plans, Pitch Decks, NDAs)',
+        'PDF Export with Custom Branding',
+        'Dual-AI Consensus Validation',
+        'Real-Time Risk Flags & Anomaly Detection',
+        'Collaborative Team Workspaces'
       ]
     };
 
-    // WebSite Schema with SearchAction
+    // WebSite Schema — enriched
     const websiteSchema = {
       '@context': 'https://schema.org',
       '@type': 'WebSite',
+      '@id': `${SITE_URL}/#website`,
       name: 'AIWMC Quantis',
       url: SITE_URL,
-      description: 'AI-powered business analysis platform for entrepreneurs and startups',
+      description: 'AI-powered business validation platform — stress-test any startup idea in 90 seconds',
+      publisher: { '@id': `${SITE_URL}/#organization` },
+      inLanguage: 'en-US',
       potentialAction: {
         '@type': 'SearchAction',
         target: {
           '@type': 'EntryPoint',
-          urlTemplate: `${SITE_URL}/app?q={search_term_string}`
+          urlTemplate: `${SITE_URL}/blog?q={search_term_string}`
         },
         'query-input': 'required name=search_term_string'
       }
@@ -94,7 +130,6 @@ export function StructuredData({
     const scripts: HTMLScriptElement[] = [];
 
     const injectSchema = (schema: object, id: string) => {
-      // Remove existing if present
       const existing = document.getElementById(id);
       if (existing) existing.remove();
 

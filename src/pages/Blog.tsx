@@ -94,8 +94,8 @@ export default function Blog() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Blog — AIWMC Quantis | Business Validation Insights"
-        description="Practical guides on startup validation, financial structuring, and AI-powered business analysis for founders and consultants."
+        title="Startup Validation Blog — AIWMC Quantis Insights"
+        description="Practical guides on validating startup ideas, financial stress-testing, and AI-powered business analysis. Written for founders, consultants, and builders."
         canonical="/blog"
       />
 

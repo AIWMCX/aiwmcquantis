@@ -10,8 +10,8 @@ export default function ExamplesIndex() {
   return (
     <div className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
       <PageSEO
-        title="Business Analysis Examples — Real Financial Reports | AIWMC Quantis"
-        description="See real business analysis examples: coffee shops, SaaS startups, restaurants, e-commerce, and consulting firms. Revenue projections, risk flags, and action plans."
+        title="Business Validation Examples — Real AI Analysis Reports"
+        description="See complete AI-generated financial reports for coffee shops, SaaS, restaurants, e-commerce, and more. Revenue projections, risk flags, and action plans."
         canonical="/examples"
         jsonLd={{
           "@context": "https://schema.org",

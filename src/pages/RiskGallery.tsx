@@ -214,8 +214,8 @@ export default function RiskGallery() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Risk Gallery — Real Startup Stress-Test Scenarios"
-        description="Explore anonymized startup stress tests powered by AIWMC Quantis. See how revenue shocks, cost spikes, and growth slowdowns impact real business models."
+        title="Startup Risk Gallery — Common Business Model Failures"
+        description="Browse real risk flags caught by Quantis: revenue shocks, cost spikes, fatal unit economics. Learn from anonymized stress-test scenarios before you launch."
         canonical="/risk-gallery"
         jsonLd={{
           '@context': 'https://schema.org',

@@ -11,8 +11,8 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Pricing — AIWMC Quantis | Free & Plus Plans"
-        description="Simple pricing for serious founders. Free plan: 3 analyses/month. Plus: $17/mo for unlimited analyses, PDF exports, and custom branding."
+        title="Quantis Pricing — Free Plan & Plus at $17/mo"
+        description="Start free forever with 3 analyses/month. Upgrade to Plus at $17/mo for unlimited analyses, PDF export, Document Studio, and custom branding."
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',

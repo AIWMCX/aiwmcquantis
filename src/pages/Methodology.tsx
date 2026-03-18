@@ -33,8 +33,8 @@ export default function Methodology() {
   return (
     <AppLayout title="Methodology & Safety">
       <PageSEO
-        title="Methodology | AIWMC Quantis"
-        description="Learn about the Quantis Safety Levels (QSL), our data provenance, and the Dual-AI validation engine powering our business analysis."
+        title="Quantis Methodology — Deterministic Financial Engine"
+        description="How Quantis calculates projections: deterministic math engine, 1,000+ industry benchmarks, dual-AI consensus validation, and 7-layer safety architecture."
         canonical="/methodology"
       />
       

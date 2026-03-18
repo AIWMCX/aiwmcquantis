@@ -1,72 +1,168 @@
 
 
-# Implement SEO Optimization Package
+# CTO-Level Accuracy & Precision Upgrade Plan
 
-## What This Does
-Applies the complete SEO package from the uploaded document across the entire site: updated meta tags, enriched JSON-LD structured data, improved robots.txt, expanded sitemap, and updated `index.html` head tags.
+## Current State Assessment
 
-## Changes
+After deep analysis of ~8,000 lines of production code across 12 modules, here is the honest picture:
 
-### 1. Update `index.html` — Head Meta Tags
-- Update `<title>` to: "Quantis — AI Business Validation in 90 Seconds | Free" (56 chars)
-- Update `<meta name="description">` to the SEO package version (149 chars)
-- Update og:title, og:description, twitter:title, twitter:description to match
-- Add `og:image:alt` with proper descriptive text
-- Update twitter:site to `@aiwmcquantis`
+### What's Strong
+- **Deterministic financial engine** (`financial-engine.ts`, 903 lines) with full audit trails, 36-month DCF at 10% WACC, margin-adjusted LTV, scenario modeling with COGS compression/expansion
+- **Bulletproof validator** (795 lines): schema validation, expense reconciliation, revenue cross-checks, margin ceiling guards, health scoring
+- **50+ city location intelligence** with granular salary/rent/utility/marketing multipliers
+- **Sub-industry detection** with B2B/B2C/SMB modifiers for churn, CAC, LTV
+- **AI safety guardrails**: 7-layer defense, truth labeling, cost controls, kill switch
+- **Client-side precision layer**: QuantisMath (decimal.js), FormulaRegistry (17 formulas), ConsensusEvaluator interface
 
-### 2. Update `PageSEO` Usage on Every Page
-Update the `title` and `description` props passed to `<PageSEO>` on each page to match the SEO package specifications:
+### Critical Gaps Identified
 
-| Page | New Title | New Description |
-|------|-----------|----------------|
-| Homepage (Landing.tsx) | Quantis — AI Business Validation in 90 Seconds \| Free | Run a financial pre-mortem on your startup in 90 seconds... |
-| How It Works | How Quantis Works — AI Financial Stress-Testing | 3 steps: describe your idea, AI stress-tests 12 financial variables... |
-| Use Cases | Who Uses Quantis — Founders, Consultants & Builders | Quantis helps founders validate ideas... |
-| Examples | Business Validation Examples — Real AI Analysis Reports | See complete AI-generated financial reports... |
-| Risk Gallery | Startup Risk Gallery — Common Business Model Failures | Browse real risk flags caught by Quantis... |
-| Pricing | Quantis Pricing — Free Plan & Plus at $17/mo | Start free forever or upgrade to Plus... |
-| Blog | Startup Validation Blog — AIWMC Quantis Insights | Practical guides on validating startup ideas... |
-| Methodology | Quantis Methodology — Deterministic Financial Engine | How Quantis calculates projections... |
+**Gap 1: Two calculation engines, no shared precision**
+The production edge function (`calculateStrictFinancials` in `index.ts`, ~400 lines) and `computeFinancials` in `financial-engine.ts` (500 lines) both use raw `Math.round()` and `*` / `/` operators. The client-side QuantisMath precision layer does NOT reach the server. This is the single biggest accuracy risk.
 
-### 3. Update `StructuredData.tsx` — Enriched JSON-LD
-Replace existing schemas with the full SEO package versions:
-- **Organization**: Add `@id`, `alternateName`, `logo` as ImageObject, `sameAs` array, `contactPoint`, `address`
-- **SoftwareApplication**: Add `@id`, `applicationSubCategory`, `browserRequirements`, expanded `featureList` (12 items), `datePublished`, `dateModified`, `author`/`publisher` refs, `url`
-- **WebSite**: Add `@id`, `publisher` ref, `inLanguage`, update SearchAction target to `/blog?q=`
-- **FAQPage**: Update with the 10 comprehensive FAQ items from the SEO package (inject on Landing page)
+**Gap 2: No cross-validation between the two server paths**
+`calculateStrictFinancials` (in index.ts) and `computeFinancials` (in financial-engine.ts) compute the same metrics independently with slightly different logic. Nobody checks if they agree.
 
-### 4. Update `robots.txt`
-Replace with SEO package version:
-- Add disallow rules for `/login`, `/signup`, `/account/`, `/checkout/`, `/auth/`, `/dashboard/`
-- Add query string blocks (`?ref=`, `?source=`)
-- Add explicit Allow rules for public marketing pages
-- Add `Crawl-delay: 1`
-- Keep existing bot-specific rules
+**Gap 3: AI narrator outputs are validated but not constrained to computed numbers**
+The post-check (`validateAIOutput`) detects when AI invents numbers, but the system prompt doesn't inject the computed metrics as immutable anchors strongly enough. The AI can still hallucinate financial figures in narration text.
 
-### 5. Update `sitemap.xml`
-Add missing pages with proper priority/changefreq:
-- `/how-it-works` (priority 0.9)
-- `/use-cases` (priority 0.8)
-- `/methodology` (priority 0.7)
-- Update existing priorities to match SEO package
-- Add blog posts: `how-to-stress-test-your-startup`, `startup-validation-checklist`, `ai-vs-spreadsheets-startup-planning`
-- Remove `/auth` from sitemap (should not be indexed)
-- Update all `lastmod` dates to 2026-03-01
+**Gap 4: Benchmark data is static — no confidence degradation for stale data**
+The 50+ embedded benchmarks have `confidence_score` fields but no staleness decay. A 2-year-old benchmark for "Food Delivery" should score lower than a freshly updated one.
 
-### 6. Add FAQ Data to Landing Page
-Pass the 10 SEO-package FAQ items to `StructuredData` on the Landing page via `includeFAQ={true}` and `faqItems={[...]}` — these render as JSON-LD only (no visible UI change needed).
+**Gap 5: No sensitivity analysis**
+The system produces 3 scenarios (pessimistic/base/optimistic) with fixed multipliers (0.8x/1.0x/1.25x). There's no Monte Carlo or variable-sweep sensitivity showing which input has the most impact on profit.
 
-## Files Modified
+---
 
-| File | Change |
+## Plan: 5 High-Impact Upgrades
+
+### Upgrade 1: Port QuantisMath to Edge Function (Server-Side Precision)
+
+**Problem**: 903+ lines of `Math.round(a * b)` in the production pipeline.
+
+**Solution**: Create a Deno-compatible copy of the precision library at `supabase/functions/analyze-business/quantis-math-server.ts`. This is necessary because edge functions run in Deno and cannot import from `src/lib/`.
+
+- Port `QuantisMath` class (sanitize, add, subtract, multiply, divide, percentage, npv, ltv, paybackMonths, breakEvenRevenue)
+- Use `npm:decimal.js` specifier per the project's edge function deployment standard
+- Refactor `calculateStrictFinancials` to use `QuantisMath` for all arithmetic — eliminate every `Math.round(a * b)` pattern
+- Refactor `computeFinancials` in `financial-engine.ts` the same way
+- Keep `Math.round()` only as a final display-rounding step via `QuantisMath.round()`
+
+**Files**: New `quantis-math-server.ts`, modified `financial-engine.ts`, modified `index.ts` (calculateStrictFinancials section)
+
+### Upgrade 2: Cross-Validation Between Dual Engine Paths
+
+**Problem**: `calculateStrictFinancials` and the Quantis engine (`processQuantisAnalysis`) both compute MRR, LTV, CAC, netProfit independently. If they disagree, nobody knows.
+
+**Solution**: After both engines run, compare their outputs:
+
+```text
+compareEngineOutputs(strictResult, quantisResult) → {
+  agreementScore: 0-100,
+  divergences: [{ metric, pathA, pathB, delta% }],
+  finalOutput: "strict" | "quantis" | "merged"
+}
+```
+
+- If agreement > 95%: use strict result (higher audit trail fidelity)
+- If agreement 80-95%: use strict result + flag divergences in audit
+- If agreement < 80%: log critical warning, investigate root cause, use quantis result (has more validation layers)
+
+Wire this into the response payload so the UI can eventually show a "dual-engine verified" badge.
+
+**Files**: New `engine-cross-validator.ts`, modified `index.ts` (post-calculation section)
+
+### Upgrade 3: AI Narrator Number Anchoring
+
+**Problem**: The AI narrator can still generate text containing numbers that don't match the computed metrics.
+
+**Solution**: Enhance the system prompt and post-validation:
+
+1. Inject a `COMPUTED_ANCHORS` block into the system prompt:
+```text
+IMMUTABLE FINANCIAL ANCHORS (you MUST use these exact numbers):
+- MRR: $X | Net Profit: $Y | LTV: $Z | CAC: $W | ROI Y1: R%
+DO NOT invent, estimate, or modify these numbers.
+```
+
+2. Strengthen `validateAIOutput` to do regex extraction of all dollar amounts and percentages from AI text, then cross-check each against the computed metrics within ±1% tolerance.
+
+3. If any AI-generated number diverges > 5% from the computed anchor, auto-replace it in the output text with the correct value and tag it `[corrected]`.
+
+**Files**: Modified `narrator-prompt.ts`, modified `ai-safety-guardrails.ts`, modified `index.ts` (AI call section)
+
+### Upgrade 4: Sensitivity Analysis Module
+
+**Problem**: Users get 3 fixed scenarios but don't know which variable (price, CAC, churn, costs) has the biggest impact on their profit.
+
+**Solution**: Create `sensitivity-analyzer.ts` that sweeps each input ±20% and measures the resulting change in net profit:
+
+```text
+sensitivityAnalysis(baseMetrics, benchmarks) → {
+  tornado: [
+    { variable: "Price", -20%_profit: $X, +20%_profit: $Y, sensitivity: 0.85 },
+    { variable: "CAC", ... },
+    { variable: "Churn Rate", ... },
+    { variable: "Fixed Costs", ... },
+  ],
+  mostSensitiveVariable: "Price",
+  leastSensitiveVariable: "Fixed Costs"
+}
+```
+
+This gives users the "which lever should I pull?" answer that separates a real financial tool from a calculator.
+
+**Files**: New `sensitivity-analyzer.ts`, modified `index.ts` (add to response), minor UI update to display tornado chart
+
+### Upgrade 5: Benchmark Confidence Decay + Source Scoring
+
+**Problem**: All benchmarks are treated equally regardless of how old, how many data points, or what source they come from.
+
+**Solution**: Add a `computeBenchmarkConfidence()` function:
+
+```text
+confidence = base_score
+  × staleness_factor (1.0 if <6mo, 0.9 if <1yr, 0.7 if <2yr)
+  × sample_size_factor (log(sample_size) / log(100), capped at 1.0)
+  × source_weight (kerry_dataset: 0.85, government_data: 0.95, industry_report: 0.90)
+```
+
+This confidence feeds into:
+- The reliability score shown to users
+- The AI prompt (lower confidence → more hedging language)
+- The consensus evaluator thresholds (lower confidence → wider tolerance)
+
+**Files**: Modified `embedded-benchmarks.ts` (add `last_updated` field), new `benchmark-confidence.ts`, modified `index.ts`
+
+---
+
+## Implementation Priority
+
+| Order | Upgrade | Impact | Effort | Risk |
+|-------|---------|--------|--------|------|
+| 1 | Server-side QuantisMath | Eliminates all FP drift in production | High | Low — pure refactor |
+| 2 | AI number anchoring | Prevents hallucinated financials | High | Low |
+| 3 | Cross-validation | Catches engine disagreements | Medium | Low |
+| 4 | Sensitivity analysis | Adds real analytical depth | High | Medium — new feature |
+| 5 | Benchmark confidence decay | Improves data quality scoring | Medium | Low |
+
+## What This Does NOT Include (Flagged for Later)
+
+- **Monte Carlo simulation**: Requires significant compute; better as a Phase 3 feature
+- **Real-time market data feeds**: Would need API integrations (BLS, Statista); separate project
+- **Full dual-model AI consensus**: Requires running both GPT + Gemini per request; cost implications need evaluation first
+- **UI confidence badges**: Phase 5 work that depends on this data layer being solid first
+
+## Files Changed Summary
+
+| File | Action |
 |------|--------|
-| `index.html` | Updated title, description, OG/Twitter meta |
-| `src/components/seo/StructuredData.tsx` | Enriched Organization, Software, WebSite schemas |
-| `src/pages/Landing.tsx` | Updated PageSEO props + FAQ structured data |
-| `src/pages/Blog.tsx` | Updated PageSEO title/description |
-| `src/pages/UseCases.tsx` | Updated PageSEO title/description |
-| `src/pages/RiskGallery.tsx` | Updated PageSEO title/description |
-| `src/pages/Methodology.tsx` | Updated PageSEO title/description |
-| `public/robots.txt` | Expanded disallow/allow rules |
-| `public/sitemap.xml` | Added missing pages, fixed priorities, removed /auth |
+| `supabase/functions/analyze-business/quantis-math-server.ts` | New — Deno-compatible precision math |
+| `supabase/functions/analyze-business/financial-engine.ts` | Refactor to use QuantisMath |
+| `supabase/functions/analyze-business/index.ts` | Refactor calculateStrictFinancials + wire cross-validation + sensitivity |
+| `supabase/functions/analyze-business/engine-cross-validator.ts` | New — dual-path agreement checker |
+| `supabase/functions/analyze-business/sensitivity-analyzer.ts` | New — tornado sensitivity analysis |
+| `supabase/functions/analyze-business/benchmark-confidence.ts` | New — staleness/source scoring |
+| `supabase/functions/analyze-business/narrator-prompt.ts` | Enhanced number anchoring |
+| `supabase/functions/analyze-business/ai-safety-guardrails.ts` | Stronger post-validation |
+| `supabase/functions/analyze-business/embedded-benchmarks.ts` | Add last_updated metadata |
 
