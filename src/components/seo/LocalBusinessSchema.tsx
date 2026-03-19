@@ -120,14 +120,14 @@ export const LocalBusinessSchema = React.memo(function LocalBusinessSchema({
 export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
   return (
     <LocalBusinessSchema
-      name="AIWMC AI Agency LLC"
-      description="AIWMC AI Agency is a Denver-based artificial intelligence consulting company specializing in AI-powered business intelligence tools, including AIWMC Quantis for instant business analysis and financial projections."
+      name="AIWMC Quantis"
+      description="AIWMC Quantis is an AI-powered business validation platform for early-stage founders, solopreneurs, and small business owners. Our dual-AI engine combines financial stress-testing, risk scoring, and scenario modeling to give founders a structured validation score and clear recommendations — before they've spent their first dollar on execution. Founded in Denver, CO by Bogdan Jeltov."
       url="https://aiwmcquantis.com"
       logo="https://aiwmcquantis.com/icon-512.png"
       image="https://aiwmcquantis.com/og-image.png"
-      email="support@aiwmc.com"
+      email="support@aiwmcquantis.com"
       address={{
-        streetAddress: '1234 Innovation Drive, Suite 100',
+        streetAddress: '',
         addressLocality: 'Denver',
         addressRegion: 'CO',
         postalCode: '80202',
@@ -137,22 +137,11 @@ export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
         latitude: 39.7392,
         longitude: -104.9903,
       }}
-      openingHours={[
-        {
-          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'],
-          opens: '09:00',
-          closes: '18:00',
-        },
-      ]}
-      priceRange="$$"
+      priceRange="$"
       sameAs={[
-        'https://twitter.com/AIWMC_official',
-        'https://www.linkedin.com/company/aiwmc',
+        'https://www.linkedin.com/company/aiwmc-quantis',
+        'https://twitter.com/aiwmcquantis',
       ]}
-      aggregateRating={{
-        ratingValue: 4.9,
-        reviewCount: 127,
-      }}
     />
   );
 });

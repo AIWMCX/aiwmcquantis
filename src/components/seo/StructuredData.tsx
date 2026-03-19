@@ -38,9 +38,19 @@ export function StructuredData({
         width: 1200,
         height: 630
       },
-      description: 'AI-powered business validation platform. Run a financial pre-mortem on any startup idea in 90 seconds.',
+      description: 'AI-powered business validation platform. Stress-test your startup idea before you commit capital.',
+      slogan: 'AI-powered business validation. Stress-test your startup idea before you commit capital.',
       email: 'support@aiwmcquantis.com',
       foundingDate: '2024',
+      founder: {
+        '@type': 'Person',
+        name: 'Bogdan Jeltov'
+      },
+      numberOfEmployees: {
+        '@type': 'QuantitativeValue',
+        minValue: 1,
+        maxValue: 10
+      },
       sameAs: [
         'https://www.linkedin.com/company/aiwmc-quantis',
         'https://twitter.com/aiwmcquantis'
@@ -53,8 +63,11 @@ export function StructuredData({
       },
       address: {
         '@type': 'PostalAddress',
+        addressLocality: 'Denver',
+        addressRegion: 'CO',
         addressCountry: 'US'
-      }
+      },
+      keywords: 'Business Validation, Startup Tools, AI Financial Modeling, Risk Assessment, Scenario Analysis, Entrepreneurship, Solo Founder Tools, SaaS, Startup Strategy, Business Intelligence, Early-Stage Startups, Venture Validation'
     };
 
     // SoftwareApplication Schema — enriched
