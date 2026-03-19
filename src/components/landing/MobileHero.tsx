@@ -118,11 +118,7 @@ export function MobileHero() {
               <span className="text-[var(--q-status-yellow)]">
                 <Star className="w-3.5 h-3.5 fill-current" />
               </span>
-              4.9/5 from 847 founders
-            </span>
-            <span className="hidden md:block w-px h-4 bg-[var(--q-border-default)]" />
-            <span className="flex items-center gap-1.5 text-xs md:text-sm text-[var(--q-text-secondary)]">
-              Featured on Product Hunt
+              1,000+ industry benchmarks
             </span>
             <span className="hidden md:block w-px h-4 bg-[var(--q-border-default)]" />
             <span className="flex items-center gap-1.5 text-xs md:text-sm text-[var(--q-text-secondary)]">
