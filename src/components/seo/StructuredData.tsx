@@ -29,8 +29,8 @@ export function StructuredData({
       '@context': 'https://schema.org',
       '@type': 'Organization',
       '@id': `${SITE_URL}/#organization`,
-      name: 'AIWMC Quantis',
-      alternateName: 'Quantis',
+      name: 'AIWMC AI Agency LLC',
+      alternateName: 'AIWMC Quantis',
       url: SITE_URL,
       logo: {
         '@type': 'ImageObject',
