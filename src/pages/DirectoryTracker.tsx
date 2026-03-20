@@ -92,7 +92,7 @@ export default function DirectoryTracker() {
                   className="shrink-0"
                   onClick={() => handleCopy(key, text)}
                 >
-                  {copiedKey === key ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                  {copiedKey === key ? <Check className="h-4 w-4 text-primary" /> : <Copy className="h-4 w-4" />}
                 </Button>
               </div>
             ))}
