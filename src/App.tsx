@@ -43,6 +43,7 @@ const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
+const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 
 // Optimized QueryClient configuration for production
@@ -160,6 +161,11 @@ const App = () => {
                 <Route path="/admin/data-sources" element={
                   <ProtectedRoute requireAdmin>
                     <DataSources />
+                  </ProtectedRoute>
+                } />
+                <Route path="/directory-tracker" element={
+                  <ProtectedRoute requireAdmin>
+                    <DirectoryTracker />
                   </ProtectedRoute>
                 } />
                 
