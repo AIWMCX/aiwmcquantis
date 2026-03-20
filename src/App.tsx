@@ -43,6 +43,7 @@ const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
+const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 
 // Optimized QueryClient configuration for production
