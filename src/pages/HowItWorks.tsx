@@ -131,7 +131,7 @@ export default function HowItWorks() {
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8 text-base">
-              Try It Free — 60 Seconds <ArrowRight className="w-5 h-5" />
+              Start Free Analysis → <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </section>
