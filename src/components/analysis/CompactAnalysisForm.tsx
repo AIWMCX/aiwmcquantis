@@ -559,7 +559,7 @@ export function CompactAnalysisForm({
                       {item.label}
                     </span>
                     {!item.done && !item.required && (
-                      <span className="ml-auto text-[9px]" style={{ color: 'var(--q-text-disabled)' }}>+20%</span>
+                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-green-bg)', color: 'var(--q-status-green)', border: '1px solid var(--q-status-green-border)' }}>+20%</span>
                     )}
                   </div>
                 ))}
