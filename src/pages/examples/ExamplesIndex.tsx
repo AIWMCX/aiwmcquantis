@@ -47,7 +47,7 @@ export default function ExamplesIndex() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch">
           {EXAMPLE_LIST.map((ex, index) => (
             <Link key={ex.slug} to={`/examples/${ex.slug}`}>
               <div
