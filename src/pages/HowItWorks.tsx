@@ -106,7 +106,7 @@ export default function HowItWorks() {
             </div>
             <Link to="/app">
               <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Try It Free <ArrowRight className="w-4 h-4" />
+                Start Free Analysis → <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>
