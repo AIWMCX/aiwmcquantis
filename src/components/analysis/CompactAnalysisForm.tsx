@@ -425,10 +425,15 @@ export function CompactAnalysisForm({
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
           <div className="flex items-center justify-between h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{
-                background: (financialInputs.startup_investment && financialInputs.average_price && financialInputs.expected_customers && financialInputs.monthly_costs)
-                  ? 'var(--q-status-green)' : 'var(--q-accent-primary)'
-              }} />
+              {(() => {
+                const allFilled = !!(financialInputs.startup_investment && financialInputs.average_price && financialInputs.expected_customers && financialInputs.monthly_costs);
+                return (
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ 
+                    background: allFilled ? 'var(--q-status-green)' : 'var(--q-accent-primary)', 
+                    color: '#fff' 
+                  }}>{allFilled ? <Check className="w-3 h-3" /> : '2'}</span>
+                );
+              })()}
               <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Step 2 · Financial Inputs</span>
             </div>
             {selectedIndustry && (
