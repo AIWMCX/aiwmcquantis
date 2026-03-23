@@ -58,7 +58,7 @@ export default function ExamplesIndex() {
                 )}
                 style={{ '--index': index } as React.CSSProperties}
               >
-                <div className="p-6">
+                <div className="p-6 flex flex-col h-full">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium border-[var(--q-border-subtle)] bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)]">
                       {ex.industry}
