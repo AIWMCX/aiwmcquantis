@@ -184,7 +184,7 @@ export default function HowItWorks() {
           </div>
           <div className="text-center mt-8">
             <Link to="/examples/coffee-shop-denver" className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1">
-              See a complete sample report <ArrowRight className="w-4 h-4" />
+              See Example Report → <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </section>
