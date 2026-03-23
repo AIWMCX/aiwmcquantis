@@ -533,7 +533,7 @@ export function CompactAnalysisForm({
         </div>
 
         {/* ═══ COLUMN 3 — Confidence + Preview + Submit ═══ */}
-        <div className="space-y-3">
+        <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
 
           {/* Card A — Confidence Ring */}
           <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
