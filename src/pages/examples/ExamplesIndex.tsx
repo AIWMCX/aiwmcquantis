@@ -76,7 +76,7 @@ export default function ExamplesIndex() {
                     {ex.title}
                   </h2>
                   <p className="text-body-sm text-[var(--q-text-secondary)] line-clamp-2 mb-4">{ex.description}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mt-auto">
                     <span className="flex items-center gap-1 text-metric-sm text-[var(--q-status-green)]">
                       <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
                     </span>
