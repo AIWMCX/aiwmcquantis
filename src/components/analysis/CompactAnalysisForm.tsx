@@ -185,7 +185,7 @@ function ConfidenceRing({ score }: { score: number }) {
       </div>
       <span
         className="text-[10px] font-bold tracking-[0.08em] px-2.5 py-0.5 rounded-full"
-        style={{ background: `${color}18`, border: `1px solid ${color}40`, color }}
+        style={{ background: `${color}18`, border: `1px solid ${color}40`, color: tierColor }}
       >
         {tier}
       </span>
