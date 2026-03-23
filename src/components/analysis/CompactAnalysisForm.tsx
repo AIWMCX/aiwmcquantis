@@ -328,23 +328,26 @@ export function CompactAnalysisForm({
             <div>
               <label className="text-[11px] font-semibold tracking-[0.06em] uppercase mb-1.5 block" style={{ color: 'var(--q-text-tertiary)' }}>Industry</label>
               <div className="grid grid-cols-2 gap-[5px]">
-                {INDUSTRIES.map(ind => (
-                  <button
-                    key={ind.id} type="button"
-                    onClick={() => handleIndustrySelect(ind.id)}
-                    className="flex items-center gap-1.5 py-[7px] px-[9px] rounded-lg text-[12px] transition-all duration-[120ms] cursor-pointer text-left"
-                    style={{
-                      background: selectedIndustry === ind.id ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
-                      border: `1px solid ${selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
-                      color: selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
-                      fontWeight: selectedIndustry === ind.id ? 600 : 400,
-                      transform: selectedIndustry === ind.id ? 'scale(1.02)' : 'none',
-                    }}
-                  >
-                    <span className="text-[13px]">{ind.icon}</span>
-                    <span>{ind.label}</span>
-                  </button>
-                ))}
+                {INDUSTRIES.map(ind => {
+                  const Icon = ind.icon;
+                  return (
+                    <button
+                      key={ind.id} type="button"
+                      onClick={() => handleIndustrySelect(ind.id)}
+                      className="flex items-center gap-1.5 py-[7px] px-[9px] rounded-lg text-[12px] transition-all duration-[120ms] cursor-pointer text-left"
+                      style={{
+                        background: selectedIndustry === ind.id ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                        border: `1px solid ${selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
+                        color: selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
+                        fontWeight: selectedIndustry === ind.id ? 600 : 400,
+                        transform: selectedIndustry === ind.id ? 'scale(1.02)' : 'none',
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{ind.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
