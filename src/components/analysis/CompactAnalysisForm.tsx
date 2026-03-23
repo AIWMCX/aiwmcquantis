@@ -603,9 +603,9 @@ export function CompactAnalysisForm({
             {isLoading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
             ) : requiredReady ? (
-              '⚡ Run Stress-Test →'
+              'Start Free Analysis →'
             ) : (
-              '🔒 Run Stress-Test'
+              'Start Free Analysis'
             )}
           </button>
           {!requiredReady && missingHint && (
