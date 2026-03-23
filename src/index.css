@@ -79,10 +79,18 @@
     
     /* ── SPACING / RADII ── */
     --q-radius-sm: 6px;
-    --q-radius-md: 10px;
+    --q-radius-md: 8px;
     --q-radius-lg: 16px;
     --q-radius-xl: 24px;
     --q-radius-pill: 999px;
+    
+    /* ── AUDIT TOKEN ALIASES ── */
+    --bg-primary: var(--q-bg-base);
+    --bg-surface: var(--q-bg-surface);
+    --bg-surface-raised: var(--q-bg-elevated);
+    --bg-surface-sunken: var(--q-bg-input);
+    --border-default: var(--q-border-default);
+    --shadow-glow: 0 0 0 3px rgba(59,130,246,0.3);
     
     /* ── MOTION TOKENS ── */
     --q-duration-instant: 80ms;
