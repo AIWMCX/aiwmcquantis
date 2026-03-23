@@ -18,15 +18,17 @@ const INDUSTRY_BENCHMARKS: Record<string, Record<string, [number, number]>> = {
   real_estate:  { capital: [20000, 100000], price: [2500, 12000],customers: [2, 15],     opex: [3000, 10000],  cac: [300, 2000], churn: [3, 10]  },
 };
 
+import { Coffee, Monitor, ShoppingCart, Utensils, Dumbbell, BarChart3 as ConsultingIcon, Store, Building2 } from 'lucide-react';
+
 const INDUSTRIES = [
-  { id: 'coffee_shop', icon: '☕', label: 'Coffee Shop' },
-  { id: 'saas',        icon: '💻', label: 'SaaS' },
-  { id: 'ecommerce',   icon: '🛍️', label: 'Ecommerce' },
-  { id: 'restaurant',  icon: '🍽️', label: 'Restaurant' },
-  { id: 'fitness',     icon: '💪', label: 'Fitness' },
-  { id: 'consulting',  icon: '📊', label: 'Consulting' },
-  { id: 'retail',      icon: '🏪', label: 'Retail' },
-  { id: 'real_estate', icon: '🏠', label: 'Real Estate' },
+  { id: 'coffee_shop', icon: Coffee, label: 'Coffee Shop' },
+  { id: 'saas',        icon: Monitor, label: 'SaaS' },
+  { id: 'ecommerce',   icon: ShoppingCart, label: 'Ecommerce' },
+  { id: 'restaurant',  icon: Utensils, label: 'Restaurant' },
+  { id: 'fitness',     icon: Dumbbell, label: 'Fitness' },
+  { id: 'consulting',  icon: ConsultingIcon, label: 'Consulting' },
+  { id: 'retail',      icon: Store, label: 'Retail' },
+  { id: 'real_estate', icon: Building2, label: 'Real Estate' },
 ];
 
 const DEPTH_OPTIONS = [
@@ -158,6 +160,7 @@ function ConfidenceRing({ score }: { score: number }) {
   const offset = circ * (1 - score / 100);
   const color = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : 'var(--q-status-orange)';
   const tier = score >= 80 ? 'VERIFIED' : score >= 60 ? 'CONFIRMED' : score >= 40 ? 'ESTIMATED' : 'UNCERTAIN';
+  const tierColor = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : '#F87171';
 
   return (
     <div className="flex flex-col items-center gap-2">
@@ -182,7 +185,7 @@ function ConfidenceRing({ score }: { score: number }) {
       </div>
       <span
         className="text-[10px] font-bold tracking-[0.08em] px-2.5 py-0.5 rounded-full"
-        style={{ background: `${color}18`, border: `1px solid ${color}40`, color }}
+        style={{ background: `${color}18`, border: `1px solid ${color}40`, color: tierColor }}
       >
         {tier}
       </span>
@@ -318,7 +321,10 @@ export function CompactAnalysisForm({
         {/* ═══ COLUMN 1 — Business Identity ═══ */}
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
           <div className="flex items-center gap-2 h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: selectedIndustry ? 'var(--q-status-green)' : 'var(--q-accent-primary)' }} />
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ 
+              background: selectedIndustry ? 'var(--q-status-green)' : 'var(--q-accent-primary)', 
+              color: '#fff' 
+            }}>{selectedIndustry ? <Check className="w-3 h-3" /> : '1'}</span>
             <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Step 1 · Business</span>
           </div>
           <div className="p-4 space-y-3.5">
@@ -326,23 +332,26 @@ export function CompactAnalysisForm({
             <div>
               <label className="text-[11px] font-semibold tracking-[0.06em] uppercase mb-1.5 block" style={{ color: 'var(--q-text-tertiary)' }}>Industry</label>
               <div className="grid grid-cols-2 gap-[5px]">
-                {INDUSTRIES.map(ind => (
-                  <button
-                    key={ind.id} type="button"
-                    onClick={() => handleIndustrySelect(ind.id)}
-                    className="flex items-center gap-1.5 py-[7px] px-[9px] rounded-lg text-[12px] transition-all duration-[120ms] cursor-pointer text-left"
-                    style={{
-                      background: selectedIndustry === ind.id ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
-                      border: `1px solid ${selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
-                      color: selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
-                      fontWeight: selectedIndustry === ind.id ? 600 : 400,
-                      transform: selectedIndustry === ind.id ? 'scale(1.02)' : 'none',
-                    }}
-                  >
-                    <span className="text-[13px]">{ind.icon}</span>
-                    <span>{ind.label}</span>
-                  </button>
-                ))}
+                {INDUSTRIES.map(ind => {
+                  const Icon = ind.icon;
+                  return (
+                    <button
+                      key={ind.id} type="button"
+                      onClick={() => handleIndustrySelect(ind.id)}
+                      className="flex items-center gap-1.5 py-[7px] px-[9px] rounded-lg text-[12px] transition-all duration-[120ms] cursor-pointer text-left"
+                      style={{
+                        background: selectedIndustry === ind.id ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                        border: `1px solid ${selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
+                        color: selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
+                        fontWeight: selectedIndustry === ind.id ? 600 : 400,
+                        transform: selectedIndustry === ind.id ? 'scale(1.02)' : 'none',
+                      }}
+                    >
+                      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
+                      <span>{ind.label}</span>
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
@@ -417,10 +426,15 @@ export function CompactAnalysisForm({
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
           <div className="flex items-center justify-between h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
             <div className="flex items-center gap-2">
-              <span className="w-1.5 h-1.5 rounded-full" style={{
-                background: (financialInputs.startup_investment && financialInputs.average_price && financialInputs.expected_customers && financialInputs.monthly_costs)
-                  ? 'var(--q-status-green)' : 'var(--q-accent-primary)'
-              }} />
+              {(() => {
+                const allFilled = !!(financialInputs.startup_investment && financialInputs.average_price && financialInputs.expected_customers && financialInputs.monthly_costs);
+                return (
+                  <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ 
+                    background: allFilled ? 'var(--q-status-green)' : 'var(--q-accent-primary)', 
+                    color: '#fff' 
+                  }}>{allFilled ? <Check className="w-3 h-3" /> : '2'}</span>
+                );
+              })()}
               <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Step 2 · Financial Inputs</span>
             </div>
             {selectedIndustry && (
@@ -520,7 +534,7 @@ export function CompactAnalysisForm({
         </div>
 
         {/* ═══ COLUMN 3 — Confidence + Preview + Submit ═══ */}
-        <div className="space-y-3">
+        <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
 
           {/* Card A — Confidence Ring */}
           <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
@@ -546,7 +560,7 @@ export function CompactAnalysisForm({
                       {item.label}
                     </span>
                     {!item.done && !item.required && (
-                      <span className="ml-auto text-[9px]" style={{ color: 'var(--q-text-disabled)' }}>+20%</span>
+                      <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-green-bg)', color: 'var(--q-status-green)', border: '1px solid var(--q-status-green-border)' }}>+20%</span>
                     )}
                   </div>
                 ))}
@@ -590,9 +604,9 @@ export function CompactAnalysisForm({
             {isLoading ? (
               <><Loader2 className="w-4 h-4 animate-spin" /> Analyzing...</>
             ) : requiredReady ? (
-              '⚡ Run Stress-Test →'
+              'Start Free Analysis →'
             ) : (
-              '🔒 Run Stress-Test'
+              'Start Free Analysis'
             )}
           </button>
           {!requiredReady && missingHint && (

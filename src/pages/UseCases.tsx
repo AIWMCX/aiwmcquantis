@@ -91,7 +91,7 @@ export default function UseCases() {
             </div>
             <Link to="/app">
               <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Try It Free <ArrowRight className="w-4 h-4" />
+                Start Free Analysis → <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>
@@ -190,7 +190,7 @@ export default function UseCases() {
               </p>
               <Link to="/app">
                 <Button size="lg" variant="secondary" className="gap-2 py-6 px-8">
-                  See My Numbers — Free <ArrowRight className="w-5 h-5" />
+                  Start Free Analysis → <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
             </div>

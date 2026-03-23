@@ -106,7 +106,7 @@ export default function HowItWorks() {
             </div>
             <Link to="/app">
               <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Try It Free <ArrowRight className="w-4 h-4" />
+                Start Free Analysis → <ArrowRight className="w-4 h-4" />
               </Button>
             </Link>
           </div>
@@ -131,7 +131,7 @@ export default function HowItWorks() {
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8 text-base">
-              Try It Free — 60 Seconds <ArrowRight className="w-5 h-5" />
+              Start Free Analysis → <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
         </section>
@@ -184,7 +184,7 @@ export default function HowItWorks() {
           </div>
           <div className="text-center mt-8">
             <Link to="/examples/coffee-shop-denver" className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1">
-              See a complete sample report <ArrowRight className="w-4 h-4" />
+              See Example Report → <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </section>
@@ -220,7 +220,7 @@ export default function HowItWorks() {
               </p>
               <Link to="/app">
                 <Button size="lg" variant="secondary" className="gap-2 py-6 px-8">
-                  See My Numbers — Free <ArrowRight className="w-5 h-5" />
+                  Start Free Analysis → <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
             </div>

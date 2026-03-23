@@ -47,7 +47,7 @@ export default function ExamplesIndex() {
           </p>
         </div>
 
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch">
           {EXAMPLE_LIST.map((ex, index) => (
             <Link key={ex.slug} to={`/examples/${ex.slug}`}>
               <div
@@ -58,7 +58,7 @@ export default function ExamplesIndex() {
                 )}
                 style={{ '--index': index } as React.CSSProperties}
               >
-                <div className="p-6">
+                <div className="p-6 flex flex-col h-full">
                   <div className="flex items-center gap-2 mb-3">
                     <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium border-[var(--q-border-subtle)] bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)]">
                       {ex.industry}
@@ -76,7 +76,7 @@ export default function ExamplesIndex() {
                     {ex.title}
                   </h2>
                   <p className="text-body-sm text-[var(--q-text-secondary)] line-clamp-2 mb-4">{ex.description}</p>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-4 mt-auto">
                     <span className="flex items-center gap-1 text-metric-sm text-[var(--q-status-green)]">
                       <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
                     </span>
@@ -101,7 +101,7 @@ export default function ExamplesIndex() {
             </p>
             <Link to="/app">
               <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
-                Start My Free Analysis <ArrowRight className="w-5 h-5" />
+                Start Free Analysis → <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
           </div>

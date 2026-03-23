@@ -66,8 +66,8 @@ export function MobileHero() {
 
           {/* Subheadline */}
           <p
-            className="animate-fade-in text-base md:text-lg text-[var(--q-text-secondary)] max-w-[580px] mx-auto leading-relaxed"
-            style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both' }}
+            className="animate-fade-in text-base md:text-lg max-w-[580px] mx-auto leading-relaxed"
+            style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both', color: '#4B5563' }}
           >
             Quantis runs a financial pre-mortem on your business model.
             See fatal assumptions, stress-test scenarios, and get a clear
@@ -87,8 +87,7 @@ export function MobileHero() {
               data-event-id="start_validation_click"
             >
               <Zap className="w-5 h-5" />
-              Run Free Pre-Mortem
-              <ArrowRight className="w-4 h-4" />
+              Start Free Analysis →
             </Button>
             <Button
               onClick={handleSampleReport}
@@ -96,8 +95,7 @@ export function MobileHero() {
               size="lg"
               className="gap-2 text-base font-medium px-7 h-[52px] text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)] border border-[var(--q-border-default)]"
             >
-              See a Sample Pre-Mortem
-              <ArrowRight className="w-4 h-4" />
+              See Example Report →
             </Button>
           </div>
 

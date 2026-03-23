@@ -170,7 +170,7 @@ export function PricingSection() {
                 className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all relative"
               >
                 Annual
-                <span className="ml-2 text-xs font-semibold text-success">
+                <span className="ml-2 text-xs font-semibold" style={{ color: '#059669' }}>
                   Save 17%
                 </span>
               </ToggleGroupItem>

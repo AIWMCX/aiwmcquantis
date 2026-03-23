@@ -146,7 +146,7 @@ export function AppSidebar() {
           return (
             <SidebarGroup key={section.label}>
               {!collapsed && (
-                <SidebarGroupLabel className="px-4 mb-2 text-[10px] font-dm-sans font-medium tracking-[0.08em] text-[var(--q-text-tertiary)] uppercase">
+                <SidebarGroupLabel className="px-4 mb-2 text-[12px] font-dm-sans font-medium tracking-[0.06em] text-[#94A3B8] uppercase">
                   {section.label}
                 </SidebarGroupLabel>
               )}
@@ -163,7 +163,7 @@ export function AppSidebar() {
                           className={`
                             h-11 mx-2 rounded-[var(--q-radius-md)] transition-all duration-150
                             ${active
-                              ? 'bg-[rgba(79,142,247,0.08)] border-l-2 border-[var(--q-accent-primary)] text-[var(--q-accent-primary)]'
+                              ? 'bg-[var(--q-bg-elevated)] border-l-[3px] border-[var(--q-accent-primary)] text-[var(--q-accent-primary)]'
                               : 'text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]'
                             }
                           `}

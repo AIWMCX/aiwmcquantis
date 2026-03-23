@@ -6,7 +6,7 @@ import { Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 const buttonVariants = cva(
-  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--q-radius-md)] text-sm font-medium ring-offset-background transition-all duration-[var(--q-duration-fast)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-[var(--q-radius-md)] text-[15px] font-medium ring-offset-background transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)] focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 min-w-[120px]",
   {
     variants: {
       variant: {
@@ -15,21 +15,21 @@ const buttonVariants = cva(
         secondary:
           "bg-transparent border border-[var(--q-border-strong)] text-[var(--q-text-primary)] hover:bg-[var(--q-bg-elevated)]",
         ghost:
-          "text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-glow)] active:scale-[0.98]",
+          "text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-glow)] active:scale-[0.98] min-w-0",
         danger:
           "bg-[var(--q-status-red-bg)] border border-[var(--q-status-red-border)] text-[var(--q-status-red)] hover:bg-[var(--q-status-red)]/10",
         destructive:
           "bg-[var(--q-status-red)] text-white hover:bg-[var(--q-status-red)]/90",
         outline:
           "border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]",
-        link: "text-[var(--q-accent-primary)] underline-offset-4 hover:underline",
+        link: "text-[var(--q-accent-primary)] underline-offset-4 hover:underline min-w-0",
         ai: "q-btn-ai text-white font-semibold",
       },
       size: {
-        default: "h-12 px-6 text-sm",
-        sm: "h-9 rounded-[var(--q-radius-sm)] px-4 text-xs",
+        default: "h-12 px-6",
+        sm: "h-9 rounded-[var(--q-radius-sm)] px-4 text-xs min-w-0",
         lg: "h-[52px] rounded-[var(--q-radius-md)] px-8 text-base",
-        icon: "h-12 w-12",
+        icon: "h-12 w-12 min-w-0",
       },
     },
     defaultVariants: {
