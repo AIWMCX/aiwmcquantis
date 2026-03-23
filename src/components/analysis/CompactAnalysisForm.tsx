@@ -18,15 +18,17 @@ const INDUSTRY_BENCHMARKS: Record<string, Record<string, [number, number]>> = {
   real_estate:  { capital: [20000, 100000], price: [2500, 12000],customers: [2, 15],     opex: [3000, 10000],  cac: [300, 2000], churn: [3, 10]  },
 };
 
+import { Coffee, Monitor, ShoppingCart, Utensils, Dumbbell, BarChart3 as ConsultingIcon, Store, Building2 } from 'lucide-react';
+
 const INDUSTRIES = [
-  { id: 'coffee_shop', icon: '☕', label: 'Coffee Shop' },
-  { id: 'saas',        icon: '💻', label: 'SaaS' },
-  { id: 'ecommerce',   icon: '🛍️', label: 'Ecommerce' },
-  { id: 'restaurant',  icon: '🍽️', label: 'Restaurant' },
-  { id: 'fitness',     icon: '💪', label: 'Fitness' },
-  { id: 'consulting',  icon: '📊', label: 'Consulting' },
-  { id: 'retail',      icon: '🏪', label: 'Retail' },
-  { id: 'real_estate', icon: '🏠', label: 'Real Estate' },
+  { id: 'coffee_shop', icon: Coffee, label: 'Coffee Shop' },
+  { id: 'saas',        icon: Monitor, label: 'SaaS' },
+  { id: 'ecommerce',   icon: ShoppingCart, label: 'Ecommerce' },
+  { id: 'restaurant',  icon: Utensils, label: 'Restaurant' },
+  { id: 'fitness',     icon: Dumbbell, label: 'Fitness' },
+  { id: 'consulting',  icon: ConsultingIcon, label: 'Consulting' },
+  { id: 'retail',      icon: Store, label: 'Retail' },
+  { id: 'real_estate', icon: Building2, label: 'Real Estate' },
 ];
 
 const DEPTH_OPTIONS = [
