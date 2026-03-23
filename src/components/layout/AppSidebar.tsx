@@ -146,7 +146,7 @@ export function AppSidebar() {
           return (
             <SidebarGroup key={section.label}>
               {!collapsed && (
-                <SidebarGroupLabel className="px-4 mb-2 text-[10px] font-dm-sans font-medium tracking-[0.08em] text-[var(--q-text-tertiary)] uppercase">
+                <SidebarGroupLabel className="px-4 mb-2 text-[12px] font-dm-sans font-medium tracking-[0.06em] text-[#94A3B8] uppercase">
                   {section.label}
                 </SidebarGroupLabel>
               )}
