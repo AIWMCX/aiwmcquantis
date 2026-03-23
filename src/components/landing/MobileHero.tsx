@@ -66,7 +66,8 @@ export function MobileHero() {
 
           {/* Subheadline */}
           <p
-            className="animate-fade-in text-base md:text-lg text-[var(--q-text-secondary)] max-w-[580px] mx-auto leading-relaxed"
+            className="animate-fade-in text-base md:text-lg max-w-[580px] mx-auto leading-relaxed"
+            style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both', color: '#4B5563' }}
             style={{ fontFamily: 'var(--q-font-body)', animationDelay: '160ms', animationFillMode: 'both' }}
           >
             Quantis runs a financial pre-mortem on your business model.
