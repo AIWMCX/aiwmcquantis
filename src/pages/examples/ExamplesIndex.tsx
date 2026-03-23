@@ -101,7 +101,7 @@ export default function ExamplesIndex() {
             </p>
             <Link to="/app">
               <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
-                Start My Free Analysis <ArrowRight className="w-5 h-5" />
+                Start Free Analysis → <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
           </div>

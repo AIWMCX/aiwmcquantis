@@ -163,7 +163,7 @@ export function AppSidebar() {
                           className={`
                             h-11 mx-2 rounded-[var(--q-radius-md)] transition-all duration-150
                             ${active
-                              ? 'bg-[rgba(79,142,247,0.08)] border-l-2 border-[var(--q-accent-primary)] text-[var(--q-accent-primary)]'
+                              ? 'bg-[var(--q-bg-elevated)] border-l-[3px] border-[var(--q-accent-primary)] text-[var(--q-accent-primary)]'
                               : 'text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]'
                             }
                           `}

@@ -129,7 +129,7 @@ export default function Auth() {
         <Button
           variant="ghost"
           onClick={() => navigate('/')}
-          className="self-start mb-6"
+          className="self-start mb-6 text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)]"
         >
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back to Home
