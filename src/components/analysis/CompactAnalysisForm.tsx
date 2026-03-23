@@ -320,7 +320,10 @@ export function CompactAnalysisForm({
         {/* ═══ COLUMN 1 — Business Identity ═══ */}
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
           <div className="flex items-center gap-2 h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
-            <span className="w-1.5 h-1.5 rounded-full" style={{ background: selectedIndustry ? 'var(--q-status-green)' : 'var(--q-accent-primary)' }} />
+            <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold" style={{ 
+              background: selectedIndustry ? 'var(--q-status-green)' : 'var(--q-accent-primary)', 
+              color: '#fff' 
+            }}>{selectedIndustry ? <Check className="w-3 h-3" /> : '1'}</span>
             <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Step 1 · Business</span>
           </div>
           <div className="p-4 space-y-3.5">
