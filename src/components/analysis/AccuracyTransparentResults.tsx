@@ -385,7 +385,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 3 — RISKS & ACTION PLAN */}
+          {/* STEP 3 — RED FLAGS & ACTION PLAN */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 3 && (
             <div className="space-y-6">
