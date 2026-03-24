@@ -202,7 +202,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <div className="q-card p-6 border-l-4 border-l-[var(--q-status-red)]">
                   <h3 className="font-semibold flex items-center gap-2 mb-4">
                     <AlertTriangle className="w-4 h-4 text-[var(--q-status-red)]" />
-                    Fatal Assumptions
+                    What Kills This Plan
                   </h3>
                   <ul className="space-y-3">
                     {fatalAssumptions.map((insight, i) => (
