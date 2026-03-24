@@ -301,7 +301,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 2 — FINANCIALS & ASSUMPTIONS */}
+          {/* STEP 2 — LEVERS LAB */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
