@@ -1,167 +1,209 @@
-# Design Audit Implementation — Phase 1 & 2
 
-## Overview
 
-The design audit contains 147 improvements across 6 phases. This plan covers **Phase 1 (Critical Fixes)** and **Phase 2 (Design Token Alignment)** — the highest-impact, lowest-effort work that establishes the visual foundation.
+# Quantis "Decision Cockpit" Redesign — Implementation Plan
 
-The project already has a well-structured design token system (`--q-*` variables in `index.css`). The audit's recommended tokens map closely to what exists. The main gaps are: inconsistent usage across components, contrast failures, emoji icons, and CTA text inconsistency.
+## Core Problem
+The results UI has all the right data but presents it as equally-weighted cards on a flat dark background. The fix: compose data into a **narrative** with clear visual hierarchy — one focal answer per screen, supporting evidence underneath.
 
 ---
 
-## Phase 1: Critical Fixes (7 items)
+## Phase A: Results "Decision Scene" Overhaul (highest impact)
 
-### 1. Fix WCAG Contrast Failures (8 elements)
+### A1. Cinematic Hero Verdict Strip
+**Files:** `ResultsHeroStrip.tsx` (rewrite), `PersistentResultsHeader.tsx` (slim down)
 
-**File:** `src/index.css` + individual components
+Current: 4 equal KPI cards in a grid. New layout:
 
-
-| Element                 | Current | Fix                      |
-| ----------------------- | ------- | ------------------------ |
-| Hero subtitle (landing) | ~3.8:1  | Darken to `#4B5563`      |
-| Sidebar section headers | ~2.5:1  | Use `#94A3B8` on dark bg |
-| Input placeholder text  | ~3.2:1  | Use `#6B7280` minimum    |
-| "UNCERTAIN" red text    | ~3.9:1  | Use `#F87171`            |
-| "+20%" quality badges   | ~3.0:1  | Add background pill      |
-| "Save 17%" green        | ~3.5:1  | Use `#059669`            |
-| Tab inactive text       | ~3.1:1  | Use `#94A3B8`            |
-| "Back to Home" (auth)   | ~3.8:1  | Darken link color        |
-
-
-**Files:** `MobileHero.tsx`, `AppSidebar.tsx`, `CompactAnalysisForm.tsx`, `AccuracyTransparentResults.tsx`, `PricingSection.tsx`, `Auth.tsx`, `index.css`
-
-### 2. Replace Emoji Icons with Lucide SVGs
-
-**File:** `src/components/analysis/IndustrySelector.tsx` (or wherever industry buttons render)
-
-Replace: ☕💻🍽️💪🏪🛒💼🏥  
-With: `Coffee`, `Monitor`, `Utensils`, `Dumbbell`, `Store`, `ShoppingCart`, `Briefcase`, `HeartPulse` from lucide-react
-
-### 3. Standardize CTA Text
-
-Audit all pages and unify to two variants:
-
-- Primary: **"Start Free Analysis →"**
-- Secondary: **"See Example Report →"**
-
-**Files:** `MobileHero.tsx`, `HeroVariants.tsx`, `Header.tsx`, `HowItWorks.tsx`, `UseCases.tsx`, `RiskGallery.tsx`, `Landing.tsx`
-
-### 4. Fix Step Indicator Colors
-
-**File:** `CompactAnalysisForm.tsx` or `WizardProgress.tsx`
-
-- Change orange dot → blue numbered circle
-- Active: filled blue circle. Completed: green checkmark. Upcoming: gray circle
-
-### 5. Add `:focus-visible` Styles Globally
-
-**File:** `src/index.css`
-
-```css
-*:focus-visible {
-  outline: 2px solid var(--q-accent-primary);
-  outline-offset: 2px;
-}
+```text
+┌──────────────────────────────────────────────────────────┐
+│  [FAST-TRACK 91%]   Mo.12 Profit   Break-even   Runway  │
+│   pill + tagline     −$6.1k         >24 mo       1 mo   │
+│                    ───────────────────────────────────────│
+│   "Not yet investable — fix margin & runway"    [badge]  │
+└──────────────────────────────────────────────────────────┘
 ```
 
-### 6. Make "Run Stress-Test" Always Visible
+- Left: verdict pill 3× current size with one-sentence tagline
+- Center: 2-3 KPIs in **huge** monospace type (3× current `text-lg` → `text-4xl`)
+- Right: color-coded verdict badge
+- Subtle gradient glow on the strip only; everything else stays flat
+- Count-up animation on load (already exists, just needs bigger targets)
+- Add pessimistic–optimistic range below each number: "−$6.1k (likely −8.3k to −4.2k)"
 
-**File:** `CompactAnalysisForm.tsx` or the right panel component
+### A2. Narrative Step Sequence
+**File:** `AccuracyTransparentResults.tsx` (restructure steps)
 
-- Make the right panel sticky (`position: sticky; top: 1rem`) so CTA is always in view
+Rename and reorder the 3 wizard steps:
+1. **"Verdict & Risk Intelligence"** → keep but add editorial copy: "This plan burns all your capital in 3 months" instead of "Runway: 3 months"
+2. **"Levers Lab"** (renamed from "Financials & Assumptions") — inputs dominant, chart background, live impact diffs
+3. **"Red Flags & Action Plan"** (renamed from "Risks & Action Plan") — risk ring → top flags → ordered checklist
 
-### 7. Fix Card Height Inconsistencies
+Update `PersistentResultsHeader.tsx` step labels to match.
 
-**Files:** `AnalysisTemplatesGrid.tsx`, `ExamplesIndex.tsx`, `RiskGallery.tsx`
+### A3. Forecast Bands on Revenue Chart
+**File:** `RevenueChart.tsx`
 
-- Add `items-stretch` to grid containers
-- Pin CTA buttons to card bottom with `mt-auto`
+- Add shaded pessimistic-to-optimistic band (p25–p75 from Monte Carlo) around baseline
+- Ghost line showing previous scenario when switching (crossfade transition)
+- This is the single biggest "beyond spreadsheet" visual signal
 
----
+### A4. Interpretive Chips on Every KPI
+**Files:** `SimpleMetricCard.tsx`, `PersistentResultsHeader.tsx`
 
-## Phase 2: Design Token Alignment (7 items)
-
-### 1. Add Audit-Recommended Token Aliases
-
-**File:** `src/index.css`
-
-- Add the audit's recommended tokens as aliases mapping to existing `--q-*` tokens:
-  - `--bg-primary` → `--q-bg-base`
-  - `--bg-surface` → `--q-bg-surface`
-  - `--bg-surface-raised` → `--q-bg-elevated`
-  - `--bg-surface-sunken` → `--q-bg-input`
-  - `--border-default` → `--q-border-default`
-  - `--shadow-glow` → `0 0 0 3px rgba(59,130,246,0.3)`
-- Adjust `--q-radius-md` from `10px` to `8px` per audit
-
-### 2. Standardize Button Component
-
-**File:** `src/components/ui/button.tsx`
-
-- Ensure all variants have: 48px height, 15px font, 500 weight, 24px horizontal padding, 200ms transition, min-width 120px, focus ring
-
-### 3. Standardize Input Fields
-
-**File:** `src/components/ui/input.tsx`
-
-- 48px height, 16px h-padding, 15px text, sunken bg, 1px border, focus glow
-- Consistent prefix/suffix styling ($ and % addons)
-
-### 4. Standardize Card Components
-
-**Files:** Various card components
-
-- Apply consistent: `--q-bg-surface` bg, 1px border, `--q-radius-lg`, 20px padding, 200ms hover transition
-
-### 5. Standardize Badge/Chip Variants
-
-**File:** `src/components/ui/badge.tsx`
-
-- 6 variants: Primary (blue), Success (green), Warning (orange), Danger (red), Neutral (gray), Plus (gold)
-- All: `--q-radius-sm`, 6px 12px padding, 12px text, 500 weight
-
-### 6. Sidebar Navigation Polish
-
-**File:** `src/components/layout/AppSidebar.tsx`
-
-- Section headers: 12px, all-caps, letter-spacing 0.06em, muted color
-- Active item: accent text + raised bg + 3px left border
-- Hover: raised bg on mouseover
-- Lock icon on auth-required items for unauthenticated users
-
-### 7. Add `prefers-reduced-motion` Support
-
-**File:** `src/index.css`
-
-```css
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    transition-duration: 0.01ms !important;
-  }
-}
-```
+Add a thin descriptor chip below each metric:
+- "Good vs peers" / "Below median" / "Critical"
+- Optional benchmark percentile: "P70 for Denver media businesses"
+- Uses existing benchmark data from `benchmark-calibrator.ts`
 
 ---
 
-## Files Modified (estimated 15-20 files)
+## Phase B: Levers Lab (Step 2 Redesign)
 
+### B1. Interactive Slider Controls
+**File:** `InlineAssumptionEditor.tsx` (major rewrite)
 
-| Category      | Files                                                                               |
-| ------------- | ----------------------------------------------------------------------------------- |
-| Global CSS    | `src/index.css`                                                                     |
-| UI Components | `button.tsx`, `input.tsx`, `badge.tsx`                                              |
-| Layout        | `AppSidebar.tsx`                                                                    |
-| Landing       | `MobileHero.tsx`, `HeroVariants.tsx`, `Header.tsx`                                  |
-| Analysis      | `CompactAnalysisForm.tsx`, `IndustrySelector.tsx`, `AccuracyTransparentResults.tsx` |
-| Pages         | `Auth.tsx`, `HowItWorks.tsx`, `Landing.tsx`, `RiskGallery.tsx`, `Pricing.tsx`       |
-| Examples      | `ExamplesIndex.tsx`, `AnalysisTemplatesGrid.tsx`                                    |
+- Replace text inputs with large, tactile sliders with glow on drag
+- Each slider shows inline impact chip that animates: "CAC $50 → $35: Net profit +$1.2k/mo, Runway +2 months"
+- Group into "Revenue Levers" and "Cost Levers" sections
+- Auto-update Impact Snapshot panel on the right in real-time
 
+### B2. Impact Snapshot Panel
+**File:** New component `ImpactSnapshot.tsx`
 
-## What's must be here 100% completely, every line of code with elements and double check  in This Plan (Phases 3-6)
+- Sticky right panel showing before/after diff for each change
+- Highlights in green/red what moved and by how much
+- Replace current "Impact Preview" card with this richer version
 
-- Phase 3: Industry selector redesign, skeleton states, hover animations
-- Phase 4: Mobile responsive fixes (hamburger menu, stacking)
-- Phase 5: Auth page split layout, unified example/risk cards, brand name cleanup
-- Phase 6: Dark/light toggle, keyboard shortcuts, ARIA roles, Storybook
+---
 
-These will be planned in subsequent rounds after Phase 1-6 are shipped.
+## Phase C: Scenario Theatre
+
+### C1. Enhanced Scenario Switcher
+**File:** `ScenarioBar.tsx` (rewrite)
+
+- Horizontal timeline with icons + short descriptions: "Recession (−15% demand)"
+- On click: ambient accent color shifts (blue→amber for recession, blue→red for worst case)
+- One-sentence story above chart: "Ad surge: demand +40%, CAC −15% for 3 months"
+- Crossfade chart transition (300ms) instead of snap
+
+---
+
+## Phase D: Assumption Conflict Engine UI
+
+### D1. Conflict Badge + Drawer
+**Files:** New `AssumptionConflictBadge.tsx`, new `AssumptionConflictDrawer.tsx`
+
+- Persistent badge in `PersistentResultsHeader.tsx`: "Assumptions: 3 conflicts" with gentle pulse
+- Click opens a sheet/drawer listing each conflict:
+  - "Your marketing budget cannot deliver 300 buyers at CAC $3"
+  - "Churn rate 2% is below SaaS median for your stage"
+- Each conflict has a "Fix" button that scrolls to the relevant lever in Step 2
+- Data sourced from existing `coherence-check.ts` and `validation-layer.ts`
+
+---
+
+## Phase E: Visual & Typography Polish
+
+### E1. Type System Upgrade
+**File:** `index.css`, `tailwind.config.ts`
+
+- Primary KPIs: `text-4xl font-bold font-mono` (currently `text-lg`)
+- Section headings: `text-2xl font-semibold` with more whitespace above
+- Add `--q-font-display` token for verdict/headline numbers (Sora bold or existing)
+- Increase vertical rhythm: 48px between major sections (currently ~20-24px)
+
+### E2. Semantic Status Tokens
+**File:** `index.css`
+
+Define and enforce 4 status tokens everywhere:
+- `--q-verdict-good` (green) / `--q-verdict-watch` (amber) / `--q-verdict-bad` (red) / `--q-verdict-neutral` (gray)
+- Apply to: risk ring segments, flag badges, action priorities, metric cards, verdict strip
+
+### E3. Focal Glow System
+**File:** `index.css`
+
+- Hero verdict strip and main chart get subtle `box-shadow` glow + inner gradient
+- All other cards stay flat — creates natural visual hierarchy
+- `.q-focal-glow` utility class for reuse
+
+### E4. Risk Language Standardization
+**Files:** `StressMap.tsx`, `AccuracyTransparentResults.tsx`
+
+- "Elevated 66" → "Risk 66/100: Elevated — margin & runway"
+- Interpretation inline with number, not in a separate module
+- Stress ring segments clickable → scrolls to corresponding card
+
+---
+
+## Phase F: Sidebar & Copy Cleanup
+
+### F1. Navigation Simplification
+**File:** `AppSidebar.tsx`
+
+- Merge "Dashboard" and "New Analysis" into one: Dashboard with "Start New Analysis" CTA
+- "Benchmarks, Scenarios, Progress" already grouped under "INTELLIGENCE" ✓
+- Remove text labels in collapsed mode; use hover tooltips only
+- Lock icon on auth-gated items for anonymous users
+
+### F2. Editorial Copy Pass
+**Files:** Multiple components
+
+Rename throughout the app:
+- "Financial Analysis (Universal Framework)" → "Unit Economics Reality Check"
+- "Risk Flags" → "Red Flags Blocking Investment"
+- "Analysis Quality 0/100 – Uncertain" → "Confidence 0/100 – Need more input"
+- "Assumption Overrides" → "Adjust Your Levers"
+- Section headers become questions: "What kills this plan?" instead of "Risk Assessment"
+
+---
+
+## Phase G: Motion & Micro-interactions
+
+### G1. Results Load Sequence
+**File:** `AccuracyTransparentResults.tsx`, `index.css`
+
+- 600ms staggered entry: verdict strip fades in (0ms) → KPI numbers count up (200ms) → stress ring arcs animate (400ms) → cards fade in (600ms)
+- Uses existing `animate-fade-in` + new `q-metric-reveal` keyframes
+
+### G2. Rich Tooltips
+**Files:** Various metric components
+
+- On hover over any KPI: tooltip explains "why" in plain English
+- Example: "Runway 1 month because monthly loss is $6,070 vs cash $10,000"
+- Uses existing Radix Tooltip infrastructure
+
+---
+
+## Files Summary
+
+| New Files | Purpose |
+|-----------|---------|
+| `ImpactSnapshot.tsx` | Before/after diff panel for Levers Lab |
+| `AssumptionConflictBadge.tsx` | Persistent conflict count badge |
+| `AssumptionConflictDrawer.tsx` | Conflict detail sheet |
+
+| Modified Files | Changes |
+|----------------|---------|
+| `ResultsHeroStrip.tsx` | Cinematic verdict strip with huge KPIs and ranges |
+| `PersistentResultsHeader.tsx` | Slim down, add conflict badge, rename step labels |
+| `AccuracyTransparentResults.tsx` | Narrative reorder, editorial copy, load sequence |
+| `SimpleMetricCard.tsx` | Add interpretive chips + benchmark percentiles |
+| `InlineAssumptionEditor.tsx` | Tactile sliders with live impact chips |
+| `ScenarioBar.tsx` | Timeline layout, ambient color shifts, crossfade |
+| `RevenueChart.tsx` | Forecast bands + ghost lines |
+| `StressMap.tsx` | Clickable segments, inline risk interpretation |
+| `AppSidebar.tsx` | Merge nav items, lock icons |
+| `index.css` | Type tokens, glow system, status tokens, load animations |
+| `tailwind.config.ts` | Display font token, animation keyframes |
+
+## Implementation Order
+1. **Phase A** (Results hero + narrative) — biggest visual impact
+2. **Phase E** (Typography + status tokens) — underpins everything
+3. **Phase B** (Levers Lab) — key interaction upgrade
+4. **Phase C** (Scenario Theatre) — differentiator
+5. **Phase D** (Conflict engine UI) — unique vs competitors
+6. **Phase F** (Sidebar + copy) — polish
+7. **Phase G** (Motion) — final layer
+
+Phases A+E can ship together as one batch. Each subsequent phase builds on but doesn't block the previous.
+
