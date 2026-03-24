@@ -351,9 +351,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   onRecalculate={(newOverrides) => setOverrides(newOverrides)}
                 />
                 
-                {/* Impact Preview */}
+                {/* Impact Snapshot */}
                 <div className="q-card p-5 border-l-4 border-l-[var(--q-accent-primary)]">
-                  <h4 className="text-sm font-semibold mb-3">Impact Preview</h4>
+                  <h4 className="text-label mb-3">Impact Snapshot</h4>
+                  <p className="text-xs text-[var(--q-text-tertiary)] mb-3">Adjust levers above to see projected changes.</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Revenue</span>
