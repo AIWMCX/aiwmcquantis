@@ -163,7 +163,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         <div key={currentStep} className={cn('min-h-[500px]', animationClass)}>
           
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 1 — DECISION VERDICT & RISK INTELLIGENCE */}
+          {/* STEP 1 — VERDICT & RISK INTELLIGENCE */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 1 && (() => {
             const confidence = result.confidence_score || 70;
@@ -202,7 +202,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <div className="q-card p-6 border-l-4 border-l-[var(--q-status-red)]">
                   <h3 className="font-semibold flex items-center gap-2 mb-4">
                     <AlertTriangle className="w-4 h-4 text-[var(--q-status-red)]" />
-                    Fatal Assumptions
+                    What Kills This Plan
                   </h3>
                   <ul className="space-y-3">
                     {fatalAssumptions.map((insight, i) => (
@@ -228,7 +228,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
                 {/* Stress Map */}
                 <div className="q-card p-6">
-                  <h3 className="font-semibold mb-4 text-center">Operational Stress Map</h3>
+                  <h3 className="font-semibold mb-4 text-center">Risk {calculateStressScores(result).overallRiskIndex}/100: {calculateStressScores(result).overallRiskIndex <= 30 ? 'Low Risk' : calculateStressScores(result).overallRiskIndex <= 50 ? 'Moderate' : calculateStressScores(result).overallRiskIndex <= 70 ? 'Elevated' : 'Critical'} — stress across all vectors</h3>
                   <StressMap {...calculateStressScores(result)} />
                 </div>
               </div>
@@ -301,7 +301,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 2 — FINANCIALS & ASSUMPTIONS */}
+          {/* STEP 2 — LEVERS LAB */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
@@ -351,9 +351,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   onRecalculate={(newOverrides) => setOverrides(newOverrides)}
                 />
                 
-                {/* Impact Preview */}
+                {/* Impact Snapshot */}
                 <div className="q-card p-5 border-l-4 border-l-[var(--q-accent-primary)]">
-                  <h4 className="text-sm font-semibold mb-3">Impact Preview</h4>
+                  <h4 className="text-label mb-3">Impact Snapshot</h4>
+                  <p className="text-xs text-[var(--q-text-tertiary)] mb-3">Adjust levers above to see projected changes.</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Revenue</span>
@@ -385,14 +386,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 3 — RISKS & ACTION PLAN */}
+          {/* STEP 3 — RED FLAGS & ACTION PLAN */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 3 && (
             <div className="space-y-6">
               <div className="grid lg:grid-cols-2 gap-5">
                 {/* LEFT: Risk Flags */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Risk Flags</h3>
+                  <h3 className="font-semibold">Red Flags Blocking Investment</h3>
                   {risks.length === 0 ? (
                     <div className="q-card p-4 text-sm text-muted-foreground">No critical risks detected.</div>
                   ) : (
@@ -444,7 +445,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
                 {/* RIGHT: Action Plan */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Action Plan</h3>
+                  <h3 className="font-semibold">What To Fix First</h3>
                   {actionItems.length === 0 ? (
                     <ActionableInsights insights={result.actionable_insights} />
                   ) : (
@@ -519,7 +520,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             disabled={currentStep === 3}
             className="gap-1.5 text-xs sm:text-sm sm:gap-2"
           >
-            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Financials' : 'Risks'}</span>
+            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Levers Lab' : 'Red Flags'}</span>
             <span className="sm:hidden">Next</span>
             <ArrowRight className="w-4 h-4" />
           </Button>

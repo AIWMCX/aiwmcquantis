@@ -442,7 +442,7 @@ export function StressMap({
     <div className="q-card rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-6 space-y-6 relative overflow-hidden">
       {/* Header */}
       <h3 className="text-h2 text-center text-[var(--q-text-primary)]">
-        RISK ASSESSMENT
+        Risk {overallRiskIndex}/100: {label}
       </h3>
 
       {/* Animated background mesh */}

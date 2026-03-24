@@ -79,9 +79,9 @@ function useCountUp(target: number, duration = 800): number {
 }
 
 const steps = [
-  { id: 1, title: 'Executive Summary' },
-  { id: 2, title: 'Financials & Assumptions' },
-  { id: 3, title: 'Risks & Action Plan' },
+  { id: 1, title: 'Verdict & Risk Intelligence' },
+  { id: 2, title: 'Levers Lab' },
+  { id: 3, title: 'Red Flags & Action Plan' },
 ];
 
 export function PersistentResultsHeader({
