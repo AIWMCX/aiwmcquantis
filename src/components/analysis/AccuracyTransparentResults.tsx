@@ -519,7 +519,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             disabled={currentStep === 3}
             className="gap-1.5 text-xs sm:text-sm sm:gap-2"
           >
-            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Financials' : 'Risks'}</span>
+            <span className="hidden sm:inline">Next: {currentStep === 1 ? 'Levers Lab' : 'Red Flags'}</span>
             <span className="sm:hidden">Next</span>
             <ArrowRight className="w-4 h-4" />
           </Button>
