@@ -200,6 +200,19 @@
     --q-chart-5: #F97316;
     --q-chart-corridor-fill: rgba(79, 142, 247, 0.07);
     
+    /* ── VERDICT STATUS TOKENS ── */
+    --q-verdict-good: #10B981;
+    --q-verdict-good-bg: rgba(16, 185, 129, 0.08);
+    --q-verdict-watch: #F59E0B;
+    --q-verdict-watch-bg: rgba(245, 158, 11, 0.08);
+    --q-verdict-bad: #EF4444;
+    --q-verdict-bad-bg: rgba(239, 68, 68, 0.08);
+    --q-verdict-neutral: #94A3B8;
+    --q-verdict-neutral-bg: rgba(148, 163, 184, 0.08);
+    
+    /* ── FOCAL GLOW ── */
+    --q-focal-glow: 0 0 0 1px var(--q-border-default), 0 8px 32px rgba(79, 142, 247, 0.12), inset 0 1px 0 rgba(255,255,255,0.02);
+    
     /* ── GRADIENTS ── */
     --q-gradient-hero: linear-gradient(135deg, #0A0E1A 0%, #111827 40%, #0F1D35 100%);
     --q-gradient-card: linear-gradient(180deg, #1C2333 0%, #111827 100%);
