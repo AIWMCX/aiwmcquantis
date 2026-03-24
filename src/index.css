@@ -56,13 +56,26 @@
     --q-status-ai-bg: #EEF2FF;
     --q-status-ai-border: #C7D2FE;
     
-    /* ── CHART COLORS ── */
+  /* ── CHART COLORS ── */
     --q-chart-1: #4F8EF7;
     --q-chart-2: #10B981;
     --q-chart-3: #F59E0B;
     --q-chart-4: #818CF8;
     --q-chart-5: #F97316;
     --q-chart-corridor-fill: rgba(79, 142, 247, 0.07);
+    
+    /* ── VERDICT STATUS TOKENS ── */
+    --q-verdict-good: #10B981;
+    --q-verdict-good-bg: rgba(16, 185, 129, 0.06);
+    --q-verdict-watch: #F59E0B;
+    --q-verdict-watch-bg: rgba(245, 158, 11, 0.06);
+    --q-verdict-bad: #EF4444;
+    --q-verdict-bad-bg: rgba(239, 68, 68, 0.06);
+    --q-verdict-neutral: #94A3B8;
+    --q-verdict-neutral-bg: rgba(148, 163, 184, 0.06);
+    
+    /* ── FOCAL GLOW ── */
+    --q-focal-glow: 0 0 0 1px var(--q-border-default), 0 8px 32px rgba(79, 142, 247, 0.08), inset 0 1px 0 rgba(255,255,255,0.04);
     
     /* ── GRADIENTS ── */
     --q-gradient-hero: linear-gradient(135deg, #F8FAFC 0%, #E2E8F0 100%);
