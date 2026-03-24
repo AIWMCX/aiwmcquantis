@@ -444,7 +444,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
                 {/* RIGHT: Action Plan */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Action Plan</h3>
+                  <h3 className="font-semibold">What To Fix First</h3>
                   {actionItems.length === 0 ? (
                     <ActionableInsights insights={result.actionable_insights} />
                   ) : (
