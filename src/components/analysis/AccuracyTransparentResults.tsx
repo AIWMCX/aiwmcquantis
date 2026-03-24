@@ -163,7 +163,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         <div key={currentStep} className={cn('min-h-[500px]', animationClass)}>
           
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 1 — DECISION VERDICT & RISK INTELLIGENCE */}
+          {/* STEP 1 — VERDICT & RISK INTELLIGENCE */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 1 && (() => {
             const confidence = result.confidence_score || 70;
