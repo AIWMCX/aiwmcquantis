@@ -392,7 +392,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               <div className="grid lg:grid-cols-2 gap-5">
                 {/* LEFT: Risk Flags */}
                 <div className="space-y-4">
-                  <h3 className="font-semibold">Risk Flags</h3>
+                  <h3 className="font-semibold">Red Flags Blocking Investment</h3>
                   {risks.length === 0 ? (
                     <div className="q-card p-4 text-sm text-muted-foreground">No critical risks detected.</div>
                   ) : (
