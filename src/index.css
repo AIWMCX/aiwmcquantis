@@ -583,6 +583,32 @@
   .q-glow-blue { box-shadow: var(--q-shadow-glow-blue); }
   .q-glow-green { box-shadow: var(--q-shadow-glow-green); }
   
+  /* ── FOCAL GLOW SYSTEM ── */
+  .q-focal-glow {
+    box-shadow: var(--q-focal-glow);
+  }
+  
+  /* ── VERDICT BACKGROUND CLASSES ── */
+  .q-verdict-good-bg { background-color: var(--q-verdict-good-bg); }
+  .q-verdict-watch-bg { background-color: var(--q-verdict-watch-bg); }
+  .q-verdict-bad-bg { background-color: var(--q-verdict-bad-bg); }
+  .q-verdict-neutral-bg { background-color: var(--q-verdict-neutral-bg); }
+  
+  /* ── HERO KPI CELL ── */
+  .q-hero-kpi-cell {
+    background: var(--q-bg-elevated);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 20px 12px;
+    text-align: center;
+  }
+  @media (min-width: 640px) {
+    .q-hero-kpi-cell { padding: 28px 16px; }
+  }
+  
   /* ── BADGE SYSTEM ── */
   
   .q-badge {
