@@ -228,7 +228,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
                 {/* Stress Map */}
                 <div className="q-card p-6">
-                  <h3 className="font-semibold mb-4 text-center">Operational Stress Map</h3>
+                  <h3 className="font-semibold mb-4 text-center">Risk {calculateStressScores(result).overallRiskIndex}/100: {calculateStressScores(result).overallRiskIndex <= 30 ? 'Low Risk' : calculateStressScores(result).overallRiskIndex <= 50 ? 'Moderate' : calculateStressScores(result).overallRiskIndex <= 70 ? 'Elevated' : 'Critical'} — stress across all vectors</h3>
                   <StressMap {...calculateStressScores(result)} />
                 </div>
               </div>
