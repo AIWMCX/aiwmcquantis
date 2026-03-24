@@ -52,7 +52,6 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'ANALYSIS',
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
-      { title: 'New Analysis', url: '/app?new=true', icon: PlusCircle },
       { title: 'History', url: '/app?tab=history', icon: History },
     ],
   },
