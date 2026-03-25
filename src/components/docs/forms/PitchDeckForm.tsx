@@ -169,12 +169,12 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
     const formatMillions = (n: number) => n >= 1000000000 ? `$${(n / 1000000000).toFixed(1)}B` : `$${(n / 1000000).toFixed(0)}M`;
     
     const rawHTML = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
         
         <!-- Slide 1: Cover -->
         <div style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 48px; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; letter-spacing: 2px; margin: 0 0 16px 0; opacity: 0.8;">INVESTOR PITCH DECK</p>
-          <h1 style="font-size: 48px; font-weight: 700; margin: 0 0 16px 0;">${safeValues.company_name || 'Company Name'}</h1>
+          <p style="font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 2px; margin: 0 0 16px 0; opacity: 0.8; text-transform: uppercase; font-weight: 600;">INVESTOR PITCH DECK</p>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 48px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.company_name || 'Company Name'}</h1>
           <p style="font-size: 20px; margin: 0 0 32px 0; opacity: 0.9;">${safeValues.tagline || 'Tagline'}</p>
           <div style="margin-top: 48px;">
             <p style="margin: 0; font-size: 14px;">${safeValues.presenter_name || 'Name'} • ${safeValues.presenter_title || 'Title'}</p>
@@ -184,7 +184,7 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
         <!-- Slide 2: Problem -->
         <div style="padding: 32px; background: #fef2f2; border-radius: 16px; margin-bottom: 24px;">
           <p style="font-size: 12px; color: #dc2626; font-weight: 600; margin: 0 0 8px 0;">THE PROBLEM</p>
-          <h2 style="font-size: 32px; font-weight: 700; color: #dc2626; margin: 0 0 16px 0;">${safeValues.problem_headline || 'Problem'}</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #dc2626; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.problem_headline || 'Problem'}</h2>
           <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${safeValues.problem_description || ''}</p>
           <div style="padding: 16px; background: white; border-radius: 8px; font-weight: 600; color: #dc2626;">
             Impact: ${safeValues.problem_impact || ''}
@@ -194,7 +194,7 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
         <!-- Slide 3: Solution -->
         <div style="padding: 32px; background: #ecfdf5; border-radius: 16px; margin-bottom: 24px;">
           <p style="font-size: 12px; color: #10b981; font-weight: 600; margin: 0 0 8px 0;">OUR SOLUTION</p>
-          <h2 style="font-size: 32px; font-weight: 700; color: #10b981; margin: 0 0 16px 0;">${safeValues.solution_headline || 'Solution'}</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #10b981; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.solution_headline || 'Solution'}</h2>
           <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${safeValues.solution_description || ''}</p>
           <div style="padding: 16px; background: white; border-radius: 8px; white-space: pre-line;">
             ${safeValues.key_features || ''}
@@ -204,19 +204,19 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
         <!-- Slide 4: Market -->
         <div style="padding: 32px; background: #f0f9ff; border-radius: 16px; margin-bottom: 24px;">
           <p style="font-size: 12px; color: #2563eb; font-weight: 600; margin: 0 0 8px 0;">MARKET OPPORTUNITY</p>
-          <h2 style="font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 24px 0;">TAM / SAM / SOM</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 24px 0; letter-spacing: -0.02em;">TAM / SAM / SOM</h2>
           <div style="display: flex; gap: 16px; justify-content: center;">
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">TAM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatMillions(formValues.market_size_tam || 0)}</p>
+              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_tam || 0)}</p>
             </div>
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">SAM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatMillions(formValues.market_size_sam || 0)}</p>
+              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_sam || 0)}</p>
             </div>
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">SOM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatMillions(formValues.market_size_som || 0)}</p>
+              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_som || 0)}</p>
             </div>
           </div>
           <p style="text-align: center; margin-top: 16px; font-size: 14px; color: #6b7280;">
@@ -283,15 +283,15 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
           <div style="display: flex; gap: 16px; justify-content: center;">
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Current ARR</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatCurrency(formValues.current_revenue || 0)}</p>
+              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_revenue || 0)}</p>
             </div>
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Year 1</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatCurrency(formValues.year1_projection || 0)}</p>
+              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year1_projection || 0)}</p>
             </div>
             <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Year 3</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0;">${formatCurrency(formValues.year3_projection || 0)}</p>
+              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year3_projection || 0)}</p>
             </div>
           </div>
         </div>

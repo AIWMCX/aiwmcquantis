@@ -137,9 +137,9 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
     const partnershipType = PARTNERSHIP_TYPES.find(t => t.value === d.partnership_type)?.label || d.partnership_type;
     
     const html = `
-      <div style="font-family: Georgia, serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; line-height: 1.8;">
         <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3B82F6; padding-bottom: 20px;">
-          <h1 style="font-size: 28px; margin: 0 0 8px 0; color: #0F172A;">PARTNERSHIP PROPOSAL</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; margin: 0 0 8px 0; color: #0F172A; letter-spacing: -0.02em;">PARTNERSHIP PROPOSAL</h1>
           <p style="color: #64748B; margin: 0; font-size: 14px;">${partnershipType}</p>
         </div>
         
@@ -158,17 +158,17 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
         </div>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Partnership Objective</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Partnership Objective</h2>
           <p style="line-height: 1.7; color: #334155;">${d.partnership_objective || '[Describe the main objective of this partnership]'}</p>
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Value Proposition</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Value Proposition</h2>
           <p style="line-height: 1.7; color: #334155;">${d.value_proposition || '[Describe the mutual value proposition]'}</p>
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Proposed Terms</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Proposed Terms</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <tr style="border-bottom: 1px solid #E2E8F0;">
               <td style="padding: 12px 0; color: #64748B; width: 40%;">Duration</td>

@@ -19,7 +19,7 @@ export const ExecutiveReport = forwardRef<HTMLDivElement, ExecutiveReportProps>(
         ref={ref}
         className="executive-report"
         style={{
-          fontFamily: "'Inter', 'Segoe UI', system-ui, sans-serif",
+          fontFamily: "'DM Sans', 'Inter', sans-serif",
           backgroundColor: '#0f172a',
           color: '#f1f5f9',
           width: '210mm',

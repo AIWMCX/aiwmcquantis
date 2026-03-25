@@ -204,12 +204,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
         : '';
       
       const rawHTML = `
-        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
+        <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
           <!-- Header -->
           <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 2px solid #e5e7eb;">
             <div>
-              <h1 style="font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 8px 0;">INVOICE</h1>
-              <p style="color: #6b7280; margin: 4px 0;">Invoice #: ${invoiceNumber}</p>
+              <h1 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 8px 0; letter-spacing: -0.02em;">INVOICE</h1>
+              <p style="color: #6b7280; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">Invoice #: ${invoiceNumber}</p>
               <p style="color: #6b7280; margin: 4px 0;">Date: ${formattedInvoiceDate}</p>
               <p style="color: #6b7280; margin: 4px 0;">Due: ${formattedDueDate}</p>
             </div>
@@ -246,8 +246,8 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
                 <tr style="border-bottom: 1px solid #e5e7eb; ${i % 2 === 1 ? 'background: #f9fafb;' : ''}">
                   <td style="padding: 12px;">${item.description || ''}</td>
                   <td style="padding: 12px; text-align: center;">${item.quantity || 0}</td>
-                  <td style="padding: 12px; text-align: right;">$${(item.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                  <td style="padding: 12px; text-align: right; font-weight: 500;">$${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style="padding: 12px; text-align: right; font-family: 'JetBrains Mono', monospace;">$${(item.unit_price || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                  <td style="padding: 12px; text-align: right; font-weight: 500; font-family: 'JetBrains Mono', monospace;">$${((item.quantity || 0) * (item.unit_price || 0)).toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -258,21 +258,21 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
             <div style="width: 280px;">
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                 <span style="color: #6b7280;">Subtotal:</span>
-                <span style="font-weight: 500;">$${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span style="font-weight: 500; font-family: 'JetBrains Mono', monospace;">$${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                 <span style="color: #6b7280;">Tax (${safeValues.tax_rate || 0}%):</span>
-                <span style="font-weight: 500;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span style="font-weight: 500; font-family: 'JetBrains Mono', monospace;">$${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               ${calculations.discount > 0 ? `
               <div style="display: flex; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid #e5e7eb;">
                 <span style="color: #6b7280;">Discount:</span>
-                <span style="font-weight: 500; color: #dc2626;">-$${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span style="font-weight: 500; color: #dc2626; font-family: 'JetBrains Mono', monospace;">-$${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               ` : ''}
               <div style="display: flex; justify-content: space-between; padding: 12px 0; background: #2563eb; color: white; margin-top: 8px; border-radius: 4px; padding-left: 12px; padding-right: 12px;">
                 <span style="font-weight: 600;">Total Due:</span>
-                <span style="font-weight: 700; font-size: 18px;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span style="font-weight: 700; font-size: 18px; font-family: 'JetBrains Mono', monospace;">$${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>

@@ -105,10 +105,10 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
       : '[Date]';
 
     const rawHTML = `
-      <div style="font-family: 'Times New Roman', Georgia, serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937; line-height: 1.8;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937; line-height: 1.8;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 40px;">
-          <h1 style="font-size: 24px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: 2px;">MUTUAL NON-DISCLOSURE AGREEMENT</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: 2px;">MUTUAL NON-DISCLOSURE AGREEMENT</h1>
           <p style="color: #6b7280; font-style: italic; margin: 0;">Confidential Information Protection</p>
         </div>
 
@@ -140,7 +140,7 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
 
         <!-- Recitals -->
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">RECITALS</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">RECITALS</h2>
           <p style="text-align: justify; margin-bottom: 12px;">
             <strong>WHEREAS,</strong> ${safeValues.purpose || '[Purpose]'}
           </p>
@@ -156,7 +156,7 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
 
         <!-- Terms -->
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">1. DEFINITION OF CONFIDENTIAL INFORMATION</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">1. DEFINITION OF CONFIDENTIAL INFORMATION</h2>
           <p style="text-align: justify; margin-bottom: 12px;">
             "Confidential Information" means any and all technical and non-technical information disclosed by either Party (the "Disclosing Party") to the other Party (the "Receiving Party"), including but not limited to:
           </p>
@@ -169,7 +169,7 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         </div>
 
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">2. OBLIGATIONS OF RECEIVING PARTY</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">2. OBLIGATIONS OF RECEIVING PARTY</h2>
           <p style="text-align: justify; margin-bottom: 8px;">
             <strong>2.1</strong> The Receiving Party agrees to hold the Confidential Information in strict confidence and to take all reasonable precautions to protect such information.
           </p>
@@ -182,21 +182,21 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
         </div>
 
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">3. TERM</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">3. TERM</h2>
           <p style="text-align: justify;">
             This Agreement shall remain in effect for a period of <strong>${safeValues.term_years} (${formValues.term_years === 1 ? 'one' : formValues.term_years === 2 ? 'two' : formValues.term_years === 3 ? 'three' : formValues.term_years}) year${formValues.term_years > 1 ? 's' : ''}</strong> from the Effective Date. The obligations of the Receiving Party shall survive for a period of <strong>${safeValues.confidentiality_years} (${formValues.confidentiality_years === 1 ? 'one' : formValues.confidentiality_years === 2 ? 'two' : formValues.confidentiality_years === 3 ? 'three' : formValues.confidentiality_years === 4 ? 'four' : formValues.confidentiality_years === 5 ? 'five' : formValues.confidentiality_years}) year${formValues.confidentiality_years > 1 ? 's' : ''}</strong> from the date of disclosure.
           </p>
         </div>
 
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">4. GOVERNING LAW</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">4. GOVERNING LAW</h2>
           <p style="text-align: justify;">
             This Agreement shall be governed by and construed in accordance with the laws of <strong>${safeValues.jurisdiction || '[Jurisdiction]'}</strong>, without regard to its conflicts of law provisions.
           </p>
         </div>
 
         <div style="margin-bottom: 24px;">
-          <h2 style="font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">5. ADDITIONAL PROVISIONS</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">5. ADDITIONAL PROVISIONS</h2>
           <p style="text-align: justify; margin-bottom: 8px;">
             <strong>5.1 Entire Agreement:</strong> This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof.
           </p>
