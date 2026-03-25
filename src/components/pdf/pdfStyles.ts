@@ -66,6 +66,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     letterSpacing: '8px',
     color: colors.accent,
     marginBottom: '8px',
+    fontFamily: "'Sora', sans-serif",
   },
   
   logoSubtext: {
@@ -73,6 +74,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     letterSpacing: '4px',
     color: colors.textSecondary,
     textTransform: 'uppercase' as const,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   coverTitleSection: {
@@ -89,6 +91,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     color: colors.textMuted,
     marginBottom: '24px',
     textTransform: 'uppercase' as const,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   coverTitle: {
@@ -97,6 +100,8 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     color: colors.textPrimary,
     marginBottom: '16px',
     lineHeight: 1.2,
+    fontFamily: "'Sora', sans-serif",
+    letterSpacing: '-0.02em',
   },
   
   coverSubtitle: {
@@ -137,12 +142,15 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     marginBottom: '8px',
     textTransform: 'uppercase' as const,
     letterSpacing: '1px',
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   coverMetricValue: {
     fontSize: '24px',
     fontWeight: '700',
     color: colors.textPrimary,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFeatureSettings: '"tnum" 1',
   },
   
   coverFooter: {
@@ -156,6 +164,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     letterSpacing: '4px',
     color: colors.textMuted,
     marginBottom: '12px',
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   copyright: {
@@ -200,6 +209,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     fontWeight: '700',
     letterSpacing: '2px',
     color: colors.accent,
+    fontFamily: "'Sora', sans-serif",
   },
   
   pageFooter: {
@@ -233,6 +243,8 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     paddingBottom: '8px',
     borderBottom: `2px solid ${colors.accent}`,
     display: 'inline-block',
+    fontFamily: "'Sora', sans-serif",
+    letterSpacing: '-0.01em',
   },
   
   paragraph: {
@@ -240,6 +252,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     lineHeight: 1.7,
     color: colors.textSecondary,
     marginBottom: '16px',
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   // Verdict Banner
@@ -264,6 +277,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     fontSize: '32px',
     fontWeight: '800',
     letterSpacing: '4px',
+    fontFamily: "'Sora', sans-serif",
   },
   
   // Metrics Grid
@@ -287,12 +301,15 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     marginBottom: '8px',
     textTransform: 'uppercase' as const,
     letterSpacing: '1px',
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   metricCardValue: {
     fontSize: '24px',
     fontWeight: '700',
     color: colors.textPrimary,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFeatureSettings: '"tnum" 1',
   },
   
   metricsRow: {
@@ -346,6 +363,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     fontSize: '12px',
     color: colors.textSecondary,
     lineHeight: 1.6,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   // Tables
@@ -363,6 +381,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     fontWeight: '600',
     color: colors.textPrimary,
     borderBottom: `2px solid ${colors.accent}`,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   tableCell: {
@@ -370,6 +389,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     borderBottom: `1px solid ${colors.border}`,
     color: colors.textSecondary,
     verticalAlign: 'top' as const,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   // Charts
@@ -424,6 +444,8 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     textAlign: 'right' as const,
     fontSize: '12px',
     fontWeight: '600',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFeatureSettings: '"tnum" 1',
   },
   
   // Market Size
@@ -464,6 +486,8 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     color: colors.textPrimary,
     fontWeight: '600',
     textAlign: 'center' as const,
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFeatureSettings: '"tnum" 1',
   },
   
   marketSizeDesc: {
@@ -504,6 +528,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     color: colors.textSecondary,
     lineHeight: 1.6,
     paddingTop: '2px',
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   // Highlight Boxes
@@ -555,6 +580,8 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
   riskSummaryValue: {
     fontSize: '28px',
     fontWeight: '700',
+    fontFamily: "'JetBrains Mono', monospace",
+    fontFeatureSettings: '"tnum" 1',
   },
   
   // Timeline
@@ -605,6 +632,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     color: colors.textSecondary,
     marginBottom: '8px',
     lineHeight: 1.5,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   timelineMeta: {
@@ -624,6 +652,7 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     lineHeight: 1.8,
     fontStyle: 'italic' as const,
     border: `1px solid ${colors.border}`,
+    fontFamily: "'DM Sans', sans-serif",
   },
   
   metadataSection: {
