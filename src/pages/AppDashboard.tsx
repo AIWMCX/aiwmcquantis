@@ -368,7 +368,25 @@ export default function Index() {
                             <p className="text-xs text-muted-foreground">Fill in your idea and location, then hit <strong>Analyze</strong>.</p>
                           </div>
                         ) : (
-                          <EmptyState />
+                          <EmptyState 
+                            onStartAnalysis={() => {
+                              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                            onTrySample={() => {
+                              setIdea('Specialty coffee shop with remote workspace');
+                              setLocation('Austin, TX');
+                              setFinancialInputs(prev => ({
+                                ...prev,
+                                startup_investment: '85000',
+                                monthly_revenue: '28000',
+                                average_price: '6.50',
+                                expected_customers: '800',
+                                monthly_costs: '22000',
+                                cac: '15',
+                              }));
+                              formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }}
+                          />
                         )}
                       </div>
                     )}
@@ -380,6 +398,15 @@ export default function Index() {
                         setResult(selectedResult);
                         setCurrentAnalysisId(analysisId);
                         setActiveTab('analyze');
+                      }}
+                      onClone={(cloneIdea, cloneLocation) => {
+                        setIdea(cloneIdea);
+                        setLocation(cloneLocation);
+                        setResult(null as any);
+                        setCurrentAnalysisId(null);
+                        setActiveTab('analyze');
+                        formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        toast({ title: 'Analysis cloned', description: 'Edit the details and run a new analysis.' });
                       }}
                     />
                   </TabsContent>
