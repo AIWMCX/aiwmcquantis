@@ -1,4 +1,5 @@
 import React, { useState, useMemo, useCallback } from 'react';
+import { useSubscription } from '@/hooks/useSubscription';
 import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ShieldAlert, Rocket, ShieldCheck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersistentResultsHeader } from './PersistentResultsHeader';
@@ -9,6 +10,7 @@ import { ScenarioSelector, ScenarioType } from './ScenarioSelector';
 import { FinancialSummary } from './FinancialSummary';
 import { InlineAssumptionEditor } from './InlineAssumptionEditor';
 import { RealismFeedbackWidget } from './RealismFeedbackWidget';
+import { LockedFeaturePreview } from './LockedFeaturePreview';
 import { ActionableInsights } from './ActionableInsights';
 import { ValidationSection } from './ValidationSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
@@ -37,6 +39,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const [prevStep, setPrevStep] = useState(1);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
+  const { isFree } = useSubscription();
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
@@ -479,6 +482,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   )}
                 </div>
               </div>
+
+              {/* Locked Feature Preview for free users */}
+              {isFree && (
+                <LockedFeaturePreview onUpgrade={() => window.location.href = '/pricing'} />
+              )}
 
               {/* Document Generator - Full Width */}
               <div className="q-card p-6">

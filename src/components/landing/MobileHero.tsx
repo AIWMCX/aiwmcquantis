@@ -3,6 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Zap, ArrowRight, Shield, Star } from 'lucide-react';
 import { trackCtaClick, trackEvent, trackAnalysisFunnel } from '@/lib/analytics';
+import { LiveCounter } from './LiveCounter';
 
 export function MobileHero() {
   const navigate = useNavigate();
@@ -107,10 +108,18 @@ export function MobileHero() {
             No credit card &middot; Free forever for one analysis &middot; 90 seconds
           </p>
 
+          {/* Live counter social proof */}
+          <div
+            className="animate-fade-in flex justify-center"
+            style={{ animationDelay: '380ms', animationFillMode: 'both' }}
+          >
+            <LiveCounter />
+          </div>
+
           {/* Social proof row */}
           <div
             className="animate-fade-in flex flex-wrap items-center justify-center gap-3 md:gap-5"
-            style={{ animationDelay: '400ms', animationFillMode: 'both' }}
+            style={{ animationDelay: '460ms', animationFillMode: 'both' }}
           >
             <span className="flex items-center gap-1.5 text-xs md:text-sm text-[var(--q-text-secondary)]">
               <span className="text-[var(--q-status-yellow)]">

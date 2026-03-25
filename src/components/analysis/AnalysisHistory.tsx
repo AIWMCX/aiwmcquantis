@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn, RefreshCw } from 'lucide-react';
+import { History, Trash2, ExternalLink, Clock, MapPin, TrendingUp, Cloud, CloudOff, Loader2, LogIn, RefreshCw, Copy } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
@@ -10,6 +10,7 @@ import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 
 interface AnalysisHistoryProps {
   onSelect: (result: BusinessAnalysisResult, analysisId: string) => void;
+  onClone?: (idea: string, location: string) => void;
 }
 
 function formatCurrency(value: number): string {
@@ -30,7 +31,7 @@ function formatDate(dateStr: string): string {
   });
 }
 
-export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
+export function AnalysisHistory({ onSelect, onClone }: AnalysisHistoryProps) {
   const { history, isLoaded, isSyncing, isAuthenticated, removeEntry, clearHistory, hasHistory, refresh } = useAnalysisHistory();
   
   const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
@@ -183,7 +184,21 @@ export function AnalysisHistory({ onSelect }: AnalysisHistoryProps) {
                     </span>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                  {onClone && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onClone(entry.idea, entry.location);
+                      }}
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
+                      aria-label="Clone analysis"
+                    >
+                      <Copy className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     variant="ghost"
                     size="icon"
