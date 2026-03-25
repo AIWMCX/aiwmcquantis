@@ -11,9 +11,10 @@ interface FinancialFieldProps {
   benchmarkMin?: number;
   benchmarkMax?: number;
   hint?: string;
+  advisorHint?: string;
 }
 
-export function FinancialField({ label, prefix, suffix, placeholder, value, onChange, benchmarkMin, benchmarkMax, hint }: FinancialFieldProps) {
+export function FinancialField({ label, prefix, suffix, placeholder, value, onChange, benchmarkMin, benchmarkMax, hint, advisorHint }: FinancialFieldProps) {
   const [focused, setFocused] = useState(false);
   const hasValue = value !== undefined && value > 0;
 
@@ -34,7 +35,7 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
 
   return (
     <div className="flex flex-col min-w-0">
-      <label className="text-[11px] font-semibold tracking-[0.06em] uppercase mb-1.5" style={{ color: 'var(--q-text-tertiary)' }}>
+      <label className="q-form-label mb-1.5">
         {label}
       </label>
       <div
@@ -62,7 +63,7 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
           }}
           onFocus={() => setFocused(true)}
           onBlur={() => setFocused(false)}
-          className="flex-1 h-full bg-transparent border-none outline-none text-[16px] font-semibold"
+          className="flex-1 h-full bg-transparent border-none outline-none text-[18px] font-semibold"
           style={{
             fontFamily: "'JetBrains Mono', monospace",
             color: 'var(--q-text-primary)',
@@ -77,20 +78,26 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
           </span>
         )}
       </div>
-      {!hasValue && hint && (
-        <span className="text-[10px] mt-1" style={{ color: 'var(--q-text-disabled)' }}>{hint}</span>
+      {/* Smart advisor hint on focus */}
+      {focused && advisorHint && !hasValue && (
+        <span className="text-[12px] mt-1 px-2 py-0.5 rounded-md inline-block w-fit" style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}>
+          {advisorHint}
+        </span>
+      )}
+      {!hasValue && !focused && hint && (
+        <span className="q-form-hint mt-1">{hint}</span>
       )}
       {benchmarkMin !== undefined && benchmarkMax !== undefined && hasValue && (
         <div className="mt-1.5">
           <div className="flex justify-between items-center mb-0.5">
-            <span className="text-[10px]" style={{ color: 'var(--q-text-tertiary)' }}>{fmtK(benchmarkMin)}</span>
-            <span className="text-[10px] font-semibold" style={{ color: statusColor }}>{statusLabel}</span>
-            <span className="text-[10px]" style={{ color: 'var(--q-text-tertiary)' }}>{fmtK(benchmarkMax)}</span>
+            <span className="text-[11px]" style={{ color: 'var(--q-text-tertiary)' }}>{fmtK(benchmarkMin)}</span>
+            <span className="text-[11px] font-semibold" style={{ color: statusColor }}>{statusLabel}</span>
+            <span className="text-[11px]" style={{ color: 'var(--q-text-tertiary)' }}>{fmtK(benchmarkMax)}</span>
           </div>
-          <div className="relative h-[3px] rounded-full" style={{ background: 'var(--q-border-subtle)' }}>
+          <div className="relative h-[5px] rounded-full" style={{ background: 'var(--q-border-subtle)' }}>
             <div className="absolute h-full rounded-full" style={{ left: '25%', right: '25%', background: 'var(--q-status-green-bg)' }} />
             <div
-              className="absolute top-1/2 w-2 h-2 rounded-full transition-all duration-[400ms]"
+              className="absolute top-1/2 w-2.5 h-2.5 rounded-full transition-all duration-[400ms]"
               style={{
                 left: `${dotPct}%`,
                 transform: 'translate(-50%, -50%)',

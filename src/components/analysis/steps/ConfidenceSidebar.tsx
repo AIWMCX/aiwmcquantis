@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, AlertCircle, Info, Loader2 } from 'lucide-react';
 import { DEPTH_OPTIONS, fmtK, fmtPct } from './shared';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
 /* ─── CONFIDENCE RING ─── */
 function ConfidenceRing({ score }: { score: number }) {
-  const r = 36;
+  const r = 44;
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
   const color = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : 'var(--q-status-orange)';
@@ -13,12 +13,12 @@ function ConfidenceRing({ score }: { score: number }) {
   const tierColor = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : '#F87171';
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative w-[72px] h-[72px] sm:w-[88px] sm:h-[88px]">
-        <svg viewBox="0 0 88 88" className="w-full h-full block">
-          <circle cx={44} cy={44} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
+    <div className="flex flex-col items-center gap-2.5">
+      <div className="relative w-[96px] h-[96px] sm:w-[112px] sm:h-[112px]">
+        <svg viewBox="0 0 104 104" className="w-full h-full block">
+          <circle cx={52} cy={52} r={r} fill="none" stroke="var(--q-border-subtle)" strokeWidth={6} />
           <circle
-            cx={44} cy={44} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
+            cx={52} cy={52} r={r} fill="none" strokeWidth={6} strokeLinecap="round"
             stroke={color}
             strokeDasharray={circ}
             strokeDashoffset={offset}
@@ -27,14 +27,14 @@ function ConfidenceRing({ score }: { score: number }) {
           />
         </svg>
         <div className="absolute inset-0 flex flex-col items-center justify-center">
-          <span className="text-xl font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--q-text-primary)' }}>
+          <span className="text-2xl font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--q-text-primary)' }}>
             {score}
           </span>
-          <span className="text-[9px]" style={{ color: 'var(--q-text-tertiary)' }}>/100</span>
+          <span className="text-[10px]" style={{ color: 'var(--q-text-tertiary)' }}>/100</span>
         </div>
       </div>
       <span
-        className="text-[10px] font-bold tracking-[0.08em] px-2.5 py-0.5 rounded-full"
+        className="text-[10px] font-bold tracking-[0.08em] px-3 py-1 rounded-full"
         style={{ background: `${color}18`, border: `1px solid ${color}40`, color: tierColor }}
       >
         {tier}
@@ -88,29 +88,39 @@ export function ConfidenceSidebar({
   return (
     <div className="space-y-3 lg:sticky lg:top-4 lg:self-start">
       {/* Card A — Confidence Ring */}
-      <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
+      <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{
+        background: 'var(--q-bg-surface-dark)',
+        border: '1px solid var(--q-border-subtle)',
+        backdropFilter: 'blur(8px)',
+      }}>
         <div className="flex items-center gap-2 h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
-          <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Analysis Quality</span>
+          <span className="text-[13px] font-bold tracking-[0.06em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Analysis Quality</span>
         </div>
         <div className="p-4 flex flex-col items-center">
           <ConfidenceRing score={confidence} />
-          <div className="w-full mt-3 space-y-[5px]">
+          <p className="text-[11px] text-center mt-3 leading-relaxed" style={{ color: 'var(--q-text-tertiary)' }}>
+            Accuracy improves as you fill more fields.<br />We never fabricate numbers.
+          </p>
+          <div className="w-full mt-3 space-y-[6px]">
             {checklist.map(item => (
-              <div key={item.label} className="flex items-center gap-[7px] h-[22px]">
-                <span
-                  className="w-3.5 h-3.5 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-300"
-                  style={{
-                    background: item.done ? 'var(--q-status-green)' : item.required ? 'var(--q-bg-input)' : 'var(--q-border-subtle)',
-                    border: item.done ? 'none' : `1px solid ${item.required ? 'var(--q-border-default)' : 'var(--q-border-subtle)'}`,
-                  }}
-                >
-                  {item.done && <Check className="w-2.5 h-2.5 text-white" strokeWidth={3} />}
+              <div key={item.label} className="flex items-center gap-2 h-[24px]">
+                <span className="w-4 h-4 rounded-full flex items-center justify-center flex-shrink-0 transition-colors duration-300">
+                  {item.done ? (
+                    <Check className="w-4 h-4" style={{ color: 'var(--q-status-green)' }} />
+                  ) : item.required ? (
+                    <AlertCircle className="w-3.5 h-3.5" style={{ color: 'var(--q-status-yellow)' }} />
+                  ) : (
+                    <Info className="w-3.5 h-3.5" style={{ color: 'var(--q-text-disabled)' }} />
+                  )}
                 </span>
-                <span className="text-[11px]" style={{ color: item.done ? 'var(--q-text-secondary)' : item.required ? 'var(--q-text-tertiary)' : 'var(--q-text-disabled)' }}>
+                <span className="text-[12px] font-medium" style={{ color: item.done ? 'var(--q-text-secondary)' : item.required ? 'var(--q-text-tertiary)' : 'var(--q-text-disabled)' }}>
                   {item.label}
                 </span>
                 {!item.done && !item.required && (
-                  <span className="ml-auto text-[9px] px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-green-bg)', color: 'var(--q-status-green)', border: '1px solid var(--q-status-green-border)' }}>+20%</span>
+                  <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-green-bg)', color: 'var(--q-status-green)', border: '1px solid var(--q-status-green-border)' }}>+20%</span>
+                )}
+                {item.done && (
+                  <span className="ml-auto text-[9px] font-bold" style={{ color: 'var(--q-status-green)' }}>✓</span>
                 )}
               </div>
             ))}
@@ -119,9 +129,14 @@ export function ConfidenceSidebar({
       </div>
 
       {/* Card B — Live Estimate */}
-      <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
-        <div className="flex items-center gap-2 h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
-          <span className="text-[11px] font-bold tracking-[0.08em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Live Estimate</span>
+      <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{
+        background: 'var(--q-bg-surface-dark)',
+        border: '1px solid var(--q-border-subtle)',
+        backdropFilter: 'blur(8px)',
+      }}>
+        <div className="flex items-center justify-between h-12 px-4" style={{ borderBottom: '1px solid var(--q-border-subtle)' }}>
+          <span className="text-[13px] font-bold tracking-[0.06em] uppercase" style={{ color: 'var(--q-text-secondary)' }}>Live Estimate</span>
+          <span className="text-[10px] font-medium cursor-pointer" style={{ color: 'var(--q-accent-primary)' }}>Details →</span>
         </div>
         <div className="p-3 space-y-2">
           {[
@@ -130,9 +145,9 @@ export function ConfidenceSidebar({
             { label: 'Gross Margin', value: liveEstimate.margin, fmt: (v: number) => liveEstimate.revenue > 0 ? fmtPct(v) : '—', color: liveEstimate.margin > 40 ? 'var(--q-status-green)' : liveEstimate.margin > 20 ? 'var(--q-status-yellow)' : liveEstimate.revenue > 0 ? 'var(--q-status-red)' : 'var(--q-text-tertiary)' },
             { label: 'Depth', value: 0, fmt: () => depthTime, color: 'var(--q-status-ai)' },
           ].map(row => (
-            <div key={row.label} className="flex items-center justify-between py-[7px] px-3 rounded-lg" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
-              <span className="text-[11px]" style={{ color: 'var(--q-text-tertiary)' }}>{row.label}</span>
-              <span className="text-[13px] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: row.color }}>{row.fmt(row.value)}</span>
+            <div key={row.label} className="flex items-center justify-between py-2 px-3 rounded-lg" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
+              <span className="text-[12px] font-medium" style={{ color: 'var(--q-text-tertiary)' }}>{row.label}</span>
+              <span className="text-[16px] font-bold" style={{ fontFamily: "'JetBrains Mono', monospace", color: row.color }}>{row.fmt(row.value)}</span>
             </div>
           ))}
         </div>
@@ -159,9 +174,9 @@ export function ConfidenceSidebar({
           'Start Free Analysis'
         )}
       </button>
-      {!requiredReady && missingHint && (
-        <p className="text-[11px] text-center" style={{ color: 'var(--q-text-disabled)' }}>{missingHint}</p>
-      )}
+      <p className="text-[11px] text-center" style={{ color: 'var(--q-text-disabled)' }}>
+        {!requiredReady && missingHint ? missingHint : 'No card required · ~90 seconds'}
+      </p>
     </div>
   );
 }
