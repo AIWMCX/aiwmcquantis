@@ -21,7 +21,6 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  PlusCircle,
   History,
   FileText,
   Receipt,
@@ -33,6 +32,7 @@ import {
   CreditCard,
   HelpCircle,
   Zap,
+  ClipboardList,
 } from 'lucide-react';
 
 interface NavItem {
@@ -41,6 +41,7 @@ interface NavItem {
   icon: React.ElementType;
   adminOnly?: boolean;
   external?: boolean;
+  badge?: string;
 }
 
 interface NavSection {
@@ -60,8 +61,14 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'DOCUMENTS',
     items: [
       { title: 'My Documents', url: '/docs', icon: FileText },
-      { title: 'Invoice Creator', url: '/app/invoices', icon: Receipt },
       { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen },
+    ],
+  },
+  {
+    label: 'BILLING',
+    items: [
+      { title: 'Invoice Creator', url: '/app/invoices', icon: Receipt },
+      { title: 'Invoice Manager', url: '/app/invoice-manager', icon: ClipboardList },
     ],
   },
   {
@@ -172,6 +179,11 @@ export function AppSidebar() {
                           {!collapsed && (
                             <span className="ml-3 text-sm font-dm-sans font-medium">
                               {item.title}
+                            </span>
+                          )}
+                          {!collapsed && item.badge && (
+                            <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-red)', color: '#fff' }}>
+                              {item.badge}
                             </span>
                           )}
                         </SidebarMenuButton>

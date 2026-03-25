@@ -24,9 +24,13 @@
     /* ── TEXT COLORS ── */
     --q-text-primary: #0F172A;
     --q-text-secondary: #475569;
-    --q-text-tertiary: #64748B;
+    --q-text-tertiary: #475569;
     --q-text-disabled: #94A3B8;
     --q-text-inverse: #F8FAFC;
+    
+    /* ── SURFACE ZONE VARIANTS ── */
+    --q-bg-surface-bright: #FFFFFF;
+    --q-bg-surface-dark: #F1F5F9;
     
     /* ── BRAND / ACCENT COLORS ── */
     --q-accent-primary: #4F8EF7;
@@ -160,9 +164,13 @@
     /* ── TEXT COLORS ── */
     --q-text-primary: #F0F4FF;
     --q-text-secondary: #8B9EC7;
-    --q-text-tertiary: #546280;
+    --q-text-tertiary: #7B90B8;
     --q-text-disabled: #334060;
     --q-text-inverse: #0A0E1A;
+    
+    /* ── SURFACE ZONE VARIANTS ── */
+    --q-bg-surface-bright: #151C2D;
+    --q-bg-surface-dark: #0D1220;
     
     /* ── BRAND / ACCENT COLORS ── */
     --q-accent-primary: #4F8EF7;
@@ -398,16 +406,28 @@
   
   /* ── LABEL — Small UI labels, tags, badges (DM Sans) ── */
   .text-label {
-    font: 500 12px/1 'DM Sans', sans-serif;
+    font: 600 13px/1 'DM Sans', sans-serif;
     letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--q-text-tertiary);
   }
   .text-label-sm {
-    font: 500 10px/1 'DM Sans', sans-serif;
+    font: 500 11px/1 'DM Sans', sans-serif;
     letter-spacing: 0.08em;
     text-transform: uppercase;
     color: var(--q-text-tertiary);
+  }
+  
+  /* ── FORM LABEL & HINT UTILITIES ── */
+  .q-form-label {
+    font: 600 13px/1 'DM Sans', sans-serif;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--q-text-tertiary);
+  }
+  .q-form-hint {
+    font: 400 12px/1.4 'DM Sans', sans-serif;
+    color: var(--q-text-secondary);
   }
   
   /* ── DATA — Financial figures (ALWAYS JetBrains Mono) ── */
