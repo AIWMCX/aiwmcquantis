@@ -27,7 +27,7 @@ import {
   TrendingUp,
   ExternalLink,
 } from 'lucide-react';
-import AppLayout from '@/components/layout/AppLayout';
+import { AppLayout } from '@/components/layout/AppLayout';
 
 const STATUS_CONFIG: Record<string, { label: string; variant: 'default' | 'secondary' | 'destructive' | 'outline'; icon: React.ElementType }> = {
   draft: { label: 'Draft', variant: 'secondary', icon: FileText },
