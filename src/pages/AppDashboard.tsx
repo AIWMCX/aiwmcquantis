@@ -377,12 +377,12 @@ export default function Index() {
                               setLocation('Austin, TX');
                               setFinancialInputs(prev => ({
                                 ...prev,
-                                startup_investment: '85000',
-                                monthly_revenue: '28000',
-                                average_price: '6.50',
-                                expected_customers: '800',
-                                monthly_costs: '22000',
-                                cac: '15',
+                                startup_investment: 85000,
+                                monthly_revenue: 28000,
+                                average_price: 6.50,
+                                expected_customers: 800,
+                                monthly_costs: 22000,
+                                cac: 15,
                               }));
                               formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
                             }}
