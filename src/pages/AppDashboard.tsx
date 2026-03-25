@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { NextStepsBar } from '@/components/analysis/NextStepsBar';
+import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,6 +37,7 @@ export default function Index() {
   const formRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [showScrollBanner, setShowScrollBanner] = useState(false);
+  const [showNextSteps, setShowNextSteps] = useState(false);
   const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
@@ -278,26 +281,28 @@ export default function Index() {
               {rateLimitError && (
                 <RateLimitBanner message={rateLimitError} isAuthenticated={isAuthenticated} onDismiss={clearRateLimitError} />
               )}
-              <CompactAnalysisForm
-                idea={idea}
-                location={location}
-                financialInputs={financialInputs}
-                errors={errors}
-                isLoading={isLoading}
-                isFormValid={isFormValid}
-                onIdeaChange={setIdea}
-                onLocationChange={setLocation}
-                onFinancialInputsChange={setFinancialInputs}
-                onClearError={clearError}
-                onSubmit={handleSubmit}
-                files={files}
-                isUploading={isUploading}
-                maxFiles={maxFiles}
-                allowedExtensions={allowedExtensions}
-                onUploadFiles={uploadFiles}
-                onRemoveFile={removeFile}
-                isAuthenticated={isAuthenticated}
-              />
+              <SectionErrorBoundary section="the analysis form" onBack={() => formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
+                <CompactAnalysisForm
+                  idea={idea}
+                  location={location}
+                  financialInputs={financialInputs}
+                  errors={errors}
+                  isLoading={isLoading}
+                  isFormValid={isFormValid}
+                  onIdeaChange={setIdea}
+                  onLocationChange={setLocation}
+                  onFinancialInputsChange={setFinancialInputs}
+                  onClearError={clearError}
+                  onSubmit={handleSubmit}
+                  files={files}
+                  isUploading={isUploading}
+                  maxFiles={maxFiles}
+                  allowedExtensions={allowedExtensions}
+                  onUploadFiles={uploadFiles}
+                  onRemoveFile={removeFile}
+                  isAuthenticated={isAuthenticated}
+                />
+              </SectionErrorBoundary>
             </div>
 
             {/* Scroll-down banner */}
@@ -339,11 +344,29 @@ export default function Index() {
 
                   <TabsContent value="analyze">
                     {result ? (
-                      <AccuracyTransparentResults 
-                        result={result} 
-                        analysisId={currentAnalysisId || undefined}
-                        onReset={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }} 
-                      />
+                      <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
+                        <AccuracyTransparentResults 
+                          result={result} 
+                          analysisId={currentAnalysisId || undefined}
+                          onReset={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); setShowNextSteps(false); }} 
+                        />
+                        {showNextSteps && (
+                          <NextStepsBar
+                            onShare={() => {
+                              // Trigger share from results — scroll to results which has share button
+                              toast({ title: 'Share', description: 'Use the share button in the results toolbar above.' });
+                            }}
+                            onExport={() => {
+                              if (isFree) {
+                                setShowUpgradePrompt(true);
+                              } else {
+                                toast({ title: 'Export', description: 'Use the PDF export button in the results toolbar above.' });
+                              }
+                            }}
+                            onNewAnalysis={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); setShowNextSteps(false); formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
+                          />
+                        )}
+                      </SectionErrorBoundary>
                     ) : hasPrefill || isLoading ? (
                       <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
                         {isLoading ? (
@@ -435,7 +458,7 @@ export default function Index() {
 
       <FirstAnalysisCelebration
         open={showCelebration}
-        onClose={() => { setShowCelebration(false); markFirstAnalysisCelebrationSeen(); }}
+        onClose={() => { setShowCelebration(false); markFirstAnalysisCelebrationSeen(); setShowNextSteps(true); }}
         analysisCount={1}
         remainingFreeAnalyses={remainingAnalyses}
       />

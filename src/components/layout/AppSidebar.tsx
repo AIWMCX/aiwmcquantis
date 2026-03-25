@@ -18,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
+import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
   PlusCircle,
@@ -111,52 +112,50 @@ export function AppSidebar() {
   const userEmail = user?.email || 'User';
 
   return (
-    <Sidebar
-      collapsible="offcanvas"
-      className="border-r border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]"
-      style={{ width: collapsed ? '60px' : '240px' }}
-    >
-      {/* Logo Area */}
-      <SidebarHeader className="h-16 flex items-center px-4 border-b border-[var(--q-border-subtle)]">
-        <div className="flex items-center gap-3">
-          <div className="w-[3px] h-8 bg-[var(--q-accent-primary)] rounded-full" />
-          {!collapsed && (
-            <div className="flex flex-col">
-              <span className="font-sora font-bold text-sm text-[var(--q-text-primary)]">
-                AIWMC Quantis
-              </span>
-              <span className="text-[11px] font-dm-sans text-[var(--q-text-tertiary)]">
-                by AIWMC AI Agency
-              </span>
-            </div>
-          )}
-        </div>
-      </SidebarHeader>
+    <TooltipProvider delayDuration={200}>
+      <Sidebar
+        collapsible="offcanvas"
+        className="border-r border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]"
+        style={{ width: collapsed ? '60px' : '240px' }}
+      >
+        <SidebarHeader className="h-16 flex items-center px-4 border-b border-[var(--q-border-subtle)]">
+          <div className="flex items-center gap-3">
+            <div className="w-[3px] h-8 bg-[var(--q-accent-primary)] rounded-full" />
+            {!collapsed && (
+              <div className="flex flex-col">
+                <span className="font-sora font-bold text-sm text-[var(--q-text-primary)]">
+                  AIWMC Quantis
+                </span>
+                <span className="text-[11px] font-dm-sans text-[var(--q-text-tertiary)]">
+                  by AIWMC AI Agency
+                </span>
+              </div>
+            )}
+          </div>
+        </SidebarHeader>
 
-      {/* Navigation */}
-      <SidebarContent className="py-4">
-        {NAV_SECTIONS.map((section) => {
-          const visibleItems = section.items.filter(
-            (item) => !item.adminOnly || isAdmin
-          );
-          
-          if (visibleItems.length === 0) return null;
+        <SidebarContent className="py-4">
+          {NAV_SECTIONS.map((section) => {
+            const visibleItems = section.items.filter(
+              (item) => !item.adminOnly || isAdmin
+            );
+            
+            if (visibleItems.length === 0) return null;
 
-          return (
-            <SidebarGroup key={section.label}>
-              {!collapsed && (
-                <SidebarGroupLabel className="px-4 mb-2 text-[12px] font-dm-sans font-medium tracking-[0.06em] text-[#94A3B8] uppercase">
-                  {section.label}
-                </SidebarGroupLabel>
-              )}
-              <SidebarGroupContent>
-                <SidebarMenu>
-                  {visibleItems.map((item) => {
-                    const active = isActive(item.url);
-                    const Icon = item.icon;
+            return (
+              <SidebarGroup key={section.label}>
+                {!collapsed && (
+                  <SidebarGroupLabel className="px-4 mb-2 text-[12px] font-dm-sans font-medium tracking-[0.06em] text-[#94A3B8] uppercase">
+                    {section.label}
+                  </SidebarGroupLabel>
+                )}
+                <SidebarGroupContent>
+                  <SidebarMenu>
+                    {visibleItems.map((item) => {
+                      const active = isActive(item.url);
+                      const Icon = item.icon;
 
-                    return (
-                      <SidebarMenuItem key={item.title}>
+                      const button = (
                         <SidebarMenuButton
                           onClick={() => handleNavClick(item)}
                           className={`
@@ -176,44 +175,56 @@ export function AppSidebar() {
                             </span>
                           )}
                         </SidebarMenuButton>
-                      </SidebarMenuItem>
-                    );
-                  })}
-                </SidebarMenu>
-              </SidebarGroupContent>
-            </SidebarGroup>
-          );
-        })}
-      </SidebarContent>
+                      );
 
-      {/* Footer - User Info */}
-      <SidebarFooter className="p-4 border-t border-[var(--q-border-subtle)]">
-        <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-          <Avatar className="h-8 w-8 shrink-0">
-            <AvatarFallback className="bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] text-xs font-medium">
-              {userInitials}
-            </AvatarFallback>
-          </Avatar>
-          {!collapsed && (
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-dm-sans font-medium text-[var(--q-text-primary)] truncate">
-                {userEmail}
-              </p>
-              <Badge
-                variant={isPlus ? 'default' : 'secondary'}
-                className={`mt-0.5 text-[10px] h-5 ${
-                  isPlus
-                    ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
-                    : ''
-                }`}
-              >
-                {isPlus && <Zap className="w-2.5 h-2.5 mr-1" />}
-                {isPlus ? 'Plus' : 'Free'}
-              </Badge>
-            </div>
-          )}
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+                      return (
+                        <SidebarMenuItem key={item.title}>
+                          {collapsed ? (
+                            <Tooltip>
+                              <TooltipTrigger asChild>{button}</TooltipTrigger>
+                              <TooltipContent side="right">{item.title}</TooltipContent>
+                            </Tooltip>
+                          ) : (
+                            button
+                          )}
+                        </SidebarMenuItem>
+                      );
+                    })}
+                  </SidebarMenu>
+                </SidebarGroupContent>
+              </SidebarGroup>
+            );
+          })}
+        </SidebarContent>
+
+        <SidebarFooter className="p-4 border-t border-[var(--q-border-subtle)]">
+          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
+            <Avatar className="h-8 w-8 shrink-0">
+              <AvatarFallback className="bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] text-xs font-medium">
+                {userInitials}
+              </AvatarFallback>
+            </Avatar>
+            {!collapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-dm-sans font-medium text-[var(--q-text-primary)] truncate">
+                  {userEmail}
+                </p>
+                <Badge
+                  variant={isPlus ? 'default' : 'secondary'}
+                  className={`mt-0.5 text-[10px] h-5 ${
+                    isPlus
+                      ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
+                      : ''
+                  }`}
+                >
+                  {isPlus && <Zap className="w-2.5 h-2.5 mr-1" />}
+                  {isPlus ? 'Plus' : 'Free'}
+                </Badge>
+              </div>
+            )}
+          </div>
+        </SidebarFooter>
+      </Sidebar>
+    </TooltipProvider>
   );
 }

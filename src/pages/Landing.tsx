@@ -84,11 +84,11 @@ export default function Landing() {
               <img src={aiwmcLogoText} alt="AIWMC Quantis" width={136} height={40} className="h-8 sm:h-10 w-auto object-contain dark:invert" />
             </Link>
             <div className="hidden md:flex items-center gap-8">
-              <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-              <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
-              <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
+              <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => import('./HowItWorks')}>How It Works</Link>
+              <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => import('./UseCases')}>Use Cases</Link>
+              <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => import('./examples/ExamplesIndex')}>Examples</Link>
               <Link to="/risk-gallery" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Risk Gallery</Link>
-              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors" onMouseEnter={() => import('./Pricing')}>Pricing</Link>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
@@ -116,9 +116,7 @@ export default function Landing() {
                   </Link>
                   <Link to="/app">
                     <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
-                      <span className="hidden sm:inline">Get Started</span>
-                      <span className="sm:hidden">Start Analysis</span>
-                      <ArrowRight className="w-4 h-4" />
+                      Start Free Analysis →
                     </Button>
                   </Link>
                 </>
@@ -138,30 +136,16 @@ export default function Landing() {
         <BeforeAfterComparison />
 
         {/* 3. Trust Signals — immediately after hero */}
-        <div ref={belowFoldSection.ref}>
+        <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '800px' }}>
           {belowFoldSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={200} />}>
               <TrustLogos />
-
-              {/* 4. Demo Preview — instant value */}
               <DemoPreview />
-
-              {/* 5. Results Ticker */}
               <ResultsTicker />
-
-              {/* 6. ROI Calculator */}
               <ROICalculator />
-
-              {/* 7. How It Works (condensed) */}
               <HowItWorksSection />
-
-              {/* 8. Use Cases */}
               <Testimonials />
-
-              {/* Who It's For */}
               <WhoItsFor />
-
-              {/* Risk Gallery Teaser */}
               <RiskGalleryTeaser />
             </Suspense>
           ) : (
@@ -218,8 +202,7 @@ export default function Landing() {
                 </p>
                 <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
-                    Run Free Pre-Mortem
-                    <ArrowRight className="w-5 h-5" />
+                    Start Free Analysis →
                   </Button>
                 </Link>
               </div>
