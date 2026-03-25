@@ -1,12 +1,28 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, TrendingUp, Target } from 'lucide-react';
+import { ArrowRight, Zap, TrendingUp, Target, Play } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { EXAMPLE_LIST } from './exampleData';
+import { EXAMPLE_LIST, EXAMPLE_ANALYSES } from './exampleData';
 
 export default function ExamplesIndex() {
+  const navigate = useNavigate();
+
+  const handleLoadTemplate = (slug: string, e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const data = EXAMPLE_ANALYSES[slug];
+    if (data) {
+      localStorage.setItem('quantis_prefill', JSON.stringify({
+        idea: data.description,
+        location: data.location,
+        industry: data.industry.toLowerCase().replace(/\s+/g, '_'),
+      }));
+      navigate('/app');
+    }
+  };
+
   return (
     <div className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
       <PageSEO
@@ -76,16 +92,27 @@ export default function ExamplesIndex() {
                     {ex.title}
                   </h2>
                   <p className="text-body-sm text-[var(--q-text-secondary)] line-clamp-2 mb-4">{ex.description}</p>
-                  <div className="flex items-center gap-4 mt-auto">
+                  <div className="flex items-center gap-4 mt-auto pt-3 border-t border-[var(--q-border-subtle)]">
                     <span className="flex items-center gap-1 text-metric-sm text-[var(--q-status-green)]">
                       <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
                     </span>
                     <span className="flex items-center gap-1 text-metric-sm text-[var(--q-accent-primary)]">
                       <Target className="w-4 h-4" /> {ex.roi} ROI
                     </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      className="ml-auto gap-1 text-[11px] h-7 px-2 text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-glow)]"
+                      onClick={(e) => handleLoadTemplate(ex.slug, e)}
+                    >
+                      <Play className="w-3 h-3" /> Load in Quantis
+                    </Button>
                   </div>
                 </div>
               </div>
+            </Link>
+          ))}
+        </div>
             </Link>
           ))}
         </div>
