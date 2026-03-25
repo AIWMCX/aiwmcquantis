@@ -438,7 +438,7 @@ export default function Index() {
 
       <FirstAnalysisCelebration
         open={showCelebration}
-        onClose={() => { setShowCelebration(false); markFirstAnalysisCelebrationSeen(); }}
+        onClose={() => { setShowCelebration(false); markFirstAnalysisCelebrationSeen(); setShowNextSteps(true); }}
         analysisCount={1}
         remainingFreeAnalyses={remainingAnalyses}
       />
