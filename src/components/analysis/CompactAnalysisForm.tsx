@@ -316,7 +316,7 @@ export function CompactAnalysisForm({
       </div>
 
       {/* 3-column grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.6fr_260px] gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.6fr_260px] gap-4">
 
         {/* ═══ COLUMN 1 — Business Identity ═══ */}
         <div className="rounded-[var(--q-radius-lg)] overflow-hidden" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
@@ -331,24 +331,27 @@ export function CompactAnalysisForm({
             {/* Industry */}
             <div>
               <label className="text-[11px] font-semibold tracking-[0.06em] uppercase mb-1.5 block" style={{ color: 'var(--q-text-tertiary)' }}>Industry</label>
-              <div className="grid grid-cols-2 gap-[5px]">
+              <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Select industry">
                 {INDUSTRIES.map(ind => {
                   const Icon = ind.icon;
+                  const isSelected = selectedIndustry === ind.id;
                   return (
                     <button
                       key={ind.id} type="button"
+                      role="radio"
+                      aria-checked={isSelected}
                       onClick={() => handleIndustrySelect(ind.id)}
-                      className="flex items-center gap-1.5 py-[7px] px-[9px] rounded-lg text-[12px] transition-all duration-[120ms] cursor-pointer text-left"
+                      className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl text-[11px] transition-all duration-200 cursor-pointer text-center min-h-[60px] hover:translate-y-[-1px] hover:shadow-md active:translate-y-0"
                       style={{
-                        background: selectedIndustry === ind.id ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
-                        border: `1px solid ${selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
-                        color: selectedIndustry === ind.id ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
-                        fontWeight: selectedIndustry === ind.id ? 600 : 400,
-                        transform: selectedIndustry === ind.id ? 'scale(1.02)' : 'none',
+                        background: isSelected ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                        border: `2px solid ${isSelected ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
+                        color: isSelected ? 'var(--q-accent-primary)' : 'var(--q-text-secondary)',
+                        fontWeight: isSelected ? 600 : 500,
+                        boxShadow: isSelected ? '0 0 0 3px var(--q-accent-glow)' : 'none',
                       }}
                     >
-                      <Icon className="w-3.5 h-3.5 flex-shrink-0" />
-                      <span>{ind.label}</span>
+                      <Icon className="w-5 h-5 flex-shrink-0" />
+                      <span className="leading-tight">{ind.label}</span>
                     </button>
                   );
                 })}

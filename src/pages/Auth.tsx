@@ -125,60 +125,96 @@ export default function Auth() {
         description="Sign in or create an account to access AI-powered business analysis with financial projections and market insights."
         canonical="/auth"
       />
-      <div className="container max-w-lg mx-auto flex-1 flex flex-col items-center justify-center px-4 py-8">
-        <Button
-          variant="ghost"
-          onClick={() => navigate('/')}
-          className="self-start mb-6 text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)]"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Home
-        </Button>
-
-        <div className="flex items-center gap-3 mb-8">
-          <div className="p-2 rounded-lg bg-primary/10">
-            <Brain className="w-8 h-8 text-primary" />
+      <div className="flex-1 flex flex-col lg:flex-row">
+        {/* Left — Brand panel (hidden on mobile) */}
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: 'var(--q-gradient-hero)' }}>
+          <div className="max-w-md space-y-8">
+            <div className="flex items-center gap-3 mb-6">
+              <div className="p-2.5 rounded-xl bg-primary/10">
+                <Brain className="w-10 h-10 text-primary" />
+              </div>
+              <h1 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Sora, sans-serif' }}>AIWMC Quantis</h1>
+            </div>
+            <p className="text-lg text-muted-foreground leading-relaxed">
+              AI-powered business validation. Stress-test your startup idea before you commit capital.
+            </p>
+            <div className="space-y-4 pt-4">
+              {[
+                { metric: '12', label: 'Financial variables stress-tested' },
+                { metric: '1,000+', label: 'Industry benchmarks' },
+                { metric: '90s', label: 'Time to full analysis' },
+              ].map((stat) => (
+                <div key={stat.label} className="flex items-center gap-4">
+                  <span className="text-2xl font-bold text-primary" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{stat.metric}</span>
+                  <span className="text-sm text-muted-foreground">{stat.label}</span>
+                </div>
+              ))}
+            </div>
+            <p className="text-xs text-muted-foreground/60 pt-6">
+              Equivalent to 3–5 hours of senior CFO work each month
+            </p>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis</h1>
         </div>
 
-        <Card className="w-full">
-          <Tabs defaultValue="signup">
-            <CardHeader className="pb-4">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="signup">Sign Up</TabsTrigger>
-                <TabsTrigger value="login">Sign In</TabsTrigger>
-              </TabsList>
-            </CardHeader>
+        {/* Right — Auth form */}
+        <div className="flex-1 flex flex-col items-center justify-center px-4 sm:px-8 py-8">
+          <div className="w-full max-w-md">
+            <Button
+              variant="ghost"
+              onClick={() => navigate('/')}
+              className="self-start mb-6 text-[var(--q-text-secondary)] hover:text-[var(--q-text-primary)]"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Home
+            </Button>
 
-            <CardContent>
-              <TabsContent value="signup" className="mt-0">
-                <CardTitle className="mb-2">Create an account</CardTitle>
-                <CardDescription className="mb-6">
-                  Start your free trial • No credit card required
-                </CardDescription>
-                <SignupForm />
-              </TabsContent>
+            {/* Mobile-only logo */}
+            <div className="flex items-center gap-3 mb-8 lg:hidden">
+              <div className="p-2 rounded-lg bg-primary/10">
+                <Brain className="w-8 h-8 text-primary" />
+              </div>
+              <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis</h1>
+            </div>
 
-              <TabsContent value="login" className="mt-0">
-                {showForgotPassword ? (
-                  <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
-                ) : (
-                  <>
-                    <CardTitle className="mb-2">Sign in to your account</CardTitle>
+            <Card className="w-full">
+              <Tabs defaultValue="signup">
+                <CardHeader className="pb-4">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="signup">Sign Up</TabsTrigger>
+                    <TabsTrigger value="login">Sign In</TabsTrigger>
+                  </TabsList>
+                </CardHeader>
+
+                <CardContent>
+                  <TabsContent value="signup" className="mt-0">
+                    <CardTitle className="mb-2">Create an account</CardTitle>
                     <CardDescription className="mb-6">
-                      Welcome back! Sign in to access your analyses
+                      Start your free trial • No credit card required
                     </CardDescription>
-                    <LoginForm 
-                      returnUrl={returnUrl || undefined} 
-                      onForgotPassword={() => setShowForgotPassword(true)}
-                    />
-                  </>
-                )}
-              </TabsContent>
-            </CardContent>
-          </Tabs>
-        </Card>
+                    <SignupForm />
+                  </TabsContent>
+
+                  <TabsContent value="login" className="mt-0">
+                    {showForgotPassword ? (
+                      <ForgotPasswordForm onBack={() => setShowForgotPassword(false)} />
+                    ) : (
+                      <>
+                        <CardTitle className="mb-2">Sign in to your account</CardTitle>
+                        <CardDescription className="mb-6">
+                          Welcome back! Sign in to access your analyses
+                        </CardDescription>
+                        <LoginForm 
+                          returnUrl={returnUrl || undefined} 
+                          onForgotPassword={() => setShowForgotPassword(true)}
+                        />
+                      </>
+                    )}
+                  </TabsContent>
+                </CardContent>
+              </Tabs>
+            </Card>
+          </div>
+        </div>
       </div>
     </div>
   );
