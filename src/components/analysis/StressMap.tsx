@@ -310,8 +310,8 @@ function RingGauge({ value, label, style }: RingGaugeProps) {
   };
 
   return (
-    <div className="relative w-48 h-48 mx-auto">
-      <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90">
+    <div className="relative w-48 h-48 mx-auto" role="meter" aria-valuenow={value} aria-valuemin={0} aria-valuemax={100} aria-label={`Risk index: ${value} out of 100, ${label}`}>
+      <svg viewBox="0 0 200 200" className="w-full h-full -rotate-90" aria-hidden="true">
         {/* Background ring */}
         <circle
           cx="100"

@@ -70,7 +70,7 @@ export function StructuredData({
       keywords: 'Business Validation, Startup Tools, AI Financial Modeling, Risk Assessment, Scenario Analysis, Entrepreneurship, Solo Founder Tools, SaaS, Startup Strategy, Business Intelligence, Early-Stage Startups, Venture Validation'
     };
 
-    // SoftwareApplication Schema — enriched
+    // SoftwareApplication Schema — enriched per SEO v3
     const softwareSchema = {
       '@context': 'https://schema.org',
       '@type': 'SoftwareApplication',
@@ -80,10 +80,12 @@ export function StructuredData({
       applicationSubCategory: 'Financial Analysis',
       operatingSystem: 'Web',
       browserRequirements: 'Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.',
+      softwareVersion: '2.0',
       description: 'AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using 1,000+ industry benchmarks in 90 seconds.',
       url: SITE_URL,
+      screenshot: `${SITE_URL}/og-image.png`,
       datePublished: '2024-06-01',
-      dateModified: '2026-03-01',
+      dateModified: '2026-03-25',
       author: { '@id': `${SITE_URL}/#organization` },
       publisher: { '@id': `${SITE_URL}/#organization` },
       offers: [
@@ -92,6 +94,7 @@ export function StructuredData({
           name: 'Free',
           price: '0',
           priceCurrency: 'USD',
+          availability: 'https://schema.org/InStock',
           description: '3 analyses per month with financial projections and risk flags'
         },
         {
@@ -100,6 +103,7 @@ export function StructuredData({
           price: '17',
           priceCurrency: 'USD',
           priceValidUntil: '2026-12-31',
+          availability: 'https://schema.org/InStock',
           description: 'Unlimited analyses with PDF export, document studio, custom branding, and priority support'
         }
       ],
