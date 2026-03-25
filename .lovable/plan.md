@@ -1,391 +1,173 @@
 
 
-# AIWMC QUANTIS — Full-Stack SaaS Audit & Redesign Specification
+# AIWMC Quantis — Stabilization & Hardening Plan
+
+## Context
+
+The user pasted a thorough product/UX/architecture audit rating Quantis at ~6.5–7/10. Many items are **already implemented** (design tokens, skeleton states, error boundaries, lazy loading, structured logging, etc.). This plan focuses only on the **net-new work** that remains unaddressed.
 
 ---
 
-## 1. Context: Who Uses This and Why
+## Already Done (No Work Needed)
 
-### Personas
-
-| Persona | Job | Fear | Trigger |
-|---------|-----|------|---------|
-| **First-time founder** | "Will this idea lose my savings?" | Wasting $50k+ on a doomed concept | Just had the idea, googling "is my startup viable" |
-| **Serial founder** | "How does this compare to my last venture?" | Repeating past mistakes | Pre-seed fundraise prep |
-| **Advisor / Mentor** | "Can I give this founder a quick sanity check?" | Giving bad advice without data | Founder asks for opinion |
-| **Angel / Micro-VC** | "Is this deal-flow worth a call?" | Missing a signal in messy founder decks | Screening inbound pitches |
-
-### Core Promise
-
-**One sentence:** "Know if your business idea will make or lose money — before you spend a dollar."
-
-**One paragraph:** Quantis runs a financial pre-mortem on any business idea in 90 seconds. It stress-tests 12 variables against 1,000+ industry benchmarks, surfaces fatal assumptions, and produces investor-grade reports — replacing weeks of spreadsheet work and $1,500 consultant decks with a deterministic AI engine that shows its math.
-
-### Jobs to Be Done → Flows
-
-| JTBD | Flow |
-|------|------|
-| "Is this idea worth pursuing?" | Landing → `/app` → fill form → results (verdict strip) |
-| "What kills this plan?" | Results → Step 1 (Risk Intelligence) → stress map + flags |
-| "What if I change rent / CAC / price?" | Results → Step 2 (Levers Lab) → slider adjustments → impact snapshot |
-| "Show my investor why this works" | Results → Export PDF / Share link |
-| "Compare this vs. another concept" | History tab → side-by-side (not yet built) |
+These audit recommendations are already shipped:
+- Design tokens and semantic color system (`--q-*` variables)
+- Component standardization (buttons 48px, inputs, badges, toasts)
+- Skeleton loading states (`AnalysisResultsSkeleton`, `DashboardSkeleton`)
+- Lazy loading for all routes except Landing
+- ErrorBoundary at root
+- Web Vitals tracking
+- `prefers-reduced-motion` support
+- Sample data prefill ("Try with sample data" on EmptyState)
+- Clone button on history cards
+- Shared report CTA ("Want to analyze your own business idea?")
+- Rate limit banners + anonymous usage tracking
+- QuickStartWizard + FirstAnalysisCelebration onboarding
+- LockedFeaturePreview for free users
+- LiveCounter component
+- ARIA roles on StressMap, keyboard shortcuts hook
+- Toast 4-variant system
+- Canonical intake flow with stepper + progress
 
 ---
 
-## 2. UX Architecture — Journey Audit
+## Phase 1: Navigation & IA Stabilization
 
-### Phase 1: First Visit (Cold Traffic → Landing)
+### 1.1 Force One Canonical CTA Path
+**File:** `MobileHero.tsx`, `HeroVariants.tsx`, `Header.tsx`, landing section CTAs
 
-**Current state:** Strong landing page with lazy-loaded sections, urgency banner, before/after comparison, ROI calculator, testimonials, FAQ, pricing. Good SEO foundation. `StickyMobileCTA` exists.
+All CTAs ("Try free", "Start now", "Verify your business", "Start Free Analysis") currently route to `/app`. Audit all landing components and unify to exactly two CTA labels:
+- Primary: `"Start Free Analysis →"` → `/app`
+- Secondary: `"See Example Report →"` → `/examples/coffee-shop-denver`
 
-**Friction points:**
-- No interactive "try it now" element above the fold — the CTA goes to `/app` which requires understanding the product first.
-- `DemoPreview` exists but is below fold; the "aha" is delayed.
-- No social proof counter ("2,847 analyses run this week") visible in hero area.
+Scan for any stray CTA text and normalize.
 
-**Fixes (implement):**
-1. Move `MiniDemo` or a 3-field inline form (idea + industry + city) into the hero section so visitors get a taste without navigating away.
-2. Add `LiveCounter` to the hero area (component exists, just needs placement).
-3. Add a "See a sample report" link that opens `SharedReport` for a pre-built coffee shop example.
+### 1.2 App Shell Navigation Cleanup
+**File:** `AppSidebar.tsx`
 
-### Phase 2: First Run (Onboarding → First Analysis)
-
-**Current state:** `QuickStartWizard`, `OnboardingTour`, `WelcomeModal`, `SampleDataOption` all exist. `CompactAnalysisForm` has a well-designed 3-step wizard with industry cards, benchmarks, and a reliability score.
-
-**Friction points:**
-- `/app` is not behind `ProtectedRoute` — anonymous users can run analyses but hit rate limits without understanding why.
-- `AnonymousUsageNotice` exists but is passive.
-- No "prefill with sample data" one-click on the empty state.
-
-**Fixes (implement):**
-1. On `EmptyState` (first visit to `/app`), add a "Try with sample data" button that prefills a coffee shop scenario and auto-submits.
-2. After first anonymous analysis completes, show a "Save your results — create a free account" prompt (SignupPrompt exists but verify trigger timing).
-3. Add a progress nudge: "You're 60% done — adding CAC and churn will increase accuracy by 25 points."
-
-### Phase 3: Activation (First "Aha" Moment)
-
-**Current state:** `ResultsHeroStrip` with verdict (FAST-TRACK / CAUTION / DO NOT PROCEED), count-up animations, and forecast ranges. `FirstAnalysisCelebration` component exists.
-
-**Friction points:**
-- The celebration modal fires once but doesn't guide the user to the next high-value action (share, export, run another).
-- No "What should I do next?" prompt after results.
-
-**Fixes (implement):**
-1. After `FirstAnalysisCelebration` dismisses, show a sticky "Next steps" bar: "Share with your co-founder" | "Export as PDF" | "Run another idea."
-2. Add a "How does this compare?" link to `/examples` with similar industries highlighted.
-
-### Phase 4: Ongoing Use (Repeat Simulations)
-
-**Current state:** History tab, scenario library, inline assumption editor, scenario bar with ambient colors.
-
-**Friction points:**
-- No side-by-side comparison between two analyses.
-- No "clone and modify" — users must re-enter data for variations.
-- Scenario switching is per-analysis, not cross-analysis.
-
-**Fixes (implement):**
-1. Add "Clone" button on history cards → opens `/app` with prefilled data.
-2. Add a lightweight "Compare 2" mode in history: select two → side-by-side KPI table.
-
-### Phase 5: Expansion (Sharing, Upgrading)
-
-**Current state:** Share report via link, PDF export (Plus), Document Studio (Plus), referral system, Stripe billing.
-
-**Friction points:**
-- The upgrade prompt (`UpgradePrompt.tsx`) appears reactively (rate limit hit). No proactive value display.
-- Shared reports don't include a "Powered by Quantis — run your own" CTA.
-
-**Fixes (implement):**
-1. On shared report page, add a footer CTA: "This report was generated by Quantis — run your own free analysis →".
-2. Add a "What you're missing" panel on free results: ghosted-out PDF button, locked scenario slots, with clear upgrade copy.
+- Remove duplicate/confusing nav entries
+- Ensure collapsed mode uses icon-only + tooltip (no text labels)
+- Add "Do this next" context: if no analyses exist, highlight "New Analysis" with a subtle pulse
 
 ---
 
-## 3. UI Design System — Current State & Gaps
+## Phase 2: Post-Results "Next Steps" Bar
 
-### Design Language (Already Established)
+### 2.1 Create NextStepsBar Component
+**File:** New `src/components/analysis/NextStepsBar.tsx`
 
-- **Palette:** Space Black base (`#0A0E1A`), semantic status tokens (`--q-status-green/yellow/red/orange`), accent blue (`--q-accent-primary`)
-- **Typography:** Sora (headlines), DM Sans (body), JetBrains Mono (metrics). Well-defined `text-metric-*` classes.
-- **Spacing:** 48px component heights, `--q-radius-md: 8px`, `--q-radius-lg: 12px`
-- **Icons:** Lucide React, 1.5px stroke weight convention
+After `FirstAnalysisCelebration` dismisses, show a sticky bar at the bottom of results:
+- "Share with your co-founder" → triggers share flow
+- "Export as PDF" → triggers PDF export (or upgrade prompt if free)
+- "Run another idea" → resets form
 
-### Component Gaps to Fill
+### 2.2 Wire into AppDashboard
+**File:** `AppDashboard.tsx`
 
-| Component | Status | Gap |
-|-----------|--------|-----|
-| Buttons | ✅ Standardized (48px, 6 variants) | Missing: `ghost-destructive` variant for delete actions |
-| Inputs | ✅ Standardized | Missing: consistent `InputGroup` wrapper for prefix/suffix combos |
-| Cards | ✅ `.q-card` class | Missing: `CardInteractive` variant with hover lift baked in |
-| Tables | ⚠️ Used in pricing comparison | No standardized `DataTable` component |
-| Stepper | ✅ `WizardProgress` | Good |
-| Empty States | ✅ `EmptyState` component | Missing: illustration variants per context |
-| Skeleton | ✅ `AnalysisResultsSkeleton` | Missing: reusable `SkeletonCard`, `SkeletonTable` |
-| Toasts | ✅ 4-variant sonner | Good |
-| Modals/Sheets | ✅ Radix-based | Good |
-| Badge/Chip | ✅ 6 variants | Good |
-
-### Screen Template Gaps
-
-| Screen | Above-Fold Priority | Gap |
-|--------|---------------------|-----|
-| Landing | Hero + CTA | Missing inline demo above fold |
-| Dashboard (`/app`) | Form or results | Good — form is prominent |
-| Results | Verdict strip | Good after Decision Cockpit redesign |
-| Auth | Split layout (done) | Good |
-| Pricing | Tier cards | Gap between hero and comparison table (noted in audit, fix pending) |
-| Docs Studio | Template picker | Needs skeleton while loading |
-| Shared Report | Full report view | Missing "run your own" CTA |
+Add state `showNextSteps` that activates after celebration closes. Render `NextStepsBar` below `AccuracyTransparentResults`.
 
 ---
 
-## 4. Three UX/UI Solution Concepts
+## Phase 3: Per-Section Error Boundaries
 
-### Concept 1 — "Mission Control" (Current Direction)
+### 3.1 Add Granular Error Boundaries
+**Files:** `AppDashboard.tsx`, `AccuracyTransparentResults.tsx`
 
-**Thesis:** Dense, Bloomberg-style cockpit with all data visible and interactive.
+Wrap `CompactAnalysisForm` and `AccuracyTransparentResults` each in their own `ErrorBoundary` with:
+- Plain-language error message: "Something went wrong loading your results"
+- "Retry" button that resets the boundary
+- "Back to form" fallback link
 
-- Navigation: sidebar with grouped sections (Analysis, Documents, Intelligence, Account)
-- Dashboard: form + results in single view, scenario bar, inline levers
-- Reports: rich multi-step wizard with verdict → levers → risks → actions
-
-**Pros:** Power users love density; feels professional and serious.
-**Cons:** Intimidating for first-time founders; high cognitive load on first visit.
-**Best for:** Advisors, serial founders, analysts who run 5+ simulations/week.
-
-### Concept 2 — "Guided Narrative"
-
-**Thesis:** Each screen tells one story with one question and one action.
-
-- Navigation: minimal top bar with 3 items (Analyze, Reports, Account)
-- Dashboard: single large form with conversational prompts ("Tell us about your business idea…")
-- Reports: scroll-driven narrative — verdict → "here's why" → "here's what to fix" → "share this"
-
-**Pros:** Lowest cognitive load; highest activation rate for new users.
-**Cons:** Power users feel constrained; less data density.
-**Best for:** First-time founders who need hand-holding.
-
-### Concept 3 — "Hybrid: Guided First, Dense After"
-
-**Thesis:** Progressive disclosure — simple on first run, unlocks density as user gains confidence.
-
-- First analysis: guided, conversational, one field at a time
-- After 2+ analyses: switch to Mission Control layout with full sidebar
-- User can toggle between "Simple" and "Expert" modes in settings
-
-**Pros:** Best of both worlds; respects learning curve.
-**Cons:** More code paths to maintain; potential confusion during transition.
-**Best for:** Products targeting both novice and expert users (Quantis's exact situation).
-
-**Recommendation:** Implement Concept 3 incrementally. The current codebase already has `QuickStartWizard` for guided mode and `CompactAnalysisForm` for expert mode. Wire them together with a user preference flag.
+Currently only root-level ErrorBoundary exists.
 
 ---
 
-## 5. Frontend Architecture Audit
+## Phase 4: CompactAnalysisForm Extraction
 
-### Current Stack (Good)
+### 4.1 Split into Sub-Step Components
+**File:** `CompactAnalysisForm.tsx` (640 lines) → 3 new files
 
-- React 18 + Vite + TypeScript + Tailwind CSS
-- Tanstack Query for async state (well-configured: 5min stale, 30min GC, 2 retries)
-- Radix UI primitives via shadcn/ui
-- `next-themes` for dark/light toggle
-- Lazy loading for all non-landing routes (good for FCP)
-- `ErrorBoundary` at root level
-- Web Vitals tracking (`initWebVitals`)
+Extract:
+- `src/components/analysis/steps/IndustryStep.tsx` — industry card selector + idea/location fields
+- `src/components/analysis/steps/FinancialsStep.tsx` — core financial inputs (revenue, costs, CAC, price, customers, investment)
+- `src/components/analysis/steps/AdvancedStep.tsx` — churn, depth selector, file upload, advanced toggles
 
-### Architecture Strengths
-
-- Clean feature-based component organization (`components/analysis/`, `components/landing/`, etc.)
-- Hooks layer (`hooks/`) separates business logic from UI
-- Services layer (`services/`) for API calls and domain logic
-- Edge functions for heavy computation (analyze-business, calculate-financials, ai-consensus)
-
-### Gaps & Fixes
-
-| Area | Issue | Fix |
-|------|-------|-----|
-| **Bundle** | Landing page imports `useAuth` and `useSubscription` eagerly | Tree-shake: move auth check into a wrapper, don't import hooks at module level |
-| **Forms** | `CompactAnalysisForm` is 640 lines | Extract `IndustryStep`, `FinancialsStep`, `AdvancedStep` as sub-components |
-| **State** | `AccuracyTransparentResults` is 531 lines with inline useMemo chains | Extract `useScenarioMetrics` hook |
-| **Error handling** | `ErrorBoundary` exists but no per-section boundaries | Add `ErrorBoundary` around `AccuracyTransparentResults` and `CompactAnalysisForm` |
-| **Prefetching** | No route prefetching on hover | Add `<Link onMouseEnter={() => import('./Page')}>` for top nav links |
-| **Testing** | `__tests__/` and `test/` directories exist | Verify coverage on critical paths: form submission, results rendering, subscription checks |
-
-### Performance Budget
-
-| Metric | Target | Current (estimated) |
-|--------|--------|---------------------|
-| LCP | < 2.5s | ~2.0s (landing not lazy) ✅ |
-| FID | < 100ms | Likely good (no heavy JS on interaction) |
-| CLS | < 0.1 | Risk: lazy sections may cause layout shift |
-| JS Bundle (initial) | < 200KB gzipped | Need to measure; 47 lazy routes is good |
-| TTI | < 3.5s | Risk: QueryClient + auth check on mount |
+Parent `CompactAnalysisForm.tsx` becomes an orchestrator (~150 lines) managing step state and passing props down.
 
 ---
 
-## 6. Backend Architecture Audit
+## Phase 5: Universal Retry Pattern for Analysis Failures
 
-### Domain Model (Current)
+### 5.1 Improve Analysis Error State
+**File:** `AppDashboard.tsx` (lines 347-361 area)
 
-```text
-User (auth.users)
-  ├── Profile (public.profiles)
-  ├── UserRole (public.user_roles)
-  ├── Subscription (Stripe via webhook)
-  ├── Analysis[] (public.analyses)
-  │     ├── Scenario runs
-  │     └── Shared reports (public.shared_reports)
-  ├── Documents[] (public.documents)
-  │     └── DocQueue jobs
-  ├── Invoices[]
-  ├── BrandProfile
-  └── ReferralCode
-  
-Benchmark sets (public.benchmarks)
-Knowledge base entries
-Lead captures
+Current loading/error state is minimal ("Your analysis is being generated..."). Add:
+- If analysis fails: show structured error card with human reason + one-tap retry button
+- If timeout: "We couldn't complete this in time. Here's what we tried — tap to retry."
+- Show partial results if available (e.g., financials computed but AI narrative failed)
+
+---
+
+## Phase 6: Examples as Loadable Templates
+
+### 6.1 "Use as Starting Point" on Example Cards
+**Files:** `ExamplesIndex.tsx`, `ExampleAnalysis.tsx`
+
+Add a "Load this in Quantis" button on each example that:
+- Navigates to `/app`
+- Sets `localStorage` prefill with the example's structured data (idea, location, financial inputs)
+- `AppDashboard` already reads `quantis_prefill` from localStorage (line 149)
+
+This turns examples from static marketing into actionable templates.
+
+---
+
+## Phase 7: Route Prefetching on Hover
+
+### 7.1 Add Preload on Navigation Links
+**Files:** `AppSidebar.tsx`, `Header.tsx` (landing nav)
+
+For top-level nav links, add `onMouseEnter` handlers that trigger dynamic imports:
+```tsx
+onMouseEnter={() => import('../pages/Pricing')}
 ```
 
-### Service Architecture (Edge Functions)
-
-Well-modularized into ~36 edge functions covering:
-- **Core engine:** `analyze-business`, `calculate-financials`, `ai-consensus`, `ai-narrator`
-- **Documents:** `generate-document`, `generate-document-content`, `pdf-generator`, `doc-queue-worker`, `export-document`
-- **Billing:** `create-checkout-session`, `create-portal-session`, `stripe-webhook`
-- **Growth:** `send-welcome-email`, `send-lifecycle-email`, `send-lead-magnet`, `check-churn-signals`, `send-weekly-insights`, `referral-reward`
-- **Admin:** `manage-benchmarks`, `seed-benchmarks`, `manage-knowledge-base`, `health-check`, `warm-functions`
-
-### Gaps & Fixes
-
-| Area | Issue | Fix |
-|------|-------|-----|
-| **Analysis cloning** | No endpoint to duplicate an analysis with modifications | Add `clone-analysis` edge function or client-side prefill from history data |
-| **Comparison** | No side-by-side comparison endpoint | Can be client-side: fetch two analyses and render diff |
-| **Rate limiting** | Client-side `useRateLimit` hook | Good — also enforce server-side in `analyze-business` |
-| **Observability** | `quantis-logger.ts` exists, `health-check` function exists | Add structured logging with request IDs across edge functions |
-| **Warm-up** | `warm-functions` exists | Good — cold starts are mitigated |
-
-### AI Pipeline
-
-- Dual-AI consensus (`ai-consensus`) — strong differentiator
-- `analyze-business` → `calculate-financials` → `ai-narrator` pipeline
-- `safety-evaluation-service.ts` and `quantis-safety-agent.ts` for guardrails
-- `benchmark-governance.ts` for data quality
-
-**No changes needed** — this is well-architected.
+This eliminates perceived latency when users click nav items. Target: `/pricing`, `/examples`, `/how-it-works`, `/blog`.
 
 ---
 
-## 7. Conversion, CTAs & Traffic
+## Phase 8: CLS Guards for Landing Sections
 
-### CTA Map (Current)
+### 8.1 Add min-height Placeholders
+**File:** `Landing.tsx`
 
-| Location | Primary CTA | Secondary |
-|----------|-------------|-----------|
-| Landing hero | "Start Free Analysis →" | "See Example Report →" |
-| Landing pricing | "Start Free" / "Upgrade to Plus" | — |
-| In-app empty state | "Start New Analysis" | — |
-| Results | "Export PDF" (Plus) | "Share Report" |
-| Shared report | None ❌ | — |
-| Blog posts | "Start Free Analysis →" | — |
-
-### Gaps & Fixes
-
-| Gap | Fix |
-|-----|-----|
-| Shared report has no acquisition CTA | Add "Run your own analysis — free" footer |
-| No upgrade value preview on free results | Show locked features with ghosted UI + "Unlock with Plus" |
-| Blog → product path is weak | Add inline "Try this scenario in Quantis" CTAs within relevant blog posts |
-| No referral visibility in-app | Surface referral link on results page: "Share Quantis, get 1 month free" |
-| Pricing page → trial path | Add "Start free, upgrade anytime" messaging; remove friction of choosing tier first |
-
-### In-Product Growth Loops
-
-1. **Share loop:** Analysis → Share link → Recipient sees report → CTA to run own → New user
-2. **Advisor loop:** Founder shares → Advisor reviews → Advisor runs own analyses for other founders
-3. **Content loop:** Blog post about a risk scenario → "Try this in Quantis" → Analysis → Share
-
-**Missing loop:** No "embed this chart" or "widget for your pitch deck" — a future differentiator.
+Each lazy-loaded landing section (`Suspense` boundary) should have a min-height placeholder matching the expected rendered height to prevent layout shift:
+- Hero: `min-h-[600px]`
+- How It Works: `min-h-[500px]`
+- Pricing: `min-h-[400px]`
+- FAQ: `min-h-[300px]`
 
 ---
 
-## 8. Actionable Implementation Plan
+## Files Summary
 
-### Priority 1: Conversion & Activation (Highest ROI)
+| Category | Files | Type |
+|----------|-------|------|
+| New | `NextStepsBar.tsx`, `IndustryStep.tsx`, `FinancialsStep.tsx`, `AdvancedStep.tsx` | Create |
+| Modified | `AppDashboard.tsx` | Next steps bar, error boundaries, retry pattern |
+| Modified | `CompactAnalysisForm.tsx` | Slim down to orchestrator |
+| Modified | `AccuracyTransparentResults.tsx` | Error boundary wrapper |
+| Modified | `ExamplesIndex.tsx`, `ExampleAnalysis.tsx` | "Load in Quantis" button |
+| Modified | `AppSidebar.tsx`, `Header.tsx` | Route prefetching |
+| Modified | `Landing.tsx` | CLS min-height guards |
+| Modified | `MobileHero.tsx`, `HeroVariants.tsx` | CTA text normalization |
 
-| # | Task | Files | Effort |
-|---|------|-------|--------|
-| 1 | Add inline mini-form in landing hero (3 fields → instant preview) | `MobileHero.tsx`, `Landing.tsx` | Medium |
-| 2 | Add "Run your own" CTA on shared report page | `SharedReport.tsx` | Small |
-| 3 | Add "Try with sample data" on empty dashboard state | `AppDashboard.tsx`, `EmptyState` | Small |
-| 4 | Add "Clone" button on history analysis cards | `AnalysisHistory.tsx`, `AppDashboard.tsx` | Small |
-| 5 | Add locked-feature preview on free results (ghosted PDF, locked scenarios) | `AccuracyTransparentResults.tsx` | Medium |
-
-### Priority 2: UX Polish (User Retention)
-
-| # | Task | Files | Effort |
-|---|------|-------|--------|
-| 6 | Extract `CompactAnalysisForm` into 3 sub-step components (< 200 lines each) | `CompactAnalysisForm.tsx` → 3 new files | Medium |
-| 7 | Add "Next steps" sticky bar after first analysis celebration | `FirstAnalysisCelebration.tsx`, new `NextStepsBar.tsx` | Small |
-| 8 | Add per-section `ErrorBoundary` wrappers | `AccuracyTransparentResults.tsx`, `CompactAnalysisForm.tsx` | Small |
-| 9 | Add route prefetching on nav link hover | `AppSidebar.tsx`, `Landing.tsx` nav | Small |
-
-### Priority 3: Backend & Performance
-
-| # | Task | Files | Effort |
-|---|------|-------|--------|
-| 10 | Add structured request-ID logging across edge functions | All edge functions (header injection) | Medium |
-| 11 | Measure and optimize initial JS bundle (target < 200KB gzipped) | Vite config, dynamic imports audit | Medium |
-| 12 | Add CLS guards for lazy-loaded landing sections (min-height placeholders) | `Landing.tsx` section skeletons | Small |
-
----
-
-## 9. Standards Checklists
-
-### UI/UX Checklist (Every New Feature)
-
-- [ ] Clear section heading that answers "What does this tell me?"
-- [ ] Empty state with illustration and action CTA
-- [ ] Loading state (skeleton or spinner, never blank)
-- [ ] Error state with retry button and plain-language message
-- [ ] Mobile responsive (stacks at `md:`, touch targets ≥ 44px)
-- [ ] WCAG contrast ≥ 4.5:1 for text, ≥ 3:1 for large text
-- [ ] `:focus-visible` ring on all interactive elements
-- [ ] `aria-label` on icon-only buttons
-- [ ] Analytics event on primary CTA (`trackCtaClick`)
-- [ ] Consistent with existing design tokens (`--q-*` variables)
-
-### Engineering Checklist (Before Ship)
-
-- [ ] Component < 300 lines (extract if larger)
-- [ ] No inline styles — use Tailwind + CSS variables
-- [ ] Error boundary wraps any async-dependent section
-- [ ] Loading/error states handled for all `useQuery` calls
-- [ ] No `console.log` in production code (use `quantis-logger`)
-- [ ] Edge function: verify_jwt set correctly in `config.toml`
-- [ ] RLS policies reviewed for any new tables
-- [ ] Bundle impact checked (`vite-bundle-analyzer`)
-
-### Product Review Scorecard
-
-| Dimension | Score (1-10) | Notes |
-|-----------|-------------|-------|
-| Clarity of value | **8** | Landing page is strong; in-app could be clearer about "what to do next" |
-| Time-to-value | **7** | 90s analysis is great; but first visit to first result requires 4+ steps |
-| UX flow quality | **7** | Wizard is good; post-results journey is weak (no next-steps guidance) |
-| Visual coherence | **8** | Design tokens are well-established; some pages still use ad-hoc styles |
-| Performance | **8** | Lazy loading, warm functions, optimized QueryClient — solid foundation |
-| Reliability | **7** | Error boundary exists but only at root; edge functions have health checks |
-| Conversion & CTAs | **6** | Good landing CTAs; weak in-app upgrade prompts and zero acquisition from shared reports |
-
-**Overall: 7.3 / 10** — Strong product with excellent engine; primary gap is post-activation conversion and guided next-steps UX.
-
----
-
-## Implementation Recommendation
-
-Start with **Priority 1 items 1–5** (conversion & activation). These are the highest-ROI changes — they directly affect visitor→signup→repeat use rates. Each is a small-to-medium task that doesn't require architectural changes.
-
-Then move to **Priority 2** for code health and user retention polish, followed by **Priority 3** for backend observability and performance hardening.
+## Implementation Order
+1. **Phase 1** (CTA normalization) — quick wins, no risk
+2. **Phase 2** (NextStepsBar) — activation improvement
+3. **Phase 3** (Error boundaries) — resilience
+4. **Phase 4** (Form extraction) — code health, largest effort
+5. **Phase 5** (Retry pattern) — UX polish
+6. **Phase 6** (Examples as templates) — conversion loop
+7. **Phase 7-8** (Prefetching, CLS) — performance polish
 
