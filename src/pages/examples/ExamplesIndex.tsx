@@ -111,8 +111,8 @@ export default function ExamplesIndex() {
                 </div>
               </div>
             </Link>
-
-
+          ))}
+        </div>
 
         {/* CTA */}
         <section className="text-center py-12">
