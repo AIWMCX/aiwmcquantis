@@ -3,7 +3,7 @@ import { escapeFormValues, sanitizePreviewHTML } from '@/lib/htmlSanitizer';
 import { useForm, useFieldArray, Controller } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { Plus, Trash2, Loader2, CheckCircle, FileText, Building2 } from 'lucide-react';
+import { Plus, Trash2, Loader2, CheckCircle, FileText, Building2, Copy, Users, List, Save } from 'lucide-react';
 import { RateIntelligenceBadge } from '@/components/docs/RateIntelligenceBadge';
 import { AutoFillButton } from '@/components/docs/AutoFillButton';
 import { DocDraftBanner } from '@/components/docs/DocDraftBanner';
@@ -122,6 +122,7 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
     restoreDraft,
     dismissDraft,
     clearDraft,
+    saveDraft,
   } = useDocFormDraft({
     form,
     templateId: 'professional-invoice',
@@ -380,10 +381,10 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       </div>
 
       {/* Company Information */}
-      <Card>
+      <Card style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <FileText className="w-5 h-5 text-primary" />
+          <CardTitle className="q-form-label flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-primary" />
             Your Company Information
           </CardTitle>
         </CardHeader>
@@ -417,9 +418,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       </Card>
 
       {/* Client Information */}
-      <Card>
+      <Card style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
         <CardHeader>
-          <CardTitle>Bill To (Client)</CardTitle>
+          <CardTitle className="q-form-label flex items-center gap-2">
+            <Users className="w-5 h-5 text-primary" />
+            Bill To (Client)
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -448,10 +452,13 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       </Card>
 
       {/* Line Items */}
-      <Card>
+      <Card style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle>Line Items</CardTitle>
+            <CardTitle className="q-form-label flex items-center gap-2">
+              <List className="w-5 h-5 text-primary" />
+              Line Items
+            </CardTitle>
             <Button
               type="button"
               variant="outline"
@@ -468,17 +475,31 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
             <div key={field.id} className="p-4 border border-border rounded-lg space-y-3 bg-muted/30">
               <div className="flex items-center justify-between">
                 <Label className="font-medium">Item {index + 1}</Label>
-                {fields.length > 1 && (
+                <div className="flex items-center gap-1">
                   <Button
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => remove(index)}
-                    className="text-destructive hover:text-destructive"
+                    onClick={() => {
+                      const current = form.getValues(`line_items.${index}`);
+                      append({ ...current });
+                    }}
+                    title="Duplicate item"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    <Copy className="w-4 h-4" />
                   </Button>
-                )}
+                  {fields.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => remove(index)}
+                      className="text-destructive hover:text-destructive"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
+                </div>
               </div>
               <Textarea
                 {...form.register(`line_items.${index}.description`)}
@@ -524,25 +545,25 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           ))}
           
           {/* Totals Summary */}
-          <div className="mt-4 p-4 bg-primary/5 rounded-lg border border-primary/20">
+          <div className="mt-4 p-5 rounded-xl sticky bottom-0" style={{ background: 'var(--q-bg-surface-dark)', border: '1px solid var(--q-border-subtle)' }}>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Subtotal:</span>
-                <span className="font-medium">${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="font-medium text-metric-sm">${calculations.subtotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-muted-foreground">Tax ({formValues.tax_rate || 0}%):</span>
-                <span className="font-medium">${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                <span className="font-medium text-metric-sm">${calculations.taxAmount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
               {calculations.discount > 0 && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Discount:</span>
-                  <span className="font-medium text-destructive">-${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                  <span className="font-medium text-metric-sm text-destructive">-${calculations.discount.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                 </div>
               )}
-              <div className="flex justify-between pt-2 border-t border-primary/20">
-                <span className="font-semibold">Total:</span>
-                <span className="font-bold text-lg text-primary">${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <div className="flex justify-between pt-3 mt-2" style={{ borderTop: '1px solid var(--q-border-subtle)' }}>
+                <span className="font-semibold text-base">Total Due:</span>
+                <span className="text-metric-md text-primary">${calculations.total.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
               </div>
             </div>
           </div>
@@ -550,9 +571,12 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       </Card>
 
       {/* Additional Details */}
-      <Card>
+      <Card style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
         <CardHeader>
-          <CardTitle>Additional Details</CardTitle>
+          <CardTitle className="q-form-label flex items-center gap-2">
+            <FileText className="w-5 h-5 text-primary" />
+            Additional Details
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -607,9 +631,9 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
       </Card>
 
       {/* Invoice Number & Date Customization */}
-      <Card>
+      <Card style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
         <CardHeader>
-          <CardTitle>Invoice Details</CardTitle>
+          <CardTitle className="q-form-label">Invoice Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -643,6 +667,33 @@ export function InvoiceForm({ template, onGenerate, onPreviewUpdate, isGeneratin
           </div>
         </CardContent>
       </Card>
+
+      {/* Action Buttons */}
+      <div className="flex items-center justify-end gap-3 pt-2">
+        <Button
+          type="button"
+          variant="outline"
+          onClick={() => saveDraft()}
+          disabled={isGenerating}
+          className="gap-2"
+        >
+          <Save className="w-4 h-4" />
+          Save as Draft
+        </Button>
+        <Button type="submit" disabled={isGenerating} className="gap-2">
+          {isGenerating ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Generating…
+            </>
+          ) : (
+            <>
+              <CheckCircle className="w-4 h-4" />
+              Generate Invoice
+            </>
+          )}
+        </Button>
+      </div>
     </form>
   );
 }

@@ -21,11 +21,12 @@ interface AnalysisProgressProps {
   location?: string;
   isComplete?: boolean;
   className?: string;
+  selectedOutputs?: { biReport: boolean; preMortem: boolean; invoiceCapacity: boolean };
 }
 
-function buildStages(location?: string): AnalysisStage[] {
+function buildStages(location?: string, selectedOutputs?: { biReport: boolean; preMortem: boolean; invoiceCapacity: boolean }): AnalysisStage[] {
   const geoLabel = location ? `Applying ${location} geo calibration` : 'Applying geo calibration';
-  return [
+  const stages: AnalysisStage[] = [
     { id: 'benchmarks', label: 'Loading industry benchmarks...', completedLabel: 'Industry benchmarks loaded', startTime: 0, endTime: 3 },
     { id: 'geo', label: `${geoLabel}...`, completedLabel: `${geoLabel} ✓`, startTime: 3, endTime: 6 },
     { id: 'gpt', label: 'GPT-4o mini analysis in progress...', completedLabel: 'GPT-4o mini analysis complete', startTime: 6, endTime: 14 },
@@ -34,6 +35,16 @@ function buildStages(location?: string): AnalysisStage[] {
     { id: 'reconciliation', label: 'Running reconciliation check...', completedLabel: 'Reconciliation check passed', startTime: 28, endTime: 34 },
     { id: 'stressmap', label: 'Generating Stress Map...', completedLabel: 'Stress Map generated', startTime: 34, endTime: 42 },
   ];
+
+  if (selectedOutputs?.preMortem) {
+    stages.push({ id: 'premortem', label: 'Running pre-mortem failure scenarios...', completedLabel: 'Pre-mortem scenarios generated', startTime: 42, endTime: 50 });
+  }
+  if (selectedOutputs?.invoiceCapacity) {
+    const start = selectedOutputs?.preMortem ? 50 : 42;
+    stages.push({ id: 'invoice', label: 'Checking invoice capacity and credit risk...', completedLabel: 'Invoice capacity check complete', startTime: start, endTime: start + 8 });
+  }
+
+  return stages;
 }
 
 export const AnalysisProgress = React.memo(function AnalysisProgress({
@@ -45,12 +56,13 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   businessType,
   location,
   isComplete = false,
+  selectedOutputs,
 }: AnalysisProgressProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
   const [completionPhase, setCompletionPhase] = useState<'none' | 'filling' | 'checkmarks' | 'done'>('none');
 
-  const stages = useMemo(() => buildStages(location), [location]);
+  const stages = useMemo(() => buildStages(location, selectedOutputs), [location, selectedOutputs]);
 
   useEffect(() => {
     if (!isLoading) {
