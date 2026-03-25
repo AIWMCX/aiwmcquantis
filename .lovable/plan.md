@@ -1,209 +1,170 @@
 
 
-# Quantis "Decision Cockpit" Redesign — Implementation Plan
+# Design Audit v2 + SEO Package v3 — Implementation Plan
 
-## Core Problem
-The results UI has all the right data but presents it as equally-weighted cards on a flat dark background. The fix: compose data into a **narrative** with clear visual hierarchy — one focal answer per screen, supporting evidence underneath.
+## What's Already Done (No Work Needed)
 
----
+**From Design Audit v2 — Phases 1 & 2 already shipped:**
+- WCAG contrast fixes (hero subtitle, sidebar headers, placeholder text, "UNCERTAIN" red, "Save 17%" green, tab inactive text, "Back to Home" link)
+- Emoji → Lucide SVG replacement in industry selector
+- CTA standardization ("Start Free Analysis →" / "See Example Report →")
+- Step indicator colors (blue numbered circles)
+- Global `:focus-visible` outlines
+- Sticky "Run Stress-Test" panel
+- Card height inconsistencies (grid items-stretch)
+- Design token aliases (--bg-primary, --bg-surface, --border-default, --shadow-glow)
+- Button standardization (48px, 15px font, 200ms transition)
+- Input standardization (48px height, 16px padding)
+- Badge 6-variant system
+- Sidebar section headers (12px, all-caps, letter-spacing)
+- `prefers-reduced-motion` support
 
-## Phase A: Results "Decision Scene" Overhaul (highest impact)
-
-### A1. Cinematic Hero Verdict Strip
-**Files:** `ResultsHeroStrip.tsx` (rewrite), `PersistentResultsHeader.tsx` (slim down)
-
-Current: 4 equal KPI cards in a grid. New layout:
-
-```text
-┌──────────────────────────────────────────────────────────┐
-│  [FAST-TRACK 91%]   Mo.12 Profit   Break-even   Runway  │
-│   pill + tagline     −$6.1k         >24 mo       1 mo   │
-│                    ───────────────────────────────────────│
-│   "Not yet investable — fix margin & runway"    [badge]  │
-└──────────────────────────────────────────────────────────┘
-```
-
-- Left: verdict pill 3× current size with one-sentence tagline
-- Center: 2-3 KPIs in **huge** monospace type (3× current `text-lg` → `text-4xl`)
-- Right: color-coded verdict badge
-- Subtle gradient glow on the strip only; everything else stays flat
-- Count-up animation on load (already exists, just needs bigger targets)
-- Add pessimistic–optimistic range below each number: "−$6.1k (likely −8.3k to −4.2k)"
-
-### A2. Narrative Step Sequence
-**File:** `AccuracyTransparentResults.tsx` (restructure steps)
-
-Rename and reorder the 3 wizard steps:
-1. **"Verdict & Risk Intelligence"** → keep but add editorial copy: "This plan burns all your capital in 3 months" instead of "Runway: 3 months"
-2. **"Levers Lab"** (renamed from "Financials & Assumptions") — inputs dominant, chart background, live impact diffs
-3. **"Red Flags & Action Plan"** (renamed from "Risks & Action Plan") — risk ring → top flags → ordered checklist
-
-Update `PersistentResultsHeader.tsx` step labels to match.
-
-### A3. Forecast Bands on Revenue Chart
-**File:** `RevenueChart.tsx`
-
-- Add shaded pessimistic-to-optimistic band (p25–p75 from Monte Carlo) around baseline
-- Ghost line showing previous scenario when switching (crossfade transition)
-- This is the single biggest "beyond spreadsheet" visual signal
-
-### A4. Interpretive Chips on Every KPI
-**Files:** `SimpleMetricCard.tsx`, `PersistentResultsHeader.tsx`
-
-Add a thin descriptor chip below each metric:
-- "Good vs peers" / "Below median" / "Critical"
-- Optional benchmark percentile: "P70 for Denver media businesses"
-- Uses existing benchmark data from `benchmark-calibrator.ts`
+**From SEO Package v3 — Already in place:**
+- Homepage meta tags in `index.html` (title, description, canonical, OG, Twitter)
+- JSON-LD structured data (Organization, SoftwareApplication, WebSite, FAQPage, BreadcrumbList) via `StructuredData.tsx`
+- `robots.txt` with proper allow/disallow rules
+- `sitemap.xml` with all pages and blog posts
+- PageSEO component used on ~15 pages
+- `<noscript>` SEO fallback in `index.html`
 
 ---
 
-## Phase B: Levers Lab (Step 2 Redesign)
+## New Work — Design Audit v2 (Phases 3-6)
 
-### B1. Interactive Slider Controls
-**File:** `InlineAssumptionEditor.tsx` (major rewrite)
+### Phase 3: Component Polish
 
-- Replace text inputs with large, tactile sliders with glow on drag
-- Each slider shows inline impact chip that animates: "CAC $50 → $35: Net profit +$1.2k/mo, Runway +2 months"
-- Group into "Revenue Levers" and "Cost Levers" sections
-- Auto-update Impact Snapshot panel on the right in real-time
+**3.1 Industry Selector Redesign**
+- **File:** `CompactAnalysisForm.tsx`
+- Replace flat button grid with card-style radio buttons: subtle border, SVG icon centered, selected state with blue border + blue bg tint, hover with raised bg
+- Consistent card sizing for short vs long labels
 
-### B2. Impact Snapshot Panel
-**File:** New component `ImpactSnapshot.tsx`
+**3.2 Skeleton Loading States**
+- **Files:** New `src/components/analysis/AnalysisResultsSkeleton.tsx`, update `AccuracyTransparentResults.tsx`
+- Add skeleton screens for: analysis results (3 KPI cards + chart + text blocks), template list, document preview
+- Pulse animation: opacity 0.4–0.8, 1.5s, --bg-surface-raised color
 
-- Sticky right panel showing before/after diff for each change
-- Highlights in green/red what moved and by how much
-- Replace current "Impact Preview" card with this richer version
+**3.3 Hover & Active Interactions**
+- **Files:** `index.css`, `button.tsx`, various card components
+- Buttons: hover translateY(-1px) + lighten 10%, active translateY(0) + darken 5%
+- Cards: hover translateY(-2px) + shadow increase (200ms ease-out)
+- Tab switch: underline slides to active tab (200ms)
 
----
+**3.4 Toast Notification Consistency**
+- **File:** `src/components/ui/sonner.tsx` or toast config
+- Verify 4 variants match audit spec: Success (green left border), Warning (orange), Error (red), Info (blue)
+- Position top-right, 380px max-width, 5s auto-dismiss
 
-## Phase C: Scenario Theatre
+### Phase 4: Responsive & Mobile
 
-### C1. Enhanced Scenario Switcher
-**File:** `ScenarioBar.tsx` (rewrite)
+**4.1 Mobile Analysis Form Layout**
+- **File:** `CompactAnalysisForm.tsx`
+- < 768px: stack main + right panel vertically, "Run Stress-Test" becomes fixed bottom bar
+- < 640px: single column, financial inputs stack to one per row
 
-- Horizontal timeline with icons + short descriptions: "Recession (−15% demand)"
-- On click: ambient accent color shifts (blue→amber for recession, blue→red for worst case)
-- One-sentence story above chart: "Ad surge: demand +40%, CAC −15% for 3 months"
-- Crossfade chart transition (300ms) instead of snap
+**4.2 Template Cards Responsive**
+- **Files:** `TemplatePicker.tsx`, `AnalysisTemplatesGrid.tsx`
+- 3-col → 2-col at 768px → 1-col at 480px
 
----
+**4.3 Touch Targets**
+- **File:** `index.css`
+- Ensure all interactive elements have minimum 44x44px touch target
 
-## Phase D: Assumption Conflict Engine UI
+### Phase 5: Page-Specific Refinements
 
-### D1. Conflict Badge + Drawer
-**Files:** New `AssumptionConflictBadge.tsx`, new `AssumptionConflictDrawer.tsx`
+**5.1 Auth Page Split Layout**
+- **File:** `Auth.tsx`
+- Left side: brand visuals + key stats ("12-variable stress-test", "1,000+ benchmarks", "90 seconds")
+- Right side: auth form (existing)
+- Password requirements as persistent helper text below field (not placeholder)
 
-- Persistent badge in `PersistentResultsHeader.tsx`: "Assumptions: 3 conflicts" with gentle pulse
-- Click opens a sheet/drawer listing each conflict:
-  - "Your marketing budget cannot deliver 300 buyers at CAC $3"
-  - "Churn rate 2% is below SaaS median for your stage"
-- Each conflict has a "Fix" button that scrolls to the relevant lever in Step 2
-- Data sourced from existing `coherence-check.ts` and `validation-layer.ts`
+**5.2 Unified Example/Risk Gallery Cards**
+- **Files:** `ExamplesIndex.tsx`, `RiskGallery.tsx`
+- Shared card component with: left border color by category, consistent badge/chip styling, score display with "Viability" label, risk level badge on risk gallery cards
+- "Browse Scenarios" button: proper filter dropdown or scroll anchor
 
----
+**5.3 Template Detail Polish**
+- **Files:** Template form components
+- Form/preview transition: soften white preview to off-white (#FAFAF8)
+- Consistent section header icons (all --text-secondary, 20px)
+- Required field asterisks: consistent red, after label, 4px spacing
 
-## Phase E: Visual & Typography Polish
+**5.4 Pricing Page Whitespace Fix**
+- **File:** `Pricing.tsx`
+- Reduce gap between hero and comparison table
+- Emphasize Quantis row in comparison table (blue bg tint)
 
-### E1. Type System Upgrade
-**File:** `index.css`, `tailwind.config.ts`
+**5.5 Brand Name Standardization**
+- **Files:** Multiple components
+- Full brand: "AIWMC Quantis" in headers, legal, meta
+- Short form: "Quantis" in body copy
+- Remove "AIWMC™ Quantis" (trademark only in legal docs)
 
-- Primary KPIs: `text-4xl font-bold font-mono` (currently `text-lg`)
-- Section headings: `text-2xl font-semibold` with more whitespace above
-- Add `--q-font-display` token for verdict/headline numbers (Sora bold or existing)
-- Increase vertical rhythm: 48px between major sections (currently ~20-24px)
+### Phase 6: Advanced
 
-### E2. Semantic Status Tokens
-**File:** `index.css`
+**6.1 ARIA Roles for Custom Components**
+- **Files:** `StressMap.tsx`, `CompactAnalysisForm.tsx`, gauge components
+- Add `role="meter"` with `aria-valuenow/min/max` to gauges
+- Add `aria-label` to all icon-only buttons
+- Arrow-key navigation for industry selector and analysis depth radio groups
 
-Define and enforce 4 status tokens everywhere:
-- `--q-verdict-good` (green) / `--q-verdict-watch` (amber) / `--q-verdict-bad` (red) / `--q-verdict-neutral` (gray)
-- Apply to: risk ring segments, flag badges, action priorities, metric cards, verdict strip
-
-### E3. Focal Glow System
-**File:** `index.css`
-
-- Hero verdict strip and main chart get subtle `box-shadow` glow + inner gradient
-- All other cards stay flat — creates natural visual hierarchy
-- `.q-focal-glow` utility class for reuse
-
-### E4. Risk Language Standardization
-**Files:** `StressMap.tsx`, `AccuracyTransparentResults.tsx`
-
-- "Elevated 66" → "Risk 66/100: Elevated — margin & runway"
-- Interpretation inline with number, not in a separate module
-- Stress ring segments clickable → scrolls to corresponding card
-
----
-
-## Phase F: Sidebar & Copy Cleanup
-
-### F1. Navigation Simplification
-**File:** `AppSidebar.tsx`
-
-- Merge "Dashboard" and "New Analysis" into one: Dashboard with "Start New Analysis" CTA
-- "Benchmarks, Scenarios, Progress" already grouped under "INTELLIGENCE" ✓
-- Remove text labels in collapsed mode; use hover tooltips only
-- Lock icon on auth-gated items for anonymous users
-
-### F2. Editorial Copy Pass
-**Files:** Multiple components
-
-Rename throughout the app:
-- "Financial Analysis (Universal Framework)" → "Unit Economics Reality Check"
-- "Risk Flags" → "Red Flags Blocking Investment"
-- "Analysis Quality 0/100 – Uncertain" → "Confidence 0/100 – Need more input"
-- "Assumption Overrides" → "Adjust Your Levers"
-- Section headers become questions: "What kills this plan?" instead of "Risk Assessment"
+**6.2 Keyboard Shortcuts**
+- **File:** New `src/hooks/useKeyboardShortcuts.ts`
+- Cmd+K: search/command palette
+- Navigation shortcuts for sidebar items
 
 ---
 
-## Phase G: Motion & Micro-interactions
+## New Work — SEO Package v3
 
-### G1. Results Load Sequence
-**File:** `AccuracyTransparentResults.tsx`, `index.css`
+### S1. Update Page-Level Meta Tags
+Most pages already have PageSEO. Updates needed:
 
-- 600ms staggered entry: verdict strip fades in (0ms) → KPI numbers count up (200ms) → stress ring arcs animate (400ms) → cards fade in (600ms)
-- Uses existing `animate-fade-in` + new `q-metric-reveal` keyframes
+| Page | Current Title | New Title (from v3 package) |
+|------|--------------|----------------------------|
+| Homepage | Already correct | No change |
+| Blog | "Startup Validation Blog — AIWMC Quantis Insights" | Already correct |
+| Methodology | Needs check | "Quantis Methodology — Deterministic Financial Engine" |
 
-### G2. Rich Tooltips
-**Files:** Various metric components
+- **File:** `Landing.tsx` — Add `<PageSEO>` component (currently missing, relies on `index.html` static tags which is fine for homepage)
+- **Files:** Update descriptions on Blog, Methodology pages to match v3 package exact wording
 
-- On hover over any KPI: tooltip explains "why" in plain English
-- Example: "Runway 1 month because monthly loss is $6,070 vs cash $10,000"
-- Uses existing Radix Tooltip infrastructure
+### S2. Canonical Tags on All Pages
+- **File:** `PageSEO.tsx` — Already handles canonical. Verify all pages pass `canonical` prop correctly.
+
+### S3. Update SoftwareApplication Schema
+- **File:** `StructuredData.tsx`
+- Add missing fields from v3: `browserRequirements`, `screenshot` URL, `softwareVersion: "2.0"`, expanded `featureList` (12 items — already has 12, verify match), `availability` on offers
+- Explicitly exclude `aggregateRating` (fabricated data)
+
+### S4. Update FAQPage Schema
+- **File:** Landing page FAQ section or `StructuredData.tsx`
+- Add the 10 FAQ items from v3 package (currently has fewer)
+- Verify FAQ content matches what's displayed on the page
+
+### S5. Blog Post Article Schema
+- **File:** `BlogArticle.tsx`
+- Add Article JSON-LD schema per blog post using PageSEO's `jsonLd` prop
+- Include: headline, description, datePublished, dateModified, author (Organization), keywords
 
 ---
 
 ## Files Summary
 
-| New Files | Purpose |
-|-----------|---------|
-| `ImpactSnapshot.tsx` | Before/after diff panel for Levers Lab |
-| `AssumptionConflictBadge.tsx` | Persistent conflict count badge |
-| `AssumptionConflictDrawer.tsx` | Conflict detail sheet |
-
-| Modified Files | Changes |
-|----------------|---------|
-| `ResultsHeroStrip.tsx` | Cinematic verdict strip with huge KPIs and ranges |
-| `PersistentResultsHeader.tsx` | Slim down, add conflict badge, rename step labels |
-| `AccuracyTransparentResults.tsx` | Narrative reorder, editorial copy, load sequence |
-| `SimpleMetricCard.tsx` | Add interpretive chips + benchmark percentiles |
-| `InlineAssumptionEditor.tsx` | Tactile sliders with live impact chips |
-| `ScenarioBar.tsx` | Timeline layout, ambient color shifts, crossfade |
-| `RevenueChart.tsx` | Forecast bands + ghost lines |
-| `StressMap.tsx` | Clickable segments, inline risk interpretation |
-| `AppSidebar.tsx` | Merge nav items, lock icons |
-| `index.css` | Type tokens, glow system, status tokens, load animations |
-| `tailwind.config.ts` | Display font token, animation keyframes |
+| Category | Files | Change Type |
+|----------|-------|-------------|
+| New | `AnalysisResultsSkeleton.tsx`, `useKeyboardShortcuts.ts` | Create |
+| CSS | `index.css` | Update (hover/active specs, touch targets) |
+| UI | `button.tsx`, `sonner.tsx` | Update (hover states, toast variants) |
+| Analysis | `CompactAnalysisForm.tsx`, `AccuracyTransparentResults.tsx`, `StressMap.tsx` | Update |
+| Pages | `Auth.tsx`, `Pricing.tsx`, `RiskGallery.tsx`, `Landing.tsx`, `BlogArticle.tsx` | Update |
+| Examples | `ExamplesIndex.tsx` | Update |
+| SEO | `StructuredData.tsx`, `PageSEO.tsx`, `Methodology.tsx` | Update |
+| Templates | `TemplatePicker.tsx`, template form components | Update |
 
 ## Implementation Order
-1. **Phase A** (Results hero + narrative) — biggest visual impact
-2. **Phase E** (Typography + status tokens) — underpins everything
-3. **Phase B** (Levers Lab) — key interaction upgrade
-4. **Phase C** (Scenario Theatre) — differentiator
-5. **Phase D** (Conflict engine UI) — unique vs competitors
-6. **Phase F** (Sidebar + copy) — polish
-7. **Phase G** (Motion) — final layer
-
-Phases A+E can ship together as one batch. Each subsequent phase builds on but doesn't block the previous.
+1. **Phase 3** (Component polish — skeleton, hover, industry cards)
+2. **Phase 4** (Mobile responsive)
+3. **SEO S1-S5** (Meta tags, schema updates)
+4. **Phase 5** (Auth split, card unification, pricing fix, brand cleanup)
+5. **Phase 6** (ARIA, keyboard shortcuts)
 
