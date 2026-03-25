@@ -21,6 +21,8 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { NextStepsBar } from '@/components/analysis/NextStepsBar';
+import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -35,6 +37,7 @@ export default function Index() {
   const formRef = useRef<HTMLDivElement>(null);
   const resultsRef = useRef<HTMLDivElement>(null);
   const [showScrollBanner, setShowScrollBanner] = useState(false);
+  const [showNextSteps, setShowNextSteps] = useState(false);
   const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
