@@ -1,151 +1,149 @@
 
 
-# AIWMC Quantis — Stabilization & Hardening Plan
+# AIWMC Quantis — Premium Intake Dashboard + Invoicing + Font Visibility Overhaul
 
-## Context
-
-The user pasted a thorough product/UX/architecture audit rating Quantis at ~6.5–7/10. Many items are **already implemented** (design tokens, skeleton states, error boundaries, lazy loading, structured logging, etc.). This plan focuses only on the **net-new work** that remains unaddressed.
-
----
-
-## Already Done (No Work Needed)
-
-These audit recommendations are already shipped:
-- Design tokens and semantic color system (`--q-*` variables)
-- Component standardization (buttons 48px, inputs, badges, toasts)
-- Skeleton loading states (`AnalysisResultsSkeleton`, `DashboardSkeleton`)
-- Lazy loading for all routes except Landing
-- ErrorBoundary at root
-- Web Vitals tracking
-- `prefers-reduced-motion` support
-- Sample data prefill ("Try with sample data" on EmptyState)
-- Clone button on history cards
-- Shared report CTA ("Want to analyze your own business idea?")
-- Rate limit banners + anonymous usage tracking
-- QuickStartWizard + FirstAnalysisCelebration onboarding
-- LockedFeaturePreview for free users
-- LiveCounter component
-- ARIA roles on StressMap, keyboard shortcuts hook
-- Toast 4-variant system
-- Canonical intake flow with stepper + progress
+## Problem Summary
+The intake dashboard works but feels like a functional form, not a $30k SaaS instrument panel. Text is too small and muted ("blind minimalism"). The invoice system exists but is disconnected from the analysis flow. Users need to see value immediately to start paying.
 
 ---
 
-## Phase 1: Navigation & IA Stabilization
+## Phase 1: Typography & Visibility Overhaul (Global)
 
-### 1.1 Force One Canonical CTA Path
-**File:** `MobileHero.tsx`, `HeroVariants.tsx`, `Header.tsx`, landing section CTAs
+**Files:** `src/index.css`, `src/components/analysis/steps/*.tsx`, `src/components/analysis/CompactAnalysisForm.tsx`
 
-All CTAs ("Try free", "Start now", "Verify your business", "Start Free Analysis") currently route to `/app`. Audit all landing components and unify to exactly two CTA labels:
-- Primary: `"Start Free Analysis →"` → `/app`
-- Secondary: `"See Example Report →"` → `/examples/coffee-shop-denver`
+Current font sizes are systematically too small: labels at 10-11px, hints at 9-10px, field values at 13px. This makes the entire form feel like fine print.
 
-Scan for any stray CTA text and normalize.
+**Changes:**
+- Bump all label sizes: `11px → 13px`, helper text: `10px → 12px`, field values: `16px → 18px`
+- Increase section header sizes: step titles from `11px → 14px`
+- Page title "Stress-test your business idea" from `22px → 28px` on mobile, `26px → 34px` on desktop
+- Live Estimate metric values from `13px → 16px`, labels from `11px → 13px`
+- Confidence ring score from `text-xl → text-2xl`
+- Industry card labels from `11px → 13px`
+- "You'll receive" strip items from `11-12px → 13px`
+- All placeholder text from current to 1px larger with higher contrast color
+- Update `--q-text-tertiary` in light mode from `#64748B → #475569` for better readability
+- Add a new CSS utility `.q-label` (13px, 600 weight, tracking) and `.q-hint` (12px, secondary color) to standardize
 
-### 1.2 App Shell Navigation Cleanup
+## Phase 2: Intake Dashboard Premium Upgrade
+
+### 2.1 Top Breadcrumb Bar
+**File:** `CompactAnalysisForm.tsx`
+
+Add a slim contextual bar above the title:
+- Left: Logo icon + "AIWMC Quantis" wordmark (small)
+- Center: Breadcrumb "New Analysis ▸ Inputs"
+- Right: "Model v2.0 · Last updated Mar 2026" label
+
+### 2.2 Industry Cards Enhancement
+**File:** `IndustryStep.tsx`
+
+- Increase card min-height from `60px → 72px`
+- Add subtle sublabels: "Brick & mortar" under Coffee Shop, "Digital product" under SaaS, etc.
+- Add "Popular" badge on Coffee Shop and SaaS (most selected)
+- Increase icon size from `w-5 h-5 → w-6 h-6`
+
+### 2.3 Financial Fields with Smart Advisor Hints
+**File:** `FinancialField.tsx`
+
+- On focus, show a "typical range" chip below the field: "Most SaaS here: $29–$299"
+- Increase benchmark bar height from `3px → 5px` for visibility
+- Add monospace font enforcement on all numeric inputs (already using JetBrains Mono, just bump size)
+
+### 2.4 Analysis Depth Selector Premium Feel
+**File:** `FinancialsStep.tsx`
+
+- Add "Recommended" badge on "Full" option
+- Add sliding highlight animation when switching (CSS transition on background position)
+- Show tooltip-style detail on hover: "Full includes: P&L projection, Stress Map, Break-even analysis, Benchmark percentiles"
+
+### 2.5 Confidence Sidebar Enhancement
+**File:** `ConfidenceSidebar.tsx`
+
+- Increase gauge size from `72/88px → 96/112px`
+- Add glassmorphism effect (backdrop-blur + slight transparency) to the sidebar cards
+- Replace checklist circles with icon+text status: checkmark icon for done, warning icon for missing required, info icon for optional
+- Add explanatory line: "Accuracy improves as you fill more fields. We never fabricate numbers."
+- Add "Details" link on Live Estimate that hints at a future drawer
+
+### 2.6 Submit Button & Bottom Strip
+**File:** `ConfidenceSidebar.tsx`, `CompactAnalysisForm.tsx`
+
+- Add microcopy under CTA: "No card required · ~90 seconds"
+- Make "You'll receive" strip items into hoverable pill-badges with tooltips explaining each deliverable
+- Replace emoji icons in the strip with Lucide icons for consistency
+
+### 2.7 Three-Zone Visual Separation
+**File:** `CompactAnalysisForm.tsx`, `index.css`
+
+- Left panel (Step 1): keep current surface color
+- Center panel (Step 2): slightly brighter surface (+2% lightness)
+- Right sidebar: slightly darker surface (−2% lightness) to create "instrument panel" feel
+- Add new CSS variables: `--q-bg-surface-bright`, `--q-bg-surface-dark`
+
+## Phase 3: Multi-Output Intake ("What Do You Want?")
+
+### 3.1 Output Selector Checkboxes
+**File:** `CompactAnalysisForm.tsx`
+
+Add a row between the form and the "You'll receive" strip:
+- Three checkbox pills: "BI Report" (default on), "Pre-Mortem Analysis", "Invoice Capacity Check"
+- When "Invoice Capacity Check" is selected, show a small inline note: "We'll assess if this business model supports your invoice volume and margins"
+- Pass selected outputs through to the submit handler
+
+### 3.2 Update "You'll receive" Strip Dynamically
+**File:** `CompactAnalysisForm.tsx`
+
+The deliverables strip updates based on selected outputs:
+- BI Report: P&L, Stress Map, Break-even, Benchmarks
+- Pre-Mortem: Failure scenarios, Risk flags, Mitigation plan
+- Invoice Check: Credit capacity, Margin health, Payment risk
+
+## Phase 4: Invoice Manager Redesign
+
+### 4.1 Wrap in AppLayout
+**File:** `InvoiceManager.tsx`
+
+Currently renders without the sidebar/app shell. Wrap in `AppLayout` so it feels part of the product, not a standalone page.
+
+### 4.2 Summary Dashboard Cards
+**File:** `InvoiceManager.tsx`
+
+Add KPI cards above the invoice list:
+- Total Outstanding (sum of sent + overdue)
+- Paid This Month
+- Overdue Count (red if > 0)
+- Average Days to Payment
+
+### 4.3 Enhanced Invoice Cards
+**File:** `InvoiceManager.tsx`
+
+- Add payment terms display
+- Add days overdue indicator (red badge with "12 days overdue")
+- Add quick-action buttons inline (not just dropdown): "Mark Paid" as primary action
+- Add client avatar placeholder (initials circle)
+
+### 4.4 Connect Invoices to Analysis
+**File:** `InvoiceManager.tsx`
+
+- If invoice has `analysis_ref_id`, show a link: "View analysis →"
+- Add a banner: "Your analysis predicted $28k/mo revenue. You've invoiced $12.4k this month — 44% of projection."
+- This creates the closed loop between model and reality
+
+## Phase 5: Invoice Form Polish
+**File:** `InvoiceForm.tsx`
+
+- Add section grouping with visual dividers: "Your Company", "Client", "Line Items", "Terms"
+- Improve line item UX: drag-to-reorder, duplicate row button
+- Add running total that updates live (already exists but make more prominent)
+- Add "Save as Draft" alongside "Generate" button
+
+## Phase 6: Sidebar Integration
 **File:** `AppSidebar.tsx`
 
-- Remove duplicate/confusing nav entries
-- Ensure collapsed mode uses icon-only + tooltip (no text labels)
-- Add "Do this next" context: if no analyses exist, highlight "New Analysis" with a subtle pulse
-
----
-
-## Phase 2: Post-Results "Next Steps" Bar
-
-### 2.1 Create NextStepsBar Component
-**File:** New `src/components/analysis/NextStepsBar.tsx`
-
-After `FirstAnalysisCelebration` dismisses, show a sticky bar at the bottom of results:
-- "Share with your co-founder" → triggers share flow
-- "Export as PDF" → triggers PDF export (or upgrade prompt if free)
-- "Run another idea" → resets form
-
-### 2.2 Wire into AppDashboard
-**File:** `AppDashboard.tsx`
-
-Add state `showNextSteps` that activates after celebration closes. Render `NextStepsBar` below `AccuracyTransparentResults`.
-
----
-
-## Phase 3: Per-Section Error Boundaries
-
-### 3.1 Add Granular Error Boundaries
-**Files:** `AppDashboard.tsx`, `AccuracyTransparentResults.tsx`
-
-Wrap `CompactAnalysisForm` and `AccuracyTransparentResults` each in their own `ErrorBoundary` with:
-- Plain-language error message: "Something went wrong loading your results"
-- "Retry" button that resets the boundary
-- "Back to form" fallback link
-
-Currently only root-level ErrorBoundary exists.
-
----
-
-## Phase 4: CompactAnalysisForm Extraction
-
-### 4.1 Split into Sub-Step Components
-**File:** `CompactAnalysisForm.tsx` (640 lines) → 3 new files
-
-Extract:
-- `src/components/analysis/steps/IndustryStep.tsx` — industry card selector + idea/location fields
-- `src/components/analysis/steps/FinancialsStep.tsx` — core financial inputs (revenue, costs, CAC, price, customers, investment)
-- `src/components/analysis/steps/AdvancedStep.tsx` — churn, depth selector, file upload, advanced toggles
-
-Parent `CompactAnalysisForm.tsx` becomes an orchestrator (~150 lines) managing step state and passing props down.
-
----
-
-## Phase 5: Universal Retry Pattern for Analysis Failures
-
-### 5.1 Improve Analysis Error State
-**File:** `AppDashboard.tsx` (lines 347-361 area)
-
-Current loading/error state is minimal ("Your analysis is being generated..."). Add:
-- If analysis fails: show structured error card with human reason + one-tap retry button
-- If timeout: "We couldn't complete this in time. Here's what we tried — tap to retry."
-- Show partial results if available (e.g., financials computed but AI narrative failed)
-
----
-
-## Phase 6: Examples as Loadable Templates
-
-### 6.1 "Use as Starting Point" on Example Cards
-**Files:** `ExamplesIndex.tsx`, `ExampleAnalysis.tsx`
-
-Add a "Load this in Quantis" button on each example that:
-- Navigates to `/app`
-- Sets `localStorage` prefill with the example's structured data (idea, location, financial inputs)
-- `AppDashboard` already reads `quantis_prefill` from localStorage (line 149)
-
-This turns examples from static marketing into actionable templates.
-
----
-
-## Phase 7: Route Prefetching on Hover
-
-### 7.1 Add Preload on Navigation Links
-**Files:** `AppSidebar.tsx`, `Header.tsx` (landing nav)
-
-For top-level nav links, add `onMouseEnter` handlers that trigger dynamic imports:
-```tsx
-onMouseEnter={() => import('../pages/Pricing')}
-```
-
-This eliminates perceived latency when users click nav items. Target: `/pricing`, `/examples`, `/how-it-works`, `/blog`.
-
----
-
-## Phase 8: CLS Guards for Landing Sections
-
-### 8.1 Add min-height Placeholders
-**File:** `Landing.tsx`
-
-Each lazy-loaded landing section (`Suspense` boundary) should have a min-height placeholder matching the expected rendered height to prevent layout shift:
-- Hero: `min-h-[600px]`
-- How It Works: `min-h-[500px]`
-- Pricing: `min-h-[400px]`
-- FAQ: `min-h-[300px]`
+- Move "Invoice Creator" into a new "BILLING" section group
+- Add "Invoice Manager" as a separate nav item below it
+- Add badge showing overdue invoice count on the nav item
 
 ---
 
@@ -153,21 +151,18 @@ Each lazy-loaded landing section (`Suspense` boundary) should have a min-height 
 
 | Category | Files | Type |
 |----------|-------|------|
-| New | `NextStepsBar.tsx`, `IndustryStep.tsx`, `FinancialsStep.tsx`, `AdvancedStep.tsx` | Create |
-| Modified | `AppDashboard.tsx` | Next steps bar, error boundaries, retry pattern |
-| Modified | `CompactAnalysisForm.tsx` | Slim down to orchestrator |
-| Modified | `AccuracyTransparentResults.tsx` | Error boundary wrapper |
-| Modified | `ExamplesIndex.tsx`, `ExampleAnalysis.tsx` | "Load in Quantis" button |
-| Modified | `AppSidebar.tsx`, `Header.tsx` | Route prefetching |
-| Modified | `Landing.tsx` | CLS min-height guards |
-| Modified | `MobileHero.tsx`, `HeroVariants.tsx` | CTA text normalization |
+| Global CSS | `index.css` | Update (font sizes, new surface variables, utilities) |
+| Form Steps | `IndustryStep.tsx`, `FinancialsStep.tsx`, `FinancialField.tsx`, `ConfidenceSidebar.tsx` | Update (sizes, hints, badges, glassmorphism) |
+| Orchestrator | `CompactAnalysisForm.tsx` | Update (breadcrumb, output selector, strip icons, zone colors) |
+| Invoice | `InvoiceManager.tsx` | Update (AppLayout, KPI cards, enhanced cards, analysis link) |
+| Invoice Form | `InvoiceForm.tsx` | Update (section grouping, draft save) |
+| Sidebar | `AppSidebar.tsx` | Update (billing section, badge) |
 
 ## Implementation Order
-1. **Phase 1** (CTA normalization) — quick wins, no risk
-2. **Phase 2** (NextStepsBar) — activation improvement
-3. **Phase 3** (Error boundaries) — resilience
-4. **Phase 4** (Form extraction) — code health, largest effort
-5. **Phase 5** (Retry pattern) — UX polish
-6. **Phase 6** (Examples as templates) — conversion loop
-7. **Phase 7-8** (Prefetching, CLS) — performance polish
+1. **Phase 1** — Typography/visibility (fixes the "blind minimalism" complaint immediately)
+2. **Phase 2** — Intake premium feel (biggest visual upgrade)
+3. **Phase 4** — Invoice Manager redesign (connects invoicing to the product)
+4. **Phase 3** — Multi-output selector (new capability)
+5. **Phase 5** — Invoice form polish
+6. **Phase 6** — Sidebar integration
 
