@@ -88,6 +88,11 @@ export function Footer() {
             </a>
           </div>
           
+          {/* Governance */}
+          <p className="text-xs text-muted-foreground text-center max-w-2xl mx-auto leading-relaxed">
+            Quantis is decision support, not investment advice. Always combine with human judgment.
+          </p>
+
           {/* Bottom Row: Copyright + Compliance + Audit Badge */}
           <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-4">
             <p className="text-xs text-muted-foreground">
