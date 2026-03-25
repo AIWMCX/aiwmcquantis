@@ -1,6 +1,8 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useInvoices, useUpdateInvoiceStatus, type InvoiceStatus } from '@/hooks/useInvoices';
+import { useQuery } from '@tanstack/react-query';
+import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -139,6 +141,9 @@ export default function InvoiceManager() {
           })}
         </div>
 
+        {/* Analysis Cross-Link Banner */}
+        <AnalysisBanner invoices={invoices} userId={user.id} />
+
         {/* Status Tabs */}
         <Tabs value={statusFilter} onValueChange={(v) => setStatusFilter(v as InvoiceStatus | 'all')} className="mb-6">
           <TabsList>
@@ -273,5 +278,51 @@ export default function InvoiceManager() {
         )}
       </div>
     </AppLayout>
+  );
+}
+
+function AnalysisBanner({ invoices, userId }: { invoices: any[] | undefined; userId: string }) {
+  const { data: latestAnalysis } = useQuery({
+    queryKey: ['latest-analysis-revenue', userId],
+    queryFn: async () => {
+      const { data } = await supabase
+        .from('analyses')
+        .select('result, monthly_profit')
+        .eq('user_id', userId)
+        .order('created_at', { ascending: false })
+        .limit(1)
+        .single();
+      if (!data?.result) return null;
+      const result = data.result as Record<string, any>;
+      const projected = result?.monthlyRevenue || result?.monthly_revenue || result?.financials?.monthlyRevenue || 0;
+      return projected as number;
+    },
+    enabled: !!userId,
+  });
+
+  const invoicedThisMonth = useMemo(() => {
+    if (!invoices?.length) return 0;
+    const now = new Date();
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
+    return invoices
+      .filter(inv => new Date(inv.issue_date) >= monthStart && inv.status !== 'cancelled')
+      .reduce((sum, inv) => sum + Number(inv.total_amount), 0);
+  }, [invoices]);
+
+  if (!latestAnalysis || latestAnalysis <= 0 || !invoices?.length) return null;
+
+  const pct = Math.round((invoicedThisMonth / latestAnalysis) * 100);
+
+  return (
+    <div className="mb-6 rounded-xl p-4 flex items-center gap-3" style={{ background: 'var(--q-accent-glow)', border: '1px solid var(--q-border-subtle)' }}>
+      <TrendingUp className="w-5 h-5 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
+      <p className="text-sm" style={{ color: 'var(--q-text-secondary)' }}>
+        Your analysis projected{' '}
+        <span className="font-bold text-metric-sm" style={{ color: 'var(--q-text-primary)' }}>${latestAnalysis.toLocaleString()}/mo</span>{' '}
+        revenue. You've invoiced{' '}
+        <span className="font-bold text-metric-sm" style={{ color: 'var(--q-text-primary)' }}>${invoicedThisMonth.toLocaleString()}</span>{' '}
+        this month — <span className="font-bold" style={{ color: pct >= 80 ? 'var(--q-status-green)' : pct >= 40 ? 'var(--q-status-yellow)' : 'var(--q-status-red)' }}>{pct}%</span> of projection.
+      </p>
+    </div>
   );
 }
