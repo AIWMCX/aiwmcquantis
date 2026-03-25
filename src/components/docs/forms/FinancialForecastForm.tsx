@@ -139,39 +139,39 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
     const formatCurrency = (n: number) => `$${n.toLocaleString('en-US')}`;
     
     const rawHTML = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
         <!-- Header -->
         <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #2563eb;">
-          <h1 style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 0;">Financial Forecast</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 700; color: #2563eb; margin: 0; letter-spacing: -0.02em;">Financial Forecast</h1>
           <p style="font-size: 16px; color: #6b7280; margin: 8px 0 0 0;">${safeValues.company_name || 'Company'} • ${safeValues.forecast_period || 'Period'}</p>
         </div>
 
         <!-- Current State -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Current State</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Current State</h2>
           <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Monthly Revenue</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${formatCurrency(formValues.current_mrr)}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_mrr)}</p>
             </div>
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Customers</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${safeValues.current_customers}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.current_customers}</p>
             </div>
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">ARPU</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${formatCurrency(formValues.current_arpu)}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_arpu)}</p>
             </div>
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">Churn Rate</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${safeValues.current_churn_rate}%</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.current_churn_rate}%</p>
             </div>
           </div>
         </section>
 
         <!-- 3-Scenario Projections -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Revenue Projections (3 Scenarios)</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Revenue Projections (3 Scenarios)</h2>
           <table style="width: 100%; border-collapse: collapse;">
             <thead>
               <tr style="background: #374151; color: white;">
@@ -210,7 +210,7 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Assumptions -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Key Assumptions</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Key Assumptions</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
               <tr style="background: #f9fafb;">
@@ -245,38 +245,38 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
 
         <!-- Cost Structure -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Cost Structure</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Cost Structure</h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #92400e; margin: 0;">Fixed Costs (Monthly)</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0;">${formatCurrency(formValues.fixed_costs_monthly)}</p>
+              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.fixed_costs_monthly)}</p>
             </div>
             <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #92400e; margin: 0;">Variable Costs</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0;">${safeValues.variable_cost_percent}%</p>
+              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.variable_cost_percent}%</p>
             </div>
             <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #92400e; margin: 0;">Sales & Marketing</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0;">${safeValues.sales_marketing_percent}%</p>
+              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.sales_marketing_percent}%</p>
             </div>
           </div>
         </section>
 
         <!-- Target Metrics -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Target Metrics</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Target Metrics</h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
             <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #065f46; margin: 0;">LTV Target</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0;">${formatCurrency(formValues.ltv_target)}</p>
+              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.ltv_target)}</p>
             </div>
             <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #065f46; margin: 0;">Payback Period</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0;">${safeValues.payback_months_target} mo</p>
+              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.payback_months_target} mo</p>
             </div>
             <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #065f46; margin: 0;">Gross Margin</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0;">${safeValues.gross_margin_target}%</p>
+              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.gross_margin_target}%</p>
             </div>
           </div>
         </section>

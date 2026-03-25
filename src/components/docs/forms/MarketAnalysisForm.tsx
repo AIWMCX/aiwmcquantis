@@ -143,10 +143,10 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
     }[d.competition_level];
     
     const html = `
-      <div style="font-family: 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a;">
         <div style="margin-bottom: 40px; border-bottom: 4px solid #3B82F6; padding-bottom: 20px;">
-          <p style="color: #64748B; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px;">Market Analysis Report</p>
-          <h1 style="font-size: 32px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700;">${d.market_name || '[Market Name]'}</h1>
+          <p style="color: #64748B; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Market Analysis Report</p>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 32px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700; letter-spacing: -0.02em;">${d.market_name || '[Market Name]'}</h1>
           <p style="color: #64748B; margin: 0; font-size: 14px;">
             Prepared for <strong>${d.company_name || '[Company]'}</strong> • ${d.report_date || new Date().toLocaleDateString()}
             ${d.prepared_by ? ` • By ${d.prepared_by}` : ''}
@@ -154,7 +154,7 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </div>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
             Market Overview
           </h2>
           <div style="padding: 20px; background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border-radius: 12px; border-left: 4px solid #3B82F6;">
@@ -167,23 +167,23 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
             Market Size (${d.market_size_year || 'Current'})
           </h2>
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
             <div style="padding: 24px; background: #EFF6FF; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #3B82F6; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">TAM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #1E40AF;">${formatCurrency(d.tam_value)}</p>
+              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #1E40AF; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.tam_value)}</p>
               <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Total Addressable Market</p>
             </div>
             <div style="padding: 24px; background: #F0FDF4; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #10B981; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">SAM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #166534;">${formatCurrency(d.sam_value)}</p>
+              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #166534; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.sam_value)}</p>
               <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Serviceable Addressable Market</p>
             </div>
             <div style="padding: 24px; background: #FEF3C7; border-radius: 12px; text-align: center;">
               <p style="font-size: 12px; color: #F59E0B; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">SOM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #92400E;">${formatCurrency(d.som_value)}</p>
+              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #92400E; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.som_value)}</p>
               <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Serviceable Obtainable Market</p>
             </div>
           </div>
@@ -194,7 +194,7 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
             Target Customer
           </h2>
           <div style="padding: 20px; background: #F8FAFC; border-radius: 12px; border-left: 4px solid #10B981;">
@@ -209,7 +209,7 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
             Competitive Landscape
           </h2>
           <div style="padding: 16px 20px; background: #F8FAFC; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
@@ -228,7 +228,7 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
         </section>
         
         <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
             Market Trends
           </h2>
           <p style="line-height: 1.8; color: #334155;">${d.market_trends || '[Describe market trends]'}</p>

@@ -130,10 +130,10 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
     const safeValues = escapeFormValues(formValues);
     
     const rawHTML = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
         <!-- Header -->
         <div style="text-align: center; padding: 24px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border-radius: 12px; margin-bottom: 24px;">
-          <h1 style="font-size: 28px; font-weight: 700; margin: 0;">${safeValues.company_name || 'Company'}</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.02em;">${safeValues.company_name || 'Company'}</h1>
           <p style="font-size: 16px; margin: 8px 0 0 0; opacity: 0.9;">${safeValues.tagline || 'Tagline'}</p>
           ${safeValues.website ? `<p style="font-size: 12px; margin: 12px 0 0 0; opacity: 0.8;">${safeValues.website} • ${safeValues.contact_email || ''}</p>` : ''}
         </div>
@@ -191,15 +191,15 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
             <h3 style="font-size: 12px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">KEY METRICS</h3>
             <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
               <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 0;">${safeValues.metric_1_value || '-'}</p>
+                <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_1_value || '-'}</p>
                 <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_1_name || ''}</p>
               </div>
               <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 0;">${safeValues.metric_2_value || '-'}</p>
+                <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_2_value || '-'}</p>
                 <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_2_name || ''}</p>
               </div>
               <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #9333ea; margin: 0;">${safeValues.metric_3_value || '-'}</p>
+                <p style="font-size: 20px; font-weight: 700; color: #9333ea; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_3_value || '-'}</p>
                 <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_3_name || ''}</p>
               </div>
             </div>

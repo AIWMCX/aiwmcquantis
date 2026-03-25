@@ -145,17 +145,17 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     const formatMillions = (n: number) => `$${(n / 1000000000).toFixed(1)}B`;
     
     const rawHTML = `
-      <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
         <!-- Cover -->
         <div style="text-align: center; padding: 48px 0; border-bottom: 3px solid #2563eb; margin-bottom: 32px;">
-          <h1 style="font-size: 36px; font-weight: 700; margin: 0; color: #2563eb;">${safeValues.company_name || 'Company Name'}</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 36px; font-weight: 700; margin: 0; color: #2563eb; letter-spacing: -0.02em;">${safeValues.company_name || 'Company Name'}</h1>
           <p style="font-size: 18px; color: #6b7280; margin: 16px 0 0 0; font-style: italic;">${safeValues.tagline || 'Tagline'}</p>
           <p style="font-size: 14px; color: #9ca3af; margin-top: 24px;">Business Plan ${new Date().getFullYear()}</p>
         </div>
 
         <!-- Executive Summary -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
             Executive Summary
           </h2>
           <p style="line-height: 1.8; text-align: justify;">${safeValues.executive_summary || ''}</p>
@@ -163,7 +163,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
         <!-- Problem & Solution -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
             Problem & Solution
           </h2>
           <div style="display: grid; gap: 16px;">
@@ -183,7 +183,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
         <!-- Market Analysis -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
             Market Analysis
           </h2>
           <p style="margin-bottom: 16px; line-height: 1.6;"><strong>Target Market:</strong> ${safeValues.target_market || ''}</p>
@@ -191,15 +191,15 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
           <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">TAM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${formatMillions(formValues.market_size_tam || 0)}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_tam || 0)}</p>
             </div>
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">SAM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${formatMillions(formValues.market_size_sam || 0)}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_sam || 0)}</p>
             </div>
             <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
               <p style="font-size: 12px; color: #6b7280; margin: 0;">SOM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0;">${formatMillions(formValues.market_size_som || 0)}</p>
+              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_som || 0)}</p>
             </div>
           </div>
           
@@ -208,7 +208,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
         <!-- Business Model -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
             Business Model
           </h2>
           <div style="display: grid; gap: 12px;">
@@ -226,7 +226,7 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
         <!-- Financial Projections -->
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
             Financial Projections
           </h2>
           <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
@@ -241,9 +241,9 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
             <tbody>
               <tr style="border-bottom: 1px solid #e5e7eb;">
                 <td style="padding: 12px;">Revenue</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(formValues.year1_revenue || 0)}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(formValues.year2_revenue || 0)}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(formValues.year3_revenue || 0)}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year1_revenue || 0)}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year2_revenue || 0)}</td>
+                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year3_revenue || 0)}</td>
               </tr>
             </tbody>
           </table>

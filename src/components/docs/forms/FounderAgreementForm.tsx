@@ -139,9 +139,9 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
     }[d.company_type];
     
     const html = `
-      <div style="font-family: Georgia, serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a;">
+      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; line-height: 1.8;">
         <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #7C3AED; padding-bottom: 20px;">
-          <h1 style="font-size: 24px; margin: 0 0 8px 0; color: #0F172A;">FOUNDER'S AGREEMENT</h1>
+          <h1 style="font-family: 'Sora', sans-serif; font-size: 24px; margin: 0 0 8px 0; color: #0F172A; letter-spacing: -0.02em;">FOUNDER'S AGREEMENT</h1>
           <p style="color: #64748B; margin: 0; font-size: 14px;">${d.company_name || '[Company Name]'}</p>
         </div>
         
@@ -152,7 +152,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </p>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">1. FOUNDERS & EQUITY DISTRIBUTION</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">1. FOUNDERS & EQUITY DISTRIBUTION</h2>
           <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
             <thead>
               <tr style="background: #F8FAFC;">
@@ -168,14 +168,14 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
                 <tr>
                   <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.name || `Founder ${i + 1}`}</td>
                   <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.role || '-'}</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 600;">${rawData.founders[i]?.equity_percent || 0}%</td>
+                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${rawData.founders[i]?.equity_percent || 0}%</td>
                   <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.vesting_months || 0} mo</td>
                   <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.cliff_months || 0} mo</td>
                 </tr>
               `).join('')}
               <tr style="background: ${equityBalanced ? '#F0FDF4' : '#FEF2F2'};">
                 <td colspan="2" style="padding: 12px; border: 1px solid #E2E8F0; font-weight: 600;">Total</td>
-                <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 700; color: ${equityBalanced ? '#16A34A' : '#DC2626'};">${totalEquity}%</td>
+                <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 700; color: ${equityBalanced ? '#16A34A' : '#DC2626'}; font-family: 'JetBrains Mono', monospace;">${totalEquity}%</td>
                 <td colspan="2" style="padding: 12px; border: 1px solid #E2E8F0;"></td>
               </tr>
             </tbody>
@@ -183,7 +183,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">2. VESTING SCHEDULE</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">2. VESTING SCHEDULE</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
             <li>Standard vesting period: <strong>${rawData.standard_vesting_months} months</strong></li>
             <li>Cliff period: <strong>${rawData.standard_cliff_months} months</strong></li>
@@ -193,7 +193,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">3. INTELLECTUAL PROPERTY</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">3. INTELLECTUAL PROPERTY</h2>
           <p style="line-height: 1.8;">
             ${rawData.ip_assignment ? 'All founders agree to assign all intellectual property created for or relating to the Company to the Company.' : 'IP assignment terms to be negotiated separately.'}
           </p>
@@ -204,7 +204,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">4. DECISION MAKING</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">4. DECISION MAKING</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
             <li>Voting threshold for ordinary decisions: <strong>${rawData.voting_threshold}%</strong></li>
             <li>Major decisions require unanimous consent: <strong>${rawData.major_decisions_require_unanimous ? 'Yes' : 'No'}</strong></li>
@@ -212,7 +212,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">5. EXIT PROVISIONS</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">5. EXIT PROVISIONS</h2>
           <ul style="padding-left: 20px; line-height: 1.8;">
             <li>Drag-Along Rights: <strong>${rawData.drag_along ? 'Enabled' : 'Disabled'}</strong></li>
             <li>Tag-Along Rights: <strong>${rawData.tag_along ? 'Enabled' : 'Disabled'}</strong></li>
@@ -221,7 +221,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">6. FOUNDER DEPARTURE</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">6. FOUNDER DEPARTURE</h2>
           <p style="line-height: 1.8;">
             <strong>Good Leaver:</strong> ${rawData.good_leaver_buyback ? 'Company may repurchase unvested shares' : 'No buyback provision'}<br/>
             <strong>Bad Leaver:</strong> ${rawData.bad_leaver_buyback ? 'Company may repurchase all shares (vested and unvested)' : 'No buyback provision'}<br/>
@@ -230,7 +230,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         </section>
         
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">7. GOVERNING LAW & DISPUTES</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">7. GOVERNING LAW & DISPUTES</h2>
           <p style="line-height: 1.8;">
             This Agreement shall be governed by the laws of the State of <strong>${d.governing_law_state || '[State]'}</strong>.<br/>
             Dispute resolution method: <strong>${rawData.dispute_resolution === 'arbitration' ? 'Binding Arbitration' : rawData.dispute_resolution === 'litigation' ? 'Court Litigation' : 'Mediation, then Arbitration'}</strong>
@@ -239,7 +239,7 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
         
         ${d.additional_terms ? `
         <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">8. ADDITIONAL TERMS</h2>
+          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">8. ADDITIONAL TERMS</h2>
           <p style="line-height: 1.8;">${d.additional_terms}</p>
         </section>` : ''}
         
