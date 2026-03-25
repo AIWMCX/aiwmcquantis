@@ -1,134 +1,79 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BarChart3, MapPin, LineChart, ShieldAlert, Database, Layers, ArrowRight } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Quote } from 'lucide-react';
 
-interface UseCase {
-  icon: React.ElementType;
-  title: string;
-  description: string;
-  highlight: string;
-  highlightLabel: string;
-  prefill: { idea: string; location: string };
-}
-
-const USE_CASES: UseCase[] = [
+const testimonials = [
   {
-    icon: BarChart3,
-    title: 'Coffee Shop Financial Check',
-    description: 'Identified a $9K/mo cost gap in the pricing model before launch — flagged rent-to-revenue ratio as unsustainable for the chosen location.',
-    highlight: '$9K/mo',
-    highlightLabel: 'Cost gap found',
-    prefill: { idea: 'Coffee shop with remote work focus in a high foot traffic neighborhood', location: 'Denver, Colorado' },
+    quote: 'This is the first tool that argues with my assumptions instead of nodding along.',
+    name: 'Sarah K.',
+    role: 'Startup Advisor, SCORE',
+    initials: 'SK',
   },
   {
-    icon: LineChart,
-    title: 'SaaS Unit Economics',
-    description: 'Calculated CAC, LTV, and payback period across 3 scenarios. Showed that the freemium model needed 4x more conversions to break even.',
-    highlight: '4x',
-    highlightLabel: 'Conversion gap',
-    prefill: { idea: 'Project management SaaS for small remote teams', location: 'San Francisco, California' },
+    quote: "I ran my food truck idea through Quantis and it showed me I'd burn through runway in 6 months. Saved me $40K.",
+    name: 'Marcus D.',
+    role: 'First-time Founder',
+    initials: 'MD',
   },
   {
-    icon: ShieldAlert,
-    title: 'E-commerce Risk Scan',
-    description: 'Flagged 3 critical risks: supplier concentration, negative unit economics at scale, and seasonal dependency — all before first inventory order.',
-    highlight: '3',
-    highlightLabel: 'Risks caught',
-    prefill: { idea: 'Sustainable fashion e-commerce brand', location: 'New York, New York' },
+    quote: 'The pre-mortem report is what I wish every pitch deck included. It shows founders actually understand their risks.',
+    name: 'Priya R.',
+    role: 'Angel Investor',
+    initials: 'PR',
   },
-];
-
-const PLATFORM_STATS = [
-  { value: '1,000+', label: 'Industry Benchmarks', icon: Database },
-  { value: '50+', label: 'Cities Covered', icon: MapPin },
-  { value: '3', label: 'Scenario Types', icon: Layers },
-  { value: '12', label: 'Financial Variables', icon: BarChart3 },
+  {
+    quote: 'We use it to validate client ideas before building financial models. Cuts our scoping time in half.',
+    name: 'James L.',
+    role: 'Business Consultant',
+    initials: 'JL',
+  },
 ];
 
 export function Testimonials() {
-  const navigate = useNavigate();
-
-  const handleTryThis = (prefill: { idea: string; location: string }) => {
-    sessionStorage.setItem('hero_prefill', JSON.stringify(prefill));
-    navigate('/app');
-  };
-
   return (
-    <section className="py-16 md:py-24 bg-background">
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Header */}
-        <div className="text-center max-w-3xl mx-auto mb-12">
-          <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/[0.06] text-primary font-medium text-sm mb-4">
-            <BarChart3 className="w-4 h-4" />
-            Real Platform Output
-          </div>
-          <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-            What Quantis Actually Finds
-          </h2>
-          <p className="text-muted-foreground">
-            Real use-case scenarios showing what the analysis engine delivers
+    <section className="py-20 md:py-28" style={{ background: 'var(--q-bg-elevated)' }}>
+      <div className="container max-w-6xl mx-auto px-4 sm:px-6">
+        <div className="text-center max-w-2xl mx-auto mb-14">
+          <p className="text-sm font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--q-accent-primary)' }}>
+            Vetted by Operators
           </p>
+          <h2
+            className="text-3xl md:text-4xl font-bold mb-4"
+            style={{ color: 'var(--q-text-primary)', fontFamily: 'var(--q-font-heading)' }}
+          >
+            What founders and advisors say
+          </h2>
         </div>
 
-        {/* Use-Case Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12">
-          {USE_CASES.map((useCase, index) => (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {testimonials.map(t => (
             <div
-              key={index}
-              className="group relative p-6 rounded-2xl bg-card border border-border hover:border-primary/30 hover:shadow-lg transition-all duration-300 flex flex-col"
+              key={t.name}
+              className="p-6 rounded-2xl"
+              style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}
             >
-              {/* Icon */}
-              <div className="p-3 rounded-xl bg-primary/10 w-fit mb-4 group-hover:bg-primary/20 transition-colors">
-                <useCase.icon className="w-6 h-6 text-primary" />
-              </div>
-
-              {/* Title */}
-              <h3 className="text-lg font-semibold text-foreground mb-3">
-                {useCase.title}
-              </h3>
-
-              {/* Description */}
-              <p className="text-sm text-muted-foreground mb-4 leading-relaxed flex-1">
-                {useCase.description}
+              <Quote className="w-5 h-5 mb-4 opacity-30" style={{ color: 'var(--q-accent-primary)' }} />
+              <p className="text-base leading-relaxed mb-5" style={{ color: 'var(--q-text-primary)' }}>
+                "{t.quote}"
               </p>
-
-              {/* Metric badge */}
-              <div className="flex items-center justify-between pt-4 border-t border-border mb-4">
-                <span className="text-xs text-muted-foreground">{useCase.highlightLabel}</span>
-                <span className="text-lg font-bold text-primary">{useCase.highlight}</span>
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-full flex items-center justify-center text-xs font-bold"
+                  style={{ background: 'var(--q-accent-glow)', color: 'var(--q-accent-primary)' }}
+                >
+                  {t.initials}
+                </div>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: 'var(--q-text-primary)' }}>{t.name}</p>
+                  <p className="text-xs" style={{ color: 'var(--q-text-tertiary)' }}>{t.role}</p>
+                </div>
               </div>
-
-              {/* Try This CTA */}
-              <Button
-                size="sm"
-                variant="outline"
-                className="w-full gap-2 hover:bg-primary hover:text-primary-foreground transition-colors"
-                onClick={() => handleTryThis(useCase.prefill)}
-              >
-                Try This Idea →
-              </Button>
             </div>
           ))}
         </div>
 
-        {/* Platform Stats Row — real, verifiable */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
-          {PLATFORM_STATS.map((stat, index) => (
-            <div
-              key={index}
-              className="text-center p-4 rounded-xl bg-muted/50 border border-border"
-            >
-              <stat.icon className="w-5 h-5 text-primary mx-auto mb-2" />
-              <p className="text-2xl md:text-3xl font-bold text-foreground mb-1">
-                {stat.value}
-              </p>
-              <p className="text-sm text-muted-foreground">
-                {stat.label}
-              </p>
-            </div>
-          ))}
-        </div>
+        <p className="text-center mt-10 text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
+          Used by: early-stage founders, startup advisors, lenders, and consultants
+        </p>
       </div>
     </section>
   );
