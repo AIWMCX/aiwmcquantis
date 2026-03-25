@@ -1,110 +1,137 @@
+# Cinematic "Founder vs Reality" Landing Page — Complete Overhaul
 
+## What Changes
 
-# Font Design Overhaul — All Templates + Executive Report
-
-## Problem
-
-The Quantis design system defines a precise typography stack — **Sora** (headlines), **DM Sans** (body), **JetBrains Mono** (financial data) — but none of the 10 document templates or the Executive Report PDF use it. Instead, each template picks a random system font:
-
-| Template | Current Font | Should Be |
-|----------|-------------|-----------|
-| Invoice | Segoe UI, Arial | DM Sans + JetBrains Mono |
-| Business Plan | Segoe UI, Arial | Sora + DM Sans |
-| Pitch Deck | Segoe UI, Arial | Sora + DM Sans |
-| Financial Forecast | Segoe UI, Arial | DM Sans + JetBrains Mono |
-| Quarterly Summary | Segoe UI, Arial | DM Sans + JetBrains Mono |
-| One-Page Plan | Segoe UI, Arial | Sora + DM Sans |
-| NDA | Times New Roman, Georgia | DM Sans (legal body) |
-| Founder Agreement | Georgia, serif | DM Sans |
-| Partnership | Georgia, serif | DM Sans |
-| Market Analysis | Inter, sans-serif | DM Sans + Sora |
-| Executive Report (PDF) | system-ui (via pdfStyles.ts) | Sora + DM Sans + JetBrains Mono |
-
-This makes templates feel disconnected from the product. The fix is systematic.
+The current landing page is a generic centered-hero SaaS page. This overhaul transforms it into a cinematic, founder-led, conversion-tuned experience with 7 distinct sections that tell a story: **your face → what you built → proof → how it works → deep example → why you built it → footer**.
 
 ---
 
-## Approach: Unified Template Typography Constants
+## Section Architecture (top to bottom)
 
-### 1. Create Shared Template Font Constants
-**New file:** `src/components/docs/forms/templateFonts.ts`
+### 1. Hero: "Founder vs Reality" — Rewrite `MobileHero.tsx`
 
-Define reusable inline-style font declarations that mirror the design system but work in HTML string templates (which can't use CSS classes):
+**Layout:** Two-column split on desktop, stacked on mobile.
 
-```ts
-export const tFont = {
-  display: "'Sora', 'Inter', sans-serif",
-  body: "'DM Sans', 'Inter', sans-serif",
-  mono: "'JetBrains Mono', 'Fira Code', monospace",
-};
+- **Left column:** Founder portrait placeholder (cinematic gradient silhouette with initials — you replace with your real photo later). Overlaid quote: *"Most tools help you present your idea nicely. I wanted the one that tells you if it survives."*
+- **Right column:**
+  - Eyebrow pill: "Financial Pre-Mortem Engine · Dual-AI Verified"
+  - H1 (two lines, cinematic scale ~48-56px): *"I built an AI that tells founders the truth."* / *"Before investors and reality do."*
+  - Subtitle: the 1,000+ futures / proceed-pivot-kill copy
+  - Primary CTA: "Run my 90-second pre-mortem →"
+  - Secondary: "View a real report →"
+  - Trust strip: "No card · One free analysis" + "1,000+ benchmarks · SOC 2 ready"
+- **Below both columns:** Glassy instrument panel card with 4 animated metrics (Break-Even, Revenue M12, Runway, Risk Score) + label "Example: Specialty coffee shop in Austin, TX — HIGH RISK"
 
-export const tStyle = {
-  h1: "font-family: 'Sora', sans-serif; font-weight: 700; letter-spacing: -0.02em;",
-  h2: "font-family: 'Sora', sans-serif; font-weight: 600; letter-spacing: -0.01em;",
-  body: "font-family: 'DM Sans', sans-serif; font-weight: 400;",
-  label: "font-family: 'DM Sans', sans-serif; font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em;",
-  metric: "font-family: 'JetBrains Mono', monospace; font-weight: 600; font-feature-settings: 'tnum' 1;",
-  legal: "font-family: 'DM Sans', Georgia, serif; font-weight: 400;",
-};
-```
+### 2. "What Quantis Actually Does" — New `QuantisOutputs.tsx`
 
-### 2. Update All 10 Form Templates
-**Files:** All 10 files in `src/components/docs/forms/`
+Three premium glass cards, one per output engine:
 
-For each template's HTML generation (`const rawHTML = ...`):
+- **BI Report** — 36-month P&L, unit economics, benchmarks. "See if your model ever pays back and why."
+- **Pre-Mortem Analysis** — "We assume your business failed in 18 months, then explain how." Top 5 failure stories.
+- **Invoice Capacity Check** — Revenue vs projection, margin health, payment risk.
 
-- **Root wrapper:** Replace random font-family with `tFont.body` (DM Sans)
-- **Headings** (h1, h2): Apply `tStyle.h1` / `tStyle.h2` (Sora)
-- **Financial figures** (revenue, costs, percentages, currency amounts): Apply `tStyle.metric` (JetBrains Mono)
-- **Labels** (section markers, "CONFIDENTIAL", report type): Apply `tStyle.label`
-- **Body text:** Inherits DM Sans from root
+Each card has an icon, title, description, bullet, and "See sample section →" scroll link.
 
-Template-specific handling:
-- **NDA, Founder Agreement, Partnership** (legal docs): Root uses `tFont.body` but article body text gets slightly increased line-height (1.8) for legal readability. Section headers still use Sora.
-- **Invoice**: All monetary values (`$`, totals, unit prices) use JetBrains Mono. Invoice number uses JetBrains Mono.
-- **Financial Forecast, Quarterly Summary**: All numeric data (revenue, costs, metrics, percentages) uses JetBrains Mono.
-- **Pitch Deck**: Slide titles use Sora at display weight. Ask amounts and metrics use JetBrains Mono.
-- **Market Analysis**: TAM/SAM/SOM figures use JetBrains Mono. Growth percentages use JetBrains Mono.
+### 3. Social Proof: "Vetted by Operators" — Rewrite `Testimonials.tsx`
 
-### 3. Update Executive Report PDF Styles
-**File:** `src/components/pdf/pdfStyles.ts`
+Replace current use-case cards with testimonial-style quotes:
 
-Update the `pdfStyles` object to use the design system fonts:
-- `coverTitle`, `sectionTitle`, `verdictText`: Add `fontFamily: "'Sora', sans-serif"`
-- `paragraph`, `assessmentValue`, `listText`, `timelineDesc`, `disclaimer`: Add `fontFamily: "'DM Sans', sans-serif"`
-- `metricCardValue`, `coverMetricValue`, `riskSummaryValue`, `barValue`, `marketSizeValue`: Add `fontFamily: "'JetBrains Mono', monospace"` + `fontFeatureSettings: '"tnum" 1'`
-- `tableHeader`, `tableCell`: Add `fontFamily: "'DM Sans', sans-serif"`
-- `table` (numeric cells): Where data is financial, apply JetBrains Mono
-- `pageHeaderLogo`, `logoText`: Keep Sora for brand elements
-- Labels (`reportType`, `coverMetricLabel`, `metricCardLabel`, `confidentialNotice`): DM Sans with tracking
+- 3-4 pull-quotes with avatar circles (initials), names, roles
+- Example: *"This is the first tool that argues with my assumptions instead of nodding along."*
+- Below: small text strip "Used by: early-stage founders, advisors, lenders"
 
-### 4. Update ExecutiveReport.tsx Root Font
-**File:** `src/components/pdf/ExecutiveReport.tsx`
+### 4. "How It Works in 90 Seconds" — Update `HowItWorksSection.tsx`
 
-Change `fontFamily` from `"'Inter', 'Segoe UI', system-ui, sans-serif"` to `"'DM Sans', 'Inter', sans-serif"` so the entire report inherits the correct body font.
+Strip down to just the 3-step section with updated copy:
+
+1. "Tell us what you know" — Industry, city, a few numbers
+2. "Quantis simulates 1,000 futures" — Dual-AI, stress-tests, pre-mortem
+3. "You get an investor-grade dossier" — Verdict, P&L, risk matrix, launch plan
+
+Remove the Example Gallery, Trust Stats, and Feature Highlights sub-sections (they're redundant with new sections). Keep the final CTA: "Run my first analysis free".
+
+### 5. "Open the Hood" — Deep Example — New `OpenTheHood.tsx`
+
+Split layout:
+
+- **Left:** CSS-rendered stylized report page previews (Financial Summary, Risk Matrix, Launch Timeline cards with blurred placeholder numbers, clear headings)
+- **Right:** Three problem→solution mappings:
+  - "Can I survive 18 months?" → survivability + runway
+  - "What will likely kill me?" → risk matrix + pre-mortem
+  - "What should I do next?" → launch timeline + 90-day plan
+- Button: "Download example report (PDF)" → links to `/examples`
+
+### 6. "Why I Built Quantis" — New `FounderStory.tsx`
+
+Dark, high-contrast section:
+
+- Smaller founder portrait (same placeholder, left-aligned)
+- 3-4 sentence first-person narrative
+- "My promise:" checklist with 3 items (no hype numbers, logged assumptions, honest estimation)
+- CTA: "Run your pre-mortem with me now →"
+
+### 7. Footer — Minor update to `Footer.tsx`
+
+Add governance line: *"Quantis is decision support, not investment advice. Always combine with human judgment."*
+Add links for Security (SOC2) and Docs.
+
+---
+
+## Landing.tsx — Section Order
+
+Remove: `BeforeAfterComparison`, `ROICalculator`, `WhoItsFor`, `RiskGalleryTeaser`, `TrustLogos`, `DemoPreview`, `ResultsTicker`
+
+New order:
+
+1. `UrgencyBanner` (keep)
+2. Nav (keep)
+3. `MobileHero` (rewritten)
+4. `QuantisOutputs` (new)
+5. `Testimonials` (rewritten)
+6. `HowItWorksSection` (trimmed)
+7. `OpenTheHood` (new)
+8. `FounderStory` (new)
+9. `LeadCaptureInline` (keep)
+10. `PricingSection` (keep)
+11. `FAQSection` (keep)
+12. Bottom CTA (keep)
+13. `Footer` (updated)
 
 ---
 
 ## Files Summary
 
-| File | Change |
-|------|--------|
-| `src/components/docs/forms/templateFonts.ts` | **New** — shared font constants |
-| `src/components/docs/forms/InvoiceForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/BusinessPlanForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/PitchDeckForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/FinancialForecastForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/QuarterlySummaryForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/OnePagePlanForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/NDAForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/FounderAgreementForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/PartnershipForm.tsx` | Update HTML template fonts |
-| `src/components/docs/forms/MarketAnalysisForm.tsx` | Update HTML template fonts |
-| `src/components/pdf/pdfStyles.ts` | Add font-family to all style entries |
-| `src/components/pdf/ExecutiveReport.tsx` | Update root font-family |
+
+| File                                           | Action                                                            |
+| ---------------------------------------------- | ----------------------------------------------------------------- |
+| `src/components/landing/MobileHero.tsx`        | **Rewrite** — split hero with founder portrait + instrument panel |
+| `src/components/landing/QuantisOutputs.tsx`    | **New** — three output engine cards                               |
+| `src/components/landing/Testimonials.tsx`      | **Rewrite** — operator testimonial quotes                         |
+| `src/components/landing/HowItWorksSection.tsx` | **Simplify** — 3 steps only, remove gallery/stats/features        |
+| `src/components/landing/OpenTheHood.tsx`       | **New** — deep example band                                       |
+| `src/components/landing/FounderStory.tsx`      | **New** — personal narrative + promise                            |
+| `src/components/layout/Footer.tsx`             | **Update** — add governance line + links                          |
+| `src/pages/Landing.tsx`                        | **Update** — new section order, remove redundant components       |
+
+
+## Founder Portrait
+
+A cinematic gradient silhouette placeholder will be used with clear code comments marking where to swap in your real high-resolution photo. The placeholder will use your brand colors as a dramatic gradient with initials overlay.
 
 ## Implementation Order
-1. Create `templateFonts.ts` (shared constants)
-2. Update `pdfStyles.ts` + `ExecutiveReport.tsx` (PDF report)
-3. Update all 10 form templates (alphabetical)
 
+1. `MobileHero.tsx` — the face, biggest visual impact
+2. `QuantisOutputs.tsx` — what you do
+3. `OpenTheHood.tsx` — deep product proof
+4. `FounderStory.tsx` — personal narrative
+5. `Testimonials.tsx` — social proof
+6. `HowItWorksSection.tsx` — simplify
+7. `Landing.tsx` + `Footer.tsx` — wire together This overhaul plan is already complete and coherent; you can ship it as your “cinematic founder” landing without adding more structure.aiwmcquantis+3
+  To make it truly unbeatable, focus on **three things while you implement**:
+  1. **Hero = your face + instrument panel.**
+    - Treat `MobileHero.tsx` as the single most important file: your portrait, the “I built an AI that tells founders the truth” headline, and the live example panel must feel like one cinematic scene, not two blocks.aiwmcquantis+2
+  2. **Proof stacked immediately after promise.**
+    - `QuantisOutputs.tsx` + `OpenTheHood.tsx` together should prove that you deliver a 36‑month BI report, pre‑mortem, and invoice capacity check, with the coffee‑shop PDF as the concrete artifact people can download and touch.Quantis_Executive_Report_Specialty_coffee_shop_with_rem_2026-03-25.pdf​instagram+1
+  3. **You as the narrative spine.**
+    - Make sure `FounderStory.tsx` and the testimonial quotes echo the same story that appears in your posts: you saw founders fail because nobody told them the financial truth early enough, and Quantis is your answer to that.linkedin+4
+  If you wire the sections in the order you wrote, keep the copy sharp, and actually plug in your real photo and example report, this landing page will feel like a serious, personal, “unbreakable” product face — not a generic SaaS template.
