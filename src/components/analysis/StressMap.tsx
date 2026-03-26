@@ -6,6 +6,13 @@ import { Globe, TrendingUp, Wallet, Settings } from 'lucide-react';
 
 // ─── Types ───
 
+export interface MetricDetail {
+  label: string;
+  value: string;
+  benchmark: string;
+  gap: string;
+}
+
 export interface StressMapProps {
   marketScore: number;
   marginScore: number;
@@ -23,6 +30,12 @@ export interface StressMapProps {
     margin: string;
     capital: string;
     operations: string;
+  };
+  metricDetails: {
+    market: MetricDetail;
+    margin: MetricDetail;
+    capital: MetricDetail;
+    operations: MetricDetail;
   };
   onBlockClick?: (block: 'market' | 'margin' | 'capital' | 'operations') => void;
 }
@@ -159,6 +172,33 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
       : `→ Scale hiring only as utilization thresholds are hit`,
   };
 
+  const metricDetails = {
+    market: {
+      label: 'LTV:CAC Ratio',
+      value: `${ltvCacRatio.toFixed(1)}x`,
+      benchmark: 'Healthy target: ≥ 3.0x',
+      gap: ltvCacRatio >= 3 ? `+${(ltvCacRatio - 3).toFixed(1)}x above target` : `${(3 - ltvCacRatio).toFixed(1)}x below target`,
+    },
+    margin: {
+      label: 'Gross Margin',
+      value: `${grossMargin.toFixed(1)}%`,
+      benchmark: `Industry median: ${benchmarkMargin.toFixed(0)}%`,
+      gap: marginGap >= 0 ? `+${marginGap.toFixed(0)} pts above median` : `${Math.abs(marginGap).toFixed(0)} pts below median`,
+    },
+    capital: {
+      label: 'Cash Runway',
+      value: `${Math.round(runwayMonths)} months`,
+      benchmark: monthlyProfit >= 0 ? 'Cash-flow positive' : 'Target: ≥ 12 months',
+      gap: monthlyProfit >= 0 ? `Generating $${Math.round(monthlyProfit).toLocaleString()}/mo` : `Burning $${Math.round(Math.abs(monthlyProfit)).toLocaleString()}/mo`,
+    },
+    operations: {
+      label: 'Payroll Ratio',
+      value: `${payrollPct.toFixed(0)}%`,
+      benchmark: `Target: ≤ ${payrollTarget + 8}% of revenue`,
+      gap: payrollPct <= payrollTarget + 8 ? 'Within healthy range' : `${(payrollPct - payrollTarget - 8).toFixed(0)} pts over target`,
+    },
+  };
+
   return {
     marketScore: Math.round(clamp(marketScore)),
     marginScore: Math.round(clamp(marginScore)),
@@ -167,6 +207,7 @@ export function calculateStressScores(result: BusinessAnalysisResult): StressMap
     overallRiskIndex: Math.round(clamp(overallRiskIndex)),
     explanations,
     recommendations,
+    metricDetails,
   };
 }
 
@@ -354,11 +395,12 @@ interface BlockCardProps {
   score: number;
   explanation: string;
   recommendation: string;
+  metricDetail: MetricDetail;
   index: number;
   onClick?: () => void;
 }
 
-function BlockCard({ block, score, explanation, recommendation, index, onClick }: BlockCardProps) {
+function BlockCard({ block, score, explanation, recommendation, metricDetail, index, onClick }: BlockCardProps) {
   const style = getScoreStyle(score);
   const animatedScore = useCountUp(score, 600, 300 + index * 200);
   const [barWidth, setBarWidth] = useState(0);
@@ -426,29 +468,35 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
         </svg>
       </div>
 
-      {/* Expanded details — data-driven */}
+      {/* Expanded details — real computed data */}
       {expanded && (
         <div className="mt-3 pt-3 border-t border-[var(--q-border-subtle)] space-y-3 animate-fade-in">
+          {/* Actual metric breakdown */}
+          <div className="rounded-lg bg-[var(--q-bg-overlay)] p-3 space-y-2">
+            <div className="flex items-center justify-between text-[12px]">
+              <span className="text-[var(--q-text-secondary)]">{metricDetail.label}</span>
+              <span className={cn('font-mono font-bold text-[13px]', style.text)}>{metricDetail.value}</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-[var(--q-text-tertiary)]">{metricDetail.benchmark}</span>
+            </div>
+            <div className="flex items-center justify-between text-[11px]">
+              <span className="text-[var(--q-text-tertiary)]">Gap</span>
+              <span className={cn('font-mono font-semibold', style.text)}>{metricDetail.gap}</span>
+            </div>
+          </div>
+
+          {/* Health score row */}
           <div className="flex items-center justify-between text-[11px]">
             <span className="text-[var(--q-text-tertiary)]">Health Score</span>
             <span className={cn('font-mono font-semibold', style.text)}>{score}/100 — {style.label}</span>
           </div>
-          
-          {/* Data-driven insight */}
-          <div className="rounded-lg bg-[var(--q-bg-overlay)] p-3 space-y-1.5">
-            <p className="text-[12px] text-[var(--q-text-primary)] font-medium leading-relaxed">
-              {explanation}
-            </p>
-            <p className="text-[11px] text-[var(--q-accent-primary)] font-medium">
-              {recommendation}
-            </p>
-          </div>
 
-          {/* Contextual interpretation */}
+          {/* Contextual interpretation based on real data */}
           <p className="text-[11px] text-[var(--q-text-secondary)] leading-relaxed">
-            {score >= 70 ? '✓ This dimension is healthy. Focus on maintaining performance as you scale.' :
-             score >= 40 ? '⚠ Needs improvement. Small changes here can significantly impact your overall viability.' :
-             '🚨 Critical weakness. Address this before committing capital or seeking investment.'}
+            {score >= 70 ? '✓ This dimension is healthy. Maintain current trajectory as you scale.' :
+             score >= 40 ? '⚠ This needs attention. Targeted improvements here will materially improve viability.' :
+             '🚨 Critical weakness. Address before committing further capital.'}
           </p>
           
           <a
@@ -479,6 +527,7 @@ export function StressMap({
   overallRiskIndex,
   explanations,
   recommendations,
+  metricDetails,
   onBlockClick,
 }: StressMapProps) {
   const { label, style } = getRiskTierLabel(overallRiskIndex);
@@ -518,6 +567,7 @@ export function StressMap({
             score={scores[block.key]}
             explanation={explanations[block.key]}
             recommendation={recommendations[block.key]}
+            metricDetail={metricDetails[block.key]}
             index={index}
             onClick={() => onBlockClick?.(block.key)}
           />

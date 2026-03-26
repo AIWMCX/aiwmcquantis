@@ -268,36 +268,42 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     title="Monthly Revenue M12" 
                     value={`$${(metrics.monthlyRevenue / 1000).toFixed(1)}k`}
                     variant="standard"
+                    chip={`$${(metrics.monthlyRevenue * 12 / 1000).toFixed(0)}k ARR`}
                     explanation="Your projected monthly income at month 12, based on customer count, pricing, and growth rate."
                   />
                   <SimpleMetricCard 
                     title="Net Profit M12" 
                     value={`$${(metrics.netProfit / 1000).toFixed(1)}k`}
                     variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
+                    chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
                     explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
                   />
                   <SimpleMetricCard 
                     title="Gross Margin %" 
                     value={`${metrics.grossMargin.toFixed(1)}%`}
-                    variant="standard"
+                    variant={metrics.grossMargin >= 50 ? 'success' : metrics.grossMargin >= 30 ? 'warning' : 'danger'}
+                    chip={`${metrics.grossMargin.toFixed(0)}% of revenue kept`}
                     explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
                   />
                   <SimpleMetricCard 
                     title="LTV:CAC Ratio" 
-                    value={metrics.ltvCac.toFixed(1)}
+                    value={`${metrics.ltvCac.toFixed(1)}x`}
                     variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
+                    chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
                     explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
                   />
                   <SimpleMetricCard 
                     title="Break-even Month" 
                     value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
                     variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
+                    chip={metrics.breakEven <= 12 ? `Mo.${metrics.breakEven} — fast recovery` : metrics.breakEven <= 18 ? `Mo.${metrics.breakEven} — moderate` : `Mo.${metrics.breakEven > 24 ? '24+' : metrics.breakEven} — slow`}
                     explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 
                     value={`${metrics.runway} mo`}
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
+                    chip={metrics.runway >= 12 ? `${metrics.runway} mo — safe buffer` : `${metrics.runway} mo — tight`}
                     explanation="How many months your business can survive on current cash if revenue stopped. 12+ months gives breathing room."
                   />
                 </div>
@@ -460,15 +466,55 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                   <>View Mitigation Plan <ChevronDown className="w-3 h-3" /></>
                                 )}
                               </button>
-                              {isExpanded && (
-                                <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm">
-                                  <ol className="list-decimal list-inside space-y-1 text-muted-foreground">
-                                    <li>Monitor {risk.field || 'this metric'} weekly</li>
-                                    <li>Set up alerts at ±15% threshold</li>
-                                    <li>Prepare contingency budget</li>
-                                  </ol>
-                                </div>
-                              )}
+                              {isExpanded && (() => {
+                                // Find matching insight from engine for this risk
+                                const matchedInsight = insights.find(ins => 
+                                  ins.metric_name === risk.field || 
+                                  ins.headline?.toLowerCase().includes((risk.field || '').toLowerCase()) ||
+                                  risk.message?.toLowerCase().includes(ins.metric_name?.toLowerCase() || '')
+                                );
+                                const tactics = matchedInsight?.action_plan?.tactics || [];
+                                return (
+                                  <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm space-y-2">
+                                    {matchedInsight?.action_plan?.strategy && (
+                                      <p className="font-medium text-foreground text-xs">{matchedInsight.action_plan.strategy}</p>
+                                    )}
+                                    {tactics.length > 0 ? (
+                                      <div className="space-y-2">
+                                        {tactics.slice(0, 3).map((tactic, ti) => (
+                                          <div key={ti} className="flex items-start gap-2 text-xs">
+                                            <span className="shrink-0 w-4 h-4 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-[9px] font-bold mt-0.5">{ti + 1}</span>
+                                            <div className="flex-1">
+                                              <p className="text-foreground">{tactic.action}</p>
+                                              <div className="flex flex-wrap gap-2 mt-1">
+                                                <span className="text-[10px] text-muted-foreground">Impact: {tactic.expected_impact}</span>
+                                                <span className={cn('text-[10px] px-1.5 py-0.5 rounded font-medium',
+                                                  tactic.effort === 'low' ? 'bg-[var(--q-status-green-bg)] text-[var(--q-status-green)]' :
+                                                  tactic.effort === 'medium' ? 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)]' :
+                                                  'bg-[var(--q-status-red-bg)] text-[var(--q-status-red)]'
+                                                )}>{tactic.effort} effort</span>
+                                                {tactic.timeframe && <span className="text-[10px] text-muted-foreground">{tactic.timeframe}</span>}
+                                                {tactic.cost_estimate && <span className="text-[10px] text-muted-foreground">~{tactic.cost_estimate}</span>}
+                                              </div>
+                                            </div>
+                                          </div>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
+                                        <li>Investigate {risk.field || 'this metric'} drivers</li>
+                                        <li>Compare against industry benchmarks</li>
+                                        <li>Set measurable improvement targets</li>
+                                      </ol>
+                                    )}
+                                    {matchedInsight?.action_plan?.expected_outcome && (
+                                      <p className="text-[11px] text-[var(--q-accent-primary)] font-medium pt-1 border-t border-border">
+                                        Expected outcome: {matchedInsight.action_plan.expected_outcome}
+                                      </p>
+                                    )}
+                                  </div>
+                                );
+                              })()}
                             </div>
                           </div>
                         </div>
@@ -483,33 +529,65 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   {actionItems.length === 0 ? (
                     <ActionableInsights insights={result.actionable_insights} />
                   ) : (
-                    actionItems.map((action, idx) => {
-                      const priorities: Record<number, { label: string; color: string }> = {
-                        0: { label: 'IMMEDIATE', color: 'bg-[var(--q-status-red)]' },
-                        1: { label: 'THIS WEEK', color: 'bg-[var(--q-status-orange)]' },
-                        2: { label: 'THIS MONTH', color: 'bg-[var(--q-status-yellow)]' },
-                      };
-                      const priority = priorities[Math.min(idx, 2)];
+                    (() => {
+                      // Use full insights with action plans instead of quick_wins strings
+                      const priorityInsights = insights
+                        .filter(i => i.priority === 'critical' || i.priority === 'high')
+                        .slice(0, 4);
+                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 3);
                       
-                      return (
-                        <div key={idx} className="q-card p-4 flex gap-3">
-                          <span className="w-6 h-6 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-xs font-semibold shrink-0">
-                            {idx + 1}
-                          </span>
-                          <div className="flex-1">
-                            <div className="flex items-center gap-2 mb-1">
-                              <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold text-white', priority.color)}>
-                                {priority.label}
-                              </span>
+                      if (itemsToShow.length === 0) {
+                        return actionItems.map((action, idx) => (
+                          <div key={idx} className="q-card p-4 flex gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-xs font-semibold shrink-0">{idx + 1}</span>
+                            <div className="flex-1">
+                              <p className="font-medium text-sm">{action}</p>
                             </div>
-                            <p className="font-medium text-sm">{action}</p>
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Execute within timeline to maximize impact.
-                            </p>
                           </div>
-                        </div>
-                      );
-                    })
+                        ));
+                      }
+                      
+                      return itemsToShow.map((insight, idx) => {
+                        const priorityColors: Record<string, { label: string; color: string }> = {
+                          critical: { label: 'IMMEDIATE', color: 'bg-[var(--q-status-red)]' },
+                          high: { label: 'THIS WEEK', color: 'bg-[var(--q-status-orange)]' },
+                          medium: { label: 'THIS MONTH', color: 'bg-[var(--q-status-yellow)]' },
+                          low: { label: 'WHEN READY', color: 'bg-muted' },
+                        };
+                        const prio = priorityColors[insight.priority] || priorityColors.medium;
+                        const firstTactic = insight.action_plan?.tactics?.[0];
+                        
+                        return (
+                          <div key={idx} className="q-card p-4 flex gap-3">
+                            <span className="w-6 h-6 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-xs font-semibold shrink-0">{idx + 1}</span>
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <span className={cn('px-1.5 py-0.5 rounded text-[10px] font-semibold text-white', prio.color)}>{prio.label}</span>
+                                {insight.action_plan?.time_to_result && (
+                                  <span className="text-[10px] text-muted-foreground">{insight.action_plan.time_to_result}</span>
+                                )}
+                              </div>
+                              <p className="font-medium text-sm">{insight.headline}</p>
+                              <p className="text-xs text-muted-foreground mt-1">{insight.action_plan?.strategy || insight.explanation}</p>
+                              {firstTactic && (
+                                <div className="mt-2 p-2 rounded bg-muted/50 text-xs">
+                                  <span className="font-medium text-foreground">First step:</span>{' '}
+                                  <span className="text-muted-foreground">{firstTactic.action}</span>
+                                  {firstTactic.expected_impact && (
+                                    <span className="text-[var(--q-accent-primary)] ml-1">→ {firstTactic.expected_impact}</span>
+                                  )}
+                                </div>
+                              )}
+                              {insight.action_plan?.expected_outcome && (
+                                <p className="text-[11px] text-[var(--q-status-green)] mt-1.5 font-medium">
+                                  Expected: {insight.action_plan.expected_outcome}
+                                </p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      });
+                    })()
                   )}
                 </div>
               </div>
