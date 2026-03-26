@@ -57,7 +57,7 @@ export function SimpleMetricCard({ title, value, variant = 'standard', chip, ben
       <div className="flex items-center justify-center gap-1">
         <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-medium">{title}</p>
         {resolvedExplanation && (
-          <Info className="w-3 h-3 text-[var(--q-text-tertiary)] opacity-50 group-hover:opacity-100 transition-opacity shrink-0" />
+          <Info className="w-3 h-3 text-[var(--q-accent-primary)] opacity-70 shrink-0" />
         )}
       </div>
       <p className={cn('text-metric-md', variantColors[variant])}>{value}</p>
@@ -67,7 +67,7 @@ export function SimpleMetricCard({ title, value, variant = 'standard', chip, ben
         </span>
       )}
       {resolvedHint && (
-        <p className="text-[10px] text-[var(--q-text-tertiary)] leading-tight mt-0.5">{resolvedHint}</p>
+        <p className="text-[11px] text-[var(--q-text-secondary)] leading-tight mt-1 border-l-2 border-[var(--q-accent-primary)]/30 pl-2">{resolvedHint}</p>
       )}
       {benchmarkNote && (
         <p className="text-[10px] text-[var(--q-text-tertiary)] font-mono">{benchmarkNote}</p>

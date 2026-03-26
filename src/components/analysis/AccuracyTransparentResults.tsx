@@ -221,13 +221,37 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
                 )}
 
-                {/* Executive Summary (demoted, shorter) */}
-                <div className="q-card p-5">
-                  <h3 className="font-semibold text-sm mb-2">Executive Summary</h3>
-                  <p className="text-sm text-muted-foreground leading-relaxed line-clamp-4">
-                    {result.business_plan?.executive_summary || result.business_plan?.product_description || 'Analysis complete.'}
-                  </p>
-                </div>
+                {/* Executive Summary — Expandable */}
+                {(() => {
+                  const summaryText = result.business_plan?.executive_summary || result.business_plan?.product_description || 'Analysis complete.';
+                  const isLong = summaryText.length > 280;
+                  return (
+                    <div className="q-card p-5">
+                      <h3 className="font-semibold text-sm mb-2">Executive Summary</h3>
+                      <div className="relative">
+                        <p className={cn(
+                          'text-sm text-muted-foreground leading-relaxed transition-all duration-300',
+                          isLong && !expandedRisks.has(-1) && 'line-clamp-4'
+                        )}>
+                          {summaryText}
+                        </p>
+                        {isLong && (
+                          <button
+                            type="button"
+                            onClick={() => toggleRisk(-1)}
+                            className="mt-2 text-xs font-medium text-[var(--q-accent-primary)] hover:underline flex items-center gap-1"
+                          >
+                            {expandedRisks.has(-1) ? (
+                              <>Collapse <ChevronUp className="w-3 h-3" /></>
+                            ) : (
+                              <>Read full summary <ChevronDown className="w-3 h-3" /></>
+                            )}
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Stress Map */}
                 <div className="q-card p-6">
@@ -511,6 +535,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               />
             </div>
           )}
+        </div>
+
+        {/* Methodology Footer */}
+        <div className="mt-6 rounded-lg border border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)] px-4 py-3 flex items-center justify-between">
+          <span className="text-xs text-muted-foreground">How does Quantis calculate these numbers?</span>
+          <a
+            href="https://www.aiwmcquantis.com/methodology"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-medium text-[var(--q-accent-primary)] hover:underline"
+          >
+            Read our methodology →
+          </a>
         </div>
 
         {/* Navigation Footer */}
