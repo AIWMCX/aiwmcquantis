@@ -362,6 +362,7 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
   const style = getScoreStyle(score);
   const animatedScore = useCountUp(score, 600, 300 + index * 200);
   const [barWidth, setBarWidth] = useState(0);
+  const [expanded, setExpanded] = useState(false);
   const Icon = block.Icon;
 
   useEffect(() => {
@@ -372,12 +373,15 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
   }, [score, index]);
 
   return (
-    <button
-      onClick={onClick}
+    <div
+      role="button"
+      tabIndex={0}
+      onClick={() => setExpanded(!expanded)}
+      onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setExpanded(!expanded); } }}
       style={{ '--index': index } as React.CSSProperties}
       className={cn(
-        'q-card q-stagger relative rounded-[var(--q-radius-lg)] border bg-[var(--q-bg-elevated)] p-4 text-left overflow-hidden',
-        'transition-all hover:shadow-lg hover:scale-[1.02]',
+        'q-card q-stagger relative rounded-[var(--q-radius-lg)] border bg-[var(--q-bg-elevated)] p-4 text-left cursor-pointer',
+        'transition-all duration-200 hover:shadow-lg hover:border-[var(--q-accent-primary)]',
         'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]',
         'border-l-[3px]',
         style.border
@@ -385,7 +389,7 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
     >
       {/* Header row */}
       <div className="flex items-center justify-between mb-3">
-        <span className="flex items-center gap-2 text-label text-[var(--q-text-secondary)]">
+        <span className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wide text-[var(--q-text-secondary)]">
           <Icon className="w-4 h-4" />
           {block.title}
         </span>
@@ -402,19 +406,54 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
         />
       </div>
 
-      {/* Explanation */}
-      <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed line-clamp-2 mb-1.5">
+      {/* Explanation — always fully visible */}
+      <p className="text-[12px] text-[var(--q-text-secondary)] leading-relaxed mb-1.5">
         {explanation}
       </p>
 
-      {/* Recommendation */}
-      <p className="text-[11px] text-[var(--q-text-muted)] italic line-clamp-1">
+      {/* Recommendation — always fully visible */}
+      <p className="text-[11px] text-[var(--q-text-muted)] italic">
         {recommendation}
       </p>
 
+      {/* Expand hint */}
+      <div className="flex items-center justify-between mt-2 pt-2 border-t border-[var(--q-border-subtle)]">
+        <span className="text-[10px] text-[var(--q-text-tertiary)]">
+          {expanded ? 'Click to collapse' : 'Click for details'}
+        </span>
+        <svg className={cn('w-3.5 h-3.5 text-[var(--q-text-tertiary)] transition-transform duration-200', expanded && 'rotate-180')} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </div>
+
+      {/* Expanded details */}
+      {expanded && (
+        <div className="mt-3 pt-3 border-t border-[var(--q-border-subtle)] space-y-2 animate-fade-in">
+          <div className="flex items-center justify-between text-[11px]">
+            <span className="text-[var(--q-text-tertiary)]">Score</span>
+            <span className={cn('font-mono font-semibold', style.text)}>{score}/100 — {style.label}</span>
+          </div>
+          <p className="text-[11px] text-[var(--q-text-secondary)] leading-relaxed">
+            <span className="font-semibold text-[var(--q-text-primary)]">What this means: </span>
+            {score >= 70 ? 'This area is performing well relative to industry benchmarks. Maintain current strategy.' :
+             score >= 40 ? 'This area needs attention. Small improvements here can significantly boost your overall score.' :
+             'This is a critical weakness. Address this before seeking investment.'}
+          </p>
+          <a
+            href="https://www.aiwmcquantis.com/methodology"
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className="inline-flex items-center gap-1 text-[11px] text-[var(--q-accent-primary)] hover:underline mt-1"
+          >
+            How we calculate this →
+          </a>
+        </div>
+      )}
+
       {/* Status indicator */}
       <div className={cn('absolute top-2 right-2 w-2 h-2 rounded-full', style.bar)} />
-    </button>
+    </div>
   );
 }
 
@@ -441,9 +480,14 @@ export function StressMap({
   return (
     <div className="q-card rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-6 space-y-6 relative overflow-hidden">
       {/* Header */}
-      <h3 className="text-h2 text-center text-[var(--q-text-primary)]">
-        Risk {overallRiskIndex}/100: {label}
-      </h3>
+      <div className="text-center space-y-1">
+        <h3 className="text-h2 text-[var(--q-text-primary)]">
+          Risk {overallRiskIndex}/100: {label}
+        </h3>
+        <p className="text-[12px] text-[var(--q-text-tertiary)]">
+          Your business health across 4 critical dimensions. Click any card for details.
+        </p>
+      </div>
 
       {/* Animated background mesh */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none stress-mesh" />
@@ -454,7 +498,7 @@ export function StressMap({
       </div>
 
       {/* 2×2 Grid of Block Cards */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {BLOCKS.map((block, index) => (
           <BlockCard
             key={block.key}
@@ -466,6 +510,18 @@ export function StressMap({
             onClick={() => onBlockClick?.(block.key)}
           />
         ))}
+      </div>
+
+      {/* Methodology link */}
+      <div className="text-center pt-2 border-t border-[var(--q-border-subtle)]">
+        <a
+          href="https://www.aiwmcquantis.com/methodology"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] text-[var(--q-accent-primary)] hover:underline"
+        >
+          Learn how we calculate risk scores →
+        </a>
       </div>
 
       {/* CSS keyframes for background mesh */}

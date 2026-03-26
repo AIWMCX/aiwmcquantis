@@ -244,31 +244,37 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     title="Monthly Revenue M12" 
                     value={`$${(metrics.monthlyRevenue / 1000).toFixed(1)}k`}
                     variant="standard"
+                    explanation="Your projected monthly income at month 12, based on customer count, pricing, and growth rate."
                   />
                   <SimpleMetricCard 
                     title="Net Profit M12" 
                     value={`$${(metrics.netProfit / 1000).toFixed(1)}k`}
                     variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
+                    explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
                   />
                   <SimpleMetricCard 
                     title="Gross Margin %" 
                     value={`${metrics.grossMargin.toFixed(1)}%`}
                     variant="standard"
+                    explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
                   />
                   <SimpleMetricCard 
                     title="LTV:CAC Ratio" 
                     value={metrics.ltvCac.toFixed(1)}
                     variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
+                    explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
                   />
                   <SimpleMetricCard 
                     title="Break-even Month" 
                     value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
                     variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
+                    explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 
                     value={`${metrics.runway} mo`}
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
+                    explanation="How many months your business can survive on current cash if revenue stopped. 12+ months gives breathing room."
                   />
                 </div>
 
@@ -290,8 +296,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     </div>
                   </div>
                   <a 
-                    href="/methodology" 
+                    href="https://www.aiwmcquantis.com/methodology" 
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="mt-3 block text-xs text-[var(--q-accent-primary)] hover:underline"
                   >
                     How we calculate this →
