@@ -518,11 +518,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                         ))}
                                       </div>
                                     ) : (
-                                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
-                                        <li>Investigate {risk.field || 'this metric'} drivers</li>
-                                        <li>Compare against industry benchmarks</li>
-                                        <li>Set measurable improvement targets</li>
-                                      </ol>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <p className="text-foreground font-medium">Analysis of {(risk.field || 'this metric').replace(/_/g, ' ').toLowerCase()}</p>
+                                        <p>{risk.message?.split('.')[0] || 'Review the flagged discrepancy'}.</p>
+                                        {risk.expected && <p className="text-[11px]">Expected: {risk.expected}</p>}
+                                        <p className="text-[11px] text-[var(--q-accent-primary)]">Adjust your inputs based on these findings and re-run for updated projections.</p>
+                                      </div>
                                     )}
                                     {matchedInsight?.action_plan?.expected_outcome && (
                                       <p className="text-[11px] text-[var(--q-accent-primary)] font-medium pt-1 border-t border-border">
