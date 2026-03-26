@@ -63,6 +63,8 @@ export function CompactAnalysisForm({
   const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(financialInputs.selected_industry);
   const [depth, setDepth] = useState('full');
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set(['bi']));
+  const isFirstTimeAnon = !isAuthenticated && !localStorage.getItem('has_run_analysis');
+  const [showAdvanced, setShowAdvanced] = useState(!isFirstTimeAnon);
 
   const toggleOutput = useCallback((id: string) => {
     setSelectedOutputs(prev => {
