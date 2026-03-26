@@ -4,6 +4,11 @@
 .doc-template-card {
   @apply relative overflow-hidden transition-all duration-300;
   @apply hover:shadow-lg hover:border-primary/50 hover:-translate-y-1;
+  border-top: 3px solid transparent;
+}
+
+.doc-template-card:hover {
+  border-top-color: hsl(var(--primary));
 }
 
 .doc-template-card::before {

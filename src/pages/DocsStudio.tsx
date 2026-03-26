@@ -651,7 +651,7 @@ export default function DocsStudio() {
                 <p className="font-medium text-sm">Free Tier Access</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   You have access to <strong>3 templates</strong> (Invoice, Quarterly Summary, NDA) with <strong>1 download per day</strong>. 
-                  Upgrade to <strong>Plus ($17/mo)</strong> to unlock all 10 templates with unlimited downloads.
+                  Upgrade to <strong>Plus</strong> to unlock all 10 templates with unlimited downloads.
                 </p>
               </div>
             </div>

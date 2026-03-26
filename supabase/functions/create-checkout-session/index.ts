@@ -19,7 +19,7 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
   ];
   
   // Also allow Lovable preview domains
-  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev");
+  const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev") || origin?.includes(".lovableproject.com");
   const isAllowed = origin && (allowedOrigins.includes(origin) || isLovablePreview);
   
   return {
