@@ -163,7 +163,6 @@ export function MobileHero() {
         </div>
 
       </div>
-      </div>
     </section>
   );
 }
