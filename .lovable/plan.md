@@ -1,54 +1,103 @@
 
 
-# Fix QuantisHeroDemo — Readable, Stable, Professional
+# Dashboard Accessibility & UX Overhaul — Executive Summary Fix, Try Sample Priority, Hints Everywhere
 
-## Core Problems
+## Current State Assessment (1-10 Ratings)
 
-1. **Text is illegible**: Font sizes range 7-10px — unreadable at hero scale. Users see a dark blur, not a dashboard.
-2. **Screen shakes on hover**: The metric tooltip (`{metric && ...}`) inserts/removes a DOM element in normal flow, pushing all content below it up and down. Every mouse movement over the 4 cards causes visible layout jumping.
-3. **Too much content crammed into ~520px**: Chart, risk bars, insights, Monte Carlo, depth selector, idea generator — all squeezed into a narrow column with microscopic text. It looks like a thumbnail, not a demo.
-4. **Industry tabs wrap to 2 lines** on narrower viewports, breaking the nav bar layout.
+| Dimension | Score | Issue |
+|-----------|-------|-------|
+| Accessibility | 5/10 | Tooltips require hover (invisible on mobile), font sizes inconsistent, no keyboard hints |
+| User Satisfaction | 4/10 | Executive Summary truncated with `line-clamp-4` and no expand — user sees "o..." and can't read more. StressMap cards say "Click for details" but expanded state only shows score/100 and a generic sentence. No "Try Sample" visible once form is loaded |
+| Understanding | 5/10 | Metric labels like "LTV:CAC" and "M12" are jargon. DEFAULT_HINTS exist but are tiny (10px) and easy to miss. Methodology link buried in Audit Trail card |
 
-## Solution
+## Problems to Fix
 
-### A. Fix the shaking — Absolute-positioned tooltip overlay
-Replace the flow-inserted metric tooltip div with an absolutely-positioned overlay that appears ON TOP of the metric cards area (or below them as a fixed-height region). This eliminates layout shift entirely.
+1. **Executive Summary truncated** (line 227): `line-clamp-4` cuts text at ~4 lines with no "Read more" button. Users see "...o" and cannot expand. This is the screenshot the user sent.
 
-**Approach**: Reserve a fixed 48px height area below the metric cards. The tooltip content fades in/out within that reserved space using opacity transitions — never inserting/removing from DOM flow.
+2. **"Try Sample" only appears in EmptyState** (line 394-412 of AppDashboard): Once the user types anything or has results, the sample button vanishes. It should be a persistent, visible panel — especially for new users who don't know what to analyze.
 
-### B. Increase all font sizes for readability
-| Current | New | Element |
-|---------|-----|---------|
-| 7-8px | 10px | Labels, axis ticks, tags |
-| 9px | 11px | Risk factor names, insight text |
-| 10px | 12px | Verdict text, tooltip content |
-| text-lg (18px) | text-xl (20px) | Metric values |
-| 8px | 10px | Sub-labels on metric cards |
+3. **StressMap blocks say "Click for details" but expanded content is generic**: The expanded section (lines 430-451) shows "What this means: This area is performing well..." — the same 3 generic sentences for all scores. Not useful.
 
-### C. Simplify the default view
-- Default to **Full** depth (already done) but make the demo **non-scrolling** at hero scale
-- Remove the Analysis Depth Selector from the hero demo — it's internal app UX, not a hero showcase element. The depth switching still works via data but the selector cards are removed to save vertical space
-- Collapse the Generate Idea section into a single compact button row instead of the current two-column layout with descriptive text
+4. **Metric card hints at 10px are too small**: The `DEFAULT_HINTS` in SimpleMetricCard are rendered at `text-[10px]` — nearly invisible.
 
-### D. Widen the demo container
-In `MobileHero.tsx`, change `max-w-[520px]` to `max-w-[600px]` and adjust the grid to give the demo more breathing room on large screens.
+5. **No "Generate Idea" in the main dashboard**: The AI idea generator exists as an edge function but is only in the landing hero demo, not in the actual analysis form.
 
-### E. Smooth all transitions
-- Add `transition-all duration-200` to metric cards (already exists)
-- Add `transition-opacity duration-150` to the tooltip area
-- Ensure industry tab switching doesn't cause height jumps by setting `min-height` on the content area
+---
 
-## Files to Change
+## Plan
+
+### 1. Fix Executive Summary — Expandable with Full Text
+
+**File: `src/components/analysis/AccuracyTransparentResults.tsx` (lines 224-230)**
+
+Replace `line-clamp-4` with a collapsible pattern:
+- Show first 4 lines by default with a visible **"Read full summary ↓"** button
+- On click, expand to show the entire executive summary text
+- Add a **"Collapse ↑"** button when expanded
+- Use `useState` for `expandedSummary` boolean
+
+### 2. Make "Try Sample" a Priority Panel — Always Visible
+
+**File: `src/pages/AppDashboard.tsx`**
+
+- Add a new **"Try Sample Analysis"** card directly above the form (between AnalysisTopBar and CompactAnalysisForm) that is always visible when there are no results showing
+- Card design: bordered panel with a lightbulb/sparkle icon, text "No idea yet? Try a sample analysis to see what Quantis delivers", and two buttons:
+  - **"Try Coffee Shop Sample"** — prefills existing sample data
+  - **"Generate Random Idea"** — calls the `generate-idea` edge function and prefills form
+- This panel hides when `result` exists or `isLoading` is true
+- Remove the "Try a sample" button from EmptyState since it's now promoted to a primary position
+
+**File: `src/components/analysis/CompactAnalysisForm.tsx`**
+
+- Add a small inline **"✦ Generate idea for me"** link-button next to the idea textarea label that calls the edge function and populates the idea + financials
+
+### 3. Enrich StressMap Expanded Content with Real Data
+
+**File: `src/components/analysis/StressMap.tsx` (lines 430-451)**
+
+Replace the generic "What this means" text with specific, data-driven content:
+- **Market expanded**: Show actual LTV:CAC value, what the industry benchmark is, and specific action
+- **Margin expanded**: Show actual gross margin %, industry median, the gap in points
+- **Capital expanded**: Show actual runway months, break-even month, whether there's a gap
+- **Operations expanded**: Show payroll ratio %, opex ratio, specific operational insight
+
+Pass these as structured data from `calculateStressScores` (the explanations and recommendations are already computed but underused in the expanded view).
+
+Also add the methodology link as a more prominent styled button instead of a tiny text link.
+
+### 4. Increase Hint Visibility in SimpleMetricCard
+
+**File: `src/components/analysis/SimpleMetricCard.tsx`**
+
+- Increase hint text from `text-[10px]` to `text-[11px]`
+- Change color from `var(--q-text-tertiary)` to `var(--q-text-secondary)` for better contrast
+- Add a subtle left-border accent to the hint text to make it visually distinct
+- Make the Info icon always visible (remove `opacity-50 group-hover:opacity-100`) — users need to SEE the hint exists
+
+### 5. Add Methodology Link as a Persistent Footer in Results
+
+**File: `src/components/analysis/AccuracyTransparentResults.tsx`**
+
+- Add a small persistent banner at the bottom of each step: "How does Quantis calculate these numbers? → Read our methodology" linking to `https://www.aiwmcquantis.com/methodology`
+- Style: subtle, not intrusive, but visible — uses `var(--q-accent-primary)` color
+
+---
+
+## Files Changed Summary
 
 | File | Changes |
 |------|---------|
-| `src/components/landing/QuantisHeroDemo.tsx` | Increase all font sizes; replace flow tooltip with fixed-height fade region; remove depth selector section; compact the idea generator; add min-height to content panels; smooth transitions |
-| `src/components/landing/MobileHero.tsx` | Widen demo container from 520px to 600px |
+| `src/components/analysis/AccuracyTransparentResults.tsx` | Expandable executive summary; methodology footer on each step |
+| `src/pages/AppDashboard.tsx` | "Try Sample" priority panel above form; "Generate Idea" integration |
+| `src/components/analysis/StressMap.tsx` | Rich expanded content with real data instead of generic text |
+| `src/components/analysis/SimpleMetricCard.tsx` | Larger hints, always-visible info icon |
+| `src/components/analysis/CompactAnalysisForm.tsx` | Inline "Generate idea" button next to idea field |
 
 ## Implementation Order
-1. Fix the tooltip shaking (structural DOM change)
-2. Bump all font sizes
-3. Remove depth selector, compact idea section
-4. Widen container in MobileHero
-5. Add min-heights and smooth transitions
+1. Fix Executive Summary expand/collapse
+2. Add Try Sample priority panel to AppDashboard
+3. Enrich StressMap expanded content
+4. Increase hint visibility in SimpleMetricCard
+5. Add methodology footer to results steps
+6. Add inline "Generate idea" to CompactAnalysisForm
 
