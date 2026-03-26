@@ -1,71 +1,113 @@
 
 
-# Docs Studio — Button Fix + Full UI/UX Improvement Pass
+# Cinematic Hero Demo Dashboard + Analysis UX Overhaul
 
-## Root Cause: "Unlock All Templates" Button Not Working
-
-The button calls `createCheckout('plus')` which invokes the `create-checkout-session` edge function. The edge function's CORS whitelist checks for `.lovable.app` and `.lovable.dev` but **NOT `.lovableproject.com`** — which is the actual preview domain. The fetch fails with `FunctionsFetchError: Failed to fetch` (CORS block). The same bug exists in `create-portal-session` and `parse-document`.
-
-**Fix:** Add `.lovableproject.com` to the CORS check in all 3 edge functions:
-```ts
-const isLovablePreview = origin?.includes(".lovable.app") || origin?.includes(".lovable.dev") || origin?.includes(".lovableproject.com");
-```
+## Summary
+Replace the static founder-portrait hero with the user-provided interactive `QuantisHeroDemo` component (a live, switchable dashboard showing real analysis outputs per industry). Then apply the same visual richness and interaction patterns to the actual analysis dashboard. Fix pricing presentation. Add explanatory tooltips throughout.
 
 ---
 
-## UI/UX Issues Found + Improvements
+## Part 1: Landing Page Hero — Replace Portrait with Live Demo Dashboard
 
-### A. Locked Template Cards — Dead Clicks (UX Bug)
-Currently clicking a locked card shows a toast error with an "Upgrade" action button — but the "Upgrade" action also fails because of the same CORS bug. Additionally, the locked cards have `opacity-60 cursor-not-allowed` but no visual upgrade CTA on the card itself.
+### File: `src/components/landing/QuantisHeroDemo.tsx` (NEW)
+- Port the user-provided `QuantisHeroDemo` component into the project as a proper TypeScript React component
+- Replace the raw Anthropic API call in "Generate Idea" with a Lovable AI edge function call (using `google/gemini-2.5-flash`)
+- Use Recharts (already in project) for the revenue chart
+- Keep all 5 industry tabs (SaaS, Coffee Shop, Restaurant, Fitness, Ecommerce) with pre-computed data
+- Keep all 3 depth selectors (Quick/Full/Deep) that visually change what sections are shown
+- Keep the metric hover tooltips explaining Break-even, Revenue M12, Runway, Risk Score
+- Keep the Monte Carlo section (Deep only), risk factors, insights panels
+- Style using existing Quantis CSS variables (`--q-bg-surface`, `--q-accent-primary`, etc.) instead of inline hex colors
 
-**Fix:** Replace the disabled `Plus Only` button on locked cards with an active "Unlock with Plus" button that triggers `createCheckout('plus')` directly, styled with a subtle upgrade gradient instead of being disabled/grayed.
+### File: `src/components/landing/MobileHero.tsx` (MODIFY)
+- Replace the LEFT column (founder portrait + self-quote, lines 79-101) with `<QuantisHeroDemo />`
+- Keep the RIGHT column copy, CTAs, and trust strip exactly as-is
+- On mobile (`<lg`), show the demo below the CTA section (order-2)
+- Remove the bottom "Instrument Panel" (lines 185-232) since the demo now contains those metrics interactively
 
-### B. Free Tier Banner — Pricing Says "$17/mo" But Memory Says "$49/mo"
-Line 654 says `Plus ($17/mo)` which conflicts with the pricing model memory ($49/mo Plus tier). 
-
-**Fix:** Update to the correct price or use a generic "Upgrade to Plus" without a hardcoded price.
-
-### C. Template Card Visual Polish
-- Icon containers are 56px (`w-14 h-14`) with standard rounded corners — inconsistent with the Quantis orb language used elsewhere (gradient orbs with specular highlights)
-- No hover state differentiation between free and locked cards
-- Missing subtle gradient backgrounds on cards matching the template color
-
-**Fix:** Apply Quantis-style gradient orbs to template icons (matching the pattern from `AnalysisTemplatesGrid` and `QuickStartTemplates`). Add a subtle colored top-border or gradient accent per template.
-
-### D. Page Header — "Docs Studio" Title is Plain
-No icon, no branded visual. Compare with the cinematic hero on the landing page.
-
-**Fix:** Add a small Quantis-branded icon/orb next to "Docs Studio" title. Add subtle gradient text for the heading on Plus tier ("Unlimited Access" in accent color).
-
-### E. Invoice Manager Button — Orphaned Placement
-The "Invoice Manager" button sits alone between the tier banner and the tabs with no visual context.
-
-**Fix:** Move it into the tabs row as a third tab or into a sidebar action group. Alternatively, give it a small descriptive label.
-
-### F. "My Documents" Tab — Empty State for Free Users
-Shows a large lock icon and generic text. Could be more inviting with a preview of what document management looks like.
-
-**Fix:** Add 2-3 blurred/ghosted sample document rows behind the lock overlay to show the value of the feature (similar to `LockedFeaturePreview` pattern).
-
-### G. Footer Governance Line Missing on /docs
-The landing page has "decision support, not investment advice" but /docs has no footer at all.
-
-**Fix:** Add a minimal footer with the Quantis governance disclaimer.
+### File: `supabase/functions/generate-idea/index.ts` (NEW)
+- Edge function that calls Lovable AI (Gemini 2.5 Flash) to generate a financially-calculable business idea for a given industry
+- Returns JSON with: idea, differentiator, startingCapital, pricePerCustomer, customersAtLaunch, monthlyOpCosts, estimatedBreakEven, estimatedRevM12, riskNote
+- CORS configured for `.lovableproject.com`, `.lovable.app`, `.lovable.dev`
 
 ---
 
-## Files to Change
+## Part 2: Analysis Dashboard Improvements
 
-| File | Change |
+### File: `src/components/analysis/WizardForm.tsx` (MODIFY)
+**A. Depth Selector Visual Differentiation (lines 593-615)**
+- Replace the 3 identical-looking radio labels with visually distinct cards:
+  - **Quick** (cyan accent): "Gut check" badge, 3 tags (Break-even, Revenue M12, Risk score), minimal
+  - **Full** (blue accent, "Recommended" badge): All metrics + Revenue chart + Risk breakdown + Insights
+  - **Deep** (purple accent, "CFO-grade" badge): All in Full + Monte Carlo + 5-yr projection + PDF export
+- Each card gets a colored top-border accent, distinct background tint, and tag chips showing what's included
+
+**B. Field Explanation Tooltips**
+- Wrap each form field label (Starting Capital, Price Per Customer, Customers at Launch, Monthly Op. Costs, CAC, Churn) with a small `(?)` icon
+- On click, show a styled tooltip panel (Quantis blue border, dark bg) with:
+  - What this field means in plain English
+  - Why it matters for the analysis
+  - Example value for context
+- Use existing `Tooltip`/`TooltipContent` from shadcn
+
+**C. "Generate Idea" Button**
+- Add a button below the industry selector: "No idea? Let Quantis generate one →"
+- Calls the new `generate-idea` edge function with the selected industry
+- Pre-fills the form fields (idea text, capital, price, customers, costs) with the generated values
+- Styled with blue accent, sparkle icon
+
+### File: `src/styles/quantis-design-system.css` or equivalent (MODIFY)
+- Add richer accent colors for dashboard panels:
+  - Cyan for financial metrics
+  - Purple for Monte Carlo / advanced
+  - Green for positive signals
+  - Orange/Red for risk indicators
+  - Blue gradient top-borders on card sections
+- Add `.q-depth-quick`, `.q-depth-full`, `.q-depth-deep` utility classes with distinct color schemes
+
+---
+
+## Part 3: Pricing Section Improvements (No Tier Changes)
+
+### File: `src/components/landing/PricingSection.tsx` (MODIFY)
+- **Value framing**: Replace "Worth $2,000+ in consultant fees" with "Replaces 3-5 hours of senior CFO analysis" — more believable
+- **Daily price**: Add "$0.56/day" below the $17/mo price to anchor perceived value
+- **Free tier limitation clarity**: Add a subtle note: "Quick depth only · No PDF exports · Watermarked"
+- **Plus tier feature reorder**: Lead with "Custom branding (white-label)" and "Monte Carlo simulations" — these are premium differentiators, currently buried
+- **Social proof line**: Add "Join 14 founders already using Quantis" (pull from actual user count) below the Plus CTA
+- **Annual savings**: Bump the "Save 17%" text to be more prominent — make it a colored badge, not plain text
+
+---
+
+## Part 4: SEO & Conversion Micro-Fixes
+
+### File: `src/pages/Landing.tsx` (MODIFY)
+- Update `<StructuredData>` FAQ answers to include target search terms: "business idea validator," "startup viability calculator," "break-even calculator AI"
+- Add `<meta name="description">` targeting: "Free AI business validator — stress-test your startup idea with 1,000+ benchmarks in 90 seconds"
+
+### File: `src/components/landing/MobileHero.tsx` (MODIFY)
+- Remove the founder self-quote overlay (conversion anti-pattern)
+- The demo dashboard IS the social proof now — it shows real calculations
+
+---
+
+## Files Changed Summary
+
+| File | Action |
 |------|--------|
-| `supabase/functions/create-checkout-session/index.ts` | Add `.lovableproject.com` to CORS |
-| `supabase/functions/create-portal-session/index.ts` | Add `.lovableproject.com` to CORS |
-| `supabase/functions/parse-document/index.ts` | Add `.lovableproject.com` to CORS |
-| `src/pages/DocsStudio.tsx` | Fix pricing text, upgrade locked card buttons, improve header, polish template cards, enhance empty states |
-| `src/styles/docs-studio.css` | Add gradient orb styles for template icons, improve locked card hover states |
+| `src/components/landing/QuantisHeroDemo.tsx` | CREATE — Interactive demo dashboard component |
+| `src/components/landing/MobileHero.tsx` | MODIFY — Replace portrait with demo, remove instrument panel |
+| `supabase/functions/generate-idea/index.ts` | CREATE — AI idea generation endpoint |
+| `src/components/analysis/WizardForm.tsx` | MODIFY — Rich depth selector, field tooltips, generate idea button |
+| `src/components/landing/PricingSection.tsx` | MODIFY — Value framing, daily price, feature reorder |
+| `src/styles/quantis-design-system.css` | MODIFY — Richer color accents for dashboard |
+| `src/pages/Landing.tsx` | MODIFY — SEO meta improvements |
 
 ## Implementation Order
-1. Fix CORS in all 3 edge functions (unblocks the button)
-2. Fix DocsStudio.tsx — pricing text, locked card UX, header, empty states
-3. Polish docs-studio.css — template card visual improvements
+1. Create `QuantisHeroDemo.tsx` (the showpiece)
+2. Create `generate-idea` edge function
+3. Modify `MobileHero.tsx` to use the new demo
+4. Improve `WizardForm.tsx` depth selector + tooltips + idea generator
+5. Polish `PricingSection.tsx` value framing
+6. SEO fixes in `Landing.tsx`
 
