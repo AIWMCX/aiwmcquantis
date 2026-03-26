@@ -622,13 +622,20 @@ export default function DocsStudio() {
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Dashboard
             </Button>
-            <h1 className="text-3xl font-bold text-foreground">Docs Studio</h1>
-            <p className="text-muted-foreground">
-              {isPlus 
-                ? 'Create, edit, and manage professional documents — unlimited access' 
-                : 'Create documents from 3 free templates — 1 download per day'
-              }
-            </p>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-primary to-accent flex items-center justify-center">
+                <FileText className="w-5 h-5 text-primary-foreground" />
+              </div>
+              <div>
+                <h1 className="text-3xl font-bold text-foreground">Docs Studio</h1>
+                <p className="text-muted-foreground">
+                  {isPlus 
+                    ? 'Create, edit, and manage professional documents — unlimited access' 
+                    : 'Create documents from 3 free templates — 1 download per day'
+                  }
+                </p>
+              </div>
+            </div>
           </div>
           {isFreeTier && (
             <Button 
@@ -651,23 +658,16 @@ export default function DocsStudio() {
                 <p className="font-medium text-sm">Free Tier Access</p>
                 <p className="text-xs text-muted-foreground mt-1">
                   You have access to <strong>3 templates</strong> (Invoice, Quarterly Summary, NDA) with <strong>1 download per day</strong>. 
-                  Upgrade to <strong>Plus ($17/mo)</strong> to unlock all 10 templates with unlimited downloads.
+                  Upgrade to <strong>Plus</strong> to unlock all 10 templates with unlimited downloads.
                 </p>
               </div>
             </div>
           </div>
         )}
-        {/* Invoices link */}
-        <div className="mb-6">
-          <Button variant="outline" onClick={() => navigate('/app/invoices')} className="gap-2">
-            <Receipt className="w-4 h-4" />
-            Invoice Manager
-          </Button>
-        </div>
 
-        {/* Tabs: Templates / My Documents */}
+        {/* Tabs: Templates / My Documents / Invoices */}
         <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'templates' | 'documents')} className="mb-8">
-          <TabsList className="grid w-full max-w-md grid-cols-2">
+          <TabsList className="grid w-full max-w-lg grid-cols-3">
             <TabsTrigger value="templates" className="gap-2">
               <Plus className="w-4 h-4" />
               Templates
@@ -680,6 +680,10 @@ export default function DocsStudio() {
               ) : isPlus ? (
                 <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Plus</Badge>
               ) : null}
+            </TabsTrigger>
+            <TabsTrigger value="invoices" className="gap-2" onClick={() => navigate('/app/invoices')}>
+              <Receipt className="w-4 h-4" />
+              Invoices
             </TabsTrigger>
           </TabsList>
 
@@ -694,19 +698,14 @@ export default function DocsStudio() {
                 return (
                   <Card
                     key={template.id}
-                    className={`doc-template-card group ${
+                    className={`doc-template-card group cursor-pointer ${
                       isLocked 
-                        ? 'opacity-60 cursor-not-allowed' 
-                        : 'cursor-pointer'
+                        ? 'opacity-75 hover:opacity-100' 
+                        : ''
                     }`}
                     onClick={() => {
                       if (isLocked) {
-                        toast.error('Upgrade to Plus to access this template', {
-                          action: {
-                            label: 'Upgrade',
-                            onClick: () => createCheckout('plus'),
-                          },
-                        });
+                        createCheckout('plus');
                         return;
                       }
                       handleTemplateSelect(template.id);
@@ -755,14 +754,19 @@ export default function DocsStudio() {
                       </div>
                       
                       <Button 
-                        className="w-full" 
-                        variant={isLocked ? 'secondary' : 'outline'}
-                        disabled={isLocked}
+                        className={`w-full ${isLocked ? 'bg-gradient-to-r from-primary to-accent text-primary-foreground hover:opacity-90' : ''}`}
+                        variant={isLocked ? 'default' : 'outline'}
+                        onClick={(e) => {
+                          if (isLocked) {
+                            e.stopPropagation();
+                            createCheckout('plus');
+                          }
+                        }}
                       >
                         {isLocked ? (
                           <>
-                            <Lock className="w-4 h-4 mr-2" />
-                            Plus Only
+                            <Crown className="w-4 h-4 mr-2" />
+                            Unlock with Plus
                           </>
                         ) : (
                           <>
@@ -786,15 +790,32 @@ export default function DocsStudio() {
                 onNew={handleNewDocument} 
               />
             ) : (
-              <Card className="border-dashed">
-                <CardContent className="flex flex-col items-center justify-center py-12">
-                  <Lock className="w-12 h-12 text-muted-foreground mb-4" />
-                  <h3 className="text-lg font-semibold mb-2">Plus Feature</h3>
-                  <p className="text-muted-foreground text-center mb-4 max-w-md">
-                    Document management with editing, versioning, and re-exporting is available on the Plus plan. 
-                    Free tier users can still create and download documents from templates.
+              <Card className="border-dashed relative overflow-hidden">
+                {/* Ghosted sample rows to show value */}
+                <div className="absolute inset-0 pointer-events-none">
+                  <div className="p-4 space-y-3 opacity-[0.15] blur-[1px]">
+                    {['Business Plan — Draft', 'Q4 Financial Summary', 'Pitch Deck v2', 'NDA — Acme Corp'].map((title, i) => (
+                      <div key={i} className="flex items-center gap-3 p-3 rounded-lg border bg-card">
+                        <FileText className="w-5 h-5 text-muted-foreground" />
+                        <div className="flex-1">
+                          <p className="text-sm font-medium">{title}</p>
+                          <p className="text-xs text-muted-foreground">Last edited 2 days ago</p>
+                        </div>
+                        <Badge variant="secondary" className="text-[10px]">Draft</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <CardContent className="flex flex-col items-center justify-center py-16 relative z-10">
+                  <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center mb-4">
+                    <FolderOpen className="w-8 h-8 text-primary" />
+                  </div>
+                  <h3 className="text-lg font-semibold mb-2">Document Management</h3>
+                  <p className="text-muted-foreground text-center mb-6 max-w-md">
+                    Edit, version, and re-export your documents anytime. 
+                    Free users can still create and download from templates.
                   </p>
-                  <Button onClick={() => createCheckout('plus')} className="gap-2">
+                  <Button onClick={() => createCheckout('plus')} className="gap-2 bg-gradient-to-r from-primary to-accent text-primary-foreground">
                     <Crown className="w-4 h-4" />
                     Upgrade to Plus
                   </Button>
@@ -803,6 +824,13 @@ export default function DocsStudio() {
             )}
           </TabsContent>
         </Tabs>
+
+        {/* Governance footer */}
+        <div className="mt-12 pt-6 border-t border-border text-center">
+          <p className="text-xs text-muted-foreground">
+            Quantis is decision support, not investment advice. Always combine with human judgment.
+          </p>
+        </div>
       </div>
     </div>
   );
