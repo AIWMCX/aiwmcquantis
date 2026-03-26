@@ -290,8 +290,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     </div>
                   </div>
                   <a 
-                    href="/methodology" 
+                    href="https://www.aiwmcquantis.com/methodology" 
                     target="_blank"
+                    rel="noopener noreferrer"
                     className="mt-3 block text-xs text-[var(--q-accent-primary)] hover:underline"
                   >
                     How we calculate this →

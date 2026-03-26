@@ -123,49 +123,53 @@ export function ResultsHeroStrip({
 
       {/* ── KPI Grid — Cinematic Large Numbers ── */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-px bg-[var(--q-border-subtle)]">
-        {/* Mo.12 Profit */}
-        <div className="q-hero-kpi-cell">
+        {/* Mo.12 Profit — Monthly earnings after all expenses */}
+        <div className="q-hero-kpi-cell group relative">
           <span className="text-label-sm">Mo.12 Profit</span>
           <span className="text-metric-xl tabular-nums" style={{ color: profitColor }}>
             {formatCurrency(animatedProfit)}
           </span>
-          {profitP25 != null && profitP75 != null && (
+          {profitP25 != null && profitP75 != null ? (
             <span className="text-[10px] text-[var(--q-text-tertiary)] font-mono tabular-nums">
               range {formatCurrency(profitP25)} to {formatCurrency(profitP75)}
+            </span>
+          ) : (
+            <span className="text-[10px] text-[var(--q-text-tertiary)]">
+              Monthly earnings after all costs
             </span>
           )}
         </div>
 
-        {/* Break-even */}
+        {/* Break-even — When revenue covers all costs */}
         <div className="q-hero-kpi-cell">
           <span className="text-label-sm">Break-even</span>
           <span className="text-metric-xl tabular-nums" style={{ color: breakEvenColor }}>
             {animatedBreakEven > 24 ? '24+' : `Mo.${animatedBreakEven}`}
           </span>
           <span className="text-[10px] text-[var(--q-text-tertiary)]">
-            {breakEvenMonths <= 12 ? 'Healthy timeline' : breakEvenMonths <= 18 ? 'Monitor closely' : 'Needs improvement'}
+            {breakEvenMonths <= 12 ? '✓ Healthy — costs covered quickly' : breakEvenMonths <= 18 ? '⚠ Monitor — takes time to profit' : '⚠ Slow — needs optimization'}
           </span>
         </div>
 
-        {/* Runway */}
+        {/* Runway — Months of operating cash remaining */}
         <div className="q-hero-kpi-cell">
-          <span className="text-label-sm">Runway</span>
+          <span className="text-label-sm">Cash Runway</span>
           <span className="text-metric-xl tabular-nums" style={{ color: runwayColor }}>
             {animatedRunway} mo
           </span>
           <span className="text-[10px] text-[var(--q-text-tertiary)]">
-            {cashRunwayMonths >= 12 ? 'Comfortable' : cashRunwayMonths >= 6 ? 'Tight — extend' : 'Critical — act now'}
+            {cashRunwayMonths >= 12 ? '✓ Comfortable cash buffer' : cashRunwayMonths >= 6 ? '⚠ Tight — extend before scaling' : '🚨 Critical — act now'}
           </span>
         </div>
 
-        {/* LTV:CAC */}
+        {/* LTV:CAC — Customer value vs acquisition cost */}
         <div className="q-hero-kpi-cell">
           <span className="text-label-sm">LTV:CAC</span>
           <span className="text-metric-xl tabular-nums" style={{ color: ltvCacRatio >= 3 ? 'var(--q-status-green)' : ltvCacRatio >= 2 ? 'var(--q-status-yellow)' : 'var(--q-status-red)' }}>
             {ltvCacRatio.toFixed(1)}×
           </span>
           <span className="text-[10px] text-[var(--q-text-tertiary)]">
-            {ltvCacRatio >= 3 ? 'Good vs peers' : ltvCacRatio >= 2 ? 'Below median' : 'Critical'}
+            {ltvCacRatio >= 3 ? '✓ Each customer is worth 3×+ their cost' : ltvCacRatio >= 2 ? '⚠ Customers barely cover acquisition cost' : '🚨 Losing money on each customer'}
           </span>
         </div>
       </div>
