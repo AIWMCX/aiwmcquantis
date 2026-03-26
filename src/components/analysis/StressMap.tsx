@@ -426,25 +426,37 @@ function BlockCard({ block, score, explanation, recommendation, index, onClick }
         </svg>
       </div>
 
-      {/* Expanded details */}
+      {/* Expanded details — data-driven */}
       {expanded && (
-        <div className="mt-3 pt-3 border-t border-[var(--q-border-subtle)] space-y-2 animate-fade-in">
+        <div className="mt-3 pt-3 border-t border-[var(--q-border-subtle)] space-y-3 animate-fade-in">
           <div className="flex items-center justify-between text-[11px]">
-            <span className="text-[var(--q-text-tertiary)]">Score</span>
+            <span className="text-[var(--q-text-tertiary)]">Health Score</span>
             <span className={cn('font-mono font-semibold', style.text)}>{score}/100 — {style.label}</span>
           </div>
+          
+          {/* Data-driven insight */}
+          <div className="rounded-lg bg-[var(--q-bg-overlay)] p-3 space-y-1.5">
+            <p className="text-[12px] text-[var(--q-text-primary)] font-medium leading-relaxed">
+              {explanation}
+            </p>
+            <p className="text-[11px] text-[var(--q-accent-primary)] font-medium">
+              {recommendation}
+            </p>
+          </div>
+
+          {/* Contextual interpretation */}
           <p className="text-[11px] text-[var(--q-text-secondary)] leading-relaxed">
-            <span className="font-semibold text-[var(--q-text-primary)]">What this means: </span>
-            {score >= 70 ? 'This area is performing well relative to industry benchmarks. Maintain current strategy.' :
-             score >= 40 ? 'This area needs attention. Small improvements here can significantly boost your overall score.' :
-             'This is a critical weakness. Address this before seeking investment.'}
+            {score >= 70 ? '✓ This dimension is healthy. Focus on maintaining performance as you scale.' :
+             score >= 40 ? '⚠ Needs improvement. Small changes here can significantly impact your overall viability.' :
+             '🚨 Critical weakness. Address this before committing capital or seeking investment.'}
           </p>
+          
           <a
             href="https://www.aiwmcquantis.com/methodology"
             target="_blank"
             rel="noopener noreferrer"
             onClick={(e) => e.stopPropagation()}
-            className="inline-flex items-center gap-1 text-[11px] text-[var(--q-accent-primary)] hover:underline mt-1"
+            className="inline-flex items-center gap-1.5 text-[11px] font-medium text-[var(--q-accent-primary)] hover:underline px-2.5 py-1.5 rounded-md bg-[var(--q-accent-glow)] transition-colors"
           >
             How we calculate this →
           </a>

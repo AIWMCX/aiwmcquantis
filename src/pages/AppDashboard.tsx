@@ -276,6 +276,74 @@ export default function Index() {
               gainHint={reliabilityData.gainHint}
             />
 
+            {/* Try Sample Priority Panel — visible when no result and not loading */}
+            {!result && !isLoading && (
+              <div className="mb-4 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-lg bg-[var(--q-accent-glow)] flex items-center justify-center">
+                    <Zap className="w-4.5 h-4.5 text-[var(--q-accent-primary)]" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-semibold text-foreground">No idea yet? Try a sample or generate one</p>
+                    <p className="text-xs text-muted-foreground">See what Quantis delivers in 2 minutes — no commitment</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setIdea('Specialty coffee shop with remote workspace');
+                      setLocation('Austin, TX');
+                      setFinancialInputs(prev => ({
+                        ...prev,
+                        startup_investment: 85000,
+                        monthly_revenue: 28000,
+                        average_price: 6.50,
+                        expected_customers: 800,
+                        monthly_costs: 22000,
+                        cac: 15,
+                      }));
+                      formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                    className="gap-1.5 text-xs h-8"
+                  >
+                    ☕ Try Coffee Shop Sample
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="default"
+                    onClick={async () => {
+                      try {
+                        const { supabase } = await import('@/integrations/supabase/client');
+                        const { data, error } = await supabase.functions.invoke('generate-idea', {
+                          body: { industry: 'technology' },
+                        });
+                        if (error) throw error;
+                        if (data?.idea) {
+                          setIdea(data.idea);
+                          setLocation('New York, NY');
+                          setFinancialInputs(prev => ({
+                            ...prev,
+                            startup_investment: data.startingCapital || 50000,
+                            average_price: data.pricePerCustomer || 99,
+                            expected_customers: data.customersAtLaunch || 100,
+                            monthly_costs: data.monthlyOpCosts || 8000,
+                          }));
+                          formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                      } catch {
+                        toast({ title: 'Could not generate idea', description: 'Please try again.', variant: 'destructive' });
+                      }
+                    }}
+                    className="gap-1.5 text-xs h-8"
+                  >
+                    <Brain className="w-3.5 h-3.5" /> Generate Random Idea
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Compact Analysis Form */}
             <div ref={formRef}>
               {rateLimitError && (
