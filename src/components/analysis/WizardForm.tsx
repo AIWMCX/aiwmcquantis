@@ -591,25 +591,33 @@ export function WizardForm({
               className="flex gap-2.5"
             >
               {([
-                { value: 'quick', label: 'Quick', time: '30s', desc: 'Basic projections' },
-                { value: 'full', label: 'Full', time: '90s', desc: 'P&L + Cash Flow + Stress Map' },
-                { value: 'deep', label: 'Deep', time: '3min', desc: 'Full + Monte Carlo + Scenarios' },
-              ] as const).map((opt) => (
+                { value: 'quick' as const, label: 'Quick Check', time: '30s', desc: '3 vital signs — instant go/no-go', badge: 'Gut check', color: 'var(--q-chart-1)', bg: 'rgba(79,142,247,0.08)', borderColor: 'rgba(79,142,247,0.3)', tags: ['Break-even', 'Revenue M12', 'Risk score'] },
+                { value: 'full' as const, label: 'Full Analysis', time: '90s', desc: '12-variable investor-grade model', badge: 'Recommended', color: 'var(--q-accent-primary)', bg: 'var(--q-accent-glow)', borderColor: 'var(--q-accent-primary)', tags: ['All metrics', 'Revenue chart', 'Risk breakdown', 'Insights'] },
+                { value: 'deep' as const, label: 'Deep Audit', time: '3 min', desc: '1,000+ Monte Carlo scenarios', badge: 'CFO-grade', color: 'var(--q-status-ai)', bg: 'rgba(129,140,248,0.08)', borderColor: 'rgba(129,140,248,0.35)', tags: ['Monte Carlo', '5-yr projection', 'PDF export'] },
+              ]).map((opt) => (
                 <label
                   key={opt.value}
                   className={cn(
-                    'flex-1 flex flex-col items-center gap-1 px-3 py-3 rounded-[var(--q-radius-md)] border cursor-pointer transition-all duration-150',
+                    'flex-1 flex flex-col gap-2 px-3 py-3 rounded-[var(--q-radius-md)] border cursor-pointer transition-all duration-200 relative overflow-hidden',
                     analysisDepth === opt.value
-                      ? 'bg-[var(--q-accent-glow)] border-[var(--q-accent-primary)]/40 text-[var(--q-accent-primary)]'
+                      ? 'shadow-md'
                       : 'bg-[var(--q-bg-surface)] border-[var(--q-border-default)] text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)] hover:border-[var(--q-border-hover)]'
                   )}
+                  style={analysisDepth === opt.value ? { background: opt.bg, borderColor: opt.borderColor } : undefined}
                 >
                   <RadioGroupItem value={opt.value} className="sr-only" />
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-sm font-semibold" style={{ fontFamily: 'var(--q-font-body)' }}>{opt.label}</span>
-                    <span className="text-xs text-[var(--q-text-tertiary)]" style={{ fontFamily: 'var(--q-font-mono)' }}>({opt.time})</span>
+                  {/* Top accent bar */}
+                  <div className="absolute top-0 left-0 right-0 h-[2px] transition-opacity" style={{ background: opt.color, opacity: analysisDepth === opt.value ? 1 : 0.15 }} />
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-bold" style={{ fontFamily: 'var(--q-font-body)', color: analysisDepth === opt.value ? opt.color : 'var(--q-text-secondary)' }}>{opt.label}</span>
+                    <span className="text-[9px] font-bold tracking-wider px-1.5 py-0.5 rounded" style={{ background: opt.bg, color: opt.color, border: `1px solid ${opt.borderColor}` }}>{opt.badge}</span>
                   </div>
-                  <span className="text-[10px] text-[var(--q-text-tertiary)] text-center leading-tight">{opt.desc}</span>
+                  <span className="text-[10px] text-[var(--q-text-tertiary)] leading-tight">⏱ {opt.time} · {opt.desc}</span>
+                  <div className="flex flex-wrap gap-1">
+                    {opt.tags.map(t => (
+                      <span key={t} className="text-[8px] px-1.5 py-0.5 rounded" style={{ color: opt.color, background: opt.bg }}>{t}</span>
+                    ))}
+                  </div>
                 </label>
               ))}
             </RadioGroup>
