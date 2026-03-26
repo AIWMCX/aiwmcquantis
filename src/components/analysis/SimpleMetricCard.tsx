@@ -42,12 +42,7 @@ export function SimpleMetricCard({ title, value, variant = 'standard', chip, ben
     danger: 'bg-[var(--q-status-red-bg)] text-[var(--q-status-red)]',
   };
 
-  const chipLabel = chip || (
-    variant === 'success' ? 'Good vs peers' :
-    variant === 'warning' ? 'Below median' :
-    variant === 'danger' ? 'Critical' :
-    undefined
-  );
+  const chipLabel = chip;
 
   const resolvedHint = hint || DEFAULT_HINTS[title];
   const resolvedExplanation = explanation || resolvedHint;

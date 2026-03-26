@@ -468,11 +468,28 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                               </button>
                               {isExpanded && (() => {
                                 // Find matching insight from engine for this risk
-                                const matchedInsight = insights.find(ins => 
-                                  ins.metric_name === risk.field || 
-                                  ins.headline?.toLowerCase().includes((risk.field || '').toLowerCase()) ||
-                                  risk.message?.toLowerCase().includes(ins.metric_name?.toLowerCase() || '')
-                                );
+                                // Fuzzy match risk fields to insight metric names
+                                const fieldToMetrics: Record<string, string[]> = {
+                                  'REVENUE_MISMATCH': ['revenue', 'monthly_revenue', 'arr', 'sales'],
+                                  'PROFITABILITY': ['net_profit', 'profit_margin', 'gross_margin', 'margin'],
+                                  'BREAK_EVEN': ['break_even', 'payback_period', 'breakeven'],
+                                  'CASH_FLOW': ['cash_flow', 'runway', 'burn_rate', 'cash'],
+                                  'CAC': ['cac', 'acquisition_cost', 'customer_acquisition'],
+                                  'LTV': ['ltv', 'lifetime_value', 'ltv_cac'],
+                                  'CHURN': ['churn', 'retention', 'churn_rate'],
+                                  'MARGIN': ['gross_margin', 'net_margin', 'margin', 'cogs'],
+                                };
+                                const relatedMetrics = fieldToMetrics[risk.field || ''] || [];
+                                const matchedInsight = insights.find(ins => {
+                                  const metricLower = (ins.metric_name || '').toLowerCase();
+                                  const headlineLower = (ins.headline || '').toLowerCase();
+                                  const fieldLower = (risk.field || '').toLowerCase();
+                                  const msgLower = (risk.message || '').toLowerCase();
+                                  return ins.metric_name === risk.field ||
+                                    relatedMetrics.some(m => metricLower.includes(m)) ||
+                                    headlineLower.includes(fieldLower) ||
+                                    msgLower.includes(metricLower);
+                                });
                                 const tactics = matchedInsight?.action_plan?.tactics || [];
                                 return (
                                   <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm space-y-2">
@@ -501,11 +518,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                         ))}
                                       </div>
                                     ) : (
-                                      <ol className="list-decimal list-inside space-y-1 text-muted-foreground text-xs">
-                                        <li>Investigate {risk.field || 'this metric'} drivers</li>
-                                        <li>Compare against industry benchmarks</li>
-                                        <li>Set measurable improvement targets</li>
-                                      </ol>
+                                      <div className="space-y-2 text-xs text-muted-foreground">
+                                        <p className="text-foreground font-medium">Analysis of {(risk.field || 'this metric').replace(/_/g, ' ').toLowerCase()}</p>
+                                        <p>{risk.message?.split('.')[0] || 'Review the flagged discrepancy'}.</p>
+                                        {risk.expected && <p className="text-[11px]">Expected: {risk.expected}</p>}
+                                        <p className="text-[11px] text-[var(--q-accent-primary)]">Adjust your inputs based on these findings and re-run for updated projections.</p>
+                                      </div>
                                     )}
                                     {matchedInsight?.action_plan?.expected_outcome && (
                                       <p className="text-[11px] text-[var(--q-accent-primary)] font-medium pt-1 border-t border-border">
