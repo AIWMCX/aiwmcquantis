@@ -480,9 +480,14 @@ export function StressMap({
   return (
     <div className="q-card rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-6 space-y-6 relative overflow-hidden">
       {/* Header */}
-      <h3 className="text-h2 text-center text-[var(--q-text-primary)]">
-        Risk {overallRiskIndex}/100: {label}
-      </h3>
+      <div className="text-center space-y-1">
+        <h3 className="text-h2 text-[var(--q-text-primary)]">
+          Risk {overallRiskIndex}/100: {label}
+        </h3>
+        <p className="text-[12px] text-[var(--q-text-tertiary)]">
+          Your business health across 4 critical dimensions. Click any card for details.
+        </p>
+      </div>
 
       {/* Animated background mesh */}
       <div className="absolute inset-0 opacity-[0.02] pointer-events-none stress-mesh" />
@@ -493,7 +498,7 @@ export function StressMap({
       </div>
 
       {/* 2×2 Grid of Block Cards */}
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         {BLOCKS.map((block, index) => (
           <BlockCard
             key={block.key}
@@ -505,6 +510,18 @@ export function StressMap({
             onClick={() => onBlockClick?.(block.key)}
           />
         ))}
+      </div>
+
+      {/* Methodology link */}
+      <div className="text-center pt-2 border-t border-[var(--q-border-subtle)]">
+        <a
+          href="https://www.aiwmcquantis.com/methodology"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-[11px] text-[var(--q-accent-primary)] hover:underline"
+        >
+          Learn how we calculate risk scores →
+        </a>
       </div>
 
       {/* CSS keyframes for background mesh */}
