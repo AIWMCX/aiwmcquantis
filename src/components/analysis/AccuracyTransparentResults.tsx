@@ -468,11 +468,28 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                               </button>
                               {isExpanded && (() => {
                                 // Find matching insight from engine for this risk
-                                const matchedInsight = insights.find(ins => 
-                                  ins.metric_name === risk.field || 
-                                  ins.headline?.toLowerCase().includes((risk.field || '').toLowerCase()) ||
-                                  risk.message?.toLowerCase().includes(ins.metric_name?.toLowerCase() || '')
-                                );
+                                // Fuzzy match risk fields to insight metric names
+                                const fieldToMetrics: Record<string, string[]> = {
+                                  'REVENUE_MISMATCH': ['revenue', 'monthly_revenue', 'arr', 'sales'],
+                                  'PROFITABILITY': ['net_profit', 'profit_margin', 'gross_margin', 'margin'],
+                                  'BREAK_EVEN': ['break_even', 'payback_period', 'breakeven'],
+                                  'CASH_FLOW': ['cash_flow', 'runway', 'burn_rate', 'cash'],
+                                  'CAC': ['cac', 'acquisition_cost', 'customer_acquisition'],
+                                  'LTV': ['ltv', 'lifetime_value', 'ltv_cac'],
+                                  'CHURN': ['churn', 'retention', 'churn_rate'],
+                                  'MARGIN': ['gross_margin', 'net_margin', 'margin', 'cogs'],
+                                };
+                                const relatedMetrics = fieldToMetrics[risk.field || ''] || [];
+                                const matchedInsight = insights.find(ins => {
+                                  const metricLower = (ins.metric_name || '').toLowerCase();
+                                  const headlineLower = (ins.headline || '').toLowerCase();
+                                  const fieldLower = (risk.field || '').toLowerCase();
+                                  const msgLower = (risk.message || '').toLowerCase();
+                                  return ins.metric_name === risk.field ||
+                                    relatedMetrics.some(m => metricLower.includes(m)) ||
+                                    headlineLower.includes(fieldLower) ||
+                                    msgLower.includes(metricLower);
+                                });
                                 const tactics = matchedInsight?.action_plan?.tactics || [];
                                 return (
                                   <div className="mt-3 p-3 rounded-lg bg-muted/50 text-sm space-y-2">
