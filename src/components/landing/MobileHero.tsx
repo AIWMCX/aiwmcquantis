@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign } from 'lucide-react';
+import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign, Coffee } from 'lucide-react';
 import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
 import { QuantisHeroDemo } from './QuantisHeroDemo';
+import { LiveCounter } from './LiveCounter';
+import { supabase } from '@/integrations/supabase/client';
 
 /* ── Animated counter for instrument panel ── */
 function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { end: number; prefix?: string; suffix?: string; duration?: number }) {
@@ -23,6 +25,19 @@ function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { en
 
 export function MobileHero() {
   const navigate = useNavigate();
+  const [analysisCount, setAnalysisCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const { count, error } = await supabase
+          .from('analyses')
+          .select('*', { count: 'exact', head: true });
+        if (!error && count !== null) setAnalysisCount(count);
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handlePreMortem = () => {
     trackCtaClick('run_pre_mortem', 'hero_primary');
@@ -33,6 +48,20 @@ export function MobileHero() {
   const handleViewReport = () => {
     trackCtaClick('view_real_report', 'hero_secondary');
     navigate('/examples');
+  };
+
+  const handleTrySample = () => {
+    trackCtaClick('try_sample_coffee_shop', 'hero_sample');
+    localStorage.setItem('prefill_analysis', JSON.stringify({
+      idea: 'Specialty coffee shop with local pastries and co-working space',
+      location: 'Austin, TX',
+      selected_industry: 'coffee_shop',
+      startup_investment: 45000,
+      average_price: 6.50,
+      expected_customers: 80,
+      monthly_costs: 8500,
+    }));
+    navigate('/app');
   };
 
   const metrics = [
