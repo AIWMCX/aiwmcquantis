@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign } from 'lucide-react';
 import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
-import founderPortrait from '@/assets/founder-portrait.png';
+import { QuantisHeroDemo } from './QuantisHeroDemo';
 
 /* ── Animated counter for instrument panel ── */
 function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { end: number; prefix?: string; suffix?: string; duration?: number }) {
@@ -75,29 +75,9 @@ export function MobileHero() {
         {/* Main split layout */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center min-h-[720px] py-12 lg:py-20">
 
-          {/* LEFT — Founder Portrait */}
-          <div className="relative flex flex-col items-center lg:items-start order-2 lg:order-1">
-            <div className="relative w-[280px] h-[340px] sm:w-[320px] sm:h-[400px] lg:w-[400px] lg:h-[500px] rounded-2xl overflow-hidden" style={{ boxShadow: '0 25px 60px -12px rgba(0,0,0,0.5)' }}>
-              {/* Portrait image */}
-              <img
-                src={founderPortrait}
-                alt="Bogdan Jeltov — Founder of AIWMC Quantis"
-                className="w-full h-full object-cover object-top"
-              />
-              {/* Cinematic gradient overlay on bottom */}
-              <div className="absolute inset-0" style={{
-                background: 'linear-gradient(to top, rgba(10,14,26,0.85) 0%, rgba(10,14,26,0.3) 40%, transparent 60%)',
-              }} />
-              {/* Overlaid quote */}
-              <div className="absolute bottom-0 left-0 right-0 p-5 sm:p-6">
-                <p className="text-sm sm:text-base leading-relaxed italic" style={{ color: 'rgba(255,255,255,0.85)', fontFamily: 'var(--q-font-body)' }}>
-                  "Most tools help you present your idea nicely. I wanted the one that tells you if it survives."
-                </p>
-                <p className="mt-2 text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--q-accent-primary)' }}>
-                  Bogdan Jeltov · Founder
-                </p>
-              </div>
-            </div>
+          {/* LEFT — Live Demo Dashboard */}
+          <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 order-2 lg:order-1">
+            <QuantisHeroDemo />
           </div>
 
           {/* RIGHT — Copy + CTA */}
@@ -182,54 +162,7 @@ export function MobileHero() {
           </div>
         </div>
 
-        {/* INSTRUMENT PANEL — below the split */}
-        <div
-          className="animate-fade-in relative -mt-4 mb-12 max-w-4xl mx-auto"
-          style={{ animationDelay: '450ms', animationFillMode: 'both' }}
-        >
-          <div
-            className="rounded-2xl p-5 sm:p-6"
-            style={{
-              background: 'var(--q-bg-surface)',
-              border: '1px solid var(--q-border-subtle)',
-              boxShadow: '0 20px 50px -15px rgba(0,0,0,0.3)',
-              backdropFilter: 'blur(12px)',
-            }}
-          >
-            {/* Label */}
-            <div className="flex items-center justify-between mb-4">
-              <span className="text-[10px] uppercase tracking-widest font-semibold" style={{ color: 'var(--q-text-tertiary)' }}>
-                Live Example: Specialty coffee shop in Austin, TX
-              </span>
-              <span
-                className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider"
-                style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--q-status-red)' }}
-              >
-                HIGH RISK
-              </span>
-            </div>
-
-            {/* 4 metric cards */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {metrics.map(m => (
-                <div
-                  key={m.label}
-                  className="p-4 rounded-xl text-center"
-                  style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-subtle)' }}
-                >
-                  <m.icon className="w-4 h-4 mx-auto mb-2" style={{ color: statusColor[m.status] }} />
-                  <p className="text-[10px] uppercase tracking-wider mb-1" style={{ color: 'var(--q-text-tertiary)' }}>{m.label}</p>
-                  <p
-                    className="text-lg sm:text-xl font-bold tabular-nums"
-                    style={{ color: statusColor[m.status], fontFamily: 'var(--q-font-mono, monospace)' }}
-                  >
-                    {m.value}
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
+      </div>
       </div>
     </section>
   );

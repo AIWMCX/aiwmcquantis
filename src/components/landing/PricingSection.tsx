@@ -26,20 +26,21 @@ const PRICING = {
 
 const FREE_FEATURES = [
   { text: '3 analyses per month', highlight: false },
-  { text: 'Basic financial projections', highlight: false },
+  { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo or advanced modeling' },
   { text: '3 document templates', highlight: false },
-  { text: '5 downloads per day', highlight: false },
+  { text: '5 downloads per day', highlight: false, subtext: 'Watermarked exports' },
   { text: 'Email support', highlight: false },
 ];
 
 const PLUS_FEATURES = [
-  { text: 'Unlimited analyses', highlight: true, subtext: 'Worth $2,000+ in consultant fees' },
-  { text: 'Advanced financial modeling', highlight: true, subtext: '12-variable projections with scenarios' },
+  { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
+  { text: 'Monte Carlo simulations', highlight: true, subtext: '1,000+ scenario stress-tests per analysis' },
+  { text: 'Custom branding', highlight: true, subtext: 'White-label reports with your logo — impress clients' },
+  { text: 'Advanced financial modeling', highlight: false, subtext: '12-variable projections with scenarios' },
   { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },
   { text: 'Professional PDF exports', highlight: false },
   { text: 'All document templates', highlight: false },
   { text: 'Unlimited downloads', highlight: false },
-  { text: 'Custom branding', highlight: false, subtext: 'White-label reports with your logo' },
   { text: 'Priority support', highlight: false },
 ];
 
@@ -170,7 +171,7 @@ export function PricingSection() {
                 className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all relative"
               >
                 Annual
-                <span className="ml-2 text-xs font-semibold" style={{ color: '#059669' }}>
+                <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
                   Save 17%
                 </span>
               </ToggleGroupItem>
