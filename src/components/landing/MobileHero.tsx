@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign } from 'lucide-react';
+import { Zap, ArrowRight, Shield, Star, TrendingUp, AlertTriangle, Clock, DollarSign, Coffee } from 'lucide-react';
 import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
 import { QuantisHeroDemo } from './QuantisHeroDemo';
+import { LiveCounter } from './LiveCounter';
+import { supabase } from '@/integrations/supabase/client';
 
 /* ── Animated counter for instrument panel ── */
 function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { end: number; prefix?: string; suffix?: string; duration?: number }) {
@@ -23,6 +25,19 @@ function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { en
 
 export function MobileHero() {
   const navigate = useNavigate();
+  const [analysisCount, setAnalysisCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      try {
+        const { count, error } = await supabase
+          .from('analyses')
+          .select('*', { count: 'exact', head: true });
+        if (!error && count !== null) setAnalysisCount(count);
+      } catch {}
+    }, 1000);
+    return () => clearTimeout(timer);
+  }, []);
 
   const handlePreMortem = () => {
     trackCtaClick('run_pre_mortem', 'hero_primary');
@@ -33,6 +48,20 @@ export function MobileHero() {
   const handleViewReport = () => {
     trackCtaClick('view_real_report', 'hero_secondary');
     navigate('/examples');
+  };
+
+  const handleTrySample = () => {
+    trackCtaClick('try_sample_coffee_shop', 'hero_sample');
+    localStorage.setItem('prefill_analysis', JSON.stringify({
+      idea: 'Specialty coffee shop with local pastries and co-working space',
+      location: 'Austin, TX',
+      selected_industry: 'coffee_shop',
+      startup_investment: 45000,
+      average_price: 6.50,
+      expected_customers: 80,
+      monthly_costs: 8500,
+    }));
+    navigate('/app');
   };
 
   const metrics = [
@@ -109,9 +138,11 @@ export function MobileHero() {
               className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
-              Quantis runs a financial pre-mortem on your business model. It simulates
-              1,000+ futures, flags fatal assumptions, and gives you a proceed/pivot/kill
-              verdict in 90 seconds.
+              {analysisCount && analysisCount > 10
+                ? `${analysisCount.toLocaleString()} business models stress-tested so far. `
+                : ''}
+              Quantis simulates 1,000+ futures, flags fatal assumptions, and gives you
+              a proceed/pivot/kill verdict in 90 seconds.
             </p>
 
             {/* CTA Row */}
@@ -138,6 +169,16 @@ export function MobileHero() {
               >
                 View a real report →
               </Button>
+              <Button
+                onClick={handleTrySample}
+                variant="ghost"
+                size="lg"
+                className="gap-2 text-sm font-medium px-5 h-[44px]"
+                style={{ color: 'var(--q-accent-primary)', border: '1px solid var(--q-accent-primary)', background: 'var(--q-accent-glow)' }}
+              >
+                <Coffee className="w-4 h-4" />
+                Try: Coffee Shop in Austin →
+              </Button>
             </div>
 
             {/* Trust strip */}
@@ -158,6 +199,11 @@ export function MobileHero() {
                 <Shield className="w-3.5 h-3.5" />
                 SOC 2 ready
               </span>
+            </div>
+
+            {/* Live Counter */}
+            <div className="animate-fade-in flex justify-center lg:justify-start" style={{ animationDelay: '400ms', animationFillMode: 'both' }}>
+              <LiveCounter />
             </div>
           </div>
         </div>

@@ -63,6 +63,8 @@ export function CompactAnalysisForm({
   const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(financialInputs.selected_industry);
   const [depth, setDepth] = useState('full');
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set(['bi']));
+  const isFirstTimeAnon = !isAuthenticated && !localStorage.getItem('has_run_analysis');
+  const [showAdvanced, setShowAdvanced] = useState(!isFirstTimeAnon);
 
   const toggleOutput = useCallback((id: string) => {
     setSelectedOutputs(prev => {
@@ -159,7 +161,7 @@ export function CompactAnalysisForm({
       </div>
 
       {/* 3-column grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-[1fr_1.6fr_260px] gap-4">
+      <div className={`grid grid-cols-1 ${showAdvanced ? 'md:grid-cols-2 lg:grid-cols-[1fr_1.6fr_260px]' : 'md:grid-cols-[1fr_260px]'} gap-4`}>
         <IndustryStep
           selectedIndustry={selectedIndustry}
           onIndustrySelect={handleIndustrySelect}
@@ -172,13 +174,15 @@ export function CompactAnalysisForm({
           isAuthenticated={isAuthenticated}
         />
 
-        <FinancialsStep
-          financialInputs={financialInputs}
-          updateField={updateField}
-          selectedIndustry={selectedIndustry}
-          depth={depth}
-          onDepthChange={setDepth}
-        />
+        {showAdvanced && (
+          <FinancialsStep
+            financialInputs={financialInputs}
+            updateField={updateField}
+            selectedIndustry={selectedIndustry}
+            depth={depth}
+            onDepthChange={setDepth}
+          />
+        )}
 
         <ConfidenceSidebar
           confidence={confidence}
@@ -193,29 +197,44 @@ export function CompactAnalysisForm({
         />
       </div>
 
+      {/* Expand financials for first-time users */}
+      {!showAdvanced && (
+        <button
+          type="button"
+          onClick={() => setShowAdvanced(true)}
+          className="flex items-center gap-2 mx-auto text-[13px] font-medium px-4 py-2 rounded-lg transition-all hover:opacity-80"
+          style={{ color: 'var(--q-accent-primary)', background: 'var(--q-accent-glow)', border: '1px solid var(--q-border-subtle)' }}
+        >
+          <TrendingUp className="w-3.5 h-3.5" />
+          Want more precision? Add your financial numbers ↓
+        </button>
+      )}
+
       {/* Multi-Output Selector */}
-      <div className="flex flex-wrap items-center gap-2 px-1">
-        <span className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>What do you want?</span>
-        {OUTPUT_TYPES.map(opt => {
-          const active = selectedOutputs.has(opt.id);
-          return (
-            <button
-              key={opt.id}
-              type="button"
-              onClick={() => toggleOutput(opt.id)}
-              className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all duration-150 cursor-pointer"
-              style={{
-                background: active ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
-                border: `1.5px solid ${active ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
-                color: active ? 'var(--q-accent-primary)' : 'var(--q-text-tertiary)',
-              }}
-            >
-              {active ? '✓ ' : ''}{opt.label}
-            </button>
-          );
-        })}
-      </div>
-      {selectedOutputs.has('invoice') && (
+      {showAdvanced && (
+        <div className="flex flex-wrap items-center gap-2 px-1">
+          <span className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>What do you want?</span>
+          {OUTPUT_TYPES.map(opt => {
+            const active = selectedOutputs.has(opt.id);
+            return (
+              <button
+                key={opt.id}
+                type="button"
+                onClick={() => toggleOutput(opt.id)}
+                className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all duration-150 cursor-pointer"
+                style={{
+                  background: active ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                  border: `1.5px solid ${active ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
+                  color: active ? 'var(--q-accent-primary)' : 'var(--q-text-tertiary)',
+                }}
+              >
+                {active ? '✓ ' : ''}{opt.label}
+              </button>
+            );
+          })}
+        </div>
+      )}
+      {showAdvanced && selectedOutputs.has('invoice') && (
         <p className="text-[11px] px-1" style={{ color: 'var(--q-status-ai)' }}>
           We'll assess if this business model supports your invoice volume and margins
         </p>
