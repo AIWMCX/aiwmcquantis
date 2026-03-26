@@ -153,31 +153,29 @@ export function MobileHero() {
               <Button
                 onClick={handlePreMortem}
                 size="lg"
-                className="gap-2 text-base font-semibold px-7 h-[52px] min-w-[260px] transition-transform hover:scale-[1.02]"
+                className="text-base font-semibold px-8 h-[52px] min-w-[260px] transition-transform hover:scale-[1.02]"
                 style={{ background: 'var(--q-gradient-accent)' }}
                 data-event-id="run_pre_mortem_click"
               >
-                <Zap className="w-5 h-5" />
-                Run my 90-second pre-mortem →
+                Run my 90-second pre-mortem
               </Button>
               <Button
                 onClick={handleViewReport}
                 variant="ghost"
                 size="lg"
-                className="gap-2 text-base font-medium px-7 h-[52px]"
+                className="text-base font-medium px-7 h-[52px]"
                 style={{ color: 'var(--q-text-secondary)', border: '1px solid var(--q-border-default)' }}
               >
-                View a real report →
+                View a real report
               </Button>
               <Button
                 onClick={handleTrySample}
                 variant="ghost"
                 size="lg"
-                className="gap-2 text-sm font-medium px-5 h-[44px]"
+                className="text-sm font-medium px-6 h-[44px]"
                 style={{ color: 'var(--q-accent-primary)', border: '1px solid var(--q-accent-primary)', background: 'var(--q-accent-glow)' }}
               >
-                <Coffee className="w-4 h-4" />
-                Try: Coffee Shop in Austin →
+                Try: Coffee Shop in Austin
               </Button>
             </div>
 
