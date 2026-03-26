@@ -76,7 +76,7 @@ export function MobileHero() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-16 items-center min-h-[720px] py-12 lg:py-20">
 
           {/* LEFT — Live Demo Dashboard */}
-          <div className="relative w-full max-w-[520px] mx-auto lg:mx-0 order-2 lg:order-1">
+          <div className="relative w-full max-w-[640px] mx-auto lg:mx-0 order-2 lg:order-1">
             <QuantisHeroDemo />
           </div>
 
