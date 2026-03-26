@@ -172,7 +172,7 @@ export function MobileHero() {
                 onClick={handleTrySample}
                 variant="ghost"
                 size="lg"
-                className="text-sm font-medium px-6 h-[44px]"
+                className="text-sm font-medium px-6 h-[44px] whitespace-nowrap min-w-fit"
                 style={{ color: 'var(--q-accent-primary)', border: '1px solid var(--q-accent-primary)', background: 'var(--q-accent-glow)' }}
               >
                 Try: Coffee Shop in Austin
