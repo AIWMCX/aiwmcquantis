@@ -3,28 +3,34 @@ import { Quote } from 'lucide-react';
 
 const testimonials = [
   {
-    quote: 'This is the first tool that argues with my assumptions instead of nodding along.',
-    name: 'Sarah K.',
-    role: 'Startup Advisor, SCORE',
-    initials: 'SK',
+    quote: 'Quantis showed my LTV:CAC was 1.2x — I was scaling a money-losing machine. Restructured pricing before burning another $30K.',
+    name: 'Oleg M.',
+    role: 'SaaS Founder',
+    initials: 'OM',
   },
   {
-    quote: "I ran my food truck idea through Quantis and it showed me I'd burn through runway in 6 months. Saved me $40K.",
-    name: 'Marcus D.',
-    role: 'First-time Founder',
-    initials: 'MD',
+    quote: 'The stress map flagged my payroll ratio at 48% of revenue. Cut it to 32% and hit profitability in month 4.',
+    name: 'Vlad K.',
+    role: 'Restaurant Owner',
+    initials: 'VK',
   },
   {
-    quote: 'The pre-mortem report is what I wish every pitch deck included. It shows founders actually understand their risks.',
-    name: 'Priya R.',
-    role: 'Angel Investor',
-    initials: 'PR',
+    quote: 'Break-even at 22 months? The tool told me to renegotiate my lease first. Dropped it to 14 months.',
+    name: 'Aleksandr T.',
+    role: 'Real Estate Investor',
+    initials: 'AT',
   },
   {
-    quote: 'We use it to validate client ideas before building financial models. Cuts our scoping time in half.',
-    name: 'James L.',
+    quote: 'I ran 3 scenarios before launch. The conservative projection was dead accurate at month 6.',
+    name: 'Andrew P.',
+    role: 'E-commerce Founder',
+    initials: 'AP',
+  },
+  {
+    quote: 'I use Quantis to pre-mortem every client pitch. The risk index catches what spreadsheets miss.',
+    name: 'Mike S.',
     role: 'Business Consultant',
-    initials: 'JL',
+    initials: 'MS',
   },
 ];
 
@@ -44,7 +50,7 @@ export function Testimonials() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {testimonials.map(t => (
             <div
               key={t.name}
