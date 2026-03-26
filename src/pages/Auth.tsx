@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { Brain, Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
+import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
@@ -129,11 +130,8 @@ export default function Auth() {
         {/* Left — Brand panel (hidden on mobile) */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: 'var(--q-gradient-hero)' }}>
           <div className="max-w-md space-y-8">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="p-2.5 rounded-xl bg-primary/10">
-                <Brain className="w-10 h-10 text-primary" />
-              </div>
-              <h1 className="text-3xl font-bold text-foreground" style={{ fontFamily: 'Sora, sans-serif' }}>AIWMC Quantis</h1>
+            <div className="mb-6">
+              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-12 w-auto object-contain dark:invert" />
             </div>
             <p className="text-lg text-muted-foreground leading-relaxed">
               AI-powered business validation. Stress-test your startup idea before you commit capital.
@@ -169,11 +167,8 @@ export default function Auth() {
             </Button>
 
             {/* Mobile-only logo */}
-            <div className="flex items-center gap-3 mb-8 lg:hidden">
-              <div className="p-2 rounded-lg bg-primary/10">
-                <Brain className="w-8 h-8 text-primary" />
-              </div>
-              <h1 className="text-2xl font-bold text-foreground">AIWMC Quantis</h1>
+            <div className="mb-8 lg:hidden">
+              <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-10 w-auto object-contain dark:invert" />
             </div>
 
             <Card className="w-full">
