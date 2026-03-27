@@ -147,36 +147,38 @@ export function MobileHero() {
 
             {/* CTA Row */}
             <div
-              className="animate-fade-in flex flex-col sm:flex-row items-center justify-center lg:justify-start gap-3"
+              className="animate-fade-in flex flex-col items-center lg:items-start gap-4 w-full max-w-[400px] mx-auto lg:mx-0"
               style={{ animationDelay: '240ms', animationFillMode: 'both' }}
             >
               <Button
                 onClick={handlePreMortem}
                 size="lg"
-                className="text-base font-semibold px-8 h-[52px] min-w-[260px] transition-transform hover:scale-[1.02]"
+                className="w-full text-base font-semibold h-[52px] transition-transform hover:scale-[1.02]"
                 style={{ background: 'var(--q-gradient-accent)' }}
                 data-event-id="run_pre_mortem_click"
               >
                 Run my 90-second pre-mortem
               </Button>
-              <Button
-                onClick={handleViewReport}
-                variant="ghost"
-                size="lg"
-                className="text-base font-medium px-7 h-[52px]"
-                style={{ color: 'var(--q-text-secondary)', border: '1px solid var(--q-border-default)' }}
-              >
-                View a real report
-              </Button>
-              <Button
-                onClick={handleTrySample}
-                variant="ghost"
-                size="lg"
-                className="text-sm font-medium px-6 h-[44px] whitespace-nowrap min-w-fit"
-                style={{ color: 'var(--q-accent-primary)', border: '1px solid var(--q-accent-primary)', background: 'var(--q-accent-glow)' }}
-              >
-                Try: Coffee Shop in Austin
-              </Button>
+              <div className="flex gap-3 w-full">
+                <Button
+                  onClick={handleViewReport}
+                  variant="ghost"
+                  size="lg"
+                  className="flex-1 text-sm font-medium h-[44px]"
+                  style={{ color: 'var(--q-text-secondary)', border: '1px solid var(--q-border-default)' }}
+                >
+                  View a real report
+                </Button>
+                <Button
+                  onClick={handleTrySample}
+                  variant="ghost"
+                  size="lg"
+                  className="flex-1 text-sm font-medium h-[44px]"
+                  style={{ color: 'var(--q-accent-primary)', border: '1px solid var(--q-accent-primary)', background: 'var(--q-accent-glow)' }}
+                >
+                  Try: Coffee Shop in Austin
+                </Button>
+              </div>
             </div>
 
             {/* Trust strip */}
