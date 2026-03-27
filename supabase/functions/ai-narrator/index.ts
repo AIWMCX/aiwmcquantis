@@ -9,6 +9,8 @@
  * - Independent timeout handling
  * - Can retry/fallback without affecting other services
  * - Easier to swap AI providers
+ * 
+ * MASTER PROMPT v2 — 30-Day Accuracy Lockdown
  */
 
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
@@ -18,6 +20,60 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+// ========== SHARED MASTER PROMPT DIRECTIVES ==========
+// Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
+
+const MASTER_PROMPT_DIRECTIVES = `
+## IDENTITY & ROLE
+
+You are AIWMC Quantis — a Senior FP&A Director and industry consultant.
+No buzzwords, no hand-waving. Every insight must be traceable to explicit assumptions.
+
+## ASSUMPTIONS-FIRST RULE
+
+Before any qualitative commentary, populate assumptions_panel_json listing every high-impact assumption:
+- assumption: Human-readable description.
+- category: "demand" | "pricing" | "cost" | "capacity" | "financing" | "other".
+- source: "user_input" | "benchmark_placeholder" | "derived_from_user".
+- sensitivity: "HIGH" | "MEDIUM" | "LOW".
+- impact: What it moves (e.g., "affects payback and runway").
+
+Your narrative MUST be consistent with these assumptions.
+
+## DATA QUALITY TRANSPARENCY
+
+Populate data_quality_json with honest assessment:
+- completeness_pct (0-100), consistency_score (1-5), assumption_load ("LOW"/"MEDIUM"/"HIGH"),
+  volatility_rating ("LOW"/"MEDIUM"/"HIGH"), overall_label ("DATA_INFORMED"/"ASSUMPTION_HEAVY"/"EXPLORATORY"), notes (1-2 sentences).
+
+## NO HIDDEN BENCHMARKS
+
+When referencing industry ranges, label them as "reference range, not a prediction" and show percentile positioning where possible.
+
+## INDUSTRY-SPECIFIC REVENUE LOGIC
+
+Use correct revenue archetype per business type:
+- Coffee shop/Restaurant: covers × ticket × operating days
+- SaaS: subs × ARPU, churn-driven
+- Ecommerce: sessions × conversion × AOV
+- Consulting/Agency: billable hours × rate × utilization
+- Fitness: memberships + class passes, occupancy
+- Real estate: units × occupancy × rent
+
+## EXPLICIT VIABILITY VERDICTS
+
+Use: VIABLE (positive unit economics, payback ≤ 24mo), MARGINALLY VIABLE (borderline, payback 24-48mo),
+HIGH-RISK (weak unit economics, top/bottom 10% assumptions), NOT VIABLE (negative unit economics under stress).
+
+## TRACEABILITY CONTRACT
+
+For every major metric, point to the underlying formula and inputs. If you cannot, mark as "illustrative only."
+
+## 30-DAY ACCURACY LOCKDOWN
+
+Under-promise on weak inputs. Mark assumption-heavy sections explicitly. Prefer ranges over point estimates.
+`;
 
 // ========== TYPES ==========
 
@@ -70,6 +126,8 @@ export interface NarratorOutput {
     confidence: number;
     sources: string;
     limitations: string;
+    assumptions_panel_json?: string;
+    data_quality_json?: string;
   };
   error?: string;
   usedFallback: boolean;
@@ -83,7 +141,7 @@ const analysisToolSchema = {
   type: "function",
   function: {
     name: "submit_analysis",
-    description: "Submit comprehensive business analysis with detailed structured data",
+    description: "Submit comprehensive business analysis with detailed structured data. You are a narrator — all financial data comes from the engine. Explain, contextualize, and recommend.",
     parameters: {
       type: "object",
       properties: {
@@ -93,7 +151,7 @@ const analysisToolSchema = {
         },
         business_json: { 
           type: "string", 
-          description: "JSON with executive_summary, product_description, target_audience, competitive_advantages, operations, launch_steps, risks" 
+          description: "JSON with executive_summary (include viability verdict), product_description, target_audience, competitive_advantages, operations, launch_steps, risks" 
         },
         marketing_json: { 
           type: "string", 
@@ -101,13 +159,21 @@ const analysisToolSchema = {
         },
         market_json: { 
           type: "string", 
-          description: "JSON with tam, sam, som, trends, competitors, competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities" 
+          description: "JSON with tam, sam, som (use industry-appropriate definitions), trends, competitors, competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities" 
         },
-        confidence: { type: "number", description: "Confidence score 0-100" },
-        sources: { type: "string", description: "Comma-separated data sources" },
-        limitations: { type: "string", description: "Comma-separated limitations" }
+        assumptions_panel_json: {
+          type: "string",
+          description: "JSON array of {assumption, category, source, sensitivity, impact}. Every high-impact assumption must be declared."
+        },
+        data_quality_json: {
+          type: "string",
+          description: "JSON with {completeness_pct, consistency_score, assumption_load, volatility_rating, overall_label, notes}."
+        },
+        confidence: { type: "number", description: "Confidence score 0-100. Must be consistent with data_quality_json." },
+        sources: { type: "string", description: "Comma-separated data sources with attribution" },
+        limitations: { type: "string", description: "Comma-separated limitations and caveats" }
       },
-      required: ["financial_json", "business_json", "marketing_json", "market_json", "confidence"]
+      required: ["financial_json", "business_json", "marketing_json", "market_json", "assumptions_panel_json", "data_quality_json", "confidence"]
     }
   }
 };
@@ -135,7 +201,7 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
       equipment: Math.round(investment * 0.35)
     }),
     business_json: JSON.stringify({
-      executive_summary: `This ${industry.name} business in ${location} represents a solid investment opportunity. With projected monthly revenue of $${mrr.toLocaleString()} and an initial investment of $${investment.toLocaleString()}, the business targets the growing demand in the local market. Industry benchmarks indicate net margins of ${industry.net_margin_min}-${industry.net_margin_max}%, suggesting healthy profitability potential when executed well.`,
+      executive_summary: `This ${industry.name} business in ${location} is under EXPLORATORY analysis — most inputs are benchmark-derived placeholders. With projected monthly revenue of $${mrr.toLocaleString()} and an initial investment of $${investment.toLocaleString()}, the business targets the local market. Industry benchmarks indicate net margins of ${industry.net_margin_min}-${industry.net_margin_max}% (reference range, not a prediction). This analysis is heavily assumption-based and should be validated with real operational data before making financial commitments.`,
       product_description: `A ${industry.name.toLowerCase()} offering designed for the ${location} market, delivering value through quality and customer-centric service at an average price point of $${avgCheck}.`,
       target_audience: `Primary customers in ${location} seeking quality ${industry.name.toLowerCase()} solutions. Demographics include value-conscious consumers who prioritize quality and convenience.`,
       competitive_advantages: "1) Customer-centric approach with personalized service. 2) Operational efficiency enabling competitive pricing. 3) Technology-enabled processes. 4) Strong local market knowledge.",
@@ -157,7 +223,7 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
     }),
     marketing_json: JSON.stringify({
       positioning: `For customers in ${location} who need reliable ${industry.name.toLowerCase()} solutions, we offer a customer-focused approach that prioritizes quality and convenience.`,
-      pricing_strategy: `Pricing targets the $${industry.average_check_min}-$${industry.average_check_max} range, positioning in the quality-value segment with ${industry.net_margin_min}-${industry.net_margin_max}% net margins.`,
+      pricing_strategy: `Pricing targets the $${industry.average_check_min}-$${industry.average_check_max} range (industry reference range), positioning in the quality-value segment with ${industry.net_margin_min}-${industry.net_margin_max}% net margins.`,
       channels: [
         { channel: "Digital Advertising", description: "Google Ads and Meta platforms targeting high-intent keywords", budget_monthly: Math.round(mrr * 0.08), expected_roi: "2.5-3.5x return" },
         { channel: "Content Marketing", description: "SEO-optimized content addressing customer pain points", budget_monthly: Math.round(mrr * 0.04), expected_roi: "5-10x over 12 months" },
@@ -170,7 +236,7 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
     }),
     market_json: JSON.stringify({
       tam: `The ${industry.name} market globally represents multi-billion dollar opportunity with consistent growth.`,
-      sam: `The ${location} market and surrounding regions represent $50-200M in annual spending.`,
+      sam: `The ${location} market and surrounding regions represent $50-200M in annual spending (reference range estimate).`,
       som: `Realistic first-year target of $${(mrr * 12).toLocaleString()} based on capacity and market penetration assumptions.`,
       trends: [
         "Digital transformation driving customer expectations for convenience",
@@ -187,9 +253,24 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
       barriers_to_entry: `Initial capital of $${investment.toLocaleString()}, time to build reputation, and competitive response.`,
       growth_opportunities: `Geographic expansion within ${location} region, service extensions, and strategic partnerships.`
     }),
-    sources: "Industry benchmarks, market analysis, location intelligence",
-    limitations: "Analysis based on industry averages; results may vary based on execution",
-    confidence: 70
+    assumptions_panel_json: JSON.stringify([
+      { assumption: `Monthly revenue of $${mrr.toLocaleString()} based on industry benchmark average`, category: 'demand', source: 'benchmark_placeholder', sensitivity: 'HIGH', impact: 'Directly affects all profitability and payback metrics' },
+      { assumption: `CAC of $${cac} from industry range $${industry.cac_min}-$${industry.cac_max}`, category: 'cost', source: 'benchmark_placeholder', sensitivity: 'HIGH', impact: 'Affects LTV:CAC ratio and unit economics viability' },
+      { assumption: `Net margin ${industry.net_margin_min}-${industry.net_margin_max}% (industry reference range)`, category: 'pricing', source: 'benchmark_placeholder', sensitivity: 'HIGH', impact: 'Affects profitability timeline' },
+      { assumption: `Initial investment of $${investment.toLocaleString()}`, category: 'financing', source: 'benchmark_placeholder', sensitivity: 'MEDIUM', impact: 'Affects payback period and ROI' },
+      { assumption: `Customer lifetime of ${industry.client_lifetime_months} months`, category: 'demand', source: 'benchmark_placeholder', sensitivity: 'MEDIUM', impact: 'Affects LTV calculations' },
+    ]),
+    data_quality_json: JSON.stringify({
+      completeness_pct: 20,
+      consistency_score: 3,
+      assumption_load: 'HIGH',
+      volatility_rating: 'MEDIUM',
+      overall_label: 'EXPLORATORY',
+      notes: 'Fallback mode: upstream model response incomplete. Most metrics are benchmark-derived placeholders. Outputs are illustrative only and must not be used for final decisions.',
+    }),
+    sources: "Industry benchmarks (reference ranges), location intelligence",
+    limitations: "Analysis based on industry averages (benchmark placeholders); results are illustrative and may vary significantly based on execution and real-world data",
+    confidence: 45
   };
 }
 
@@ -245,7 +326,7 @@ ${input.financialInputs.monthly_costs ? `- Monthly Operating Costs: $${input.fin
 ` : '';
 
     const calculatedContext = input.calculatedMetrics ? `
-## CALCULATED METRICS (FROM FINANCIAL ENGINE)
+## CALCULATED METRICS (FROM FINANCIAL ENGINE — USE THESE EXACT NUMBERS)
 - MRR: $${input.calculatedMetrics.mrr.toLocaleString()}
 - Net Profit: $${input.calculatedMetrics.netProfit.toLocaleString()}
 - LTV: $${input.calculatedMetrics.ltv.toLocaleString()}
@@ -254,7 +335,7 @@ ${input.financialInputs.monthly_costs ? `- Monthly Operating Costs: $${input.fin
 - Payback: ${input.calculatedMetrics.paybackMonths} months
 ` : '';
 
-    const prompt = `You are a Senior Partner at a top-tier consulting firm analyzing a business opportunity.
+    const prompt = `${MASTER_PROMPT_DIRECTIVES}
 
 ## BUSINESS IDEA
 ${input.businessIdea}
@@ -265,13 +346,13 @@ ${input.location}
 ## INDUSTRY: ${input.industry.name}
 ${userFinancialContext}${calculatedContext}
 
-## INDUSTRY BENCHMARKS
+## INDUSTRY BENCHMARKS (reference ranges, not predictions)
 - Average Transaction: $${input.industry.average_check_min} - $${input.industry.average_check_max}
 - Customer Acquisition Cost: $${input.industry.cac_min} - $${input.industry.cac_max}
 - Net Margin Range: ${input.industry.net_margin_min}% - ${input.industry.net_margin_max}%
 - Client Lifetime: ${input.industry.client_lifetime_months} months
 
-Provide comprehensive, actionable analysis. Call submit_analysis with all sections in English.`;
+Provide comprehensive, actionable analysis. Use the correct industry archetype for revenue logic. Position metrics against industry percentiles where possible. Include viability verdict (VIABLE/MARGINALLY VIABLE/HIGH-RISK/NOT VIABLE). Declare all assumptions and rate data quality honestly. Call submit_analysis with all sections in English.`;
 
     // Make AI request with fast timeout to prevent client disconnection
     const controller = new AbortController();
@@ -374,7 +455,7 @@ Provide comprehensive, actionable analysis. Call submit_analysis with all sectio
           content: fallbackContent,
           usedFallback: true,
           model: "deterministic-fallback",
-          error: errorMessage.includes('abort') ? 'Timeout after 45s' : errorMessage,
+          error: errorMessage.includes('abort') ? 'Timeout after 25s' : errorMessage,
           latencyMs: Date.now() - startTime
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }

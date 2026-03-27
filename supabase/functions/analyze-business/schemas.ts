@@ -159,10 +159,31 @@ export interface ActionStep {
   metric_reference?: string;
 }
 
+export interface AssumptionEntry {
+  assumption: string;
+  category: 'demand' | 'pricing' | 'cost' | 'capacity' | 'financing' | 'other';
+  source: 'user_input' | 'benchmark_placeholder' | 'derived_from_user';
+  sensitivity: 'HIGH' | 'MEDIUM' | 'LOW';
+  impact: string;
+}
+
+export interface DataQuality {
+  completeness_pct: number;
+  consistency_score: number;
+  assumption_load: 'LOW' | 'MEDIUM' | 'HIGH';
+  volatility_rating: 'LOW' | 'MEDIUM' | 'HIGH';
+  overall_label: 'DATA_INFORMED' | 'ASSUMPTION_HEAVY' | 'EXPLORATORY';
+  notes: string;
+}
+
 export interface NarratorOutput {
   executive_summary: string;
   investment_verdict: 'HIGH_RISK' | 'MEDIUM_RISK' | 'LOW_RISK' | 'PROMISING';
   key_takeaways: string[];
+  
+  // Master prompt v2 fields
+  assumptions_panel?: AssumptionEntry[];
+  data_quality?: DataQuality | Record<string, unknown>;
   
   business_plan: {
     product_description: string;
