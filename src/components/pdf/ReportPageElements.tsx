@@ -11,9 +11,9 @@ export function ReportHeader({ title, idea, pageNumber }: ReportHeaderProps) {
   return (
     <div style={pdfStyles.pageHeader}>
       <div style={pdfStyles.pageHeaderLeft}>
-        <span style={pdfStyles.pageHeaderTitle}>{idea}</span>
+        <span style={pdfStyles.pageHeaderTitle} title={idea}>{idea}</span>
         <span style={pdfStyles.pageHeaderSeparator}>|</span>
-        <span style={pdfStyles.pageHeaderSection}>{title}</span>
+        <span style={{ ...pdfStyles.pageHeaderSection, flexShrink: 0 }}>{title}</span>
       </div>
       <div style={pdfStyles.pageHeaderLogo}>AIWMC</div>
     </div>

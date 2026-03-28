@@ -186,22 +186,31 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     display: 'flex',
     alignItems: 'center',
     gap: '12px',
+    overflow: 'hidden' as const,
+    flex: 1,
+    minWidth: 0,
   },
   
   pageHeaderTitle: {
     fontSize: '12px',
     fontWeight: '600',
     color: colors.textSecondary,
+    maxWidth: '60%',
+    overflow: 'hidden' as const,
+    textOverflow: 'ellipsis' as const,
+    whiteSpace: 'nowrap' as const,
   },
   
   pageHeaderSeparator: {
     color: colors.border,
+    flexShrink: 0,
   },
   
   pageHeaderSection: {
     fontSize: '12px',
     color: colors.accent,
     fontWeight: '500',
+    flexShrink: 0,
   },
   
   pageHeaderLogo: {

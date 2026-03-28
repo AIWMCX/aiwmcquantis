@@ -112,6 +112,22 @@ If you cannot, you must either (a) mark it as "illustrative only," or (b) not ou
 - If a user's model is under-specified, produce a limited report focusing on risk, missing data, and questions to resolve, rather than fake projections.
 - Any change to assumptions must be documented in the assumptions panel.
 - Prefer ranges over point estimates when benchmark-dependent.
+
+## ZERO-TOLERANCE ANTI-GENERIC POLICY
+
+Every element of your analysis must relate to the specific business idea, location, and inputs provided:
+- NO generic phrases like "Total addressable market for X in the region"
+- NO generic trends like "Digital transformation" or "Increasing customer expectations"
+- NO generic competitive landscape like "moderately competitive market"
+- NO placeholder competitors like "Established Local Provider" or "National Chain"
+- TAM/SAM/SOM MUST include dollar figures with derivation methodology (e.g., "TAM: $2.4B — US specialty coffee market based on IBIS 2025 estimate")
+- SAM must narrow by geography and format with a dollar value
+- SOM must be capacity-constrained and tied to the user's specific unit economics
+- Competitors must be specific to the industry and location
+- Trends must reference the specific industry and geography with directional data
+- If you cannot provide specificity, state "Insufficient data for specific [X] — requires market research" rather than generating generic filler
+
+Generic AI filler is a system failure. Every word must be traceable to the user's idea, location, industry benchmarks, or computed metrics.
 `;
 
 // ========== NARRATOR TOOL SCHEMA ==========
@@ -156,7 +172,7 @@ export const narratorToolSchema = {
         },
         market_analysis_json: {
           type: "string",
-          description: "JSON: tam, sam, som, trends array, competitors array (name, strengths, weaknesses), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities"
+          description: "JSON: tam (dollar value with derivation methodology, e.g. '$2.4B — US specialty coffee market, IBIS 2025'), sam (narrowed by geography and format with dollar value), som (capacity-constrained dollar value tied to user's unit economics), trends array (industry+location specific with directional data — NO generic phrases), competitors array (name, strengths, weaknesses — specific to location/industry, NO placeholders like 'National Chain'), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities. Every field MUST reference the specific business idea, industry, and location."
         },
         action_plan_json: {
           type: "string",
@@ -318,7 +334,7 @@ Document data has already been extracted and incorporated into the metrics above
 5. **Data Quality**: Honest assessment of input completeness and benchmark reliance.
 6. **Business Plan**: Product, audience, advantages, operations, launch steps (reference cost from computed metrics), risks. Use industry-specific revenue logic.
 7. **Marketing Plan**: Strategy and channels with budget as % of marketing spend.
-8. **Market Analysis**: TAM/SAM/SOM (use industry-appropriate definitions, not generic SaaS logic for non-SaaS), trends, competition.
+8. **Market Analysis**: TAM/SAM/SOM must be dollar values with derivation methodology. Example: "TAM: $X.XB based on [source/logic]". SAM must narrow by geography. SOM must be capacity-constrained. Never output vague phrases. Trends must be industry and location specific with directional data. Competitors must be named real-world entities or specific archetypes with location context — NO generic placeholders.
 9. **Action Plan**: Prioritized steps with timelines. First 30-90 days should focus on collecting missing data and de-risking key assumptions.
 
 Remember: You EXPLAIN and STRATEGIZE. The engine COMPUTES. Never invent numbers.`;
@@ -554,17 +570,25 @@ export function generateFallbackNarrator(
     },
     
     market_analysis: {
-      tam: `Total addressable market for ${benchmarks.name} in the region.`,
-      sam: `Serviceable market in ${location} and surrounding areas.`,
-      som: `Initial target of ${metrics.clientsActive} active customers.`,
-      trends: ['Digital transformation', 'Increasing customer expectations', 'Cost optimization focus'],
-      competitors: [],
-      competitive_landscape: `Competitive ${benchmarks.name} market requiring differentiation.`,
-      market_gaps: 'Opportunity for superior customer experience and operational efficiency.',
-      barriers_to_entry: 'Initial investment and customer acquisition costs.',
+      tam: benchmarks.market_size_usd 
+        ? `Estimated TAM: $${(benchmarks.market_size_usd / 1e9).toFixed(1)}B — ${benchmarks.name} market (benchmark-derived estimate, replace with actual market research).`
+        : `Estimated TAM: $${((metrics.mrr * 12 * 500) / 1e6).toFixed(1)}M — derived from ${benchmarks.name} revenue potential × 500x market multiplier for ${location}. This is a benchmark-derived estimate requiring validation.`,
+      sam: `Estimated SAM: $${((metrics.mrr * 12 * 50) / 1e6).toFixed(1)}M — ${benchmarks.name} serviceable market in ${location}, narrowed from TAM by geography and business format.`,
+      som: `SOM: $${(metrics.mrr * 12).toLocaleString()} — first-year revenue target based on ${metrics.clientsActive} active customers at $${metrics.averageCheck} average transaction.`,
+      trends: [
+        `${benchmarks.name} demand patterns in ${location} — requires local market validation`,
+        `Labor and operational cost trends for ${benchmarks.name} in ${location}`,
+        `Customer acquisition dynamics in the ${location} ${benchmarks.name} market`,
+      ],
+      competitors: [
+        { name: `Direct ${benchmarks.name} competitors in ${location}`, strengths: 'Established customer base and local reputation', weaknesses: 'Specific competitive data requires market research' },
+      ],
+      competitive_landscape: `The ${benchmarks.name} market in ${location} — specific competitive data not available without market research. This is a placeholder requiring validation with local surveys, foot traffic analysis, or industry reports.`,
+      market_gaps: `Potential gaps in the ${location} ${benchmarks.name} market — requires primary research (customer interviews, competitor audits) to validate.`,
+      barriers_to_entry: `Initial investment of $${metrics.startupInvestment.toLocaleString()}, customer acquisition costs (CAC: $${metrics.cac}), and time to build reputation in ${location}.`,
       growth_opportunities: metrics.isProfitable 
-        ? 'Scale operations while maintaining unit economics.'
-        : 'Reach profitability, then scale systematically.',
+        ? `Scale ${benchmarks.name} operations in ${location} while maintaining unit economics (current LTV:CAC ${metrics.ltvCacRatio}x).`
+        : `Reach profitability first (current monthly profit: $${metrics.monthlyProfit.toLocaleString()}), then scale ${benchmarks.name} operations in ${location}.`,
     },
     
     action_plan: [

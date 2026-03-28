@@ -159,7 +159,7 @@ const analysisToolSchema = {
         },
         market_json: { 
           type: "string", 
-          description: "JSON with tam, sam, som (use industry-appropriate definitions), trends, competitors, competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities" 
+          description: "JSON: tam (dollar value with derivation methodology, e.g. '$2.4B — US specialty coffee market'), sam (narrowed by geography with dollar value), som (capacity-constrained dollar value tied to user's unit economics), trends array (industry+location specific — NO generic phrases like 'Digital transformation'), competitors array (name, strengths, weaknesses — specific to location/industry, NO placeholders), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities. Every field MUST be specific to the business idea, industry, and location." 
         },
         assumptions_panel_json: {
           type: "string",
@@ -235,23 +235,21 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
       first_3_months_plan: `Month 1: Soft launch, validate product-market fit, target 20-30 customers. Month 2: Activate paid channels, launch referral program, target 50-70 customers. Month 3: Scale successful channels, optimize underperformers, target 100+ customers.`
     }),
     market_json: JSON.stringify({
-      tam: `The ${industry.name} market globally represents multi-billion dollar opportunity with consistent growth.`,
-      sam: `The ${location} market and surrounding regions represent $50-200M in annual spending (reference range estimate).`,
-      som: `Realistic first-year target of $${(mrr * 12).toLocaleString()} based on capacity and market penetration assumptions.`,
+      tam: `Estimated TAM: $${((mrr * 12 * 500) / 1e6).toFixed(1)}M — derived from ${industry.name} revenue potential × 500x market multiplier for ${location}. Benchmark-derived estimate requiring validation with actual market research.`,
+      sam: `Estimated SAM: $${((mrr * 12 * 50) / 1e6).toFixed(1)}M — ${industry.name} serviceable market in ${location}, narrowed from TAM by geography and business format.`,
+      som: `SOM: $${(mrr * 12).toLocaleString()} — first-year revenue target based on capacity and unit economics at $${industry.average_check_min}-$${industry.average_check_max} average transaction range.`,
       trends: [
-        "Digital transformation driving customer expectations for convenience",
-        "Growing preference for local, trusted service providers",
-        "Increased focus on customer experience as key differentiator"
+        `${industry.name} demand patterns in ${location} — requires local market validation`,
+        `Labor and operational cost trends for ${industry.name} in ${location}`,
+        `Customer acquisition dynamics in the ${location} ${industry.name} market`,
       ],
       competitors: [
-        { name: "Established Local Provider", strengths: "Market presence, relationships", weaknesses: "Outdated operations" },
-        { name: "National Chain", strengths: "Brand recognition, resources", weaknesses: "Impersonal service" },
-        { name: "Emerging Competitors", strengths: "Fresh approach", weaknesses: "Limited track record" }
+        { name: `Direct ${industry.name} competitors in ${location}`, strengths: "Established customer base and local reputation", weaknesses: "Specific competitive data requires market research" },
       ],
-      competitive_landscape: `The ${industry.name} market in ${location} is moderately competitive with opportunities for differentiated offerings.`,
-      market_gaps: "Underserved segments include busy professionals and digitally-savvy consumers expecting modern service delivery.",
-      barriers_to_entry: `Initial capital of $${investment.toLocaleString()}, time to build reputation, and competitive response.`,
-      growth_opportunities: `Geographic expansion within ${location} region, service extensions, and strategic partnerships.`
+      competitive_landscape: `The ${industry.name} market in ${location} — specific competitive data not available without market research. Requires validation with local surveys or industry reports.`,
+      market_gaps: `Potential gaps in the ${location} ${industry.name} market — requires primary research (customer interviews, competitor audits) to validate.`,
+      barriers_to_entry: `Initial capital of $${investment.toLocaleString()}, customer acquisition costs (CAC: $${cac}), and time to build reputation in ${location}.`,
+      growth_opportunities: `Scale ${industry.name} operations in ${location} based on validated unit economics (current LTV:CAC ${ltvCacRatio.toFixed(1)}x).`,
     }),
     assumptions_panel_json: JSON.stringify([
       { assumption: `Monthly revenue of $${mrr.toLocaleString()} based on industry benchmark average`, category: 'demand', source: 'benchmark_placeholder', sensitivity: 'HIGH', impact: 'Directly affects all profitability and payback metrics' },
