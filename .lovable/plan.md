@@ -1,163 +1,72 @@
-# Integrate Master Prompt into Quantis Analysis Engine
 
-## Summary
 
-Upgrade the AI narrator's system prompt and tool schema across two files to enforce FP&A-director-level analysis standards: assumptions-first framing, industry-specific logic, percentile-based benchmarking, transparent confidence scoring, and explicit viability verdicts.
+# Fix PDF Text Overlap + Eliminate All Generic Content
 
-No changes to the deterministic financial engine, safety guardrails, database, or UI.
+## 4 Changes, 4 Files
 
-## File 1: `supabase/functions/analyze-business/narrator-prompt.ts`
+### 1. Fix PDF Header Text Overflow
+**Files: `src/components/pdf/pdfStyles.ts` + `src/components/pdf/ReportPageElements.tsx`**
 
-### A. Rewrite `buildNarratorSystemPrompt()` (lines 73-216)
+**pdfStyles.ts** — Update `pageHeaderLeft` to add `overflow: 'hidden'`, `flex: 1`, `minWidth: 0`. Update `pageHeaderTitle` to add `maxWidth: '60%'`, `overflow: 'hidden'`, `textOverflow: 'ellipsis'`, `whiteSpace: 'nowrap'`.
 
-Keep the existing immutable financial anchors block and "narrator not calculator" guardrails unchanged. Inject these new directives into the system prompt:
+**ReportPageElements.tsx** — Add `title={idea}` attribute on the `pageHeaderTitle` span so full text is available on hover. Add `style={{ ...pdfStyles.pageHeaderSection, flexShrink: 0 }}` on the section title span so it never gets pushed off screen.
 
-- **Role upgrade**: "You are AIWMC Quantis — a Senior FP&A Director and industry consultant. No buzzwords, no hand-waving. Every insight must be traceable to explicit assumptions."
-- **Assumptions-first rule**: "Before any qualitative commentary, list key assumptions with Source (user input / benchmark placeholder) and Sensitivity (H/M/L)."
-- **No hidden benchmarks**: "When referencing industry ranges, label them as 'reference range, not a prediction' and show the percentile band the user's metric falls in."
-- **Industry-specific logic enforcement**: Add a block instructing the narrator to use correct revenue archetypes:
-  - Coffee shop/restaurant: covers x ticket x operating days
-  - SaaS: subs x ARPU, churn-driven
-  - Ecommerce: sessions x conversion x AOV
-  - Consulting: billable hours x rate x utilization
-  - Real estate: units x occupancy x rent
-  - Fitness: memberships + class passes, occupancy
-- **Percentile positioning**: "Instead of 'your margin is good,' say 'your net margin sits at the Nth percentile for [industry] in [location].'"
-- **Explicit verdicts**: Replace current 4-tier verdict with: VIABLE / MARGINALLY VIABLE / HIGH-RISK / NOT VIABLE, with clear criteria tied to metrics
-- **Opex-volume linking**: "Explain which costs scale with volume and how."
-- **30-day lockdown clause**: "Under-promise on weak inputs. If data is sparse, mark sections as 'heavily assumption-based' rather than producing false precision."
+### 2. Add Zero-Tolerance Anti-Generic Policy to Master Prompt
+**File: `supabase/functions/analyze-business/narrator-prompt.ts`**
 
-### B. Add two new fields to `narratorToolSchema` (lines 19-69)
+Append a new section to `MASTER_PROMPT_DIRECTIVES` (after line 115):
 
-Add to the `properties` object and `required` array:
+```
+## ZERO-TOLERANCE ANTI-GENERIC POLICY
 
-- `assumptions_panel_json`: `"JSON array of {assumption, source, sensitivity, impact}"` — forces AI to declare every key assumption
-- `data_quality_json`: `"JSON with {completeness_pct, consistency_score, assumption_load, volatility_rating, overall_label}"` — transparent confidence breakdown
+Every element of your analysis must relate to the specific business idea, location, and inputs provided:
+- NO generic phrases like "Total addressable market for X in the region"
+- NO generic trends like "Digital transformation" or "Increasing customer expectations"
+- NO generic competitive landscape like "moderately competitive market"
+- NO placeholder competitors like "Established Local Provider" or "National Chain"
+- TAM/SAM/SOM MUST include dollar figures with derivation methodology
+- Competitors must be specific to the industry and location
+- Trends must reference the specific industry and geography with directional data
+- If you cannot provide specificity, state "Insufficient data for specific [X]" rather than generic filler
 
-### C. Update `parseNarratorResponse()` (lines 259-318)
+Generic AI filler is a system failure.
+```
 
-Add parsing for the two new fields (`assumptions_panel`, `data_quality`) with safe defaults.
+### 3. Strengthen TAM/SAM/SOM Schema Descriptions
+**File: `supabase/functions/analyze-business/narrator-prompt.ts`** — Update `market_analysis_json` description (line 157-159) to:
+```
+"JSON: tam (dollar value with methodology, e.g. '$2.4B — US specialty coffee market'), sam (narrowed by geography and format with dollar value), som (capacity-constrained dollar value tied to user's unit economics), trends array (industry+location specific, with directional data), competitors array (name, strengths, weaknesses — specific to location/industry), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities. NO generic descriptions. Every field must reference the specific business idea, industry, and location."
+```
 
-### D. Update `generateFallbackNarrator()` (lines 322-409)
+Update OUTPUT REQUIREMENTS section (line 321) to: `"8. **Market Analysis**: TAM/SAM/SOM must be dollar values with derivation methodology. Example: 'TAM: $X.XB based on [source/logic]'. Never output vague phrases. Trends must be industry and location specific. Competitors must be named real-world entities or specific archetypes with location context."`
 
-- Add `assumptions_panel` with entries marking all values as "benchmark placeholder", sensitivity "HIGH"
-- Add `data_quality` with honest scores: completeness 20%, assumption load "high", overall label "Exploratory"
-- Replace generic language with industry-appropriate phrasing
+**File: `supabase/functions/ai-narrator/index.ts`** — Update `market_json` description (line 160-162) with the same specificity requirements.
 
-## File 2: `supabase/functions/ai-narrator/index.ts`
+### 4. Rewrite All Fallback Content to Eliminate Generic Text
+**File: `supabase/functions/analyze-business/narrator-prompt.ts`** — Rewrite `generateFallbackNarrator()` market_analysis (lines 556-568):
 
-### A. Upgrade inline prompt (line ~257)
+- **TAM**: Compute from `metrics.mrr * 12 * 500` (assumes business captures ~0.2% of addressable market) with explanation: `"Estimated TAM: $X based on [industry] annual revenue potential × market multiplier for [location]. This is a benchmark-derived estimate — replace with actual market research."`
+- **SAM**: `metrics.mrr * 12 * 50` — narrowed by location: `"Estimated SAM: $X for the [location] [industry] market, narrowed from TAM by geography and format."`
+- **SOM**: `metrics.mrr * 12` — actual capacity: `"SOM: $X — first-year revenue target based on ${metrics.clientsActive} active customers at $${metrics.averageCheck} average transaction."`
+- **Trends**: Replace generic list with industry-derived trends using `benchmarks.name` and `location`. Build 3 trends dynamically: `["{benchmarks.name} demand patterns in {location}", "Labor and operational cost trends for {benchmarks.name}", "Customer acquisition dynamics in {location} {benchmarks.name} market"]`
+- **Competitors**: Replace generic placeholders with `[{ name: "Direct {benchmarks.name} competitors in {location}", strengths: "Established customer base", weaknesses: "Potential for differentiation" }]` — honest about lack of specific data
+- **competitive_landscape**: `"The {benchmarks.name} market in {location} — specific competitive data not available without market research. This is a placeholder requiring validation."`
+- **market_gaps / barriers_to_entry / growth_opportunities**: Make industry and location specific using `benchmarks.name`, `location`, and computed metrics
 
-Replace the current short prompt with the same master-prompt directives:
+**File: `supabase/functions/ai-narrator/index.ts`** — Apply same pattern to `generateFallbackContent()` (lines 237-255): rewrite TAM/SAM/SOM with dollar computations, replace generic trends and competitors.
 
-- Assumptions-first framing
-- Industry-specific revenue logic instructions
-- Percentile-based benchmark referencing
-- Explicit data quality labeling
-- VIABLE/MARGINALLY VIABLE/HIGH-RISK/NOT VIABLE verdicts
+## Files Modified
 
-### B. Add new fields to `analysisToolSchema` (lines 87-100)
-
-Add `assumptions_panel_json` and `data_quality_json` matching the main narrator schema.
-
-### C. Update `generateFallbackContent()` (lines 101-170)
-
-Add `assumptions_panel` and `data_quality` fields with honest defaults to the fallback output.
-
-## What Does NOT Change
-
-- Deterministic financial engine (all math stays the same)
-- Safety guardrails and anti-BS validator
-- Cross-validation and consensus engine
-- Client-side UI components
-- Database schema
+| File | Change |
+|------|--------|
+| `src/components/pdf/pdfStyles.ts` | Fix header overflow styles |
+| `src/components/pdf/ReportPageElements.tsx` | Add title attr, prevent section title from being pushed off |
+| `supabase/functions/analyze-business/narrator-prompt.ts` | Anti-generic policy, TAM/SAM/SOM schema, rewrite fallback market analysis |
+| `supabase/functions/ai-narrator/index.ts` | TAM/SAM/SOM schema, rewrite fallback market content |
 
 ## Implementation Order
+1. PDF header fix (visual, immediate)
+2. Anti-generic policy in master prompt
+3. TAM/SAM/SOM schema strengthening (both files)
+4. Fallback content rewrite (both files)
 
-1. Update `narrator-prompt.ts`: system prompt + tool schema + parser + fallback
-2. Update `ai-narrator/index.ts`: inline prompt + tool schema + fallback
-  This integration plan is excellent; I’d keep 95% of it as‑is and only **tighten and extend** a few spots so it’s bulletproof for the next 30 days.
-  Below are focused improvements, not a rewrite.
-  ---
-  ## 1. Strengthen the narrator system prompt (File 1)
-  What you have is good; I’d add three micro‑enhancements.
-  ## 1.1. Add an explicit “traceability” contract
-  In `buildNarratorSystemPrompt()` extend the role block with:
-  > **“For every major metric you describe (revenue, margin, CAC, LTV, payback, runway), you must be able to point to:**
-  >
-  > - **The underlying formula, and**
-  > - **The specific inputs (user or benchmark) feeding it.**  
-  > **If you cannot, you must either (a) mark it as illustrative only, or (b) not output that metric.”**
-  This prevents “orphan” commentary that isn’t clearly tied to the engine outputs.
-  ## 1.2. Force narrative to use new JSON panels
-  Right after you define `assumptions_panel_json` and `data_quality_json`, add to the system prompt:
-  > **“You must:**
-  >
-  > - **Populate** `assumptions_panel_json` **with every high‑impact assumption used in your reasoning.**
-  > - **Populate** `data_quality_json` **with your honest assessment of the input set and benchmark reliance.**  
-  > **Your written narrative must be consistent with these JSON panels; do not contradict your own data‑quality ratings.”**
-  This explicitly binds prose to the structured fields.
-  ## 1.3. Make verdict criteria explicit (not fuzzy)
-  You already swap to: VIABLE / MARGINALLY VIABLE / HIGH‑RISK / NOT VIABLE.
-  Add a short, quantitative rubric inside the system prompt, e.g.:
-  - VIABLE: positive unit economics, payback ≤ 24 months, and no catastrophic benchmark outliers.
-  - MARGINALLY VIABLE: unit economics borderline or payback 24–48 months, multiple high‑sensitivity assumptions.
-  - HIGH‑RISK: structurally weak unit economics or heavy dependence on top/bottom 10% benchmark assumptions.
-  - NOT VIABLE: negative unit economics under realistic benchmark stress, or unsustainable burn/payback.
-  Even if you don’t enforce exact thresholds in code, this aligns the narrator’s mental model.
-  ---
-  ## 2. Tighten the new JSON fields design
-  What you wrote is strong; I’d just make the shapes a bit more precise.
-  ## 2.1. `assumptions_panel_json`
-  Define expected shape in the prompt and schema:
-  - Array of objects:
-    - `assumption`: human‑readable description.
-    - `category`: `"demand" | "pricing" | "cost" | "capacity" | "financing" | "other"`.
-    - `source`: `"user_input" | "benchmark_placeholder" | "derived_from_user"`.
-    - `sensitivity`: `"HIGH" | "MEDIUM | "LOW"`.
-    - `impact`: short text on *what it moves* (“affects payback and runway”, “affects gross margin”, etc.).
-  This gives you enough structure to show a clean assumptions table in the UI later.
-  ## 2.2. `data_quality_json`
-  Define shape as:
-  - `completeness_pct` (0–100 integer).
-  - `consistency_score` (1–5).
-  - `assumption_load` (`"LOW" | "MEDIUM" | "HIGH"`).
-  - `volatility_rating` (`"LOW" | "MEDIUM" | "HIGH"` industry risk).
-  - `overall_label` (`"DATA_INFORMED" | "ASSUMPTION_HEAVY" | "EXPLORATORY"`).
-  - `notes`: 1–2 sentences.
-  This is enough for a visible “Data Quality Panel” without new DB changes.
-  ---
-  ## 3. Fallbacks: add minimal sanity defaults
-  Your fallback plan is good; I’d make it slightly more defensive:
-  - In `generateFallbackNarrator()`:
-    - Set `completeness_pct` to something like 20.
-    - `consistency_score` to 3 (neutral), `assumption_load` = "HIGH", `volatility_rating` = "MEDIUM", `overall_label` = "EXPLORATORY".
-    - Add a note like:  
-    “Fallback mode: upstream model response incomplete; outputs are illustrative only and must not be used for final decisions.”
-  Same pattern in `generateFallbackContent()` in `ai-narrator/index.ts`.
-  ---
-  ## 4. Add a tiny “QA hook” without changing the engine
-  You said no engine changes; you can still add a **cheap QA hook** in the narrator layer:
-  - After `parseNarratorResponse()`:
-    - If `completeness_pct < 40` or `assumption_load = "HIGH"` and verdict = "VIABLE", downgrade verdict text in prose to:  
-    “Provisionally VIABLE under heavy assumptions; more data needed.”
-    - If any gross inconsistencies show up in the tool output (e.g., negative completeness, missing fields), force `overall_label = "EXPLORATORY"`.
-  This respects “no math changes” while making obvious “too confident” narratives less likely.
-  ---
-  ## 5. For File 2: keep one “source of truth” for the master prompt
-  You’re duplicating a lot between `narrator-prompt.ts` and `ai-narrator/index.ts`.
-  To avoid divergence:
-  - Extract the common master prompt text (role, assumptions‑first, industry logic, verdict set, percentile language, data‑quality requirement) into a shared function or constant that both files import.
-  - In `ai-narrator/index.ts`, the inline prompt should:
-    - Reference the same **verdict definitions** and **JSON field shapes**.
-    - Only add context about being “first‑pass” vs “final narrator.”
-  This way, if you tweak the master prompt, both flows improve together.
-  ---
-  ## 6. What you have is “good enough to ship, then learn”
-  Given your constraints (no engine/DB/UI changes), what you’ve written plus these small upgrades is **sufficient to:**
-  - Enforce assumptions‑first, explainable narratives.
-  - Give you structured assumptions and data‑quality panels you can surface later.
-  - Reduce “precision theater” without touching the math.
-  If you want, next I can:
-  - Draft the exact TypeScript interface for `assumptions_panel_json` and `data_quality_json` so your parsing is type‑safe, or
-  - Write a minimal “QA hook” function signature you can slot in after `parseNarratorResponse()`.
