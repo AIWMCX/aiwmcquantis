@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useRef } from 'react';
+import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
@@ -14,6 +15,8 @@ import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
+import { SocialProofBar } from '@/components/landing/SocialProofBar';
+import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
@@ -33,6 +36,7 @@ const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
 
 export default function Landing() {
   const { user } = useAuth();
+  useBotDetection();
   const { theme, setTheme } = useTheme();
   const belowFoldSection = useLazySection({ rootMargin: '300px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
@@ -122,8 +126,14 @@ export default function Landing() {
           <MobileHero />
         </div>
 
+        {/* 1.5. Social Proof Bar */}
+        <SocialProofBar />
+
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
+
+        {/* 2.5. Progressive Engagement — low-friction example CTA */}
+        <ProgressiveEngagementCTA />
 
         {/* 3–6: Lazy loaded sections */}
         <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '600px' }}>
