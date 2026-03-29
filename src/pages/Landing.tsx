@@ -14,6 +14,8 @@ import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
+import { SocialProofBar } from '@/components/landing/SocialProofBar';
+import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
