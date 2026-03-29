@@ -1,4 +1,5 @@
 import React, { lazy, Suspense, useRef } from 'react';
+import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
