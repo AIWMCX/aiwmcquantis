@@ -36,6 +36,7 @@ const SectionSkeleton = ({ height = 400 }: { height?: number }) => (
 
 export default function Landing() {
   const { user } = useAuth();
+  useBotDetection();
   const { theme, setTheme } = useTheme();
   const belowFoldSection = useLazySection({ rootMargin: '300px' });
   const faqSection = useLazySection({ rootMargin: '200px' });
