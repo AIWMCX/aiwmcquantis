@@ -124,8 +124,14 @@ export default function Landing() {
           <MobileHero />
         </div>
 
+        {/* 1.5. Social Proof Bar */}
+        <SocialProofBar />
+
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
+
+        {/* 2.5. Progressive Engagement — low-friction example CTA */}
+        <ProgressiveEngagementCTA />
 
         {/* 3–6: Lazy loaded sections */}
         <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '600px' }}>
