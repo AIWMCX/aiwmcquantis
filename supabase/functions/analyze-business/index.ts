@@ -3056,6 +3056,16 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
+    // ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+    let v2BenchmarkSummary: BenchmarkSummaryForCase | null = null;
+    try {
+      const v2Query = buildQueryFromInput(idea_clean, location_clean);
+      v2BenchmarkSummary = await getBenchmarkSummary(supabaseService, v2Query);
+      console.log(`V2 Benchmarks: ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality}`);
+    } catch (err) {
+      console.error('V2 benchmark fetch failed, continuing with legacy:', err);
+    }
+
     // ========== ENHANCED LOCATION INTELLIGENCE ==========
     const locationMultipliers = getEnhancedLocationMultiplier(location_clean);
     const locationMultiplier = locationMultipliers.overall; // Legacy compatibility
