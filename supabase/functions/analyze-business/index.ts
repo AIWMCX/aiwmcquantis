@@ -3119,6 +3119,29 @@ ${idea_clean}
 ${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
+${v2BenchmarkSummary ? `
+## V2 BENCHMARK DATA (97K-point dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
+${v2BenchmarkSummary.core ? `### Core Benchmarks
+- Gross Margin: p25=${(v2BenchmarkSummary.core.gm_margin_p25*100).toFixed(1)}% | p50=${(v2BenchmarkSummary.core.gm_margin_p50*100).toFixed(1)}% | p75=${(v2BenchmarkSummary.core.gm_margin_p75*100).toFixed(1)}%
+- Op Margin p50: ${((v2BenchmarkSummary.core.op_margin_p50||0)*100).toFixed(1)}% | EBITDA p50: ${((v2BenchmarkSummary.core.ebitda_margin_p50||0)*100).toFixed(1)}%
+- Revenue Growth YoY p50: ${((v2BenchmarkSummary.core.revenue_growth_yoy_p50||0)*100).toFixed(1)}%
+- Rent/Rev: ${((v2BenchmarkSummary.core.rent_pct_rev_p50||0)*100).toFixed(1)}% | Payroll/Rev: ${((v2BenchmarkSummary.core.payroll_pct_rev_p50||0)*100).toFixed(1)}% | Marketing/Rev: ${((v2BenchmarkSummary.core.marketing_pct_rev_p50||0)*100).toFixed(1)}%` : ''}
+${v2BenchmarkSummary.unit_econ ? `### Unit Economics
+- CAC: p25=$${v2BenchmarkSummary.unit_econ.cac_p25} | p50=$${v2BenchmarkSummary.unit_econ.cac_p50} | p75=$${v2BenchmarkSummary.unit_econ.cac_p75}
+- LTV: p25=$${v2BenchmarkSummary.unit_econ.ltv_p25} | p50=$${v2BenchmarkSummary.unit_econ.ltv_p50} | p75=$${v2BenchmarkSummary.unit_econ.ltv_p75}
+- LTV:CAC ratio: p25=${v2BenchmarkSummary.unit_econ.ltv_cac_ratio_p25} | p50=${v2BenchmarkSummary.unit_econ.ltv_cac_ratio_p50} | p75=${v2BenchmarkSummary.unit_econ.ltv_cac_ratio_p75}
+- Payback months: p25=${v2BenchmarkSummary.unit_econ.cac_payback_p25} | p50=${v2BenchmarkSummary.unit_econ.cac_payback_p50} | p75=${v2BenchmarkSummary.unit_econ.cac_payback_p75}
+- Monthly churn: p25=${((v2BenchmarkSummary.unit_econ.churn_monthly_p25||0)*100).toFixed(1)}% | p50=${((v2BenchmarkSummary.unit_econ.churn_monthly_p50||0)*100).toFixed(1)}% | p75=${((v2BenchmarkSummary.unit_econ.churn_monthly_p75||0)*100).toFixed(1)}%
+- 12-month retention: ${((v2BenchmarkSummary.unit_econ.retention_12m||0)*100).toFixed(0)}% | ARPU: $${v2BenchmarkSummary.unit_econ.arpu_median}` : ''}
+${v2BenchmarkSummary.risk ? `### Risk Profile
+- Market risk: ${v2BenchmarkSummary.risk.risk_market_volatility}/5 | Regulatory: ${v2BenchmarkSummary.risk.risk_regulatory}/5 | Operational: ${v2BenchmarkSummary.risk.risk_operational}/5 | Concentration: ${v2BenchmarkSummary.risk.risk_customer_concentration}/5
+- Median survival: ${v2BenchmarkSummary.risk.median_survival_years} years
+- Top failure modes: ${v2BenchmarkSummary.risk.failure_mode_1}, ${v2BenchmarkSummary.risk.failure_mode_2}, ${v2BenchmarkSummary.risk.failure_mode_3}` : ''}
+${v2BenchmarkSummary.invoice ? `### Invoice/Credit
+- Avg terms: ${v2BenchmarkSummary.invoice.avg_invoice_terms_days} days | Late payment: ${((v2BenchmarkSummary.invoice.late_payment_rate||0)*100).toFixed(1)}% | Bad debt: ${((v2BenchmarkSummary.invoice.bad_debt_pct_rev||0)*100).toFixed(2)}%
+- Safe DSCR: ${v2BenchmarkSummary.invoice.safe_dscr_threshold} | Max invoice/rev ratio: ${((v2BenchmarkSummary.invoice.max_safe_invoice_to_rev_ratio||0)*100).toFixed(0)}%` : ''}
+USE these v2 benchmarks to ground your TAM/SAM/SOM, risk analysis, and competitive assessment. Reference specific percentiles.
+` : ''}
 ${userFinancialContext}${documentContext}
 
 ## ANALYSIS REQUIREMENTS
