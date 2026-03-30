@@ -2,6 +2,15 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Embedded benchmarks are now seeded via database migration - no import needed
 
+// ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+import { 
+  getBenchmarkSummary, 
+  buildQueryFromInput, 
+  computePercentile,
+  type BenchmarkSummaryForCase,
+  type BenchmarkQuery 
+} from "./benchmark-engine-v2.ts";
+
 // ========== NEW INTELLIGENCE MODULES ==========
 import { 
   getEnhancedLocationMultiplier, 
