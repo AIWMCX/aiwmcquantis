@@ -67,8 +67,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'BILLING',
     items: [
-      { title: 'Invoice Creator', url: '/app/invoices', icon: Receipt },
-      { title: 'Invoice Manager', url: '/app/invoice-manager', icon: ClipboardList },
+      { title: 'Invoices', url: '/app/invoices', icon: Receipt },
     ],
   },
   {
