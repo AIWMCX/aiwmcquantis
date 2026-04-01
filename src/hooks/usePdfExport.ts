@@ -73,12 +73,14 @@ const styles = StyleSheet.create({
     fontFamily,
     color: colors.textPrimary,
     fontSize: 10,
+    lineHeight: 1.4,
   },
   coverPage: {
     backgroundColor: colors.background,
     padding: 50,
     fontFamily,
     color: colors.textPrimary,
+    lineHeight: 1.3,
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'space-between',
@@ -93,12 +95,14 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     letterSpacing: 6,
     color: colors.primary,
+    lineHeight: 1,
     marginBottom: 6,
   },
   logoSubtext: {
     fontSize: 11,
     letterSpacing: 3,
     color: colors.textSecondary,
+    lineHeight: 1.2,
     textTransform: 'uppercase',
   },
   coverTitleSection: {
@@ -117,6 +121,7 @@ const styles = StyleSheet.create({
     fontSize: 28,
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
+    lineHeight: 1.15,
     marginBottom: 12,
     textAlign: 'center',
     maxWidth: 400,
@@ -124,6 +129,7 @@ const styles = StyleSheet.create({
   coverSubtitle: {
     fontSize: 16,
     color: colors.textSecondary,
+    lineHeight: 1.25,
     marginBottom: 20,
     textAlign: 'center',
   },
@@ -167,6 +173,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
+    lineHeight: 1.1,
   },
   coverFooter: {
     alignItems: 'center',
@@ -188,6 +195,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
+    minHeight: 24,
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: colors.border,
@@ -196,23 +204,38 @@ const styles = StyleSheet.create({
   pageHeaderLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    flex: 1,
+    maxWidth: 380,
+    paddingRight: 16,
+  },
+  pageHeaderTitleWrap: {
+    width: 210,
+    flexShrink: 0,
+  },
+  pageHeaderSectionWrap: {
+    flexShrink: 0,
   },
   pageHeaderTitle: {
     fontSize: 10,
     fontFamily: 'Helvetica-Bold',
     color: colors.textSecondary,
+    lineHeight: 1.2,
   },
   pageHeaderSection: {
     fontSize: 10,
     color: colors.primary,
     fontFamily: 'Helvetica-Bold',
+    lineHeight: 1.2,
   },
   pageHeaderLogo: {
     fontSize: 12,
     fontFamily: 'Helvetica-Bold',
-    letterSpacing: 2,
+    letterSpacing: 1.5,
     color: colors.primary,
+    width: 88,
+    textAlign: 'right',
+    flexShrink: 0,
+    lineHeight: 1.1,
   },
   pageFooter: {
     position: 'absolute',
@@ -232,6 +255,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
+    lineHeight: 1.2,
     marginTop: 20,
     marginBottom: 12,
     paddingBottom: 6,
@@ -257,6 +281,7 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontFamily: 'Helvetica-Bold',
     letterSpacing: 3,
+    lineHeight: 1.1,
   },
   metricsGrid: {
     flexDirection: 'row',
@@ -279,11 +304,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
     textTransform: 'uppercase',
     letterSpacing: 1,
+    lineHeight: 1.2,
   },
   metricCardValue: {
     fontSize: 18,
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
+    lineHeight: 1.15,
   },
   paragraph: {
     fontSize: 10,
@@ -319,6 +346,7 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     flex: 1,
+    lineHeight: 1.3,
   },
   tableRow: {
     flexDirection: 'row',
@@ -334,6 +362,7 @@ const styles = StyleSheet.create({
     fontSize: 9,
     color: colors.textSecondary,
     flex: 1,
+    lineHeight: 1.35,
   },
   tableCellBold: {
     padding: 8,
@@ -341,6 +370,7 @@ const styles = StyleSheet.create({
     color: colors.textPrimary,
     fontFamily: 'Helvetica-Bold',
     flex: 1,
+    lineHeight: 1.35,
   },
   textRight: {
     textAlign: 'right',
@@ -472,6 +502,8 @@ const styles = StyleSheet.create({
   },
   separator: {
     color: colors.border,
+    marginHorizontal: 6,
+    flexShrink: 0,
   },
   highlightBoxSuccess: {
     backgroundColor: colors.cardBg,
