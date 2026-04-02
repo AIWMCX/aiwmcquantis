@@ -23,7 +23,7 @@ const PERSONAS = [
     ],
   },
   {
-    icon: Eye,
+    icon: Search,
     title: 'Investors & Advisors',
     description: 'Sanity-check models before writing checks.',
     bullets: [
