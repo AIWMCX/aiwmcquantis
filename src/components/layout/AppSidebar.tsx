@@ -21,18 +21,17 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  History,
+  Clock,
   FileText,
   Receipt,
   FolderOpen,
   BarChart3,
-  Layers,
-  Trophy,
+  GitBranch,
+  TrendingUp,
   Settings,
   CreditCard,
   HelpCircle,
   Zap,
-  ClipboardList,
 } from 'lucide-react';
 
 interface NavItem {
