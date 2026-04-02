@@ -313,8 +313,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Audit Trail</h4>
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <div className="flex justify-between">
-                      <span>Benchmark Version</span>
-                      <span className="font-mono text-foreground">v2024.03</span>
+                      <span>Benchmark Engine</span>
+                      <span className="font-mono text-foreground">V2 (95,500 pts)</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Geo Calibration</span>
@@ -323,6 +323,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <div className="flex justify-between">
                       <span>Reconciliation</span>
                       <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                    </div>
+                  </div>
+                  {/* Benchmark Verification Badge */}
+                  <div className="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center gap-2">
+                    <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
+                    <div>
+                      <p className="text-[11px] font-semibold text-foreground">Verified by 95,500 Benchmarks</p>
+                      <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
                     </div>
                   </div>
                   <a 

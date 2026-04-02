@@ -71,7 +71,7 @@ export function useAnalysisHistory() {
     // This is mainly for local state update
     setHistory(prev => {
       const filtered = prev.filter(e => e.id !== entry.id);
-      return [entry, ...filtered].slice(0, isAuthenticated ? 50 : MAX_LOCAL_ENTRIES);
+      return [entry, ...filtered].slice(0, isAuthenticated ? 1000 : MAX_LOCAL_ENTRIES);
     });
   }, [isAuthenticated]);
 

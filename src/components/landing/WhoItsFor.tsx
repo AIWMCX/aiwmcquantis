@@ -1,9 +1,9 @@
 import React from 'react';
-import { Lightbulb, TrendingUp, Eye } from 'lucide-react';
+import { Rocket, BarChart3, Search } from 'lucide-react';
 
 const PERSONAS = [
   {
-    icon: Lightbulb,
+    icon: Rocket,
     title: 'Founders',
     description: 'Validate ideas before burning runway.',
     bullets: [
@@ -13,7 +13,7 @@ const PERSONAS = [
     ],
   },
   {
-    icon: TrendingUp,
+    icon: BarChart3,
     title: 'Operators',
     description: 'Test expansion, pricing, and hiring decisions.',
     bullets: [
@@ -23,7 +23,7 @@ const PERSONAS = [
     ],
   },
   {
-    icon: Eye,
+    icon: Search,
     title: 'Investors & Advisors',
     description: 'Sanity-check models before writing checks.',
     bullets: [

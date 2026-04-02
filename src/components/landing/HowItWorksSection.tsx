@@ -1,25 +1,25 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Pencil, Hexagon, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ClipboardEdit, Cpu, FileCheck, ArrowRight } from 'lucide-react';
 
 const steps = [
   {
     num: '01',
-    icon: Pencil,
+    icon: ClipboardEdit,
     title: 'Tell us what you know',
-    body: 'Industry, city, a few numbers. We fill in the gaps from 1,000+ benchmarks.',
+    body: 'Industry, city, a few numbers. We fill in the gaps from 95,500+ benchmarks.',
   },
   {
     num: '02',
-    icon: Hexagon,
+    icon: Cpu,
     title: 'Quantis simulates 1,000 futures',
     body: 'Dual-AI checks, risk stress-tests, and pre-mortem engine run in the background.',
     badges: ['GPT-4o mini', 'Gemini'],
   },
   {
     num: '03',
-    icon: ShieldCheck,
+    icon: FileCheck,
     title: 'You get an investor-grade dossier',
     body: 'Verdict, P&L, risk matrix, launch plan, and invoice capacity in one PDF + dashboard.',
   },

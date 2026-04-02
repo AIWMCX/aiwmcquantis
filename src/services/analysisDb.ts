@@ -40,7 +40,7 @@ export async function getAnalyses(userId: string): Promise<AnalysisHistoryEntry[
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(50);
+    .limit(1000);
 
   if (error) {
     console.error('Failed to fetch analyses:', error);

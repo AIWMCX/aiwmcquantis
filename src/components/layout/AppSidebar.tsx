@@ -21,18 +21,17 @@ import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import {
   LayoutDashboard,
-  History,
+  Clock,
   FileText,
   Receipt,
   FolderOpen,
   BarChart3,
-  Layers,
-  Trophy,
+  GitBranch,
+  TrendingUp,
   Settings,
   CreditCard,
   HelpCircle,
   Zap,
-  ClipboardList,
 } from 'lucide-react';
 
 interface NavItem {
@@ -54,7 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'ANALYSIS',
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
-      { title: 'History', url: '/app?tab=history', icon: History },
+      { title: 'History', url: '/app?tab=history', icon: Clock },
     ],
   },
   {
@@ -74,8 +73,8 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'INTELLIGENCE',
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-      { title: 'Scenarios', url: '/app?tab=scenarios', icon: Layers },
-      { title: 'Progress', url: '/leaderboard', icon: Trophy },
+      { title: 'Scenarios', url: '/app?tab=scenarios', icon: GitBranch },
+      { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
     ],
   },
   {

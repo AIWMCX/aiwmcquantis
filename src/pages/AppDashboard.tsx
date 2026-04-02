@@ -29,7 +29,19 @@ export default function Index() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
+  // Sync activeTab with URL ?tab= param
+  const tabParam = searchParams.get('tab');
+  const initialTab = (tabParam === 'history' || tabParam === 'scenarios') ? tabParam : 'analyze';
+  const [activeTab, setActiveTab] = useState<'analyze' | 'history' | 'scenarios'>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'history' || t === 'scenarios') {
+      setActiveTab(t);
+    } else if (!t) {
+      setActiveTab('analyze');
+    }
+  }, [searchParams]);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
@@ -398,14 +410,17 @@ export default function Index() {
                 </button>
               )}
               <div>
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history' | 'scenarios')}>
                   {isAuthenticated && (
-                    <TabsList className="mb-3 grid w-full grid-cols-2">
+                    <TabsList className="mb-3 grid w-full grid-cols-3">
                       <TabsTrigger value="analyze" className="gap-1.5 min-h-[40px] text-sm">
                         <BarChart3 className="w-3.5 h-3.5" /> Results
                       </TabsTrigger>
                       <TabsTrigger value="history" className="gap-1.5 min-h-[40px] text-sm">
                         <History className="w-3.5 h-3.5" /> History
+                      </TabsTrigger>
+                      <TabsTrigger value="scenarios" className="gap-1.5 min-h-[40px] text-sm">
+                        <BarChart3 className="w-3.5 h-3.5" /> Scenarios
                       </TabsTrigger>
                     </TabsList>
                   )}
@@ -500,6 +515,28 @@ export default function Index() {
                         toast({ title: 'Analysis cloned', description: 'Edit the details and run a new analysis.' });
                       }}
                     />
+                  </TabsContent>
+
+                  <TabsContent value="scenarios">
+                    <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+                        <BarChart3 className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground mb-2">Scenario Modeling</h3>
+                      <p className="text-sm text-muted-foreground max-w-md mb-6">
+                        Compare best-case, worst-case, and stress-test projections side by side.
+                        What-if modeling for pricing, churn, and market changes.
+                      </p>
+                      <div className="grid grid-cols-3 gap-3 max-w-sm w-full mb-6">
+                        {['Optimistic', 'Base Case', 'Pessimistic'].map((label) => (
+                          <div key={label} className="p-3 rounded-lg border border-border bg-muted/30">
+                            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                            <p className="text-lg font-bold text-foreground mt-1">—</p>
+                          </div>
+                        ))}
+                      </div>
+                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                    </div>
                   </TabsContent>
                 </Tabs>
               </div>
