@@ -53,7 +53,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'ANALYSIS',
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
-      { title: 'History', url: '/app?tab=history', icon: History },
+      { title: 'History', url: '/app?tab=history', icon: Clock },
     ],
   },
   {
