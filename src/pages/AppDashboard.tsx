@@ -29,7 +29,19 @@ export default function Index() {
   const navigate = useNavigate();
   const { toast } = useToast();
 
-  const [activeTab, setActiveTab] = useState<'analyze' | 'history'>('analyze');
+  // Sync activeTab with URL ?tab= param
+  const tabParam = searchParams.get('tab');
+  const initialTab = (tabParam === 'history' || tabParam === 'scenarios') ? tabParam : 'analyze';
+  const [activeTab, setActiveTab] = useState<'analyze' | 'history' | 'scenarios'>(initialTab);
+
+  useEffect(() => {
+    const t = searchParams.get('tab');
+    if (t === 'history' || t === 'scenarios') {
+      setActiveTab(t);
+    } else if (!t) {
+      setActiveTab('analyze');
+    }
+  }, [searchParams]);
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
