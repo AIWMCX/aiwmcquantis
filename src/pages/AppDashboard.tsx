@@ -410,14 +410,17 @@ export default function Index() {
                 </button>
               )}
               <div>
-                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}>
+                <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as 'analyze' | 'history' | 'scenarios')}>
                   {isAuthenticated && (
-                    <TabsList className="mb-3 grid w-full grid-cols-2">
+                    <TabsList className="mb-3 grid w-full grid-cols-3">
                       <TabsTrigger value="analyze" className="gap-1.5 min-h-[40px] text-sm">
                         <BarChart3 className="w-3.5 h-3.5" /> Results
                       </TabsTrigger>
                       <TabsTrigger value="history" className="gap-1.5 min-h-[40px] text-sm">
                         <History className="w-3.5 h-3.5" /> History
+                      </TabsTrigger>
+                      <TabsTrigger value="scenarios" className="gap-1.5 min-h-[40px] text-sm">
+                        <BarChart3 className="w-3.5 h-3.5" /> Scenarios
                       </TabsTrigger>
                     </TabsList>
                   )}
