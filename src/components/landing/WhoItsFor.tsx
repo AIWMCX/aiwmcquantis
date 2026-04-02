@@ -13,7 +13,7 @@ const PERSONAS = [
     ],
   },
   {
-    icon: TrendingUp,
+    icon: BarChart3,
     title: 'Operators',
     description: 'Test expansion, pricing, and hiring decisions.',
     bullets: [
