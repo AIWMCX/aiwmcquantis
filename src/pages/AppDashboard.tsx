@@ -516,6 +516,28 @@ export default function Index() {
                       }}
                     />
                   </TabsContent>
+
+                  <TabsContent value="scenarios">
+                    <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[300px] flex flex-col items-center justify-center">
+                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
+                        <BarChart3 className="w-8 h-8 text-primary" />
+                      </div>
+                      <h3 className="text-xl font-bold text-foreground mb-2">Scenario Modeling</h3>
+                      <p className="text-sm text-muted-foreground max-w-md mb-6">
+                        Compare best-case, worst-case, and stress-test projections side by side.
+                        What-if modeling for pricing, churn, and market changes.
+                      </p>
+                      <div className="grid grid-cols-3 gap-3 max-w-sm w-full mb-6">
+                        {['Optimistic', 'Base Case', 'Pessimistic'].map((label) => (
+                          <div key={label} className="p-3 rounded-lg border border-border bg-muted/30">
+                            <p className="text-xs font-medium text-muted-foreground">{label}</p>
+                            <p className="text-lg font-bold text-foreground mt-1">—</p>
+                          </div>
+                        ))}
+                      </div>
+                      <Badge variant="secondary" className="text-xs">Coming Soon</Badge>
+                    </div>
+                  </TabsContent>
                 </Tabs>
               </div>
             </div>
