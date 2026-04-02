@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Pencil, Hexagon, ShieldCheck, ArrowRight } from 'lucide-react';
+import { ClipboardEdit, Cpu, FileCheck, ArrowRight } from 'lucide-react';
 
 const steps = [
   {
