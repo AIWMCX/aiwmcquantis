@@ -3,7 +3,7 @@ import { Rocket, BarChart3, Search } from 'lucide-react';
 
 const PERSONAS = [
   {
-    icon: Lightbulb,
+    icon: Rocket,
     title: 'Founders',
     description: 'Validate ideas before burning runway.',
     bullets: [
