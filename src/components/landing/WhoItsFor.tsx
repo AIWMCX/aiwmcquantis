@@ -1,5 +1,5 @@
 import React from 'react';
-import { Lightbulb, TrendingUp, Eye } from 'lucide-react';
+import { Rocket, BarChart3, Search } from 'lucide-react';
 
 const PERSONAS = [
   {
