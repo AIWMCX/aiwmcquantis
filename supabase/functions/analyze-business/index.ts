@@ -3066,6 +3066,60 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       console.error('V2 benchmark fetch failed, continuing with legacy:', err);
     }
 
+    // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
+    // When V2 97K-dataset returns data, overlay its percentile-based values onto
+    // the legacy detectedIndustry object so the DFE and Quantis engine use the most
+    // accurate peer-group data for all deterministic calculations.
+    if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
+      console.log(`V2 overlay active: overriding legacy benchmarks with V2 data (match: ${v2BenchmarkSummary.overall_match_quality})`);
+      
+      if (v2BenchmarkSummary.core) {
+        const core = v2BenchmarkSummary.core;
+        // Override COGS with (1 - gross_margin_p50)
+        if (core.gm_margin_p50 > 0) {
+          detectedIndustry.cogs_percent = Math.round((1 - core.gm_margin_p50) * 100);
+        }
+        // Override net margin range from core op_margin
+        if (core.op_margin_p50 !== undefined) {
+          detectedIndustry.net_margin_min = Math.round(core.op_margin_p50 * 100 * 0.6); // conservative
+          detectedIndustry.net_margin_max = Math.round(core.op_margin_p50 * 100 * 1.4); // optimistic
+        }
+        // Override fixed cost ratios using revenue-based percentages
+        // (Only when we have existing revenue context to avoid division by zero)
+        if (core.rent_pct_rev_p50 > 0) {
+          detectedIndustry.rent_fixed = Math.round(detectedIndustry.rent_fixed * (core.rent_pct_rev_p50 / 0.10 || 1));
+        }
+      }
+      
+      if (v2BenchmarkSummary.unit_econ) {
+        const ue = v2BenchmarkSummary.unit_econ;
+        // Override CAC with V2 percentile data
+        if (ue.cac_p25 > 0) detectedIndustry.cac_min = Math.round(ue.cac_p25);
+        if (ue.cac_p75 > 0) detectedIndustry.cac_max = Math.round(ue.cac_p75);
+        if (ue.cac_p50 > 0) detectedIndustry.cac_typical = Math.round(ue.cac_p50);
+        
+        // Override LTV:CAC ratio
+        if (ue.ltv_cac_ratio_p25 > 0) detectedIndustry.ltv_cac_min = ue.ltv_cac_ratio_p25;
+        if (ue.ltv_cac_ratio_p75 > 0) detectedIndustry.ltv_cac_max = ue.ltv_cac_ratio_p75;
+        
+        // Override churn-derived lifetime
+        if (ue.churn_monthly_p50 > 0 && ue.churn_monthly_p50 < 1) {
+          const lifetimeFromChurn = Math.round(1 / ue.churn_monthly_p50);
+          if (lifetimeFromChurn > 1 && lifetimeFromChurn < 120) {
+            detectedIndustry.client_lifetime_months = lifetimeFromChurn;
+          }
+        }
+        
+        // Override ARPU as average check
+        if (ue.arpu_median > 0) {
+          detectedIndustry.average_check_min = Math.round(ue.arpu_median * 0.6);
+          detectedIndustry.average_check_max = Math.round(ue.arpu_median * 1.4);
+        }
+      }
+      
+      console.log(`V2 overlay applied: cogs=${detectedIndustry.cogs_percent}%, CAC=$${detectedIndustry.cac_typical}, lifetime=${detectedIndustry.client_lifetime_months}mo`);
+    }
+
     // ========== ENHANCED LOCATION INTELLIGENCE ==========
     const locationMultipliers = getEnhancedLocationMultiplier(location_clean);
     const locationMultiplier = locationMultipliers.overall; // Legacy compatibility
@@ -4158,6 +4212,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             benchmark_data_source: benchmarkDataSource,
             benchmark_sample_size: benchmarkSampleSize,
             benchmark_region: benchmarkMatchedRegion,
+            benchmark_v2_active: !!(v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none'),
+            benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
+            benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
+            benchmark_v2_datapoints: 97500,
             used_fallback: usedFallback,
           },
         },
