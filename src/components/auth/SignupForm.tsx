@@ -64,7 +64,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     resolver: zodResolver(signupFormSchema),
     mode: 'onChange',
     defaultValues: {
-      fullName: prefillName,
       email: prefillEmail,
       password: '',
     },
