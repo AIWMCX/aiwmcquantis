@@ -23,6 +23,7 @@ import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, 
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
+import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -249,9 +250,7 @@ export default function Index() {
                       ) : (
                         <Badge variant="secondary" className="gap-1 text-xs">Free</Badge>
                       )}
-                      <span className="text-xs text-muted-foreground">
-                        {isFree ? `${remainingAnalyses} of 3 remaining` : 'Unlimited analyses'}
-                      </span>
+                      <AnalysisCounterTooltip remainingAnalyses={remainingAnalyses} isFree={isFree} />
                     </div>
                     <div className="flex items-center gap-2">
                       <Button size="sm" variant="outline" onClick={() => navigate('/docs')} className="gap-1 h-7 text-xs">
