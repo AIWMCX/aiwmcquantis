@@ -53,7 +53,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const savedLead = getSavedLead();
   const emailFromUrl = searchParams.get('email');
   const prefillEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : savedLead?.email || '';
-  const prefillName = savedLead?.name || '';
 
   const {
     register,
