@@ -20,11 +20,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 // Simplified signup form validation schema - optimized for conversion
 // Removed complex password requirements to reduce friction
 const signupFormSchema = z.object({
-  fullName: z.string()
-    .trim()
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name is too long')
-    .regex(/^[a-zA-Zа-яА-ЯёЁ\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes'),
   email: z.string()
     .trim()
     .email('Please enter a valid email address')
@@ -58,7 +53,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const savedLead = getSavedLead();
   const emailFromUrl = searchParams.get('email');
   const prefillEmail = emailFromUrl ? decodeURIComponent(emailFromUrl) : savedLead?.email || '';
-  const prefillName = savedLead?.name || '';
 
   const {
     register,
@@ -70,7 +64,6 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
     resolver: zodResolver(signupFormSchema),
     mode: 'onChange',
     defaultValues: {
-      fullName: prefillName,
       email: prefillEmail,
       password: '',
     },
@@ -93,8 +86,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const password = watch('password');
 
   const handleFieldFocus = (fieldName: string) => {
-    if (!touchedFields.fullName && !touchedFields.email && !touchedFields.password) {
-      trackEvent('signup_started', { source: 'form', form_version: 'simplified_v2' });
+    if (!touchedFields.email && !touchedFields.password) {
+      trackEvent('signup_started', { source: 'form', form_version: 'simplified_v3' });
       setFormStartTime(Date.now());
       
       // Track mobile-specific start
@@ -128,7 +121,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       const { error } = await signUp(
         data.email,
         data.password,
-        data.fullName,
+        undefined,
         undefined
       );
 
@@ -184,7 +177,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         
         const result = await sendWelcomeEmail({
           email: data.email,
-          name: data.fullName,
+          name: data.email.split('@')[0],
         });
         
         if (result.success) {
@@ -299,27 +292,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         </div>
       </div>
 
-      {/* Form */}
+      {/* Form — 2 fields only for maximum conversion */}
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Full Name Field */}
-        <div className="space-y-2">
-          <Label htmlFor="signup-name">Full Name</Label>
-          <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
-            <Input
-              id="signup-name"
-              type="text"
-              placeholder="Your full name"
-              className={cn('pl-10', errors.fullName && 'border-destructive')}
-              {...register('fullName')}
-              onFocus={() => handleFieldFocus('fullName')}
-              disabled={isLoading}
-            />
-          </div>
-          {errors.fullName && (
-            <p className="text-sm text-destructive">{errors.fullName.message}</p>
-          )}
-        </div>
 
         {/* Email Field */}
         <div className="space-y-2">

@@ -25,7 +25,7 @@ export function SocialProofBar() {
     {
       icon: TrendingUp,
       value: analysisCount ? `${analysisCount.toLocaleString()}+` : '—',
-      label: 'Analyses run',
+      label: 'Plans stress-tested',
     },
     {
       icon: Globe,
@@ -39,8 +39,8 @@ export function SocialProofBar() {
     },
     {
       icon: Users,
-      value: '1,000+',
-      label: 'Industry benchmarks',
+      value: '95,500',
+      label: 'Benchmark data points',
     },
   ];
 
