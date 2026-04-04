@@ -1,5 +1,5 @@
 import React from 'react';
-import { AlertCircle, LogIn, UserPlus } from 'lucide-react';
+import { Zap, LogIn, UserPlus, Shield } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Link } from 'react-router-dom';
 
@@ -8,24 +8,28 @@ interface AnonymousUsageNoticeProps {
 }
 
 /**
- * Notice shown to anonymous users about their limited free analysis
+ * Notice shown to anonymous users about their limited free analysis.
+ * Insight-first language with trust signals.
  */
 export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
   return (
-    <div className={`p-4 rounded-lg bg-amber-500/10 border border-amber-500/30 ${className || ''}`}>
+    <div className={`p-4 rounded-lg bg-primary/5 border border-primary/20 ${className || ''}`}>
       <div className="flex items-start gap-3">
-        <AlertCircle className="w-5 h-5 text-amber-500 mt-0.5 flex-shrink-0" />
+        <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+          <Zap className="w-4.5 h-4.5 text-primary" />
+        </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <p className="text-sm font-medium text-foreground">
-              Free Analysis Mode
+            <p className="text-sm font-semibold text-foreground">
+              Preview Mode
             </p>
-            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-amber-500/20 text-amber-600 dark:text-amber-400">
-              1 per hour
+            <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-primary/10 text-primary">
+              1 free analysis
             </span>
           </div>
           <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            You're using a free analysis. Sign in to get <strong className="text-foreground">3 analyses per month</strong> and unlock document uploads for deeper insights.
+            See how Quantis grades your plan against <strong className="text-foreground">97,500 real benchmarks</strong>. 
+            Sign in to save results and get <strong className="text-foreground">3 analyses/month</strong> with document uploads.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <Button asChild size="sm" variant="default" className="h-8 text-xs gap-1.5">
@@ -37,9 +41,13 @@ export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
             <Button asChild size="sm" variant="ghost" className="h-8 text-xs gap-1.5">
               <Link to="/auth?mode=signup">
                 <UserPlus className="w-3.5 h-3.5" />
-                Create Account
+                Create Free Account
               </Link>
             </Button>
+            <div className="flex items-center gap-1 ml-auto text-xs text-muted-foreground/60">
+              <Shield className="w-3 h-3" />
+              AES-256
+            </div>
           </div>
         </div>
       </div>
