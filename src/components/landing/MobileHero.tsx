@@ -188,14 +188,14 @@ export function MobileHero() {
                 No card &middot; One free analysis
               </span>
               <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
-              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
-                <Star className="w-3 h-3" style={{ color: 'var(--q-status-yellow)' }} />
-                1,000+ benchmarks
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--q-accent-primary)' }}>
+                <TrendingUp className="w-3 h-3" />
+                95,500 benchmark data points
               </span>
               <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
               <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
                 <Shield className="w-3.5 h-3.5" />
-                SOC 2 ready
+                AES-256 · GDPR
               </span>
             </div>
 

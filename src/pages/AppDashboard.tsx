@@ -246,6 +246,23 @@ export default function Index() {
       />
 
       <div className="container max-w-7xl px-4 sm:px-6 py-6">
+        {/* Checkout activation overlay */}
+        {checkoutPolling && (
+          <div className="mb-6 p-6 rounded-xl border-2 border-primary/40 bg-primary/5 flex flex-col items-center justify-center gap-3 animate-fade-in">
+            <RefreshCw className="w-6 h-6 text-primary animate-spin" />
+            <h3 className="text-lg font-semibold text-foreground">Activating your trial...</h3>
+            <p className="text-sm text-muted-foreground text-center">
+              Confirming your payment. This usually takes 5–10 seconds.
+            </p>
+          </div>
+        )}
+        {checkoutActivated && (
+          <div className="mb-6 p-4 rounded-xl border-2 border-green-500/40 bg-green-500/10 flex items-center justify-center gap-3 animate-fade-in">
+            <CheckCircle2 className="w-5 h-5 text-green-500" />
+            <span className="text-sm font-semibold text-foreground">Your Plus trial is now active! Enjoy unlimited analyses.</span>
+          </div>
+        )}
+
         {isAuthenticated && isInitialLoad ? (
           <DashboardSkeleton />
         ) : (
