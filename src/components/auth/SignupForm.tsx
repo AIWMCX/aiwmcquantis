@@ -86,8 +86,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const password = watch('password');
 
   const handleFieldFocus = (fieldName: string) => {
-    if (!touchedFields.fullName && !touchedFields.email && !touchedFields.password) {
-      trackEvent('signup_started', { source: 'form', form_version: 'simplified_v2' });
+    if (!touchedFields.email && !touchedFields.password) {
+      trackEvent('signup_started', { source: 'form', form_version: 'simplified_v3' });
       setFormStartTime(Date.now());
       
       // Track mobile-specific start
