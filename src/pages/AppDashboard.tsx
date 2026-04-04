@@ -148,18 +148,46 @@ export default function Index() {
     setShowScrollBanner(false);
   }, []);
 
+  // Checkout success polling — poll subscription status for up to 30s after Stripe redirect
+  const [checkoutPolling, setCheckoutPolling] = useState(false);
+  const [checkoutActivated, setCheckoutActivated] = useState(false);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     const checkoutStatus = searchParams.get('checkout');
     const successStatus = searchParams.get('success');
     if (checkoutStatus === 'success' || successStatus === 'true') {
-      toast({ title: 'Welcome to Your Trial!', description: 'Your 14-day free trial has started. Enjoy unlimited analyses!' });
-      setTimeout(() => refetchSubscription(), 2000);
       setSearchParams({});
+      setCheckoutPolling(true);
+      let attempts = 0;
+      const maxAttempts = 10; // 10 x 3s = 30s
+      pollingRef.current = setInterval(async () => {
+        attempts++;
+        await refetchSubscription();
+        // isPlus will update via re-render; check after refetch
+        if (attempts >= maxAttempts) {
+          if (pollingRef.current) clearInterval(pollingRef.current);
+          setCheckoutPolling(false);
+          toast({ title: 'Activation in progress', description: 'Your trial will activate within a few minutes. Refresh to check.' });
+        }
+      }, 3000);
     } else if (checkoutStatus === 'canceled' || successStatus === 'false') {
       toast({ title: 'Checkout Canceled', description: 'Your payment was canceled.', variant: 'destructive' });
       setSearchParams({});
     }
+    return () => { if (pollingRef.current) clearInterval(pollingRef.current); };
   }, [searchParams, setSearchParams, toast, refetchSubscription]);
+
+  // Detect when isPlus becomes true during polling
+  useEffect(() => {
+    if (checkoutPolling && isPlus) {
+      if (pollingRef.current) clearInterval(pollingRef.current);
+      setCheckoutPolling(false);
+      setCheckoutActivated(true);
+      toast({ title: '🎉 Welcome to Plus!', description: 'Your 14-day free trial is active. Enjoy unlimited analyses!' });
+      setTimeout(() => setCheckoutActivated(false), 5000);
+    }
+  }, [checkoutPolling, isPlus, toast]);
 
   useEffect(() => {
     const prefill = localStorage.getItem('quantis_prefill') || sessionStorage.getItem('hero_prefill');
