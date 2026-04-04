@@ -177,7 +177,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         
         const result = await sendWelcomeEmail({
           email: data.email,
-          name: data.fullName,
+          name: data.email.split('@')[0],
         });
         
         if (result.success) {
