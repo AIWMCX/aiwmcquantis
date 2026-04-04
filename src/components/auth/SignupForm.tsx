@@ -20,11 +20,6 @@ import { useIsMobile } from '@/hooks/use-mobile';
 // Simplified signup form validation schema - optimized for conversion
 // Removed complex password requirements to reduce friction
 const signupFormSchema = z.object({
-  fullName: z.string()
-    .trim()
-    .min(2, 'Name must be at least 2 characters')
-    .max(100, 'Name is too long')
-    .regex(/^[a-zA-Zа-яА-ЯёЁ\s'-]+$/, 'Name can only contain letters, spaces, hyphens, and apostrophes'),
   email: z.string()
     .trim()
     .email('Please enter a valid email address')
