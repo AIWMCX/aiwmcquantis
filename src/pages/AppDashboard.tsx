@@ -23,6 +23,7 @@ import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, 
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
+import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
