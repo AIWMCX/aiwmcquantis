@@ -119,30 +119,28 @@ export function MobileHero() {
               </span>
             </div>
 
-            {/* H1 — cinematic two-liner */}
+            {/* H1 — fear-driven, outcome-focused */}
             <h1
               className="animate-fade-in text-[clamp(2rem,5vw,3.5rem)] leading-[1.08] font-bold"
               style={{ fontFamily: 'var(--q-font-heading)', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
             >
-              I built an AI that tells
-              <br />
-              founders the truth.
+              Before you invest your savings
               <br />
               <span style={{ color: 'var(--q-accent-primary)' }}>
-                Before investors and reality do.
+                — know if the numbers actually work.
               </span>
             </h1>
 
-            {/* Subtitle */}
+            {/* Subtitle — outcome focused */}
             <p
               className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
               {analysisCount && analysisCount > 10
-                ? `${analysisCount.toLocaleString()} business models stress-tested so far. `
+                ? `${analysisCount.toLocaleString()} business plans stress-tested. `
                 : ''}
-              Quantis simulates 1,000+ futures, flags fatal assumptions, and gives you
-              a proceed/pivot/kill verdict in 90 seconds.
+              90-second analysis. Real industry benchmarks from 95,500 data points. 
+              No guessing — just your proceed/pivot/kill verdict.
             </p>
 
             {/* CTA Row */}
