@@ -83,26 +83,22 @@ export const QuickStartWizard = React.memo(function QuickStartWizard({
                 Hey {displayName}! 👋
               </h2>
               <p className="text-muted-foreground">
-                Let's get you your first business analysis in under 2 minutes.
+                Get your first business reality check in under 2 minutes.
               </p>
             </div>
 
-            <div className="grid gap-3 text-left">
-              {[
-                { icon: Target, text: 'Financial projections based on real data' },
-                { icon: Zap, text: 'AI-powered recommendations' },
-                { icon: Rocket, text: 'Complete business plan outline' },
-              ].map((item, index) => (
-                <div
-                  key={index}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                >
-                  <div className="w-8 h-8 rounded-md bg-primary/10 flex items-center justify-center">
-                    <item.icon className="w-4 h-4 text-primary" />
-                  </div>
-                  <span className="text-sm text-foreground">{item.text}</span>
-                </div>
-              ))}
+            <div className="space-y-2 text-left">
+              <p className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+                What Quantis will show you:
+              </p>
+              <div className="p-3 rounded-lg bg-success/5 border border-success/20">
+                <p className="text-sm font-semibold text-foreground">
+                  Your 18-month survival odds
+                </p>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Plus one critical anomaly in your plan — the thing most founders miss.
+                </p>
+              </div>
             </div>
 
             <Button onClick={handleNext} className="w-full gap-2" size="lg">
