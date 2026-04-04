@@ -121,7 +121,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       const { error } = await signUp(
         data.email,
         data.password,
-        data.fullName,
+        undefined,
         undefined
       );
 
