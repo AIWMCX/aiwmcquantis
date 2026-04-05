@@ -66,7 +66,7 @@ const testimonials = [
     result: '$85K protected',
   },
   {
-    quote: 'Ran the analysis for my client's franchise. Quantis caught a $4,200/mo hidden cost gap in their projections. That's why they pay me.',
+    quote: "Ran the analysis for my client\u2019s franchise. Quantis caught a $4,200/mo hidden cost gap in their projections. That\u2019s why they pay me.",
     name: 'James L.',
     role: 'Franchise Advisor',
     initials: 'JL',
