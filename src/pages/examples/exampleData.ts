@@ -1,3 +1,5 @@
+import { EXPANDED_EXAMPLES } from './exampleDataExpanded';
+
 export interface ExampleData {
   title: string;
   description: string;
@@ -526,6 +528,9 @@ function deriveScore(roi: string): number {
   if (num > 80) return 7;
   return 6;
 }
+
+// Merge expanded examples into the main record
+Object.assign(EXAMPLE_ANALYSES, EXPANDED_EXAMPLES);
 
 /** Index page data */
 export const EXAMPLE_LIST = Object.entries(EXAMPLE_ANALYSES).map(([slug, data]) => ({
