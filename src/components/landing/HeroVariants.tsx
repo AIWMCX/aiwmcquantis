@@ -12,19 +12,19 @@ export interface HeroContent {
 // Extended CTA variants beyond the existing headlines
 export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   control: {
-    title: 'Find out what will kill your business — before it costs you everything.',
-    subtitle: 'Quantis runs a financial pre-mortem on your business model. See fatal assumptions, stress-test scenarios, and get a clear proceed/pivot/kill verdict. In 90 seconds.',
-    ctaText: 'Run Free Pre-Mortem',
+    title: '90% of businesses fail in 5 years. Most had a plan. None had validation.',
+    subtitle: 'A financial consultant charges $1,500–$25,000 to stress-test your model. Quantis does it in 90 seconds. Your first analysis is free.',
+    ctaText: 'Stress-test my idea — free',
   },
   numbers_first: {
     title: '3 fatal assumptions. 36-month stress-test. One clear verdict.',
     subtitle: 'Every number sourced. Every assumption challenged. Know exactly where your model breaks before you invest a dollar.',
-    ctaText: 'Run Free Pre-Mortem',
+    ctaText: 'Stress-test my idea — free',
   },
   action_focused: {
     title: 'Should you commit $50k to this idea? Find out in 90 seconds.',
     subtitle: 'Dual AI engines run a forensic pre-mortem on your business model — financial, market, and operational. Get a proceed/pivot/kill verdict.',
-    ctaText: 'Run Free Pre-Mortem',
+    ctaText: 'Stress-test my idea — free',
   },
 };
 
