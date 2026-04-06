@@ -242,7 +242,7 @@ export default function RiskGallery() {
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
-            <Link to="/" className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis</Link>
+            <Link to="/" className="text-lg sm:text-xl font-bold text-foreground">AIWMC™ Quantis</Link>
             <div className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
               <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
