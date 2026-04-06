@@ -353,7 +353,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
             <div className="space-y-4">
               <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
               <BreakEvenChart
-                startupInvestment={result.financial_analysis?.startup_investment || 50000}
+                startupInvestment={typeof result.financial_analysis?.startup_investment === 'number' ? result.financial_analysis.startup_investment : (result.financial_analysis?.startup_investment as any)?.total || 50000}
                 monthlyProfit={scenarioMetrics.profit}
               />
               <CashFlowVisualization result={result} />
