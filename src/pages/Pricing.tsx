@@ -17,7 +17,7 @@ export default function Pricing() {
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'WebPage',
-          name: 'AIWMC Quantis Pricing',
+          name: 'AIWMC™ Quantis Pricing',
           description: 'Simple pricing for serious founders. Free plan with 3 analyses per month, Plus plan at $17/month for unlimited access.',
           url: 'https://aiwmcquantis.com/pricing',
         }}
