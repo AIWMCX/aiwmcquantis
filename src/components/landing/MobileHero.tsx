@@ -119,28 +119,28 @@ export function MobileHero() {
               </span>
             </div>
 
-            {/* H1 — fear-driven, outcome-focused */}
+            {/* H1 — fear-driven, pain-first */}
             <h1
               className="animate-fade-in text-[clamp(2rem,5vw,3.5rem)] leading-[1.08] font-bold"
               style={{ fontFamily: 'var(--q-font-heading)', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
             >
-              Before you invest your savings
+              90% of businesses fail in 5 years.
               <br />
               <span style={{ color: 'var(--q-accent-primary)' }}>
-                — know if the numbers actually work.
+                Most had a plan. None had validation.
               </span>
             </h1>
 
-            {/* Subtitle — outcome focused */}
+            {/* Subtitle — $25K anchor */}
             <p
               className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
-              {analysisCount && analysisCount > 10
-                ? `${analysisCount.toLocaleString()} business plans stress-tested. `
-                : ''}
-              90-second analysis. Real industry benchmarks from 95,500 data points. 
-              No guessing — just your proceed/pivot/kill verdict.
+              A financial consultant charges $1,500–$25,000 to stress-test your model.{' '}
+              <span className="font-semibold" style={{ color: 'var(--q-text-primary)' }}>
+                Quantis does it in 90 seconds.
+              </span>
+              {' '}Your first analysis is free.
             </p>
 
             {/* CTA Row */}
@@ -155,7 +155,7 @@ export function MobileHero() {
                 style={{ background: 'var(--q-gradient-accent)' }}
                 data-event-id="run_pre_mortem_click"
               >
-                Run my 90-second pre-mortem
+                Stress-test my idea — free
               </Button>
               <div className="flex gap-3 w-full">
                 <Button
@@ -189,8 +189,13 @@ export function MobileHero() {
               </span>
               <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
               <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--q-accent-primary)' }}>
+                <DollarSign className="w-3 h-3" />
+                $25,000 consultant-grade analysis
+              </span>
+              <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
+              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--q-text-tertiary)' }}>
                 <TrendingUp className="w-3 h-3" />
-                95,500 benchmark data points
+                95,500 data points
               </span>
               <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
               <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
