@@ -39,6 +39,9 @@ import { KeyMetricSpotlight } from './KeyMetricSpotlight';
 import { CapitalReadinessSection } from './CapitalReadinessSection';
 import { CoherenceFlags } from './CoherenceFlags';
 import { RevenueChart } from './RevenueChart';
+import { BreakEvenChart } from './BreakEvenChart';
+import { LtvCacIndicator } from './LtvCacIndicator';
+import { ConsultantComparison } from './ConsultantComparison';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
@@ -231,6 +234,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       </div>
 
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
+        {/* Consultant Comparison Banner */}
+        <ConsultantComparison />
         {/* Hero KPI Strip — t=0 with count-up at t=200 */}
         <ResultsHeroStrip
           breakEvenMonths={breakEvenMonths}
@@ -347,6 +352,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           financialContent={
             <div className="space-y-4">
               <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
+              <BreakEvenChart
+                startupInvestment={typeof result.financial_analysis?.startup_investment === 'number' ? result.financial_analysis.startup_investment : (result.financial_analysis?.startup_investment as any)?.total || 50000}
+                monthlyProfit={scenarioMetrics.profit}
+              />
               <CashFlowVisualization result={result} />
               {result.actionable_insights && result.actionable_insights.insights.length > 0 && (
                 <ActionableInsights insights={result.actionable_insights} />
@@ -374,7 +383,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           }
           unitEconomicsContent={
             result.financial_analysis?.unit_economics ? (
-              <div className="space-y-3">
+              <div className="space-y-4">
+                <LtvCacIndicator
+                  ratio={result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0}
+                  ltv={result.financial_analysis.unit_economics.ltv ?? 0}
+                  cac={result.financial_analysis.unit_economics.cac ?? 0}
+                />
                 <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                   <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString()}`} positive={true} />
                   <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString()}`} positive={true} />
