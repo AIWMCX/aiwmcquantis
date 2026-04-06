@@ -131,8 +131,8 @@ export function AppSidebar() {
                 <span className="font-sora font-bold text-sm text-[var(--q-text-primary)]">
                   AIWMC Quantis
                 </span>
-                <span className="text-[11px] font-dm-sans text-[var(--q-text-tertiary)]">
-                  by AIWMC AI Agency
+                <span className="font-dm-sans font-mono font-semibold text-xs border-[sidebar-accent-foreground] border-card shadow-none">
+                  by AIWMC​™  LLC
                 </span>
               </div>
             )}
