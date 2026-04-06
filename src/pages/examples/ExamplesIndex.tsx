@@ -60,7 +60,7 @@ export default function ExamplesIndex() {
 
       <header className="border-b border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]/80 backdrop-blur-lg">
         <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold font-display text-[var(--q-text-primary)]">AIWMC Quantis</Link>
+          <Link to="/" className="text-lg font-bold font-display text-[var(--q-text-primary)]">AIWMC™ Quantis</Link>
           <Link to="/app">
             <Button size="sm" className="gap-2">
               <Zap className="w-4 h-4" /> Analyze Your Idea
