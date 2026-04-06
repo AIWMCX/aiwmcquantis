@@ -16,7 +16,7 @@ export function Footer() {
               <Link to="/" className="flex items-center">
                 <img
                   src={aiwmcLogoText}
-                  alt="AIWMC Quantis"
+                  alt="​AIWMC™ Quantis"
                   width={109}
                   height={32}
                   className="h-8 w-auto object-contain dark:invert" />
