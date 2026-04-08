@@ -136,7 +136,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
       
       <h2>How to Get Accurate Startup Cost Estimates</h2>
-      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 1,000+ business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 90 seconds.</p>
+      <p>AIWMC Quantis calculates startup costs using industry benchmarks from 95,500 business scenarios, adjusted for your specific location. Enter your business idea and city, and get a complete cost breakdown — fixed costs, variable costs, break-even point, and payback period — in under 90 seconds.</p>
     </>
   ),
   'unit-economics-explained-for-founders': (
@@ -176,7 +176,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>Reducing churn by even 1-2% can have a bigger impact on profitability than doubling your marketing budget.</p>
       
       <h2>How Quantis Calculates Your Unit Economics</h2>
-      <p>AIWMC Quantis automatically calculates CAC, LTV, LTV/CAC ratio, payback period, and churn impact for your specific business idea — using benchmarks from 1,000+ industry scenarios. You'll see exactly where your business stands and what metrics need to improve before you invest.</p>
+      <p>AIWMC Quantis automatically calculates CAC, LTV, LTV/CAC ratio, payback period, and churn impact for your specific business idea — using benchmarks from 95,500 industry scenarios. You'll see exactly where your business stands and what metrics need to improve before you invest.</p>
     </>
   ),
   'how-to-stress-test-your-startup': (
@@ -266,7 +266,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>AI-powered validation tools like AIWMC Quantis solve the spreadsheet problems:</p>
       <ul>
         <li><strong>Speed:</strong> 60 seconds vs 20-40 hours. Enter your idea and location, get a complete financial model.</li>
-        <li><strong>Benchmarks:</strong> Every calculation is grounded in 1,000+ industry benchmarks. No guessing.</li>
+        <li><strong>Benchmarks:</strong> Every calculation is grounded in 95,500 industry benchmarks. No guessing.</li>
         <li><strong>Objectivity:</strong> The engine doesn't care about your feelings. It shows you the math.</li>
         <li><strong>Scenarios:</strong> Automatic conservative/realistic/optimistic projections. No manual formula copying.</li>
       </ul>
@@ -323,7 +323,7 @@ export default function BlogArticle() {
           datePublished: article.date,
           dateModified: article.date,
           author: { '@type': 'Person', name: 'Bogdan Jeltov', url: 'https://aiwmcquantis.com' },
-          publisher: { '@type': 'Organization', name: 'AIWMC AI Agency LLC', logo: { '@type': 'ImageObject', url: 'https://aiwmcquantis.com/icon-512.png' } },
+          publisher: { '@type': 'Organization', name: 'AIWMC™ LLC', logo: { '@type': 'ImageObject', url: 'https://aiwmcquantis.com/icon-512.png' } },
           mainEntityOfPage: { '@type': 'WebPage', '@id': `https://aiwmcquantis.com/blog/${article.slug}` },
           ...(article.keywords && { keywords: article.keywords.join(', ') }),
           articleSection: article.category,

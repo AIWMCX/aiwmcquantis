@@ -19,7 +19,7 @@ const STEPS = [
   step: 2,
   icon: Calculator,
   title: 'AI Runs Financial Stress Tests',
-  description: 'Our deterministic engine calculates 12 financial variables using 1,000+ industry benchmarks, adjusted for your specific city.',
+  description: 'Our deterministic engine calculates 12 financial variables using 95,500 industry benchmarks, adjusted for your specific city.',
   example: 'Revenue projections, cost structure, unit economics, break-even analysis',
   color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
 },
@@ -47,7 +47,7 @@ const FAQ_ITEMS = [
 },
 {
   q: 'What data do you use for projections?',
-  a: '1,000+ industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.'
+  a: '95,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.'
 },
 {
   q: 'Can I trust the projections?',
@@ -68,7 +68,7 @@ export default function HowItWorks() {
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
         title="How Quantis Works — AI Financial Stress-Testing"
-        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 1,000+ benchmarks, get your risk report with 3-scenario projections — in 90 seconds."
+        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 95,500 benchmarks, get your risk report with 3-scenario projections — in 90 seconds."
         canonical="/how-it-works"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -102,6 +102,7 @@ export default function HowItWorks() {
               <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
               <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
               <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/methodology" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Methodology</Link>
               <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
             </div>
             <Link to="/app">
