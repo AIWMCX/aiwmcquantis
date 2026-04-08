@@ -115,7 +115,7 @@ export const LocalBusinessSchema = React.memo(function LocalBusinessSchema({
 });
 
 /**
- * Pre-configured LocalBusiness schema for AIWMC AI Agency
+ * Pre-configured LocalBusiness schema for AIWMC™ LLC
  */
 export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
   return (

@@ -12,7 +12,7 @@ const comparisons = [
   {
     aspect: 'Data Source',
     generic: 'Training data only',
-    quantis: '1,000+ industry benchmarks',
+    quantis: '95,500 industry benchmarks',
     genericStatus: 'poor',
     quantisStatus: 'good',
   },

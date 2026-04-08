@@ -260,7 +260,7 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
       {/* Trust Signals */}
       <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
         <Shield className="w-3.5 h-3.5" />
-        <span>Secure • Join 1,000+ companies • Cancel anytime</span>
+        <span>Secure • Trusted by founders worldwide • Cancel anytime</span>
       </div>
 
       {/* Mobile Progress Indicator */}
