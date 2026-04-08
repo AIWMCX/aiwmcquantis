@@ -128,7 +128,7 @@ export default function HowItWorks() {
             How AIWMC™ Quantis Validates Your Business Model
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 1,000+ industry benchmarks, in under 60 seconds.
+            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 95,500 industry benchmarks, in under 60 seconds., in under 60 seconds.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8 text-base">
