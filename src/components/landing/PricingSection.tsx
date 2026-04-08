@@ -34,7 +34,7 @@ const FREE_FEATURES = [
 
 const PLUS_FEATURES = [
   { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
-  { text: 'Monte Carlo simulations', highlight: true, subtext: '1,000+ scenario stress-tests per analysis' },
+  { text: 'Monte Carlo simulations', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
   { text: 'Custom branding', highlight: true, subtext: 'White-label reports with your logo — impress clients' },
   { text: 'Advanced financial modeling', highlight: false, subtext: '12-variable projections with scenarios' },
   { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },

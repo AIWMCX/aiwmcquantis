@@ -139,7 +139,7 @@ export default function Auth() {
             <div className="space-y-4 pt-4">
               {[
                 { metric: '12', label: 'Financial variables stress-tested' },
-                { metric: '1,000+', label: 'Industry benchmarks' },
+                { metric: '95,500', label: 'Industry benchmarks' },
                 { metric: '90s', label: 'Time to full analysis' },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center gap-4">

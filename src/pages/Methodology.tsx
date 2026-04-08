@@ -34,7 +34,7 @@ export default function Methodology() {
     <AppLayout title="Methodology & Safety">
       <PageSEO
         title="Quantis Methodology — Deterministic Financial Engine"
-        description="How Quantis calculates projections: deterministic math engine, 1,000+ industry benchmarks, dual-AI consensus validation, and 7-layer safety architecture."
+        description="How Quantis calculates projections: deterministic math engine, 95,500 industry benchmarks, dual-AI consensus validation, and 7-layer safety architecture."
         canonical="/methodology"
       />
       

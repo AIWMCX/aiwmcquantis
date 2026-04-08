@@ -13,7 +13,7 @@ const WITHOUT_ITEMS = [
 
 const WITH_ITEMS = [
 'Know your 3 fatal assumptions before spending $1',
-'Stress-test against 1,000+ industry benchmarks',
+'Stress-test against 95,500 industry benchmarks',
 'Get a clear proceed / pivot / kill verdict',
 'See exactly which number will break your model'];
 
