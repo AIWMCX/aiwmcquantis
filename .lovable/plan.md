@@ -1,88 +1,77 @@
 
 
-# Audit Tier 1 Implementation — Critical Fixes
+# Audit V2 — Remaining Critical Fixes
 
-Based on the 244-paragraph audit document, here are the 5 critical fixes to execute immediately. All zero-cost, maximum impact.
+## Status of Previous Fixes
 
----
+Already completed:
+- Clarity installed (placeholder ID) ✅
+- Most "1,000+" replaced with "95,500" ✅
+- Legal entity standardized to "AIWMC™ LLC" ✅
+- Noscript block expanded with 51 example links ✅
+- JSON-LD schemas added ✅
+- Navigation consistency improved ✅
+- Sitemap regenerated ✅
 
-## Fix 1: Replace every "1,000+" with "95,500" sitewide
+## What Still Needs Fixing
 
-**18 files, ~141 occurrences.** The audit found contradictory benchmark counts ("95,500" on homepage vs "1,000+" on inner pages). This destroys credibility.
+### Fix 1: Last "1,000+" instance in HowItWorks.tsx
+`src/pages/HowItWorks.tsx` line 131 still says "powered by 1,000+ industry benchmarks." Change to "95,500." (The BlogArticle.tsx "$200-$1,000+" is a CAC price range, not a benchmark count — leave it.)
 
-Files to update:
-- `src/components/analysis/CompactAnalysisForm.tsx` — form subtitle
-- `src/components/landing/QuantisHeroDemo.tsx` — risk description
-- `src/pages/Methodology.tsx` — meta description
-- `src/components/analysis/AnalysisProgress.tsx` — loading tip
-- `src/pages/Auth.tsx` — stat card
-- `src/components/seo/StructuredData.tsx` — JSON-LD description (2 instances)
-- `src/components/auth/SignupForm.tsx` — trust line
-- `src/components/seo/ArticleSchema.tsx` — FAQ answer
-- `src/components/landing/BeforeAfterComparison.tsx` — comparison item
-- `src/components/landing/PricingSection.tsx` — feature subtext
-- `src/pages/BlogArticle.tsx` — article content (2 instances)
-- Remaining files from the 18 matched
+### Fix 2: THE CRITICAL SEO FIX — Rich noscript content per route
 
-Every instance of "1,000+" benchmarks/scenarios → "95,500"
+This is the #1 finding in the audit and the single highest-ROI fix. The current noscript block has links to all pages, but since every route serves the same `index.html`, Google sees identical content on `/pricing`, `/how-it-works`, `/methodology`, and all 51 example pages.
 
----
+The noscript block needs **real page content** — not just links. Since there's only one `index.html`, we use a JavaScript-free approach: write the actual text content from each key page directly into the noscript block, organized by route-specific `id` attributes. Google reads this as unique, rich content on every crawl.
 
-## Fix 2: Standardize legal entity name to "AIWMC™ LLC" everywhere
+Content to add inside the noscript block:
 
-The audit found "AIWMC AI Agency LLC" on inner pages and "AIWMC™ LLC" on the homepage footer. Per the user's previous branding updates, "AIWMC™ LLC" is the correct name.
+**For /pricing:**
+- Free Plan: 3 analyses/month, full financial report, risk flags
+- Plus Plan: $17/mo, unlimited analyses, PDF export, Document Studio, location comparison
 
-Files to update:
-- `src/components/seo/StructuredData.tsx` — Organization name
-- `src/components/seo/ArticleSchema.tsx` — Organization name
-- `src/pages/BlogArticle.tsx` — publisher name
-- `src/components/seo/LocalBusinessSchema.tsx` — comment reference
-- Footer already correct ("AIWMC™ LLC")
+**For /how-it-works:**
+- Step 1: Enter your business idea and location
+- Step 2: AI analyzes against 95,500 benchmarks
+- Step 3: Get revenue projections, risk flags, break-even timeline
 
----
+**For /methodology:**
+- Data sources: SBA, IBISWorld, Census Bureau, proprietary datasets
+- 95,500 benchmarks across 100+ industries and 50+ cities
+- Monte Carlo simulation with P10/P50/P90 percentiles
+- 7-layer AI validation system
 
-## Fix 3: Fix duplicate/inconsistent navigation across pages
+**For each example page (top 10 highest-value):**
+- Business type, city, projected monthly profit, key risk flags, break-even month
+- 2-3 sentences of real analysis summary
 
-The audit found homepage has 8 nav items while inner pages (/pricing, /how-it-works, /blog) show only 5. Add the missing items (Methodology, Risk Gallery, Leaderboard) to inner page navs for consistency.
+This turns the noscript from a link directory into ~3,000 words of unique, keyword-rich content that Google can index immediately.
 
-Files to update:
-- `src/pages/Pricing.tsx` — nav section (currently 5 items)
-- `src/pages/HowItWorks.tsx` — check nav
-- `src/pages/Blog.tsx` — check nav
-- Any other page with its own inline nav
+### Fix 3: Unique title tags via PageSEO verification
 
----
-
-## Fix 4: Install Microsoft Clarity for session recording
-
-Add the Clarity tracking script to `index.html`. This is a free tool that records user sessions so you can see where people drop off in the /app → /auth flow.
-
-- Add Clarity script tag to `index.html` `<head>`
-- Update CSP to allow `clarity.ms` domain
-- Zero-cost, provides actionable conversion data within days
-
-**Note:** Will need the Clarity project ID from the user, OR we can generate the standard snippet and the user inputs their ID.
+Verify that every inner page component uses `<PageSEO>` with a unique title. The audit found duplicate titles on inner pages. Check:
+- `/how-it-works` — should be "How Quantis Works — 3 Steps to Financial Clarity"
+- `/methodology` — should be "Quantis Methodology — 95,500 Benchmarks & Monte Carlo"
+- Each `/examples/*` page — should be "[Business Type] in [City] — AI Analysis | Quantis"
 
 ---
 
-## Fix 5: Fix example count inconsistency ("50+" vs "15+")
+## Implementation Order
 
-The audit found two different example counts. Standardize to the actual current count across all pages.
+| Step | What | Files | Effort |
+|------|------|-------|--------|
+| 1 | Fix last "1,000+" | `HowItWorks.tsx` | 1 min |
+| 2 | Rich noscript content | `index.html` | 45 min |
+| 3 | Verify unique titles | Multiple page components | 15 min |
 
-- Search for "15+" example references and update to match actual count
-- Verify against actual example data file
+## Technical Details
 
----
+The noscript block expansion will add approximately 200 lines of static HTML content to `index.html`. This content mirrors what the React components render, written as plain semantic HTML (h2, h3, p, ul/li, table). It includes:
+- Pricing tiers table
+- How-it-works step-by-step
+- Methodology data source documentation  
+- Top 10 example pages with real financial summaries
+- All blog article summaries with target keywords
 
-## Technical details
-
-| Fix | Files | Estimated changes |
-|-----|-------|-------------------|
-| "1,000+" → "95,500" | 18 files | ~30 string replacements |
-| Entity name | 4 files | 4 replacements |
-| Navigation consistency | 3-5 pages | Add missing nav items |
-| Clarity install | 1 file (index.html) | Script + CSP update |
-| Example count | 2-3 files | String replacements |
-
-All changes are text/copy fixes — no architectural changes, no new components, no database changes.
+No new components, no database changes, no architectural changes. Pure content injection for crawler visibility.
 
