@@ -296,6 +296,175 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>AI handles the 80% (benchmarks, scenarios, risk scoring). Spreadsheets handle the 20% (custom models, investor presentations, detailed operational planning).</p>
     </>
   ),
+  'coffee-shop-startup-costs-by-city': (
+    <>
+      <p>Opening a coffee shop is one of the most searched-for business ideas in America — and one of the most location-dependent. The same concept that thrives in Austin can bleed money in Manhattan. Here's what the real numbers look like in 2026.</p>
+
+      <h2>Why Location Changes Everything for Coffee Shops</h2>
+      <p>A coffee shop's profitability depends on three location-driven variables: rent, labor costs, and foot traffic density. A 1,200 sq ft space in Denver's LoHi neighborhood costs $3,500-$5,000/month. The same space in NYC's SoHo district costs $12,000-$18,000/month. That's a 3-4× cost difference that directly impacts your break-even timeline.</p>
+
+      <h2>Denver, Colorado — The Sweet Spot</h2>
+      <p>Denver consistently ranks as one of the best cities for independent coffee shops. Here's why:</p>
+      <ul>
+        <li><strong>Startup cost:</strong> $95,000-$145,000 (equipment, buildout, permits, initial inventory)</li>
+        <li><strong>Monthly rent:</strong> $3,500-$5,500 for a 1,000-1,400 sq ft space</li>
+        <li><strong>Monthly labor:</strong> $8,000-$12,000 (3-5 employees at $16-$19/hr)</li>
+        <li><strong>Average ticket:</strong> $6.50-$8.50</li>
+        <li><strong>Projected monthly profit:</strong> $3,800-$5,200 at steady state</li>
+        <li><strong>Break-even:</strong> 7-10 months</li>
+      </ul>
+      <p>Denver's combination of strong remote-work culture, high coffee consumption per capita, and moderate commercial rents creates a favorable unit economics environment.</p>
+
+      <h2>Austin, Texas — High Growth, Rising Costs</h2>
+      <p>Austin's tech boom has driven both demand and costs upward:</p>
+      <ul>
+        <li><strong>Startup cost:</strong> $110,000-$165,000</li>
+        <li><strong>Monthly rent:</strong> $4,200-$7,000 (rising fast in central neighborhoods)</li>
+        <li><strong>Monthly labor:</strong> $7,500-$11,000 (lower minimum wage but competitive market)</li>
+        <li><strong>Average ticket:</strong> $7.00-$9.00</li>
+        <li><strong>Projected monthly profit:</strong> $3,200-$4,800</li>
+        <li><strong>Break-even:</strong> 9-13 months</li>
+      </ul>
+      <p>Austin's higher foot traffic and tech worker spending offset the rising rents — but margins are thinner than Denver's.</p>
+
+      <h2>New York City — High Volume Required</h2>
+      <p>NYC is a different game entirely. The numbers only work at high volume:</p>
+      <ul>
+        <li><strong>Startup cost:</strong> $180,000-$320,000 (key money, buildout, permits)</li>
+        <li><strong>Monthly rent:</strong> $8,000-$18,000 depending on borough and foot traffic</li>
+        <li><strong>Monthly labor:</strong> $14,000-$22,000 ($16-$21/hr minimum, higher turnover)</li>
+        <li><strong>Average ticket:</strong> $8.00-$12.00</li>
+        <li><strong>Projected monthly profit:</strong> $2,500-$6,500 (wide range based on location)</li>
+        <li><strong>Break-even:</strong> 14-24 months</li>
+      </ul>
+      <p>NYC coffee shops need 300+ transactions/day to hit profitability. In Denver, 120-180 transactions/day is sufficient.</p>
+
+      <h2>The Key Metrics That Predict Coffee Shop Success</h2>
+      <ul>
+        <li><strong>Rent-to-revenue ratio:</strong> Keep below 15%. Above 20% is a red flag.</li>
+        <li><strong>Labor cost percentage:</strong> Target 25-35% of revenue.</li>
+        <li><strong>COGS (coffee, milk, food):</strong> Industry average is 28-35% of revenue.</li>
+        <li><strong>Daily transaction target:</strong> Calculate your break-even transaction count and measure against local foot traffic data.</li>
+      </ul>
+
+      <h2>Run Your Own Coffee Shop Analysis</h2>
+      <p>AIWMC Quantis calculates location-adjusted projections for coffee shops in 50+ cities. Enter your concept and city, and get startup costs, monthly P&L, break-even timeline, and risk flags — all benchmarked against 95,500 real business scenarios.</p>
+    </>
+  ),
+  'food-truck-profit-calculator': (
+    <>
+      <p>Food trucks have lower startup costs than restaurants, higher mobility, and growing consumer demand. But how much does a food truck actually make? The answer depends heavily on your city, cuisine type, and operating model.</p>
+
+      <h2>Food Truck Economics: The Basics</h2>
+      <p>Unlike restaurants, food trucks have two unique advantages: lower fixed costs (no lease) and location flexibility (you go where the customers are). But they also face unique challenges: weather dependency, permit complexity, and limited kitchen space.</p>
+
+      <h2>Austin, Texas — The Food Truck Capital</h2>
+      <p>Austin has the highest density of food trucks per capita in the U.S., which means proven demand but also competition:</p>
+      <ul>
+        <li><strong>Startup cost:</strong> $55,000-$95,000 (truck purchase/wrap, equipment, permits, initial inventory)</li>
+        <li><strong>Monthly operating costs:</strong> $8,000-$14,000 (commissary, fuel, insurance, supplies, labor)</li>
+        <li><strong>Average ticket:</strong> $12-$16</li>
+        <li><strong>Daily transactions:</strong> 80-150 on good days, 30-60 on slow days</li>
+        <li><strong>Projected monthly revenue:</strong> $18,000-$35,000</li>
+        <li><strong>Projected monthly profit:</strong> $4,500-$8,000</li>
+        <li><strong>Break-even:</strong> 6-10 months</li>
+      </ul>
+      <p>Austin's year-round outdoor culture, festival scene, and food-forward reputation make it ideal for food trucks.</p>
+
+      <h2>Los Angeles, California — High Volume, High Competition</h2>
+      <ul>
+        <li><strong>Startup cost:</strong> $70,000-$120,000 (stricter health codes, higher truck costs)</li>
+        <li><strong>Monthly operating costs:</strong> $12,000-$20,000</li>
+        <li><strong>Average ticket:</strong> $14-$18</li>
+        <li><strong>Projected monthly revenue:</strong> $22,000-$42,000</li>
+        <li><strong>Projected monthly profit:</strong> $4,000-$9,000</li>
+        <li><strong>Break-even:</strong> 8-14 months</li>
+      </ul>
+      <p>LA's permit process is notoriously complex. Budget $3,000-$5,000 and 2-3 months for licensing alone.</p>
+
+      <h2>Miami, Florida — Seasonal Opportunity</h2>
+      <ul>
+        <li><strong>Startup cost:</strong> $50,000-$85,000</li>
+        <li><strong>Monthly operating costs:</strong> $7,000-$13,000</li>
+        <li><strong>Average ticket:</strong> $13-$17</li>
+        <li><strong>Projected monthly revenue:</strong> $16,000-$30,000 (peak season), $8,000-$15,000 (off-season)</li>
+        <li><strong>Projected monthly profit:</strong> $3,500-$7,500 (annualized)</li>
+        <li><strong>Break-even:</strong> 7-12 months</li>
+      </ul>
+      <p>Miami's seasonality is the biggest factor: November through April is peak season with tourist traffic. Summer months require a strategy — catering, events, or a secondary fixed location.</p>
+
+      <h2>The 5 Metrics That Determine Food Truck Profitability</h2>
+      <ul>
+        <li><strong>COGS ratio:</strong> Keep food costs at 28-35% of revenue. Above 40% means your menu pricing is wrong.</li>
+        <li><strong>Average daily revenue:</strong> Target $800-$1,500/day for profitability. Below $500/day is unsustainable.</li>
+        <li><strong>Event vs. street ratio:</strong> Trucks that do 50%+ catering/events have more predictable revenue.</li>
+        <li><strong>Fuel + commissary costs:</strong> Often underestimated — budget $800-$1,500/month.</li>
+        <li><strong>Permit renewal costs:</strong> Annual permit fees range from $500 (Austin) to $3,000+ (LA).</li>
+      </ul>
+
+      <h2>Calculate Your Food Truck Profitability</h2>
+      <p>AIWMC Quantis models food truck economics for any city — including permit costs, seasonal adjustments, and local competition density. Get your full financial projection in under 90 seconds.</p>
+    </>
+  ),
+  'how-to-validate-restaurant-idea': (
+    <>
+      <p>Restaurants have a 60% failure rate in the first year and an 80% failure rate within five years. Most of these failures are predictable — and preventable — with proper financial validation before signing a lease.</p>
+
+      <h2>Why Restaurants Fail: It's Usually the Numbers, Not the Food</h2>
+      <p>The romantic vision: amazing food, packed tables, rave reviews. The reality: 85% of restaurant failures are caused by financial mismanagement, not bad food. The three most common killers:</p>
+      <ul>
+        <li><strong>Undercapitalization:</strong> Running out of money before reaching profitability (usually 12-18 months)</li>
+        <li><strong>Wrong location economics:</strong> Rent too high for the traffic the location generates</li>
+        <li><strong>Poor unit economics:</strong> Food costs + labor + overhead exceed revenue per seat</li>
+      </ul>
+
+      <h2>The 7 Metrics That Predict Restaurant Survival</h2>
+
+      <h3>1. Rent-to-Revenue Ratio</h3>
+      <p>Industry standard: rent should be 6-10% of gross revenue. Above 12% is a red flag. If your projected revenue can't support the rent at this ratio, the location is wrong for your concept.</p>
+      <p><strong>Example:</strong> If rent is $8,000/month, you need at minimum $80,000/month in revenue ($8,000 ÷ 10%).</p>
+
+      <h3>2. Food Cost Percentage</h3>
+      <p>Target: 28-35% of revenue. Fast casual can go lower (25-30%). Fine dining runs higher (32-40%). Calculate this for every menu item before finalizing your menu.</p>
+
+      <h3>3. Labor Cost Percentage</h3>
+      <p>Target: 25-35% of revenue. This is your second-largest expense. Include payroll taxes, benefits, and training costs — not just base wages.</p>
+
+      <h3>4. Prime Cost (Food + Labor)</h3>
+      <p>This is the most important restaurant metric. Target: 55-65% of revenue. Above 70% means you're losing money on operations even before rent and utilities.</p>
+
+      <h3>5. Revenue Per Square Foot</h3>
+      <p>Industry benchmark: $150-$500/sq ft annually for casual dining. Fine dining: $300-$800/sq ft. If your concept can't hit these numbers for your location, reconsider the format.</p>
+
+      <h3>6. Average Revenue Per Available Seat Hour (RevPASH)</h3>
+      <p>This measures how efficiently you use your space. Calculate: total revenue ÷ (number of seats × hours open). Target varies by concept, but tracking this daily reveals whether you have a demand problem or an efficiency problem.</p>
+
+      <h3>7. Break-Even Point</h3>
+      <p>Calculate: Fixed costs ÷ (1 - Variable cost percentage). This tells you exactly how much revenue you need per month to cover all costs. Most restaurants need 6-18 months to reach consistent break-even.</p>
+
+      <h2>Location Validation: The Walk-Through Method</h2>
+      <p>Before signing any lease:</p>
+      <ul>
+        <li><strong>Count foot traffic:</strong> Stand outside the location for 3 hours during your target meal period. Count pedestrians. Your conversion rate will be 1-3% of foot traffic.</li>
+        <li><strong>Check competition density:</strong> How many restaurants within a 5-minute walk? Moderate competition validates demand. Oversaturation kills margins.</li>
+        <li><strong>Verify parking/transit:</strong> For suburban locations, parking is critical. For urban locations, proximity to transit and office buildings matters more.</li>
+        <li><strong>Research previous tenants:</strong> If the last 3 businesses in the space failed, there may be a structural problem with the location.</li>
+      </ul>
+
+      <h2>The Financial Stress Test</h2>
+      <p>Run three scenarios before committing:</p>
+      <ul>
+        <li><strong>Conservative:</strong> 30% less revenue than projected, 15% higher costs. Can you survive 12 months at this level?</li>
+        <li><strong>Realistic:</strong> Industry-average performance for your concept and location.</li>
+        <li><strong>Optimistic:</strong> Strong word-of-mouth, efficient operations. What's the upside?</li>
+      </ul>
+      <p>If the conservative scenario shows losses beyond month 12, you need more capital, lower costs, or a different concept.</p>
+
+      <h2>Validate Your Restaurant Concept with Data</h2>
+      <p>AIWMC Quantis runs full financial validation for restaurant concepts in any city — including location-adjusted rent, labor costs, food cost benchmarks, and 3-scenario projections. Enter your restaurant idea and get startup costs, monthly P&L, break-even timeline, and risk flags in 90 seconds.</p>
+      <p>Don't sign a lease until the numbers work on paper. The data is free — the mistakes are expensive.</p>
+    </>
+  ),
 };
 
 export default function BlogArticle() {

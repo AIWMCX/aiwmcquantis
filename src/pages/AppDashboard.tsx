@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
+import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 
@@ -493,6 +494,13 @@ export default function Index() {
                             onNewAnalysis={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); setShowNextSteps(false); formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }}
                           />
                         )}
+                        <PostAnalysisEmailCapture
+                          ideaTitle={idea}
+                          monthlyProfit={result?.financial_analysis?.scenarios?.base?.net_profit 
+                            ? `$${Math.round(result.financial_analysis.scenarios.base.net_profit).toLocaleString()}`
+                            : undefined}
+                          onDismiss={() => {}}
+                        />
                       </SectionErrorBoundary>
                     ) : hasPrefill || isLoading ? (
                       <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
