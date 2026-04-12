@@ -22,6 +22,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
+import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 

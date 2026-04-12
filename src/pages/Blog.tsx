@@ -88,6 +88,33 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     category: 'Strategy',
     keywords: ['AI financial planning', 'startup spreadsheet', 'financial model tools', 'AI vs spreadsheet', 'startup planning tools'],
   },
+  {
+    slug: 'coffee-shop-startup-costs-by-city',
+    title: 'Coffee Shop Startup Costs in 2026: Denver vs Austin vs NYC (Real Numbers)',
+    description: 'What it actually costs to open a coffee shop in Denver, Austin, and New York City. Location-adjusted startup costs, monthly expenses, and profit projections.',
+    date: '2026-04-10',
+    readTime: '9 min read',
+    category: 'Local Analysis',
+    keywords: ['coffee shop startup costs', 'coffee shop Denver', 'coffee shop Austin', 'coffee shop NYC', 'how much to open a coffee shop', 'coffee shop profit margin'],
+  },
+  {
+    slug: 'food-truck-profit-calculator',
+    title: 'Food Truck Profit Calculator: Revenue, Costs & ROI by City (2026)',
+    description: 'How much does a food truck make? Real profit projections for Austin, LA, and Miami. Startup costs, permit fees, and monthly revenue breakdowns.',
+    date: '2026-04-10',
+    readTime: '8 min read',
+    category: 'Local Analysis',
+    keywords: ['food truck profit', 'food truck revenue', 'food truck startup costs', 'food truck Austin', 'food truck Los Angeles', 'food truck calculator'],
+  },
+  {
+    slug: 'how-to-validate-restaurant-idea',
+    title: 'How to Validate a Restaurant Idea Before Signing a Lease (2026 Guide)',
+    description: 'A data-driven framework for validating restaurant concepts. Location analysis, financial stress-testing, and the 7 metrics that predict restaurant survival.',
+    date: '2026-04-10',
+    readTime: '10 min read',
+    category: 'Validation',
+    keywords: ['validate restaurant idea', 'restaurant business plan', 'restaurant profit margin', 'restaurant feasibility', 'restaurant startup costs', 'restaurant financial analysis'],
+  },
 ];
 
 export default function Blog() {
