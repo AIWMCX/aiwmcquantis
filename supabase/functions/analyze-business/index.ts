@@ -1271,28 +1271,72 @@ function calculateStrictFinancials(
   
   const startupInvestment = rawInvestment;
   
+  // RAMP-UP AWARE PAYBACK: Uses 6-month ramp schedule (30%→100% of revenue)
+  // instead of assuming full Month 1 profit. This fixes the "1 month payback" template artifact.
   let paybackMonths = 0;
   if (startupInvestment > 0) {
     if (finalNetProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / finalNetProfit);
+      // Simulate ramp-up cash flow to find true payback month
+      const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+      const fixedCostPortion = finalTotalExpenses * 0.6;
+      const variableCostPortion = finalTotalExpenses * 0.4;
+      let cumulative = 0;
+      let foundPayback = false;
+      
+      for (let m = 1; m <= 60; m++) {
+        let monthRevenue: number;
+        let monthCosts: number;
+        
+        if (m <= RAMP.length) {
+          monthRevenue = mrr * RAMP[m - 1];
+          monthCosts = fixedCostPortion + variableCostPortion * RAMP[m - 1];
+        } else {
+          const growth = Math.pow(1.05, m - RAMP.length);
+          monthRevenue = mrr * growth;
+          monthCosts = finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
+        }
+        
+        cumulative += monthRevenue - monthCosts;
+        if (cumulative >= startupInvestment) {
+          paybackMonths = m;
+          foundPayback = true;
+          break;
+        }
+      }
+      
+      if (!foundPayback) paybackMonths = 999;
     } else {
       paybackMonths = 999;
     }
   }
   
   audit.push({
-    formula: 'Payback = Investment / Monthly_Profit',
-    inputs: { 'Investment': startupInvestment, 'Profit/mo': finalNetProfit },
+    formula: 'Payback = Ramp-Up Cash Flow Model (30%→100% over 6 months)',
+    inputs: { 'Investment': startupInvestment, 'Steady-State Profit/mo': finalNetProfit },
     result: paybackMonths,
     isValid: paybackMonths < 36 && paybackMonths > 0,
     notes: paybackMonths === 999 
       ? 'Business is unprofitable - payback impossible' 
-      : `$${startupInvestment} / $${finalNetProfit} = ${paybackMonths} months`
+      : `With 6-month ramp-up: payback at month ${paybackMonths} (steady-state would be ${Math.ceil(startupInvestment / finalNetProfit)} months)`
   });
   
+  // ROI also uses ramp-adjusted Year 1 profit (not 12 × steady-state)
   let roiYear1Percent = 0;
   if (startupInvestment > 0) {
-    roiYear1Percent = Math.round((finalNetProfit * 12 / startupInvestment) * 100);
+    // Calculate actual Year 1 profit with ramp
+    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+    const fixedP = finalTotalExpenses * 0.6;
+    const varP = finalTotalExpenses * 0.4;
+    let year1Profit = 0;
+    for (let m = 1; m <= 12; m++) {
+      if (m <= RAMP.length) {
+        year1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
+      } else {
+        const g = Math.pow(1.05, m - RAMP.length);
+        year1Profit += mrr * g - finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
+      }
+    }
+    roiYear1Percent = Math.round((year1Profit / startupInvestment) * 100);
   }
   
   audit.push({
