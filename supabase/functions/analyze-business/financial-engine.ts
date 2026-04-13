@@ -449,7 +449,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 11: Generate scenario analysis =====
   
-  const scenarios = generateScenarios(mrr, cogs, fixedCosts, marketing, netProfit, grossProfit, grossMarginPercent, netMarginPercent);
+  const scenarios = generateScenarios(mrr, cogs, fixedCosts, marketing, netProfit, grossProfit, grossMarginPercent, netMarginPercent, benchmarks.net_margin_max);
   
   // ===== BUILD FINAL OUTPUT =====
   
@@ -619,15 +619,32 @@ export function generate12MonthProjections(
 ): MonthlyProjection[] {
   const projections: MonthlyProjection[] = [];
   
-  let revenue = mrr;
-  let costs = totalExpenses;
+  // RAMP-UP MODEL: Month 1 starts at 30% of target MRR, ramping to 100% by Month 6.
+  // This prevents the "Day 1 full revenue" error flagged in validation audits.
+  const RAMP_SCHEDULE = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00]; // Months 1-6
+  
   let cash = currentCash || 0;
   let cumulativeProfit = -startupInvestment;
   
   for (let month = 1; month <= 12; month++) {
-    if (month > 1) {
-      revenue = QMath.round(QMath.multiply(revenue, QMath.add(1, monthlyGrowthRate).toNumber()));
-      costs = QMath.round(QMath.multiply(costs, QMath.add(1, QMath.multiply(monthlyGrowthRate, 0.5)).toNumber()));
+    // Apply ramp-up for months 1-6, then normal growth from month 7+
+    let revenue: number;
+    let costs: number;
+    
+    if (month <= RAMP_SCHEDULE.length) {
+      // Ramp-up phase: scale revenue by ramp factor, costs are mostly fixed
+      const rampFactor = RAMP_SCHEDULE[month - 1];
+      revenue = QMath.round(QMath.multiply(mrr, rampFactor));
+      // Fixed costs stay ~100%, variable costs scale with revenue
+      const fixedPortion = totalExpenses * 0.6; // ~60% of costs are fixed
+      const variablePortion = totalExpenses * 0.4;
+      costs = QMath.round(QMath.add(fixedPortion, QMath.multiply(variablePortion, rampFactor)));
+    } else {
+      // Post-ramp: apply growth rate from month 7+
+      const monthsAfterRamp = month - RAMP_SCHEDULE.length;
+      const growthMultiplier = Math.pow(1 + monthlyGrowthRate, monthsAfterRamp);
+      revenue = QMath.round(QMath.multiply(mrr, growthMultiplier));
+      costs = QMath.round(QMath.multiply(totalExpenses, Math.pow(1 + monthlyGrowthRate * 0.5, monthsAfterRamp)));
     }
     
     const profit = QMath.round(QMath.subtract(revenue, costs));
