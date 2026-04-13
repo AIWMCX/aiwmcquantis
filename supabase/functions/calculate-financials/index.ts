@@ -452,8 +452,26 @@ function computeFinancials(input: FinancialsInput): FinancialsOutput {
   const grossProfit = mrr - cogs;
   const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
   
-  const netProfit = mrr - totalExpenses;
-  const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  let netProfit = mrr - totalExpenses;
+  let netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
+  
+  // MARGIN CEILING GUARD: clamp net margin to benchmark max + 5%
+  const maxAllowedMargin = benchmarks.net_margin_max + 5;
+  if (netMarginPercent > maxAllowedMargin && mrr > 0) {
+    const targetExpenses = Math.round(mrr * (1 - maxAllowedMargin / 100));
+    issues.push({
+      code: 'NET_MARGIN_EXCEEDS_CEILING',
+      field: 'netMarginPercent',
+      message: `Net margin ${netMarginPercent}% exceeds industry maximum of ${benchmarks.net_margin_max}% (+ 5% buffer). Clamped to ${maxAllowedMargin}%.`,
+      severity: 'warning',
+      originalValue: netMarginPercent,
+      correctedValue: maxAllowedMargin,
+      fix: `Margin capped at ${maxAllowedMargin}% to match industry reality`,
+    });
+    totalExpenses = targetExpenses;
+    netProfit = mrr - targetExpenses;
+    netMarginPercent = maxAllowedMargin;
+  }
   const isProfitable = netProfit > 0;
   
   audit.push({
