@@ -1048,15 +1048,32 @@ function calculateStrictFinancials(
   }
   
   // 1.2 CAC - Use effectiveBenchmarks for sub-industry adjusted ranges
+  // ENHANCED: B2B/enterprise businesses have hard CAC floors because enterprise sales
+  // require dedicated account executives, demos, and multi-month cycles.
+  const B2B_CAC_FLOOR_KEYWORDS = [
+    'b2b', 'enterprise', 'saas', 'agency', 'consulting', 'professional services',
+    'migration', 'platform', 'managed services', 'white label', 'white-label',
+  ];
+  const ideaLower = (sanitizedIdea || '').toLowerCase();
+  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw)) 
+    || benchmarks.name?.toLowerCase().includes('consulting')
+    || benchmarks.name?.toLowerCase().includes('saas')
+    || benchmarks.name?.toLowerCase().includes('agency');
+  
+  // B2B enterprise: minimum CAC of $2,000 (conservative for technical sales)
+  const hardCacFloor = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_min, 2000) : effectiveBenchmarks.cac_min;
+  
   let cac = rawCac;
-  if (cac < effectiveBenchmarks.cac_min) {
+  if (cac < hardCacFloor) {
     corrections.push({
       field: 'cac',
       original: cac,
-      corrected: effectiveBenchmarks.cac_typical,
-      reason: `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
+      corrected: isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical,
+      reason: isB2BEnterprise 
+        ? `CAC $${cac} is unrealistically low for B2B/enterprise sales. Enterprise customer acquisition typically costs $2,000-$50,000+ due to sales cycles, demos, and relationship-building. Adjusted to $${Math.max(effectiveBenchmarks.cac_typical, 2000)}.`
+        : `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
     });
-    cac = effectiveBenchmarks.cac_typical;
+    cac = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical;
   } else if (cac > effectiveBenchmarks.cac_max) {
     corrections.push({
       field: 'cac',
