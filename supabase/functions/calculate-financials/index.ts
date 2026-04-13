@@ -486,23 +486,47 @@ function computeFinancials(input: FinancialsInput): FinancialsOutput {
   }
   
   // ===== STEP 8: Calculate investment returns =====
+  // RAMP-UP AWARE PAYBACK
   let paybackMonths = 0;
   if (startupInvestment > 0) {
     if (netProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / netProfit);
+      const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+      const fixedP = totalExpenses * 0.6;
+      const varP = totalExpenses * 0.4;
+      let cumulative = 0;
+      let foundPayback = false;
+      
+      for (let m = 1; m <= 60; m++) {
+        let mRev: number, mCost: number;
+        if (m <= RAMP.length) {
+          mRev = mrr * RAMP[m - 1];
+          mCost = fixedP + varP * RAMP[m - 1];
+        } else {
+          const g = Math.pow(1.05, m - RAMP.length);
+          mRev = mrr * g;
+          mCost = totalExpenses * Math.pow(1.025, m - RAMP.length);
+        }
+        cumulative += mRev - mCost;
+        if (cumulative >= startupInvestment) {
+          paybackMonths = m;
+          foundPayback = true;
+          break;
+        }
+      }
+      if (!foundPayback) paybackMonths = 999;
     } else {
       paybackMonths = 999;
     }
   }
   
   audit.push({
-    formula: 'Payback_Months = Startup_Investment / Monthly_Net_Profit',
-    inputs: { Investment: startupInvestment, 'Monthly Profit': netProfit },
+    formula: 'Payback = Ramp-Up Cash Flow Model (30%→100% over 6 months)',
+    inputs: { Investment: startupInvestment, 'Steady-State Profit': netProfit },
     result: paybackMonths,
     isValid: paybackMonths > 0 && paybackMonths < 48,
     notes: paybackMonths === 999 
       ? 'Business is unprofitable - payback impossible' 
-      : `$${startupInvestment} / $${netProfit} = ${paybackMonths} months`,
+      : `With 6-month ramp-up: payback at month ${paybackMonths}`,
   });
   
   if (paybackMonths > 36 && paybackMonths < 999) {
@@ -515,9 +539,23 @@ function computeFinancials(input: FinancialsInput): FinancialsOutput {
     });
   }
   
-  const roiYear1Percent = startupInvestment > 0 
-    ? Math.round((netProfit * 12 / startupInvestment) * 100) 
-    : 0;
+  // ROI also uses ramp-adjusted Year 1 profit
+  let roiYear1Percent = 0;
+  if (startupInvestment > 0 && netProfit > 0) {
+    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+    const fixedP = totalExpenses * 0.6;
+    const varP = totalExpenses * 0.4;
+    let y1Profit = 0;
+    for (let m = 1; m <= 12; m++) {
+      if (m <= RAMP.length) {
+        y1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
+      } else {
+        const g = Math.pow(1.05, m - RAMP.length);
+        y1Profit += mrr * g - totalExpenses * Math.pow(1.025, m - RAMP.length);
+      }
+    }
+    roiYear1Percent = Math.round((y1Profit / startupInvestment) * 100);
+  }
   
   const roiYear3Percent = startupInvestment > 0 
     ? Math.round((netProfit * 36 / startupInvestment) * 100) 
