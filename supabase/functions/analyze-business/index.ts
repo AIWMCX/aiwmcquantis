@@ -1054,8 +1054,8 @@ function calculateStrictFinancials(
     'b2b', 'enterprise', 'saas', 'agency', 'consulting', 'professional services',
     'migration', 'platform', 'managed services', 'white label', 'white-label',
   ];
-  const ideaLower = (sanitizedIdea || '').toLowerCase();
-  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw)) 
+  const ideaLower = (benchmarks.name || '').toLowerCase();
+  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw));
     || benchmarks.name?.toLowerCase().includes('consulting')
     || benchmarks.name?.toLowerCase().includes('saas')
     || benchmarks.name?.toLowerCase().includes('agency');
