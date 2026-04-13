@@ -1233,10 +1233,10 @@ function calculateStrictFinancials(
   
   const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
   
-  // ===== MARGIN CEILING GUARD (BUG FIX Phase 5) =====
-  // bulletproof-validator detects UNREALISTIC_NET_MARGIN but was not wired into this primary pipeline.
-  // Now enforcing it here: clamp net margin to benchmark max + 20% buffer.
-  const maxAllowedMargin = benchmarks.net_margin_max + 20;
+  // ===== MARGIN CEILING GUARD (BUG FIX Phase 5 → Phase 6 tightened) =====
+  // Audit finding: +20% buffer allowed 74-83% margins in consulting (max 50%).
+  // Now enforced at benchmark max + 5% — still allows outperformance but prevents absurd projections.
+  const maxAllowedMargin = benchmarks.net_margin_max + 5;
   let finalNetProfit = netProfit;
   let finalNetMarginPercent = netMarginPercent;
   let finalTotalExpenses = totalExpenses;

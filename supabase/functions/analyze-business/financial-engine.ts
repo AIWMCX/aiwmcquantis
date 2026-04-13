@@ -523,12 +523,25 @@ function generateScenarios(
   netProfit: number,
   grossProfit: number,
   grossMarginPercent: number,
-  netMarginPercent: number
+  netMarginPercent: number,
+  benchmarkNetMarginMax?: number
 ): { pessimistic: ScenarioMetrics; base: ScenarioMetrics; optimistic: ScenarioMetrics } {
   
   const mult = SCENARIO_MULTIPLIERS;
+  // Margin ceiling: scenarios must not exceed benchmark max + 5%
+  const marginCeiling = benchmarkNetMarginMax != null ? benchmarkNetMarginMax + 5 : 95;
   
   const baseCogsPercent = mrr > 0 ? QMath.roundTo(QMath.divide(cogs, mrr).toNumber(), 4) : 0;
+  
+  // Helper: clamp net margin to ceiling, adjusting profit accordingly
+  function clampMargin(revenue: number, rawNetProfit: number): number {
+    if (revenue <= 0) return rawNetProfit;
+    const rawMargin = (rawNetProfit / revenue) * 100;
+    if (rawMargin > marginCeiling) {
+      return QMath.round(QMath.multiply(revenue, marginCeiling / 100));
+    }
+    return rawNetProfit;
+  }
   
   // Pessimistic (Conservative)
   const pessimisticRevenue = QMath.round(QMath.multiply(mrr, mult.conservative.revenue));
@@ -537,7 +550,8 @@ function generateScenarios(
   const pessimisticMarketing = QMath.round(QMath.multiply(marketing, mult.conservative.costs));
   const pessimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.conservative.costs));
   const pessimisticTotal = QMath.round(QMath.add(QMath.add(pessimisticCogs, pessimisticFixed), pessimisticMarketing));
-  const pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  let pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  pessimisticNetProfit = clampMargin(pessimisticRevenue, pessimisticNetProfit);
   const pessimisticGrossProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticCogs));
   
   // Base case
@@ -550,7 +564,8 @@ function generateScenarios(
   const optimisticMarketing = QMath.round(QMath.multiply(marketing, mult.aggressive.costs));
   const optimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.aggressive.costs));
   const optimisticTotal = QMath.round(QMath.add(QMath.add(optimisticCogs, optimisticFixed), optimisticMarketing));
-  const optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  let optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  optimisticNetProfit = clampMargin(optimisticRevenue, optimisticNetProfit);
   const optimisticGrossProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticCogs));
   
   return {
@@ -561,7 +576,7 @@ function generateScenarios(
       grossProfit: pessimisticGrossProfit,
       netProfit: pessimisticNetProfit,
       grossMargin: QMath.marginPercent(pessimisticGrossProfit, pessimisticRevenue),
-      netMargin: QMath.marginPercent(pessimisticNetProfit, pessimisticRevenue),
+      netMargin: pessimisticRevenue > 0 ? QMath.roundTo((pessimisticNetProfit / pessimisticRevenue) * 100, 0) : 0,
     },
     base: {
       revenue: mrr,
@@ -579,7 +594,7 @@ function generateScenarios(
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
       grossMargin: QMath.marginPercent(optimisticGrossProfit, optimisticRevenue),
-      netMargin: QMath.marginPercent(optimisticNetProfit, optimisticRevenue),
+      netMargin: optimisticRevenue > 0 ? QMath.roundTo((optimisticNetProfit / optimisticRevenue) * 100, 0) : 0,
     },
   };
 }
