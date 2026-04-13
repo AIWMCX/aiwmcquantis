@@ -1055,10 +1055,10 @@ function calculateStrictFinancials(
     'migration', 'platform', 'managed services', 'white label', 'white-label',
   ];
   const ideaLower = (benchmarks.name || '').toLowerCase();
-  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw));
-    || benchmarks.name?.toLowerCase().includes('consulting')
-    || benchmarks.name?.toLowerCase().includes('saas')
-    || benchmarks.name?.toLowerCase().includes('agency');
+  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw))
+    || (benchmarks.name?.toLowerCase().includes('consulting') ?? false)
+    || (benchmarks.name?.toLowerCase().includes('saas') ?? false)
+    || (benchmarks.name?.toLowerCase().includes('agency') ?? false);
   
   // B2B enterprise: minimum CAC of $2,000 (conservative for technical sales)
   const hardCacFloor = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_min, 2000) : effectiveBenchmarks.cac_min;
