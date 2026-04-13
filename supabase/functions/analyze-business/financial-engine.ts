@@ -449,7 +449,7 @@ export function computeFinancials(input: FinancialEngineInput): FinancialEngineO
   
   // ===== STEP 11: Generate scenario analysis =====
   
-  const scenarios = generateScenarios(mrr, cogs, fixedCosts, marketing, netProfit, grossProfit, grossMarginPercent, netMarginPercent);
+  const scenarios = generateScenarios(mrr, cogs, fixedCosts, marketing, netProfit, grossProfit, grossMarginPercent, netMarginPercent, benchmarks.net_margin_max);
   
   // ===== BUILD FINAL OUTPUT =====
   
@@ -523,12 +523,25 @@ function generateScenarios(
   netProfit: number,
   grossProfit: number,
   grossMarginPercent: number,
-  netMarginPercent: number
+  netMarginPercent: number,
+  benchmarkNetMarginMax?: number
 ): { pessimistic: ScenarioMetrics; base: ScenarioMetrics; optimistic: ScenarioMetrics } {
   
   const mult = SCENARIO_MULTIPLIERS;
+  // Margin ceiling: scenarios must not exceed benchmark max + 5%
+  const marginCeiling = benchmarkNetMarginMax != null ? benchmarkNetMarginMax + 5 : 95;
   
   const baseCogsPercent = mrr > 0 ? QMath.roundTo(QMath.divide(cogs, mrr).toNumber(), 4) : 0;
+  
+  // Helper: clamp net margin to ceiling, adjusting profit accordingly
+  function clampMargin(revenue: number, rawNetProfit: number): number {
+    if (revenue <= 0) return rawNetProfit;
+    const rawMargin = (rawNetProfit / revenue) * 100;
+    if (rawMargin > marginCeiling) {
+      return QMath.round(QMath.multiply(revenue, marginCeiling / 100));
+    }
+    return rawNetProfit;
+  }
   
   // Pessimistic (Conservative)
   const pessimisticRevenue = QMath.round(QMath.multiply(mrr, mult.conservative.revenue));
@@ -537,7 +550,8 @@ function generateScenarios(
   const pessimisticMarketing = QMath.round(QMath.multiply(marketing, mult.conservative.costs));
   const pessimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.conservative.costs));
   const pessimisticTotal = QMath.round(QMath.add(QMath.add(pessimisticCogs, pessimisticFixed), pessimisticMarketing));
-  const pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  let pessimisticNetProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticTotal));
+  pessimisticNetProfit = clampMargin(pessimisticRevenue, pessimisticNetProfit);
   const pessimisticGrossProfit = QMath.round(QMath.subtract(pessimisticRevenue, pessimisticCogs));
   
   // Base case
@@ -550,7 +564,8 @@ function generateScenarios(
   const optimisticMarketing = QMath.round(QMath.multiply(marketing, mult.aggressive.costs));
   const optimisticFixed = QMath.round(QMath.multiply(fixedCosts, mult.aggressive.costs));
   const optimisticTotal = QMath.round(QMath.add(QMath.add(optimisticCogs, optimisticFixed), optimisticMarketing));
-  const optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  let optimisticNetProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticTotal));
+  optimisticNetProfit = clampMargin(optimisticRevenue, optimisticNetProfit);
   const optimisticGrossProfit = QMath.round(QMath.subtract(optimisticRevenue, optimisticCogs));
   
   return {
@@ -561,7 +576,7 @@ function generateScenarios(
       grossProfit: pessimisticGrossProfit,
       netProfit: pessimisticNetProfit,
       grossMargin: QMath.marginPercent(pessimisticGrossProfit, pessimisticRevenue),
-      netMargin: QMath.marginPercent(pessimisticNetProfit, pessimisticRevenue),
+      netMargin: pessimisticRevenue > 0 ? QMath.roundTo((pessimisticNetProfit / pessimisticRevenue) * 100, 0) : 0,
     },
     base: {
       revenue: mrr,
@@ -579,7 +594,7 @@ function generateScenarios(
       grossProfit: optimisticGrossProfit,
       netProfit: optimisticNetProfit,
       grossMargin: QMath.marginPercent(optimisticGrossProfit, optimisticRevenue),
-      netMargin: QMath.marginPercent(optimisticNetProfit, optimisticRevenue),
+      netMargin: optimisticRevenue > 0 ? QMath.roundTo((optimisticNetProfit / optimisticRevenue) * 100, 0) : 0,
     },
   };
 }
@@ -604,15 +619,32 @@ export function generate12MonthProjections(
 ): MonthlyProjection[] {
   const projections: MonthlyProjection[] = [];
   
-  let revenue = mrr;
-  let costs = totalExpenses;
+  // RAMP-UP MODEL: Month 1 starts at 30% of target MRR, ramping to 100% by Month 6.
+  // This prevents the "Day 1 full revenue" error flagged in validation audits.
+  const RAMP_SCHEDULE = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00]; // Months 1-6
+  
   let cash = currentCash || 0;
   let cumulativeProfit = -startupInvestment;
   
   for (let month = 1; month <= 12; month++) {
-    if (month > 1) {
-      revenue = QMath.round(QMath.multiply(revenue, QMath.add(1, monthlyGrowthRate).toNumber()));
-      costs = QMath.round(QMath.multiply(costs, QMath.add(1, QMath.multiply(monthlyGrowthRate, 0.5)).toNumber()));
+    // Apply ramp-up for months 1-6, then normal growth from month 7+
+    let revenue: number;
+    let costs: number;
+    
+    if (month <= RAMP_SCHEDULE.length) {
+      // Ramp-up phase: scale revenue by ramp factor, costs are mostly fixed
+      const rampFactor = RAMP_SCHEDULE[month - 1];
+      revenue = QMath.round(QMath.multiply(mrr, rampFactor));
+      // Fixed costs stay ~100%, variable costs scale with revenue
+      const fixedPortion = totalExpenses * 0.6; // ~60% of costs are fixed
+      const variablePortion = totalExpenses * 0.4;
+      costs = QMath.round(QMath.add(fixedPortion, QMath.multiply(variablePortion, rampFactor)));
+    } else {
+      // Post-ramp: apply growth rate from month 7+
+      const monthsAfterRamp = month - RAMP_SCHEDULE.length;
+      const growthMultiplier = Math.pow(1 + monthlyGrowthRate, monthsAfterRamp);
+      revenue = QMath.round(QMath.multiply(mrr, growthMultiplier));
+      costs = QMath.round(QMath.multiply(totalExpenses, Math.pow(1 + monthlyGrowthRate * 0.5, monthsAfterRamp)));
     }
     
     const profit = QMath.round(QMath.subtract(revenue, costs));

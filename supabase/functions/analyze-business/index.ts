@@ -1048,15 +1048,32 @@ function calculateStrictFinancials(
   }
   
   // 1.2 CAC - Use effectiveBenchmarks for sub-industry adjusted ranges
+  // ENHANCED: B2B/enterprise businesses have hard CAC floors because enterprise sales
+  // require dedicated account executives, demos, and multi-month cycles.
+  const B2B_CAC_FLOOR_KEYWORDS = [
+    'b2b', 'enterprise', 'saas', 'agency', 'consulting', 'professional services',
+    'migration', 'platform', 'managed services', 'white label', 'white-label',
+  ];
+  const ideaLower = (benchmarks.name || '').toLowerCase();
+  const isB2BEnterprise = B2B_CAC_FLOOR_KEYWORDS.some(kw => ideaLower.includes(kw))
+    || (benchmarks.name?.toLowerCase().includes('consulting') ?? false)
+    || (benchmarks.name?.toLowerCase().includes('saas') ?? false)
+    || (benchmarks.name?.toLowerCase().includes('agency') ?? false);
+  
+  // B2B enterprise: minimum CAC of $2,000 (conservative for technical sales)
+  const hardCacFloor = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_min, 2000) : effectiveBenchmarks.cac_min;
+  
   let cac = rawCac;
-  if (cac < effectiveBenchmarks.cac_min) {
+  if (cac < hardCacFloor) {
     corrections.push({
       field: 'cac',
       original: cac,
-      corrected: effectiveBenchmarks.cac_typical,
-      reason: `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
+      corrected: isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical,
+      reason: isB2BEnterprise 
+        ? `CAC $${cac} is unrealistically low for B2B/enterprise sales. Enterprise customer acquisition typically costs $2,000-$50,000+ due to sales cycles, demos, and relationship-building. Adjusted to $${Math.max(effectiveBenchmarks.cac_typical, 2000)}.`
+        : `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
     });
-    cac = effectiveBenchmarks.cac_typical;
+    cac = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical;
   } else if (cac > effectiveBenchmarks.cac_max) {
     corrections.push({
       field: 'cac',
@@ -1233,10 +1250,10 @@ function calculateStrictFinancials(
   
   const netMarginPercent = mrr > 0 ? Math.round((netProfit / mrr) * 100) : 0;
   
-  // ===== MARGIN CEILING GUARD (BUG FIX Phase 5) =====
-  // bulletproof-validator detects UNREALISTIC_NET_MARGIN but was not wired into this primary pipeline.
-  // Now enforcing it here: clamp net margin to benchmark max + 20% buffer.
-  const maxAllowedMargin = benchmarks.net_margin_max + 20;
+  // ===== MARGIN CEILING GUARD (BUG FIX Phase 5 → Phase 6 tightened) =====
+  // Audit finding: +20% buffer allowed 74-83% margins in consulting (max 50%).
+  // Now enforced at benchmark max + 5% — still allows outperformance but prevents absurd projections.
+  const maxAllowedMargin = benchmarks.net_margin_max + 5;
   let finalNetProfit = netProfit;
   let finalNetMarginPercent = netMarginPercent;
   let finalTotalExpenses = totalExpenses;
@@ -1271,28 +1288,72 @@ function calculateStrictFinancials(
   
   const startupInvestment = rawInvestment;
   
+  // RAMP-UP AWARE PAYBACK: Uses 6-month ramp schedule (30%→100% of revenue)
+  // instead of assuming full Month 1 profit. This fixes the "1 month payback" template artifact.
   let paybackMonths = 0;
   if (startupInvestment > 0) {
     if (finalNetProfit > 0) {
-      paybackMonths = Math.ceil(startupInvestment / finalNetProfit);
+      // Simulate ramp-up cash flow to find true payback month
+      const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+      const fixedCostPortion = finalTotalExpenses * 0.6;
+      const variableCostPortion = finalTotalExpenses * 0.4;
+      let cumulative = 0;
+      let foundPayback = false;
+      
+      for (let m = 1; m <= 60; m++) {
+        let monthRevenue: number;
+        let monthCosts: number;
+        
+        if (m <= RAMP.length) {
+          monthRevenue = mrr * RAMP[m - 1];
+          monthCosts = fixedCostPortion + variableCostPortion * RAMP[m - 1];
+        } else {
+          const growth = Math.pow(1.05, m - RAMP.length);
+          monthRevenue = mrr * growth;
+          monthCosts = finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
+        }
+        
+        cumulative += monthRevenue - monthCosts;
+        if (cumulative >= startupInvestment) {
+          paybackMonths = m;
+          foundPayback = true;
+          break;
+        }
+      }
+      
+      if (!foundPayback) paybackMonths = 999;
     } else {
       paybackMonths = 999;
     }
   }
   
   audit.push({
-    formula: 'Payback = Investment / Monthly_Profit',
-    inputs: { 'Investment': startupInvestment, 'Profit/mo': finalNetProfit },
+    formula: 'Payback = Ramp-Up Cash Flow Model (30%→100% over 6 months)',
+    inputs: { 'Investment': startupInvestment, 'Steady-State Profit/mo': finalNetProfit },
     result: paybackMonths,
     isValid: paybackMonths < 36 && paybackMonths > 0,
     notes: paybackMonths === 999 
       ? 'Business is unprofitable - payback impossible' 
-      : `$${startupInvestment} / $${finalNetProfit} = ${paybackMonths} months`
+      : `With 6-month ramp-up: payback at month ${paybackMonths} (steady-state would be ${Math.ceil(startupInvestment / finalNetProfit)} months)`
   });
   
+  // ROI also uses ramp-adjusted Year 1 profit (not 12 × steady-state)
   let roiYear1Percent = 0;
   if (startupInvestment > 0) {
-    roiYear1Percent = Math.round((finalNetProfit * 12 / startupInvestment) * 100);
+    // Calculate actual Year 1 profit with ramp
+    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+    const fixedP = finalTotalExpenses * 0.6;
+    const varP = finalTotalExpenses * 0.4;
+    let year1Profit = 0;
+    for (let m = 1; m <= 12; m++) {
+      if (m <= RAMP.length) {
+        year1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
+      } else {
+        const g = Math.pow(1.05, m - RAMP.length);
+        year1Profit += mrr * g - finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
+      }
+    }
+    roiYear1Percent = Math.round((year1Profit / startupInvestment) * 100);
   }
   
   audit.push({

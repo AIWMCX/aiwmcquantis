@@ -268,13 +268,52 @@ export function processQuantisAnalysis(
   const grossProfit = mrr - cogs;
   const grossMarginPercent = mrr > 0 ? Math.round((grossProfit / mrr) * 100) : 0;
   
-  // Payback and ROI
+  // Payback and ROI — ramp-up aware
   const investment = financialInputs?.startupInvestment || 0;
-  const paybackResult = formatPaybackPeriod(investment, netProfit);
   
-  const roiYear1Percent = investment > 0 
-    ? Math.round((netProfit * 12 / investment) * 100) 
-    : 0;
+  // Ramp-up payback calculation
+  let paybackMonths = 0;
+  if (investment > 0 && netProfit > 0) {
+    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+    const fixedP = totalExpenses * 0.6;
+    const varP = totalExpenses * 0.4;
+    let cumulative = 0;
+    let foundPayback = false;
+    for (let m = 1; m <= 60; m++) {
+      let mRev: number, mCost: number;
+      if (m <= RAMP.length) {
+        mRev = mrr * RAMP[m - 1];
+        mCost = fixedP + varP * RAMP[m - 1];
+      } else {
+        const g = Math.pow(1.05, m - RAMP.length);
+        mRev = mrr * g;
+        mCost = totalExpenses * Math.pow(1.025, m - RAMP.length);
+      }
+      cumulative += mRev - mCost;
+      if (cumulative >= investment) { paybackMonths = m; foundPayback = true; break; }
+    }
+    if (!foundPayback) paybackMonths = 999;
+  } else if (investment > 0) {
+    paybackMonths = 999;
+  }
+  
+  // Ramp-up aware Year 1 ROI
+  let roiYear1Percent = 0;
+  if (investment > 0 && netProfit > 0) {
+    const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
+    const fixedP = totalExpenses * 0.6;
+    const varP = totalExpenses * 0.4;
+    let y1Profit = 0;
+    for (let m = 1; m <= 12; m++) {
+      if (m <= RAMP.length) {
+        y1Profit += mrr * RAMP[m - 1] - (fixedP + varP * RAMP[m - 1]);
+      } else {
+        const g = Math.pow(1.05, m - RAMP.length);
+        y1Profit += mrr * g - totalExpenses * Math.pow(1.025, m - RAMP.length);
+      }
+    }
+    roiYear1Percent = Math.round((y1Profit / investment) * 100);
+  }
   
   // Break-even calculations
   const variableCostRatio = (benchmarks.cogs_percent / 100) + (mrr > 0 ? marketingCost / mrr : 0);
@@ -449,8 +488,8 @@ export function processQuantisAnalysis(
       grossProfit,
       grossMarginPercent,
       totalExpenses,
-      paybackMonths: paybackResult.months,
-      paybackDisplay: paybackResult.display,
+      paybackMonths,
+      paybackDisplay: paybackMonths === 999 ? 'N/A (unprofitable)' : paybackMonths < 12 ? `${paybackMonths} months` : `${(paybackMonths / 12).toFixed(1)} years`,
       roiYear1Percent,
       ltvCacRatio,
       cac,
