@@ -88,6 +88,19 @@ export default function ExampleAnalysis() {
       </header>
 
       <main className="container max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12">
+        {/* TOP CTA BANNER */}
+        <Link to="/app" className="block mb-6">
+          <div className="rounded-xl border-2 border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 hover:bg-primary/10 transition-colors group">
+            <div className="flex items-center gap-3">
+              <Zap className="w-5 h-5 text-primary shrink-0" />
+              <span className="text-sm md:text-base font-semibold text-foreground">
+                Thinking about a similar business? Validate YOUR specific idea
+              </span>
+            </div>
+            <ArrowRight className="w-5 h-5 text-primary shrink-0 group-hover:translate-x-1 transition-transform" />
+          </div>
+        </Link>
+
         {/* Breadcrumb */}
         <nav className="text-sm text-muted-foreground mb-6" aria-label="Breadcrumb">
           <Link to="/" className="hover:text-foreground">Home</Link>
@@ -120,6 +133,15 @@ export default function ExampleAnalysis() {
             <MetricCard label="ROI (Year 1)" value={data.metrics.roi} icon={Target} color="text-success" />
           </div>
         </section>
+
+        {/* MID-PAGE CTA */}
+        <div className="mb-10 text-center">
+          <Link to="/app">
+            <Button size="lg" className="gap-2 text-base px-8 py-6 hover:scale-[1.02] transition-transform">
+              Run your own analysis free <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+        </div>
 
         {/* Two-column layout */}
         <div className="grid md:grid-cols-2 gap-6 mb-10">
@@ -181,29 +203,34 @@ export default function ExampleAnalysis() {
           </CardContent>
         </Card>
 
-        {/* CTA */}
+        {/* BOTTOM CTA */}
         <section className="text-center py-12 md:py-16">
           <div className="bg-primary rounded-2xl p-8 md:p-12">
             <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-3">
-              Want This Analysis for Your Idea?
+              Get your own custom report
             </h2>
             <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-              Get the same CFO-level analysis — revenue projections, risk flags, and action plan — free, in under 90 seconds.
+              Takes 90 seconds. Uses 95,500 real benchmarks. Free.
             </p>
             <Link to="/app">
               <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
-                Analyze My Idea — Free <ArrowRight className="w-5 h-5" />
+                Validate My Business Idea → <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
           </div>
         </section>
 
-        {/* More Examples */}
+        {/* Related Examples — prioritize same city or industry */}
         <section className="mb-10">
-          <h2 className="text-xl font-semibold text-foreground mb-4">More Example Analyses</h2>
+          <h2 className="text-xl font-semibold text-foreground mb-4">Related Examples</h2>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {Object.entries(EXAMPLE_ANALYSES)
               .filter(([key]) => key !== slug)
+              .sort(([, a], [, b]) => {
+                const aMatch = (a.location === data.location ? 2 : 0) + (a.industry === data.industry ? 1 : 0);
+                const bMatch = (b.location === data.location ? 2 : 0) + (b.industry === data.industry ? 1 : 0);
+                return bMatch - aMatch;
+              })
               .slice(0, 3)
               .map(([key, ex]) => (
                 <Link key={key} to={`/examples/${key}`}>
