@@ -131,16 +131,16 @@ export function MobileHero() {
               </span>
             </h1>
 
-            {/* Subtitle — $25K anchor */}
+            {/* Subtitle — conversion-focused */}
             <p
               className="animate-fade-in text-base md:text-lg max-w-[560px] mx-auto lg:mx-0 leading-relaxed"
               style={{ fontFamily: 'var(--q-font-body)', color: 'var(--q-text-secondary)', animationDelay: '160ms', animationFillMode: 'both' }}
             >
-              A financial consultant charges $1,500–$25,000 to stress-test your model.{' '}
+              Find out in 90 seconds if your business idea will make money —{' '}
               <span className="font-semibold" style={{ color: 'var(--q-text-primary)' }}>
-                Quantis does it in 90 seconds.
+                or cost you everything.
               </span>
-              {' '}Your first analysis is free.
+              {' '}95,500 real benchmarks. Free. No signup required.
             </p>
 
             {/* CTA Row */}
@@ -155,7 +155,7 @@ export function MobileHero() {
                 style={{ background: 'var(--q-gradient-accent)' }}
                 data-event-id="run_pre_mortem_click"
               >
-                Stress-test my idea — free
+                Validate My Business Idea — Free →
               </Button>
               <div className="flex gap-3 w-full">
                 <Button
@@ -179,29 +179,31 @@ export function MobileHero() {
               </div>
             </div>
 
-            {/* Trust strip */}
-            <div
-              className="animate-fade-in flex flex-wrap items-center justify-center lg:justify-start gap-4"
-              style={{ animationDelay: '320ms', animationFillMode: 'both' }}
+            {/* Micro-copy */}
+            <p
+              className="animate-fade-in text-xs"
+              style={{ color: 'var(--q-text-tertiary)', animationDelay: '300ms', animationFillMode: 'both' }}
             >
-              <span className="text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
-                No card &middot; One free analysis
-              </span>
-              <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--q-accent-primary)' }}>
-                <DollarSign className="w-3 h-3" />
-                $25,000 consultant-grade analysis
-              </span>
-              <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
-              <span className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--q-text-tertiary)' }}>
-                <TrendingUp className="w-3 h-3" />
-                95,500 data points
-              </span>
-              <span className="w-px h-3" style={{ background: 'var(--q-border-default)' }} />
-              <span className="flex items-center gap-1.5 text-xs" style={{ color: 'var(--q-text-tertiary)' }}>
-                <Shield className="w-3.5 h-3.5" />
-                AES-256 · GDPR
-              </span>
+              No signup required &nbsp;·&nbsp; No credit card &nbsp;·&nbsp; Results in 90 seconds
+            </p>
+
+            {/* Trust trio — 3 icon badges */}
+            <div
+              className="animate-fade-in grid grid-cols-3 gap-3 max-w-[420px] mx-auto lg:mx-0"
+              style={{ animationDelay: '360ms', animationFillMode: 'both' }}
+            >
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
+                <TrendingUp className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>95,500 benchmarks</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
+                <Clock className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>90 seconds</span>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
+                <Shield className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
+                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>Free to start</span>
+              </div>
             </div>
 
             {/* Live Counter */}
