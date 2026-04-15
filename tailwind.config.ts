@@ -20,8 +20,8 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['DM Sans', ...fontFamily.sans],
-				display: ['Sora', 'DM Sans', ...fontFamily.sans],
+				sans: ['Cabinet Grotesk', 'DM Sans', ...fontFamily.sans],
+				display: ['Cabinet Grotesk', 'Sora', 'DM Sans', ...fontFamily.sans],
 				mono: ['JetBrains Mono', 'Fira Code', ...fontFamily.mono],
 			},
 			colors: {
