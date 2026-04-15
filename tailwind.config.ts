@@ -144,6 +144,15 @@ export default {
 						'5': 'var(--q-chart-5)',
 						corridor: 'var(--q-chart-corridor-fill)'
 					}
+				},
+				// AIWMC Brand Colors (cross-product)
+				aiwmc: {
+					green: 'var(--aiwmc-green, #8FFF2A)',
+					'green-dark': 'var(--aiwmc-green-dark, #6ECC1A)',
+					purple: 'var(--aiwmc-purple, #8B5CF6)',
+					blue: 'var(--aiwmc-blue, #3B82F6)',
+					black: 'var(--aiwmc-black, #0A0A0A)',
+					white: 'var(--aiwmc-white, #F7F7F5)',
 				}
 			},
 			borderRadius: {

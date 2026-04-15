@@ -121,8 +121,8 @@ export function MobileHero() {
 
             {/* H1 — fear-driven, pain-first */}
             <h1
-              className="animate-fade-in text-[clamp(2rem,5vw,3.5rem)] leading-[1.08] font-bold"
-              style={{ fontFamily: 'var(--q-font-heading)', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
+              className="animate-fade-in leading-[1.0]"
+              style={{ fontSize: 'var(--q-fs-hero, clamp(2rem,5.5vw,4.5rem))', fontFamily: 'var(--q-font-heading)', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
             >
               90% of businesses fail in 5 years.
               <br />
