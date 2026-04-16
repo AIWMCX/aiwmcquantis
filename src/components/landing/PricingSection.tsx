@@ -20,24 +20,25 @@ const PRICING = {
   },
   plus: {
     monthly: { price: 17, period: 'mo', totalYear: 204 },
-    annual: { price: 13.60, period: 'mo', totalYear: 163.20, savings: 40.80, savingsPercent: 20 },
+    annual: { price: 14, period: 'mo', totalYear: 168, savings: 36, savingsPercent: 17 },
   },
 };
 
 const FREE_FEATURES = [
-  { text: '1 analysis per month', highlight: false },
-  { text: 'Quick depth only (30s, 3 core metrics)', highlight: false, subtext: 'No Full or Deep analysis' },
-  { text: 'No PDF export or document templates', highlight: false },
-  { text: 'Results watermarked "Quantis Free"', highlight: false },
+  { text: '3 analyses per month', highlight: false },
+  { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo or advanced modeling' },
+  { text: '3 document templates', highlight: false },
+  { text: '5 downloads per day', highlight: false, subtext: 'Watermarked exports' },
   { text: 'Email support', highlight: false },
 ];
 
 const PLUS_FEATURES = [
-  { text: 'Unlimited analyses', highlight: true, subtext: 'Run as many scenarios as you need' },
-  { text: 'Deep analysis with 1,000+ Monte Carlo simulations', highlight: true, subtext: 'The real differentiation — CFO-grade probabilistic modeling' },
-  { text: 'Advanced financial modeling', highlight: true, subtext: '12-variable projections with scenarios' },
+  { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
+  { text: 'Monte Carlo simulations', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
+  { text: 'Custom branding', highlight: true, subtext: 'White-label reports with your logo — impress clients' },
+  { text: 'Advanced financial modeling', highlight: false, subtext: '12-variable projections with scenarios' },
   { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },
-  { text: 'Professional PDF exports with your branding', highlight: false, subtext: 'Your logo on every report — impress clients with branded financial intelligence' },
+  { text: 'Professional PDF exports', highlight: false },
   { text: 'All document templates', highlight: false },
   { text: 'Unlimited downloads', highlight: false },
   { text: 'Priority support', highlight: false },
@@ -138,20 +139,6 @@ export function PricingSection() {
     <section id="pricing" className="py-16 md:py-24 bg-muted/30">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
         {/* Section Header */}
-        {/* Social proof bar */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-10 max-w-3xl mx-auto">
-          {[
-            { num: '229', label: 'founders validated this week' },
-            { num: '3.2', label: 'avg fatal assumptions found per analysis' },
-            { num: '6 min', label: 'avg time to decision after first analysis' },
-          ].map(s => (
-            <div key={s.label} className="text-center py-3 px-4 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
-              <div className="text-lg font-black" style={{ color: 'var(--aiwmc-green)' }}>{s.num}</div>
-              <div className="text-[11px]" style={{ color: 'var(--q-text-secondary)' }}>{s.label}</div>
-            </div>
-          ))}
-        </div>
-
         <div className="text-center max-w-3xl mx-auto mb-8">
           <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
             Know Exactly What You're Getting
@@ -185,7 +172,7 @@ export function PricingSection() {
               >
                 Annual
                 <span className="ml-2 text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400">
-                  Save 20%
+                  Save 17%
                 </span>
               </ToggleGroupItem>
             </ToggleGroup>
@@ -198,7 +185,7 @@ export function PricingSection() {
             name="Free"
             price={0}
             period="forever"
-            description="For testing the waters"
+            description="Perfect for trying out the platform"
             features={FREE_FEATURES}
             ctaText="Start Free Analysis"
             onCtaClick={() => handlePlanClick('free')}
@@ -209,7 +196,7 @@ export function PricingSection() {
             name="Plus"
             price={plusPricing.price}
             period={plusPricing.period}
-            description="For founders who can't afford to be wrong"
+            description="For serious entrepreneurs"
             features={PLUS_FEATURES}
             ctaText="Start 14-Day Free Trial →"
             onCtaClick={() => handlePlanClick('plus')}
@@ -220,25 +207,6 @@ export function PricingSection() {
             annualSavings={billingPeriod === 'annual' ? PRICING.plus.annual.savings : undefined}
             totalYear={plusPricing.totalYear}
           />
-          {/* Value framing */}
-          <div className="col-span-1 md:col-span-2 text-center mt-2">
-            <p className="text-[11px] italic" style={{ color: 'var(--q-proceed)' }}>
-              Plus users identify fatal assumptions before spending an average of $23,000 on the wrong idea.
-            </p>
-            <p className="text-[10px] mt-2" style={{ color: 'var(--q-text-tertiary)' }}>
-              vs. $350/hr for a financial consultant · vs. $89/mo for generic AI tools
-            </p>
-            {billingPeriod === 'annual' && (
-              <p className="text-[11px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
-                $163.20/year — $13.60/mo billed annually
-              </p>
-            )}
-            {billingPeriod === 'monthly' && (
-              <p className="text-[11px] mt-1" style={{ color: 'var(--q-text-disabled)' }}>
-                $17/mo = $0.56/day
-              </p>
-            )}
-          </div>
         </div>
 
         {/* Money-Back Guarantee */}
