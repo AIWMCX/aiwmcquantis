@@ -1,77 +1,64 @@
 
 
-# Audit V2 — Remaining Critical Fixes
+## Goal
+Make every letter sharply readable — bright, "shine-white" text everywhere, with Cabinet Grotesk + Apple-class typographic polish (weight, tracking, smoothing, depth).
 
-## Status of Previous Fixes
+## Root cause
+1. **Dim color tokens.** On the `#070D1A` dark background:
+   - `--q-text-tertiary: #64748B` → contrast 5.0:1 (passes AA, fails AAA, looks "muted/grey")
+   - `--q-text-disabled: #334D6E` → contrast 2.4:1 (FAILS WCAG AA — illegible)
+   - `--q-text-ghost: #1E3A5F` → contrast 1.6:1 (essentially invisible)
+2. **No font smoothing globally** — Cabinet Grotesk renders thin/grey on dark without `-webkit-font-smoothing: antialiased`.
+3. **Apple-style weight depth missing** — body weight is 400, which looks thin against bright backgrounds; Apple uses 400→500 on dark UI for legibility.
+4. ~900 inline references push these dim tokens onto secondary copy (form hints, captions, micro labels, table cells, scenario bars, PDF chrome).
 
-Already completed:
-- Clarity installed (placeholder ID) ✅
-- Most "1,000+" replaced with "95,500" ✅
-- Legal entity standardized to "AIWMC™ LLC" ✅
-- Noscript block expanded with 51 example links ✅
-- JSON-LD schemas added ✅
-- Navigation consistency improved ✅
-- Sitemap regenerated ✅
+## Solution — 3 surgical edits to `src/index.css`
 
-## What Still Needs Fixing
+### 1. Brighten the entire dark-mode text scale (Apple/Linear style)
+Push every text tier toward white while preserving hierarchy via **weight + opacity**, not muddy hex:
 
-### Fix 1: Last "1,000+" instance in HowItWorks.tsx
-`src/pages/HowItWorks.tsx` line 131 still says "powered by 1,000+ industry benchmarks." Change to "95,500." (The BlogArticle.tsx "$200-$1,000+" is a CAC price range, not a benchmark count — leave it.)
+```
+--q-text-primary:   #F8FAFC   (was #E2E8F0) — near-white, the "shine"
+--q-text-secondary: #CBD5E1   (was #94A3B8) — bright silver, AA+ on all surfaces
+--q-text-tertiary:  #94A3B8   (was #64748B) — readable grey, 7.2:1 contrast
+--q-text-disabled:  #64748B   (was #334D6E) — now actually visible
+--q-text-ghost:     #475569   (was #1E3A5F) — faintest legible tier
+```
+Light mode gets a parallel uplift (primary `#0B1220`, secondary `#1F2937`).
 
-### Fix 2: THE CRITICAL SEO FIX — Rich noscript content per route
+### 2. Apple-grade global typography base
+Add to `body` / `@layer base`:
+```
+font-family: 'Cabinet Grotesk', -apple-system, BlinkMacSystemFont, …;
+font-weight: 450;                     /* between 400/500 — Apple's trick */
+-webkit-font-smoothing: antialiased;
+-moz-osx-font-smoothing: grayscale;
+text-rendering: optimizeLegibility;
+font-feature-settings: "ss01","cv11","kern";
+letter-spacing: -0.011em;             /* Apple body tracking */
+color: var(--q-text-primary);
+```
 
-This is the #1 finding in the audit and the single highest-ROI fix. The current noscript block has links to all pages, but since every route serves the same `index.html`, Google sees identical content on `/pricing`, `/how-it-works`, `/methodology`, and all 51 example pages.
+### 3. Depth & polish utilities
+- Headlines: `text-shadow: 0 1px 0 rgba(255,255,255,0.04)` — the "shine"
+- Add `.text-shine` utility (white `#FFFFFF` + subtle glow) for hero numbers/CTAs
+- Force all `.text-caption`, `.text-label-sm`, `.q-form-hint`, `.text-body-sm` to use `--q-text-secondary` instead of tertiary so micro-copy stays bright
+- Bump default body weight from 400 → 450 across `.text-body`, `.nav-item`, `.q-input`, `.q-btn`
 
-The noscript block needs **real page content** — not just links. Since there's only one `index.html`, we use a JavaScript-free approach: write the actual text content from each key page directly into the noscript block, organized by route-specific `id` attributes. Google reads this as unique, rich content on every crawl.
+### Result
+- ~900 inline `text-tertiary` / `text-disabled` references **automatically brighten** because we changed the token, not the call sites — zero component edits required.
+- Every screen, every form hint, every caption, every PDF preview, every dashboard label becomes crisp white-spectrum text on dark.
+- Light mode (PDF / printable surfaces) also sharpens.
+- Cabinet Grotesk renders the way it does on aiwmc.com — buttery, antialiased, weighty.
 
-Content to add inside the noscript block:
+## Files touched
+- `src/index.css` — only this file (token updates in `:root` + `.dark`, plus `@layer base` body rules and 2 utility additions).
 
-**For /pricing:**
-- Free Plan: 3 analyses/month, full financial report, risk flags
-- Plus Plan: $17/mo, unlimited analyses, PDF export, Document Studio, location comparison
+## Out of scope (explicitly NOT changed)
+- No component refactors (tokens cascade automatically).
+- No layout, spacing, or color-of-data changes (verdict greens/reds/ambers stay).
+- No font swap — Cabinet Grotesk stays primary.
 
-**For /how-it-works:**
-- Step 1: Enter your business idea and location
-- Step 2: AI analyzes against 95,500 benchmarks
-- Step 3: Get revenue projections, risk flags, break-even timeline
-
-**For /methodology:**
-- Data sources: SBA, IBISWorld, Census Bureau, proprietary datasets
-- 95,500 benchmarks across 100+ industries and 50+ cities
-- Monte Carlo simulation with P10/P50/P90 percentiles
-- 7-layer AI validation system
-
-**For each example page (top 10 highest-value):**
-- Business type, city, projected monthly profit, key risk flags, break-even month
-- 2-3 sentences of real analysis summary
-
-This turns the noscript from a link directory into ~3,000 words of unique, keyword-rich content that Google can index immediately.
-
-### Fix 3: Unique title tags via PageSEO verification
-
-Verify that every inner page component uses `<PageSEO>` with a unique title. The audit found duplicate titles on inner pages. Check:
-- `/how-it-works` — should be "How Quantis Works — 3 Steps to Financial Clarity"
-- `/methodology` — should be "Quantis Methodology — 95,500 Benchmarks & Monte Carlo"
-- Each `/examples/*` page — should be "[Business Type] in [City] — AI Analysis | Quantis"
-
----
-
-## Implementation Order
-
-| Step | What | Files | Effort |
-|------|------|-------|--------|
-| 1 | Fix last "1,000+" | `HowItWorks.tsx` | 1 min |
-| 2 | Rich noscript content | `index.html` | 45 min |
-| 3 | Verify unique titles | Multiple page components | 15 min |
-
-## Technical Details
-
-The noscript block expansion will add approximately 200 lines of static HTML content to `index.html`. This content mirrors what the React components render, written as plain semantic HTML (h2, h3, p, ul/li, table). It includes:
-- Pricing tiers table
-- How-it-works step-by-step
-- Methodology data source documentation  
-- Top 10 example pages with real financial summaries
-- All blog article summaries with target keywords
-
-No new components, no database changes, no architectural changes. Pure content injection for crawler visibility.
+## Verification after build
+- Spot-check `/`, `/app`, `/pricing`, `/methodology`, an example page, and a PDF preview — every label/caption should now read as bright silver-white, headlines as pure white with subtle depth.
 
