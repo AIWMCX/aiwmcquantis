@@ -2638,7 +2638,7 @@ serve(async (req) => {
     };
     
     // ========== USAGE ENFORCEMENT ==========
-    const FREE_TIER_LIMIT = 3;
+    const FREE_TIER_LIMIT = 1;
     let userId: string | null = null;
     let userPlan = 'free';
     let isAnonymous = true;
