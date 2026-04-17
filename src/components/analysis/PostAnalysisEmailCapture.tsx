@@ -35,8 +35,9 @@ export function PostAnalysisEmailCapture({ ideaTitle, monthlyProfit, onDismiss }
     const dismissed = sessionStorage.getItem('quantis_post_analysis_dismissed');
     if (dismissed) return;
     
-    // Show after 3-second delay (after user has seen initial results)
-    const timer = setTimeout(() => setIsVisible(true), 3000);
+    // Show immediately — user just saw their score and 3 risks. They want the rest.
+    // Tiny 400ms delay so it doesn't pop in before the results render.
+    const timer = setTimeout(() => setIsVisible(true), 400);
     return () => clearTimeout(timer);
   }, [isAuthenticated]);
 
@@ -98,12 +99,12 @@ export function PostAnalysisEmailCapture({ ideaTitle, monthlyProfit, onDismiss }
 
         <div className="flex-1 min-w-0">
           <h3 className="text-base font-semibold text-foreground mb-1">
-            Save this analysis & get unlimited runs
+            Save this analysis before it's gone
           </h3>
           <p className="text-sm text-muted-foreground leading-relaxed">
             {monthlyProfit 
-              ? `Your idea projects ${monthlyProfit}/mo profit. Enter your email to save these results, compare locations, and run unlimited analyses.`
-              : 'Enter your email to save these results, compare locations, and run unlimited analyses — free.'
+              ? `Your idea projects ${monthlyProfit}/mo. Drop your email to save these results, get the unlock link for the full report (Monte Carlo, P&L, action plan), and reload anytime.`
+              : 'Drop your email to save these results, get the unlock link for the full report (Monte Carlo, P&L, action plan), and reload anytime.'
             }
           </p>
           

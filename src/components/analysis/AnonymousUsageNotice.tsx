@@ -29,7 +29,7 @@ export function AnonymousUsageNotice({ className }: AnonymousUsageNoticeProps) {
           </div>
           <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
             See how Quantis grades your plan against <strong className="text-foreground">97,500 real benchmarks</strong>. 
-            Sign in to save results and get <strong className="text-foreground">3 analyses/month</strong> with document uploads.
+            Sign in to save your free analysis and unlock the path to the <strong className="text-foreground">full report (Monte Carlo, P&L, action plan)</strong>.
           </p>
           <div className="flex items-center gap-2 mt-3">
             <Button asChild size="sm" variant="default" className="h-8 text-xs gap-1.5">

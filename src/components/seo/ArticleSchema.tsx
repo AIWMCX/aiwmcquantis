@@ -139,7 +139,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'Is AIWMC Quantis free to use?',
-      answer: 'Yes! AIWMC Quantis offers a free tier with 3 analyses per month, including basic financial projections and business plan outlines. For unlimited analyses, AI document intelligence, and professional PDF exports, you can upgrade to Plus for $14/month.',
+      answer: 'Yes — your first analysis is free and shows your viability score plus the top 3 critical risks. To unlock the full report (Monte Carlo, P&L, competitive analysis, action plan) and unlimited analyses, upgrade to Plus for $17/month.',
     },
     {
       question: 'How accurate are the financial projections?',

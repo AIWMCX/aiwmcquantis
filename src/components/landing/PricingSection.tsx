@@ -25,8 +25,8 @@ const PRICING = {
 };
 
 const FREE_FEATURES = [
-  { text: '3 analyses per month', highlight: false },
-  { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo or advanced modeling' },
+  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks only' },
+  { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
   { text: '3 document templates', highlight: false },
   { text: '5 downloads per day', highlight: false, subtext: 'Watermarked exports' },
   { text: 'Email support', highlight: false },

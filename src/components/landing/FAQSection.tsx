@@ -25,7 +25,7 @@ const faqItems = [
   },
   {
     question: 'Can I try AIWMC Quantis for free?',
-    answer: 'Yes! Our Free plan includes 3 analyses per month with basic financial projections and business plan outlines. No credit card required. Plus plan offers a 14-day free trial with full access to all features including Document Intelligence and custom branding.'
+    answer: 'Yes — your first analysis is free. You get a score, top 3 critical risks, and basic revenue projection. To unlock Monte Carlo simulations, P&L breakdown, full action plan, and unlimited analyses, upgrade to Plus ($17/mo) with a 14-day free trial.'
   },
   {
     question: 'What industries does AIWMC Quantis support?',

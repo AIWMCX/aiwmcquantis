@@ -11,14 +11,14 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Quantis Pricing — Free Plan & Plus at $17/mo"
-        description="Start free forever with 3 analyses/month. Upgrade to Plus at $17/mo for unlimited analyses, PDF export, Document Studio, and custom branding."
+        title="Quantis Pricing — Free First Analysis & Plus at $17/mo"
+        description="Run 1 free analysis to see your viability score and top 3 risks. Upgrade to Plus at $17/mo for the full report — Monte Carlo, P&L, action plan, unlimited analyses, and PDF export."
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'WebPage',
           name: 'AIWMC™ Quantis Pricing',
-          description: 'Simple pricing for serious founders. Free plan with 3 analyses per month, Plus plan at $17/month for unlimited access.',
+          description: 'Simple pricing for serious founders. 1 free analysis with score and risks. Plus at $17/month unlocks the full report, Monte Carlo, and unlimited runs.',
           url: 'https://aiwmcquantis.com/pricing',
         }}
       />

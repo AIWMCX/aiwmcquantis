@@ -79,9 +79,9 @@ export default function Terms() {
             <h2 className="text-2xl font-semibold text-foreground">4. Subscription Plans & Payment</h2>
             <h3 className="text-xl font-medium text-foreground">4.1 Free Tier</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>3 analyses per month</li>
-              <li>Basic financial projections</li>
-              <li>Business plan outline</li>
+              <li>1 analysis per month</li>
+              <li>Viability score and top 3 critical risks only</li>
+              <li>Basic revenue projection (locked: Monte Carlo, P&L, competitive matrix, full action plan)</li>
             </ul>
 
             <h3 className="text-xl font-medium text-foreground">4.2 Plus Plan ($17/month)</h3>

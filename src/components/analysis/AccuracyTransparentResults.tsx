@@ -11,6 +11,7 @@ import { FinancialSummary } from './FinancialSummary';
 import { InlineAssumptionEditor } from './InlineAssumptionEditor';
 import { RealismFeedbackWidget } from './RealismFeedbackWidget';
 import { LockedFeaturePreview } from './LockedFeaturePreview';
+import { LockedAnalysisPaywall } from './LockedAnalysisPaywall';
 import { ActionableInsights } from './ActionableInsights';
 import { ValidationSection } from './ValidationSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
@@ -349,9 +350,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 2 — LEVERS LAB */}
+          {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 2 && (
+          {currentStep === 2 && isFree && <LockedAnalysisPaywall section="levers" />}
+          {currentStep === 2 && !isFree && (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
               {/* LEFT: Chart + P&L */}
               <div className="space-y-5">
@@ -434,9 +436,10 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {/* STEP 3 — RED FLAGS & ACTION PLAN */}
+          {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
-          {currentStep === 3 && (
+          {currentStep === 3 && isFree && <LockedAnalysisPaywall section="action-plan" />}
+          {currentStep === 3 && !isFree && (
             <div className="space-y-6">
               <div className="grid lg:grid-cols-2 gap-5">
                 {/* LEFT: Risk Flags */}
