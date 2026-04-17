@@ -95,7 +95,7 @@ export function StructuredData({
           price: '0',
           priceCurrency: 'USD',
           availability: 'https://schema.org/InStock',
-          description: '3 analyses per month with financial projections and risk flags'
+          description: '1 free analysis with score and top 3 risks; full report requires Plus'
         },
         {
           '@type': 'Offer',

@@ -46,8 +46,8 @@ export function UpgradePrompt({
           </DialogTitle>
           <DialogDescription>
             {remainingAnalyses === 0 
-              ? "You've used all 3 free analyses this month. Each analysis = one business scenario, fully graded and benchmarked."
-              : `You have ${remainingAnalyses} free ${remainingAnalyses === 1 ? 'analysis' : 'analyses'} remaining. Each analysis = one scenario with unlimited edits.`
+              ? "You've used your free analysis this month. Upgrade to Plus for unlimited analyses + the full report — Monte Carlo, P&L, competitive analysis, and the complete action plan."
+              : `You have ${remainingAnalyses} free ${remainingAnalyses === 1 ? 'analysis' : 'analyses'} remaining. Free shows score + top 3 risks. Plus unlocks everything.`
             }
           </DialogDescription>
         </DialogHeader>

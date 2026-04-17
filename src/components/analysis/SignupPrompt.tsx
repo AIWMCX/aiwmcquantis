@@ -16,7 +16,7 @@ function getHeadline(score?: number): string {
 }
 
 function getSubtext(score?: number): string {
-  if (!score) return 'Create a free account to store and compare up to 3 analyses. No credit card required.';
+  if (!score) return 'Create a free account to save this analysis. Your first run is free — upgrade to Plus to unlock the full report.';
   if (score >= 8) return 'This scenario passed our realism grading. Save it now and revisit the full report anytime.';
   if (score >= 5) return 'Save your current score and come back as you refine the numbers over time.';
   return 'Save the baseline now so you can compare improvements week by week.';
