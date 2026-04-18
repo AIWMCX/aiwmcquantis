@@ -12,6 +12,7 @@ import { InlineAssumptionEditor } from './InlineAssumptionEditor';
 import { RealismFeedbackWidget } from './RealismFeedbackWidget';
 import { LockedFeaturePreview } from './LockedFeaturePreview';
 import { LockedAnalysisPaywall } from './LockedAnalysisPaywall';
+import { PostAnalysisEmailCapture } from './PostAnalysisEmailCapture';
 import { ActionableInsights } from './ActionableInsights';
 import { ValidationSection } from './ValidationSection';
 import { MarketAnalysisSection } from './MarketAnalysisSection';
@@ -263,7 +264,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
               {/* RIGHT: Metric Grid + Audit Trail (sticky) */}
               <div className="lg:sticky lg:top-[120px] space-y-5 self-start">
-                {/* 2x3 Metric Grid */}
+                {/* 2x3 Metric Grid — Free users see only Revenue + Break-even + Runway; advanced metrics blurred */}
                 <div className="grid grid-cols-2 gap-3">
                   <SimpleMetricCard 
                     title="Monthly Revenue M12" 
@@ -272,27 +273,54 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     chip={`$${(metrics.monthlyRevenue * 12 / 1000).toFixed(0)}k ARR`}
                     explanation="Your projected monthly income at month 12, based on customer count, pricing, and growth rate."
                   />
-                  <SimpleMetricCard 
-                    title="Net Profit M12" 
-                    value={`$${(metrics.netProfit / 1000).toFixed(1)}k`}
-                    variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
-                    chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
-                    explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
-                  />
-                  <SimpleMetricCard 
-                    title="Gross Margin %" 
-                    value={`${metrics.grossMargin.toFixed(1)}%`}
-                    variant={metrics.grossMargin >= 50 ? 'success' : metrics.grossMargin >= 30 ? 'warning' : 'danger'}
-                    chip={`${metrics.grossMargin.toFixed(0)}% of revenue kept`}
-                    explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
-                  />
-                  <SimpleMetricCard 
-                    title="LTV:CAC Ratio" 
-                    value={`${metrics.ltvCac.toFixed(1)}x`}
-                    variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
-                    chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
-                    explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
-                  />
+                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
+                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                      <SimpleMetricCard 
+                        title="Net Profit M12" 
+                        value={isFree ? '$••.•k' : `$${(metrics.netProfit / 1000).toFixed(1)}k`}
+                        variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
+                        chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
+                        explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
+                      />
+                    </div>
+                    {isFree && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
+                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                      <SimpleMetricCard 
+                        title="Gross Margin %" 
+                        value={isFree ? '••.•%' : `${metrics.grossMargin.toFixed(1)}%`}
+                        variant={metrics.grossMargin >= 50 ? 'success' : metrics.grossMargin >= 30 ? 'warning' : 'danger'}
+                        chip={`${metrics.grossMargin.toFixed(0)}% of revenue kept`}
+                        explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
+                      />
+                    </div>
+                    {isFree && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
+                      </div>
+                    )}
+                  </div>
+                  <div className={cn('relative', isFree && 'pointer-events-none select-none')}>
+                    <div className={cn(isFree && 'blur-[6px] opacity-70')}>
+                      <SimpleMetricCard 
+                        title="LTV:CAC Ratio" 
+                        value={isFree ? '•.•x' : `${metrics.ltvCac.toFixed(1)}x`}
+                        variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
+                        chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
+                        explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
+                      />
+                    </div>
+                    {isFree && (
+                      <div className="absolute inset-0 flex items-center justify-center">
+                        <span className="px-2 py-1 rounded-md bg-[var(--q-bg-surface)] border border-[var(--q-border-default)] text-[10px] font-bold uppercase tracking-wider text-[var(--q-accent-primary)]">🔒 Plus</span>
+                      </div>
+                    )}
+                  </div>
                   <SimpleMetricCard 
                     title="Break-even Month" 
                     value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
