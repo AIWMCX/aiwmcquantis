@@ -377,6 +377,20 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             );
           })()}
 
+          {/* Inline upgrade wall — appears only for Free users at end of Step 1.
+              This is the high-intent moment: they've seen score + 3 risks + revenue,
+              now invite email save + Plus upgrade before they leave. */}
+          {currentStep === 1 && isFree && (
+            <div className="mt-6 space-y-5">
+              <PostAnalysisEmailCapture
+                ideaTitle={typeof businessType === 'string' ? businessType : undefined}
+                monthlyProfit={`$${(metrics.monthlyRevenue / 1000).toFixed(1)}k/mo`}
+                onDismiss={() => { /* dismissal stored in sessionStorage by component */ }}
+              />
+              <LockedAnalysisPaywall section="levers" />
+            </div>
+          )}
+
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
