@@ -22,26 +22,43 @@ const PRICING = {
     monthly: { price: 17, period: 'mo', totalYear: 204 },
     annual: { price: 14, period: 'mo', totalYear: 168, savings: 36, savingsPercent: 17 },
   },
+  pro: {
+    monthly: { price: 49, period: 'mo', totalYear: 588 },
+    annual: { price: 41, period: 'mo', totalYear: 492, savings: 96, savingsPercent: 16 },
+  },
 };
 
 const FREE_FEATURES = [
-  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks only' },
+  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
-  { text: '3 document templates', highlight: false },
-  { text: '5 downloads per day', highlight: false, subtext: 'Watermarked exports' },
+  { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
+  { text: 'Invoice & Capacity Check 🔒', highlight: false, subtext: 'Plus only — should you take this client?' },
+  { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
   { text: 'Email support', highlight: false },
 ];
 
 const PLUS_FEATURES = [
   { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
-  { text: 'Monte Carlo simulations', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
-  { text: 'Custom branding', highlight: true, subtext: 'White-label reports with your logo — impress clients' },
-  { text: 'Advanced financial modeling', highlight: false, subtext: '12-variable projections with scenarios' },
+  { text: 'Full report — Monte Carlo, 36-mo P&L, action plan', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
+  { text: 'Pre-Mortem Stress Test ✓', highlight: true, subtext: 'Stress-test churn shocks, cost spikes, customer concentration' },
+  { text: 'Invoice & Capacity Check ✓', highlight: true, subtext: 'Decide whether to accept new clients without breaking cash flow' },
+  { text: 'Document Studio ✓', highlight: false, subtext: '12+ branded templates auto-populated from your analysis' },
+  { text: 'Custom branding & PDF export', highlight: false, subtext: 'White-label reports with your logo' },
   { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },
-  { text: 'Professional PDF exports', highlight: false },
-  { text: 'All document templates', highlight: false },
-  { text: 'Unlimited downloads', highlight: false },
+  { text: 'Unlimited downloads + history', highlight: false },
   { text: 'Priority support', highlight: false },
+];
+
+const PRO_FEATURES = [
+  { text: 'Everything in Plus, plus:', highlight: true },
+  { text: '5-Year Financial Model', highlight: true, subtext: 'Beyond the 36-month Plus horizon' },
+  { text: 'TAM / SAM / SOM Calculator', highlight: true, subtext: 'With cited sources for investors' },
+  { text: 'Pitch Deck Data Package', highlight: false, subtext: 'Exportable to slides — investor-ready' },
+  { text: 'Strategic Roadmap', highlight: false, subtext: 'Week-by-week launch plan with milestones' },
+  { text: 'White-Label PDF', highlight: false, subtext: 'Remove Quantis branding entirely' },
+  { text: 'Team Access — 3 seats', highlight: false },
+  { text: 'API Access', highlight: false, subtext: 'Embed Quantis analyses in your own tools' },
+  { text: 'Priority support — 24h response', highlight: false },
 ];
 
 export function PricingSection() {
@@ -88,7 +105,7 @@ export function PricingSection() {
     }
   };
 
-  const handlePlanClick = (planName: 'free' | 'plus') => {
+  const handlePlanClick = (planName: 'free' | 'plus' | 'pro') => {
     // Use ref for guaranteed current value (fixes race condition)
     const currentBilling = billingPeriodRef.current;
     
@@ -98,22 +115,21 @@ export function PricingSection() {
       billing_period: currentBilling,
     });
     
-    trackExperimentConversion('pricing_display', 'cta_click', planName === 'plus' ? 1 : 0);
+    trackExperimentConversion('pricing_display', 'cta_click', planName === 'plus' ? 1 : planName === 'pro' ? 2 : 0);
 
     if (planName === 'free') {
       navigate('/app');
       return;
     }
 
+    if (planName === 'pro') {
+      // Pro tier — temporarily route to contact/waitlist while Stripe link is provisioned
+      navigate('/contact?plan=pro');
+      return;
+    }
+
     // Determine which plan key to use based on CURRENT billing period from ref
     const planKey = currentBilling === 'annual' ? 'plus_annual' : 'plus_monthly';
-    
-    // Debug logging (can remove after confirming fix)
-    console.log('[Pricing] CTA clicked:', { 
-      selectedBilling: currentBilling, 
-      planKey, 
-      isAnnual: planKey === 'plus_annual' 
-    });
     
     setLoadingPlan(planName);
     if (user) {
@@ -125,6 +141,7 @@ export function PricingSection() {
   };
 
   const plusPricing = billingPeriod === 'annual' ? PRICING.plus.annual : PRICING.plus.monthly;
+  const proPricing = billingPeriod === 'annual' ? PRICING.pro.annual : PRICING.pro.monthly;
   const showValueAnchor = pricingVariant !== 'control';
 
   // Safety: ensure annual_first variant stays on annual if somehow reverted
@@ -179,13 +196,13 @@ export function PricingSection() {
           </div>
         </div>
 
-        {/* Pricing Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto mb-10">
+        {/* Pricing Cards — 3-tier */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-6xl mx-auto mb-10">
           <PricingCard
             name="Free"
             price={0}
             period="forever"
-            description="Perfect for trying out the platform"
+            description="Reconnaissance — is this idea worth your time?"
             features={FREE_FEATURES}
             ctaText="Start Free Analysis"
             onCtaClick={() => handlePlanClick('free')}
@@ -196,7 +213,7 @@ export function PricingSection() {
             name="Plus"
             price={plusPricing.price}
             period={plusPricing.period}
-            description="For serious entrepreneurs"
+            description="Full Analysis — should you actually start this business?"
             features={PLUS_FEATURES}
             ctaText="Start 14-Day Free Trial →"
             onCtaClick={() => handlePlanClick('plus')}
@@ -206,6 +223,20 @@ export function PricingSection() {
             badge="Most Popular"
             annualSavings={billingPeriod === 'annual' ? PRICING.plus.annual.savings : undefined}
             totalYear={plusPricing.totalYear}
+          />
+          <PricingCard
+            name="Pro"
+            price={proPricing.price}
+            period={proPricing.period}
+            description="Investor-Ready — how do you convince investors to fund this?"
+            features={PRO_FEATURES}
+            ctaText="Talk to us about Pro →"
+            onCtaClick={() => handlePlanClick('pro')}
+            isLoading={loadingPlan === 'pro'}
+            disabled={loadingPlan !== null}
+            badge="For fundraising"
+            annualSavings={billingPeriod === 'annual' ? PRICING.pro.annual.savings : undefined}
+            totalYear={proPricing.totalYear}
           />
         </div>
 
