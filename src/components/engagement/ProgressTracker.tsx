@@ -100,7 +100,7 @@ export function ProgressTracker({ compact = false }: ProgressTrackerProps) {
           </div>
           {isFree && (
             <span className="text-xs text-muted-foreground">
-              {remainingAnalyses}/3 left this month
+              {remainingAnalyses}/1 left this month
             </span>
           )}
         </div>
