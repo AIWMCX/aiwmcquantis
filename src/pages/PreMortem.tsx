@@ -106,17 +106,23 @@ export default function PreMortem() {
             </div>
 
             <CompactAnalysisForm
-              idea={idea} setIdea={setIdea}
-              location={location} setLocation={setLocation}
-              financialInputs={financialInputs} setFinancialInputs={setFinancialInputs}
-              errors={errors} clearError={clearError}
+              idea={idea}
+              location={location}
+              financialInputs={financialInputs}
+              errors={errors}
               isLoading={isLoading}
-              onSubmit={onSubmit}
               isFormValid={isFormValid}
-              files={files} isUploading={isUploading}
-              uploadFiles={uploadFiles} removeFile={removeFile}
-              maxFiles={maxFiles} allowedExtensions={allowedExtensions}
-              submitLabel="Run Pre-Mortem Stress Test"
+              onIdeaChange={setIdea}
+              onLocationChange={setLocation}
+              onFinancialInputsChange={setFinancialInputs}
+              onClearError={clearError}
+              onSubmit={onSubmit}
+              files={files}
+              isUploading={isUploading}
+              maxFiles={maxFiles}
+              allowedExtensions={allowedExtensions}
+              onUploadFiles={uploadFiles}
+              onRemoveFile={removeFile}
             />
           </div>
         )}
