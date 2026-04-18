@@ -51,8 +51,11 @@ export const PricingCard = React.memo(function PricingCard({
       )}
     >
       {/* Badge */}
-      {badge && highlighted && (
-        <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full bg-primary text-primary-foreground text-xs font-semibold shadow-lg whitespace-nowrap">
+      {badge && (
+        <div className={cn(
+          'absolute -top-3 left-1/2 -translate-x-1/2 px-4 py-1 rounded-full text-xs font-semibold shadow-lg whitespace-nowrap',
+          highlighted ? 'bg-primary text-primary-foreground' : 'bg-muted text-foreground border border-border'
+        )}>
           {badge}
         </div>
       )}
