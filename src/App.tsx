@@ -45,6 +45,8 @@ const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
 const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
+const PreMortem = lazy(() => import("./pages/PreMortem"));
+import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -118,12 +120,23 @@ const App = () => {
                 } />
                 <Route path="/docs" element={
                   <ProtectedRoute>
-                    <DocsStudio />
+                    <PlusGate module="docs">
+                      <DocsStudio />
+                    </PlusGate>
                   </ProtectedRoute>
                 } />
                 <Route path="/app/invoices" element={
                   <ProtectedRoute>
-                    <InvoiceManager />
+                    <PlusGate module="invoices">
+                      <InvoiceManager />
+                    </PlusGate>
+                  </ProtectedRoute>
+                } />
+                <Route path="/app/pre-mortem" element={
+                  <ProtectedRoute>
+                    <PlusGate module="pre-mortem">
+                      <PreMortem />
+                    </PlusGate>
                   </ProtectedRoute>
                 } />
                 <Route path="/settings/brand" element={

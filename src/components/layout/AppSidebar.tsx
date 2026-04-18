@@ -32,6 +32,8 @@ import {
   CreditCard,
   HelpCircle,
   Zap,
+  Lock,
+  ShieldAlert,
 } from 'lucide-react';
 
 interface NavItem {
@@ -41,6 +43,8 @@ interface NavItem {
   adminOnly?: boolean;
   external?: boolean;
   badge?: string;
+  /** True = the item itself is a Plus-only module — show 🔒 to Free users */
+  plusOnly?: boolean;
 }
 
 interface NavSection {
@@ -54,19 +58,20 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
       { title: 'History', url: '/app?tab=history', icon: Clock },
+      { title: 'Pre-Mortem', url: '/app/pre-mortem', icon: ShieldAlert, plusOnly: true },
     ],
   },
   {
     label: 'DOCUMENTS',
     items: [
-      { title: 'My Documents', url: '/docs', icon: FileText },
-      { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen },
+      { title: 'My Documents', url: '/docs', icon: FileText, plusOnly: true },
+      { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen, plusOnly: true },
     ],
   },
   {
     label: 'BILLING',
     items: [
-      { title: 'Invoices', url: '/app/invoices', icon: Receipt },
+      { title: 'Invoices', url: '/app/invoices', icon: Receipt, plusOnly: true },
     ],
   },
   {
@@ -177,6 +182,15 @@ export function AppSidebar() {
                           {!collapsed && (
                             <span className="ml-3 text-sm font-dm-sans font-medium">
                               {item.title}
+                            </span>
+                          )}
+                          {!collapsed && item.plusOnly && !isPlus && (
+                            <span
+                              className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border border-[var(--q-accent-primary)]/30"
+                              title="Plus only"
+                            >
+                              <Lock className="w-2.5 h-2.5" />
+                              Plus
                             </span>
                           )}
                           {!collapsed && item.badge && (
