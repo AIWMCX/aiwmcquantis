@@ -33,15 +33,20 @@ export default function Auth() {
     if (isAuthenticated && !checkoutTriggered.current) {
       // First check URL params (from old flow)
       const redirect = searchParams.get('redirect');
-      const urlPlan = searchParams.get('plan') as 'plus_monthly' | 'plus_annual' | 'plus' | null;
+      type PlanParam = 'plus_monthly' | 'plus_annual' | 'pro_monthly' | 'pro_annual' | 'plus' | 'pro' | null;
+      const urlPlan = searchParams.get('plan') as PlanParam;
       const returnUrl = searchParams.get('returnUrl');
       
       // Then check localStorage (from new flow)
-      const storedPlan = localStorage.getItem('pending_checkout_plan') as 'plus_monthly' | 'plus_annual' | 'plus' | null;
+      const storedPlan = localStorage.getItem('pending_checkout_plan') as PlanParam;
       
-      // Normalize plan: legacy 'plus' maps to 'plus_monthly' for backwards compatibility
+      // Normalize plan: legacy 'plus'/'pro' map to monthly variants for backwards compatibility
       const rawPlan = urlPlan || storedPlan;
-      const plan: 'plus_monthly' | 'plus_annual' | null = rawPlan === 'plus' ? 'plus_monthly' : rawPlan;
+      type CheckoutPlan = 'plus_monthly' | 'plus_annual' | 'pro_monthly' | 'pro_annual';
+      const plan: CheckoutPlan | null =
+        rawPlan === 'plus' ? 'plus_monthly'
+        : rawPlan === 'pro' ? 'pro_monthly'
+        : (rawPlan as CheckoutPlan | null);
       const shouldCheckout = (redirect === 'checkout' && urlPlan) || storedPlan;
       
       // Get user info for checkout and welcome email
