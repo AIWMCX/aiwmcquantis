@@ -267,6 +267,23 @@ serve(async (req) => {
       }
     }
 
+    // Deterministic Stripe Price ID → plan mapper.
+    // Pro price IDs are stored as secrets so we never confuse Plus vs Pro buyers.
+    const PRO_PRICE_IDS = new Set<string>(
+      [
+        Deno.env.get("STRIPE_PRO_MONTHLY_PRICE_ID"),
+        Deno.env.get("STRIPE_PRO_ANNUAL_PRICE_ID"),
+      ].filter(Boolean) as string[]
+    );
+
+    function planFromSubscription(sub: Stripe.Subscription): "plus" | "pro" {
+      const priceId = sub.items?.data?.[0]?.price?.id;
+      if (priceId && PRO_PRICE_IDS.has(priceId)) {
+        return "pro";
+      }
+      return "plus"; // default for legacy + Plus prices
+    }
+
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
