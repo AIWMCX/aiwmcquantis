@@ -9,13 +9,15 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
-type Plan = 'plus_monthly' | 'plus_annual';
+type Plan = 'plus_monthly' | 'plus_annual' | 'pro_monthly' | 'pro_annual';
 
 // Payment Links - configured in Stripe Dashboard with 14-day trials
-// Pro tier has been removed - only Plus available (monthly and annual options)
-const PAYMENT_LINKS = {
+// Plus: $17/mo or $14/mo annual. Pro: $49/mo or $41/mo annual.
+const PAYMENT_LINKS: Record<Plan, string> = {
   plus_monthly: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',
   plus_annual: 'https://buy.stripe.com/aFa9AUfzN0ug4Eu9wpe7m02',
+  pro_monthly: 'https://buy.stripe.com/cNi8wQbjxgte5Iy6kde7m03',
+  pro_annual: 'https://buy.stripe.com/6oU7sMevJccYdb06kde7m04',
 };
 
 interface UsePaymentLinksReturn {

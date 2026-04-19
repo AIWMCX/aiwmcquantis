@@ -122,15 +122,12 @@ export function PricingSection() {
       return;
     }
 
-    if (planName === 'pro') {
-      // Pro tier — temporarily route to contact/waitlist while Stripe link is provisioned
-      navigate('/contact?plan=pro');
-      return;
-    }
+    // Build the correct Stripe Payment Link key for the chosen plan + billing period
+    const planKey =
+      planName === 'pro'
+        ? (currentBilling === 'annual' ? 'pro_annual' : 'pro_monthly')
+        : (currentBilling === 'annual' ? 'plus_annual' : 'plus_monthly');
 
-    // Determine which plan key to use based on CURRENT billing period from ref
-    const planKey = currentBilling === 'annual' ? 'plus_annual' : 'plus_monthly';
-    
     setLoadingPlan(planName);
     if (user) {
       redirectToPayment(planKey, user.id, user.email || undefined);
@@ -230,7 +227,7 @@ export function PricingSection() {
             period={proPricing.period}
             description="Investor-Ready — how do you convince investors to fund this?"
             features={PRO_FEATURES}
-            ctaText="Talk to us about Pro →"
+            ctaText="Start Pro — 14-Day Trial →"
             onCtaClick={() => handlePlanClick('pro')}
             isLoading={loadingPlan === 'pro'}
             disabled={loadingPlan !== null}
