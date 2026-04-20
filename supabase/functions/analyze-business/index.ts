@@ -2870,7 +2870,39 @@ serve(async (req) => {
     }
 
     const { idea, location, financial_inputs, selected_industry, documents, analysis_depth } = requestBody;
-    const depthLevel = analysis_depth || 'full';
+
+    // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
+    // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
+    // Anonymous users are also Free. This is layer 1 of 3:
+    //   1) Coerce depth here (input)
+    //   2) Cap monteCarloScenarios + projectionMonths in engine call (compute)
+    //   3) Sanitize response payload before send (output)
+    const requestedDepth = (analysis_depth || 'full').toString().toLowerCase();
+    let depthLevel: 'quick' | 'full' | 'pro';
+    if (userPlan === 'pro') {
+      depthLevel = (requestedDepth === 'pro' ? 'pro' : requestedDepth === 'full' ? 'full' : 'quick');
+    } else if (userPlan === 'plus') {
+      depthLevel = (requestedDepth === 'pro' || requestedDepth === 'full') ? 'full' : 'quick';
+    } else {
+      // Free + anonymous → forced to quick, regardless of body input
+      depthLevel = 'quick';
+      if (requestedDepth !== 'quick') {
+        console.log(`[tier-gate] Coerced depth '${requestedDepth}' → 'quick' for ${userPlan} user (${userId ?? 'anon'})`);
+        // Log denial for observability — abuse signal
+        if (userId) {
+          try {
+            await supabaseService.rpc('log_entitlement_denial', {
+              p_user_id: userId,
+              p_tier: userPlan,
+              p_feature: requestedDepth === 'pro' ? 'depthPro' : 'depthFull',
+              p_path: '/analyze-business',
+              p_meta: { requested: requestedDepth, coerced_to: 'quick' },
+            });
+          } catch (_) { /* non-fatal */ }
+        }
+      }
+    }
+    console.log(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth})`);
 
     // ========== INPUT VALIDATION & SANITIZATION ==========
     

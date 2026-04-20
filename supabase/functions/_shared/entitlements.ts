@@ -97,7 +97,7 @@ export class EntitlementError extends Error {
 // ---------- Tier resolution ----------
 
 interface SubscriptionRow {
-  tier?: string | null;
+  plan_id?: string | null;        // ← actual column name in `subscriptions`
   status?: string | null;
   billing_cycle?: string | null;
   trial_ends_at?: string | null;
@@ -107,8 +107,13 @@ interface SubscriptionRow {
 
 export function resolveTier(sub: SubscriptionRow | null | undefined): TierId {
   if (!sub) return 'free';
+  // Active OR trialing → use plan. Trial expiry must be respected separately:
+  // if trial_ends_at is in the past AND status is still 'trialing', fail closed.
+  if (sub.status === 'trialing' && sub.trial_ends_at) {
+    if (new Date(sub.trial_ends_at).getTime() < Date.now()) return 'free';
+  }
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
-  if (sub.tier === 'plus' || sub.tier === 'pro') return sub.tier;
+  if (sub.plan_id === 'plus' || sub.plan_id === 'pro') return sub.plan_id;
   return 'free';
 }
 
@@ -125,7 +130,7 @@ export async function getUserTier(
   try {
     const { data, error } = await supabase
       .from('subscriptions')
-      .select('tier, status, billing_cycle, trial_ends_at, current_period_end, is_legacy_price')
+      .select('plan_id, status, billing_cycle, trial_ends_at, current_period_end, is_legacy_price')
       .eq('user_id', userId)
       .order('updated_at', { ascending: false })
       .limit(1)
