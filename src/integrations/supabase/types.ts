@@ -18,43 +18,52 @@ export type Database = {
         Row: {
           confidence_score: number | null
           created_at: string | null
+          depth: string | null
           documents: Json | null
           id: string
           idea: string
+          idempotency_key: string | null
           location: string
           monthly_profit: number | null
           payback_months: number | null
           result: Json
           startup_investment: number | null
           team_id: string | null
+          tier_at_creation: string | null
           user_id: string
         }
         Insert: {
           confidence_score?: number | null
           created_at?: string | null
+          depth?: string | null
           documents?: Json | null
           id?: string
           idea: string
+          idempotency_key?: string | null
           location: string
           monthly_profit?: number | null
           payback_months?: number | null
           result: Json
           startup_investment?: number | null
           team_id?: string | null
+          tier_at_creation?: string | null
           user_id: string
         }
         Update: {
           confidence_score?: number | null
           created_at?: string | null
+          depth?: string | null
           documents?: Json | null
           id?: string
           idea?: string
+          idempotency_key?: string | null
           location?: string
           monthly_profit?: number | null
           payback_months?: number | null
           result?: Json
           startup_investment?: number | null
           team_id?: string | null
+          tier_at_creation?: string | null
           user_id?: string
         }
         Relationships: [
@@ -1273,6 +1282,36 @@ export type Database = {
           subject?: string
           template_key?: string
           trigger_condition?: Json | null
+        }
+        Relationships: []
+      }
+      entitlement_denials: {
+        Row: {
+          created_at: string
+          feature: string
+          id: string
+          metadata: Json | null
+          path: string | null
+          tier: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          feature: string
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          tier: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          feature?: string
+          id?: string
+          metadata?: Json | null
+          path?: string | null
+          tier?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -2690,38 +2729,50 @@ export type Database = {
       }
       subscriptions: {
         Row: {
+          billing_cycle: string | null
+          cancel_at_period_end: boolean
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
           id: string
+          is_legacy_price: boolean
           plan_id: string
           status: string
           stripe_customer_id: string | null
           stripe_subscription_id: string | null
+          trial_ends_at: string | null
           updated_at: string
           user_id: string
         }
         Insert: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          is_legacy_price?: boolean
           plan_id?: string
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id: string
         }
         Update: {
+          billing_cycle?: string | null
+          cancel_at_period_end?: boolean
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
           id?: string
+          is_legacy_price?: boolean
           plan_id?: string
           status?: string
           stripe_customer_id?: string | null
           stripe_subscription_id?: string | null
+          trial_ends_at?: string | null
           updated_at?: string
           user_id?: string
         }
@@ -2950,6 +3001,8 @@ export type Database = {
         Row: {
           analyses_count: number
           created_at: string
+          downloads_date: string | null
+          downloads_today: number
           id: string
           month_year: string
           updated_at: string
@@ -2958,6 +3011,8 @@ export type Database = {
         Insert: {
           analyses_count?: number
           created_at?: string
+          downloads_date?: string | null
+          downloads_today?: number
           id?: string
           month_year: string
           updated_at?: string
@@ -2966,6 +3021,8 @@ export type Database = {
         Update: {
           analyses_count?: number
           created_at?: string
+          downloads_date?: string | null
+          downloads_today?: number
           id?: string
           month_year?: string
           updated_at?: string
@@ -3377,6 +3434,14 @@ export type Database = {
         Args: { p_conversion_id: string; p_referred_user_id: string }
         Returns: boolean
       }
+      consume_analysis_quota: {
+        Args: { p_limit: number; p_user_id: string }
+        Returns: Json
+      }
+      consume_download_quota: {
+        Args: { p_limit: number; p_user_id: string }
+        Returns: Json
+      }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
         Args: never
@@ -3491,6 +3556,16 @@ export type Database = {
       is_team_member: {
         Args: { _team_id: string; _user_id: string }
         Returns: boolean
+      }
+      log_entitlement_denial: {
+        Args: {
+          p_feature: string
+          p_metadata?: Json
+          p_path?: string
+          p_tier: string
+          p_user_id: string
+        }
+        Returns: undefined
       }
       log_sensitive_access: {
         Args: {
