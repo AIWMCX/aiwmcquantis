@@ -4131,188 +4131,219 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       console.error('Case memory insert failed (non-blocking):', cmErr);
     }
 
-    return new Response(
-      JSON.stringify({
-        success: true,
-        data: {
-          ...result,
-          actionable_insights: actionableInsights,
-          documents_used: documentsUsed.length > 0 ? documentsUsed : undefined,
-          document_analysis_summary: documentAnalysisSummary,
-          
-          // ========== QUANTIS 2.0 ENHANCED VALIDATION ==========
-          validation: {
-            is_realistic: quantisOutput.validation.isRealistic,
-            is_profitable: quantisOutput.validation.isProfitable,
-            was_auto_corrected: quantisOutput.validation.wasAutoCorrected,
-            reliability_score: quantisOutput.validation.reliabilityScore,
-            corrections: quantisOutput.validation.corrections,
-            warnings,
-            calculation_audit: quantisOutput.validation.calculationAudit,
-            break_even_revenue: quantisOutput.validation.breakEvenRevenue,
-            revenue_for_45k_profit: quantisOutput.validation.revenueFor45kProfit,
-            industry_detected: quantisOutput.validation.industryDetected,
-            confidence_breakdown: quantisOutput.validation.confidenceBreakdown,
-            improvement_suggestions: quantisOutput.validation.improvementSuggestions,
-            summary: quantisOutput.validation.summary,
-            // Health scores (Quantis 2.0)
-            health_scores: quantisOutput.validation.healthScores,
-          },
-          
-          // ========== QUANTIS 2.0 RECOMMENDATIONS ==========
-          recommendations: {
-            summary: quantisOutput.recommendations.summary,
-            priorities: {
-              immediate: quantisOutput.recommendations.priorities.immediate,
-              short_term: quantisOutput.recommendations.priorities.shortTerm,
-              long_term: quantisOutput.recommendations.priorities.longTerm,
-            },
-            action_plan: quantisOutput.recommendations.actionPlan,
-            generated_at: quantisOutput.recommendations.generatedAt,
-            version: quantisOutput.recommendations.version,
-          },
-          
-          // ========== QUANTIS 2.0 METRICS ==========
-          quantis_metrics: {
-            mrr: quantisOutput.metrics.mrr,
-            arr: quantisOutput.metrics.arr,
-            net_profit: quantisOutput.metrics.netProfit,
-            net_margin_percent: quantisOutput.metrics.netMarginPercent,
-            gross_profit: quantisOutput.metrics.grossProfit,
-            gross_margin_percent: quantisOutput.metrics.grossMarginPercent,
-            total_expenses: quantisOutput.metrics.totalExpenses,
-            payback_months: quantisOutput.metrics.paybackMonths,
-            payback_display: quantisOutput.metrics.paybackDisplay,
-            roi_year_1_percent: quantisOutput.metrics.roiYear1Percent,
-            ltv_cac_ratio: quantisOutput.metrics.ltvCacRatio,
-            cac: quantisOutput.metrics.cac,
-            ltv: quantisOutput.metrics.ltv,
-          },
-
-          // ========== CTO-LEVEL ACCURACY UPGRADES ==========
-          cross_validation: crossValidation ? {
-            agreement_score: crossValidation.agreementScore,
-            is_dual_engine_verified: crossValidation.isDualEngineVerified,
-            recommendation: crossValidation.recommendation,
-            divergence_count: crossValidation.divergences.length,
-            critical_divergences: crossValidation.criticalDivergences,
-            audit_summary: crossValidation.auditSummary,
-          } : undefined,
-
-          sensitivity_analysis: sensitivityAnalysis ? {
-            tornado: sensitivityAnalysis.tornado,
-            most_sensitive_variable: sensitivityAnalysis.mostSensitiveVariable,
-            least_sensitive_variable: sensitivityAnalysis.leastSensitiveVariable,
-            summary: sensitivityAnalysis.summary,
-          } : undefined,
-
-          benchmark_confidence: benchmarkConfidenceData ? {
-            adjusted_score: benchmarkConfidenceData.adjustedScore,
-            confidence_label: benchmarkConfidenceData.confidenceLabel,
-            staleness_factor: benchmarkConfidenceData.stalenessFactor,
-            is_stale: benchmarkConfidenceData.isStale,
-            explanation: benchmarkConfidenceData.explanation,
-          } : undefined,
-
-          // ========== ASSUMPTION GRAPH + ANTI-BS + PREDICTION ENGINE ==========
-          assumption_graph: assumptionGraph || undefined,
-          sanity_flags: sanityFlags.length > 0 ? sanityFlags : undefined,
-          model_confidence: modelConfidence || undefined,
-          case_id: caseId || undefined,
-
-          // ========== MARKET PRIOR + SCORE COMPLIANCE ==========
-          market_prior: marketPrior || undefined,
-          score_compliance: scoreCompliance || undefined,
-          
-          // Engine version info
-          engine_version: quantisOutput.version,
-          data_sources: [
-            benchmarkSource === 'database' 
-              ? `Proprietary Industry Benchmark Database (${benchmarkDataSource?.replace(/kerry/gi, 'verified') || 'verified benchmarks'})` 
-              : 'IBISWorld Industry Reports (2024)',
-            'U.S. Bureau of Labor Statistics',
-            'Small Business Administration Cost Data',
-            'Industry Standard Financial Formulas (GAAP)',
-            `${calc.industryDetected} Sector Benchmarks`,
-            locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
-            benchmarkMatchedRegion ? `Regional benchmark data: ${benchmarkMatchedRegion}` : null,
-            benchmarkSampleSize ? `Verified sample: ${benchmarkSampleSize} companies` : null,
-            ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
-          ].filter(Boolean),
-          limitations: [
-            // Only show "general benchmarks" warning if actually using general fallback
-            detectedIndustry.id === 'general' && benchmarkSource === 'hardcoded' 
-              ? 'General industry benchmarks applied. Selecting your specific industry will improve accuracy.' 
-              : null,
-            // Only show brief description warning for very short inputs
-            ideaLength < 30 ? 'Brief business description — add more detail for improved accuracy' : null,
-            // Only show location warning if truly no location data
-            locationMultiplier === 1.0 ? 'National average costs applied — specify a major city for location-adjusted estimates' : null,
-            'Actual results depend on execution, market timing, and competitive dynamics',
-            calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
-          ].filter(Boolean),
-          // ========== RECONCILIATION STATUS ==========
-          reconciliation_status: (() => {
-            const checks = [];
-            const rev = quantisOutput.metrics.mrr;
-            const cogs = calc.expenses.cogs || 0;
-            const grossProfit = quantisOutput.metrics.grossProfit;
-            const totalExpenses = quantisOutput.metrics.totalExpenses;
-            const netProfit = quantisOutput.metrics.netProfit;
-            const netMarginPct = quantisOutput.metrics.netMarginPercent;
-            
-            // R-001: cogs + grossProfit = revenue
-            const r001pass = Math.abs((cogs + grossProfit) - rev) <= 0.01 || cogs === 0;
-            checks.push({ rule: 'R-001', label: 'Sum Integrity', pass: r001pass });
-            
-            // R-002: sign consistency
-            checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
-            
-            // R-004: Revenue >= 0
-            checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
-            
-            // R-005: Costs >= 0
-            checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
-            
-            // R-006: Margin-Risk coherence
-            const riskLevel = quantisOutput.validation.healthScores?.overall || 'medium';
-            const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
-            checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
-            
-            // R-007: LTV:CAC > 0
-            checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: quantisOutput.metrics.ltvCacRatio > 0 });
-            
-            // R-008: gross margin in range
-            const gmPct = quantisOutput.metrics.grossMarginPercent / 100;
-            checks.push({ rule: 'R-008', label: 'Gross Margin Range', pass: gmPct >= -1.0 && gmPct <= 1.0 });
-            
-            const allPassed = checks.every(c => c.pass);
-            return { checks, all_passed: allPassed, engine_version: quantisOutput.version };
-          })(),
-
-          metadata: {
-            idea: idea_clean,
-            location: location_clean,
-            industry_detected: calc.industryDetected,
-            industry_id: detectedIndustry.id,
-            location_cost_multiplier: locationMultiplier,
-            generated_at: new Date().toISOString(),
-            model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
-            version: "9.1-resilient-fallback",
-            analysis_depth: depthLevel,
-            benchmark_source: benchmarkSource,
-            benchmark_confidence: benchmarkConfidence,
-            benchmark_data_source: benchmarkDataSource,
-            benchmark_sample_size: benchmarkSampleSize,
-            benchmark_region: benchmarkMatchedRegion,
-            benchmark_v2_active: !!(v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none'),
-            benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
-            benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
-            benchmark_v2_datapoints: 97500,
-            used_fallback: usedFallback,
-          },
+    // ========== BUILD FULL PAYLOAD ==========
+    const fullPayload = {
+      ...result,
+      actionable_insights: actionableInsights,
+      documents_used: documentsUsed.length > 0 ? documentsUsed : undefined,
+      document_analysis_summary: documentAnalysisSummary,
+      
+      // ========== QUANTIS 2.0 ENHANCED VALIDATION ==========
+      validation: {
+        is_realistic: quantisOutput.validation.isRealistic,
+        is_profitable: quantisOutput.validation.isProfitable,
+        was_auto_corrected: quantisOutput.validation.wasAutoCorrected,
+        reliability_score: quantisOutput.validation.reliabilityScore,
+        corrections: quantisOutput.validation.corrections,
+        warnings,
+        calculation_audit: quantisOutput.validation.calculationAudit,
+        break_even_revenue: quantisOutput.validation.breakEvenRevenue,
+        revenue_for_45k_profit: quantisOutput.validation.revenueFor45kProfit,
+        industry_detected: quantisOutput.validation.industryDetected,
+        confidence_breakdown: quantisOutput.validation.confidenceBreakdown,
+        improvement_suggestions: quantisOutput.validation.improvementSuggestions,
+        summary: quantisOutput.validation.summary,
+        health_scores: quantisOutput.validation.healthScores,
+      },
+      
+      recommendations: {
+        summary: quantisOutput.recommendations.summary,
+        priorities: {
+          immediate: quantisOutput.recommendations.priorities.immediate,
+          short_term: quantisOutput.recommendations.priorities.shortTerm,
+          long_term: quantisOutput.recommendations.priorities.longTerm,
         },
-      }),
+        action_plan: quantisOutput.recommendations.actionPlan,
+        generated_at: quantisOutput.recommendations.generatedAt,
+        version: quantisOutput.recommendations.version,
+      },
+      
+      quantis_metrics: {
+        mrr: quantisOutput.metrics.mrr,
+        arr: quantisOutput.metrics.arr,
+        net_profit: quantisOutput.metrics.netProfit,
+        net_margin_percent: quantisOutput.metrics.netMarginPercent,
+        gross_profit: quantisOutput.metrics.grossProfit,
+        gross_margin_percent: quantisOutput.metrics.grossMarginPercent,
+        total_expenses: quantisOutput.metrics.totalExpenses,
+        payback_months: quantisOutput.metrics.paybackMonths,
+        payback_display: quantisOutput.metrics.paybackDisplay,
+        roi_year_1_percent: quantisOutput.metrics.roiYear1Percent,
+        ltv_cac_ratio: quantisOutput.metrics.ltvCacRatio,
+        cac: quantisOutput.metrics.cac,
+        ltv: quantisOutput.metrics.ltv,
+      },
+
+      cross_validation: crossValidation ? {
+        agreement_score: crossValidation.agreementScore,
+        is_dual_engine_verified: crossValidation.isDualEngineVerified,
+        recommendation: crossValidation.recommendation,
+        divergence_count: crossValidation.divergences.length,
+        critical_divergences: crossValidation.criticalDivergences,
+        audit_summary: crossValidation.auditSummary,
+      } : undefined,
+
+      sensitivity_analysis: sensitivityAnalysis ? {
+        tornado: sensitivityAnalysis.tornado,
+        most_sensitive_variable: sensitivityAnalysis.mostSensitiveVariable,
+        least_sensitive_variable: sensitivityAnalysis.leastSensitiveVariable,
+        summary: sensitivityAnalysis.summary,
+      } : undefined,
+
+      benchmark_confidence: benchmarkConfidenceData ? {
+        adjusted_score: benchmarkConfidenceData.adjustedScore,
+        confidence_label: benchmarkConfidenceData.confidenceLabel,
+        staleness_factor: benchmarkConfidenceData.stalenessFactor,
+        is_stale: benchmarkConfidenceData.isStale,
+        explanation: benchmarkConfidenceData.explanation,
+      } : undefined,
+
+      assumption_graph: assumptionGraph || undefined,
+      sanity_flags: sanityFlags.length > 0 ? sanityFlags : undefined,
+      model_confidence: modelConfidence || undefined,
+      case_id: caseId || undefined,
+      market_prior: marketPrior || undefined,
+      score_compliance: scoreCompliance || undefined,
+      
+      engine_version: quantisOutput.version,
+      data_sources: [
+        benchmarkSource === 'database' 
+          ? `Proprietary Industry Benchmark Database (${benchmarkDataSource?.replace(/kerry/gi, 'verified') || 'verified benchmarks'})` 
+          : 'IBISWorld Industry Reports (2024)',
+        'U.S. Bureau of Labor Statistics',
+        'Small Business Administration Cost Data',
+        'Industry Standard Financial Formulas (GAAP)',
+        `${calc.industryDetected} Sector Benchmarks`,
+        locationMultiplier !== 1.0 ? `${location_clean} Cost of Living Index` : 'National Average Cost Data',
+        benchmarkMatchedRegion ? `Regional benchmark data: ${benchmarkMatchedRegion}` : null,
+        benchmarkSampleSize ? `Verified sample: ${benchmarkSampleSize} companies` : null,
+        ...(documentExtractedFinancials.length > 0 ? documentExtractedFinancials.map(ef => `Uploaded Document: ${ef.source_document}`) : [])
+      ].filter(Boolean),
+      limitations: [
+        detectedIndustry.id === 'general' && benchmarkSource === 'hardcoded' 
+          ? 'General industry benchmarks applied. Selecting your specific industry will improve accuracy.' 
+          : null,
+        ideaLength < 30 ? 'Brief business description — add more detail for improved accuracy' : null,
+        locationMultiplier === 1.0 ? 'National average costs applied — specify a major city for location-adjusted estimates' : null,
+        'Actual results depend on execution, market timing, and competitive dynamics',
+        calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
+      ].filter(Boolean),
+      reconciliation_status: (() => {
+        const checks = [];
+        const rev = quantisOutput.metrics.mrr;
+        const cogs = calc.expenses.cogs || 0;
+        const grossProfit = quantisOutput.metrics.grossProfit;
+        const totalExpenses = quantisOutput.metrics.totalExpenses;
+        const netProfit = quantisOutput.metrics.netProfit;
+        const netMarginPct = quantisOutput.metrics.netMarginPercent;
+        const r001pass = Math.abs((cogs + grossProfit) - rev) <= 0.01 || cogs === 0;
+        checks.push({ rule: 'R-001', label: 'Sum Integrity', pass: r001pass });
+        checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
+        checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
+        checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
+        const riskLevel = quantisOutput.validation.healthScores?.overall || 'medium';
+        const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
+        checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
+        checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: quantisOutput.metrics.ltvCacRatio > 0 });
+        const gmPct = quantisOutput.metrics.grossMarginPercent / 100;
+        checks.push({ rule: 'R-008', label: 'Gross Margin Range', pass: gmPct >= -1.0 && gmPct <= 1.0 });
+        const allPassed = checks.every(c => c.pass);
+        return { checks, all_passed: allPassed, engine_version: quantisOutput.version };
+      })(),
+
+      metadata: {
+        idea: idea_clean,
+        location: location_clean,
+        industry_detected: calc.industryDetected,
+        industry_id: detectedIndustry.id,
+        location_cost_multiplier: locationMultiplier,
+        generated_at: new Date().toISOString(),
+        model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
+        version: "9.1-resilient-fallback",
+        analysis_depth: depthLevel,
+        benchmark_source: benchmarkSource,
+        benchmark_confidence: benchmarkConfidence,
+        benchmark_data_source: benchmarkDataSource,
+        benchmark_sample_size: benchmarkSampleSize,
+        benchmark_region: benchmarkMatchedRegion,
+        benchmark_v2_active: !!(v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none'),
+        benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
+        benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
+        benchmark_v2_datapoints: 97500,
+        used_fallback: usedFallback,
+      },
+    };
+
+    // ========== TIER-BASED RESPONSE SANITIZATION ==========
+    // Free + anonymous users get a STRIPPED payload regardless of what the engine produced.
+    // This is layer 3 of compute-leakage prevention — even if a crafted request slipped past
+    // depth coercion, we never wire-send paid-tier data to a Free user.
+    const isFreeOrAnon = userPlan === 'free';
+    const wirePayload = isFreeOrAnon ? (() => {
+      // Pull risks from multiple possible shapes
+      const allRisks = (result as any)?.risks
+        || (result as any)?.top_risks
+        || quantisOutput?.validation?.improvementSuggestions
+        || [];
+      const top3 = Array.isArray(allRisks) ? allRisks.slice(0, 3) : [];
+      const score = (result as any)?.score
+        ?? (result as any)?.overall_score
+        ?? quantisOutput?.validation?.reliabilityScore
+        ?? null;
+      const verdict = (result as any)?.verdict ?? null;
+      const baseRevenue = quantisOutput?.metrics?.mrr ?? null;
+
+      return {
+        score,
+        verdict,
+        top_risks: top3,
+        base_revenue: baseRevenue,
+        currency: (result as any)?.currency ?? 'USD',
+        industry_detected: calc.industryDetected,
+        location: location_clean,
+        idea: idea_clean,
+        _tier: 'free',
+        _watermark: 'Generated by AIWMC Quantis — Upgrade to Plus for full Monte Carlo, 36-month projections, and stress testing.',
+        _upgrade_cta: {
+          message: 'Unlock the full report',
+          features_locked: [
+            '36-month P&L projections with variance bands',
+            '95,500-scenario Monte Carlo simulation',
+            'Pre-Mortem stress testing',
+            'Invoice & capacity check',
+            'Document Studio (12+ branded templates)',
+            'No watermark on PDFs',
+          ],
+          plus_price_monthly: 14,
+          plus_trial_days: 14,
+        },
+        metadata: {
+          idea: idea_clean,
+          location: location_clean,
+          industry_detected: calc.industryDetected,
+          generated_at: new Date().toISOString(),
+          analysis_depth: 'quick',
+          version: '9.1-resilient-fallback',
+        },
+      };
+    })() : fullPayload;
+
+    if (isFreeOrAnon) {
+      console.log(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
+    }
+
+    return new Response(
+      JSON.stringify({ success: true, data: wirePayload }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
