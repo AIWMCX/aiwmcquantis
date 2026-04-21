@@ -73,6 +73,18 @@ export function Footer() {
             <Link to="/methodology" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Methodology
             </Link>
+            <Link to="/status" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Status
+            </Link>
+            <Link to="/security" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Security
+            </Link>
+            <Link to="/changelog" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Changelog
+            </Link>
+            <Link to="/refund-policy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Refund Policy
+            </Link>
             <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Privacy Policy
             </Link>
