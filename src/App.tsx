@@ -187,6 +187,11 @@ const App = () => {
                     <DataSources />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/denials" element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminDenials />
+                  </ProtectedRoute>
+                } />
                 <Route path="/directory-tracker" element={
                   <ProtectedRoute requireAdmin>
                     <DirectoryTracker />
