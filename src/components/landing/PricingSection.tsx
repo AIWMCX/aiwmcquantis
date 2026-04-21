@@ -31,10 +31,11 @@ const PRICING = {
 const FREE_FEATURES = [
   { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
+  { text: '5 watermarked PDFs/day', highlight: false, subtext: '"Powered by Quantis" footer included' },
   { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
   { text: 'Invoice & Capacity Check 🔒', highlight: false, subtext: 'Plus only — should you take this client?' },
   { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
-  { text: 'Email support', highlight: false },
+  { text: 'Email support — best effort', highlight: false },
 ];
 
 const PLUS_FEATURES = [
@@ -236,6 +237,11 @@ export function PricingSection() {
             totalYear={proPricing.totalYear}
           />
         </div>
+
+        {/* Legacy grandfather note */}
+        <p className="text-xs text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
+          Existing Plus customers on the original $17/mo plan keep that price for the lifetime of their subscription. New monthly signups today are billed at $17/mo with the option to switch to annual ($14/mo) anytime.
+        </p>
 
         {/* Money-Back Guarantee */}
         <GuaranteeBanner />

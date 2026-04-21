@@ -458,50 +458,70 @@ serve(async (req) => {
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`[${requestId}] === Subscription Deleted ===`);
+        console.log(`[${requestId}] === Subscription Deleted (soft downgrade) ===`);
         console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
-        console.log(`[${requestId}] Customer: ${subscription.customer}`);
         console.log(`[${requestId}] Cancel reason: ${subscription.cancellation_details?.reason || 'unknown'}`);
-        console.log(`[${requestId}] Canceled at: ${subscription.canceled_at ? new Date(subscription.canceled_at * 1000).toISOString() : 'N/A'}`);
+        console.log(`[${requestId}] Period end: ${subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : 'N/A'}`);
 
-        // PROTECTION: Before canceling, verify with Stripe that subscription is truly canceled
-        // and check if there's an active replacement subscription
         try {
           const customerId = subscription.customer as string;
-          console.log(`[${requestId}] Checking for active subscriptions for customer ${customerId}...`);
-          
           const activeSubscriptions = await stripe.subscriptions.list({
-            customer: customerId,
-            status: 'active',
-            limit: 5,
+            customer: customerId, status: 'active', limit: 5,
           });
 
           if (activeSubscriptions.data.length > 0) {
-            console.log(`[${requestId}] ⚠️ Customer has ${activeSubscriptions.data.length} active subscription(s) - NOT downgrading to free`);
-            console.log(`[${requestId}] Active subscription IDs: ${activeSubscriptions.data.map(s => s.id).join(', ')}`);
-            // Don't cancel - customer has another active subscription
+            console.log(`[${requestId}] ⚠️ Customer has ${activeSubscriptions.data.length} active subscription(s) - NOT downgrading`);
             break;
           }
 
-          console.log(`[${requestId}] No active subscriptions found - proceeding with cancellation`);
+          // SOFT DOWNGRADE: keep plan_id intact until current_period_end.
+          // Mark status='canceled' so the cron flips plan_id to 'free' at period end.
+          // Pre-period-end the user retains all paid features (industry standard).
+          const periodEndIso = subscription.current_period_end
+            ? new Date(subscription.current_period_end * 1000).toISOString()
+            : new Date().toISOString();
 
           await withRetry(
             async () => {
               const { error } = await supabase
                 .from("subscriptions")
                 .update({
-                  plan_id: "free",
                   status: "canceled",
+                  canceled_at: new Date().toISOString(),
+                  current_period_end: periodEndIso,
+                  // plan_id stays — flipped to 'free' by process-subscription-downgrades cron
                 })
                 .eq("stripe_subscription_id", subscription.id);
               if (error) throw error;
             },
-            "Cancel subscription",
+            "Soft-cancel subscription",
             requestId
           );
-          console.log(`[${requestId}] SUCCESS: Subscription canceled (verified no active replacements)`);
+
+          // Find user for cancellation email
+          const { data: subRow } = await supabase
+            .from("subscriptions")
+            .select("user_id")
+            .eq("stripe_subscription_id", subscription.id)
+            .maybeSingle();
+
+          if (subRow?.user_id) {
+            const periodEndHuman = new Date(periodEndIso).toLocaleDateString("en-US", {
+              month: "long", day: "numeric", year: "numeric",
+            });
+            // Fire-and-forget cancellation confirmation (Day 0 of win-back sequence)
+            supabase.functions.invoke("send-lifecycle-email", {
+              body: {
+                user_id: subRow.user_id,
+                template_key: "cancellation_confirmed",
+                dynamic_data: { period_end_human: periodEndHuman },
+              },
+            }).catch((err) => console.error(`[${requestId}] cancel email failed:`, err.message));
+          }
+
+          console.log(`[${requestId}] SUCCESS: Soft-canceled, retains access until ${periodEndIso}`);
         } catch (err) {
-          console.error(`[${requestId}] Delete error:`, err.message);
+          console.error(`[${requestId}] Soft-cancel error:`, err.message);
         }
         break;
       }

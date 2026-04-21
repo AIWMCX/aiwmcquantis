@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { requireFeature, EntitlementError } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -15,116 +16,113 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? '';
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
     const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-    
-    // Create service role client for DB operations
+
     const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey);
-    
-    // Create client with user's auth token for subscription verification
+
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Authorization required',
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ success: false, error: 'Authorization required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const supabaseUser = createClient(supabaseUrl, supabaseAnonKey, {
-      global: { headers: { Authorization: authHeader } }
+      global: { headers: { Authorization: authHeader } },
     });
-
-    // Get user from auth token
     const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
-      console.error('Auth error:', authError);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Invalid authentication',
-      }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      return new Response(JSON.stringify({ success: false, error: 'Invalid authentication' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // CRITICAL: Verify Plus subscription server-side
-    const { data: subscription, error: subError } = await supabaseAdmin
-      .from('subscriptions')
-      .select('plan_id, status, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (subError) {
-      console.error('Subscription check error:', subError);
+    // ========== ENTITLEMENT GATE ==========
+    try {
+      await requireFeature(supabaseAdmin, user.id, 'documentStudio', '/generate-document');
+    } catch (e) {
+      if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+      throw e;
     }
 
-    const isPlus = subscription && 
-      (subscription.plan_id === 'plus' || subscription.plan_id === 'enterprise') &&
-      (subscription.status === 'active' || subscription.status === 'trialing') &&
-      (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
+    console.log(`[generate-document] user=${user.id} authorized`);
 
-    if (!isPlus) {
-      console.log(`Access denied for user ${user.id}: Not a Plus subscriber`);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Plus subscription required',
-        code: 'SUBSCRIPTION_REQUIRED',
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    // ========== ORIGINAL LOGIC ==========
+    const body = await req.json();
+    const { template_id, variables, analysis_id, options = {} } = body;
+
+    if (!template_id || !variables) {
+      return new Response(JSON.stringify({ success: false, error: 'Missing template_id or variables' }), {
+        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    console.log(`Plus subscriber ${user.id} accessing document generation`);
-
-    const { template_id, analysis_id, variables, title } = await req.json();
-
-    // Get template
-    const { data: template, error: templateError } = await supabaseAdmin
-      .from('doc_templates')
-      .select('*')
-      .eq('template_id', template_id)
-      .single();
-
-    if (templateError) {
-      throw new Error(`Template not found: ${templateError.message}`);
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    if (!lovableApiKey) {
+      return new Response(JSON.stringify({ success: false, error: 'AI service not configured' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
-    // Generate document from template
-    const templateJson = template.template_json as Record<string, unknown>;
-    const blocks = (templateJson.blocks as Array<Record<string, unknown>>) || [];
-    
-    const documentJson = {
-      type: 'doc',
-      content: blocks.map((block) => ({
-        type: block.type === 'heading' ? 'heading' : 'paragraph',
-        attrs: block.level ? { level: block.level } : undefined,
-        content: block.content ? [{
-          type: 'text',
-          text: String(block.content).replace(/\{\{(\w+)\}\}/g, (_: string, key: string) => 
-            String(variables[key] || `{{${key}}}`)
-          ),
-        }] : undefined,
-      })),
-    };
+    const aiPrompt = `Generate a professional business document using the template "${template_id}" with these variables:
+${JSON.stringify(variables, null, 2)}
 
-    return new Response(JSON.stringify({
-      success: true,
-      document_json: documentJson,
-      template_name: template.name,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+Provide structured, professional content suitable for ${template_id}. Be specific, data-driven, and actionable.`;
+
+    const aiResponse = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        messages: [
+          { role: 'system', content: 'You are a senior business consultant generating professional documents.' },
+          { role: 'user', content: aiPrompt },
+        ],
+        temperature: 0.4,
+      }),
     });
 
-  } catch (error) {
-    console.error('Generate document error:', error);
-    return new Response(JSON.stringify({
-      success: false,
-      error: error.message,
-    }), {
-      status: 400,
+    if (!aiResponse.ok) {
+      const errText = await aiResponse.text();
+      console.error('[generate-document] AI error:', aiResponse.status, errText);
+      return new Response(JSON.stringify({ success: false, error: 'AI generation failed' }), {
+        status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    const aiJson = await aiResponse.json();
+    const content = aiJson.choices?.[0]?.message?.content ?? '';
+
+    const { data: doc, error: insErr } = await supabaseAdmin
+      .from('documents')
+      .insert({
+        user_id: user.id,
+        analysis_id: analysis_id ?? null,
+        template_id,
+        title: variables.title || `${template_id} document`,
+        document_json: { content, options },
+        variables_data: variables,
+        status: 'draft',
+      })
+      .select()
+      .single();
+
+    if (insErr) {
+      console.error('[generate-document] insert error:', insErr);
+      return new Response(JSON.stringify({ success: false, error: 'Failed to save document' }), {
+        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    return new Response(JSON.stringify({ success: true, document: doc, content }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  } catch (err: any) {
+    console.error('[generate-document] error:', err);
+    return new Response(JSON.stringify({ success: false, error: err?.message ?? 'Unknown error' }), {
+      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });

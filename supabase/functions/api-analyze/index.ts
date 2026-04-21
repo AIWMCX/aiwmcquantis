@@ -10,6 +10,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
+import { requireFeature, EntitlementError } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -65,6 +66,32 @@ Deno.serve(async (req: Request) => {
             engineVersion = 'v2'
           }
         }
+      }
+    }
+
+    // ========== ENTITLEMENT GATE: apiAccess (Pro tier only) ==========
+    const authHeader = req.headers.get('Authorization')
+    if (!authHeader?.startsWith('Bearer ')) {
+      return new Response(JSON.stringify({ error: 'Unauthorized — Pro subscription required' }), {
+        status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
+    {
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      })
+      const { data: claims } = await userClient.auth.getClaims(authHeader.replace('Bearer ', ''))
+      if (!claims?.claims?.sub) {
+        return new Response(JSON.stringify({ error: 'Invalid token' }), {
+          status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey)
+      try {
+        await requireFeature(adminClient, claims.claims.sub, 'apiAccess', '/api-analyze')
+      } catch (e) {
+        if (e instanceof EntitlementError) return e.toResponse(corsHeaders)
+        throw e
       }
     }
 
