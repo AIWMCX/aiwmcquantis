@@ -161,6 +161,69 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
       </div>
     `,
   },
+
+  // ── DOWNGRADE / WIN-BACK SEQUENCE ──
+  cancellation_confirmed: {
+    subject: "Your Plus subscription will end soon — last chance",
+    html: (data) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">We're sorry to see you go, ${data.first_name || 'there'}</h1>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          Your Plus subscription has been canceled. You'll keep full access until <strong>${data.period_end_human || 'the end of your current billing period'}</strong>, then your account will revert to Free.
+        </p>
+        <div style="background: #fef3c7; border-left: 4px solid #f59e0b; padding: 16px; margin: 24px 0; border-radius: 4px;">
+          <p style="color: #92400e; margin: 0; font-size: 14px; font-weight: 600;">Your data is safe.</p>
+          <p style="color: #92400e; margin: 6px 0 0 0; font-size: 14px;">Every analysis you've run stays read-only on your account, forever. You can come back anytime.</p>
+        </div>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          What you'll lose at ${data.period_end_human || 'period end'}:
+        </p>
+        <ul style="color: #4a4a4a; font-size: 15px; line-height: 1.8;">
+          <li>95,500-scenario Monte Carlo simulation</li>
+          <li>36-month P&L projections with variance bands</li>
+          <li>Pre-Mortem Stress Test + Invoice & Capacity Check</li>
+          <li>Document Studio (12 branded templates)</li>
+          <li>Watermark-free PDF exports + unlimited downloads</li>
+        </ul>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/plus-settings"
+             style="background: #3b82f6; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+            Reactivate before ${data.period_end_human || 'period end'}
+          </a>
+        </div>
+        <p style="color: #888; font-size: 13px; text-align: center; margin-top: 30px;">
+          Or reply to this email — we'd love to hear what we could improve.
+        </p>
+      </div>
+    `,
+  },
+
+  winback_discount: {
+    subject: "30% off Plus — come back to Quantis",
+    html: (data) => `
+      <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+        <h1 style="color: #1a1a1a; font-size: 24px;">${data.first_name || 'Hey'}, your data's still here</h1>
+        <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
+          It's been a week since your Plus subscription ended. Every analysis you ran is still on your account — but you've been locked out of Monte Carlo, P&L projections, and the Document Studio.
+        </p>
+        <div style="background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%); padding: 28px; border-radius: 12px; margin: 24px 0; text-align: center;">
+          <p style="color: white; font-size: 14px; margin: 0; opacity: 0.9; letter-spacing: 1px;">EXCLUSIVE WIN-BACK OFFER</p>
+          <p style="color: white; font-size: 36px; font-weight: 700; margin: 8px 0;">30% OFF</p>
+          <p style="color: white; font-size: 16px; margin: 0; opacity: 0.95;">First 3 months of Plus</p>
+          <p style="color: white; font-size: 13px; margin: 12px 0 0 0; opacity: 0.8;">Code: <strong style="background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 4px; letter-spacing: 1.5px;">COMEBACK30</strong></p>
+        </div>
+        <div style="text-align: center; margin: 30px 0;">
+          <a href="${data.app_url || 'https://aiwmcquantis.com'}/pricing?promo=COMEBACK30"
+             style="background: #1e40af; color: white; padding: 14px 28px; text-decoration: none; border-radius: 8px; font-weight: 600; display: inline-block;">
+            Reactivate at $11.90/mo
+          </a>
+        </div>
+        <p style="color: #888; font-size: 13px; text-align: center;">
+          Offer expires in 7 days. No further reminders after this — your data stays read-only regardless.
+        </p>
+      </div>
+    `,
+  },
 };
 
 serve(async (req: Request): Promise<Response> => {
