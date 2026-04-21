@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
+import { requireFeature, requireDownloadQuota, EntitlementError } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -44,6 +45,20 @@ Deno.serve(async (req) => {
     }
 
     const userId = claimsData.user.id;
+
+    // ========== ENTITLEMENT GATE: watermarkFree (paid PDF export) + daily quota ==========
+    const adminClient = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    try {
+      await requireFeature(adminClient, userId, 'watermarkFree', '/queue-export');
+      await requireDownloadQuota(adminClient, userId, '/queue-export');
+    } catch (e) {
+      if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+      throw e;
+    }
+    console.log(`[queue-export] user=${userId} authorized + quota consumed`);
 
     // Parse request body
     const body: QueueExportRequest = await req.json();

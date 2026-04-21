@@ -97,14 +97,11 @@ serve(async (req) => {
       );
     }
 
-    // ========== SUBSCRIPTION VERIFICATION ==========
+    // ========== ENTITLEMENT GATE: aiDocIntelligence ==========
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(
-        JSON.stringify({ 
-          error: "Authentication required for document parsing",
-          code: "AUTH_REQUIRED"
-        }),
+        JSON.stringify({ error: "Authentication required for document parsing", code: "AUTH_REQUIRED" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
@@ -112,58 +109,31 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    
-    // Verify JWT using getClaims
+
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-
     const token = authHeader.replace("Bearer ", "");
     const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(
-        JSON.stringify({ 
-          error: "Invalid authentication token",
-          code: "INVALID_AUTH"
-        }),
+        JSON.stringify({ error: "Invalid authentication token", code: "INVALID_AUTH" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
     const userId = claimsData.claims.sub;
-
-    // Verify Plus subscription using service role
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
-    const { data: subscription, error: subError } = await supabaseService
-      .from("subscriptions")
-      .select("plan_id, status, current_period_end")
-      .eq("user_id", userId)
-      .maybeSingle();
 
-    if (subError) {
-      console.error("Subscription check error:", subError);
+    const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
+    try {
+      await requireFeature(supabaseService, userId, 'aiDocIntelligence', '/parse-document');
+    } catch (e) {
+      if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+      throw e;
     }
-
-    // Only check for 'plus' now (Pro tier removed)
-    const isValidSubscription = subscription && 
-      (subscription.status === "active" || subscription.status === "trialing") &&
-      (subscription.plan_id === "plus" || subscription.plan_id === "enterprise") &&
-      (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
-
-    if (!isValidSubscription) {
-      console.log(`Document upload blocked for user ${userId}: plan=${subscription?.plan_id}, status=${subscription?.status}`);
-      return new Response(
-        JSON.stringify({ 
-          error: "Document Intelligence requires Plus subscription",
-          code: "SUBSCRIPTION_REQUIRED",
-          current_plan: subscription?.plan_id || "free"
-        }),
-        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-    console.log(`Document upload authorized for user ${userId}: plan=${subscription.plan_id}`);
-    // ========== END SUBSCRIPTION VERIFICATION ==========
+    console.log(`[parse-document] user=${userId} authorized`);
+    // ========== END ENTITLEMENT GATE ==========
 
     const { fileUrl, fileName, fileType } = await req.json() as ParseRequest;
 

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { requireFeature, requireDownloadQuota, EntitlementError } from "../_shared/entitlements.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -49,35 +50,15 @@ serve(async (req) => {
       });
     }
 
-    // CRITICAL: Verify Plus subscription server-side
-    const { data: subscription, error: subError } = await supabaseAdmin
-      .from('subscriptions')
-      .select('plan_id, status, current_period_end')
-      .eq('user_id', user.id)
-      .maybeSingle();
-
-    if (subError) {
-      console.error('Subscription check error:', subError);
+    // ========== ENTITLEMENT GATE: documentStudio + daily download quota ==========
+    try {
+      await requireFeature(supabaseAdmin, user.id, 'documentStudio', '/export-document');
+      await requireDownloadQuota(supabaseAdmin, user.id, '/export-document');
+    } catch (e) {
+      if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+      throw e;
     }
-
-    const isPlus = subscription && 
-      (subscription.plan_id === 'plus' || subscription.plan_id === 'enterprise') &&
-      (subscription.status === 'active' || subscription.status === 'trialing') &&
-      (!subscription.current_period_end || new Date(subscription.current_period_end) > new Date());
-
-    if (!isPlus) {
-      console.log(`Access denied for user ${user.id}: Not a Plus subscriber`);
-      return new Response(JSON.stringify({
-        success: false,
-        error: 'Plus subscription required',
-        code: 'SUBSCRIPTION_REQUIRED',
-      }), {
-        status: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
-    console.log(`Plus subscriber ${user.id} exporting document`);
+    console.log(`[export-document] user=${user.id} authorized + quota consumed`);
 
     const { document_id, export_id, format } = await req.json();
 

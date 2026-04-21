@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -249,6 +250,29 @@ serve(async (req) => {
   }
 
   try {
+    // ========== ENTITLEMENT GATE: AI idea generation = Plus+ feature ==========
+    // (Free users use the curated examples gallery)
+    const authHeader = req.headers.get("Authorization");
+    if (authHeader?.startsWith("Bearer ")) {
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+      const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
+      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+        global: { headers: { Authorization: authHeader } },
+      });
+      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
+      if (claims?.claims?.sub) {
+        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+        const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
+        try {
+          await requireFeature(adminClient, claims.claims.sub, 'actionPlan', '/generate-idea');
+        } catch (e) {
+          if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+          throw e;
+        }
+      }
+    }
+
     const { industry } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
