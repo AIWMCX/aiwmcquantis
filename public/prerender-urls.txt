@@ -8,6 +8,10 @@
 /leaderboard
 /risk-gallery
 /research
+/status
+/security
+/refund-policy
+/changelog
 /blog/validate-startup-idea-using-ai
 /blog/5-financial-mistakes-early-founders-make
 /blog/ai-vs-traditional-business-planning

@@ -1,4 +1,5 @@
 import { Suspense, lazy, useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -46,6 +47,11 @@ const Methodology = lazy(() => import("./pages/Methodology"));
 const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
+const Status = lazy(() => import("./pages/Status"));
+const Security = lazy(() => import("./pages/Security"));
+const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
+const Changelog = lazy(() => import("./pages/Changelog"));
+const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -75,6 +81,7 @@ const App = () => {
 
   return (
     <ErrorBoundary>
+      <HelmetProvider>
       <ThemeProvider attribute="class" defaultTheme="light" storageKey="theme" enableSystem={false}>
         <QueryClientProvider client={queryClient}>
           <TooltipProvider>
@@ -107,6 +114,10 @@ const App = () => {
                 <Route path="/research" element={<Research />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
+                <Route path="/status" element={<Status />} />
+                <Route path="/security" element={<Security />} />
+                <Route path="/refund-policy" element={<RefundPolicy />} />
+                <Route path="/changelog" element={<Changelog />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
@@ -176,6 +187,11 @@ const App = () => {
                     <DataSources />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/denials" element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminDenials />
+                  </ProtectedRoute>
+                } />
                 <Route path="/directory-tracker" element={
                   <ProtectedRoute requireAdmin>
                     <DirectoryTracker />
@@ -190,6 +206,7 @@ const App = () => {
           </TooltipProvider>
         </QueryClientProvider>
       </ThemeProvider>
+      </HelmetProvider>
     </ErrorBoundary>
   );
 };

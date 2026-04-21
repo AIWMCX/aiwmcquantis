@@ -9,7 +9,7 @@ import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, Activity, Target } from 'lucide-react';
+import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -76,6 +76,12 @@ export default function AdminDashboard() {
               <Link to="/admin/accuracy">
                 <Target className="w-4 h-4 mr-2" />
                 Accuracy & Safety
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/denials">
+                <ShieldAlert className="w-4 h-4 mr-2" />
+                Denials
               </Link>
             </Button>
           </div>

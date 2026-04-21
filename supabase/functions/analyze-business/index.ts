@@ -74,6 +74,9 @@ import { mapToNAICS, fetchDistributions, computeAnomalyScores, generateMarketPri
 // ========== SCORE COMPLIANCE ==========
 import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts";
 
+// ========== HYBRID VALIDATOR (Forensic Issue #3) ==========
+import { validateAnalysis, type ValidatorResult } from "../_shared/hybrid-validator.ts";
+
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
@@ -4283,6 +4286,47 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         used_fallback: usedFallback,
       },
     };
+
+    // ========== HYBRID VALIDATOR (paid tiers only) ==========
+    // Deterministic rules first, LLM second-pass only on warning.
+    // Skip for Free (already truncated) to save cost.
+    let validatorResult: ValidatorResult | null = null;
+    if (userPlan !== 'free') {
+      try {
+        validatorResult = await validateAnalysis({
+          idea: idea_clean,
+          location: location_clean,
+          industry_detected: calc.industryDetected || 'unknown',
+          score: (result as any)?.score ?? null,
+          verdict: (result as any)?.verdict ?? null,
+          ltv: quantisOutput?.metrics?.ltv ?? null,
+          cac: quantisOutput?.metrics?.cac ?? null,
+          ltv_cac_ratio: quantisOutput?.metrics?.ltvCacRatio ?? null,
+          gross_margin: (result as any)?.gross_margin ?? quantisOutput?.metrics?.grossMargin ?? null,
+          net_margin: (result as any)?.net_margin ?? quantisOutput?.metrics?.netMargin ?? null,
+          monthly_revenue: quantisOutput?.metrics?.mrr ?? null,
+          monthly_profit: (result as any)?.monthly_profit ?? null,
+          payback_months: (result as any)?.payback_months ?? null,
+          top_risks: ((result as any)?.risks || (result as any)?.top_risks || []).slice(0, 3),
+          benchmark_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
+        });
+        console.log(
+          `[validator] ok=${validatorResult.ok} warnings=${validatorResult.warnings.length} ` +
+          `ran_llm=${validatorResult.ran_llm} latency=${validatorResult.total_latency_ms}ms`
+        );
+        // Attach to fullPayload metadata for transparency on paid tiers
+        (fullPayload as any).metadata.validator = {
+          passed: validatorResult.ok,
+          warning_count: validatorResult.warnings.length,
+          warnings: validatorResult.warnings,
+          llm_reviewed: validatorResult.ran_llm,
+          llm_verdict: validatorResult.llm_review?.verdict,
+          llm_summary: validatorResult.llm_review?.summary,
+        };
+      } catch (vErr) {
+        console.error('[validator] failed (non-blocking):', vErr);
+      }
+    }
 
     // ========== TIER-BASED RESPONSE SANITIZATION ==========
     // Free + anonymous users get a STRIPPED payload regardless of what the engine produced.
