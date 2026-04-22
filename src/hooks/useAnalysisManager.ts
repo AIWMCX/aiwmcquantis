@@ -182,9 +182,19 @@ export const useAnalysisManager = () => {
     }
   }, [idea, location, isFormValid]);
 
-  const handleExportPDF = useCallback(() => {
-    window.print();
-  }, []);
+  const handleExportPDF = useCallback(async () => {
+    if (!result) {
+      window.print();
+      return;
+    }
+    try {
+      const { exportAnalysisToPDF } = await import('@/lib/pdf-export');
+      await exportAnalysisToPDF(result, { idea, location });
+    } catch (err) {
+      console.error('PDF export failed, falling back to print dialog:', err);
+      window.print();
+    }
+  }, [result, idea, location]);
 
   const handleClearHistory = useCallback(() => {
     if (window.confirm('Вы уверены, что хотите очистить историю анализов?')) {
