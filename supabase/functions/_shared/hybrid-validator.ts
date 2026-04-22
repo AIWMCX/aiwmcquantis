@@ -10,6 +10,13 @@
  * Returns either { ok: true } (pass) or { ok: false, warnings, llmReview? }.
  */
 
+import {
+  callClaude,
+  estimateCostUsd,
+  isAnthropicConfigured,
+  stripFinancialFields,
+} from './anthropic.ts';
+
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 export interface ValidatorInput {
@@ -47,6 +54,9 @@ export interface ValidatorResult {
     summary?: string;
     cost_usd?: number;
     latency_ms?: number;
+    model?: string;
+    provider?: 'anthropic' | 'lovable_gateway';
+    fallback_reason?: string;
   };
   ran_llm: boolean;
   total_latency_ms: number;
