@@ -10,6 +10,13 @@
  * Returns either { ok: true } (pass) or { ok: false, warnings, llmReview? }.
  */
 
+import {
+  callClaude,
+  estimateCostUsd,
+  isAnthropicConfigured,
+  stripFinancialFields,
+} from './anthropic.ts';
+
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
 export interface ValidatorInput {
@@ -47,6 +54,9 @@ export interface ValidatorResult {
     summary?: string;
     cost_usd?: number;
     latency_ms?: number;
+    model?: string;
+    provider?: 'anthropic' | 'lovable_gateway';
+    fallback_reason?: string;
   };
   ran_llm: boolean;
   total_latency_ms: number;
@@ -192,18 +202,16 @@ async function runLLMReview(
   input: ValidatorInput,
   warnings: ValidatorWarning[]
 ): Promise<ValidatorResult['llm_review']> {
-  if (!LOVABLE_API_KEY) {
-    return { triggered: false };
-  }
-
   const start = Date.now();
 
-  const systemPrompt = `You are a financial analysis validator. Given a business analysis and a list of automated warnings, decide whether the analysis is internally coherent and safe to deliver to a paying user.
+  const systemPrompt = `You are an adversarial financial-analysis reviewer for a paid B2B product.
 
-Reply ONLY with strict JSON: { "verdict": "pass" | "fail", "summary": "<one sentence, max 140 chars>" }
+Your ONLY output is one JSON object: { "verdict": "pass" | "fail", "summary": "<one sentence ≤140 chars>" }
 
-PASS if: warnings are minor (low severity only) OR the numbers + verdict + industry classification are mutually consistent.
-FAIL if: there is a true contradiction between numbers, verdict, or industry that would mislead the user.`;
+You are an INTERPRETER, not a calculator. The numbers below were produced by a deterministic engine and are AUTHORITATIVE. You may NOT propose new numbers, override values, or recalculate. Your job is to judge whether the existing numbers, verdict, and industry classification are mutually consistent.
+
+PASS if: warnings are minor (low severity only) OR numbers + verdict + industry classification are mutually consistent.
+FAIL if: there is a true contradiction between numbers, verdict, or industry that would mislead a paying user.`;
 
   const userPrompt = `Idea: ${input.idea.slice(0, 300)}
 Location: ${input.location}
@@ -219,6 +227,53 @@ Automated warnings (${warnings.length}):
 ${warnings.map((w) => `- [${w.severity}] ${w.rule}: ${w.message}`).join('\n')}
 
 Decide.`;
+
+  // ---------- PRIMARY: Claude Opus 4.5 via Anthropic ----------
+  if (isAnthropicConfigured()) {
+    type ReviewJson = { verdict?: string; summary?: string };
+    const claude = await callClaude<ReviewJson>({
+      model: 'claude-opus-4-5',
+      system: systemPrompt,
+      user: userPrompt,
+      maxTokens: 200,
+      temperature: 0.1,
+      json: true,
+    });
+
+    if (claude.ok && claude.parsed) {
+      // FINANCIAL FIREWALL — strip any field Claude shouldn't be able to set.
+      const safe = stripFinancialFields(claude.parsed);
+      const verdict =
+        safe.verdict === 'fail' ? 'fail' : 'pass';
+      return {
+        triggered: true,
+        verdict,
+        summary: String(safe.summary || '').slice(0, 200),
+        cost_usd: estimateCostUsd(
+          'claude-opus-4-5',
+          claude.inputTokens,
+          claude.outputTokens
+        ),
+        latency_ms: claude.latencyMs,
+        model: 'claude-opus-4-5',
+        provider: 'anthropic',
+      };
+    }
+
+    console.warn(
+      '[hybrid-validator] Claude Opus failed, falling back to Gemini:',
+      claude.error
+    );
+    // fall through to Gemini fallback below
+  }
+
+  // ---------- FALLBACK: Lovable Gateway (Gemini Flash Lite) ----------
+  if (!LOVABLE_API_KEY) {
+    return {
+      triggered: false,
+      fallback_reason: 'no_llm_provider_available',
+    };
+  }
 
   try {
     const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
@@ -243,22 +298,30 @@ Decide.`;
     if (!res.ok) {
       return {
         triggered: true,
-        verdict: 'pass', // fail-open on API error — don't block delivery
+        verdict: 'pass', // fail-open
         summary: `LLM validator unavailable (${res.status}); deterministic rules used as authority.`,
         latency_ms: latency,
+        provider: 'lovable_gateway',
+        fallback_reason: 'anthropic_unavailable',
       };
     }
 
     const data = await res.json();
     const text = data.choices?.[0]?.message?.content?.trim() ?? '{}';
-    const parsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    const rawParsed = JSON.parse(text.replace(/```json|```/g, '').trim());
+    const safe = stripFinancialFields(rawParsed);
 
     return {
       triggered: true,
-      verdict: parsed.verdict === 'fail' ? 'fail' : 'pass',
-      summary: String(parsed.summary || '').slice(0, 200),
+      verdict: safe.verdict === 'fail' ? 'fail' : 'pass',
+      summary: String(safe.summary || '').slice(0, 200),
       cost_usd: 0.002,
       latency_ms: latency,
+      model: 'google/gemini-2.5-flash-lite',
+      provider: 'lovable_gateway',
+      fallback_reason: isAnthropicConfigured()
+        ? 'anthropic_unavailable'
+        : 'no_anthropic_key',
     };
   } catch (err) {
     console.error('[hybrid-validator] LLM review failed:', err);
@@ -267,6 +330,8 @@ Decide.`;
       verdict: 'pass', // fail-open
       summary: 'LLM validator errored; deterministic rules used as authority.',
       latency_ms: Date.now() - start,
+      provider: 'lovable_gateway',
+      fallback_reason: 'exception',
     };
   }
 }
