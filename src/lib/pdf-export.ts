@@ -1,4 +1,4 @@
-// @ts-expect-error - html2pdf.js has no bundled types
+// @ts-ignore - html2pdf.js has no bundled types
 import html2pdf from 'html2pdf.js';
 import type { AnalysisResultData, HistoryEntry } from '@/types';
 
