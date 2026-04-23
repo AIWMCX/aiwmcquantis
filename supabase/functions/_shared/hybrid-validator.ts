@@ -207,6 +207,10 @@ async function runLLMReview(
   warnings: ValidatorWarning[]
 ): Promise<ValidatorResult['llm_review']> {
   const start = Date.now();
+  const callerCtx = {
+    user_id: input.user_id ?? null,
+    analysis_id: input.analysis_id ?? null,
+  };
 
   const systemPrompt = `You are an adversarial financial-analysis reviewer for a paid B2B product.
 
@@ -247,22 +251,48 @@ Decide.`;
     if (claude.ok && claude.parsed) {
       // FINANCIAL FIREWALL — strip any field Claude shouldn't be able to set.
       const safe = stripFinancialFields(claude.parsed);
-      const verdict =
-        safe.verdict === 'fail' ? 'fail' : 'pass';
+      const verdict = safe.verdict === 'fail' ? 'fail' : 'pass';
+      const cost = estimateCostUsd(
+        'claude-opus-4-5',
+        claude.inputTokens,
+        claude.outputTokens
+      );
+      // Persist to ai_calls ledger (fire-and-forget, never throws).
+      void logAiCall({
+        ...callerCtx,
+        task: 'hybrid_validator',
+        provider: 'anthropic',
+        model: 'claude-opus-4-5',
+        input_tokens: claude.inputTokens,
+        output_tokens: claude.outputTokens,
+        cost_usd: cost,
+        latency_ms: claude.latencyMs,
+        ok: true,
+      });
       return {
         triggered: true,
         verdict,
         summary: String(safe.summary || '').slice(0, 200),
-        cost_usd: estimateCostUsd(
-          'claude-opus-4-5',
-          claude.inputTokens,
-          claude.outputTokens
-        ),
+        cost_usd: cost,
         latency_ms: claude.latencyMs,
         model: 'claude-opus-4-5',
         provider: 'anthropic',
       };
     }
+
+    // Log the failed Claude attempt too — visibility on cost/error rate.
+    void logAiCall({
+      ...callerCtx,
+      task: 'hybrid_validator',
+      provider: 'anthropic',
+      model: 'claude-opus-4-5',
+      input_tokens: claude.inputTokens,
+      output_tokens: claude.outputTokens,
+      cost_usd: estimateCostUsd('claude-opus-4-5', claude.inputTokens, claude.outputTokens),
+      latency_ms: claude.latencyMs,
+      ok: false,
+      error: claude.error ?? 'unknown',
+    });
 
     console.warn(
       '[hybrid-validator] Claude Opus failed, falling back to Gemini:',
