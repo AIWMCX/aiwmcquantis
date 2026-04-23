@@ -330,6 +330,18 @@ Decide.`;
     const latency = Date.now() - start;
 
     if (!res.ok) {
+      void logAiCall({
+        ...callerCtx,
+        task: 'hybrid_validator',
+        provider: 'lovable_gateway',
+        model: 'google/gemini-2.5-flash-lite',
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+        latency_ms: latency,
+        ok: false,
+        error: `gateway_${res.status}`,
+      });
       return {
         triggered: true,
         verdict: 'pass', // fail-open
@@ -344,6 +356,21 @@ Decide.`;
     const text = data.choices?.[0]?.message?.content?.trim() ?? '{}';
     const rawParsed = JSON.parse(text.replace(/```json|```/g, '').trim());
     const safe = stripFinancialFields(rawParsed);
+    const usage = data?.usage ?? {};
+    const inTok = Number(usage.prompt_tokens ?? usage.input_tokens ?? 0);
+    const outTok = Number(usage.completion_tokens ?? usage.output_tokens ?? 0);
+
+    void logAiCall({
+      ...callerCtx,
+      task: 'hybrid_validator',
+      provider: 'lovable_gateway',
+      model: 'google/gemini-2.5-flash-lite',
+      input_tokens: inTok,
+      output_tokens: outTok,
+      cost_usd: 0.002,
+      latency_ms: latency,
+      ok: true,
+    });
 
     return {
       triggered: true,
