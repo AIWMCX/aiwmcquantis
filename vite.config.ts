@@ -20,8 +20,10 @@ export default defineConfig(({ mode }) => ({
     },
   },
   esbuild: {
-    // Remove console.log and debugger in production for smaller bundles
-    drop: mode === 'production' ? ['console', 'debugger'] : [],
+    // Strip noisy debug calls in production but KEEP console.error/warn so
+    // Sentry + production debugging still surface real failures.
+    pure: mode === 'production' ? ['console.log', 'console.debug', 'console.info', 'console.trace'] : [],
+    drop: mode === 'production' ? ['debugger'] : [],
   },
   build: {
     rollupOptions: {
