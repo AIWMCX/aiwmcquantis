@@ -14,6 +14,65 @@ export type Database = {
   }
   public: {
     Tables: {
+      ai_calls: {
+        Row: {
+          analysis_id: string | null
+          cost_usd: number
+          created_at: string
+          error: string | null
+          id: string
+          input_tokens: number
+          latency_ms: number
+          metadata: Json | null
+          model: string
+          ok: boolean
+          output_tokens: number
+          provider: string
+          task: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          input_tokens?: number
+          latency_ms?: number
+          metadata?: Json | null
+          model: string
+          ok?: boolean
+          output_tokens?: number
+          provider: string
+          task: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string | null
+          cost_usd?: number
+          created_at?: string
+          error?: string | null
+          id?: string
+          input_tokens?: number
+          latency_ms?: number
+          metadata?: Json | null
+          model?: string
+          ok?: boolean
+          output_tokens?: number
+          provider?: string
+          task?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ai_calls_analysis_id_fkey"
+            columns: ["analysis_id"]
+            isOneToOne: false
+            referencedRelation: "analyses"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       analyses: {
         Row: {
           confidence_score: number | null

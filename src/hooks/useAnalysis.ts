@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateAnalysis, validateIdea, validateLocation } from '@/services/analysisApi';
@@ -157,26 +157,30 @@ export function useAnalysis() {
     }
   }, [fileUpload]);
   
-  // Watch for new document extractions and offer auto-fill
+  // Watch for new document extractions and offer auto-fill.
+  // Use a ref-tracked signature so we only toast when the *set* of extracted
+  // financial keys actually changes (prevents re-render toast spam — ISSUE-008).
+  const lastSuggestionSigRef = useRef<string>('');
   useEffect(() => {
     const readyFiles = fileUpload.getReadyFiles();
-    const hasExtractedData = readyFiles.some(f => f.extractedFinancials && Object.keys(f.extractedFinancials).length > 0);
-    
-    if (hasExtractedData) {
-      const suggestions = fileUpload.getSuggestedInputs();
-      const suggestionCount = Object.keys(suggestions).length;
-      
-      if (suggestionCount > 0) {
-        toast.info(`Found ${suggestionCount} financial data points in your documents`, {
-          action: {
-            label: 'Auto-fill Form',
-            onClick: handleAutoFillFromDocuments
-          },
-          duration: 8000,
-        });
-      }
-    }
-  }, [fileUpload.files.filter(f => f.status === 'ready').length]);
+    const hasExtractedData = readyFiles.some(
+      (f) => f.extractedFinancials && Object.keys(f.extractedFinancials).length > 0
+    );
+    if (!hasExtractedData) return;
+
+    const suggestions = fileUpload.getSuggestedInputs();
+    const keys = Object.keys(suggestions).sort();
+    if (keys.length === 0) return;
+
+    const sig = keys.join('|');
+    if (sig === lastSuggestionSigRef.current) return;
+    lastSuggestionSigRef.current = sig;
+
+    toast.info(`Found ${keys.length} financial data points in your documents`, {
+      action: { label: 'Auto-fill Form', onClick: handleAutoFillFromDocuments },
+      duration: 8000,
+    });
+  }, [fileUpload, handleAutoFillFromDocuments]);
 
   const clearError = useCallback((field: keyof FormErrors) => {
     setErrors(prev => {

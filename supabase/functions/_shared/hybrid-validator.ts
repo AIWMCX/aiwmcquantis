@@ -16,6 +16,7 @@ import {
   isAnthropicConfigured,
   stripFinancialFields,
 } from './anthropic.ts';
+import { logAiCall } from './ai-logger.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -35,6 +36,9 @@ export interface ValidatorInput {
   payback_months?: number | null;
   top_risks?: string[];
   benchmark_match_quality?: string;
+  /** Optional caller context — used for ai_calls cost ledger. */
+  user_id?: string | null;
+  analysis_id?: string | null;
 }
 
 export interface ValidatorWarning {
@@ -203,6 +207,10 @@ async function runLLMReview(
   warnings: ValidatorWarning[]
 ): Promise<ValidatorResult['llm_review']> {
   const start = Date.now();
+  const callerCtx = {
+    user_id: input.user_id ?? null,
+    analysis_id: input.analysis_id ?? null,
+  };
 
   const systemPrompt = `You are an adversarial financial-analysis reviewer for a paid B2B product.
 
@@ -243,22 +251,48 @@ Decide.`;
     if (claude.ok && claude.parsed) {
       // FINANCIAL FIREWALL — strip any field Claude shouldn't be able to set.
       const safe = stripFinancialFields(claude.parsed);
-      const verdict =
-        safe.verdict === 'fail' ? 'fail' : 'pass';
+      const verdict = safe.verdict === 'fail' ? 'fail' : 'pass';
+      const cost = estimateCostUsd(
+        'claude-opus-4-5',
+        claude.inputTokens,
+        claude.outputTokens
+      );
+      // Persist to ai_calls ledger (fire-and-forget, never throws).
+      void logAiCall({
+        ...callerCtx,
+        task: 'hybrid_validator',
+        provider: 'anthropic',
+        model: 'claude-opus-4-5',
+        input_tokens: claude.inputTokens,
+        output_tokens: claude.outputTokens,
+        cost_usd: cost,
+        latency_ms: claude.latencyMs,
+        ok: true,
+      });
       return {
         triggered: true,
         verdict,
         summary: String(safe.summary || '').slice(0, 200),
-        cost_usd: estimateCostUsd(
-          'claude-opus-4-5',
-          claude.inputTokens,
-          claude.outputTokens
-        ),
+        cost_usd: cost,
         latency_ms: claude.latencyMs,
         model: 'claude-opus-4-5',
         provider: 'anthropic',
       };
     }
+
+    // Log the failed Claude attempt too — visibility on cost/error rate.
+    void logAiCall({
+      ...callerCtx,
+      task: 'hybrid_validator',
+      provider: 'anthropic',
+      model: 'claude-opus-4-5',
+      input_tokens: claude.inputTokens,
+      output_tokens: claude.outputTokens,
+      cost_usd: estimateCostUsd('claude-opus-4-5', claude.inputTokens, claude.outputTokens),
+      latency_ms: claude.latencyMs,
+      ok: false,
+      error: claude.error ?? 'unknown',
+    });
 
     console.warn(
       '[hybrid-validator] Claude Opus failed, falling back to Gemini:',
@@ -296,6 +330,18 @@ Decide.`;
     const latency = Date.now() - start;
 
     if (!res.ok) {
+      void logAiCall({
+        ...callerCtx,
+        task: 'hybrid_validator',
+        provider: 'lovable_gateway',
+        model: 'google/gemini-2.5-flash-lite',
+        input_tokens: 0,
+        output_tokens: 0,
+        cost_usd: 0,
+        latency_ms: latency,
+        ok: false,
+        error: `gateway_${res.status}`,
+      });
       return {
         triggered: true,
         verdict: 'pass', // fail-open
@@ -310,6 +356,21 @@ Decide.`;
     const text = data.choices?.[0]?.message?.content?.trim() ?? '{}';
     const rawParsed = JSON.parse(text.replace(/```json|```/g, '').trim());
     const safe = stripFinancialFields(rawParsed);
+    const usage = data?.usage ?? {};
+    const inTok = Number(usage.prompt_tokens ?? usage.input_tokens ?? 0);
+    const outTok = Number(usage.completion_tokens ?? usage.output_tokens ?? 0);
+
+    void logAiCall({
+      ...callerCtx,
+      task: 'hybrid_validator',
+      provider: 'lovable_gateway',
+      model: 'google/gemini-2.5-flash-lite',
+      input_tokens: inTok,
+      output_tokens: outTok,
+      cost_usd: 0.002,
+      latency_ms: latency,
+      ok: true,
+    });
 
     return {
       triggered: true,
