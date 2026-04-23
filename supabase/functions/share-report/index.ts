@@ -38,6 +38,9 @@ function checkShareRateLimit(ipHash: string): boolean {
 }
 
 Deno.serve(async (req) => {
+  // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
+  const corsHeaders = corsHeadersFor(req);
+
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders, status: 204 });

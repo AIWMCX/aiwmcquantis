@@ -2606,6 +2606,9 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 }
 
 serve(async (req) => {
+  // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
+  const corsHeaders = corsHeadersFor(req);
+
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }
