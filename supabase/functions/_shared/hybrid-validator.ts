@@ -16,6 +16,7 @@ import {
   isAnthropicConfigured,
   stripFinancialFields,
 } from './anthropic.ts';
+import { logAiCall } from './ai-logger.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -35,6 +36,9 @@ export interface ValidatorInput {
   payback_months?: number | null;
   top_risks?: string[];
   benchmark_match_quality?: string;
+  /** Optional caller context — used for ai_calls cost ledger. */
+  user_id?: string | null;
+  analysis_id?: string | null;
 }
 
 export interface ValidatorWarning {
