@@ -77,13 +77,9 @@ import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts"
 // ========== HYBRID VALIDATOR (Forensic Issue #3) ==========
 import { validateAnalysis, type ValidatorResult } from "../_shared/hybrid-validator.ts";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  // IMPORTANT: Browser preflight requires Allow-Methods and must explicitly allow custom headers.
-  // If we don't, the browser will complete OPTIONS but block the actual POST, appearing as a “hung” analysis.
-  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-device-id, x-fingerprint, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
+// CORS — strict origin allowlist (no more wildcard *).
+// `corsHeadersFor(req)` echoes back the Origin only when it's in the trusted set.
+import { corsHeadersFor } from "../_shared/cors.ts";
 
 // ========== SECURITY UTILITIES ==========
 
