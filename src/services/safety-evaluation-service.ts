@@ -31,8 +31,14 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
       .limit(1)
       .maybeSingle();
 
-    if (error || !data) {
-      console.warn('Failed to fetch audit info, using defaults:', error?.message);
+    // No row yet → return defaults silently (expected on a fresh DB).
+    if (!data) return DEFAULT_AUDIT_INFO;
+
+    // Real error → log once at debug level (no console noise in prod).
+    if (error) {
+      if (import.meta.env.DEV) {
+        console.debug('[audit-info] using defaults:', error.message);
+      }
       return DEFAULT_AUDIT_INFO;
     }
 
@@ -44,7 +50,9 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
       engineVersion: data.engine_version || 'v2.0.0-precision',
     };
   } catch (err) {
-    console.error('Error fetching audit info:', err);
+    if (import.meta.env.DEV) {
+      console.debug('[audit-info] error:', (err as Error)?.message);
+    }
     return DEFAULT_AUDIT_INFO;
   }
 }
