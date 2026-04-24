@@ -158,8 +158,8 @@ class ChildLogger {
     this.parent.warn(message, this.mergeContext(context));
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    this.parent.error(message, error, this.mergeContext(context));
+  error(message: string, errorOrValue?: unknown, context?: LogContext) {
+    this.parent.error(message, errorOrValue, this.mergeContext(context));
   }
 }
 
