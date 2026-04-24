@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Secure localStorage wrapper using Web Crypto API
  * Encrypts sensitive data before storing in localStorage
@@ -82,7 +83,7 @@ export async function secureSetItem<T>(key: string, data: T): Promise<boolean> {
     localStorage.setItem(key, JSON.stringify(stored));
     return true;
   } catch (error) {
-    console.error('Failed to securely store data:', error);
+    logger.error('Failed to securely store data:', error);
     // Fallback to unencrypted storage if crypto not available
     try {
       localStorage.setItem(key, JSON.stringify({ fallback: true, data }));
@@ -127,7 +128,7 @@ export async function secureGetItem<T>(key: string): Promise<T | null> {
     const decoder = new TextDecoder();
     return JSON.parse(decoder.decode(plaintext)) as T;
   } catch (error) {
-    console.error('Failed to retrieve secure data:', error);
+    logger.error('Failed to retrieve secure data:', error);
     // Try to read as plain JSON (legacy data)
     try {
       const stored = localStorage.getItem(key);

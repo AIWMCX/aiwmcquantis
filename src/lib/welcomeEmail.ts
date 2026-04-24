@@ -6,6 +6,7 @@
 
 import { supabase } from '@/integrations/supabase/client';
 
+import { logger } from '@/lib/logger';
 interface SendWelcomeEmailParams {
   email: string;
   name: string;
@@ -22,32 +23,32 @@ interface SendWelcomeEmailResult {
  */
 export async function sendWelcomeEmail({ email, name }: SendWelcomeEmailParams): Promise<SendWelcomeEmailResult> {
   if (!email || !name) {
-    console.error('[WelcomeEmail] Missing required params:', { email: !!email, name: !!name });
+    logger.error('[WelcomeEmail] Missing required params:', { email: !!email, name: !!name });
     return { success: false, error: 'Email and name are required' };
   }
 
   try {
-    console.log('[WelcomeEmail] Sending welcome email to:', email);
+    logger.info('[WelcomeEmail] Sending welcome email to:', email);
     
     const response = await supabase.functions.invoke('send-welcome-email', {
       body: { email, name }
     });
 
     if (response.error) {
-      console.error('[WelcomeEmail] Edge function error:', response.error);
+      logger.error('[WelcomeEmail] Edge function error:', response.error);
       return { success: false, error: response.error.message };
     }
 
     if (response.data?.success) {
-      console.log('[WelcomeEmail] Email sent successfully:', response.data);
+      logger.info('[WelcomeEmail] Email sent successfully:', response.data);
       return { success: true };
     }
 
-    console.error('[WelcomeEmail] Unexpected response:', response.data);
+    logger.error('[WelcomeEmail] Unexpected response:', response.data);
     return { success: false, error: 'Unexpected response from email service' };
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    console.error('[WelcomeEmail] Failed to send:', errorMessage);
+    logger.error('[WelcomeEmail] Failed to send:', errorMessage);
     return { success: false, error: errorMessage };
   }
 }
@@ -86,7 +87,7 @@ export function markWelcomeEmailSent(userId: string): void {
       localStorage.setItem(WELCOME_EMAIL_SENT_KEY, JSON.stringify(sentList));
     }
   } catch (e) {
-    console.warn('[WelcomeEmail] Failed to mark as sent:', e);
+    logger.warn('[WelcomeEmail] Failed to mark as sent:', e);
   }
 }
 

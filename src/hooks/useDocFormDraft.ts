@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback, useState, useMemo } from 'react';
 import { UseFormReturn, FieldValues, Path } from 'react-hook-form';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 
+import { logger } from '@/lib/logger';
 const SAVE_DELAY_MS = 800; // Reduced debounce delay for faster auto-save
 const DRAFT_PREFIX = 'docs_draft_';
 
@@ -69,7 +70,7 @@ export function useDocFormDraft<T extends FieldValues>({
           }
         }
       } catch (e) {
-        console.error('[useDocFormDraft] Failed to check draft:', e);
+        logger.error('[useDocFormDraft] Failed to check draft:', e);
       }
     };
     
@@ -114,7 +115,7 @@ export function useDocFormDraft<T extends FieldValues>({
           setLastSaved(new Date());
           setIsSaving(false);
         } catch (e) {
-          console.error('[useDocFormDraft] Failed to save draft:', e);
+          logger.error('[useDocFormDraft] Failed to save draft:', e);
           setIsSaving(false);
         }
       }, SAVE_DELAY_MS);
@@ -146,7 +147,7 @@ export function useDocFormDraft<T extends FieldValues>({
         setLastSaved(new Date(draft.savedAt));
       }
     } catch (e) {
-      console.error('[useDocFormDraft] Failed to restore draft:', e);
+      logger.error('[useDocFormDraft] Failed to restore draft:', e);
     }
   }, [form, storageKey]);
   
@@ -163,7 +164,7 @@ export function useDocFormDraft<T extends FieldValues>({
       setHasDraft(false);
       setLastSaved(null);
     } catch (e) {
-      console.error('[useDocFormDraft] Failed to clear draft:', e);
+      logger.error('[useDocFormDraft] Failed to clear draft:', e);
     }
   }, [storageKey]);
   
@@ -182,7 +183,7 @@ export function useDocFormDraft<T extends FieldValues>({
       setLastSaved(new Date());
       setIsSaving(false);
     } catch (e) {
-      console.error('[useDocFormDraft] Failed to force save:', e);
+      logger.error('[useDocFormDraft] Failed to force save:', e);
       setIsSaving(false);
     }
   }, [enabled, form, storageKey, templateId]);

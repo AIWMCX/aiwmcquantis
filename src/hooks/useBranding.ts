@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+import { logger } from '@/lib/logger';
 export interface BrandingSettings {
   id: string;
   user_id: string;
@@ -77,7 +78,7 @@ export function useBranding(): UseBrandingReturn {
 
       setBranding(data);
     } catch (err) {
-      console.error('Error fetching branding:', err);
+      logger.error('Error fetching branding:', err);
       setError(err instanceof Error ? err.message : 'Failed to load branding settings');
     } finally {
       setLoading(false);
@@ -156,7 +157,7 @@ export function useBranding(): UseBrandingReturn {
         description: 'Your custom branding settings have been saved',
       });
     } catch (err) {
-      console.error('Error updating branding:', err);
+      logger.error('Error updating branding:', err);
       const message = err instanceof Error ? err.message : 'Failed to update branding';
       setError(message);
       toast({
@@ -232,7 +233,7 @@ export function useBranding(): UseBrandingReturn {
 
       return publicUrl;
     } catch (err) {
-      console.error('Error uploading logo:', err);
+      logger.error('Error uploading logo:', err);
       toast({
         title: 'Upload Failed',
         description: err instanceof Error ? err.message : 'Failed to upload logo',
@@ -273,7 +274,7 @@ export function useBranding(): UseBrandingReturn {
         description: 'Your logo has been removed',
       });
     } catch (err) {
-      console.error('Error removing logo:', err);
+      logger.error('Error removing logo:', err);
       toast({
         title: 'Remove Failed',
         description: err instanceof Error ? err.message : 'Failed to remove logo',
@@ -306,7 +307,7 @@ export function useBranding(): UseBrandingReturn {
         description: 'Your branding has been reset to defaults',
       });
     } catch (err) {
-      console.error('Error resetting branding:', err);
+      logger.error('Error resetting branding:', err);
       toast({
         title: 'Reset Failed',
         description: err instanceof Error ? err.message : 'Failed to reset branding',

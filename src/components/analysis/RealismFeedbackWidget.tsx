@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Slider } from '@/components/ui/slider';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 
+import { logger } from '@/lib/logger';
 interface RealismFeedbackWidgetProps {
   analysisId?: string;
   businessType?: string;
@@ -59,7 +60,7 @@ export function RealismFeedbackWidget({ analysisId, businessType, location }: Re
       });
       setSubmitted(true);
     } catch (err) {
-      console.error('Failed to submit realism feedback', err);
+      logger.error('Failed to submit realism feedback', err);
     } finally {
       setIsSubmitting(false);
     }

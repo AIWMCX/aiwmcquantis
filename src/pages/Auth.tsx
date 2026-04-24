@@ -14,6 +14,7 @@ import { trackPageView, trackEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
 import { PageSEO } from '@/components/seo/PageSEO';
 
+import { logger } from '@/lib/logger';
 export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
@@ -60,7 +61,7 @@ export default function Auth() {
                            user.email?.split('@')[0] || 
                            'Friend';
             
-            console.log('[Auth] New OAuth user detected, sending welcome email');
+            logger.info('[Auth] New OAuth user detected, sending welcome email');
             trackEvent('oauth_welcome_email_attempt', { provider: user.app_metadata?.provider });
             
             const result = await sendWelcomeEmail({
@@ -70,10 +71,10 @@ export default function Auth() {
             
             if (result.success) {
               markWelcomeEmailSent(user.id);
-              console.log('[Auth] Welcome email sent for OAuth user');
+              logger.info('[Auth] Welcome email sent for OAuth user');
               trackEvent('oauth_welcome_email_sent', { provider: user.app_metadata?.provider });
             } else {
-              console.error('[Auth] Failed to send welcome email:', result.error);
+              logger.error('[Auth] Failed to send welcome email:', result.error);
               trackEvent('oauth_welcome_email_failed', { 
                 provider: user.app_metadata?.provider,
                 error: result.error 

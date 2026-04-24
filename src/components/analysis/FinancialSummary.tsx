@@ -3,6 +3,7 @@ import { TrendingUp, TrendingDown, Clock, Wallet, Target, BarChart3, Users, Perc
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 import {
   Tooltip,
   TooltipContent,
@@ -61,7 +62,7 @@ function CopyableMetricCard({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   }, [rawValue]);
 

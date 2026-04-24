@@ -4,6 +4,7 @@ import { useAuth } from './useAuth';
 import { trackEvent } from '@/lib/analytics';
 import type { UserNotification } from '@/lib/engagementTypes';
 
+import { logger } from '@/lib/logger';
 interface UseNotificationsReturn {
   notifications: UserNotification[];
   unreadCount: number;
@@ -48,7 +49,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       setNotifications(typedNotifications);
     } catch (err) {
-      console.error('Error fetching notifications:', err);
+      logger.error('Error fetching notifications:', err);
       setNotifications([]);
     } finally {
       setIsLoading(false);
@@ -110,7 +111,7 @@ export function useNotifications(): UseNotificationsReturn {
         });
       }
     } catch (err) {
-      console.error('Error marking notification as read:', err);
+      logger.error('Error marking notification as read:', err);
     }
   }, [user, notifications]);
 
@@ -130,7 +131,7 @@ export function useNotifications(): UseNotificationsReturn {
       
       trackEvent('notifications_marked_all_read', { count: unreadCount });
     } catch (err) {
-      console.error('Error marking all notifications as read:', err);
+      logger.error('Error marking all notifications as read:', err);
     }
   }, [user, unreadCount]);
 
@@ -148,7 +149,7 @@ export function useNotifications(): UseNotificationsReturn {
 
       setNotifications(prev => prev.filter(n => n.id !== id));
     } catch (err) {
-      console.error('Error dismissing notification:', err);
+      logger.error('Error dismissing notification:', err);
     }
   }, [user]);
 

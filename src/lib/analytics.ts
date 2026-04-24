@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Google Analytics 4 Integration with Bot Filtering
  * Professional analytics tracking for AIWMC Quantis
@@ -77,7 +78,7 @@ function isSpamOrBot(): boolean {
       for (const pattern of SPAM_REFERRER_PATTERNS) {
         if (pattern.test(referrer)) {
           if (import.meta.env.DEV) {
-            console.log(`🚫 Filtered spam referrer: ${referrer}`);
+            logger.info(`🚫 Filtered spam referrer: ${referrer}`);
           }
           return true;
         }
@@ -89,7 +90,7 @@ function isSpamOrBot(): boolean {
     for (const pattern of BOT_USER_AGENT_PATTERNS) {
       if (pattern.test(userAgent)) {
         if (import.meta.env.DEV) {
-          console.log(`🤖 Filtered bot user agent: ${userAgent}`);
+          logger.info(`🤖 Filtered bot user agent: ${userAgent}`);
         }
         return true;
       }
@@ -123,7 +124,7 @@ export function initAnalytics(): void {
   // GA is loaded via index.html, just verify it's available
   if (typeof window.gtag === 'function') {
     if (import.meta.env.DEV) {
-      console.log('Google Analytics ready:', GA_MEASUREMENT_ID);
+      logger.info('Google Analytics ready:', GA_MEASUREMENT_ID);
     }
   }
 }
@@ -160,7 +161,7 @@ export function trackEvent(
   });
   
   if (import.meta.env.DEV) {
-    console.log(`📈 Analytics: ${eventName}`, params);
+    logger.info(`📈 Analytics: ${eventName}`, params);
   }
 }
 
@@ -217,7 +218,7 @@ export function trackSignupConversion(): void {
   }
   
   if (import.meta.env.DEV) {
-    console.log('Signup conversion tracked: conversion_event_signup');
+    logger.info('Signup conversion tracked: conversion_event_signup');
   }
 }
 

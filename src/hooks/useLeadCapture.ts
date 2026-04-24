@@ -13,6 +13,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
 import { saveLeadEmail } from '@/lib/leadMemory';
+import { logger } from '@/lib/logger';
 import { 
   LeadSource, 
   LeadOffer, 
@@ -62,7 +63,7 @@ function savePopupState(state: PopupState): void {
   try {
     localStorage.setItem(STORAGE_KEYS.POPUP_STATE, JSON.stringify(state));
   } catch (e) {
-    console.error('[useLeadCapture] Failed to save state:', e);
+    logger.error('[useLeadCapture] Failed to save state:', e);
   }
 }
 
@@ -197,7 +198,7 @@ export function useLeadCapture(config: LeadCaptureConfig): UseLeadCaptureReturn 
         throw error;
       }
 
-      console.log('✅ Lead captured:', data);
+      logger.info('✅ Lead captured:', data);
 
       // 2. Save to localStorage for auth prefill
       saveLeadEmail(email, source as 'exit_intent_popup' | 'landing_page' | 'other');
@@ -218,7 +219,7 @@ export function useLeadCapture(config: LeadCaptureConfig): UseLeadCaptureReturn 
       });
 
       if (emailError) {
-        console.error(`Failed to send ${edgeFn} email:`, emailError);
+        logger.error(`Failed to send ${edgeFn} email:`, emailError);
         // Don't fail the flow - lead is captured
       }
 
@@ -242,7 +243,7 @@ export function useLeadCapture(config: LeadCaptureConfig): UseLeadCaptureReturn 
 
       return { success: true };
     } catch (error) {
-      console.error('Lead capture error:', error);
+      logger.error('Lead capture error:', error);
       toast.error('Something went wrong. Please try again.');
       return { success: false, error: 'Capture failed' };
     } finally {

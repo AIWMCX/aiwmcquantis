@@ -1,4 +1,5 @@
 import React, { useState, useCallback } from 'react';
+import { logger } from '@/lib/logger';
 import { 
   FileText, 
   Share2, 
@@ -65,7 +66,7 @@ export const ResultsActionBar = React.memo(function ResultsActionBar({
       trackEvent('results_action', { action: 'copy_link', analysis_id: analysisId });
       setTimeout(() => setCopiedLink(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
       toast.error('Failed to copy link');
     }
   }, [shareUrl, analysisId]);

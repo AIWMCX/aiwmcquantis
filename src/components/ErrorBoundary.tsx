@@ -3,6 +3,7 @@ import { AlertTriangle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Sentry } from '@/lib/sentry';
 
+import { logger } from '@/lib/logger';
 interface Props {
   children: ReactNode;
 }
@@ -35,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
         },
       });
     } else {
-      console.error('ErrorBoundary caught an error:', error, errorInfo);
+      logger.error('ErrorBoundary caught an error', error, { metadata: { componentStack: errorInfo.componentStack } });
     }
   }
 

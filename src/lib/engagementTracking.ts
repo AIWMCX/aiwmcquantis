@@ -11,6 +11,7 @@
 
 import { trackEvent } from "./analytics";
 
+import { logger } from '@/lib/logger';
 interface EngagementState {
   scrollMilestones: Set<number>;
   timeMilestones: Set<number>;
@@ -70,7 +71,7 @@ function handleScroll(): void {
       });
       
       if (import.meta.env.DEV) {
-        console.log(`📜 Scroll depth: ${milestone}%`);
+        logger.info(`📜 Scroll depth: ${milestone}%`);
       }
     }
   }
@@ -95,7 +96,7 @@ function checkTimeMilestones(): void {
       });
       
       if (import.meta.env.DEV) {
-        console.log(`⏱️ Time on page: ${milestone}s (scroll: ${Math.round(state.maxScrollDepth)}%)`);
+        logger.info(`⏱️ Time on page: ${milestone}s (scroll: ${Math.round(state.maxScrollDepth)}%)`);
       }
     }
   }
@@ -118,7 +119,7 @@ function handlePageHide(): void {
   });
   
   if (import.meta.env.DEV) {
-    console.log(`👋 Page exit: ${totalTime}s, ${Math.round(state.maxScrollDepth)}% scroll`);
+    logger.info(`👋 Page exit: ${totalTime}s, ${Math.round(state.maxScrollDepth)}% scroll`);
   }
 }
 
@@ -137,7 +138,7 @@ export function trackInteraction(action: string, label?: string): void {
   });
   
   if (import.meta.env.DEV) {
-    console.log(`🖱️ Interaction: ${action}${label ? ` (${label})` : ''}`);
+    logger.info(`🖱️ Interaction: ${action}${label ? ` (${label})` : ''}`);
   }
 }
 
@@ -200,7 +201,7 @@ export function initEngagementTracking(): void {
   });
   
   if (import.meta.env.DEV) {
-    console.log('📊 Engagement tracking initialized');
+    logger.info('📊 Engagement tracking initialized');
   }
   
   // Store cleanup function for potential use

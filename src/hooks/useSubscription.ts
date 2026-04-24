@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
+import { logger } from '@/lib/logger';
 /**
  * Subscription data interface - excludes sensitive Stripe IDs
  * SECURITY: Stripe customer/subscription IDs are never exposed to frontend
@@ -89,7 +90,7 @@ export function useSubscription(): SubscriptionData {
         .maybeSingle();
 
       if (subError && subError.code !== 'PGRST116') {
-        console.error('Error fetching subscription:', subError);
+        logger.error('Error fetching subscription:', subError);
       }
       
       if (isMounted.current) {
@@ -107,7 +108,7 @@ export function useSubscription(): SubscriptionData {
         .maybeSingle();
 
       if (usageError && usageError.code !== 'PGRST116') {
-        console.error('Error fetching usage:', usageError);
+        logger.error('Error fetching usage:', usageError);
       }
       
       if (isMounted.current) {
@@ -116,7 +117,7 @@ export function useSubscription(): SubscriptionData {
       }
 
     } catch (err) {
-      console.error('Error in fetchData:', err);
+      logger.error('Error in fetchData:', err);
       if (isMounted.current) {
         const errorMessage = err instanceof Error ? err.message : 'Failed to load subscription data';
         setError(errorMessage);
@@ -142,7 +143,7 @@ export function useSubscription(): SubscriptionData {
     if (loading && !isTimedOut) {
       timeoutRef.current = setTimeout(() => {
         if (isMounted.current && loading) {
-          console.warn('Subscription fetch timed out, defaulting to free tier');
+          logger.warn('Subscription fetch timed out, defaulting to free tier');
           setLoading(false);
           setIsTimedOut(true);
           setError('Connection timeout - using free tier');
@@ -208,7 +209,7 @@ export function useSubscription(): SubscriptionData {
     }
 
     try {
-      console.log('[Checkout] Starting checkout for plan:', plan);
+      logger.info('[Checkout] Starting checkout for plan:', plan);
       
       toast({
         title: 'Starting checkout...',
@@ -219,12 +220,12 @@ export function useSubscription(): SubscriptionData {
         body: { plan },
       });
 
-      console.log('[Checkout] Response:', { data, error });
+      logger.info('[Checkout] Response:', { data, error });
 
       if (error) throw error;
       
       if (data?.url) {
-        console.log('[Checkout] Redirecting immediately to:', data.url);
+        logger.info('[Checkout] Redirecting immediately to:', data.url);
         // Use replace for immediate, non-interruptible redirect
         window.location.replace(data.url);
         return; // Prevent any further code execution
@@ -232,7 +233,7 @@ export function useSubscription(): SubscriptionData {
         throw new Error('No checkout URL received');
       }
     } catch (err) {
-      console.error('[Checkout] Error:', err);
+      logger.error('[Checkout] Error:', err);
       toast({
         title: 'Checkout Error',
         description: err instanceof Error ? err.message : 'Failed to start checkout. Please try again.',
@@ -277,7 +278,7 @@ export function useSubscription(): SubscriptionData {
         throw new Error('No portal URL received');
       }
     } catch (err) {
-      console.error('Portal error:', err);
+      logger.error('Portal error:', err);
       toast({
         title: 'Portal Error',
         description: err instanceof Error ? err.message : 'Failed to open subscription portal. Please try again.',

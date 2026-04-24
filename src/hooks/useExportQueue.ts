@@ -2,6 +2,7 @@ import { useState, useCallback, useRef, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 export type ExportStatus = 'idle' | 'pending' | 'processing' | 'completed' | 'failed';
 
 interface ExportJob {
@@ -63,12 +64,12 @@ export function useExportQueue(): UseExportQueueReturn {
         .maybeSingle();
 
       if (fetchError) {
-        console.error('Poll error:', fetchError);
+        logger.error('Poll error:', fetchError);
         return;
       }
 
       if (!data) {
-        console.warn('Job not found:', jobId);
+        logger.warn('Job not found:', jobId);
         return;
       }
 
@@ -109,7 +110,7 @@ export function useExportQueue(): UseExportQueueReturn {
         stopPolling();
       }
     } catch (err) {
-      console.error('Poll exception:', err);
+      logger.error('Poll exception:', err);
     }
   }, [stopPolling]);
 

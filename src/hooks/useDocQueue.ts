@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 export interface DocJob {
   job_id: string;
   status: 'queued' | 'processing' | 'complete' | 'failed';
@@ -91,7 +92,7 @@ export function useDocQueue() {
       supabase.functions.invoke('process-doc-job', {
         body: { job_id: jobId },
       }).catch((err) => {
-        console.warn('Worker trigger failed, job will be picked up by cron:', err);
+        logger.warn('Worker trigger failed, job will be picked up by cron:', err);
       });
 
       return job;

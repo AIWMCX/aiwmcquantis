@@ -8,6 +8,7 @@ import { Progress } from "@/components/ui/progress";
 
 import { BenchmarkGovernance, FreshnessReport } from "@/services/benchmark-governance";
 
+import { logger } from '@/lib/logger';
 interface RealismByIndustry {
   business_type: string;
   responses: number;
@@ -107,7 +108,7 @@ export default function AccuracyDashboard() {
           });
         }
       } catch (err) {
-        console.error("Error loading accuracy stats", err);
+        logger.error("Error loading accuracy stats", err);
       } finally {
         setLoading(false);
       }

@@ -14,6 +14,7 @@ import { QuantisMath as QMath } from '@/lib/quantis-math';
 import { BENCHMARK_DATABASE, type IndustryBenchmark } from '@/lib/benchmark-calibrator';
 import type { QuantisReport } from '@/types/report-schema';
 
+import { logger } from '@/lib/logger';
 // ─── Types ──────────────────────────────────────────────────
 
 export interface ClientInfo {
@@ -304,7 +305,7 @@ async function generateDocumentSync(
         upsert: true,
       });
     } catch (uploadErr) {
-      console.warn('Cache upload failed (non-critical):', uploadErr);
+      logger.warn('Cache upload failed (non-critical):', uploadErr);
     }
   }
 
@@ -360,7 +361,7 @@ async function enqueueDocumentJob(
   // Fire-and-forget worker trigger
   supabase.functions
     .invoke('process-doc-job', { body: { job_id: jobId } })
-    .catch((err) => console.warn('Worker trigger failed, cron will pick up:', err));
+    .catch((err) => logger.warn('Worker trigger failed, cron will pick up:', err));
 
   return { jobId, estimatedMs: avgGenMs };
 }
@@ -507,7 +508,7 @@ export async function generateInvoice(
       });
       fileUrl = pdfResult?.url ?? null;
     } catch (pdfErr) {
-      console.warn('Invoice PDF render failed (non-critical):', pdfErr);
+      logger.warn('Invoice PDF render failed (non-critical):', pdfErr);
     }
   }
 
@@ -535,7 +536,7 @@ export async function recordDocSignal(
       context: (context ?? null) as any,
     });
   } catch (err) {
-    console.warn('Signal recording failed (non-critical):', err);
+    logger.warn('Signal recording failed (non-critical):', err);
   }
 }
 
@@ -559,7 +560,7 @@ export async function getUserDocumentLibrary(
   const { data, error } = await query;
 
   if (error) {
-    console.warn('Document library fetch failed:', error.message);
+    logger.warn('Document library fetch failed:', error.message);
     return [];
   }
 

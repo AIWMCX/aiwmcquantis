@@ -2,6 +2,7 @@ import React, { Component, type ErrorInfo, type ReactNode } from 'react';
 import { AlertCircle, RefreshCw, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
+import { logger } from '@/lib/logger';
 interface Props {
   children: ReactNode;
   section: string;
@@ -21,7 +22,7 @@ export class SectionErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: ErrorInfo) {
-    console.error(`[SectionErrorBoundary:${this.props.section}]`, error, info);
+    logger.error(`[SectionErrorBoundary:${this.props.section}]`, error, { metadata: { componentStack: info.componentStack } });
   }
 
   handleRetry = () => {

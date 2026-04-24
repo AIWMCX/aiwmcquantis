@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { saveLeadEmail } from '@/lib/leadMemory';
 
+import { logger } from '@/lib/logger';
 interface ExitIntentPopupProps {
   isOpen: boolean;
   onClose: () => void;
@@ -57,7 +58,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
         return;
       }
 
-      console.log('✅ Lead captured:', data);
+      logger.info('✅ Lead captured:', data);
       
       // 2. Save email to localStorage for prefilling auth forms
       saveLeadEmail(email, 'exit_intent_popup');
@@ -76,10 +77,10 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
       });
 
       if (emailError) {
-        console.error('Failed to send welcome email:', emailError);
+        logger.error('Failed to send welcome email:', emailError);
         // Don't fail the whole flow, lead is already captured
       } else {
-        console.log('✅ Welcome email sent to:', email);
+        logger.info('✅ Welcome email sent to:', email);
       }
 
       setIsSuccess(true);
@@ -92,7 +93,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
         onClose();
       }, 4000);
     } catch (error) {
-      console.error('Lead capture error:', error);
+      logger.error('Lead capture error:', error);
       toast.error('Something went wrong. Please try again.');
     } finally {
       setIsSubmitting(false);

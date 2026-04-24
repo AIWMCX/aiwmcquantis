@@ -48,6 +48,7 @@ import { useShareReport } from '@/hooks/useShareReport';
 import { useExportQueue } from '@/hooks/useExportQueue';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 interface AnalysisResultsProps {
   result: BusinessAnalysisResult;
   analysisId?: string;
@@ -114,7 +115,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       await generatePdf(result);
       toast.success('Executive Report downloaded!', { id: toastId, description: 'Your professional PDF report is ready.' });
     } catch (error) {
-      console.error('PDF export failed:', error);
+      logger.error('PDF export failed:', error);
       const errorMessage = error instanceof Error ? error.message : '';
       if (errorMessage.includes('TIMEOUT')) toast.error('PDF generation timed out', { id: toastId, description: 'Please try again.' });
       else if (errorMessage.includes('VALIDATION')) toast.error('Analysis data incomplete', { id: toastId, description: 'Please run a new analysis.' });

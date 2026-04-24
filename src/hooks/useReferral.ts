@@ -4,6 +4,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { trackEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 interface ReferralStats {
   code: string | null;
   total_clicks: number;
@@ -56,7 +57,7 @@ export function useReferral() {
       if (error) throw error;
       setStats(data as unknown as ReferralStats);
     } catch (err) {
-      console.error('Failed to fetch referral stats:', err);
+      logger.error('Failed to fetch referral stats:', err);
     } finally {
       setIsLoading(false);
     }
@@ -86,7 +87,7 @@ export function useReferral() {
       if (error) throw error;
       setConversions(data || []);
     } catch (err) {
-      console.error('Failed to fetch conversions:', err);
+      logger.error('Failed to fetch conversions:', err);
     }
   }, [user?.id]);
 
@@ -105,7 +106,7 @@ export function useReferral() {
       if (error) throw error;
       setRewards(data || []);
     } catch (err) {
-      console.error('Failed to fetch rewards:', err);
+      logger.error('Failed to fetch rewards:', err);
     }
   }, [user?.id]);
 
@@ -130,7 +131,7 @@ export function useReferral() {
 
       return data as string;
     } catch (err) {
-      console.error('Failed to generate referral code:', err);
+      logger.error('Failed to generate referral code:', err);
       toast.error('Failed to generate referral code');
       return null;
     } finally {
@@ -184,7 +185,7 @@ export function useReferral() {
         trackEvent('referral_click_tracked', { code: refCode });
       }
     } catch (err) {
-      console.error('Failed to track referral click:', err);
+      logger.error('Failed to track referral click:', err);
     }
 
     // Clean URL
@@ -213,7 +214,7 @@ export function useReferral() {
         return true;
       }
     } catch (err) {
-      console.error('Failed to complete referral signup:', err);
+      logger.error('Failed to complete referral signup:', err);
     }
 
     return false;

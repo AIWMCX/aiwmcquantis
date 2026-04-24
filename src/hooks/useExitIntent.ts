@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { useAuth } from '@/hooks/useAuth';
 
+import { logger } from '@/lib/logger';
 interface ExitIntentOptions {
   enabled?: boolean;
   threshold?: number;
@@ -39,7 +40,7 @@ const getStoredState = (): ExitIntentState => {
       return JSON.parse(stored);
     }
   } catch (e) {
-    console.error('Failed to parse exit intent state:', e);
+    logger.error('Failed to parse exit intent state:', e);
   }
   return { lastSubmitted: null, lastDismissed: null, dismissCount: 0 };
 };
@@ -48,7 +49,7 @@ const saveState = (state: ExitIntentState) => {
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   } catch (e) {
-    console.error('Failed to save exit intent state:', e);
+    logger.error('Failed to save exit intent state:', e);
   }
 };
 

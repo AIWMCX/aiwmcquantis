@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
+import { logger } from '@/lib/logger';
 import {
   Drawer,
   DrawerContent,
@@ -289,7 +290,7 @@ export default function DocsStudio() {
 
     // Increment template usage count for analytics (all tiers)
     supabase.rpc('increment_template_usage', { p_template_id: templateId }).then(({ error }) => {
-      if (error) console.warn('Failed to increment template usage:', error.message);
+      if (error) logger.warn('Failed to increment template usage:', error.message);
     });
 
     // Record performance signal

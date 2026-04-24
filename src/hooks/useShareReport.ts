@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 interface ShareResult {
   share_url: string;
   token: string;
@@ -35,7 +36,7 @@ export function useShareReport(): UseShareReportReturn {
       });
 
       if (error) {
-        console.error('[useShareReport] Error:', error);
+        logger.error('[useShareReport] Error:', error);
         toast.error('Failed to create share link');
         return null;
       }
@@ -63,7 +64,7 @@ export function useShareReport(): UseShareReportReturn {
 
       return data as ShareResult;
     } catch (error) {
-      console.error('[useShareReport] Exception:', error);
+      logger.error('[useShareReport] Exception:', error);
       toast.error('Failed to create share link');
       return null;
     } finally {
@@ -81,7 +82,7 @@ export function useShareReport(): UseShareReportReturn {
       });
 
       if (error) {
-        console.error('[useShareReport] Revoke error:', error);
+        logger.error('[useShareReport] Revoke error:', error);
         toast.error('Failed to revoke share link');
         return false;
       }
@@ -97,7 +98,7 @@ export function useShareReport(): UseShareReportReturn {
       
       return true;
     } catch (error) {
-      console.error('[useShareReport] Revoke exception:', error);
+      logger.error('[useShareReport] Revoke exception:', error);
       toast.error('Failed to revoke share link');
       return false;
     } finally {

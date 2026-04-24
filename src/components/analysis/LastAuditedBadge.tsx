@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { ShieldCheck } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Skeleton } from '@/components/ui/skeleton';
+import { logger } from '@/lib/logger';
 import { 
   getLatestAuditInfo, 
   getAuditFreshness, 
@@ -25,7 +26,7 @@ export function LastAuditedBadge({ size = 'md' }: LastAuditedBadgeProps) {
         const info = await getLatestAuditInfo();
         setAuditInfo(info);
       } catch (err) {
-        console.error('Failed to fetch audit info', err);
+        logger.error('Failed to fetch audit info', err);
         setAuditInfo(DEFAULT_AUDIT_INFO);
       } finally {
         setLoading(false);

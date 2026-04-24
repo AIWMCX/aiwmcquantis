@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Zap, Loader2, RefreshCw, Check, X, Wand2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { logger } from '@/lib/logger';
 import {
   Popover,
   PopoverContent,
@@ -115,7 +116,7 @@ export function AISuggestionButton({
 
       setSuggestions(nextSuggestions);
     } catch (error: any) {
-      console.error('AI generation error:', error);
+      logger.error('AI generation error:', error);
 
       const status = error?.context?.status;
       let backendMessage = '';

@@ -13,6 +13,7 @@
 import { QuantisMath, type DecimalInput } from '@/lib/quantis-math';
 import { applyGeoCalibration } from '@/lib/geo-calibrator';
 
+import { logger } from '@/lib/logger';
 // ─── Interfaces ─────────────────────────────────────────────
 
 export interface UnitEconomicsParams {
@@ -316,7 +317,7 @@ export function generateCashFlow(
     const divergence = n(Q.abs(Q.subtract(n(opCashFlow), pl.netIncome)));
     if (divergence > 1) {
       // Flag on the PL statement if mutable — for now just log
-      console.warn(`[BottomUpEngine] Cash-flow reconciliation gap: $${divergence} in month ${pl.month}`);
+      logger.warn(`[BottomUpEngine] Cash-flow reconciliation gap: $${divergence} in month ${pl.month}`);
     }
 
     cashFlows.push({

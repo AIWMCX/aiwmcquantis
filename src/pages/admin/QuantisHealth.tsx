@@ -11,6 +11,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
+import { logger } from '@/lib/logger';
 import {
   ArrowLeft, Activity, ShieldCheck, AlertTriangle, CheckCircle2,
   Loader2, RefreshCw, BarChart3, Zap, Download, Search, FileText,
@@ -166,7 +167,7 @@ export default function QuantisHealth() {
           .sort((a, b) => b.count - a.count),
       });
     } catch (err) {
-      console.error('Failed to fetch health metrics:', err);
+      logger.error('Failed to fetch health metrics:', err);
     } finally {
       setLoading(false);
     }
@@ -194,7 +195,7 @@ export default function QuantisHealth() {
 
       setInconsistencies((incidents as InconsistencyRow[]) || []);
     } catch (err) {
-      console.error('Failed to fetch quality metrics:', err);
+      logger.error('Failed to fetch quality metrics:', err);
     } finally {
       setQualityLoading(false);
     }
@@ -215,7 +216,7 @@ export default function QuantisHealth() {
 
       setAuditLogs((data as AuditLogEntry[]) || []);
     } catch (err) {
-      console.error('Audit fetch error:', err);
+      logger.error('Audit fetch error:', err);
     } finally {
       setAuditLoading(false);
     }

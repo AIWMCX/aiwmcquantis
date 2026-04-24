@@ -1,6 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { BusinessAnalysisResult } from "@/types/analysis";
 
+import { logger } from '@/lib/logger';
 export type SafetyLevel = 1 | 2 | 3 | 4;
 
 export interface SafetyIssue {
@@ -119,7 +120,7 @@ export class QuantisSafetyAgent {
         evaluator: 'safety_agent'
       });
     } catch (e) {
-      console.error("Failed to log safety evaluation:", e);
+      logger.error("Failed to log safety evaluation:", e);
     }
 
     return evaluation;
@@ -133,7 +134,7 @@ export class QuantisSafetyAgent {
       const { data, error } = await supabase.rpc('get_latest_audit_timestamp');
       
       if (error) {
-        console.error("Failed to fetch latest audit timestamp via RPC:", error);
+        logger.error("Failed to fetch latest audit timestamp via RPC:", error);
         // Fallback to direct query
         const { data: fallbackData } = await supabase
           .from('safety_evaluations')
@@ -147,7 +148,7 @@ export class QuantisSafetyAgent {
 
       return data ? new Date(data) : null;
     } catch (e) {
-      console.error("Error fetching latest audit timestamp:", e);
+      logger.error("Error fetching latest audit timestamp:", e);
       return null;
     }
   }
@@ -158,7 +159,7 @@ export class QuantisSafetyAgent {
   static async runRegressionTests() {
     // In a real scenario, this would call an Edge Function to process all vectors
     // through the actual analysis pipeline and compare results.
-    console.log("Running golden vector regression tests...");
+    logger.info("Running golden vector regression tests...");
     return { passed: true, runCount: 0, failCount: 0 };
   }
 }

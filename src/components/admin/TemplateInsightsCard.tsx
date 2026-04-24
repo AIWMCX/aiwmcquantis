@@ -6,6 +6,7 @@ import { Lightbulb, TrendingUp, TrendingDown, Loader2, RefreshCw } from 'lucide-
 import { supabase } from '@/integrations/supabase/client';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
 interface TemplateSuggestion {
   id: string;
   template_id: string;
@@ -107,7 +108,7 @@ export function TemplateInsightsCard() {
 
       setSuggestions(generatedSuggestions);
     } catch (err) {
-      console.error('Failed to fetch template insights:', err);
+      logger.error('Failed to fetch template insights:', err);
     } finally {
       setLoading(false);
     }

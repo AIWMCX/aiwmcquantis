@@ -5,6 +5,7 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
 import type { UserEngagement, EmailFrequency, MILESTONES, STREAK_MILESTONES } from '@/lib/engagementTypes';
 
+import { logger } from '@/lib/logger';
 interface UseEngagementReturn {
   engagement: UserEngagement | null;
   isLoading: boolean;
@@ -60,7 +61,7 @@ export function useEngagement(): UseEngagementReturn {
           : [],
       });
     } catch (err) {
-      console.error('Error fetching engagement:', err);
+      logger.error('Error fetching engagement:', err);
       setError('Failed to load engagement data');
       setEngagement(DEFAULT_ENGAGEMENT);
     } finally {
@@ -88,7 +89,7 @@ export function useEngagement(): UseEngagementReturn {
       
       trackEvent('email_preference_updated', { frequency });
     } catch (err) {
-      console.error('Error updating email preference:', err);
+      logger.error('Error updating email preference:', err);
       toast.error('Failed to update email preference');
     }
   }, [user]);

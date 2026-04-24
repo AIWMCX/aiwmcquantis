@@ -1,3 +1,4 @@
+import { corsHeadersFor } from '../_shared/cors.ts';
 /**
  * Send Lead Magnet Edge Function
  * 
@@ -5,11 +6,6 @@
  * Supports: founder_starter_kit, free_analysis, business_guide, 
  * validation_questions, projection_template, newsletter, early_access
  */
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
 
 interface LeadMagnetRequest {
   email: string;
@@ -256,6 +252,7 @@ function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[stri
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

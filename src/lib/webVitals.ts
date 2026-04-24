@@ -11,6 +11,7 @@
 
 import { trackEvent } from "./analytics";
 
+import { logger } from '@/lib/logger';
 interface WebVitalMetric {
   name: string;
   value: number;
@@ -52,7 +53,7 @@ function sendToAnalytics(metric: WebVitalMetric) {
   // Also log to console in development
   if (import.meta.env.DEV) {
     const color = metric.rating === 'good' ? '🟢' : metric.rating === 'poor' ? '🔴' : '🟡';
-    console.log(`${color} Web Vital: ${metric.name} = ${metric.value.toFixed(2)} (${metric.rating})`);
+    logger.info(`${color} Web Vital: ${metric.name} = ${metric.value.toFixed(2)} (${metric.rating})`);
   }
 }
 
@@ -275,7 +276,7 @@ function startObserving() {
     observeFCP(sendToAnalytics);
     
     if (import.meta.env.DEV) {
-      console.log('📊 Web Vitals monitoring initialized');
+      logger.info('📊 Web Vitals monitoring initialized');
     }
   }, 0);
 }

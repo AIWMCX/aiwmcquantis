@@ -3,6 +3,7 @@ import type { BusinessAnalysisResult, AnalysisHistoryEntry } from '@/types/analy
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 
+import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'business_analysis_history';
 
 export async function saveAnalysis(
@@ -27,7 +28,7 @@ export async function saveAnalysis(
     .single();
 
   if (error) {
-    console.error('Failed to save analysis:', error);
+    logger.error('Failed to save analysis:', error);
     return null;
   }
 
@@ -43,7 +44,7 @@ export async function getAnalyses(userId: string): Promise<AnalysisHistoryEntry[
     .limit(1000);
 
   if (error) {
-    console.error('Failed to fetch analyses:', error);
+    logger.error('Failed to fetch analyses:', error);
     return [];
   }
 
@@ -63,7 +64,7 @@ export async function deleteAnalysis(id: string): Promise<boolean> {
     .eq('id', id);
 
   if (error) {
-    console.error('Failed to delete analysis:', error);
+    logger.error('Failed to delete analysis:', error);
     return false;
   }
 
@@ -132,7 +133,7 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
 
     return migrated;
   } catch (error) {
-    console.error('Migration failed:', error);
+    logger.error('Migration failed:', error);
     return 0;
   }
 }

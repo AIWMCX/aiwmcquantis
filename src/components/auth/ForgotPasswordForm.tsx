@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
 import { cn } from '@/lib/utils';
 
+import { logger } from '@/lib/logger';
 const forgotPasswordSchema = z.object({
   email: z.string()
     .trim()
@@ -55,7 +56,7 @@ export function ForgotPasswordForm({ onBack, className }: ForgotPasswordFormProp
       // SECURITY: Always show success message to prevent account enumeration
       // Even if email doesn't exist, we show the same message
       if (error) {
-        console.error('Password reset error:', error);
+        logger.error('Password reset error:', error);
         // Log error but don't reveal to user
         trackEvent('password_reset_error', { 
           error_type: error.message.includes('rate') ? 'rate_limit' : 'other' 
@@ -68,7 +69,7 @@ export function ForgotPasswordForm({ onBack, className }: ForgotPasswordFormProp
       toast.success('Check your email for reset instructions');
       
     } catch (err) {
-      console.error('Unexpected password reset error:', err);
+      logger.error('Unexpected password reset error:', err);
       toast.error('An error occurred. Please try again.');
       trackEvent('password_reset_error', { error_type: 'exception' });
     } finally {

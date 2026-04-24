@@ -17,6 +17,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { getSavedLead, clearLeadData, isLeadConversion, initLeadFromUrl } from '@/lib/leadMemory';
 import { useIsMobile } from '@/hooks/use-mobile';
 
+import { logger } from '@/lib/logger';
 // Simplified signup form validation schema - optimized for conversion
 // Removed complex password requirements to reduce friction
 const signupFormSchema = z.object({
@@ -184,17 +185,17 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
           if (user) {
             markWelcomeEmailSent(user.id);
           }
-          console.log('[SignupForm] Welcome email sent successfully');
+          logger.info('[SignupForm] Welcome email sent successfully');
           trackEvent('email_welcome_email_sent', { source: 'signup_form' });
         } else {
-          console.error('[SignupForm] Welcome email failed:', result.error);
+          logger.error('[SignupForm] Welcome email failed:', result.error);
           trackEvent('email_welcome_email_failed', { 
             source: 'signup_form',
             error: result.error 
           });
         }
       } catch (emailError) {
-        console.error('[SignupForm] Failed to send welcome email:', emailError);
+        logger.error('[SignupForm] Failed to send welcome email:', emailError);
         trackEvent('email_welcome_email_failed', { 
           source: 'signup_form',
           error: emailError instanceof Error ? emailError.message : 'Unknown error'

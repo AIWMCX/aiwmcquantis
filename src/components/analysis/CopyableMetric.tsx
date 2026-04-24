@@ -1,6 +1,7 @@
 import React, { useState, useCallback } from 'react';
 import { Copy, Check } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { logger } from '@/lib/logger';
 import {
   Tooltip,
   TooltipContent,
@@ -39,7 +40,7 @@ export const CopyableMetric = React.memo(function CopyableMetric({
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch (err) {
-      console.error('Failed to copy:', err);
+      logger.error('Failed to copy:', err);
     }
   }, [value, rawValue]);
 

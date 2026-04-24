@@ -13,6 +13,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { toast } from 'sonner';
 import { ScenarioComparison, type SavedScenario } from './ScenarioComparison';
 
+import { logger } from '@/lib/logger';
 interface ScenarioLibraryProps {
   analysisId?: string;
   currentParams?: Record<string, any>;
@@ -52,7 +53,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
       .order('created_at', { ascending: false });
 
     if (error) {
-      console.error('Failed to fetch scenarios:', error);
+      logger.error('Failed to fetch scenarios:', error);
     } else {
       setScenarios((data || []).map(d => ({
         id: d.id,
@@ -86,7 +87,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
 
     if (error) {
       toast.error('Failed to save scenario');
-      console.error(error);
+      logger.error('Failed to save scenario', error as unknown);
     } else {
       toast.success('Scenario saved');
       setShowSaveDialog(false);

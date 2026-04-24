@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { TrendingUp, Zap } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
+import { logger } from '@/lib/logger';
 const CACHE_KEY = 'live_counter_cache';
 const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
 
@@ -45,7 +46,7 @@ export function LiveCounter() {
           }));
         }
       } catch (e) {
-        console.error('Failed to fetch analysis count:', e);
+        logger.error('Failed to fetch analysis count:', e);
       }
     }, 2000); // Delay 2s to avoid blocking critical path
 

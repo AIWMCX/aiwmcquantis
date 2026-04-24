@@ -4,6 +4,7 @@ import { getAnalyses, deleteAnalysis, migrateLocalStorageToDb } from '@/services
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import type { AnalysisHistoryEntry } from '@/types/analysis';
 
+import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'business_analysis_history';
 const MAX_LOCAL_ENTRIES = 20;
 
@@ -25,7 +26,7 @@ export function useAnalysisHistory() {
         // First, migrate any local history (handles both encrypted and legacy data)
         const migrated = await migrateLocalStorageToDb(user.id);
         if (migrated > 0) {
-          console.log(`Migrated ${migrated} analyses to cloud`);
+          logger.info(`Migrated ${migrated} analyses to cloud`);
           // Clear local storage after successful migration
           secureRemoveItem(STORAGE_KEY);
         }
@@ -42,7 +43,7 @@ export function useAnalysisHistory() {
             setHistory(stored);
           }
         } catch (error) {
-          console.error('Failed to load local history:', error);
+          logger.error('Failed to load local history:', error);
         }
       }
       setIsLoaded(true);
@@ -59,7 +60,7 @@ export function useAnalysisHistory() {
       try {
         await secureSetItem(STORAGE_KEY, history);
       } catch (error) {
-        console.error('Failed to save local history:', error);
+        logger.error('Failed to save local history:', error);
       }
     };
 

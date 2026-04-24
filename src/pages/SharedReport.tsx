@@ -14,6 +14,7 @@ import { ActionableInsights } from '@/components/analysis/ActionableInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
+import { logger } from '@/lib/logger';
 interface SharedReportData {
   analysis: {
     id: string;
@@ -78,7 +79,7 @@ export default function SharedReport() {
 
         setData(result.data);
       } catch (err) {
-        console.error('[SharedReport] Error:', err);
+        logger.error('[SharedReport] Error:', err);
         setError('Failed to load report');
       } finally {
         setIsLoading(false);

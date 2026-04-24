@@ -57,31 +57,63 @@ class Logger {
     }
   }
 
-  debug(message: string, context?: LogContext) {
-    this.log('debug', message, context);
+  private normalizeContext(input?: unknown): LogContext | undefined {
+    if (input === undefined || input === null) return undefined;
+    if (typeof input === 'object' && !Array.isArray(input) && !(input instanceof Error)) {
+      // Heuristic: looks like a LogContext if it has any of the known keys.
+      const obj = input as Record<string, unknown>;
+      if ('userId' in obj || 'component' in obj || 'action' in obj || 'metadata' in obj) {
+        return obj as LogContext;
+      }
+      return { metadata: obj as Record<string, unknown> };
+    }
+    return { metadata: { extra: input } };
   }
 
-  info(message: string, context?: LogContext) {
-    this.log('info', message, context);
+  debug(message: string, context?: unknown) {
+    this.log('debug', message, this.normalizeContext(context));
   }
 
-  warn(message: string, context?: LogContext) {
-    this.log('warn', message, context);
-    
+  info(message: string, context?: unknown) {
+    this.log('info', message, this.normalizeContext(context));
+  }
+
+  warn(message: string, context?: unknown) {
+    this.log('warn', message, this.normalizeContext(context));
+
     if (!this.isDev) {
       captureMessage(`[WARN] ${message}`, 'warning');
     }
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    const errorMetadata = error ? { errorMessage: error.message, errorName: error.name } : {};
-    this.log('error', message, { 
-      ...context, 
-      metadata: { ...context?.metadata, ...errorMetadata } as Record<string, unknown>
+  error(message: string, errorOrValue?: unknown, context?: LogContext) {
+    // Normalize: codemod-migrated calls pass arbitrary values as 2nd arg.
+    let error: Error | undefined;
+    let extra: unknown;
+    if (errorOrValue instanceof Error) {
+      error = errorOrValue;
+    } else if (errorOrValue !== undefined) {
+      extra = errorOrValue;
+    }
+
+    const errorMetadata = error
+      ? { errorMessage: error.message, errorName: error.name }
+      : {};
+    const extraMetadata = extra !== undefined ? { extra } : {};
+    this.log('error', message, {
+      ...context,
+      metadata: {
+        ...context?.metadata,
+        ...errorMetadata,
+        ...extraMetadata,
+      } as Record<string, unknown>,
     });
 
     if (error && !this.isDev) {
       captureError(error, context as Record<string, unknown>);
+    } else if (extra !== undefined && !this.isDev) {
+      // Capture as message so non-Error rejections still reach Sentry.
+      captureMessage(`[ERROR] ${message}`, 'error');
     }
   }
 
@@ -139,8 +171,8 @@ class ChildLogger {
     this.parent.warn(message, this.mergeContext(context));
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    this.parent.error(message, error, this.mergeContext(context));
+  error(message: string, errorOrValue?: unknown, context?: LogContext) {
+    this.parent.error(message, errorOrValue, this.mergeContext(context));
   }
 }
 

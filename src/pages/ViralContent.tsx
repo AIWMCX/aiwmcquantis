@@ -8,6 +8,7 @@ import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import type { AnalysisHistoryEntry } from '@/types/analysis';
 
+import { logger } from '@/lib/logger';
 type Variant = 'twitter' | 'reddit';
 
 export default function ViralContent() {
@@ -32,7 +33,7 @@ export default function ViralContent() {
       link.click();
       toast.success('Card downloaded!');
     } catch (err) {
-      console.error('Failed to generate image:', err);
+      logger.error('Failed to generate image:', err);
       toast.error('Failed to generate image. Try again.');
     } finally {
       setGenerating(null);
