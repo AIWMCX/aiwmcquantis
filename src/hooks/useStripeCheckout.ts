@@ -56,7 +56,7 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
     redirectInProgress.current = true;
     setIsLoading(true);
 
-    logger.info('[PaymentLinks] Starting redirect for plan:', plan, 'user:', userId);
+    logger.info('[PaymentLinks] Starting redirect', { metadata: { plan, userId } });
 
     // Build URL
     const url = buildPaymentLinkUrl(plan, userId, email);

@@ -87,7 +87,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
 
     if (error) {
       toast.error('Failed to save scenario');
-      logger.error(error);
+      logger.error('Failed to save scenario', error as unknown);
     } else {
       toast.success('Scenario saved');
       setShowSaveDialog(false);

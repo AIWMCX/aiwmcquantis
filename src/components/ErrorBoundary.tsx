@@ -36,7 +36,7 @@ class ErrorBoundary extends Component<Props, State> {
         },
       });
     } else {
-      logger.error('ErrorBoundary caught an error:', error, errorInfo);
+      logger.error('ErrorBoundary caught an error', error, { metadata: { componentStack: errorInfo.componentStack } });
     }
   }
 
