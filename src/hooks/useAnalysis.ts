@@ -8,6 +8,7 @@ import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
 import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
 
+import { logger } from '@/lib/logger';
 interface FormErrors {
   idea?: string;
   location?: string;
@@ -82,7 +83,7 @@ export function useAnalysis() {
       }
     },
     onError: (error: Error) => {
-      console.error('Analysis error:', error);
+      logger.error('Analysis error:', error);
 
       let message: string;
       const isRateLimit =

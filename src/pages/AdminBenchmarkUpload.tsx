@@ -7,6 +7,7 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
+import { logger } from '@/lib/logger';
 import { 
   Select,
   SelectContent,
@@ -103,7 +104,7 @@ export default function AdminBenchmarkUpload() {
           }
         }
       } catch (err) {
-        console.error('Failed to load draft:', err);
+        logger.error('Failed to load draft:', err);
         localStorage.removeItem(DRAFT_STORAGE_KEY);
       } finally {
         setIsLoadingDraft(false);
@@ -123,7 +124,7 @@ export default function AdminBenchmarkUpload() {
       };
       localStorage.setItem(DRAFT_STORAGE_KEY, JSON.stringify(draft));
     } catch (err) {
-      console.error('Failed to save draft:', err);
+      logger.error('Failed to save draft:', err);
     }
   }, []);
   

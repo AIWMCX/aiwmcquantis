@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
+import { logger } from '@/lib/logger';
 export interface FreshnessReport {
   totalBenchmarks: number;
   staleCount: number;
@@ -17,7 +18,7 @@ export class BenchmarkGovernance {
       .select('industry_name, last_updated, gross_margin_min, gross_margin_max, cac_min');
 
     if (error) {
-      console.error("Error fetching benchmarks for governance:", error);
+      logger.error("Error fetching benchmarks for governance:", error);
       throw error;
     }
 

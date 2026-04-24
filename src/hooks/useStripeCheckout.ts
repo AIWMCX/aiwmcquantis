@@ -9,6 +9,7 @@ import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
+import { logger } from '@/lib/logger';
 type Plan = 'plus_monthly' | 'plus_annual' | 'pro_monthly' | 'pro_annual';
 
 // Payment Links - configured in Stripe Dashboard with 14-day trials
@@ -48,14 +49,14 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 
   const redirectToPayment = useCallback((plan: Plan, userId: string, email?: string) => {
     if (redirectInProgress.current) {
-      console.log('[PaymentLinks] Already redirecting, ignoring');
+      logger.info('[PaymentLinks] Already redirecting, ignoring');
       return;
     }
     
     redirectInProgress.current = true;
     setIsLoading(true);
 
-    console.log('[PaymentLinks] Starting redirect for plan:', plan, 'user:', userId);
+    logger.info('[PaymentLinks] Starting redirect for plan:', plan, 'user:', userId);
 
     // Build URL
     const url = buildPaymentLinkUrl(plan, userId, email);
@@ -66,7 +67,7 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
     // Fallback: if still on page after 3 seconds, show manual link
     setTimeout(() => {
       if (document.visibilityState === 'visible') {
-        console.log('[PaymentLinks] Redirect may have failed, showing fallback');
+        logger.info('[PaymentLinks] Redirect may have failed, showing fallback');
         redirectInProgress.current = false;
         setIsLoading(false);
         
@@ -93,7 +94,7 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 
 // Standalone function for use outside React (e.g., after auth)
 export function redirectToPaymentLink(plan: Plan, userId: string, email?: string): void {
-  console.log('[PaymentLinks Standalone] Starting redirect for plan:', plan);
+  logger.info('[PaymentLinks Standalone] Starting redirect for plan:', plan);
   
   const url = buildPaymentLinkUrl(plan, userId, email);
   window.location.href = url;
@@ -111,7 +112,7 @@ export function useStripeCheckout() {
     const { data: { user } } = await supabase.auth.getUser();
     
     if (!user) {
-      console.error('[PaymentLinks] No user found, cannot redirect');
+      logger.error('[PaymentLinks] No user found, cannot redirect');
       return;
     }
     

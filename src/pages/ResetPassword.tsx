@@ -15,6 +15,7 @@ import { PasswordStrengthMeter, checkPasswordStrength } from '@/components/auth/
 import { cn } from '@/lib/utils';
 import { PageSEO } from '@/components/seo/PageSEO';
 
+import { logger } from '@/lib/logger';
 const resetPasswordSchema = z.object({
   password: z.string()
     .min(8, 'Password must be at least 8 characters')
@@ -88,7 +89,7 @@ export default function ResetPassword() {
       });
 
       if (error) {
-        console.error('Password update error:', error);
+        logger.error('Password update error:', error);
         
         if (error.message.includes('same')) {
           toast.error('New password must be different from your current password');
@@ -115,7 +116,7 @@ export default function ResetPassword() {
       }, 2000);
       
     } catch (err) {
-      console.error('Unexpected password reset error:', err);
+      logger.error('Unexpected password reset error:', err);
       toast.error('An error occurred. Please try again.');
       trackEvent('password_reset_error', { reason: 'exception' });
       setIsLoading(false);

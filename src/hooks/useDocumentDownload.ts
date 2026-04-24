@@ -1,6 +1,7 @@
 import { useCallback, useState } from 'react';
 import { toast } from 'sonner';
 
+import { logger } from '@/lib/logger';
 /**
  * Client-side document download hook.
  * Generates PDF via print dialog or downloads raw markdown/HTML.
@@ -118,7 +119,7 @@ export function useDocumentDownload() {
 
       toast.success('PDF preview opened — save from print dialog');
     } catch (error) {
-      console.error('PDF download error:', error);
+      logger.error('PDF download error:', error);
       toast.error('Failed to generate PDF');
     } finally {
       setIsDownloading(false);

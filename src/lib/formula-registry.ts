@@ -16,6 +16,7 @@
 
 import { QuantisMath, Decimal } from './quantis-math';
 
+import { logger } from '@/lib/logger';
 // ========== TYPES ==========
 
 export interface FormulaInput {
@@ -69,7 +70,7 @@ class FormulaRegistryImpl {
 
   register(definition: FormulaDefinition): void {
     if (this.formulas.has(definition.id)) {
-      console.warn(`Formula ${definition.id} already registered, overwriting.`);
+      logger.warn(`Formula ${definition.id} already registered, overwriting.`);
     }
     this.formulas.set(definition.id, definition);
   }

@@ -5,6 +5,7 @@ import { lovable } from '@/integrations/lovable';
 import { toast } from 'sonner';
 import { trackEvent } from '@/lib/analytics';
 
+import { logger } from '@/lib/logger';
 interface GoogleLoginButtonProps {
   mode?: 'signup' | 'login';
   className?: string;
@@ -25,12 +26,12 @@ export function GoogleLoginButton({ mode = 'signup', className, variant = 'outli
       });
 
       if (result.error) {
-        console.error('Google OAuth error:', result.error);
+        logger.error('Google OAuth error:', result.error);
         toast.error('Failed to connect with Google. Please try again.');
         trackEvent('social_login_error', { provider: 'google', error: result.error.message });
       }
     } catch (err) {
-      console.error('Unexpected Google OAuth error:', err);
+      logger.error('Unexpected Google OAuth error:', err);
       toast.error('An unexpected error occurred. Please try again.');
     } finally {
       setIsLoading(false);

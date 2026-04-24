@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
+import { logger } from '@/lib/logger';
 type Severity = 'info' | 'warning' | 'error' | 'critical';
 
 interface LogEntry {
@@ -132,12 +133,12 @@ class QuantisLogger {
     try {
       const { error } = await supabase.from('analysis_logs').insert(rows);
       if (error) {
-        console.error('[QuantisLogger] Persist failed:', error.message);
+        logger.error('[QuantisLogger] Persist failed:', error.message);
         // Re-enqueue on failure (once)
         this.buffer.push(...batch);
       }
     } catch (err) {
-      console.error('[QuantisLogger] Persist exception:', err);
+      logger.error('[QuantisLogger] Persist exception:', err);
     }
   }
 

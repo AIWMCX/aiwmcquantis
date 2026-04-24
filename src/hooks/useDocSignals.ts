@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 
+import { logger } from '@/lib/logger';
 export type DocSignalType =
   | 'downloaded'
   | 'shared'
@@ -32,7 +33,7 @@ export function useDocSignals() {
           context: (context ?? {}) as any,
         }])
         .then(({ error }) => {
-          if (error) console.warn('Signal recording failed:', error.message);
+          if (error) logger.warn('Signal recording failed:', error.message);
         });
     },
     [user],

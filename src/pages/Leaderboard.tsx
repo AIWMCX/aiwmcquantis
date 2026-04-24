@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '@/components/layout/Footer';
+import { logger } from '@/lib/logger';
 import { 
   Trophy, TrendingUp, ArrowRight, MapPin, 
   DollarSign, Clock, RefreshCw, Share2, Moon, Sun
@@ -95,7 +96,7 @@ export default function Leaderboard() {
       }
       setLastRefresh(new Date());
     } catch (err) {
-      console.error('[Leaderboard]', err);
+      logger.error('[Leaderboard]', err);
       // Fall back to samples on error too
       setEntries(SAMPLE_ENTRIES);
       setUsingSamples(true);

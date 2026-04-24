@@ -1,6 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
+import { logger } from '@/lib/logger';
 /**
  * Hook to check if the current visitor is a bot.
  * Calls the bot-detection edge function on mount.
@@ -23,7 +24,7 @@ export function useBotDetection() {
         if (!error && data?.isBot) {
           // Set flag to suppress analytics
           sessionStorage.setItem('is_bot', 'true');
-          console.debug('[bot-detection] Bot detected:', data.reason);
+          logger.debug('[bot-detection] Bot detected:', data.reason);
         }
       } catch {
         // Silently fail — don't block user experience

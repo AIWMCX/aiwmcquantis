@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
+import { logger } from '@/lib/logger';
 interface DraftData {
   idea: string;
   location: string;
@@ -61,7 +62,7 @@ export function useFormDraft(
           }
         }
       } catch (e) {
-        console.error('Failed to check draft:', e);
+        logger.error('Failed to check draft:', e);
       }
     };
 
@@ -90,7 +91,7 @@ export function useFormDraft(
         };
         await secureSetItem(DRAFT_KEY, draft);
       } catch (e) {
-        console.error('Failed to save draft:', e);
+        logger.error('Failed to save draft:', e);
       }
     }, SAVE_DELAY_MS);
 
@@ -113,7 +114,7 @@ export function useFormDraft(
         setHasDraft(false);
       }
     } catch (e) {
-      console.error('Failed to restore draft:', e);
+      logger.error('Failed to restore draft:', e);
     }
   }, [setIdea, setLocation, setFinancialInputs]);
 
@@ -129,7 +130,7 @@ export function useFormDraft(
       secureRemoveItem(DRAFT_KEY);
       setHasDraft(false);
     } catch (e) {
-      console.error('Failed to clear draft:', e);
+      logger.error('Failed to clear draft:', e);
     }
   }, []);
 

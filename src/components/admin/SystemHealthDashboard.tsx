@@ -3,6 +3,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { logger } from '@/lib/logger';
 import { 
   Activity, 
   Database, 
@@ -51,7 +52,7 @@ export function SystemHealthDashboard() {
             });
           }
         } catch (e) {
-          console.error('Failed to send health alert:', e);
+          logger.error('Failed to send health alert:', e);
         }
       };
       

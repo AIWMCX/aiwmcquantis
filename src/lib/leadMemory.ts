@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Lead Memory System
  * 
@@ -44,9 +45,9 @@ export function saveLeadEmail(email: string, source: LeadData['source'] = 'exit_
     localStorage.setItem(LEAD_SOURCE_KEY, source);
     localStorage.setItem(LEAD_TIMESTAMP_KEY, new Date().toISOString());
     
-    console.log('[LeadMemory] Lead saved:', { email, name: capitalizedName, source });
+    logger.info('[LeadMemory] Lead saved:', { email, name: capitalizedName, source });
   } catch (error) {
-    console.error('[LeadMemory] Failed to save lead:', error);
+    logger.error('[LeadMemory] Failed to save lead:', error);
   }
 }
 
@@ -80,7 +81,7 @@ export function getSavedLead(): LeadData | null {
       timestamp,
     };
   } catch (error) {
-    console.error('[LeadMemory] Failed to get lead:', error);
+    logger.error('[LeadMemory] Failed to get lead:', error);
     return null;
   }
 }
@@ -117,9 +118,9 @@ export function clearLeadData(): void {
     localStorage.removeItem(LEAD_NAME_KEY);
     localStorage.removeItem(LEAD_SOURCE_KEY);
     localStorage.removeItem(LEAD_TIMESTAMP_KEY);
-    console.log('[LeadMemory] Lead data cleared');
+    logger.info('[LeadMemory] Lead data cleared');
   } catch (error) {
-    console.error('[LeadMemory] Failed to clear lead:', error);
+    logger.error('[LeadMemory] Failed to clear lead:', error);
   }
 }
 
@@ -149,7 +150,7 @@ export function getEmailFromUrl(): string | null {
     }
     return null;
   } catch (error) {
-    console.error('[LeadMemory] Failed to parse email from URL:', error);
+    logger.error('[LeadMemory] Failed to parse email from URL:', error);
     return null;
   }
 }

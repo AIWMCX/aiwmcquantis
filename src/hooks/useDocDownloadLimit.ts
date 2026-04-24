@@ -3,6 +3,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';
 
+import { logger } from '@/lib/logger';
 /**
  * Free tier: 3 templates (invoice, quarterly-summary, nda-agreement), 5 downloads/day
  * Plus tier: all 10 templates, unlimited downloads
@@ -84,7 +85,7 @@ export function useDocDownloadLimit() {
         .gte('downloaded_at', todayStart.toISOString());
 
       if (error) {
-        console.error('Failed to fetch download count:', error);
+        logger.error('Failed to fetch download count:', error);
       }
 
       const downloadsToday = count || 0;
@@ -98,7 +99,7 @@ export function useDocDownloadLimit() {
         nextResetAt: getNextMidnight(),
       });
     } catch (err) {
-      console.error('Download limit check failed:', err);
+      logger.error('Download limit check failed:', err);
     } finally {
       setIsLoading(false);
     }
@@ -132,7 +133,7 @@ export function useDocDownloadLimit() {
       .gte('downloaded_at', todayStart.toISOString());
 
     if (countError) {
-      console.error('Download count check failed:', countError);
+      logger.error('Download count check failed:', countError);
       return false;
     }
 
@@ -150,7 +151,7 @@ export function useDocDownloadLimit() {
       });
 
     if (insertError) {
-      console.error('Failed to record download:', insertError);
+      logger.error('Failed to record download:', insertError);
       return false;
     }
 

@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * QUANTIS MATH-LAYER ERROR CODES
  * 
@@ -81,5 +82,5 @@ export function getQuantisError(code: string): QuantisErrorCode | undefined {
 export function warnQE(code: string, context?: Record<string, unknown>): void {
   const err = QUANTIS_ERRORS[code];
   if (!err) return;
-  console.warn(`[${err.code}] ${err.name}: ${err.message}`, context ?? '');
+  logger.warn(`[${err.code}] ${err.name}: ${err.message}`, context ?? '');
 }

@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 
   Brain, 
@@ -94,7 +95,7 @@ export function PlusValueIndicator() {
       const { data, error: rpcError } = await supabase.rpc('get_ai_learning_metrics');
       
       if (rpcError) {
-        console.error('Error fetching AI metrics:', rpcError);
+        logger.error('Error fetching AI metrics:', rpcError);
         setError('Could not load learning metrics');
         return;
       }
@@ -117,7 +118,7 @@ export function PlusValueIndicator() {
         }
       }
     } catch (err) {
-      console.error('Failed to fetch AI metrics:', err);
+      logger.error('Failed to fetch AI metrics:', err);
       setError('Failed to connect to learning engine');
     } finally {
       setLoading(false);

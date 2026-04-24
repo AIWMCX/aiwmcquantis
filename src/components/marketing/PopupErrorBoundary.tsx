@@ -1,5 +1,6 @@
 import React, { Component, ReactNode } from 'react';
 
+import { logger } from '@/lib/logger';
 interface Props {
   children: ReactNode;
   fallback?: ReactNode;
@@ -26,8 +27,8 @@ export class PopupErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     // Log but don't crash - popups are non-critical
-    console.error('[PopupErrorBoundary] Popup failed to render:', error.message);
-    console.debug('[PopupErrorBoundary] Component stack:', errorInfo.componentStack);
+    logger.error('[PopupErrorBoundary] Popup failed to render:', error.message);
+    logger.debug('[PopupErrorBoundary] Component stack:', errorInfo.componentStack);
   }
 
   render() {

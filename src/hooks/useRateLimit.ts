@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
  import { useState, useEffect, useCallback } from 'react';
  import { supabase } from '@/integrations/supabase/client';
  import { useAuth } from '@/hooks/useAuth';
@@ -111,7 +112,7 @@ const TIER_LIMITS = {
          });
        }
      } catch (err) {
-       console.error('Rate limit check failed:', err);
+       logger.error('Rate limit check failed:', err);
      } finally {
        setIsLoading(false);
      }

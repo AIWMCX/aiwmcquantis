@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 
+import { logger } from '@/lib/logger';
 interface AdminMetrics {
   total_users: number;
   total_analyses: number;
@@ -48,7 +49,7 @@ export function useAdminMetrics() {
       const { data, error } = await supabase.rpc('get_admin_metrics');
       
       if (error) {
-        console.error('Failed to fetch admin metrics:', error.message);
+        logger.error('Failed to fetch admin metrics:', error.message);
         throw new Error(error.message.includes('admin role required') 
           ? 'Access denied: You must be an admin to view these metrics.'
           : error.message
@@ -111,7 +112,7 @@ export function useAdminMetrics() {
     queryFn: async (): Promise<RecentUser[]> => {
       const { data, error } = await supabase.rpc('get_recent_users', { days_back: 30 });
       if (error) {
-        console.error('Failed to fetch recent users:', error.message);
+        logger.error('Failed to fetch recent users:', error.message);
         throw error;
       }
       return (data || []).map((row: RecentUser) => ({
@@ -132,7 +133,7 @@ export function useAdminMetrics() {
     queryFn: async (): Promise<TodaysActivity[]> => {
       const { data, error } = await supabase.rpc('get_todays_activity');
       if (error) {
-        console.error('Failed to fetch today\'s activity:', error.message);
+        logger.error('Failed to fetch today\'s activity:', error.message);
         throw error;
       }
       return (data || []).map((row: TodaysActivity) => ({

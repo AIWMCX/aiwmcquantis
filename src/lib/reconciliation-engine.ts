@@ -10,6 +10,7 @@
  */
 
 import { QuantisMath } from '@/lib/quantis-math';
+import { logger } from '@/lib/logger';
 import type {
   PLStatement,
   CashFlowStatement,
@@ -401,6 +402,6 @@ export async function saveReconciliationLog(
   });
 
   if (error) {
-    console.error('[ReconciliationEngine] Failed to save log:', error.message);
+    logger.error('[ReconciliationEngine] Failed to save log:', error.message);
   }
 }

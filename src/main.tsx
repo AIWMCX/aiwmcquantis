@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
 import App from './App.tsx';
+import { logger } from '@/lib/logger';
 import './index.css';
 
 // Initialize monitoring and analytics before rendering
@@ -31,12 +32,12 @@ if ('serviceWorker' in navigator) {
         );
         await Promise.all(staleVersions.map(name => caches.delete(name)));
         if (staleVersions.length > 0) {
-          console.log('[App] Cleared stale caches:', staleVersions);
+          logger.info('[App] Cleared stale caches:', staleVersions);
         }
       }
 
       const registration = await navigator.serviceWorker.register('/sw.js');
-      console.log('[SW] Registered:', registration.scope);
+      logger.info('[SW] Registered:', registration.scope);
       
       // Check for updates immediately
       registration.update().catch(() => {
@@ -49,7 +50,7 @@ if ('serviceWorker' in navigator) {
         if (newWorker) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              console.log('[SW] New version available. Will activate on next visit.');
+              logger.info('[SW] New version available. Will activate on next visit.');
             }
           });
         }
@@ -58,7 +59,7 @@ if ('serviceWorker' in navigator) {
       // Silently handle SW registration failures - they're non-critical
       // This prevents console errors from affecting Best Practices score
       if (process.env.NODE_ENV === 'development') {
-        console.warn('[SW] Registration failed:', error);
+        logger.warn('[SW] Registration failed:', error);
       }
     }
   });

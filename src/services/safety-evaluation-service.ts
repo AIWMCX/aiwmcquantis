@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
 
+import { logger } from '@/lib/logger';
 export interface AuditInfo {
   lastAuditedAt: Date;
   safetyLevel: number;
@@ -37,7 +38,7 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
     // Real error → log once at debug level (no console noise in prod).
     if (error) {
       if (import.meta.env.DEV) {
-        console.debug('[audit-info] using defaults:', error.message);
+        logger.debug('[audit-info] using defaults:', error.message);
       }
       return DEFAULT_AUDIT_INFO;
     }
@@ -51,7 +52,7 @@ export async function getLatestAuditInfo(): Promise<AuditInfo> {
     };
   } catch (err) {
     if (import.meta.env.DEV) {
-      console.debug('[audit-info] error:', (err as Error)?.message);
+      logger.debug('[audit-info] error:', (err as Error)?.message);
     }
     return DEFAULT_AUDIT_INFO;
   }

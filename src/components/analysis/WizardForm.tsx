@@ -21,6 +21,7 @@ import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 
+import { logger } from '@/lib/logger';
 const DRAFT_KEY = 'quantis_wizard_draft';
 const SAVE_DELAY_MS = 2000;
 
@@ -158,7 +159,7 @@ export function WizardForm({
         localStorage.removeItem('quantis_prefill');
         sessionStorage.removeItem('hero_prefill');
       } catch (e) {
-        console.error('Failed to parse prefill:', e);
+        logger.error('Failed to parse prefill:', e);
       }
     }
   }, []);
@@ -182,7 +183,7 @@ export function WizardForm({
           }
         }
       } catch (e) {
-        console.error('Failed to check draft:', e);
+        logger.error('Failed to check draft:', e);
       }
     };
     checkDraft();
@@ -199,7 +200,7 @@ export function WizardForm({
           financialInputs, savedAt: Date.now(),
         };
         await secureSetItem(DRAFT_KEY, draft);
-      } catch (e) { console.error('Failed to save draft:', e); }
+      } catch (e) { logger.error('Failed to save draft:', e); }
     }, SAVE_DELAY_MS);
     return () => clearTimeout(timeout);
   }, [idea, location, financialInputs, hasDraft, isRestored]);
@@ -214,12 +215,12 @@ export function WizardForm({
         setIsRestored(true);
         setHasDraft(false);
       }
-    } catch (e) { console.error('Failed to restore draft:', e); }
+    } catch (e) { logger.error('Failed to restore draft:', e); }
   }, [onIdeaChange, onLocationChange, onFinancialInputsChange]);
 
   const dismissDraft = useCallback(() => { setHasDraft(false); setIsRestored(true); }, []);
   const clearDraft = useCallback(() => {
-    try { secureRemoveItem(DRAFT_KEY); setHasDraft(false); } catch (e) { console.error('Failed to clear draft:', e); }
+    try { secureRemoveItem(DRAFT_KEY); setHasDraft(false); } catch (e) { logger.error('Failed to clear draft:', e); }
   }, []);
 
   const handleSubmit = (e: React.FormEvent) => {

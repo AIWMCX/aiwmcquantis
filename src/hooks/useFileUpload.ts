@@ -4,6 +4,7 @@ import { toast } from 'sonner';
 import { ExtractedFinancials, aggregateDocumentFinancials, DocumentAnalysisSummary } from '@/types/documentAnalysis';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 
+import { logger } from '@/lib/logger';
 export interface UploadedFile {
   id: string;
   name: string;
@@ -109,7 +110,7 @@ export function useFileUpload(userId: string | undefined) {
       });
 
       if (parseError) {
-        console.error('Parse error:', parseError);
+        logger.error('Parse error:', parseError);
         // Still mark as ready even if parsing fails
         setFiles(prev => prev.map(f => 
           f.id === fileId 
@@ -132,7 +133,7 @@ export function useFileUpload(userId: string | undefined) {
 
         // Log extracted financials for debugging
         if (extractedFinancials) {
-          console.log(`Extracted financials from ${file.name}:`, extractedFinancials);
+          logger.info(`Extracted financials from ${file.name}:`, extractedFinancials);
         }
       }
 
@@ -146,7 +147,7 @@ export function useFileUpload(userId: string | undefined) {
       };
 
     } catch (error) {
-      console.error('Upload error:', error);
+      logger.error('Upload error:', error);
       let errorMessage = error instanceof Error ? error.message : 'Upload failed';
       
       // Handle subscription-related errors from edge function
@@ -201,7 +202,7 @@ export function useFileUpload(userId: string | undefined) {
 
       setFiles(prev => prev.filter(f => f.id !== fileId));
     } catch (error) {
-      console.error('Failed to remove file:', error);
+      logger.error('Failed to remove file:', error);
       toast.error('Failed to remove file');
     }
   }, [files, userId]);

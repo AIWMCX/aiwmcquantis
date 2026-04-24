@@ -1,5 +1,6 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
+import { logger } from '@/lib/logger';
 import {
   Document,
   Page,
@@ -1416,7 +1417,7 @@ async function fetchBrandingSettings(): Promise<BrandingConfig | null> {
       hideQuantisBranding: data.hide_quantis_branding || false,
     };
   } catch (error) {
-    console.error('Failed to fetch branding settings:', error);
+    logger.error('Failed to fetch branding settings:', error);
     return null;
   }
 }
@@ -1483,7 +1484,7 @@ export function usePdfExport() {
       
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      console.error('PDF generation failed:', errorMessage, error);
+      logger.error('PDF generation failed:', errorMessage, error);
       throw error;
     } finally {
       setIsGenerating(false);

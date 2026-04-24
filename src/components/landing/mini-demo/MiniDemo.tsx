@@ -16,6 +16,7 @@ import { MetricsDisplay } from './MetricsDisplay';
 import { LockedFeaturesTease } from './LockedFeaturesTease';
 import { UnlockCTA } from './UnlockCTA';
 
+import { logger } from '@/lib/logger';
 // Industry categories
 const INDUSTRIES = [
   { value: 'saas', label: 'SaaS / Software' },
@@ -76,7 +77,7 @@ export function MiniDemo() {
           }
         }
       } catch (e) {
-        console.error('Error parsing hero prefill:', e);
+        logger.error('Error parsing hero prefill:', e);
       }
     }
   }, []);
@@ -123,7 +124,7 @@ export function MiniDemo() {
         throw new Error(data?.error || 'Unable to generate preview');
       }
     } catch (err: any) {
-      console.error('Mini demo error:', err);
+      logger.error('Mini demo error:', err);
       
       if (err.message?.includes('rate limit') || err.message?.includes('too many')) {
         setError('You\'ve reached the preview limit. Sign up for unlimited analyses!');

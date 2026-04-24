@@ -6,6 +6,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { BenchmarkRecord, chunkArray } from "@/utils/kerryDataTransformer";
 
+import { logger } from '@/lib/logger';
 export interface UploadProgress {
   current: number;
   total: number;
@@ -56,7 +57,7 @@ async function invokeWithRetry(
       
       return { data: responseData, error: null };
     } catch (err) {
-      console.error(`Attempt ${attempt}/${retries} failed:`, err);
+      logger.error(`Attempt ${attempt}/${retries} failed:`, err);
       
       if (attempt === retries) {
         return { data: null, error: err as Error };

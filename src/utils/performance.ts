@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger';
 /**
  * Performance utilities for debouncing, throttling, and idle task scheduling
  */
@@ -78,7 +79,7 @@ export const measurePerformance = (name: string, fn: () => void): void => {
     const start = performance.now();
     fn();
     const end = performance.now();
-    console.log(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
+    logger.info(`[Performance] ${name}: ${(end - start).toFixed(2)}ms`);
   } else {
     fn();
   }

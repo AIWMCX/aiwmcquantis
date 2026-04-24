@@ -2,6 +2,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AnalysisRequest, AnalysisAPIResponse, BusinessAnalysisResult } from '@/types/analysis';
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 
+import { logger } from '@/lib/logger';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 
@@ -31,7 +32,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        console.log(`Retry attempt ${attempt}/${MAX_RETRIES}`);
+        logger.info(`Retry attempt ${attempt}/${MAX_RETRIES}`);
         await sleep(RETRY_DELAY * attempt);
       }
 
@@ -121,7 +122,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      console.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
+      logger.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
       
       // Don't retry for validation errors, invalid input, or rate limit errors
       if (lastError.message.includes('VALIDATION') || 
