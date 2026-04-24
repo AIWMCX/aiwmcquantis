@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-cron-secret",
-};
-
+import { corsHeadersFor } from '../_shared/cors.ts';
 // Weekly content templates - curated, industry-specific insights
 const WEEKLY_CONTENT = [
   {
@@ -191,6 +187,7 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
