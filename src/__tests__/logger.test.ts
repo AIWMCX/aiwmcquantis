@@ -51,29 +51,41 @@ describe('logger', () => {
     expect(last?.context?.metadata?.request_id).toBe(id);
   });
 
-  it('forwards Error instances to Sentry.captureError', () => {
-    // Force prod path
-    const realDev = (import.meta as any).env.DEV;
+  it('forwards Error instances to Sentry.captureError (prod path)', async () => {
+    vi.resetModules();
     (import.meta as any).env.DEV = false;
+    vi.doMock('@/lib/sentry', () => ({
+      captureError: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+      Sentry: { setTag: vi.fn() },
+    }));
+    const { logger: prodLogger } = await import('@/lib/logger');
+    const sentry = await import('@/lib/sentry');
     const err = new Error('boom');
-    logger.error('failed', err);
-    expect(captureError).toHaveBeenCalledWith(err, expect.any(Object));
-    (import.meta as any).env.DEV = realDev;
+    prodLogger.error('failed', err);
+    expect(sentry.captureError).toHaveBeenCalledWith(err, expect.any(Object));
   });
 
-  it('forwards non-Error rejections to Sentry.captureMessage', () => {
-    const realDev = (import.meta as any).env.DEV;
+  it('forwards non-Error rejections to Sentry.captureMessage (prod path)', async () => {
+    vi.resetModules();
     (import.meta as any).env.DEV = false;
-    logger.error('weird', { not: 'an-error' });
-    expect(captureMessage).toHaveBeenCalledWith(
+    vi.doMock('@/lib/sentry', () => ({
+      captureError: vi.fn(),
+      captureMessage: vi.fn(),
+      addBreadcrumb: vi.fn(),
+      Sentry: { setTag: vi.fn() },
+    }));
+    const { logger: prodLogger } = await import('@/lib/logger');
+    const sentry = await import('@/lib/sentry');
+    prodLogger.error('weird', { not: 'an-error' });
+    expect(sentry.captureMessage).toHaveBeenCalledWith(
       expect.stringContaining('[ERROR] weird'),
       'error'
     );
-    (import.meta as any).env.DEV = realDev;
   });
 
   it('does NOT call Sentry in dev mode', () => {
-    (import.meta as any).env.DEV = true;
     logger.error('dev-only', new Error('x'));
     expect(captureError).not.toHaveBeenCalled();
   });
