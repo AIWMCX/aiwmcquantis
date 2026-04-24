@@ -57,17 +57,30 @@ class Logger {
     }
   }
 
-  debug(message: string, context?: LogContext) {
-    this.log('debug', message, context);
+  private normalizeContext(input?: unknown): LogContext | undefined {
+    if (input === undefined || input === null) return undefined;
+    if (typeof input === 'object' && !Array.isArray(input) && !(input instanceof Error)) {
+      // Heuristic: looks like a LogContext if it has any of the known keys.
+      const obj = input as Record<string, unknown>;
+      if ('userId' in obj || 'component' in obj || 'action' in obj || 'metadata' in obj) {
+        return obj as LogContext;
+      }
+      return { metadata: obj as Record<string, unknown> };
+    }
+    return { metadata: { extra: input } };
   }
 
-  info(message: string, context?: LogContext) {
-    this.log('info', message, context);
+  debug(message: string, context?: unknown) {
+    this.log('debug', message, this.normalizeContext(context));
   }
 
-  warn(message: string, context?: LogContext) {
-    this.log('warn', message, context);
-    
+  info(message: string, context?: unknown) {
+    this.log('info', message, this.normalizeContext(context));
+  }
+
+  warn(message: string, context?: unknown) {
+    this.log('warn', message, this.normalizeContext(context));
+
     if (!this.isDev) {
       captureMessage(`[WARN] ${message}`, 'warning');
     }
