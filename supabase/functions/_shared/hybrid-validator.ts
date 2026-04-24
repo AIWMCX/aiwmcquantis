@@ -39,6 +39,8 @@ export interface ValidatorInput {
   /** Optional caller context — used for ai_calls cost ledger. */
   user_id?: string | null;
   analysis_id?: string | null;
+  /** Per-run correlation ID — links ai_calls rows to a single analysis run. */
+  request_id?: string | null;
 }
 
 export interface ValidatorWarning {
@@ -210,6 +212,7 @@ async function runLLMReview(
   const callerCtx = {
     user_id: input.user_id ?? null,
     analysis_id: input.analysis_id ?? null,
+    request_id: input.request_id ?? null,
   };
 
   const systemPrompt = `You are an adversarial financial-analysis reviewer for a paid B2B product.
