@@ -22,6 +22,8 @@ export type AiCallTask =
 export interface LogAiCallInput {
   user_id?: string | null;
   analysis_id?: string | null;
+  /** Per-run correlation ID. See `_shared/request-id.ts`. */
+  request_id?: string | null;
   task: AiCallTask;
   provider: AiCallProvider;
   model: string;
@@ -54,6 +56,7 @@ export async function logAiCall(input: LogAiCallInput): Promise<void> {
     await admin.from('ai_calls').insert({
       user_id: input.user_id ?? null,
       analysis_id: input.analysis_id ?? null,
+      request_id: input.request_id ?? null,
       task: input.task,
       provider: input.provider,
       model: input.model,
