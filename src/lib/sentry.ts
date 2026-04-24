@@ -28,6 +28,11 @@ export function initSentry() {
         'ResizeObserver loop limit exceeded',
         'ResizeObserver loop completed with undelivered notifications',
         'Non-Error promise rejection captured',
+        // Third-party tracker noise — Apollo, Clarity, GA — never our bug.
+        /apollo\.io/i,
+        /clarity\.ms/i,
+        /googletagmanager/i,
+        /Failed to fetch.*assets\.apollo/i,
       ],
     });
   } catch (e) {
