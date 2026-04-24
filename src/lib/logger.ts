@@ -1,4 +1,5 @@
 import { captureError, captureMessage, addBreadcrumb } from './sentry';
+import { getRequestId } from './correlation';
 
 type LogLevel = 'debug' | 'info' | 'warn' | 'error';
 
@@ -28,6 +29,14 @@ class Logger {
 
   private log(level: LogLevel, message: string, context?: LogContext) {
     const timestamp = new Date().toISOString();
+    // Stamp every entry with the active correlation ID, if any.
+    const requestId = getRequestId();
+    if (requestId) {
+      context = {
+        ...context,
+        metadata: { request_id: requestId, ...(context?.metadata ?? {}) },
+      };
+    }
     const logEntry: LogEntry = { timestamp, level, message, context };
 
     // Keep log history for debugging
