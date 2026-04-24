@@ -28,6 +28,7 @@ export type Database = {
           ok: boolean
           output_tokens: number
           provider: string
+          request_id: string | null
           task: string
           user_id: string | null
         }
@@ -44,6 +45,7 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           provider: string
+          request_id?: string | null
           task: string
           user_id?: string | null
         }
@@ -60,6 +62,7 @@ export type Database = {
           ok?: boolean
           output_tokens?: number
           provider?: string
+          request_id?: string | null
           task?: string
           user_id?: string | null
         }
