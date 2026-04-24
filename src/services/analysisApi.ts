@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import type { AnalysisRequest, AnalysisAPIResponse, BusinessAnalysisResult } from '@/types/analysis';
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
+import { startRequestContext, requestHeaders } from '@/lib/correlation';
 
 import { logger } from '@/lib/logger';
 const MAX_RETRIES = 2;
@@ -25,10 +26,16 @@ async function getAnonymousHeaders(): Promise<Record<string, string>> {
 
 export async function generateAnalysis(request: AnalysisRequest): Promise<BusinessAnalysisResult> {
   let lastError: Error | null = null;
-  
+
   // Get anonymous tracking headers
   const anonymousHeaders = await getAnonymousHeaders();
-  
+
+  // Begin a correlation context for this analysis run. Every logger.* call
+  // and every Sentry event between here and the end of the request will
+  // carry the same `request_id`, and the edge function will echo it back.
+  const requestId = startRequestContext();
+  logger.info('Analysis request started', { metadata: { request_id: requestId } });
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
@@ -37,7 +44,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
-        headers: anonymousHeaders,
+        headers: requestHeaders(anonymousHeaders),
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
