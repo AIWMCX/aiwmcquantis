@@ -73,15 +73,34 @@ class Logger {
     }
   }
 
-  error(message: string, error?: Error, context?: LogContext) {
-    const errorMetadata = error ? { errorMessage: error.message, errorName: error.name } : {};
-    this.log('error', message, { 
-      ...context, 
-      metadata: { ...context?.metadata, ...errorMetadata } as Record<string, unknown>
+  error(message: string, errorOrValue?: unknown, context?: LogContext) {
+    // Normalize: codemod-migrated calls pass arbitrary values as 2nd arg.
+    let error: Error | undefined;
+    let extra: unknown;
+    if (errorOrValue instanceof Error) {
+      error = errorOrValue;
+    } else if (errorOrValue !== undefined) {
+      extra = errorOrValue;
+    }
+
+    const errorMetadata = error
+      ? { errorMessage: error.message, errorName: error.name }
+      : {};
+    const extraMetadata = extra !== undefined ? { extra } : {};
+    this.log('error', message, {
+      ...context,
+      metadata: {
+        ...context?.metadata,
+        ...errorMetadata,
+        ...extraMetadata,
+      } as Record<string, unknown>,
     });
 
     if (error && !this.isDev) {
       captureError(error, context as Record<string, unknown>);
+    } else if (extra !== undefined && !this.isDev) {
+      // Capture as message so non-Error rejections still reach Sentry.
+      captureMessage(`[ERROR] ${message}`, 'error');
     }
   }
 
