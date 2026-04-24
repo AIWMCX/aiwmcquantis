@@ -2,17 +2,12 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { corsHeadersFor } from '../_shared/cors.ts';
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
   "X-Frame-Options": "DENY",
   "X-XSS-Protection": "1; mode=block",
-};
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
-  ...securityHeaders,
 };
 
 // Retry configuration
@@ -64,6 +59,7 @@ console.log("=== Stripe Webhook Function Started ===");
 console.log("Timestamp:", new Date().toISOString());
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   const requestId = crypto.randomUUID().slice(0, 8);
   console.log(`[${requestId}] === Stripe Webhook Request ===`);
   console.log(`[${requestId}] Method: ${req.method}`);

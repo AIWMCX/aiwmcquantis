@@ -2,17 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "X-Content-Type-Options": "nosniff",
-  "X-Frame-Options": "DENY",
-  "X-XSS-Protection": "1; mode=block",
-};
-
+import { corsHeadersFor } from '../_shared/cors.ts';
 console.log("=== Replay Webhook Events Function Started ===");
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   const requestId = crypto.randomUUID().slice(0, 8);
   console.log(`[${requestId}] Replay request received`);
 

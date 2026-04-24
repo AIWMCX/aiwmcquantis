@@ -1,11 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
-
+import { corsHeadersFor } from '../_shared/cors.ts';
 const PK_COLS = ['sector_level1', 'sector_level2', 'business_model', 'geo_region', 'country', 'city_tier', 'company_stage', 'size_bucket'];
 
 const TABLE_MAP: Record<string, string> = {
@@ -17,6 +13,7 @@ const TABLE_MAP: Record<string, string> = {
 };
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }

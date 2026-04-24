@@ -1,12 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
-};
-
+import { corsHeadersFor } from '../_shared/cors.ts';
 /* ─── 100 BUSINESS CASE SEEDS ───
    Each seed provides a specific, financially-calculable concept with realistic
    ranges the AI must respect. Grouped by sector for variety. */
@@ -245,6 +240,7 @@ function getRandomSeed(industry?: string): { industry: string; concept: string; 
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
+import { corsHeadersFor } from '../_shared/cors.ts';
 /**
  * Bot Detection Edge Function
  * 
@@ -34,12 +35,6 @@ const SUSPICIOUS_PATTERNS = [
 const ipRequestLog = new Map<string, { count: number; firstSeen: number }>();
 const RATE_WINDOW_MS = 60_000; // 1 minute
 const RATE_LIMIT = 30; // 30 requests per minute per IP
-
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-honeypot-field",
-  "Access-Control-Allow-Methods": "POST, OPTIONS",
-};
 
 function analyzeUserAgent(ua: string): { isBot: boolean; confidence: number; reason?: string } {
   if (!ua || ua.length < 5) {
@@ -95,6 +90,7 @@ setInterval(() => {
 }, RATE_WINDOW_MS);
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
   }

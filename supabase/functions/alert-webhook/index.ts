@@ -14,11 +14,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
-const corsHeaders = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-alert-secret",
-};
-
+import { corsHeadersFor } from '../_shared/cors.ts';
 interface AlertPayload {
   alert_type: 'down' | 'up' | 'degraded' | 'error_spike' | 'budget_exceeded' | 'kill_switch';
   source: string;
@@ -246,6 +242,7 @@ async function logAlert(
 }
 
 serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
