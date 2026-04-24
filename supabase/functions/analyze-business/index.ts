@@ -80,6 +80,8 @@ import { validateAnalysis, type ValidatorResult } from "../_shared/hybrid-valida
 // CORS — strict origin allowlist (no more wildcard *).
 // `corsHeadersFor(req)` echoes back the Origin only when it's in the trusted set.
 import { corsHeadersFor } from "../_shared/cors.ts";
+// Per-request correlation ID — links UI logs ↔ this function ↔ ai_calls rows.
+import { getRequestId, requestIdHeader } from "../_shared/request-id.ts";
 
 // ========== SECURITY UTILITIES ==========
 
@@ -2608,9 +2610,12 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 serve(async (req) => {
   // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
   const corsHeaders = corsHeadersFor(req);
+  // Correlation ID — read from `x-request-id` (set by the UI) or generate.
+  const requestId = getRequestId(req);
+  const responseHeaders = { ...corsHeaders, ...requestIdHeader(requestId) };
 
   if (req.method === "OPTIONS") {
-    return new Response(null, { headers: corsHeaders });
+    return new Response(null, { headers: responseHeaders });
   }
 
   try {
