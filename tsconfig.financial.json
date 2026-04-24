@@ -1,0 +1,17 @@
+{
+  "//": "Strict-mode opt-in for financial-engine modules. Run with `tsc -p tsconfig.financial.json` in CI to gate regressions while the global strict rollout is in progress (see docs/strict-mode-rollout.md).",
+  "extends": "./tsconfig.app.json",
+  "compilerOptions": {
+    "strict": true,
+    "strictNullChecks": true,
+    "noImplicitAny": true,
+    "noEmit": true
+  },
+  "include": [
+    "src/lib/quantis-math.ts",
+    "src/lib/financial-engine.ts",
+    "src/lib/reconciliation-engine.ts",
+    "src/lib/formula-registry.ts",
+    "src/lib/geo-calibrator.ts"
+  ]
+}
