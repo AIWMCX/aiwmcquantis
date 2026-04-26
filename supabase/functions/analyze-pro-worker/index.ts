@@ -13,6 +13,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -127,6 +128,33 @@ Deno.serve(async (req: Request) => {
       })
       .eq('id', jobId);
 
+    // Observability
+    await logAnalysisEvent({
+      analysis_id: job.request_id,
+      user_id: job.user_id,
+      event_type: 'analysis_complete',
+      severity: 'info',
+      payload: {
+        durationMs: totalMs,
+        engineMs,
+        depth: depthUsed,
+        fellBackFromPro: depthUsed !== 'pro',
+        confidence: (engineRes.data as any)?.confidence_score ?? null,
+        industry_detected: (engineRes.data as any)?.industry_detected ?? null,
+        reconciled: (engineRes.data as any)?.validation?.reconciled ?? null,
+        tier: 'PRO',
+      },
+    });
+    if (totalMs > 60_000) {
+      await logAnalysisEvent({
+        analysis_id: job.request_id,
+        user_id: job.user_id,
+        event_type: 'performance_warning',
+        severity: 'warning',
+        payload: { code: 'QE-PERF-PRO-001', durationMs: totalMs, threshold: 60_000 },
+      });
+    }
+
     return new Response(JSON.stringify({ ok: true, job_id: jobId, ms: totalMs }), {
       status: 200,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -146,6 +174,18 @@ Deno.serve(async (req: Request) => {
           completed_at: new Date().toISOString(),
         })
         .eq('id', jobId);
+
+      await logAnalysisEvent({
+        analysis_id: jobId,
+        event_type: 'engine_error',
+        severity: 'error',
+        payload: {
+          code: message.includes('timeout') ? 'TIMEOUT' : 'ENGINE_ERROR',
+          message: message.slice(0, 500),
+          step: 'invoke_engine',
+          tier: 'PRO',
+        },
+      });
     }
 
     return new Response(JSON.stringify({ ok: false, error: message }), {
