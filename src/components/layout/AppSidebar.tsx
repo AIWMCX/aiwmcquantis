@@ -101,7 +101,7 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   
   const { user } = useAuth();
-  const { isPlus } = useSubscription();
+  const { isPlus, isPro } = useSubscription();
   const { isAdmin } = useAdmin();
 
   const isActive = (url: string) => {
