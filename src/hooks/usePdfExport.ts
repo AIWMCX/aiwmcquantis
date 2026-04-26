@@ -1,6 +1,7 @@
 import { useCallback, useRef, useState, useEffect } from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { logger } from '@/lib/logger';
+import { trackActivationEvent } from '@/lib/activationTracking';
 import {
   Document,
   Page,

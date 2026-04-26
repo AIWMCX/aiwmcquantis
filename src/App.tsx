@@ -11,6 +11,7 @@ import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { SkipToContent } from "./components/accessibility/SkipToContent";
 import { initWebVitals } from "./lib/webVitals";
 import { initEngagementTracking } from "./lib/engagementTracking";
+import { trackReturnVisitIfApplicable } from "./lib/activationTracking";
 
 // CRITICAL: Landing page is NOT lazy loaded for instant first paint
 import Landing from "./pages/Landing";
@@ -77,6 +78,7 @@ const App = () => {
   useEffect(() => {
     initWebVitals();
     initEngagementTracking();
+    trackReturnVisitIfApplicable();
   }, []);
 
   return (
