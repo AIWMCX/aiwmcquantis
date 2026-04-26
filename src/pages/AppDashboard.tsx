@@ -68,7 +68,7 @@ export default function Index() {
     incrementAnalysisCount,
   } = useOnboarding();
   const { 
-    isPlus, isFree, remainingAnalyses, 
+    isPlus, isPro, isFree, remainingAnalyses, 
     loading: subscriptionLoading, error: subscriptionError, isTimedOut,
     createCheckout, openPortal, refetch: refetchSubscription,
   } = useSubscription();
