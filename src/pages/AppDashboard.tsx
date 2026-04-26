@@ -380,7 +380,22 @@ export default function Index() {
                         const { data, error } = await supabase.functions.invoke('generate-idea', {
                           body: { industry: 'technology' },
                         });
-                        if (error) throw error;
+                        // Entitlement gate: FunctionsHttpError exposes the JSON body via .context
+                        if (error) {
+                          let locked = false;
+                          try {
+                            const body = await (error as any)?.context?.json?.();
+                            if (body?.error === 'FEATURE_LOCKED') locked = true;
+                          } catch { /* fall through */ }
+                          if (locked || /FEATURE_LOCKED|actionPlan/i.test(String(error?.message || ''))) {
+                            toast({
+                              title: '✨ AI Idea Generation is a Plus feature',
+                              description: 'Upgrade to Plus to unlock — or try the Coffee Shop sample for free.',
+                            });
+                            return;
+                          }
+                          throw error;
+                        }
                         if (data?.idea) {
                           setIdea(data.idea);
                           setLocation('New York, NY');
