@@ -32,7 +32,12 @@ interface UsageTracking {
 interface SubscriptionData {
   subscription: Subscription | null;
   usage: UsageTracking | null;
+  /** Canonical Master Spec tier — single source of truth. */
+  tier: Tier;
+  /** Spec-derived feature manifest for this tier. */
+  manifest: FeatureManifest;
   isPlus: boolean;
+  isPro: boolean;
   isFree: boolean;
   isActive: boolean;
   analysesUsed: number;
@@ -43,7 +48,7 @@ interface SubscriptionData {
   error: string | null;
   isTimedOut: boolean;
   refetch: () => Promise<void>;
-  createCheckout: (plan: 'plus') => Promise<void>;
+  createCheckout: (plan: 'plus' | 'pro') => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
