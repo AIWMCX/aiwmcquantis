@@ -33,11 +33,15 @@ const COPY: Record<PlusGateProps['module'], {
   question: string;
   bullets: string[];
 }> = {
+/**
+ * Module-local bullets — these intentionally extend the spec UPGRADE_TRIGGER
+ * with concrete deliverables for each module. Headline / CTA come from spec.
+ */
+const MODULE_BULLETS: Record<PlusGateProps['module'], {
+  question: string;
+  bullets: string[];
+}> = {
   'pre-mortem': {
-    eyebrow: 'Pre-Mortem Stress Test · Plus',
-    title: 'Stress-test your business before it stress-tests you.',
-    subtitle:
-      'Run a financial pre-mortem on an existing business: model churn shocks, cost spikes, seasonal collapse, and customer concentration risk — before they hit your bank account.',
     question: '“Where will this business break if conditions change?”',
     bullets: [
       'Monte Carlo collapse scenarios (P10 / P50 / P90)',
@@ -48,10 +52,6 @@ const COPY: Record<PlusGateProps['module'], {
     ],
   },
   invoices: {
-    eyebrow: 'Invoice & Capacity Check · Plus',
-    title: 'Should you take this client — or will it sink you?',
-    subtitle:
-      'For freelancers, consultants, and agencies. Stress-test new contracts against your real capacity, cash flow, and margin floor before you sign.',
     question: '“Can I actually deliver this profitably?”',
     bullets: [
       'Branded invoice generator (PDF export)',
@@ -62,10 +62,6 @@ const COPY: Record<PlusGateProps['module'], {
     ],
   },
   docs: {
-    eyebrow: 'Document Studio · Plus',
-    title: 'Investor-ready documents from your analysis — in 2 minutes.',
-    subtitle:
-      'Turn your validated business model into one-pagers, executive memos, pitch deck data sheets, and pre-mortem reports — all populated from your real numbers.',
     question: '“How do I package this for investors / partners / banks?”',
     bullets: [
       '12+ professional templates (BI report, pre-mortem, pitch data, exec memo)',
