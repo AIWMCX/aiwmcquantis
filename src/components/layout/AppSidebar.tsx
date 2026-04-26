@@ -122,6 +122,7 @@ export function AppSidebar() {
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
   const userEmail = user?.email || 'User';
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
 
   return (
     <TooltipProvider delayDuration={200}>
