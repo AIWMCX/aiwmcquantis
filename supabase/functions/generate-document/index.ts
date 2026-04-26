@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireFeature, EntitlementError } from "../_shared/entitlements.ts";
+import { tierGate } from "../_shared/tier-gate.ts";
+import { ENDPOINTS } from "../_shared/tier-spec.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
