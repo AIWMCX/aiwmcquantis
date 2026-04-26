@@ -6,6 +6,7 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
+import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
 
 interface PlusGateProps {
   /** The module being gated */
@@ -13,6 +14,17 @@ interface PlusGateProps {
   /** Children render only when user is on Plus (or while subscription is still loading) */
   children: React.ReactNode;
 }
+
+/**
+ * Map gated modules → canonical UPGRADE_TRIGGERS keys (Master Spec §10).
+ * The trigger drives the headline + CTA; module-specific bullets stay local
+ * since the spec deliberately keeps the trigger library copy-tight.
+ */
+const MODULE_TO_TRIGGER: Record<PlusGateProps['module'], keyof typeof UPGRADE_TRIGGERS> = {
+  'pre-mortem': 'locked_premortem',
+  invoices: 'locked_premortem', // capacity-check fits the same Plus-unlock motion
+  docs: 'locked_document_studio',
+};
 
 const COPY: Record<PlusGateProps['module'], {
   eyebrow: string;
