@@ -34,6 +34,7 @@ import {
   CreditCard,
   HelpCircle,
   Zap,
+  Crown,
   Lock,
 } from 'lucide-react';
 
@@ -86,8 +87,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ACCOUNT',
     items: [
-      { title: 'Settings', url: '/plus-settings', icon: Settings },
-      { title: 'Billing', url: '/plus-settings?tab=billing', icon: CreditCard },
+      { title: 'Settings', url: '__settings__', icon: Settings },
+      { title: 'Billing', url: '__settings__?tab=billing', icon: CreditCard },
       { title: 'Help', url: 'https://aiwmcquantis.lovable.app/how-it-works', icon: HelpCircle, external: true },
     ],
   },
@@ -100,11 +101,14 @@ export function AppSidebar() {
   const collapsed = state === 'collapsed';
   
   const { user } = useAuth();
-  const { isPlus } = useSubscription();
+  const { isPlus, isPro } = useSubscription();
   const { isAdmin } = useAdmin();
 
+  const resolveUrl = (url: string) => url.replace('__settings__', settingsPath);
+
   const isActive = (url: string) => {
-    const [path, query] = url.split('?');
+    const resolvedUrl = resolveUrl(url);
+    const [path, query] = resolvedUrl.split('?');
     if (query) {
       return location.pathname === path && location.search.includes(query);
     }
@@ -115,12 +119,13 @@ export function AppSidebar() {
     if (item.external) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
     } else {
-      navigate(item.url);
+      navigate(resolveUrl(item.url));
     }
   };
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
   const userEmail = user?.email || 'User';
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -238,13 +243,19 @@ export function AppSidebar() {
                 <Badge
                   variant={isPlus ? 'default' : 'secondary'}
                   className={`mt-0.5 text-[10px] h-5 ${
-                    isPlus
-                      ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
-                      : ''
+                    isPro
+                      ? 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)] border-[var(--q-status-yellow-border)]'
+                      : isPlus
+                        ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
+                        : ''
                   }`}
                 >
-                  {isPlus && <Zap className="w-2.5 h-2.5 mr-1" />}
-                  {isPlus ? 'Plus' : 'Free'}
+                  {isPro ? (
+                    <Crown className="w-2.5 h-2.5 mr-1" />
+                  ) : isPlus ? (
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                  ) : null}
+                  {isPro ? 'Pro' : isPlus ? 'Plus' : 'Free'}
                 </Badge>
               </div>
             )}

@@ -72,6 +72,7 @@ export default function Index() {
     loading: subscriptionLoading, error: subscriptionError, isTimedOut,
     createCheckout, openPortal, refetch: refetchSubscription,
   } = useSubscription();
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
 
   const {
     idea, setIdea, location, setLocation,
@@ -317,7 +318,7 @@ export default function Index() {
                       ) : (
                         <>
                           {isPlus && (
-                            <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1 h-7 text-xs">
+                            <Button size="sm" variant="outline" onClick={() => navigate(settingsPath)} className="gap-1 h-7 text-xs">
                               <Settings className="w-3 h-3" /> Settings
                             </Button>
                           )}
