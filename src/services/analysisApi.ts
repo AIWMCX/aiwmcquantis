@@ -1,5 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { AnalysisRequest, AnalysisAPIResponse, BusinessAnalysisResult } from '@/types/analysis';
+import type {
+  AnalysisRequest,
+  AnalysisAPIResponse,
+  AnalysisGenerationResult,
+} from '@/types/analysis';
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 import { startRequestContext, requestHeaders } from '@/lib/correlation';
 
