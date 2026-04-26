@@ -95,3 +95,9 @@ verify_jwt = false
 
 [functions.template-optimizer]
 verify_jwt = false
+
+[functions.api-analyze-main]
+verify_jwt = false
+
+[functions.team-invite]
+verify_jwt = true
