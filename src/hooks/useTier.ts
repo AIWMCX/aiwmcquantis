@@ -11,6 +11,7 @@ import { useSubscription } from './useSubscription';
 import {
   evaluateGate,
   hasFeature,
+  FEATURE_TIER_REQUIREMENT,
   type EndpointId,
   type FeatureKey,
   type FeatureManifest,
@@ -78,8 +79,7 @@ export function useFeature(feature: FeatureKey) {
     () => ({
       allowed,
       tier,
-      // Read the spec rank so callers can show "requires Plus" or "requires Pro"
-      requiredTier: allowed ? null : (require('@/lib/tier-spec').FEATURE_TIER_REQUIREMENT[feature] as Tier),
+      requiredTier: allowed ? null : FEATURE_TIER_REQUIREMENT[feature],
     }),
     [allowed, tier, feature],
   );
