@@ -88,7 +88,16 @@ export function PlusGate({ module, children }: PlusGateProps) {
     return <>{children}</>;
   }
 
-  const copy = COPY[module];
+  // Pull spec-canonical headline / body / CTA from UPGRADE_TRIGGERS;
+  // pair it with module-local bullets + question for full conversion screen.
+  const trigger = UPGRADE_TRIGGERS[MODULE_TO_TRIGGER[module]];
+  const moduleCopy = MODULE_BULLETS[module];
+  const eyebrowLabel =
+    module === 'pre-mortem'
+      ? 'Pre-Mortem Stress Test · Plus'
+      : module === 'invoices'
+        ? 'Invoice & Capacity Check · Plus'
+        : 'Document Studio · Plus';
 
   const handleUpgrade = () => {
     if (isAuthenticated && user) {
@@ -99,7 +108,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
   };
 
   return (
-    <AppLayout title={copy.eyebrow}>
+    <AppLayout title={eyebrowLabel}>
       <div className="min-h-[calc(100vh-3.5rem)] flex items-center justify-center px-4 py-10 bg-[var(--q-bg-base)]">
         <div className="w-full max-w-3xl">
           {/* Back link */}
@@ -116,24 +125,24 @@ export function PlusGate({ module, children }: PlusGateProps) {
             <div className="h-1 w-full bg-gradient-to-r from-primary via-primary/60 to-primary" />
 
             <div className="p-6 sm:p-10 space-y-8">
-              {/* Eyebrow */}
+              {/* Eyebrow + spec headline */}
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-xl bg-primary/15 border border-primary/30 flex items-center justify-center shrink-0">
                   <Lock className="w-5 h-5 text-primary" />
                 </div>
                 <div>
                   <p className="text-[10px] font-bold uppercase tracking-[0.14em] text-primary/80">
-                    {copy.eyebrow}
+                    {eyebrowLabel}
                   </p>
                   <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mt-1">
-                    {copy.title}
+                    {trigger.headline}
                   </h1>
                 </div>
               </div>
 
-              {/* Subtitle */}
+              {/* Spec body copy */}
               <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                {copy.subtitle}
+                {trigger.body}
               </p>
 
               {/* The question this module answers */}
@@ -141,12 +150,12 @@ export function PlusGate({ module, children }: PlusGateProps) {
                 <p className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold mb-1">
                   This module answers
                 </p>
-                <p className="text-lg font-semibold text-foreground italic">{copy.question}</p>
+                <p className="text-lg font-semibold text-foreground italic">{moduleCopy.question}</p>
               </div>
 
               {/* What's inside */}
               <div className="space-y-2.5">
-                {copy.bullets.map((b) => (
+                {moduleCopy.bullets.map((b) => (
                   <div
                     key={b}
                     className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/60"
@@ -159,7 +168,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
                 ))}
               </div>
 
-              {/* Pricing + CTA */}
+              {/* Pricing + spec-canonical CTA */}
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-4 border-t border-border/50">
                 <div>
                   <p className="text-3xl font-black text-foreground leading-none">
@@ -177,7 +186,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
                   className="gap-2 font-semibold shadow-lg shadow-primary/20 w-full sm:w-auto"
                 >
                   <Zap className="w-4 h-4" />
-                  {payLoading ? 'Loading…' : 'Unlock Plus — Start Free Trial'}
+                  {payLoading ? 'Loading…' : trigger.cta}
                 </Button>
               </div>
 
