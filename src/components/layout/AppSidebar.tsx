@@ -33,7 +33,6 @@ import {
   HelpCircle,
   Zap,
   Lock,
-  ShieldAlert,
 } from 'lucide-react';
 
 interface NavItem {
