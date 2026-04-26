@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 
