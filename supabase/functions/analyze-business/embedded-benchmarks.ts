@@ -35,7 +35,7 @@ export interface EmbeddedBenchmark {
   sample_size: number;
   confidence_score: number;
   source: string;
-  last_updated: string; // ISO date string for staleness scoring
+  last_updated?: string; // ISO date string for staleness scoring (optional)
 }
 
 /**

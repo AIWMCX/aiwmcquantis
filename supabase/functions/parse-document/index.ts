@@ -120,7 +120,8 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    // deno-lint-ignore no-explicit-any
+    const { data: claimsData, error: claimsError } = await (supabaseAuth.auth as any).getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Invalid authentication token", code: "INVALID_AUTH" }),
@@ -175,8 +176,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the file
-    const fileResponse = await fetch(fileUrl);
+    // (file already fetched above; reuse fileResponse)
     if (!fileResponse.ok) {
       throw new Error(`Failed to fetch file: ${fileResponse.status}`);
     }
