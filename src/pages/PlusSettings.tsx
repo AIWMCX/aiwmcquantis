@@ -23,7 +23,11 @@ import {
 export default function PlusSettings() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
+  const { isPlus, isPro, loading: subscriptionLoading, createCheckout } = useSubscription();
+
+  // Tier-aware labels — PRO users see "Pro Settings", not "Plus".
+  const tierLabel = isPro ? 'Pro' : 'Plus';
+  const pageTitle = `${tierLabel} Settings`;
 
   const isLoading = authLoading || subscriptionLoading;
 
