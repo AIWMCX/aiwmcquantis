@@ -4,6 +4,7 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { AccuracyTransparentResults } from '@/components/analysis/AccuracyTransparentResults';
 import { useAnalysis } from '@/hooks/useAnalysis';
+import { useFeature } from '@/hooks/useTier';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AlertTriangle, ShieldAlert, TrendingDown, Activity, ArrowLeft } from 'lucide-react';
@@ -30,9 +31,14 @@ export default function PreMortem() {
   } = useAnalysis();
 
   const [showResults, setShowResults] = useState(false);
+  const { allowed: canRunDeep } = useFeature('pre_mortem');
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (!canRunDeep) {
+      navigate('/pricing?reason=pre_mortem');
+      return;
+    }
     handleSubmit(undefined, 'deep');
     setShowResults(true);
   };

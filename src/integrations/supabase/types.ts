@@ -3680,6 +3680,19 @@ export type Database = {
         }
         Returns: undefined
       }
+      mark_subscription_canceled: {
+        Args: { p_reason?: string; p_user_id: string }
+        Returns: Json
+      }
+      provision_pro_features: {
+        Args: {
+          p_period_end?: string
+          p_stripe_customer_id?: string
+          p_stripe_subscription_id?: string
+          p_user_id: string
+        }
+        Returns: Json
+      }
       record_anonymous_usage:
         | {
             Args: {
