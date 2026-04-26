@@ -1482,7 +1482,11 @@ export function usePdfExport() {
       link.click();
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
-      
+
+      void trackActivationEvent('pdf_exported', {
+        idea: result.metadata?.idea?.slice(0, 50),
+      });
+
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('PDF generation failed:', errorMessage, error);
