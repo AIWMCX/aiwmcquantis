@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock, Zap, Check, ArrowLeft } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
@@ -15,72 +16,26 @@ interface PlusGateProps {
   children: React.ReactNode;
 }
 
-/**
- * Map gated modules → canonical UPGRADE_TRIGGERS keys (Master Spec §10).
- * The trigger drives the headline + CTA; module-specific bullets stay local
- * since the spec deliberately keeps the trigger library copy-tight.
- */
+/** Map gated modules → canonical UPGRADE_TRIGGERS keys (Master Spec §10). */
 const MODULE_TO_TRIGGER: Record<PlusGateProps['module'], keyof typeof UPGRADE_TRIGGERS> = {
   'pre-mortem': 'locked_premortem',
-  invoices: 'locked_premortem', // capacity-check fits the same Plus-unlock motion
+  invoices: 'locked_premortem',
   docs: 'locked_document_studio',
-};
-
-/**
- * Module-local bullets — these intentionally extend the spec UPGRADE_TRIGGER
- * with concrete deliverables for each module. Headline / CTA come from spec.
- */
-const MODULE_BULLETS: Record<PlusGateProps['module'], {
-  question: string;
-  bullets: string[];
-}> = {
-  'pre-mortem': {
-    question: '“Where will this business break if conditions change?”',
-    bullets: [
-      'Monte Carlo collapse scenarios (P10 / P50 / P90)',
-      'Customer concentration & churn shock simulator',
-      'Cash runway under 6 stress conditions',
-      'Failure-mode ranking with mitigation playbook',
-      'Comparison: your numbers vs. industry survival rate',
-    ],
-  },
-  invoices: {
-    question: '“Can I actually deliver this profitably?”',
-    bullets: [
-      'Branded invoice generator (PDF export)',
-      'Capacity vs. utilization analysis',
-      'Project profitability calculator (margin, hours, opportunity cost)',
-      'Cash-flow timing: when does this deal hurt vs. help?',
-      'Client concentration risk warnings',
-    ],
-  },
-  docs: {
-    question: '“How do I package this for investors / partners / banks?”',
-    bullets: [
-      '12+ professional templates (BI report, pre-mortem, pitch data, exec memo)',
-      'Auto-populated from your analysis — zero re-typing',
-      'Branded PDF export with your logo & colors',
-      'Editable, versioned, shareable via private link',
-      'Replaces $1,500 consultant-built decks',
-    ],
-  },
 };
 
 /**
  * PlusGate — Hard paywall wrapper for premium routes.
  *
- * Usage:
- *   <PlusGate module="pre-mortem"><PreMortemPage /></PlusGate>
- *
- * Free users see a full-page conversion screen (no preview of the underlying UI).
- * Plus users pass through transparently. While subscription is loading we render
- * children (cheap optimistic) — useSubscription has its own 5s timeout fallback.
+ * All user-visible strings flow through i18next (`paywall` namespace).
+ * To translate, drop a new `src/i18n/locales/<lang>/paywall.json` and register
+ * it in `src/i18n/index.ts`. No component changes required.
  */
 export function PlusGate({ module, children }: PlusGateProps) {
   const { isPlus, loading } = useSubscription();
   const { user, isAuthenticated } = useAuth();
   const { redirectToPayment, isLoading: payLoading } = usePaymentLinks();
   const navigate = useNavigate();
+  const { t } = useTranslation('paywall');
 
   // Optimistic render: if subscription is still resolving, show children to avoid
   // a paywall flash for paying users. The subscription hook has a 5s safety timeout.
@@ -88,16 +43,17 @@ export function PlusGate({ module, children }: PlusGateProps) {
     return <>{children}</>;
   }
 
-  // Pull spec-canonical headline / body / CTA from UPGRADE_TRIGGERS;
-  // pair it with module-local bullets + question for full conversion screen.
-  const trigger = UPGRADE_TRIGGERS[MODULE_TO_TRIGGER[module]];
-  const moduleCopy = MODULE_BULLETS[module];
-  const eyebrowLabel =
-    module === 'pre-mortem'
-      ? 'Pre-Mortem Stress Test · Plus'
-      : module === 'invoices'
-        ? 'Invoice & Capacity Check · Plus'
-        : 'Document Studio · Plus';
+  // Spec-canonical headline / body / CTA — sourced from i18n with safe fallback
+  // to the in-code spec constants if a translation is missing.
+  const triggerKey = MODULE_TO_TRIGGER[module];
+  const triggerSpec = UPGRADE_TRIGGERS[triggerKey];
+  const headline = t(`triggers.${triggerKey}.headline`, triggerSpec.headline);
+  const body = t(`triggers.${triggerKey}.body`, triggerSpec.body);
+  const cta = t(`triggers.${triggerKey}.cta`, triggerSpec.cta);
+
+  const eyebrowLabel = t(`module.${module}.eyebrow`);
+  const question = t(`module.${module}.question`);
+  const bullets = t(`module.${module}.bullets`, { returnObjects: true }) as string[];
 
   const handleUpgrade = () => {
     if (isAuthenticated && user) {
