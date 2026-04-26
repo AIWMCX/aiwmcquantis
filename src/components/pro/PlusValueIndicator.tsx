@@ -86,6 +86,8 @@ function formatTimeAgo(dateString: string | null): string {
 }
 
 export function PlusValueIndicator() {
+  const { isPro } = useSubscription();
+  const tierLabel = isPro ? 'Pro' : 'Plus';
   const [metrics, setMetrics] = useState<AILearningMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
