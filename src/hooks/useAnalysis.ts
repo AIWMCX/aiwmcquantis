@@ -223,12 +223,22 @@ export function useAnalysis() {
 
       if (s.phase === 'failed') {
         setProJobId(null);
-        toast.error('Pro Audit failed', {
-          description:
-            s.errorMessage ||
-            'The deep analysis hit an error. We did not retry automatically — please try again or run a Full analysis.',
-          duration: 10000,
-        });
+        const last = lastRequestRef.current;
+        if (last && !fallbackFiredRef.current) {
+          fallbackFiredRef.current = true;
+          toast.info('Pro hit a worker error — switching to Full depth', {
+            description: 'We are rerunning the same inputs with Full depth now so you still get a complete analysis result.',
+            duration: 8000,
+          });
+          mutation.mutate({ ...last, analysis_depth: 'full' });
+        } else {
+          toast.error('Pro Audit failed', {
+            description:
+              s.errorMessage ||
+              'The deep analysis hit an error. Try again or run a Full analysis.',
+            duration: 10000,
+          });
+        }
         return;
       }
 
