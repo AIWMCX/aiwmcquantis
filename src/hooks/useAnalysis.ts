@@ -260,6 +260,11 @@ export function useAnalysis() {
     setResult,
     isLoading: mutation.isPending,
     isError: mutation.isError,
+    error: mutation.error as Error | null,
+    retry: () => {
+      // Re-runs the last mutation with the same variables (preserves form state).
+      if (mutation.variables) mutation.mutate(mutation.variables);
+    },
     rateLimitError,
     clearRateLimitError,
     
