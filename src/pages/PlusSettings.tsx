@@ -148,7 +148,7 @@ export default function PlusSettings() {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="intelligence" className="gap-2">
               <TrendingUp className="w-4 h-4" />
-              Plus Intelligence
+              {isPro ? 'Pro Intelligence' : 'Plus Intelligence'}
             </TabsTrigger>
             <TabsTrigger value="branding" className="gap-2">
               <Palette className="w-4 h-4" />
