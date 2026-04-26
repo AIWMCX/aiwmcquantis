@@ -7,6 +7,7 @@ import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
 import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
+import { trackActivationEvent } from '@/lib/activationTracking';
 
 import { logger } from '@/lib/logger';
 interface FormErrors {
