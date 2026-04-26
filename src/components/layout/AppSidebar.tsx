@@ -243,13 +243,19 @@ export function AppSidebar() {
                 <Badge
                   variant={isPlus ? 'default' : 'secondary'}
                   className={`mt-0.5 text-[10px] h-5 ${
-                    isPlus
-                      ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
-                      : ''
+                    isPro
+                      ? 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)] border-[var(--q-status-yellow-border)]'
+                      : isPlus
+                        ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
+                        : ''
                   }`}
                 >
-                  {isPlus && <Zap className="w-2.5 h-2.5 mr-1" />}
-                  {isPlus ? 'Plus' : 'Free'}
+                  {isPro ? (
+                    <Crown className="w-2.5 h-2.5 mr-1" />
+                  ) : isPlus ? (
+                    <Zap className="w-2.5 h-2.5 mr-1" />
+                  ) : null}
+                  {isPro ? 'Pro' : isPlus ? 'Plus' : 'Free'}
                 </Badge>
               </div>
             )}
