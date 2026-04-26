@@ -73,7 +73,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
             className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors mb-6"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
-            Back to dashboard
+            {t('common.back_to_dashboard')}
           </button>
 
           <div className="relative overflow-hidden rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary/5 via-background to-primary/10 shadow-[0_0_80px_rgba(59,130,246,0.10)]">
@@ -91,27 +91,27 @@ export function PlusGate({ module, children }: PlusGateProps) {
                     {eyebrowLabel}
                   </p>
                   <h1 className="text-2xl sm:text-3xl font-bold text-foreground leading-tight mt-1">
-                    {trigger.headline}
+                    {headline}
                   </h1>
                 </div>
               </div>
 
               {/* Spec body copy */}
               <p className="text-base text-muted-foreground leading-relaxed max-w-2xl">
-                {trigger.body}
+                {body}
               </p>
 
               {/* The question this module answers */}
               <div className="border-l-2 border-primary/40 pl-4 py-1">
                 <p className="text-[10px] uppercase tracking-wider text-primary/70 font-semibold mb-1">
-                  This module answers
+                  {t('common.this_module_answers')}
                 </p>
-                <p className="text-lg font-semibold text-foreground italic">{moduleCopy.question}</p>
+                <p className="text-lg font-semibold text-foreground italic">{question}</p>
               </div>
 
               {/* What's inside */}
               <div className="space-y-2.5">
-                {moduleCopy.bullets.map((b) => (
+                {bullets.map((b) => (
                   <div
                     key={b}
                     className="flex items-start gap-3 p-3 rounded-lg bg-background/50 border border-border/60"
@@ -131,7 +131,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
                     $17<span className="text-base font-medium text-muted-foreground">/mo</span>
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-1">
-                    Unlimited analyses · Pre-Mortem · Invoices · Docs · PDF · Cancel anytime
+                    {t('common.plus_summary')}
                   </p>
                 </div>
 
@@ -142,13 +142,13 @@ export function PlusGate({ module, children }: PlusGateProps) {
                   className="gap-2 font-semibold shadow-lg shadow-primary/20 w-full sm:w-auto"
                 >
                   <Zap className="w-4 h-4" />
-                  {payLoading ? 'Loading…' : trigger.cta}
+                  {payLoading ? t('common.loading') : cta}
                 </Button>
               </div>
 
               {/* Anchor */}
               <p className="text-[11px] text-muted-foreground/80 text-center">
-                vs. $25,000 you risk losing on the wrong assumption · vs. $350/hr for a financial consultant
+                {t('common.anchor')}
               </p>
             </div>
           </div>
