@@ -41,7 +41,7 @@ function validateAlertSecret(req: Request): boolean {
   
   // If no secret is configured, allow the request (for initial setup)
   if (!expectedSecret) {
-    log.warn('ALERT_WEBHOOK_SECRET not configured - accepting all requests');
+    console.warn('[alert-webhook] ALERT_WEBHOOK_SECRET not configured - accepting all requests');
     return true;
   }
   
@@ -240,7 +240,7 @@ async function logAlert(
       },
     });
   } catch (error) {
-    log.error('Failed to log alert:', error);
+    console.error('[alert-webhook] Failed to log alert:', error);
   }
 }
 
