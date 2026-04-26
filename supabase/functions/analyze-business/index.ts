@@ -3577,28 +3577,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.info(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
       log.info("Generating deterministic fallback analysis...");
       
-      // For rate limit (429), still return error as user should wait
+      // External AI errors must never leave the user without an analysis.
+      // Rate limits/auth/provider outages degrade to deterministic fallback.
       if (response?.status === 429) {
-        return new Response(
-          JSON.stringify({ 
-            error: "AI service is busy. Please try again in a minute.", 
-            code: "RATE_LIMIT",
-            details: "Too many concurrent requests to the AI service"
-          }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        log.warn("AI service rate-limited; using deterministic fallback instead of failing the analysis");
       }
       
-      // For auth errors, return error
       if (response?.status === 401 || response?.status === 403) {
-        return new Response(
-          JSON.stringify({ 
-            error: "AI service authentication failed", 
-            code: "AUTH_ERROR",
-            details: "Please contact support"
-          }),
-          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
+        log.error("AI service authentication failed; using deterministic fallback instead of failing the analysis");
       }
       
       // Generate deterministic fallback for all other failures (503, timeout, etc.)
