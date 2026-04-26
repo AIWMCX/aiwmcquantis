@@ -85,6 +85,11 @@ import { getRequestId, requestIdHeader } from "../_shared/request-id.ts";
 
 import { createLogger } from '../_shared/logger.ts';
 
+// Module-scope logger for helpers defined outside the request handler.
+// Per-request handlers should still create their own logger via createLogger(...)
+// inside `serve` to attach the proper x-request-id.
+const log = createLogger('analyze-business', 'module');
+
 // ========== SECURITY UTILITIES ==========
 
 /**
