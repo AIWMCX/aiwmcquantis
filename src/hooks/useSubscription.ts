@@ -196,20 +196,25 @@ export function useSubscription(): SubscriptionData {
     return () => window.removeEventListener('focus', handleFocus);
   }, [user, loading, fetchData]);
 
-  // Computed values - graceful fallback to free tier on any error
-  // Pro tier has been removed - only Plus and Free exist now
+  // Computed values — graceful fallback to free tier on any error.
+  // Master Spec v1.0 supports FREE | PLUS | PRO (enterprise → PRO).
   const planId = subscription?.plan_id || 'free';
   const status = subscription?.status || 'active';
   const isActive = status === 'active' || status === 'trialing';
-  const isPlus = (planId === 'plus' || planId === 'enterprise') && isActive;
-  const isFree = !isPlus;
+  // Resolve canonical tier; if subscription is inactive, downgrade to FREE.
+  const tier: Tier = isActive ? planToTier(planId) : 'FREE';
+  const manifest: FeatureManifest = FEATURE_MANIFEST[tier];
+  const isPro = tier === 'PRO';
+  const isPlus = tier === 'PLUS' || isPro; // Pro inherits Plus capabilities
+  const isFree = tier === 'FREE';
 
   const analysesUsed = usage?.analyses_count || 0;
-  const analysesLimit = isFree ? FREE_TIER_LIMIT : Infinity;
-  const canAnalyze = !isFree || analysesUsed < FREE_TIER_LIMIT;
-  const remainingAnalyses = isFree ? Math.max(0, FREE_TIER_LIMIT - analysesUsed) : Infinity;
+  const monthlyLimit = manifest.monthly_analysis_limit;
+  const analysesLimit = Number.isFinite(monthlyLimit) ? monthlyLimit : Infinity;
+  const canAnalyze = !isFree || analysesUsed < monthlyLimit;
+  const remainingAnalyses = isFree ? Math.max(0, monthlyLimit - analysesUsed) : Infinity;
 
-  const createCheckout = async (plan: 'plus') => {
+  const createCheckout = async (plan: 'plus' | 'pro') => {
     if (!user) {
       toast({
         title: 'Authentication required',
