@@ -2827,8 +2827,10 @@ export type Database = {
           created_at: string
           current_period_end: string | null
           current_period_start: string | null
+          history_readonly_until: string | null
           id: string
           is_legacy_price: boolean
+          payment_failed_at: string | null
           plan_id: string
           status: string
           stripe_customer_id: string | null
@@ -2844,8 +2846,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          history_readonly_until?: string | null
           id?: string
           is_legacy_price?: boolean
+          payment_failed_at?: string | null
           plan_id?: string
           status?: string
           stripe_customer_id?: string | null
@@ -2861,8 +2865,10 @@ export type Database = {
           created_at?: string
           current_period_end?: string | null
           current_period_start?: string | null
+          history_readonly_until?: string | null
           id?: string
           is_legacy_price?: boolean
+          payment_failed_at?: string | null
           plan_id?: string
           status?: string
           stripe_customer_id?: string | null
