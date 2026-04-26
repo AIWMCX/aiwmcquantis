@@ -6,6 +6,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('stripe-webhook', 'module');
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",

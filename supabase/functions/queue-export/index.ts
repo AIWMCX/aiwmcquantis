@@ -5,6 +5,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('queue-export', 'module');
+
 interface QueueExportRequest {
   analysis_id: string;
   idempotency_key: string;

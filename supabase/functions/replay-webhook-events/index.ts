@@ -6,6 +6,7 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('replay-webhook-events', 'module');
 log.info("=== Replay Webhook Events Function Started ===");
 
 serve(async (req) => {
