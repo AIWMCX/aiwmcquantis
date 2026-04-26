@@ -43,10 +43,11 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
     }
   };
 
+  // Spec-canonical headline + body + CTA from §10 UPGRADE_TRIGGERS,
+  // paired with section-specific gated-feature bullets.
+  const trigger = UPGRADE_TRIGGERS[SECTION_TRIGGER[section]];
   const config = section === 'levers'
     ? {
-        title: 'Levers Lab is locked',
-        subtitle: 'Adjust pricing, CAC, rent, and churn — see how your numbers shift in real time. The way investors stress-test plans.',
         gatedItems: [
           { icon: TrendingUp, label: '36-Month Revenue Projection', desc: 'Pessimistic / Base / Optimistic scenarios' },
           { icon: Activity, label: 'Live Assumption Editor', desc: 'Stress-test CAC, churn, rent, ticket size' },
@@ -54,8 +55,6 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
         ],
       }
     : {
-        title: 'Action Plan is locked',
-        subtitle: 'Get the prioritized fix-list with mitigation tactics, expected impact, time-to-result, and cost estimates — straight from your benchmarked analysis.',
         gatedItems: [
           { icon: Target, label: 'Prioritized Action Plan', desc: 'Critical / This Week / This Month — sequenced for execution' },
           { icon: CheckCircle2, label: 'Risk Mitigation Tactics', desc: 'Step-by-step fixes for every red flag, with effort + cost' },
