@@ -87,8 +87,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ACCOUNT',
     items: [
-      { title: 'Settings', url: '/plus-settings', icon: Settings },
-      { title: 'Billing', url: '/plus-settings?tab=billing', icon: CreditCard },
+      { title: 'Settings', url: '__settings__', icon: Settings },
+      { title: 'Billing', url: '__settings__?tab=billing', icon: CreditCard },
       { title: 'Help', url: 'https://aiwmcquantis.lovable.app/how-it-works', icon: HelpCircle, external: true },
     ],
   },
