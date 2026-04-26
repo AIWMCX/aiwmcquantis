@@ -6,7 +6,14 @@ import { saveAnalysis } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
-import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
+import { useProAnalysisJob, type ProJobState } from './useProAnalysisJob';
+import type {
+  AnalysisRequest,
+  BusinessAnalysisResult,
+  OptionalFinancialInputs,
+  AnalysisGenerationResult,
+} from '@/types/analysis';
+import { isQueuedAnalysisJob } from '@/types/analysis';
 import { trackActivationEvent } from '@/lib/activationTracking';
 
 import { logger } from '@/lib/logger';
