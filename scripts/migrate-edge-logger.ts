@@ -91,8 +91,9 @@ function rewrite(path: string, src: string): { src: string; ok: boolean; reason?
   }
 
   // Detect a serve(async (req) => or Deno.serve(async (req) => handler.
+  // Match: serve(async (req) => { OR serve(async (req: Request): Promise<Response> => {
   const serveMatch = src.match(
-    /(serve|Deno\.serve)\s*\(\s*async\s*\(\s*([a-zA-Z_$][\w$]*)\s*(?::[^)]+)?\s*\)\s*=>\s*\{/,
+    /(serve|Deno\.serve)\s*\(\s*async\s*\(\s*([a-zA-Z_$][\w$]*)\s*(?::[^)]+)?\s*\)(?:\s*:\s*[^=]+?)?\s*=>\s*\{/,
   );
   if (!serveMatch) {
     return { src, ok: false, reason: 'no serve handler found' };
