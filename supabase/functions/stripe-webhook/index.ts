@@ -506,6 +506,20 @@ serve(async (req) => {
             .eq("stripe_subscription_id", (subscription as any).id)
             .maybeSingle();
 
+          // Spec §11.3: hard-flip to FREE + open 30-day read-only window for history.
+          // RPC is idempotent and writes a subscription_audit_log row.
+          if (subRow?.user_id) {
+            try {
+              await supabase.rpc("mark_subscription_canceled", {
+                p_user_id: subRow.user_id,
+                p_reason: subscription.cancellation_details?.reason || "subscription_deleted",
+              });
+              log.info(`[${requestId}] mark_subscription_canceled OK for ${subRow.user_id}`);
+            } catch (rpcErr) {
+              log.error(`[${requestId}] mark_subscription_canceled failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
+            }
+          }
+
           if (subRow?.user_id) {
             const periodEndHuman = new Date(periodEndIso).toLocaleDateString("en-US", {
               month: "long", day: "numeric", year: "numeric",
