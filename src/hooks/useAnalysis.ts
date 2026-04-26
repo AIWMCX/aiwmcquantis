@@ -21,6 +21,25 @@ export function useAnalysis() {
   const [idea, setIdea] = useState('');
   const [location, setLocation] = useState('');
   const [financialInputs, setFinancialInputs] = useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
+
+  // Debounced activation tracking for idea/location entry — fires once user pauses typing.
+  // Internal dedupe (30s window in trackActivationEvent) prevents spam on remounts.
+  useEffect(() => {
+    if (idea.trim().length < 8) return;
+    const t = setTimeout(() => {
+      void trackActivationEvent('idea_entered', { length: idea.length });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [idea]);
+
+  useEffect(() => {
+    if (location.trim().length < 3) return;
+    const t = setTimeout(() => {
+      void trackActivationEvent('location_entered', { length: location.length });
+    }, 1200);
+    return () => clearTimeout(t);
+  }, [location]);
+
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);

@@ -19,6 +19,7 @@ import {
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
+import { ActivationWidget } from '@/components/engagement/ActivationWidget';
 import {
   LayoutDashboard,
   Clock,
@@ -220,6 +221,7 @@ export function AppSidebar() {
         </SidebarContent>
 
         <SidebarFooter className="p-4 border-t border-[var(--q-border-subtle)]">
+          <ActivationWidget collapsed={collapsed} />
           <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
             <Avatar className="h-8 w-8 shrink-0">
               <AvatarFallback className="bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] text-xs font-medium">
