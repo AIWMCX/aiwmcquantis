@@ -1,5 +1,9 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { AnalysisRequest, AnalysisAPIResponse, BusinessAnalysisResult } from '@/types/analysis';
+import type {
+  AnalysisRequest,
+  AnalysisAPIResponse,
+  AnalysisGenerationResult,
+} from '@/types/analysis';
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 import { startRequestContext, requestHeaders } from '@/lib/correlation';
 
@@ -24,7 +28,7 @@ async function getAnonymousHeaders(): Promise<Record<string, string>> {
   };
 }
 
-export async function generateAnalysis(request: AnalysisRequest): Promise<BusinessAnalysisResult> {
+export async function generateAnalysis(request: AnalysisRequest): Promise<AnalysisGenerationResult> {
   let lastError: Error | null = null;
 
   // Get anonymous tracking headers
@@ -100,6 +104,24 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
 
       if (!data) {
         throw new Error('Empty response from server');
+      }
+
+      // ───────────────────────────────────────────────────────────────
+      // PRO async path: backend returns 202 with { queued, job_id }.
+      // We surface this as a typed result so the caller can poll the
+      // analysis_jobs table instead of crashing on missing `data`.
+      // ───────────────────────────────────────────────────────────────
+      if ((data as any).queued === true && (data as any).job_id) {
+        const d = data as any;
+        logger.info('Analysis enqueued for background processing', {
+          metadata: { job_id: d.job_id, request_id: d.request_id ?? requestId },
+        });
+        return {
+          kind: 'queued_job',
+          job_id: d.job_id as string,
+          request_id: (d.request_id as string) ?? requestId,
+          depth_requested: (request.analysis_depth === 'deep' ? 'deep' : 'pro'),
+        };
       }
 
       // Handle rate limit response from edge function

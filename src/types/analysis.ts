@@ -367,6 +367,28 @@ export interface AnalysisAPIResponse {
   data?: BusinessAnalysisResult;
   error?: string;
   code?: string;
+  // Pro-depth async path: backend returns 202 with these instead of `data`.
+  queued?: boolean;
+  job_id?: string;
+  request_id?: string;
+}
+
+// Returned by generateAnalysis() when the backend enqueued a Pro job
+// instead of producing a synchronous result. The UI is expected to poll
+// the analysis_jobs table via useProAnalysisJob until completion.
+export interface QueuedAnalysisJob {
+  kind: 'queued_job';
+  job_id: string;
+  request_id?: string;
+  depth_requested: 'pro' | 'deep';
+}
+
+export type AnalysisGenerationResult = BusinessAnalysisResult | QueuedAnalysisJob;
+
+export function isQueuedAnalysisJob(
+  v: AnalysisGenerationResult,
+): v is QueuedAnalysisJob {
+  return (v as QueuedAnalysisJob)?.kind === 'queued_job';
 }
 
 // History Entry for localStorage

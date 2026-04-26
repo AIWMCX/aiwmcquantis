@@ -6,7 +6,14 @@ import { saveAnalysis } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
-import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
+import { useProAnalysisJob, type ProJobState } from './useProAnalysisJob';
+import type {
+  AnalysisRequest,
+  BusinessAnalysisResult,
+  OptionalFinancialInputs,
+  AnalysisGenerationResult,
+} from '@/types/analysis';
+import { isQueuedAnalysisJob } from '@/types/analysis';
 import { trackActivationEvent } from '@/lib/activationTracking';
 
 import { logger } from '@/lib/logger';
@@ -43,7 +50,17 @@ export function useAnalysis() {
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
-  
+
+  // Pro-depth async job tracking. When the backend returns 202+job_id we set
+  // these and useProAnalysisJob (below) starts polling analysis_jobs.
+  const [proJobId, setProJobId] = useState<string | null>(null);
+  const [proRequestId, setProRequestId] = useState<string | null>(null);
+  // Snapshot of the last submitted request so we can auto-retry at Full depth
+  // if the Pro poll times out.
+  const lastRequestRef = useRef<AnalysisRequest | null>(null);
+  // Guard so we only auto-fall-back once per Pro submission.
+  const fallbackFiredRef = useRef(false);
+
   const { addEntry } = useAnalysisHistory();
   const { user, isAuthenticated } = useAuth();
   
@@ -67,23 +84,20 @@ export function useAnalysis() {
     return Object.keys(newErrors).length === 0;
   }, [idea, location]);
 
-  const mutation = useMutation({
-    mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
-    onSuccess: async (data) => {
+  /**
+   * Persist a completed analysis to DB (authenticated) or localStorage (guest)
+   * and mirror it into history. Shared by both the synchronous mutation success
+   * path and the async Pro job completion path.
+   */
+  const persistCompletedResult = useCallback(
+    async (data: BusinessAnalysisResult) => {
       setResult(data);
-      void trackActivationEvent('calculation_completed', {
-        idea_length: idea.length,
-      });
-      toast.success('Analysis complete! ✅', {
-        description: 'Scroll down to view your full results',
-        duration: 6000,
-      });
-      
+      void trackActivationEvent('calculation_completed', { idea_length: idea.length });
+
       const trimmedIdea = idea.trim();
       const trimmedLocation = location.trim();
-      
+
       if (isAuthenticated && user) {
-        // Save to database for authenticated users
         const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data);
         if (saved) {
           addEntry({
@@ -95,7 +109,6 @@ export function useAnalysis() {
           });
         }
       } else {
-        // Save to localStorage for guests
         addEntry({
           id: crypto.randomUUID(),
           idea: trimmedIdea,
@@ -104,6 +117,34 @@ export function useAnalysis() {
           created_at: new Date().toISOString(),
         });
       }
+    },
+    [idea, location, isAuthenticated, user, addEntry],
+  );
+
+  const mutation = useMutation({
+    mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
+    onSuccess: async (data: AnalysisGenerationResult) => {
+      // Pro/Deep async path — backend enqueued a background job. Switch the UI
+      // into "Pro processing" mode; useProAnalysisJob will poll and call us
+      // back via onSettled when it terminates.
+      if (isQueuedAnalysisJob(data)) {
+        fallbackFiredRef.current = false;
+        setProRequestId(data.request_id ?? null);
+        setProJobId(data.job_id);
+        toast.info('Pro Audit is running in the background', {
+          description:
+            'This is the deepest analysis we offer — Monte Carlo + scenario stress test. Typical run: 30–90 seconds. You can stay on this page; we’ll show progress in real time.',
+          duration: 8000,
+        });
+        return;
+      }
+
+      // Synchronous path — Quick / Full completed inside the edge function.
+      await persistCompletedResult(data);
+      toast.success('Analysis complete! ✅', {
+        description: 'Scroll down to view your full results',
+        duration: 6000,
+      });
     },
     onError: (error: Error, variables) => {
       logger.error('Analysis error:', error);
@@ -115,7 +156,11 @@ export function useAnalysis() {
       const isNetwork = /network|fetch|Failed to fetch|ECONN|NetworkError/i.test(msg);
       const isTimeout = /timeout|abort|ETIMEDOUT/i.test(msg);
       const isServer = /\b5\d{2}\b|server|INTERNAL/i.test(msg);
-      const isAi = /AI|model|provider|JSON|PARSE/i.test(msg);
+      // NOTE: we deliberately no longer treat "AI provider returned…" as a
+      // first-class category here — Pro depth used to surface as that error
+      // because the queued response was mis-parsed. With the new
+      // {queued, job_id} branch above, that path is gone.
+      const isAi = /provider returned|model error|JSON parse/i.test(msg);
 
       // Specific message — falls back to raw error if nothing matches.
       let title: string;
@@ -157,18 +202,78 @@ export function useAnalysis() {
     },
   });
 
+  // ───────────────────────────────────────────────────────────────────
+  // Pro job polling. When proJobId is set, useProAnalysisJob polls the
+  // analysis_jobs row every 2 s up to a 90 s budget. On terminal status
+  // we either persist the result, surface the failure, or auto-fall-back
+  // to Full depth (timeout only — never for explicit failures).
+  // ───────────────────────────────────────────────────────────────────
+  const handleJobSettled = useCallback(
+    (s: ProJobState) => {
+      if (s.phase === 'completed' && s.result) {
+        setProJobId(null);
+        void persistCompletedResult(s.result).then(() => {
+          toast.success('Pro Audit complete ✅', {
+            description: 'Scroll down to review the full deep-dive.',
+            duration: 6000,
+          });
+        });
+        return;
+      }
+
+      if (s.phase === 'failed') {
+        setProJobId(null);
+        toast.error('Pro Audit failed', {
+          description:
+            s.errorMessage ||
+            'The deep analysis hit an error. We did not retry automatically — please try again or run a Full analysis.',
+          duration: 10000,
+        });
+        return;
+      }
+
+      if (s.phase === 'timed_out') {
+        setProJobId(null);
+        // Auto-retry Full depth ONCE per Pro submission, only on timeout.
+        const last = lastRequestRef.current;
+        if (last && !fallbackFiredRef.current) {
+          fallbackFiredRef.current = true;
+          toast.info('Pro is still running — switching to Full depth', {
+            description:
+              'Your Pro Audit is taking longer than 90 seconds. We started a Full analysis with the same inputs so you get results now.',
+            duration: 8000,
+          });
+          mutation.mutate({ ...last, analysis_depth: 'full' });
+        } else {
+          toast.error('Pro Audit timed out', {
+            description: 'Try Full depth or retry Pro in a moment.',
+            duration: 8000,
+          });
+        }
+      }
+    },
+    [persistCompletedResult, mutation],
+  );
+
+  const proJobState = useProAnalysisJob({
+    jobId: proJobId,
+    intervalMs: 2000,
+    timeoutMs: 90_000,
+    onSettled: handleJobSettled,
+  });
+
   const handleSubmit = useCallback((e?: React.FormEvent, depth?: string) => {
     e?.preventDefault();
-    
+
     if (!validate()) return;
-    
+
     // Only include financial inputs that have values
     const cleanedFinancialInputs = Object.fromEntries(
       Object.entries(financialInputs).filter(([_, v]) => v !== undefined && v !== null && v > 0)
     ) as OptionalFinancialInputs;
-    
+
     const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
-    
+
     // Get ready files with parsed content AND extracted financials
     const readyFiles = fileUpload.getReadyFiles();
     const documents = readyFiles.map(f => ({
@@ -177,14 +282,22 @@ export function useAnalysis() {
       parsedContent: f.parsedContent || '',
       extractedFinancials: f.extractedFinancials || undefined,
     }));
-    
-    mutation.mutate({ 
-      idea: idea.trim(), 
+
+    const request: AnalysisRequest = {
+      idea: idea.trim(),
       location: location.trim(),
       ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
       ...(documents.length > 0 && { documents }),
       ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
-    });
+    };
+
+    // Snapshot for potential auto-fallback to Full on Pro timeout.
+    lastRequestRef.current = request;
+    fallbackFiredRef.current = false;
+    // Cancel any in-flight Pro poll from a previous submission.
+    setProJobId(null);
+
+    mutation.mutate(request);
   }, [idea, location, financialInputs, validate, mutation, fileUpload]);
   
   // Auto-fill form when documents are parsed with financial data
@@ -236,11 +349,23 @@ export function useAnalysis() {
     setErrors({});
     setResult(null);
     setRateLimitError(null);
+    setProJobId(null);
+    setProRequestId(null);
+    lastRequestRef.current = null;
+    fallbackFiredRef.current = false;
     fileUpload.clearFiles();
     mutation.reset();
   }, [mutation, fileUpload]);
 
   const clearRateLimitError = useCallback(() => setRateLimitError(null), []);
+
+  // While a Pro background job is being polled we are still "loading" from
+  // the user's perspective, even though the underlying mutation already
+  // resolved with {queued: true}. Surface that as a single isLoading flag so
+  // existing form components keep working unchanged.
+  const isProJobActive =
+    proJobState.phase === 'queued' || proJobState.phase === 'running';
+  const isLoading = mutation.isPending || isProJobActive;
 
   const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
 
@@ -258,7 +383,7 @@ export function useAnalysis() {
     // Analysis state
     result,
     setResult,
-    isLoading: mutation.isPending,
+    isLoading,
     isError: mutation.isError,
     error: mutation.error as Error | null,
     retry: () => {
@@ -267,6 +392,12 @@ export function useAnalysis() {
     },
     rateLimitError,
     clearRateLimitError,
+
+    // Pro background-job progress (queued / running / completed / failed / timed_out).
+    // Components can render a status panel by reading proJobState.
+    proJobState,
+    proRequestId,
+    isProJobActive,
     
     // Actions
     handleSubmit,
