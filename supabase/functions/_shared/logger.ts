@@ -192,21 +192,25 @@ export function createLogger(
 
   return {
     debug(msg, ctx = {}) {
+    debug(msg: string, ...rest: unknown[]) {
+      const { ctx } = normalize(rest);
       emit('debug', msg, null, ctx);
     },
-    info(msg, ctx = {}) {
+    info(msg: string, ...rest: unknown[]) {
+      const { ctx } = normalize(rest);
       emit('info', msg, null, ctx);
     },
-    warn(msg, errOrContext, context) {
-      const { err, ctx } = normalize(errOrContext, context);
+    warn(msg: string, ...rest: unknown[]) {
+      const { err, ctx } = normalize(rest);
       emit('warn', msg, err, ctx);
     },
-    error(msg, errOrContext, context) {
-      const { err, ctx } = normalize(errOrContext, context);
+    error(msg: string, ...rest: unknown[]) {
+      const { err, ctx } = normalize(rest);
       emit('error', msg, err, ctx);
     },
-    child(extra) {
+    child(extra: LogContext) {
       return createLogger(fn, requestId, { ...baseContext, ...extra });
     },
   };
 }
+
