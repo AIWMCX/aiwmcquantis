@@ -318,7 +318,7 @@ export default function Index() {
                       ) : (
                         <>
                           {isPlus && (
-                            <Button size="sm" variant="outline" onClick={() => navigate('/plus-settings')} className="gap-1 h-7 text-xs">
+                            <Button size="sm" variant="outline" onClick={() => navigate(settingsPath)} className="gap-1 h-7 text-xs">
                               <Settings className="w-3 h-3" /> Settings
                             </Button>
                           )}
