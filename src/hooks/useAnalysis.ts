@@ -349,11 +349,23 @@ export function useAnalysis() {
     setErrors({});
     setResult(null);
     setRateLimitError(null);
+    setProJobId(null);
+    setProRequestId(null);
+    lastRequestRef.current = null;
+    fallbackFiredRef.current = false;
     fileUpload.clearFiles();
     mutation.reset();
   }, [mutation, fileUpload]);
 
   const clearRateLimitError = useCallback(() => setRateLimitError(null), []);
+
+  // While a Pro background job is being polled we are still "loading" from
+  // the user's perspective, even though the underlying mutation already
+  // resolved with {queued: true}. Surface that as a single isLoading flag so
+  // existing form components keep working unchanged.
+  const isProJobActive =
+    proJobState.phase === 'queued' || proJobState.phase === 'running';
+  const isLoading = mutation.isPending || isProJobActive;
 
   const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
 
