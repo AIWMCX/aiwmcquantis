@@ -17,6 +17,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { logger } from '@/lib/logger';
+import { trackActivationEvent } from '@/lib/activationTracking';
 import {
   Drawer,
   DrawerContent,
@@ -295,6 +296,9 @@ export default function DocsStudio() {
 
     // Record performance signal
     recordSignal(null, 'downloaded', undefined, { templateId, format });
+
+    // Activation: doc generated
+    void trackActivationEvent('doc_generated', { template_id: templateId, format });
 
     // Trigger download
     downloadFn(html, title);

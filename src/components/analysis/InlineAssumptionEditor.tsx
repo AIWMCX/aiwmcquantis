@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { RefreshCw, SlidersHorizontal, ArrowUp, ArrowDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { trackActivationEvent } from '@/lib/activationTracking';
 
 interface InlineAssumptionEditorProps {
   initialCac?: number;
@@ -53,6 +54,11 @@ export function InlineAssumptionEditor({
   useEffect(() => {
     if (isDirty) {
       onRecalculate({ cac, rent, ticketSize });
+      // Debounced activation event — internal 30s dedupe prevents spam during scrubbing
+      const t = setTimeout(() => {
+        void trackActivationEvent('scenario_edited', { cac, rent, ticketSize });
+      }, 800);
+      return () => clearTimeout(t);
     }
   }, [cac, rent, ticketSize, isDirty]);
 

@@ -17,6 +17,7 @@ import { Plus, Trash2, AlertTriangle, Loader2, ArrowLeft, ArrowRight } from 'luc
 import { QuantisMath as QMath } from '@/lib/quantis-math';
 import { generateInvoice, type InvoiceData, type InvoiceLineItem } from '@/services/docs-engine';
 import { useToast } from '@/hooks/use-toast';
+import { trackActivationEvent } from '@/lib/activationTracking';
 
 interface InvoiceCreatorProps {
   analysisId: string;
@@ -149,6 +150,7 @@ export function InvoiceCreator({
       );
       onComplete(invoice);
       onOpenChange(false);
+      void trackActivationEvent('invoice_created', { invoice_number: invoice.invoiceNumber });
       toast({ title: 'Invoice created', description: `Invoice ${invoice.invoiceNumber} saved.` });
     } catch (err) {
       toast({

@@ -25,6 +25,7 @@ import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
+import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -471,6 +472,7 @@ export default function Index() {
                   )}
 
                   <TabsContent value="analyze">
+                    <ContextualUpgradeBanner />
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
                         <AccuracyTransparentResults 
