@@ -78,6 +78,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
       { title: 'Scenarios', url: '/app?tab=scenarios', icon: GitBranch },
+      { title: 'My Stats', url: '/app/stats', icon: TrendingUp },
       { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
     ],
   },

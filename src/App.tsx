@@ -53,6 +53,7 @@ const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
+const MyStats = lazy(() => import("./pages/MyStats"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -126,6 +127,11 @@ const App = () => {
                 
                 {/* Protected routes - require authentication */}
                 <Route path="/app" element={<AppDashboard />} />
+                <Route path="/app/stats" element={
+                  <ProtectedRoute>
+                    <MyStats />
+                  </ProtectedRoute>
+                } />
                 <Route path="/plus-settings" element={
                   <ProtectedRoute>
                     <PlusSettings />

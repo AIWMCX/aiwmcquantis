@@ -7,6 +7,7 @@ import { WebVitalsCard } from '@/components/admin/WebVitalsCard';
 import { EngagementMetricsCard } from '@/components/admin/EngagementMetricsCard';
 import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
+import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert } from 'lucide-react';
@@ -89,8 +90,9 @@ export default function AdminDashboard() {
 
         {/* Tabbed Dashboard */}
         <Tabs defaultValue="overview" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="activation">Activation</TabsTrigger>
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
             <TabsTrigger value="experiments">Experiments</TabsTrigger>
