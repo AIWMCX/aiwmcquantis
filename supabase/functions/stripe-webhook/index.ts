@@ -616,6 +616,39 @@ serve(async (req) => {
               log.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);
             }
           }
+
+          // Spec §11.3 — PRO auto-provisioning.
+          // Once the paid invoice is reconciled, ensure PRO entitlements
+          // (white_label_enabled, api_key, team seats) are issued. RPC is
+          // idempotent so re-fires of invoice.paid are safe.
+          if (plan === "pro") {
+            try {
+              // Resolve the user_id we just synced (try update path first, then fallback).
+              const { data: provRow } = await supabase
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_subscription_id", (subscription as any).id)
+                .maybeSingle();
+              const provisionUserId = provRow?.user_id;
+              if (provisionUserId) {
+                const { error: provErr } = await supabase.rpc("provision_pro_features", {
+                  p_user_id: provisionUserId,
+                  p_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  p_stripe_customer_id: invoice.customer as string,
+                  p_stripe_subscription_id: (subscription as any).id,
+                });
+                if (provErr) {
+                  log.error(`[${requestId}] provision_pro_features error:`, provErr.message);
+                } else {
+                  log.info(`[${requestId}] ✓ PRO features provisioned for ${provisionUserId}`);
+                }
+              } else {
+                log.warn(`[${requestId}] PRO provisioning skipped — could not resolve user_id`);
+              }
+            } catch (provErr) {
+              log.error(`[${requestId}] PRO provisioning crashed:`, provErr instanceof Error ? provErr.message : String(provErr));
+            }
+          }
         } else if (invoice.amount_paid === 0) {
           log.info(`[${requestId}] Skipping $0 invoice (likely trial or proration)`);
         }
