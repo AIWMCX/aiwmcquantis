@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { AccuracyTransparentResults } from '@/components/analysis/AccuracyTransparentResults';
+import { ProJobProgressPanel } from '@/components/analysis/ProJobProgressPanel';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { useFeature } from '@/hooks/useTier';
 import { Button } from '@/components/ui/button';
