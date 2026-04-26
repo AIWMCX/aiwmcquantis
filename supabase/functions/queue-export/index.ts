@@ -146,7 +146,7 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(processExportJob(supabase, jobId, analysis.result, userId));
     } else {
       // Fallback: process synchronously (not ideal but works)
-      processExportJob(supabase, jobId, analysis.result, userId);
+      processExportJob(supabase as any, jobId, analysis.result, userId);
     }
 
     // Return immediately with job ID
