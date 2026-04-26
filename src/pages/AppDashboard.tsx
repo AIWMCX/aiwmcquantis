@@ -72,6 +72,7 @@ export default function Index() {
     loading: subscriptionLoading, error: subscriptionError, isTimedOut,
     createCheckout, openPortal, refetch: refetchSubscription,
   } = useSubscription();
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
 
   const {
     idea, setIdea, location, setLocation,
