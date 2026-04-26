@@ -24,7 +24,7 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { tierGate, incrementMonthlyUsage } from '../_shared/tier-gate.ts';
 import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS, type FeatureManifest } from '../_shared/tier-spec.ts';
-import { validateAndSanitizeInput } from '../analyze-business/ai-safety-guardrails.ts';
+import { validateAndSanitizeInput } from '../_shared/ai-safety-guardrails.ts';
 
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
