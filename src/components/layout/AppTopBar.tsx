@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { useSubscription } from '@/hooks/useSubscription';
 import { TierBadge } from './TierBadge';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
 
