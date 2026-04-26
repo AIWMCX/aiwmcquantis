@@ -335,7 +335,7 @@ export function PlusValueIndicator() {
                       : metric.freeValue}{metric.unit}
                   </span>
                   <span className="text-primary font-semibold">
-                    Plus: {typeof metric.plusValue === 'number' && metric.plusValue >= 1000 
+                    {tierLabel}: {typeof metric.plusValue === 'number' && metric.plusValue >= 1000 
                       ? formatNumber(metric.plusValue) 
                       : metric.plusValue}{metric.unit}
                   </span>
