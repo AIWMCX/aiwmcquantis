@@ -506,6 +506,20 @@ serve(async (req) => {
             .eq("stripe_subscription_id", (subscription as any).id)
             .maybeSingle();
 
+          // Spec §11.3: hard-flip to FREE + open 30-day read-only window for history.
+          // RPC is idempotent and writes a subscription_audit_log row.
+          if (subRow?.user_id) {
+            try {
+              await supabase.rpc("mark_subscription_canceled", {
+                p_user_id: subRow.user_id,
+                p_reason: subscription.cancellation_details?.reason || "subscription_deleted",
+              });
+              log.info(`[${requestId}] mark_subscription_canceled OK for ${subRow.user_id}`);
+            } catch (rpcErr) {
+              log.error(`[${requestId}] mark_subscription_canceled failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
+            }
+          }
+
           if (subRow?.user_id) {
             const periodEndHuman = new Date(periodEndIso).toLocaleDateString("en-US", {
               month: "long", day: "numeric", year: "numeric",
@@ -602,6 +616,39 @@ serve(async (req) => {
               log.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);
             }
           }
+
+          // Spec §11.3 — PRO auto-provisioning.
+          // Once the paid invoice is reconciled, ensure PRO entitlements
+          // (white_label_enabled, api_key, team seats) are issued. RPC is
+          // idempotent so re-fires of invoice.paid are safe.
+          if (plan === "pro") {
+            try {
+              // Resolve the user_id we just synced (try update path first, then fallback).
+              const { data: provRow } = await supabase
+                .from("subscriptions")
+                .select("user_id")
+                .eq("stripe_subscription_id", (subscription as any).id)
+                .maybeSingle();
+              const provisionUserId = provRow?.user_id;
+              if (provisionUserId) {
+                const { error: provErr } = await supabase.rpc("provision_pro_features", {
+                  p_user_id: provisionUserId,
+                  p_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  p_stripe_customer_id: invoice.customer as string,
+                  p_stripe_subscription_id: (subscription as any).id,
+                });
+                if (provErr) {
+                  log.error(`[${requestId}] provision_pro_features error:`, provErr.message);
+                } else {
+                  log.info(`[${requestId}] ✓ PRO features provisioned for ${provisionUserId}`);
+                }
+              } else {
+                log.warn(`[${requestId}] PRO provisioning skipped — could not resolve user_id`);
+              }
+            } catch (provErr) {
+              log.error(`[${requestId}] PRO provisioning crashed:`, provErr instanceof Error ? provErr.message : String(provErr));
+            }
+          }
         } else if (invoice.amount_paid === 0) {
           log.info(`[${requestId}] Skipping $0 invoice (likely trial or proration)`);
         }
@@ -649,18 +696,25 @@ serve(async (req) => {
           const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 
           if (ageMs >= GRACE_MS) {
-            // Grace expired — downgrade to FREE immediately.
-            await supabase
-              .from("subscriptions")
-              .update({
-                plan_id: "free",
-                status: "canceled",
-                canceled_at: nowIso,
-              })
-              .eq("stripe_subscription_id", subId);
-            log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE`);
-
+            // Grace expired — canonical downgrade via RPC: flips plan_id='free',
+            // status='canceled', sets history_readonly_until = now()+30d, and
+            // writes a subscription_audit_log entry.
             if (subRow?.user_id) {
+              try {
+                await supabase.rpc("mark_subscription_canceled", {
+                  p_user_id: subRow.user_id,
+                  p_reason: "payment_failed_grace_expired",
+                });
+                log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE via RPC`);
+              } catch (rpcErr) {
+                log.error(`[${requestId}] mark_subscription_canceled RPC failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
+                // Best-effort fallback: direct update so at least entitlement is revoked.
+                await supabase
+                  .from("subscriptions")
+                  .update({ plan_id: "free", status: "canceled", canceled_at: nowIso })
+                  .eq("stripe_subscription_id", subId);
+              }
+
               supabase.functions.invoke("send-lifecycle-email", {
                 body: {
                   user_id: subRow.user_id,
@@ -668,6 +722,8 @@ serve(async (req) => {
                   dynamic_data: {},
                 },
               }).catch((err) => log.error(`[${requestId}] downgrade email failed:`, err instanceof Error ? err.message : String(err)));
+            } else {
+              log.warn(`[${requestId}] Grace expired but no user_id resolved — skipping RPC downgrade`);
             }
           } else {
             log.info(`[${requestId}] Within grace window (${Math.round(ageMs / 3600000)}h / 72h) — keeping access`);
