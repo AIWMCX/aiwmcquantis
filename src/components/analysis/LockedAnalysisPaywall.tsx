@@ -35,6 +35,7 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
   const { user, isAuthenticated } = useAuth();
   const { redirectToPayment, isLoading } = usePaymentLinks();
   const navigate = useNavigate();
+  const { t } = useTranslation('paywall');
 
   const handleUpgrade = () => {
     if (isAuthenticated && user) {
@@ -44,9 +45,13 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
     }
   };
 
-  // Spec-canonical headline + body + CTA from §10 UPGRADE_TRIGGERS,
-  // paired with section-specific gated-feature bullets.
-  const trigger = UPGRADE_TRIGGERS[SECTION_TRIGGER[section]];
+  // Spec-canonical headline + body + CTA — i18n with safe fallback to spec constants.
+  const triggerKey = SECTION_TRIGGER[section];
+  const triggerSpec = UPGRADE_TRIGGERS[triggerKey];
+  const headline = t(`triggers.${triggerKey}.headline`, triggerSpec.headline);
+  const body = t(`triggers.${triggerKey}.body`, triggerSpec.body);
+  const cta = t(`triggers.${triggerKey}.cta`, triggerSpec.cta);
+
   const config = section === 'levers'
     ? {
         gatedItems: [
