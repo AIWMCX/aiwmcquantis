@@ -3,13 +3,28 @@ import type {
   AnalysisRequest,
   AnalysisAPIResponse,
   AnalysisGenerationResult,
+  BusinessAnalysisResult,
 } from '@/types/analysis';
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 import { startRequestContext, requestHeaders } from '@/lib/correlation';
+import { QuantisMath } from '@/lib/quantis-math';
 
 import { logger } from '@/lib/logger';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
+
+type CompletedAnalysisResponse = AnalysisAPIResponse & {
+  success: true;
+  data: BusinessAnalysisResult;
+};
+
+function isQueuedResponse(data: AnalysisAPIResponse): data is AnalysisAPIResponse & { queued: true; job_id: string } {
+  return data.queued === true && typeof data.job_id === 'string' && data.job_id.length > 0;
+}
+
+function isCompletedAnalysisResponse(data: AnalysisAPIResponse): data is CompletedAnalysisResponse {
+  return data.success === true && !!data.data && typeof data.data === 'object' && 'financial_analysis' in data.data;
+}
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
