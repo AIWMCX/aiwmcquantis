@@ -110,6 +110,11 @@ export default function AdminDashboard() {
             <AdminMetricsDashboard />
           </TabsContent>
 
+          {/* Activation Tab — WAF, trial-to-paid, retention cohorts */}
+          <TabsContent value="activation" className="space-y-6">
+            <ActivationKpiCard />
+          </TabsContent>
+
           {/* Performance Tab */}
           <TabsContent value="performance" className="space-y-6">
             <div className="grid gap-6 md:grid-cols-2">
