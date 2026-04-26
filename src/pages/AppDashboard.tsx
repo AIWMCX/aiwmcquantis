@@ -476,6 +476,11 @@ export default function Index() {
 
                   <TabsContent value="analyze">
                     <ContextualUpgradeBanner />
+                    {isError && error && (
+                      <div className="mb-4">
+                        <AnalysisErrorPanel error={error} onRetry={retry} />
+                      </div>
+                    )}
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
                         <AccuracyTransparentResults 
