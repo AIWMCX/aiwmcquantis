@@ -53,7 +53,7 @@ export function useAnalysis() {
     onSuccess: async (data) => {
       setResult(data);
       void trackActivationEvent('calculation_completed', {
-        confidence: data?.metadata?.confidence_score,
+        idea_length: idea.length,
       });
       toast.success('Analysis complete! ✅', {
         description: 'Scroll down to view your full results',
