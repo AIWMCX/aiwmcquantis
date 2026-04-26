@@ -116,10 +116,10 @@ async function sendToSentry(
 }
 
 export interface EdgeLogger {
-  debug(msg: string, context?: LogContext): void;
-  info(msg: string, context?: LogContext): void;
-  warn(msg: string, errOrContext?: unknown, context?: LogContext): void;
-  error(msg: string, errOrContext?: unknown, context?: LogContext): void;
+  debug(msg: string, ...rest: unknown[]): void;
+  info(msg: string, ...rest: unknown[]): void;
+  warn(msg: string, ...rest: unknown[]): void;
+  error(msg: string, ...rest: unknown[]): void;
   child(extra: LogContext): EdgeLogger;
 }
 
@@ -141,23 +141,21 @@ function format(
   return JSON.stringify(base);
 }
 
-function normalize(errOrContext?: unknown, context?: LogContext): {
-  err: unknown;
-  ctx: LogContext;
-} {
-  if (errOrContext instanceof Error) {
-    return {
-      err: errOrContext,
-      ctx: { ...(context || {}), error_name: errOrContext.name, error_message: errOrContext.message },
-    };
-  }
-  if (errOrContext && typeof errOrContext === 'object') {
-    return { err: null, ctx: { ...(errOrContext as LogContext), ...(context || {}) } };
-  }
-  if (errOrContext !== undefined) {
-    return { err: null, ctx: { extra: errOrContext, ...(context || {}) } };
-  }
-  return { err: null, ctx: context || {} };
+function normalize(rest: unknown[]): { err: unknown; ctx: LogContext } {
+  let err: unknown = null;
+  const ctx: LogContext = {};
+  rest.forEach((arg, i) => {
+    if (arg instanceof Error) {
+      err = arg;
+      ctx.error_name = arg.name;
+      ctx.error_message = arg.message;
+    } else if (arg && typeof arg === 'object') {
+      Object.assign(ctx, arg as LogContext);
+    } else if (arg !== undefined) {
+      ctx[`arg${i}`] = arg;
+    }
+  });
+  return { err, ctx };
 }
 
 export function createLogger(
