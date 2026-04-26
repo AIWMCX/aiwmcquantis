@@ -47,8 +47,8 @@ export function TierBadge() {
         ? 'border-destructive/40 bg-destructive/10 text-destructive hover:bg-destructive/15'
         : 'border-border bg-background/60 text-muted-foreground hover:text-foreground hover:border-primary/40';
 
-  // FREE/PLUS → /pricing for upsell. PRO → settings (already top-tier).
-  const href = isPro ? '/plus-settings' : '/pricing';
+  // FREE/PLUS → /pricing for upsell. PRO → Pro settings (already top-tier).
+  const href = isPro ? '/pro-settings' : '/pricing';
   const ariaLabel = `${tierLabel} — ${quotaText}. ${isPro ? '' : t('tier_badge.click_to_upgrade')}`;
 
   return (
