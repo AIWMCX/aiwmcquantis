@@ -183,8 +183,9 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
   
   const mrr = calculatedMetrics?.mrr || financialInputs?.monthly_revenue || 50000;
   const investment = financialInputs?.startup_investment || 100000;
-  const cac = calculatedMetrics?.cac || financialInputs?.cac || industry.cac_typical || 60;
+  const cac = calculatedMetrics?.cac || financialInputs?.cac || ((industry.cac_min + industry.cac_max) / 2) || 60;
   const ltv = calculatedMetrics?.ltv || 500;
+  const ltvCacRatio = cac > 0 ? ltv / cac : 0;
   const avgCheck = financialInputs?.average_price || 
     (industry.average_check_min + industry.average_check_max) / 2;
 

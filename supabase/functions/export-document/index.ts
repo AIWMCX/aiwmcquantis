@@ -54,8 +54,10 @@ serve(async (req) => {
 
     // ========== ENTITLEMENT GATE: documentStudio + daily download quota ==========
     try {
-      await requireFeature(supabaseAdmin, user.id, 'documentStudio', '/export-document');
-      await requireDownloadQuota(supabaseAdmin, user.id, '/export-document');
+      // deno-lint-ignore no-explicit-any
+      await requireFeature(supabaseAdmin as any, user.id, 'documentStudio', '/export-document');
+      // deno-lint-ignore no-explicit-any
+      await requireDownloadQuota(supabaseAdmin as any, user.id, '/export-document');
     } catch (e) {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
@@ -127,9 +129,10 @@ serve(async (req) => {
 
   } catch (error) {
     log.error('Export document error:', error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return new Response(JSON.stringify({
       success: false,
-      error: error.message,
+      error: errMsg,
     }), {
       status: 400,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

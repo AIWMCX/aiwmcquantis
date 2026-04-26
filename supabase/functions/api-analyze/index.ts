@@ -84,7 +84,8 @@ Deno.serve(async (req: Request) => {
       }
       const adminClient = createClient(supabaseUrl, supabaseServiceKey)
       try {
-        await requireFeature(adminClient, claims.claims.sub, 'apiAccess', '/api-analyze')
+        // deno-lint-ignore no-explicit-any
+        await requireFeature(adminClient as any, claims.claims.sub, 'apiAccess', '/api-analyze')
       } catch (e) {
         if (e instanceof EntitlementError) return e.toResponse(corsHeaders)
         throw e

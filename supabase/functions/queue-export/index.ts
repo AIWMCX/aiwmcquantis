@@ -5,6 +5,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('queue-export', 'module');
+
 interface QueueExportRequest {
   analysis_id: string;
   idempotency_key: string;
@@ -55,8 +57,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
     try {
-      await requireFeature(adminClient, userId, 'watermarkFree', '/queue-export');
-      await requireDownloadQuota(adminClient, userId, '/queue-export');
+      // deno-lint-ignore no-explicit-any
+      await requireFeature(adminClient as any, userId, 'watermarkFree', '/queue-export');
+      // deno-lint-ignore no-explicit-any
+      await requireDownloadQuota(adminClient as any, userId, '/queue-export');
     } catch (e) {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
@@ -142,7 +146,7 @@ Deno.serve(async (req) => {
       EdgeRuntime.waitUntil(processExportJob(supabase, jobId, analysis.result, userId));
     } else {
       // Fallback: process synchronously (not ideal but works)
-      processExportJob(supabase, jobId, analysis.result, userId);
+      processExportJob(supabase as any, jobId, analysis.result, userId);
     }
 
     // Return immediately with job ID

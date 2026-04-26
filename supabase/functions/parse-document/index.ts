@@ -4,6 +4,9 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+// Module-scope logger for helpers outside the request handler.
+const log = createLogger('parse-document', 'module');
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -120,7 +123,8 @@ serve(async (req) => {
       global: { headers: { Authorization: authHeader } },
     });
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabaseAuth.auth.getClaims(token);
+    // deno-lint-ignore no-explicit-any
+    const { data: claimsData, error: claimsError } = await (supabaseAuth.auth as any).getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Invalid authentication token", code: "INVALID_AUTH" }),
@@ -175,8 +179,7 @@ serve(async (req) => {
       );
     }
 
-    // Fetch the file
-    const fileResponse = await fetch(fileUrl);
+    // (file already fetched above; reuse fileResponse)
     if (!fileResponse.ok) {
       throw new Error(`Failed to fetch file: ${fileResponse.status}`);
     }

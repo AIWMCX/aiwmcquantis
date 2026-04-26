@@ -6,6 +6,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('stripe-webhook', 'module');
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -44,11 +46,11 @@ async function withRetry<T>(
     try {
       return await operation();
     } catch (error) {
-      lastError = error;
+      lastError = error instanceof Error ? error : new Error(String(error));
       
       if (attempt < RETRY_CONFIG.maxRetries) {
         const delay = calculateBackoff(attempt);
-        log.warn(`[${requestId}] ${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), retrying in ${delay}ms:`, error.message);
+        log.warn(`[${requestId}] ${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), retrying in ${delay}ms:`, (error instanceof Error ? error.message : String(error)));
         await sleep(delay);
       }
     }
@@ -138,9 +140,9 @@ serve(async (req) => {
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
       log.info(`[${requestId}] Signature verified successfully`);
     } catch (err) {
-      log.error(`[${requestId}] Signature verification failed:`, err.message);
+      log.error(`[${requestId}] Signature verification failed:`, (err instanceof Error ? err.message : String(err)));
       return new Response(
-        JSON.stringify({ error: "Webhook signature verification failed", details: err.message }),
+        JSON.stringify({ error: "Webhook signature verification failed", details: (err instanceof Error ? err.message : String(err)) }),
         { status: 401, headers: corsHeaders }
       );
     }
@@ -207,7 +209,7 @@ serve(async (req) => {
           requestId
         );
       } catch (err) {
-        log.error(`[${requestId}] Error finding user by email:`, err.message);
+        log.error(`[${requestId}] Error finding user by email:`, (err instanceof Error ? err.message : String(err)));
         return null;
       }
     }
@@ -228,7 +230,7 @@ serve(async (req) => {
           requestId
         );
       } catch (err) {
-        log.error(`[${requestId}] Error fetching customer:`, err.message);
+        log.error(`[${requestId}] Error fetching customer:`, (err instanceof Error ? err.message : String(err)));
         return null;
       }
     }
@@ -330,15 +332,15 @@ serve(async (req) => {
           "Retrieve subscription",
           requestId
         );
-        log.info(`[${requestId}] Subscription status: ${subscription.status}`);
+        log.info(`[${requestId}] Subscription status: ${(subscription as any).status}`);
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
-        log.info(`[${requestId}] Determined plan: ${plan} (price: ${subscription.items?.data?.[0]?.price?.id})`);
+        log.info(`[${requestId}] Determined plan: ${plan} (price: ${(subscription as any).items?.data?.[0]?.price?.id})`);
 
         // Map status
         let status = "active";
-        if (subscription.status === "trialing") {
+        if ((subscription as any).status === "trialing") {
           status = "trialing";
         }
         log.info(`[${requestId}] Status: ${status}`);
@@ -351,8 +353,8 @@ serve(async (req) => {
           stripe_subscription_id: subscriptionId,
           plan_id: plan,
           status: status,
-          current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-          current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+          current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+          current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
         };
         log.info(`[${requestId}] Subscription data:`, JSON.stringify(subscriptionData));
 
@@ -368,19 +370,19 @@ serve(async (req) => {
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
         log.info(`[${requestId}] === Subscription Updated ===`);
-        log.info(`[${requestId}] Subscription ID: ${subscription.id}`);
-        log.info(`[${requestId}] Status: ${subscription.status}`);
-        log.info(`[${requestId}] Customer: ${subscription.customer}`);
+        log.info(`[${requestId}] Subscription ID: ${(subscription as any).id}`);
+        log.info(`[${requestId}] Status: ${(subscription as any).status}`);
+        log.info(`[${requestId}] Customer: ${(subscription as any).customer}`);
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
 
         let status = "active";
-        if (subscription.status === "canceled") {
+        if ((subscription as any).status === "canceled") {
           status = "canceled";
-        } else if (subscription.status === "past_due") {
+        } else if ((subscription as any).status === "past_due") {
           status = "past_due";
-        } else if (subscription.status === "trialing") {
+        } else if ((subscription as any).status === "trialing") {
           status = "trialing";
         }
 
@@ -393,7 +395,7 @@ serve(async (req) => {
               const { data, error } = await supabase
                 .from("subscriptions")
                 .select("id, user_id")
-                .eq("stripe_subscription_id", subscription.id)
+                .eq("stripe_subscription_id", (subscription as any).id)
                 .maybeSingle();
               if (error) throw error;
               return data;
@@ -411,10 +413,10 @@ serve(async (req) => {
                   .update({
                     plan_id: plan,
                     status: status,
-                    current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                    current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                    current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                    current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
                   })
-                  .eq("stripe_subscription_id", subscription.id);
+                  .eq("stripe_subscription_id", (subscription as any).id);
                 if (error) throw error;
               },
               "Update subscription by ID",
@@ -424,18 +426,18 @@ serve(async (req) => {
           } else {
             // Fallback: Find user by customer email and upsert
             log.info(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
-            const customerEmail = await getCustomerEmail(subscription.customer as string);
+            const customerEmail = await getCustomerEmail((subscription as any).customer as string);
             if (customerEmail) {
               const userId = await findUserByEmail(customerEmail);
               if (userId) {
                 const result = await upsertSubscription({
                   user_id: userId,
-                  stripe_customer_id: subscription.customer as string,
-                  stripe_subscription_id: subscription.id,
+                  stripe_customer_id: (subscription as any).customer as string,
+                  stripe_subscription_id: (subscription as any).id,
                   plan_id: plan,
                   status: status,
-                  current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                  current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                  current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                  current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
                 });
                 if (result.success) {
                   log.info(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
@@ -450,7 +452,7 @@ serve(async (req) => {
             }
           }
         } catch (err) {
-          log.error(`[${requestId}] Subscription update failed:`, err.message);
+          log.error(`[${requestId}] Subscription update failed:`, (err instanceof Error ? err.message : String(err)));
         }
         break;
       }
@@ -458,12 +460,12 @@ serve(async (req) => {
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
         log.info(`[${requestId}] === Subscription Deleted (soft downgrade) ===`);
-        log.info(`[${requestId}] Subscription ID: ${subscription.id}`);
+        log.info(`[${requestId}] Subscription ID: ${(subscription as any).id}`);
         log.info(`[${requestId}] Cancel reason: ${subscription.cancellation_details?.reason || 'unknown'}`);
-        log.info(`[${requestId}] Period end: ${subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : 'N/A'}`);
+        log.info(`[${requestId}] Period end: ${(subscription as any).current_period_end ? new Date((subscription as any).current_period_end * 1000).toISOString() : 'N/A'}`);
 
         try {
-          const customerId = subscription.customer as string;
+          const customerId = (subscription as any).customer as string;
           const activeSubscriptions = await stripe.subscriptions.list({
             customer: customerId, status: 'active', limit: 5,
           });
@@ -476,8 +478,8 @@ serve(async (req) => {
           // SOFT DOWNGRADE: keep plan_id intact until current_period_end.
           // Mark status='canceled' so the cron flips plan_id to 'free' at period end.
           // Pre-period-end the user retains all paid features (industry standard).
-          const periodEndIso = subscription.current_period_end
-            ? new Date(subscription.current_period_end * 1000).toISOString()
+          const periodEndIso = (subscription as any).current_period_end
+            ? new Date((subscription as any).current_period_end * 1000).toISOString()
             : new Date().toISOString();
 
           await withRetry(
@@ -490,7 +492,7 @@ serve(async (req) => {
                   current_period_end: periodEndIso,
                   // plan_id stays — flipped to 'free' by process-subscription-downgrades cron
                 })
-                .eq("stripe_subscription_id", subscription.id);
+                .eq("stripe_subscription_id", (subscription as any).id);
               if (error) throw error;
             },
             "Soft-cancel subscription",
@@ -501,7 +503,7 @@ serve(async (req) => {
           const { data: subRow } = await supabase
             .from("subscriptions")
             .select("user_id")
-            .eq("stripe_subscription_id", subscription.id)
+            .eq("stripe_subscription_id", (subscription as any).id)
             .maybeSingle();
 
           if (subRow?.user_id) {
@@ -515,12 +517,12 @@ serve(async (req) => {
                 template_key: "cancellation_confirmed",
                 dynamic_data: { period_end_human: periodEndHuman },
               },
-            }).catch((err) => log.error(`[${requestId}] cancel email failed:`, err.message));
+            }).catch((err) => log.error(`[${requestId}] cancel email failed:`, (err instanceof Error ? err.message : String(err))));
           }
 
           log.info(`[${requestId}] SUCCESS: Soft-canceled, retains access until ${periodEndIso}`);
         } catch (err) {
-          log.error(`[${requestId}] Soft-cancel error:`, err.message);
+          log.error(`[${requestId}] Soft-cancel error:`, (err instanceof Error ? err.message : String(err)));
         }
         break;
       }
@@ -546,10 +548,10 @@ serve(async (req) => {
           
           // Map Stripe Price ID → correct plan (plus or pro)
           const plan = planFromSubscription(subscription);
-          const status = subscription.status === "active" || subscription.status === "trialing" ? "active" : subscription.status;
+          const status = (subscription as any).status === "active" || (subscription as any).status === "trialing" ? "active" : (subscription as any).status;
 
-          log.info(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${subscription.id}`);
-          log.info(`[${requestId}] Stripe subscription status: ${subscription.status}`);
+          log.info(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${(subscription as any).id}`);
+          log.info(`[${requestId}] Stripe subscription status: ${(subscription as any).status}`);
 
           // Try to update by subscription ID first
           let updated = false;
@@ -559,10 +561,10 @@ serve(async (req) => {
               .update({
                 plan_id: plan,
                 status: status,
-                current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
               })
-              .eq("stripe_subscription_id", subscription.id)
+              .eq("stripe_subscription_id", (subscription as any).id)
               .select();
               
             if (!error && data && data.length > 0) {
@@ -582,11 +584,11 @@ serve(async (req) => {
                 const result = await upsertSubscription({
                   user_id: userId,
                   stripe_customer_id: invoice.customer as string,
-                  stripe_subscription_id: subscription.id,
+                  stripe_subscription_id: (subscription as any).id,
                   plan_id: plan,
                   status: status,
-                  current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
-                  current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
+                  current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                  current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
                 });
                 if (result.success) {
                   log.info(`[${requestId}] ✓ Subscription synced via invoice.paid email fallback for user ${userId}`);
@@ -642,7 +644,7 @@ serve(async (req) => {
   } catch (error) {
     log.error(`[${requestId}] Webhook error:`, error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)) }),
       { 
         status: 500, 
         headers: { ...corsHeaders, "Content-Type": "application/json" } 

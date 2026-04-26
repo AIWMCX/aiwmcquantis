@@ -225,8 +225,9 @@ async function sendEmailNotification(
 }
 
 // Log alert to database for audit trail
+// deno-lint-ignore no-explicit-any
 async function logAlert(
-  supabase: ReturnType<typeof createClient>,
+  supabase: any,
   alert: AlertPayload,
   notifications: NotificationResult[]
 ): Promise<void> {

@@ -80,7 +80,8 @@ serve(async (req) => {
 
     // Verify JWT and get user
     const token = authHeader.replace("Bearer ", "");
-    const { data: claimsData, error: claimsError } = await supabase.auth.getClaims(token);
+    // deno-lint-ignore no-explicit-any
+    const { data: claimsData, error: claimsError } = await (supabase.auth as any).getClaims(token);
     if (claimsError || !claimsData?.claims) {
       return new Response(
         JSON.stringify({ error: "Invalid authentication token" }),
@@ -154,8 +155,9 @@ serve(async (req) => {
     );
   } catch (error) {
     log.error("Portal error:", error);
+    const errMsg = error instanceof Error ? error.message : String(error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: errMsg }),
       {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,

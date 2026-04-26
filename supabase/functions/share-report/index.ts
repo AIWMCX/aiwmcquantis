@@ -165,8 +165,10 @@ Deno.serve(async (req) => {
         .from("shared_reports")
         .update({ view_count: currentViews + 1 })
         .eq("id", share.id)
-        .then(() => log.info("[share-report] View count incremented"))
-        .catch((err) => log.error("[share-report] Failed to increment view count:", err));
+        .then(
+          () => log.info("[share-report] View count incremented"),
+          (err: unknown) => log.error("[share-report] Failed to increment view count:", err),
+        );
 
       // Return analysis data (without user_id for privacy)
       return new Response(

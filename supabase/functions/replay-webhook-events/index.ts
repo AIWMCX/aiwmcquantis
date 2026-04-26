@@ -6,6 +6,7 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+const log = createLogger('replay-webhook-events', 'module');
 log.info("=== Replay Webhook Events Function Started ===");
 
 serve(async (req) => {
@@ -97,7 +98,7 @@ serve(async (req) => {
           return customer.email;
         }
       } catch (err) {
-        log.error(`[${requestId}] Error fetching customer:`, err.message);
+        log.error(`[${requestId}] Error fetching customer:`, (err instanceof Error ? err.message : String(err)));
       }
       return null;
     }
@@ -211,7 +212,7 @@ serve(async (req) => {
         return { success: false, message: `Unsupported event type: ${event.type}` };
       } catch (err) {
         log.error(`[${requestId}] Error processing event:`, err);
-        return { success: false, message: err.message };
+        return { success: false, message: (err instanceof Error ? err.message : String(err)) };
       }
     }
 
@@ -362,7 +363,7 @@ serve(async (req) => {
   } catch (error) {
     log.error(`[${requestId}] Error:`, error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)) }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
