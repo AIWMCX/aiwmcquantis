@@ -24,6 +24,9 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
+import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
+import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
+import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 
@@ -74,7 +77,7 @@ export default function Index() {
     idea, setIdea, location, setLocation,
     financialInputs, setFinancialInputs,
     errors, clearError, result, setResult,
-    isLoading, handleSubmit, reset, isFormValid,
+    isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
     files, isUploading, uploadFiles, removeFile, maxFiles, allowedExtensions,
     rateLimitError, clearRateLimitError,
   } = useAnalysis();
