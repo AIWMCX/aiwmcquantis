@@ -258,6 +258,13 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
       if (lastError.message.includes('VALIDATION') || 
           lastError.message.includes('validation') ||
           lastError.message.includes('RATE_LIMIT') ||
+          lastError.message.includes('TIER_GATE') ||
+          lastError.message.includes('QUOTA_EXCEEDED') ||
+          lastError.message.includes('USAGE_LIMIT') ||
+          lastError.message.includes('PAYMENT') ||
+          lastError.message.includes('Unauthorized') ||
+          lastError.message.includes('401') ||
+          lastError.message.includes('402') ||
           lastError.message.includes('INVALID_BUSINESS_IDEA')) {
         throw lastError;
       }
