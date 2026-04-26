@@ -7,6 +7,7 @@ import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
 import type { AnalysisRequest, BusinessAnalysisResult, OptionalFinancialInputs } from '@/types/analysis';
+import { trackActivationEvent } from '@/lib/activationTracking';
 
 import { logger } from '@/lib/logger';
 interface FormErrors {
@@ -51,6 +52,9 @@ export function useAnalysis() {
     mutationFn: (request: AnalysisRequest) => generateAnalysis(request),
     onSuccess: async (data) => {
       setResult(data);
+      void trackActivationEvent('calculation_completed', {
+        idea_length: idea.length,
+      });
       toast.success('Analysis complete! ✅', {
         description: 'Scroll down to view your full results',
         duration: 6000,

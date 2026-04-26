@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      activation_events: {
+        Row: {
+          created_at: string
+          event_type: string
+          event_value: number
+          id: string
+          metadata: Json
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          event_type: string
+          event_value?: number
+          id?: string
+          metadata?: Json
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          event_type?: string
+          event_value?: number
+          id?: string
+          metadata?: Json
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       ai_calls: {
         Row: {
           analysis_id: string | null
@@ -3520,6 +3550,8 @@ export type Database = {
       }
       encrypt_pii: { Args: { plain_text: string }; Returns: string }
       generate_referral_code: { Args: { p_user_id: string }; Returns: string }
+      get_activation_funnel: { Args: { p_days?: number }; Returns: Json }
+      get_activation_kpis: { Args: never; Returns: Json }
       get_admin_metrics: {
         Args: never
         Returns: {
@@ -3576,6 +3608,7 @@ export type Database = {
         }[]
       }
       get_unique_users_with_analysis: { Args: never; Returns: number }
+      get_user_activation_score: { Args: { p_user_id: string }; Returns: Json }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
       get_weekly_leaderboard: {
         Args: never
