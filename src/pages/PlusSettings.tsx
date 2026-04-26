@@ -23,7 +23,11 @@ import {
 export default function PlusSettings() {
   const navigate = useNavigate();
   const { user, isLoading: authLoading } = useAuth();
-  const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
+  const { isPlus, isPro, loading: subscriptionLoading, createCheckout } = useSubscription();
+
+  // Tier-aware labels — PRO users see "Pro Settings", not "Plus".
+  const tierLabel = isPro ? 'Pro' : 'Plus';
+  const pageTitle = `${tierLabel} Settings`;
 
   const isLoading = authLoading || subscriptionLoading;
 
@@ -108,12 +112,12 @@ export default function PlusSettings() {
     );
   }
 
-  // Plus subscriber - show settings
+  // Plus or Pro subscriber - show settings
   return (
-    <AppLayout title="Plus Settings">
+    <AppLayout title={pageTitle}>
       <PageSEO
-        title="Plus Settings | AIWMC Quantis"
-        description="Manage your Plus subscription settings and custom branding."
+        title={`${pageTitle} | AIWMC Quantis`}
+        description={`Manage your ${tierLabel} subscription settings and custom branding.`}
         canonical="/plus-settings"
         noindex={true}
       />
@@ -121,14 +125,22 @@ export default function PlusSettings() {
       <div className="container max-w-4xl px-4 sm:px-6 py-8">
         <div className="mb-8">
           <div className="flex items-center gap-3">
-            <h1 className="text-3xl font-bold">Plus Settings</h1>
-            <Badge className="gap-1 bg-primary/10 text-primary border-primary/30">
+            <h1 className="text-3xl font-bold">{pageTitle}</h1>
+            <Badge
+              className={
+                isPro
+                  ? 'gap-1 bg-amber-500/15 text-amber-200 border-amber-500/40'
+                  : 'gap-1 bg-primary/10 text-primary border-primary/30'
+              }
+            >
               <Zap className="w-3 h-3" />
-              Plus
+              {tierLabel}
             </Badge>
           </div>
           <p className="text-muted-foreground mt-2">
-            Manage your Plus subscription and see your exclusive advantages
+            {isPro
+              ? 'Manage your Pro subscription, white-label branding, and team workspace.'
+              : 'Manage your Plus subscription and see your exclusive advantages'}
           </p>
         </div>
 
@@ -136,7 +148,7 @@ export default function PlusSettings() {
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="intelligence" className="gap-2">
               <TrendingUp className="w-4 h-4" />
-              Plus Intelligence
+              {isPro ? 'Pro Intelligence' : 'Plus Intelligence'}
             </TabsTrigger>
             <TabsTrigger value="branding" className="gap-2">
               <Palette className="w-4 h-4" />
