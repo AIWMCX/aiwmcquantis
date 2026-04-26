@@ -189,7 +189,7 @@ export function PlusValueIndicator() {
                 <CheckCircle2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">Plus Intelligence Active</p>
+                <p className="font-semibold text-foreground">{tierLabel} Intelligence Active</p>
                 <p className="text-sm text-muted-foreground">
                   Your analyses use enhanced accuracy mode
                 </p>
