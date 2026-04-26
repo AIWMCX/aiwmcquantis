@@ -13,7 +13,15 @@ export function useDocumentDownload() {
    * Opens a print-to-PDF dialog with the preview HTML rendered in a new window.
    * The user can save as PDF from the browser print dialog.
    */
-  const downloadPDF = useCallback((html: string, title?: string) => {
+  /**
+   * Renders the document HTML into a hidden iframe and triggers the browser's
+   * native "Save as PDF" via the print API. We deliberately avoid window.print()
+   * on the host window and instead invoke print() on the iframe's contentWindow
+   * — this keeps the canonical PDF export pipeline (@react-pdf/renderer via
+   * usePdfExport) authoritative for analysis exports while still giving
+   * DocsStudio HTML templates a clean PDF path.
+   */
+  const downloadPDF = useCallback(async (html: string, title?: string) => {
     if (!html) {
       toast.error('No content to download. Fill in the form first.');
       return;
@@ -21,106 +29,65 @@ export function useDocumentDownload() {
 
     setIsDownloading(true);
 
+    const iframe = document.createElement('iframe');
+    iframe.setAttribute('aria-hidden', 'true');
+    iframe.style.position = 'fixed';
+    iframe.style.right = '0';
+    iframe.style.bottom = '0';
+    iframe.style.width = '0';
+    iframe.style.height = '0';
+    iframe.style.border = '0';
+    iframe.style.opacity = '0';
+
     try {
       const docTitle = title || 'Document';
-      const printWindow = window.open('', '_blank', 'width=900,height=700');
 
-      if (!printWindow) {
-        toast.error('Pop-up blocked. Please allow pop-ups for this site.');
-        setIsDownloading(false);
-        return;
-      }
-
-      printWindow.document.write(`
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-          <meta charset="UTF-8" />
-          <title>${docTitle}</title>
-          <style>
-            @page {
-              size: A4;
-              margin: 15mm 20mm;
-            }
-            * {
-              box-sizing: border-box;
-            }
-            body {
-              font-family: 'Segoe UI', Arial, Helvetica, sans-serif;
-              color: #1f2937;
-              background: #fff;
-              margin: 0;
-              padding: 20px;
-              -webkit-print-color-adjust: exact;
-              print-color-adjust: exact;
-            }
-            table {
-              border-collapse: collapse;
-              width: 100%;
-            }
-            th, td {
-              padding: 8px 12px;
-              text-align: left;
-            }
-            @media print {
-              body {
-                padding: 0;
-              }
-              .no-print {
-                display: none !important;
-              }
-            }
-          </style>
-        </head>
-        <body>
-          <div class="no-print" style="
-            background: #f0f4f8; 
-            border: 1px solid #d1d5db; 
-            border-radius: 8px; 
-            padding: 16px 24px; 
-            margin-bottom: 24px; 
-            display: flex; 
-            align-items: center; 
-            justify-content: space-between;
-            font-family: 'Segoe UI', Arial, sans-serif;
-          ">
-            <div>
-              <p style="margin: 0; font-weight: 600; color: #1f2937;">Ready to download</p>
-              <p style="margin: 4px 0 0; color: #6b7280; font-size: 14px;">
-                Use <strong>Ctrl+P</strong> (or <strong>Cmd+P</strong> on Mac) → Save as PDF
-              </p>
-            </div>
-            <button onclick="window.print()" style="
-              background: #2563eb; 
-              color: white; 
-              border: none; 
-              padding: 10px 24px; 
-              border-radius: 6px; 
-              font-size: 14px; 
-              font-weight: 600; 
-              cursor: pointer;
-            ">
-              Print / Save as PDF
-            </button>
-          </div>
-          ${html}
-        </body>
-        </html>
-      `);
-
-      printWindow.document.close();
-
-      // Auto-trigger print after content loads
-      printWindow.onload = () => {
-        setTimeout(() => {
-          printWindow.print();
-        }, 300);
+      const cleanup = () => {
+        try { document.body.removeChild(iframe); } catch { /* noop */ }
       };
 
-      toast.success('PDF preview opened — save from print dialog');
+      document.body.appendChild(iframe);
+
+      const doc = iframe.contentDocument;
+      if (!doc) throw new Error('Failed to create offscreen document.');
+
+      doc.open();
+      doc.write(`<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>${docTitle}</title>
+<style>
+  body { font-family: 'Segoe UI', Arial, sans-serif; margin: 24px; color: #111827; }
+  @page { size: A4; margin: 18mm; }
+</style>
+</head>
+<body>${html}</body>
+</html>`);
+      doc.close();
+
+      // Wait for iframe to load, then trigger native save-as-PDF.
+      await new Promise<void>((resolve) => {
+        const onReady = () => resolve();
+        if (doc.readyState === 'complete') onReady();
+        else iframe.addEventListener('load', onReady, { once: true });
+      });
+
+      // Small delay so fonts/images settle before the print snapshot.
+      await new Promise((r) => setTimeout(r, 250));
+
+      const win = iframe.contentWindow;
+      if (!win) throw new Error('Offscreen window unavailable.');
+      win.focus();
+      win.print();
+
+      // Browser print dialog is modal; clean up shortly after it closes.
+      setTimeout(cleanup, 1000);
+      toast.success('Save the file from your browser print dialog');
     } catch (error) {
       logger.error('PDF download error:', error);
       toast.error('Failed to generate PDF');
+      try { document.body.removeChild(iframe); } catch { /* noop */ }
     } finally {
       setIsDownloading(false);
     }

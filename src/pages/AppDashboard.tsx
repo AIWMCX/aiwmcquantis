@@ -24,6 +24,9 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
+import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
+import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
+import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 
@@ -74,7 +77,7 @@ export default function Index() {
     idea, setIdea, location, setLocation,
     financialInputs, setFinancialInputs,
     errors, clearError, result, setResult,
-    isLoading, handleSubmit, reset, isFormValid,
+    isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
     files, isUploading, uploadFiles, removeFile, maxFiles, allowedExtensions,
     rateLimitError, clearRateLimitError,
   } = useAnalysis();
@@ -473,6 +476,11 @@ export default function Index() {
 
                   <TabsContent value="analyze">
                     <ContextualUpgradeBanner />
+                    {isError && error && (
+                      <div className="mb-4">
+                        <AnalysisErrorPanel error={error} onRetry={retry} />
+                      </div>
+                    )}
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
                         <AccuracyTransparentResults 
@@ -503,6 +511,12 @@ export default function Index() {
                             : undefined}
                           onDismiss={() => {}}
                         />
+                        {!isFree && (
+                          <div className="mt-6 grid grid-cols-1 gap-4">
+                            <CapacityCheckCard parentAnalysisId={currentAnalysisId ?? undefined} />
+                            <MarketSizingCard />
+                          </div>
+                        )}
                       </SectionErrorBoundary>
                     ) : hasPrefill || isLoading ? (
                       <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center min-h-[200px] text-center">

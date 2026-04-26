@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Bell, LogOut, Settings, User } from 'lucide-react';
 import { TierBadge } from './TierBadge';
+import { ThemeToggle } from '@/components/ui/theme-toggle';
 
 interface AppTopBarProps {
   title?: string;
@@ -45,6 +46,7 @@ export function AppTopBar({ title }: AppTopBarProps) {
 
       {/* Right: Tier badge + Notifications + User */}
       <div className="flex items-center gap-2">
+        <ThemeToggle />
         <TierBadge />
         {/* Notification Bell */}
         <Button
