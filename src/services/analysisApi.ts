@@ -106,6 +106,24 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         throw new Error('Empty response from server');
       }
 
+      // ───────────────────────────────────────────────────────────────
+      // PRO async path: backend returns 202 with { queued, job_id }.
+      // We surface this as a typed result so the caller can poll the
+      // analysis_jobs table instead of crashing on missing `data`.
+      // ───────────────────────────────────────────────────────────────
+      if ((data as any).queued === true && (data as any).job_id) {
+        const d = data as any;
+        logger.info('Analysis enqueued for background processing', {
+          metadata: { job_id: d.job_id, request_id: d.request_id ?? requestId },
+        });
+        return {
+          kind: 'queued_job',
+          job_id: d.job_id as string,
+          request_id: (d.request_id as string) ?? requestId,
+          depth_requested: (request.analysis_depth === 'deep' ? 'deep' : 'pro'),
+        };
+      }
+
       // Handle rate limit response from edge function
       if ('code' in data && (data.code === 'RATE_LIMIT_EXCEEDED' || data.code === 'ANONYMOUS_LIMIT_EXCEEDED')) {
         const details = (data as any).details || {};
