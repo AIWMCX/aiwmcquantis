@@ -103,23 +103,27 @@ serve(async (req) => {
     const { plan } = await req.json();
     log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}`);
 
-    // SECURITY: Only allow 'plus' plan - Pro tier has been removed
-    if (plan !== "plus") {
+    // Spec §11.3 — accept 'plus' (no trial) and 'pro' (14-day trial). The
+    // Pro price ID is optional: if STRIPE_PRO_PRICE_ID is unset we reject the
+    // request rather than silently fall back to Plus pricing.
+    if (plan !== 'plus' && plan !== 'pro') {
       log.warn(`Invalid plan requested: ${plan}`);
       return new Response(
-        JSON.stringify({ 
-          error: "Invalid plan. Only 'plus' plan is available.",
-          valid_plans: ["plus"]
+        JSON.stringify({
+          error: "Invalid plan. Allowed: 'plus' or 'pro'.",
+          valid_plans: ['plus', 'pro'],
         }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    // Get the Plus price ID
-    const priceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
+    const priceId =
+      plan === 'pro'
+        ? Deno.env.get('STRIPE_PRO_PRICE_ID')
+        : Deno.env.get('STRIPE_PLUS_PRICE_ID');
     if (!priceId) {
-      log.error("STRIPE_PLUS_PRICE_ID not configured");
-      throw new Error("Payment configuration error. Please contact support.");
+      log.error(`STRIPE_${plan.toUpperCase()}_PRICE_ID not configured`);
+      throw new Error('Payment configuration error. Please contact support.');
     }
 
     // Check if user already has a Stripe customer
