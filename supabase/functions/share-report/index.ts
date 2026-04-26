@@ -12,6 +12,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeadersFor } from "../_shared/cors.ts";
 
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 interface ShareRequest {
   analysis_id: string;
 }
@@ -38,6 +41,9 @@ function checkShareRateLimit(ipHash: string): boolean {
 }
 
 Deno.serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('share-report', reqId);
+
   // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
   const corsHeaders = corsHeadersFor(req);
 
@@ -93,14 +99,14 @@ Deno.serve(async (req) => {
       const ipHash = Array.from(new Uint8Array(ipHashBuffer)).map(b => b.toString(16).padStart(2, "0")).join("").substring(0, 32);
 
       if (!checkShareRateLimit(ipHash)) {
-        console.log("[share-report] Rate limit exceeded for IP hash:", ipHash.substring(0, 8));
+        log.info("[share-report] Rate limit exceeded for IP hash:", ipHash.substring(0, 8));
         return new Response(
           JSON.stringify({ error: "Too many requests. Please try again later." }),
           { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json", "Retry-After": "3600" } }
         );
       }
 
-      console.log("[share-report] Fetching shared report by token");
+      log.info("[share-report] Fetching shared report by token");
 
       // Use service role to fetch public share
       const { data: share, error: shareError } = await adminClient
@@ -130,7 +136,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (shareError) {
-        console.error("[share-report] Database error:", shareError);
+        log.error("[share-report] Database error:", shareError);
         return new Response(
           JSON.stringify({ error: "Failed to fetch report" }), 
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -147,7 +153,7 @@ Deno.serve(async (req) => {
       // Enforce max view count to prevent indefinite access
       const currentViews = share.view_count || 0;
       if (currentViews >= MAX_VIEW_COUNT) {
-        console.log("[share-report] Max view count reached for share:", share.id);
+        log.info("[share-report] Max view count reached for share:", share.id);
         return new Response(
           JSON.stringify({ error: "This shared report has reached its maximum view limit." }),
           { status: 410, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -159,8 +165,8 @@ Deno.serve(async (req) => {
         .from("shared_reports")
         .update({ view_count: currentViews + 1 })
         .eq("id", share.id)
-        .then(() => console.log("[share-report] View count incremented"))
-        .catch((err) => console.error("[share-report] Failed to increment view count:", err));
+        .then(() => log.info("[share-report] View count incremented"))
+        .catch((err) => log.error("[share-report] Failed to increment view count:", err));
 
       // Return analysis data (without user_id for privacy)
       return new Response(
@@ -192,7 +198,7 @@ Deno.serve(async (req) => {
 
       const { data: { user }, error: authError } = await supabase.auth.getUser();
       if (authError || !user) {
-        console.error("[share-report] Auth error:", authError);
+        log.error("[share-report] Auth error:", authError);
         return new Response(
           JSON.stringify({ error: "Unauthorized" }), 
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -228,7 +234,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log("[share-report] Creating share for analysis:", analysis_id, "user:", user.id);
+      log.info("[share-report] Creating share for analysis:", analysis_id, "user:", user.id);
 
       // Verify user owns the analysis
       const { data: analysis, error: analysisError } = await supabase
@@ -239,7 +245,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (analysisError || !analysis) {
-        console.error("[share-report] Analysis not found or not owned:", analysisError);
+        log.error("[share-report] Analysis not found or not owned:", analysisError);
         return new Response(
           JSON.stringify({ error: "Analysis not found" }), 
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -285,7 +291,7 @@ Deno.serve(async (req) => {
         .single();
 
       if (createError) {
-        console.error("[share-report] Create share error:", createError);
+        log.error("[share-report] Create share error:", createError);
         return new Response(
           JSON.stringify({ error: "Failed to create share link" }), 
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -295,7 +301,7 @@ Deno.serve(async (req) => {
       const siteUrl = Deno.env.get("SITE_URL") || "https://aiwmcquantis.com";
       const shareUrl = `${siteUrl}/share/${share.token}`;
 
-      console.log("[share-report] Share created successfully:", share.token.substring(0, 8) + "...");
+      log.info("[share-report] Share created successfully:", share.token.substring(0, 8) + "...");
 
       return new Response(
         JSON.stringify({ 
@@ -341,7 +347,7 @@ Deno.serve(async (req) => {
         );
       }
 
-      console.log("[share-report] Revoking share:", token.substring(0, 8) + "...", "user:", user.id);
+      log.info("[share-report] Revoking share:", token.substring(0, 8) + "...", "user:", user.id);
 
       const { error: revokeError, count } = await supabase
         .from("shared_reports")
@@ -350,14 +356,14 @@ Deno.serve(async (req) => {
         .eq("user_id", user.id);
 
       if (revokeError) {
-        console.error("[share-report] Revoke error:", revokeError);
+        log.error("[share-report] Revoke error:", revokeError);
         return new Response(
           JSON.stringify({ error: "Failed to revoke share" }), 
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log("[share-report] Share revoked successfully");
+      log.info("[share-report] Share revoked successfully");
 
       return new Response(
         JSON.stringify({ success: true }), 
@@ -372,7 +378,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("[share-report] Unhandled error:", error);
+    log.error("[share-report] Unhandled error:", error);
     return new Response(
       JSON.stringify({ error: "Internal server error" }), 
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

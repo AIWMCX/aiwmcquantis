@@ -2,12 +2,18 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.49.1';
 import { requireFeature, requireDownloadQuota, EntitlementError } from "../_shared/entitlements.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 interface QueueExportRequest {
   analysis_id: string;
   idempotency_key: string;
 }
 
 Deno.serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('queue-export', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -55,7 +61,7 @@ Deno.serve(async (req) => {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
     }
-    console.log(`[queue-export] user=${userId} authorized + quota consumed`);
+    log.info(`[queue-export] user=${userId} authorized + quota consumed`);
 
     // Parse request body
     const body: QueueExportRequest = await req.json();
@@ -78,7 +84,7 @@ Deno.serve(async (req) => {
         .maybeSingle();
 
       if (existingJob) {
-        console.log(`Found existing job for idempotency key: ${idempotency_key}`);
+        log.info(`Found existing job for idempotency key: ${idempotency_key}`);
         return new Response(
           JSON.stringify({ 
             job_id: existingJob.id,
@@ -119,7 +125,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (insertError || !newJob) {
-      console.error('Failed to create export job:', insertError);
+      log.error('Failed to create export job:', insertError);
       return new Response(
         JSON.stringify({ error: 'Failed to create export job' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -127,7 +133,7 @@ Deno.serve(async (req) => {
     }
 
     const jobId = newJob.id;
-    console.log(`Created export job: ${jobId} for analysis: ${analysis_id}`);
+    log.info(`Created export job: ${jobId} for analysis: ${analysis_id}`);
 
     // Start background processing using waitUntil
     // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
@@ -150,7 +156,7 @@ Deno.serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Queue export error:', error);
+    log.error('Queue export error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -166,7 +172,7 @@ async function processExportJob(
   userId: string
 ): Promise<void> {
   try {
-    console.log(`Starting background processing for job: ${jobId}`);
+    log.info(`Starting background processing for job: ${jobId}`);
 
     // Update status to processing
     await supabase
@@ -195,10 +201,10 @@ async function processExportJob(
       })
       .eq('id', jobId);
 
-    console.log(`Completed processing for job: ${jobId}`);
+    log.info(`Completed processing for job: ${jobId}`);
 
   } catch (error) {
-    console.error(`Failed processing job ${jobId}:`, error);
+    log.error(`Failed processing job ${jobId}:`, error);
     
     await supabase
       .from('export_jobs')

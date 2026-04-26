@@ -1,7 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 Deno.serve(async (req: Request) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('doc-queue-worker', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -37,7 +43,7 @@ Deno.serve(async (req: Request) => {
       .limit(10);
 
     if (fetchErr) {
-      console.error("Failed to fetch queued jobs:", fetchErr);
+      log.error("Failed to fetch queued jobs:", fetchErr);
       return new Response(
         JSON.stringify({ error: "Failed to fetch jobs", detail: fetchErr.message }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
@@ -112,7 +118,7 @@ Deno.serve(async (req: Request) => {
           );
 
           if (aiError) {
-            console.warn(`AI generation fallback for ${claimed.job_id}:`, aiError);
+            log.warn(`AI generation fallback for ${claimed.job_id}:`, aiError);
             generatedContent = JSON.stringify(inputData);
           } else {
             generatedContent = typeof aiResult === "string" ? aiResult : JSON.stringify(aiResult);
@@ -173,7 +179,7 @@ Deno.serve(async (req: Request) => {
 
         processed++;
       } catch (jobErr) {
-        console.error(`Job ${job.job_id} failed:`, jobErr);
+        log.error(`Job ${job.job_id} failed:`, jobErr);
         failed++;
 
         // Mark job as failed
@@ -195,7 +201,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("doc-queue-worker fatal:", err);
+    log.error("doc-queue-worker fatal:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

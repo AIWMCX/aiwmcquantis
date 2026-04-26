@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -71,6 +74,9 @@ interface ExtractedFinancials {
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('parse-document', reqId);
+
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
@@ -132,7 +138,7 @@ serve(async (req) => {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
     }
-    console.log(`[parse-document] user=${userId} authorized`);
+    log.info(`[parse-document] user=${userId} authorized`);
     // ========== END ENTITLEMENT GATE ==========
 
     const { fileUrl, fileName, fileType } = await req.json() as ParseRequest;
@@ -146,7 +152,7 @@ serve(async (req) => {
 
     // ========== DOCUMENT SIZE LIMIT (100KB) ==========
     const MAX_DOCUMENT_SIZE = 102400; // 100KB limit
-    console.log(`Parsing document: ${fileName} (${fileType})`);
+    log.info(`Parsing document: ${fileName} (${fileType})`);
 
     // Fetch the file with size check
     const fileResponse = await fetch(fileUrl);
@@ -157,7 +163,7 @@ serve(async (req) => {
     // Check content-length header if available
     const contentLength = fileResponse.headers.get('content-length');
     if (contentLength && parseInt(contentLength) > MAX_DOCUMENT_SIZE) {
-      console.log(`Document rejected: ${fileName} is ${parseInt(contentLength)} bytes (limit: ${MAX_DOCUMENT_SIZE})`);
+      log.info(`Document rejected: ${fileName} is ${parseInt(contentLength)} bytes (limit: ${MAX_DOCUMENT_SIZE})`);
       return new Response(
         JSON.stringify({ 
           error: "Document too large. Maximum size is 100KB",
@@ -228,10 +234,10 @@ serve(async (req) => {
       content = content.substring(0, maxLength) + "\n\n[Content truncated due to length...]";
     }
 
-    console.log(`Extracted ${content.length} characters from ${fileName}`);
+    log.info(`Extracted ${content.length} characters from ${fileName}`);
     if (extractedFinancials) {
-      console.log(`Document type: ${extractedFinancials.document_type}, Confidence: ${extractedFinancials.confidence}%`);
-      console.log(`Key findings: ${extractedFinancials.key_findings.length}`);
+      log.info(`Document type: ${extractedFinancials.document_type}, Confidence: ${extractedFinancials.confidence}%`);
+      log.info(`Key findings: ${extractedFinancials.key_findings.length}`);
     }
 
     return new Response(
@@ -247,7 +253,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Parse document error:", error);
+    log.error("Parse document error:", error);
     const origin = req.headers.get("origin");
     const corsHeaders = getCorsHeaders(origin);
     return new Response(
@@ -391,7 +397,7 @@ async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileTyp
   };
   
   if (!LOVABLE_API_KEY) {
-    console.warn("LOVABLE_API_KEY not configured, returning placeholder");
+    log.warn("LOVABLE_API_KEY not configured, returning placeholder");
     return {
       content: `[Document: ${fileName}]\n\nNote: Document parsing requires AI configuration. Please contact support to enable full document parsing.\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes`,
       financials: defaultFinancials
@@ -523,7 +529,7 @@ Be precise with numbers. Include currency and period context in key_findings.`
 
     if (!response.ok) {
       const errorText = await response.text();
-      console.error("AI extraction error:", response.status, errorText);
+      log.error("AI extraction error:", response.status, errorText);
       
       return {
         content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Full content extraction unavailable. The AI analysis will use the document information provided above.`,
@@ -558,7 +564,7 @@ Be precise with numbers. Include currency and period context in key_findings.`
           extraction_notes: ['AI extraction with structured output']
         };
       } catch (parseErr) {
-        console.warn("Failed to parse JSON from AI response:", parseErr);
+        log.warn("Failed to parse JSON from AI response:", parseErr);
         parsedFinancials.extraction_notes = ['AI extraction completed, JSON parsing failed'];
       }
     }
@@ -572,7 +578,7 @@ Be precise with numbers. Include currency and period context in key_findings.`
     };
 
   } catch (error) {
-    console.error("AI extraction failed:", error);
+    log.error("AI extraction failed:", error);
     return {
       content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: AI extraction failed. The analysis will proceed with limited document context.`,
       financials: defaultFinancials

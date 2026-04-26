@@ -20,7 +20,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 Deno.serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('process-subscription-downgrades', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -50,7 +56,7 @@ Deno.serve(async (req) => {
     if (expErr) {
       summary.errors.push(`fetch expired: ${expErr.message}`);
     } else if (expired && expired.length > 0) {
-      console.log(`[downgrade-cron] Flipping ${expired.length} expired subscriptions to free`);
+      log.info(`[downgrade-cron] Flipping ${expired.length} expired subscriptions to free`);
       for (const sub of expired) {
         const { error: updErr } = await supabase
           .from("subscriptions")
@@ -79,7 +85,7 @@ Deno.serve(async (req) => {
     if (wbErr) {
       summary.errors.push(`fetch winback: ${wbErr.message}`);
     } else if (winbackCandidates && winbackCandidates.length > 0) {
-      console.log(`[downgrade-cron] ${winbackCandidates.length} winback candidates`);
+      log.info(`[downgrade-cron] ${winbackCandidates.length} winback candidates`);
       for (const sub of winbackCandidates) {
         // Dedupe: skip if already sent
         const { data: existing } = await supabase
@@ -110,7 +116,7 @@ Deno.serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e: any) {
-    console.error("[downgrade-cron] fatal:", e);
+    log.error("[downgrade-cron] fatal:", e);
     return new Response(
       JSON.stringify({ success: false, error: e?.message ?? "fatal", ...summary }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

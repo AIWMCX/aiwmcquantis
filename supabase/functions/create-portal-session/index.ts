@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -31,6 +34,9 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('create-portal-session', reqId);
+
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
@@ -85,7 +91,7 @@ serve(async (req) => {
     const userId = claimsData.claims.sub;
     const userEmail = claimsData.claims.email;
 
-    console.log(`Creating portal session for user: ${userEmail}`);
+    log.info(`Creating portal session for user: ${userEmail}`);
 
     // Get user's subscription to find their Stripe customer ID
     const { data: subscription, error: subError } = await supabase
@@ -102,7 +108,7 @@ serve(async (req) => {
 
     // If no customer ID in DB, try to find by email in Stripe
     if (!customerId) {
-      console.log(`No customer ID in DB, searching Stripe by email: ${userEmail}`);
+      log.info(`No customer ID in DB, searching Stripe by email: ${userEmail}`);
       const customers = await stripe.customers.list({
         email: userEmail!,
         limit: 1,
@@ -110,7 +116,7 @@ serve(async (req) => {
       
       if (customers.data.length > 0) {
         customerId = customers.data[0].id;
-        console.log(`Found Stripe customer: ${customerId}`);
+        log.info(`Found Stripe customer: ${customerId}`);
         
         // Update the subscription record with the found customer ID
         if (subscription) {
@@ -118,7 +124,7 @@ serve(async (req) => {
             .from("subscriptions")
             .update({ stripe_customer_id: customerId })
             .eq("user_id", userId);
-          console.log(`Updated subscription with Stripe customer ID`);
+          log.info(`Updated subscription with Stripe customer ID`);
         }
       }
     }
@@ -137,7 +143,7 @@ serve(async (req) => {
       return_url: `${returnOrigin}/app`,
     });
 
-    console.log(`Portal session created: ${portalSession.id}`);
+    log.info(`Portal session created: ${portalSession.id}`);
 
     return new Response(
       JSON.stringify({ url: portalSession.url }),
@@ -147,7 +153,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Portal error:", error);
+    log.error("Portal error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {

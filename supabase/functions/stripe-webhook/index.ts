@@ -3,6 +3,9 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -45,25 +48,25 @@ async function withRetry<T>(
       
       if (attempt < RETRY_CONFIG.maxRetries) {
         const delay = calculateBackoff(attempt);
-        console.warn(`[${requestId}] ${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), retrying in ${delay}ms:`, error.message);
+        log.warn(`[${requestId}] ${operationName} failed (attempt ${attempt + 1}/${RETRY_CONFIG.maxRetries + 1}), retrying in ${delay}ms:`, error.message);
         await sleep(delay);
       }
     }
   }
   
-  console.error(`[${requestId}] ${operationName} failed after ${RETRY_CONFIG.maxRetries + 1} attempts`);
+  log.error(`[${requestId}] ${operationName} failed after ${RETRY_CONFIG.maxRetries + 1} attempts`);
   throw lastError;
 }
 
-console.log("=== Stripe Webhook Function Started ===");
-console.log("Timestamp:", new Date().toISOString());
+log.info("=== Stripe Webhook Function Started ===");
+log.info("Timestamp:", new Date().toISOString());
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
   const requestId = crypto.randomUUID().slice(0, 8);
-  console.log(`[${requestId}] === Stripe Webhook Request ===`);
-  console.log(`[${requestId}] Method: ${req.method}`);
-  console.log(`[${requestId}] Timestamp: ${new Date().toISOString()}`);
+  log.info(`[${requestId}] === Stripe Webhook Request ===`);
+  log.info(`[${requestId}] Method: ${req.method}`);
+  log.info(`[${requestId}] Timestamp: ${new Date().toISOString()}`);
   
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -72,7 +75,7 @@ serve(async (req) => {
 
   // Health check endpoint - useful for testing if function is deployed
   if (req.method === "GET") {
-    console.log(`[${requestId}] Health check request`);
+    log.info(`[${requestId}] Health check request`);
     return new Response(
       JSON.stringify({ 
         status: "healthy", 
@@ -99,11 +102,11 @@ serve(async (req) => {
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
     
-    console.log(`[${requestId}] Stripe Secret Key configured: ${!!stripeSecretKey}`);
-    console.log(`[${requestId}] Webhook Secret configured: ${!!webhookSecret}`);
+    log.info(`[${requestId}] Stripe Secret Key configured: ${!!stripeSecretKey}`);
+    log.info(`[${requestId}] Webhook Secret configured: ${!!webhookSecret}`);
     
     if (!stripeSecretKey || !webhookSecret) {
-      console.error(`[${requestId}] Missing Stripe configuration`);
+      log.error(`[${requestId}] Missing Stripe configuration`);
       throw new Error("Stripe keys not configured");
     }
 
@@ -118,11 +121,11 @@ serve(async (req) => {
     const body = await req.text();
     const signature = req.headers.get("stripe-signature");
 
-    console.log(`[${requestId}] Body length: ${body.length}`);
-    console.log(`[${requestId}] Signature present: ${!!signature}`);
+    log.info(`[${requestId}] Body length: ${body.length}`);
+    log.info(`[${requestId}] Signature present: ${!!signature}`);
 
     if (!signature) {
-      console.error(`[${requestId}] No Stripe signature in headers`);
+      log.error(`[${requestId}] No Stripe signature in headers`);
       return new Response(
         JSON.stringify({ error: "No Stripe signature found" }),
         { status: 401, headers: corsHeaders }
@@ -133,17 +136,17 @@ serve(async (req) => {
     let event: Stripe.Event;
     try {
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
-      console.log(`[${requestId}] Signature verified successfully`);
+      log.info(`[${requestId}] Signature verified successfully`);
     } catch (err) {
-      console.error(`[${requestId}] Signature verification failed:`, err.message);
+      log.error(`[${requestId}] Signature verification failed:`, err.message);
       return new Response(
         JSON.stringify({ error: "Webhook signature verification failed", details: err.message }),
         { status: 401, headers: corsHeaders }
       );
     }
 
-    console.log(`[${requestId}] Event type: ${event.type}`);
-    console.log(`[${requestId}] Event ID: ${event.id}`);
+    log.info(`[${requestId}] Event type: ${event.type}`);
+    log.info(`[${requestId}] Event ID: ${event.id}`);
 
     // ATOMIC EVENT LOGGING - Log BEFORE processing starts (critical for audit trail)
     // This ensures we have a record even if processing crashes
@@ -166,9 +169,9 @@ serve(async (req) => {
         requestId
       );
       webhookEventLogged = true;
-      console.log(`[${requestId}] ✓ Webhook event logged atomically BEFORE processing`);
+      log.info(`[${requestId}] ✓ Webhook event logged atomically BEFORE processing`);
     } catch (logErr) {
-      console.error(`[${requestId}] ⚠️ CRITICAL: Failed to log webhook event - continuing anyway:`, logErr);
+      log.error(`[${requestId}] ⚠️ CRITICAL: Failed to log webhook event - continuing anyway:`, logErr);
       // Continue processing even if logging fails, but log prominently
     }
 
@@ -180,13 +183,13 @@ serve(async (req) => {
           .update({ status: "processing" })
           .eq("event_id", event.id);
       } catch (e) {
-        console.warn(`[${requestId}] Could not update status to processing`);
+        log.warn(`[${requestId}] Could not update status to processing`);
       }
     }
 
     // Helper function to find user by email (with retry)
     async function findUserByEmail(email: string): Promise<string | null> {
-      console.log(`[${requestId}] Looking up user by email: ${email}`);
+      log.info(`[${requestId}] Looking up user by email: ${email}`);
       try {
         return await withRetry(
           async () => {
@@ -194,17 +197,17 @@ serve(async (req) => {
             if (error) throw error;
             const matchedUser = users?.find(u => u.email === email);
             if (matchedUser) {
-              console.log(`[${requestId}] Found user by email: ${matchedUser.id}`);
+              log.info(`[${requestId}] Found user by email: ${matchedUser.id}`);
               return matchedUser.id;
             }
-            console.log(`[${requestId}] No user found for email: ${email}`);
+            log.info(`[${requestId}] No user found for email: ${email}`);
             return null;
           },
           "Find user by email",
           requestId
         );
       } catch (err) {
-        console.error(`[${requestId}] Error finding user by email:`, err.message);
+        log.error(`[${requestId}] Error finding user by email:`, err.message);
         return null;
       }
     }
@@ -216,7 +219,7 @@ serve(async (req) => {
           async () => {
             const customer = await stripe.customers.retrieve(customerId);
             if (customer && !customer.deleted && customer.email) {
-              console.log(`[${requestId}] Customer email from Stripe: ${customer.email}`);
+              log.info(`[${requestId}] Customer email from Stripe: ${customer.email}`);
               return customer.email;
             }
             return null;
@@ -225,7 +228,7 @@ serve(async (req) => {
           requestId
         );
       } catch (err) {
-        console.error(`[${requestId}] Error fetching customer:`, err.message);
+        log.error(`[${requestId}] Error fetching customer:`, err.message);
         return null;
       }
     }
@@ -246,7 +249,7 @@ serve(async (req) => {
         return { success: true };
       } catch (upsertError) {
         // Fallback: try INSERT
-        console.log(`[${requestId}] Upsert failed, attempting INSERT fallback...`);
+        log.info(`[${requestId}] Upsert failed, attempting INSERT fallback...`);
         try {
           await withRetry(
             async () => {
@@ -283,13 +286,13 @@ serve(async (req) => {
     switch (event.type) {
       case "checkout.session.completed": {
         const session = event.data.object as Stripe.Checkout.Session;
-        console.log(`[${requestId}] === Checkout Session Completed ===`);
-        console.log(`[${requestId}] Session ID: ${session.id}`);
-        console.log(`[${requestId}] Client Reference ID: ${session.client_reference_id}`);
-        console.log(`[${requestId}] Session metadata: ${JSON.stringify(session.metadata)}`);
-        console.log(`[${requestId}] Customer: ${session.customer}`);
-        console.log(`[${requestId}] Customer Email: ${session.customer_email}`);
-        console.log(`[${requestId}] Subscription: ${session.subscription}`);
+        log.info(`[${requestId}] === Checkout Session Completed ===`);
+        log.info(`[${requestId}] Session ID: ${session.id}`);
+        log.info(`[${requestId}] Client Reference ID: ${session.client_reference_id}`);
+        log.info(`[${requestId}] Session metadata: ${JSON.stringify(session.metadata)}`);
+        log.info(`[${requestId}] Customer: ${session.customer}`);
+        log.info(`[${requestId}] Customer Email: ${session.customer_email}`);
+        log.info(`[${requestId}] Subscription: ${session.subscription}`);
 
         const customerId = session.customer as string;
         const subscriptionId = session.subscription as string;
@@ -311,37 +314,37 @@ serve(async (req) => {
         }
 
         if (!userId) {
-          console.error(`[${requestId}] NO USER ID FOUND - cannot create subscription`);
-          console.error(`[${requestId}] client_reference_id: ${session.client_reference_id}`);
-          console.error(`[${requestId}] metadata: ${JSON.stringify(session.metadata)}`);
-          console.error(`[${requestId}] customer_email: ${session.customer_email}`);
+          log.error(`[${requestId}] NO USER ID FOUND - cannot create subscription`);
+          log.error(`[${requestId}] client_reference_id: ${session.client_reference_id}`);
+          log.error(`[${requestId}] metadata: ${JSON.stringify(session.metadata)}`);
+          log.error(`[${requestId}] customer_email: ${session.customer_email}`);
           break;
         }
 
-        console.log(`[${requestId}] User ID resolved: ${userId}`);
+        log.info(`[${requestId}] User ID resolved: ${userId}`);
 
         // Get subscription details from Stripe (with retry)
-        console.log(`[${requestId}] Fetching subscription details...`);
+        log.info(`[${requestId}] Fetching subscription details...`);
         const subscription = await withRetry(
           () => stripe.subscriptions.retrieve(subscriptionId),
           "Retrieve subscription",
           requestId
         );
-        console.log(`[${requestId}] Subscription status: ${subscription.status}`);
+        log.info(`[${requestId}] Subscription status: ${subscription.status}`);
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
-        console.log(`[${requestId}] Determined plan: ${plan} (price: ${subscription.items?.data?.[0]?.price?.id})`);
+        log.info(`[${requestId}] Determined plan: ${plan} (price: ${subscription.items?.data?.[0]?.price?.id})`);
 
         // Map status
         let status = "active";
         if (subscription.status === "trialing") {
           status = "trialing";
         }
-        console.log(`[${requestId}] Status: ${status}`);
+        log.info(`[${requestId}] Status: ${status}`);
 
         // Upsert subscription with retry
-        console.log(`[${requestId}] Upserting subscription to database...`);
+        log.info(`[${requestId}] Upserting subscription to database...`);
         const subscriptionData = {
           user_id: userId,
           stripe_customer_id: customerId,
@@ -351,23 +354,23 @@ serve(async (req) => {
           current_period_start: new Date(subscription.current_period_start * 1000).toISOString(),
           current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
         };
-        console.log(`[${requestId}] Subscription data:`, JSON.stringify(subscriptionData));
+        log.info(`[${requestId}] Subscription data:`, JSON.stringify(subscriptionData));
 
         const result = await upsertSubscription(subscriptionData);
         if (result.success) {
-          console.log(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
+          log.info(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
         } else {
-          console.error(`[${requestId}] FAILED to create subscription:`, result.error);
+          log.error(`[${requestId}] FAILED to create subscription:`, result.error);
         }
         break;
       }
 
       case "customer.subscription.updated": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`[${requestId}] === Subscription Updated ===`);
-        console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
-        console.log(`[${requestId}] Status: ${subscription.status}`);
-        console.log(`[${requestId}] Customer: ${subscription.customer}`);
+        log.info(`[${requestId}] === Subscription Updated ===`);
+        log.info(`[${requestId}] Subscription ID: ${subscription.id}`);
+        log.info(`[${requestId}] Status: ${subscription.status}`);
+        log.info(`[${requestId}] Customer: ${subscription.customer}`);
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
@@ -381,7 +384,7 @@ serve(async (req) => {
           status = "trialing";
         }
 
-        console.log(`[${requestId}] Updating - Plan: ${plan}, Status: ${status}`);
+        log.info(`[${requestId}] Updating - Plan: ${plan}, Status: ${status}`);
 
         // First, try to update by subscription ID (with retry)
         try {
@@ -417,10 +420,10 @@ serve(async (req) => {
               "Update subscription by ID",
               requestId
             );
-            console.log(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
+            log.info(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
           } else {
             // Fallback: Find user by customer email and upsert
-            console.log(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
+            log.info(`[${requestId}] Subscription not found by ID, attempting email fallback...`);
             const customerEmail = await getCustomerEmail(subscription.customer as string);
             if (customerEmail) {
               const userId = await findUserByEmail(customerEmail);
@@ -435,29 +438,29 @@ serve(async (req) => {
                   current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                 });
                 if (result.success) {
-                  console.log(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
+                  log.info(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
                 } else {
-                  console.error(`[${requestId}] Upsert fallback error:`, result.error);
+                  log.error(`[${requestId}] Upsert fallback error:`, result.error);
                 }
               } else {
-                console.error(`[${requestId}] Could not find user for email ${customerEmail}`);
+                log.error(`[${requestId}] Could not find user for email ${customerEmail}`);
               }
             } else {
-              console.error(`[${requestId}] Could not get customer email for fallback`);
+              log.error(`[${requestId}] Could not get customer email for fallback`);
             }
           }
         } catch (err) {
-          console.error(`[${requestId}] Subscription update failed:`, err.message);
+          log.error(`[${requestId}] Subscription update failed:`, err.message);
         }
         break;
       }
 
       case "customer.subscription.deleted": {
         const subscription = event.data.object as Stripe.Subscription;
-        console.log(`[${requestId}] === Subscription Deleted (soft downgrade) ===`);
-        console.log(`[${requestId}] Subscription ID: ${subscription.id}`);
-        console.log(`[${requestId}] Cancel reason: ${subscription.cancellation_details?.reason || 'unknown'}`);
-        console.log(`[${requestId}] Period end: ${subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : 'N/A'}`);
+        log.info(`[${requestId}] === Subscription Deleted (soft downgrade) ===`);
+        log.info(`[${requestId}] Subscription ID: ${subscription.id}`);
+        log.info(`[${requestId}] Cancel reason: ${subscription.cancellation_details?.reason || 'unknown'}`);
+        log.info(`[${requestId}] Period end: ${subscription.current_period_end ? new Date(subscription.current_period_end * 1000).toISOString() : 'N/A'}`);
 
         try {
           const customerId = subscription.customer as string;
@@ -466,7 +469,7 @@ serve(async (req) => {
           });
 
           if (activeSubscriptions.data.length > 0) {
-            console.log(`[${requestId}] ⚠️ Customer has ${activeSubscriptions.data.length} active subscription(s) - NOT downgrading`);
+            log.info(`[${requestId}] ⚠️ Customer has ${activeSubscriptions.data.length} active subscription(s) - NOT downgrading`);
             break;
           }
 
@@ -512,24 +515,24 @@ serve(async (req) => {
                 template_key: "cancellation_confirmed",
                 dynamic_data: { period_end_human: periodEndHuman },
               },
-            }).catch((err) => console.error(`[${requestId}] cancel email failed:`, err.message));
+            }).catch((err) => log.error(`[${requestId}] cancel email failed:`, err.message));
           }
 
-          console.log(`[${requestId}] SUCCESS: Soft-canceled, retains access until ${periodEndIso}`);
+          log.info(`[${requestId}] SUCCESS: Soft-canceled, retains access until ${periodEndIso}`);
         } catch (err) {
-          console.error(`[${requestId}] Soft-cancel error:`, err.message);
+          log.error(`[${requestId}] Soft-cancel error:`, err.message);
         }
         break;
       }
 
       case "invoice.paid": {
         const invoice = event.data.object as Stripe.Invoice;
-        console.log(`[${requestId}] === Invoice Paid ===`);
-        console.log(`[${requestId}] Invoice ID: ${invoice.id}`);
-        console.log(`[${requestId}] Subscription: ${invoice.subscription}`);
-        console.log(`[${requestId}] Customer: ${invoice.customer}`);
-        console.log(`[${requestId}] Amount Paid: ${invoice.amount_paid / 100} ${invoice.currency?.toUpperCase()}`);
-        console.log(`[${requestId}] Billing Reason: ${invoice.billing_reason}`);
+        log.info(`[${requestId}] === Invoice Paid ===`);
+        log.info(`[${requestId}] Invoice ID: ${invoice.id}`);
+        log.info(`[${requestId}] Subscription: ${invoice.subscription}`);
+        log.info(`[${requestId}] Customer: ${invoice.customer}`);
+        log.info(`[${requestId}] Amount Paid: ${invoice.amount_paid / 100} ${invoice.currency?.toUpperCase()}`);
+        log.info(`[${requestId}] Billing Reason: ${invoice.billing_reason}`);
 
         // CRITICAL: invoice.paid is the STRONGEST signal of an active subscription
         // If payment succeeded, user MUST have Plus access regardless of other events
@@ -545,8 +548,8 @@ serve(async (req) => {
           const plan = planFromSubscription(subscription);
           const status = subscription.status === "active" || subscription.status === "trialing" ? "active" : subscription.status;
 
-          console.log(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${subscription.id}`);
-          console.log(`[${requestId}] Stripe subscription status: ${subscription.status}`);
+          log.info(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${subscription.id}`);
+          log.info(`[${requestId}] Stripe subscription status: ${subscription.status}`);
 
           // Try to update by subscription ID first
           let updated = false;
@@ -564,10 +567,10 @@ serve(async (req) => {
               
             if (!error && data && data.length > 0) {
               updated = true;
-              console.log(`[${requestId}] ✓ Subscription updated from invoice.paid by subscription_id`);
+              log.info(`[${requestId}] ✓ Subscription updated from invoice.paid by subscription_id`);
             }
           } catch (err) {
-            console.log(`[${requestId}] Could not update by subscription_id, trying fallback...`);
+            log.info(`[${requestId}] Could not update by subscription_id, trying fallback...`);
           }
 
           // Fallback: find user by customer email and upsert
@@ -586,28 +589,28 @@ serve(async (req) => {
                   current_period_end: new Date(subscription.current_period_end * 1000).toISOString(),
                 });
                 if (result.success) {
-                  console.log(`[${requestId}] ✓ Subscription synced via invoice.paid email fallback for user ${userId}`);
+                  log.info(`[${requestId}] ✓ Subscription synced via invoice.paid email fallback for user ${userId}`);
                 } else {
-                  console.error(`[${requestId}] Invoice upsert fallback error:`, result.error);
+                  log.error(`[${requestId}] Invoice upsert fallback error:`, result.error);
                 }
               } else {
-                console.error(`[${requestId}] CRITICAL: Paid invoice but cannot find user for email ${customerEmail}`);
+                log.error(`[${requestId}] CRITICAL: Paid invoice but cannot find user for email ${customerEmail}`);
               }
             } else {
-              console.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);
+              log.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);
             }
           }
         } else if (invoice.amount_paid === 0) {
-          console.log(`[${requestId}] Skipping $0 invoice (likely trial or proration)`);
+          log.info(`[${requestId}] Skipping $0 invoice (likely trial or proration)`);
         }
         break;
       }
 
       default:
-        console.log(`[${requestId}] Unhandled event type: ${event.type}`);
+        log.info(`[${requestId}] Unhandled event type: ${event.type}`);
     }
 
-    console.log(`[${requestId}] === Webhook processing complete ===`);
+    log.info(`[${requestId}] === Webhook processing complete ===`);
 
     // Update webhook event status to processed (with retry)
     try {
@@ -626,7 +629,7 @@ serve(async (req) => {
         requestId
       );
     } catch (updateErr) {
-      console.warn(`[${requestId}] Failed to update webhook event status:`, updateErr);
+      log.warn(`[${requestId}] Failed to update webhook event status:`, updateErr);
     }
     
     return new Response(
@@ -637,7 +640,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error(`[${requestId}] Webhook error:`, error);
+    log.error(`[${requestId}] Webhook error:`, error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { 

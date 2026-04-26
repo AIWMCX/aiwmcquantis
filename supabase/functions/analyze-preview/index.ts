@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Lightweight industry detection
 function detectIndustry(idea: string): string {
   const lowerIdea = idea.toLowerCase();
@@ -73,6 +76,9 @@ async function hashString(str: string): Promise<string> {
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('analyze-preview', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -148,7 +154,7 @@ serve(async (req) => {
       idea_hash: ideaHash,
       location_hash: locationHash,
     }).then(() => {
-      console.log(`Preview logged: ${industry} in ${location}`);
+      log.info(`Preview logged: ${industry} in ${location}`);
     });
 
     return new Response(
@@ -165,7 +171,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error("Preview error:", error);
+    log.error("Preview error:", error);
     return new Response(
       JSON.stringify({ success: false, error: "Preview failed" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -1,6 +1,9 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 const SIGNAL_WEIGHTS: Record<string, number> = {
   downloaded: 1,
   shared_link: 2,
@@ -13,6 +16,9 @@ const SIGNAL_WEIGHTS: Record<string, number> = {
 };
 
 Deno.serve(async (req: Request) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('template-optimizer', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -219,11 +225,11 @@ Deno.serve(async (req: Request) => {
               }
             } else {
               const errText = await aiResponse.text();
-              console.error("AI gateway error:", aiResponse.status, errText);
+              log.error("AI gateway error:", aiResponse.status, errText);
             }
           }
         } catch (aiErr) {
-          console.error("AI improvement suggestion failed:", aiErr);
+          log.error("AI improvement suggestion failed:", aiErr);
         }
       }
 
@@ -246,7 +252,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("template-optimizer fatal:", err);
+    log.error("template-optimizer fatal:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Internal error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },

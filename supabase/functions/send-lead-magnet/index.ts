@@ -1,4 +1,7 @@
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 /**
  * Send Lead Magnet Edge Function
  * 
@@ -252,6 +255,9 @@ function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[stri
 }
 
 Deno.serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('send-lead-magnet', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -279,7 +285,7 @@ Deno.serve(async (req) => {
 
     const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
     if (!RESEND_API_KEY) {
-      console.error('RESEND_API_KEY not configured');
+      log.error('RESEND_API_KEY not configured');
       return new Response(
         JSON.stringify({ error: 'Email service not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -302,7 +308,7 @@ Deno.serve(async (req) => {
 
     if (!resendResponse.ok) {
       const errorText = await resendResponse.text();
-      console.error('Resend API error:', errorText);
+      log.error('Resend API error:', errorText);
       return new Response(
         JSON.stringify({ error: 'Failed to send email', details: errorText }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -310,7 +316,7 @@ Deno.serve(async (req) => {
     }
 
     const resendData = await resendResponse.json();
-    console.log(`Lead magnet email sent for offer "${offer}" to ${email}:`, resendData);
+    log.info(`Lead magnet email sent for offer "${offer}" to ${email}:`, resendData);
 
     // Also send admin notification
     try {
@@ -333,7 +339,7 @@ Deno.serve(async (req) => {
         }),
       });
     } catch (adminErr) {
-      console.error('Admin notification failed:', adminErr);
+      log.error('Admin notification failed:', adminErr);
     }
 
     return new Response(
@@ -346,7 +352,7 @@ Deno.serve(async (req) => {
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (error) {
-    console.error('Error in send-lead-magnet:', error);
+    log.error('Error in send-lead-magnet:', error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -31,6 +34,9 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('create-checkout-session', reqId);
+
   const origin = req.headers.get("origin");
   const corsHeaders = getCorsHeaders(origin);
 
@@ -95,11 +101,11 @@ serve(async (req) => {
     const userEmail = user.email;
 
     const { plan } = await req.json();
-    console.log(`Creating checkout session for plan: ${plan}, user: ${userEmail}`);
+    log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}`);
 
     // SECURITY: Only allow 'plus' plan - Pro tier has been removed
     if (plan !== "plus") {
-      console.warn(`Invalid plan requested: ${plan}`);
+      log.warn(`Invalid plan requested: ${plan}`);
       return new Response(
         JSON.stringify({ 
           error: "Invalid plan. Only 'plus' plan is available.",
@@ -112,7 +118,7 @@ serve(async (req) => {
     // Get the Plus price ID
     const priceId = Deno.env.get("STRIPE_PLUS_PRICE_ID");
     if (!priceId) {
-      console.error("STRIPE_PLUS_PRICE_ID not configured");
+      log.error("STRIPE_PLUS_PRICE_ID not configured");
       throw new Error("Payment configuration error. Please contact support.");
     }
 
@@ -174,7 +180,7 @@ serve(async (req) => {
       },
     });
 
-    console.log(`Checkout session created: ${session.id}`);
+    log.info(`Checkout session created: ${session.id}`);
 
     return new Response(
       JSON.stringify({ url: session.url }),
@@ -184,7 +190,7 @@ serve(async (req) => {
       }
     );
   } catch (error) {
-    console.error("Checkout error:", error);
+    log.error("Checkout error:", error);
     return new Response(
       JSON.stringify({ error: error.message }),
       {
