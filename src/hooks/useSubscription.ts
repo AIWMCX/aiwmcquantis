@@ -309,7 +309,10 @@ export function useSubscription(): SubscriptionData {
   return {
     subscription,
     usage,
+    tier,
+    manifest,
     isPlus,
+    isPro,
     isFree,
     isActive,
     analysesUsed,
