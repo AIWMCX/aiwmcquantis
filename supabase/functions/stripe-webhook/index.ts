@@ -696,18 +696,25 @@ serve(async (req) => {
           const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
 
           if (ageMs >= GRACE_MS) {
-            // Grace expired — downgrade to FREE immediately.
-            await supabase
-              .from("subscriptions")
-              .update({
-                plan_id: "free",
-                status: "canceled",
-                canceled_at: nowIso,
-              })
-              .eq("stripe_subscription_id", subId);
-            log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE`);
-
+            // Grace expired — canonical downgrade via RPC: flips plan_id='free',
+            // status='canceled', sets history_readonly_until = now()+30d, and
+            // writes a subscription_audit_log entry.
             if (subRow?.user_id) {
+              try {
+                await supabase.rpc("mark_subscription_canceled", {
+                  p_user_id: subRow.user_id,
+                  p_reason: "payment_failed_grace_expired",
+                });
+                log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE via RPC`);
+              } catch (rpcErr) {
+                log.error(`[${requestId}] mark_subscription_canceled RPC failed:`, rpcErr instanceof Error ? rpcErr.message : String(rpcErr));
+                // Best-effort fallback: direct update so at least entitlement is revoked.
+                await supabase
+                  .from("subscriptions")
+                  .update({ plan_id: "free", status: "canceled", canceled_at: nowIso })
+                  .eq("stripe_subscription_id", subId);
+              }
+
               supabase.functions.invoke("send-lifecycle-email", {
                 body: {
                   user_id: subRow.user_id,
@@ -715,6 +722,8 @@ serve(async (req) => {
                   dynamic_data: {},
                 },
               }).catch((err) => log.error(`[${requestId}] downgrade email failed:`, err instanceof Error ? err.message : String(err)));
+            } else {
+              log.warn(`[${requestId}] Grace expired but no user_id resolved — skipping RPC downgrade`);
             }
           } else {
             log.info(`[${requestId}] Within grace window (${Math.round(ageMs / 3600000)}h / 72h) — keeping access`);
