@@ -66,22 +66,35 @@ Deno.serve(async (req: Request) => {
       throw new Error(`Job not found: ${jobErr?.message ?? 'no row'}`);
     }
 
-    // Invoke the main engine with the saved snapshot + worker flag.
-    // The flag tells analyze-business to skip the "enqueue" branch and
-    // run synchronously, returning the full result body.
+    const basePayload = job.input_snapshot as Record<string, unknown>;
     const enginePayload = {
-      ...(job.input_snapshot as Record<string, unknown>),
+      ...basePayload,
       analysis_depth: 'pro',
       _worker_run: true,
       _worker_request_id: job.request_id,
       _worker_user_id: job.user_id,
     };
+    const fullFallbackPayload = { ...enginePayload, analysis_depth: 'full' };
 
     const stepStart = Date.now();
-    const { data: engineRes, error: engineErr } = await admin.functions.invoke(
+    let { data: engineRes, error: engineErr } = await admin.functions.invoke(
       'analyze-business',
       { body: enginePayload },
     );
+    let depthUsed = 'pro';
+
+    if (engineErr || !(engineRes?.success === true && engineRes?.data)) {
+      await admin
+        .from('analysis_jobs')
+        .update({ current_step: 'full_fallback', fell_back_from: 'pro' })
+        .eq('id', jobId);
+      const fallbackRun = await admin.functions.invoke('analyze-business', {
+        body: fullFallbackPayload,
+      });
+      engineRes = fallbackRun.data;
+      engineErr = fallbackRun.error;
+      depthUsed = 'full';
+    }
     const stepEnd = Date.now();
     const engineMs = stepEnd - stepStart;
 
@@ -103,7 +116,7 @@ Deno.serve(async (req: Request) => {
       .from('analysis_jobs')
       .update({
         status: 'completed',
-        depth_used: 'pro',
+        depth_used: depthUsed,
         result: engineRes.data,
         current_step: null,
         step_timings: {
