@@ -14,6 +14,62 @@ export type Database = {
   }
   public: {
     Tables: {
+      accuracy_runs: {
+        Row: {
+          actual: Json
+          created_at: string
+          deviation_pct: number | null
+          engine_version: string | null
+          error_message: string | null
+          expected: Json
+          failed_metrics: string[]
+          id: string
+          latency_ms: number | null
+          passed: boolean
+          run_id: string
+          vector_code: string
+          vector_id: string
+        }
+        Insert: {
+          actual?: Json
+          created_at?: string
+          deviation_pct?: number | null
+          engine_version?: string | null
+          error_message?: string | null
+          expected?: Json
+          failed_metrics?: string[]
+          id?: string
+          latency_ms?: number | null
+          passed: boolean
+          run_id: string
+          vector_code: string
+          vector_id: string
+        }
+        Update: {
+          actual?: Json
+          created_at?: string
+          deviation_pct?: number | null
+          engine_version?: string | null
+          error_message?: string | null
+          expected?: Json
+          failed_metrics?: string[]
+          id?: string
+          latency_ms?: number | null
+          passed?: boolean
+          run_id?: string
+          vector_code?: string
+          vector_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "accuracy_runs_vector_id_fkey"
+            columns: ["vector_id"]
+            isOneToOne: false
+            referencedRelation: "golden_test_vectors"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       activation_events: {
         Row: {
           created_at: string
