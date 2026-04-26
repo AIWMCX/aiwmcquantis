@@ -130,7 +130,7 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
             className="gap-2 font-semibold shadow-lg shadow-primary/20 w-full lg:w-auto"
           >
             <Zap className="w-4 h-4" />
-            {isLoading ? 'Loading…' : 'Unlock Full Report'}
+            {isLoading ? 'Loading…' : trigger.cta}
           </Button>
 
           <p className="text-[10px] text-muted-foreground/80 text-center lg:text-right max-w-[220px]">
