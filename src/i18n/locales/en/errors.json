@@ -17,6 +17,7 @@
     "free": "Free",
     "plus": "Plus",
     "pro": "Pro",
+    "remaining": "{{count}} analyses left this month",
     "remaining_one": "1 analysis left this month",
     "remaining_other": "{{count}} analyses left this month",
     "out_of_quota": "0 left — upgrade to keep analysing",
