@@ -98,7 +98,16 @@ export function useAnalysis() {
       const trimmedLocation = location.trim();
 
       if (isAuthenticated && user) {
-        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data);
+        // Determine depth from result metadata, lastRequest, or fallback to 'full'
+        const requestedDepth = lastRequestRef.current?.analysis_depth;
+        const depthFromResult = (data as any)?.depth_used;
+        const finalDepth: 'quick' | 'full' | 'pro' =
+          (depthFromResult === 'pro' || depthFromResult === 'full' || depthFromResult === 'quick')
+            ? depthFromResult
+            : (requestedDepth === 'deep' || requestedDepth === 'pro')
+              ? 'pro'
+              : (requestedDepth as 'quick' | 'full' | undefined) ?? 'full';
+        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data, finalDepth);
         if (saved) {
           addEntry({
             id: saved.id,

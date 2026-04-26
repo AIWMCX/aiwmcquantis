@@ -10,7 +10,8 @@ export async function saveAnalysis(
   userId: string,
   idea: string,
   location: string,
-  result: BusinessAnalysisResult
+  result: BusinessAnalysisResult,
+  depth: 'quick' | 'full' | 'pro' = 'full'
 ): Promise<{ id: string } | null> {
   const { data, error } = await supabase
     .from('analyses')
@@ -23,6 +24,7 @@ export async function saveAnalysis(
       startup_investment: result.financial_analysis.startup_investment.total,
       monthly_profit: getMonthlyProfit(result.financial_analysis),
       payback_months: getPaybackMonths(result.financial_analysis),
+      depth,
     } as any)
     .select('id')
     .single();

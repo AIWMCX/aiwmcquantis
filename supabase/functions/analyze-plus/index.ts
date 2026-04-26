@@ -25,6 +25,7 @@ import { tierGate, incrementMonthlyUsage } from '../_shared/tier-gate.ts';
 import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS, type FeatureManifest } from '../_shared/tier-spec.ts';
 import { validateAndSanitizeInput } from '../_shared/ai-safety-guardrails.ts';
+import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
 
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
@@ -43,6 +44,7 @@ serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 
   const requestId = crypto.randomUUID();
+  const startedAt = Date.now();
   const json = (body: unknown, status = 200) =>
     new Response(JSON.stringify(body), {
       status,
@@ -142,28 +144,32 @@ serve(async (req) => {
     });
 
     if (aiResp.status === 429) {
+      await logAnalysisEvent({
+        analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
+        severity: 'error', payload: { code: 'RATE_LIMIT_EXCEEDED', status: 429 },
+      });
       return json(
-        {
-          success: false,
-          error: 'RATE_LIMIT_EXCEEDED',
-          message: 'AI gateway rate-limited. Please retry in a moment.',
-        },
+        { success: false, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry in a moment.' },
         429,
       );
     }
     if (aiResp.status === 402) {
+      await logAnalysisEvent({
+        analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
+        severity: 'error', payload: { code: 'AI_CREDITS_EXHAUSTED', status: 402 },
+      });
       return json(
-        {
-          success: false,
-          error: 'AI_CREDITS_EXHAUSTED',
-          message: 'AI workspace is out of credits. Add funds to continue.',
-        },
+        { success: false, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace is out of credits. Add funds to continue.' },
         402,
       );
     }
     if (!aiResp.ok) {
       const errText = await aiResp.text().catch(() => '');
       console.error('[analyze-plus] AI gateway error', aiResp.status, errText);
+      await logAnalysisEvent({
+        analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
+        severity: 'error', payload: { code: 'AI_ERROR', status: aiResp.status, detail: errText.slice(0, 500) },
+      });
       return json({ success: false, error: 'AI_ERROR', message: 'AI analysis failed.' }, 502);
     }
 
@@ -206,10 +212,39 @@ serve(async (req) => {
           result: stripped,
           tier_at_creation: 'plus',
           depth: 'full',
+          confidence_score: typeof (stripped as any)?.confidence_score === 'number'
+            ? (stripped as any).confidence_score : null,
         });
       } catch (e) {
         console.warn('[analyze-plus] persist failed', e);
       }
+    }
+
+    // Observability: success event
+    const durationMs = Date.now() - startedAt;
+    await logAnalysisEvent({
+      analysis_id: stripped.analysis_id as string,
+      user_id: gate.userId,
+      event_type: 'analysis_complete',
+      severity: 'info',
+      payload: {
+        durationMs,
+        confidence: (stripped as any)?.confidence_score ?? null,
+        depth: 'full',
+        tier: 'PLUS',
+        model: body.model ?? DEFAULT_MODEL,
+        industry_detected: (stripped as any)?.industry_detected ?? null,
+        reconciled: (stripped as any)?.validation?.reconciled ?? null,
+      },
+    });
+    if (durationMs > 30_000) {
+      await logAnalysisEvent({
+        analysis_id: stripped.analysis_id as string,
+        user_id: gate.userId,
+        event_type: 'performance_warning',
+        severity: 'warning',
+        payload: { code: 'QE-PERF-001', durationMs, threshold: 30_000 },
+      });
     }
 
     return json({
@@ -221,6 +256,12 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[analyze-plus] fatal', message);
+    await logAnalysisEvent({
+      analysis_id: requestId,
+      event_type: 'engine_error',
+      severity: 'error',
+      payload: { code: 'INTERNAL', message: message.slice(0, 500) },
+    });
     return json({ success: false, error: 'INTERNAL', message, request_id: requestId }, 500);
   }
 });
