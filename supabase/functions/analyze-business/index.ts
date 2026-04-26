@@ -2898,13 +2898,22 @@ serve(async (req) => {
 
     const { idea, location, financial_inputs, selected_industry, documents, analysis_depth } = requestBody;
 
+    // Worker run flag — when set, the request was made by analyze-pro-worker
+    // re-entering this function. Skip the queue branch and run synchronously.
+    const _rawBody = requestBody as unknown as Record<string, unknown>;
+    const isWorkerRun = _rawBody._worker_run === true;
+    const workerRequestId = _rawBody._worker_request_id as string | undefined;
+    const workerUserId = _rawBody._worker_user_id as string | undefined;
+
     // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
     // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
     // Anonymous users are also Free. This is layer 1 of 3:
     //   1) Coerce depth here (input)
     //   2) Cap monteCarloScenarios + projectionMonths in engine call (compute)
     //   3) Sanitize response payload before send (output)
-    const requestedDepth = (analysis_depth || 'full').toString().toLowerCase();
+    // NOTE: 'deep' is a legacy alias for 'pro' from older clients — normalize it.
+    const rawDepth = (analysis_depth || 'full').toString().toLowerCase();
+    const requestedDepth = rawDepth === 'deep' ? 'pro' : rawDepth;
     let depthLevel: 'quick' | 'full' | 'pro';
     if (userPlan === 'pro') {
       depthLevel = (requestedDepth === 'pro' ? 'pro' : requestedDepth === 'full' ? 'full' : 'quick');
@@ -2929,7 +2938,76 @@ serve(async (req) => {
         }
       }
     }
-    log.info(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth})`);
+    log.info(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth}, worker=${isWorkerRun})`);
+
+    // ========== PRO QUEUE BRANCH ==========
+    // For Pro depth on a real (non-worker) request: enqueue a background job,
+    // fire the worker async, and return immediately with the job_id.
+    // The client polls analysis_jobs and silently falls back to Full if it
+    // doesn't complete within its own client-side cap.
+    if (depthLevel === 'pro' && !isWorkerRun && userId) {
+      try {
+        const requestId = req.headers.get('x-request-id') ??
+          (globalThis.crypto?.randomUUID?.() ?? `req_${Date.now()}`);
+
+        const { data: jobRow, error: jobErr } = await supabaseService
+          .from('analysis_jobs')
+          .insert({
+            user_id: userId,
+            request_id: requestId,
+            status: 'queued',
+            depth_requested: 'pro',
+            input_snapshot: {
+              idea,
+              location,
+              financial_inputs,
+              selected_industry,
+              documents,
+            },
+          })
+          .select('id')
+          .single();
+
+        if (jobErr || !jobRow) {
+          log.error('[pro-queue] enqueue failed', jobErr);
+          // Fall through to synchronous path — better than failing the request.
+        } else {
+          // Fire worker async. We do NOT await — the worker runs in the
+          // background and writes its result back to analysis_jobs.
+          // EdgeRuntime.waitUntil keeps the runtime alive briefly so the
+          // outbound invoke actually leaves the box.
+          const workerInvoke = supabaseService.functions
+            .invoke('analyze-pro-worker', { body: { job_id: jobRow.id } })
+            .catch((e) => log.error('[pro-queue] worker invoke failed', e));
+
+          // deno-lint-ignore no-explicit-any
+          const edgeRuntime = (globalThis as any).EdgeRuntime;
+          if (edgeRuntime?.waitUntil) {
+            edgeRuntime.waitUntil(workerInvoke);
+          }
+
+          log.info(`[pro-queue] Enqueued job ${jobRow.id} for user ${userId}`);
+
+          return new Response(
+            JSON.stringify({
+              success: true,
+              queued: true,
+              job_id: jobRow.id,
+              request_id: requestId,
+              status: 'queued',
+              poll_interval_ms: 2000,
+              client_timeout_ms: 90000,
+            }),
+            {
+              status: 202,
+              headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+            },
+          );
+        }
+      } catch (queueError) {
+        log.error('[pro-queue] queue branch error, falling through to sync', queueError);
+      }
+    }
 
     // ========== INPUT VALIDATION & SANITIZATION ==========
     

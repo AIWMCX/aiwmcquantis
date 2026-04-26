@@ -234,6 +234,69 @@ export type Database = {
           },
         ]
       }
+      analysis_jobs: {
+        Row: {
+          completed_at: string | null
+          created_at: string
+          current_step: string | null
+          depth_requested: string
+          depth_used: string | null
+          error_code: string | null
+          error_message: string | null
+          failed_step: string | null
+          fell_back_from: string | null
+          id: string
+          input_snapshot: Json
+          request_id: string
+          result: Json | null
+          started_at: string | null
+          status: string
+          step_timings: Json
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          depth_requested: string
+          depth_used?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          failed_step?: string | null
+          fell_back_from?: string | null
+          id?: string
+          input_snapshot: Json
+          request_id: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step_timings?: Json
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          completed_at?: string | null
+          created_at?: string
+          current_step?: string | null
+          depth_requested?: string
+          depth_used?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          failed_step?: string | null
+          fell_back_from?: string | null
+          id?: string
+          input_snapshot?: Json
+          request_id?: string
+          result?: Json | null
+          started_at?: string | null
+          status?: string
+          step_timings?: Json
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       analysis_logs: {
         Row: {
           analysis_id: string
@@ -3525,6 +3588,7 @@ export type Database = {
       }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       cleanup_expired_shares: { Args: never; Returns: undefined }
+      cleanup_old_analysis_jobs: { Args: never; Returns: undefined }
       cleanup_old_anonymous_usage: { Args: never; Returns: undefined }
       cleanup_old_api_logs: { Args: never; Returns: undefined }
       cleanup_old_export_jobs: { Args: never; Returns: undefined }
