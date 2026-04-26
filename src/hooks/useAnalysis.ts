@@ -264,16 +264,16 @@ export function useAnalysis() {
 
   const handleSubmit = useCallback((e?: React.FormEvent, depth?: string) => {
     e?.preventDefault();
-    
+
     if (!validate()) return;
-    
+
     // Only include financial inputs that have values
     const cleanedFinancialInputs = Object.fromEntries(
       Object.entries(financialInputs).filter(([_, v]) => v !== undefined && v !== null && v > 0)
     ) as OptionalFinancialInputs;
-    
+
     const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
-    
+
     // Get ready files with parsed content AND extracted financials
     const readyFiles = fileUpload.getReadyFiles();
     const documents = readyFiles.map(f => ({
@@ -282,14 +282,22 @@ export function useAnalysis() {
       parsedContent: f.parsedContent || '',
       extractedFinancials: f.extractedFinancials || undefined,
     }));
-    
-    mutation.mutate({ 
-      idea: idea.trim(), 
+
+    const request: AnalysisRequest = {
+      idea: idea.trim(),
       location: location.trim(),
       ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
       ...(documents.length > 0 && { documents }),
       ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
-    });
+    };
+
+    // Snapshot for potential auto-fallback to Full on Pro timeout.
+    lastRequestRef.current = request;
+    fallbackFiredRef.current = false;
+    // Cancel any in-flight Pro poll from a previous submission.
+    setProJobId(null);
+
+    mutation.mutate(request);
   }, [idea, location, financialInputs, validate, mutation, fileUpload]);
   
   // Auto-fill form when documents are parsed with financial data
