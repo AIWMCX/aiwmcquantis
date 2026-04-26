@@ -188,5 +188,5 @@ export interface CapacityCheckInput {
 }
 
 export function checkCapacity(input: CapacityCheckInput) {
-  return invoke<CapacityCheckJson>('invoice-capacity-check', input);
+  return invoke<CapacityCheckJson>('invoice-capacity-check', { ...input });
 }
