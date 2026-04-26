@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
+import './i18n'; // Side-effect import: initializes i18next before any component mounts
 import App from './App.tsx';
 import { logger } from '@/lib/logger';
 import './index.css';
