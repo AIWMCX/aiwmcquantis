@@ -19,7 +19,7 @@ import { useToast } from '@/hooks/use-toast';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2 } from 'lucide-react';
+import { BarChart3, History, FileText, Zap, CreditCard, RefreshCw, AlertCircle, Settings, Brain, ChevronDown, CheckCircle2, Crown } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
@@ -68,7 +68,7 @@ export default function Index() {
     incrementAnalysisCount,
   } = useOnboarding();
   const { 
-    isPlus, isFree, remainingAnalyses, 
+    isPlus, isPro, isFree, remainingAnalyses, 
     loading: subscriptionLoading, error: subscriptionError, isTimedOut,
     createCheckout, openPortal, refetch: refetchSubscription,
   } = useSubscription();
@@ -293,7 +293,11 @@ export default function Index() {
                 ) : (
                   <div className="mb-4 p-3 rounded-lg border border-border bg-card flex flex-wrap items-center justify-between gap-3">
                     <div className="flex items-center gap-2">
-                      {isPlus ? (
+                      {isPro ? (
+                        <Badge className="gap-1 bg-amber-500/15 text-amber-200 border-amber-500/40 text-xs">
+                          <Crown className="w-3 h-3" /> Pro
+                        </Badge>
+                      ) : isPlus ? (
                         <Badge className="gap-1 bg-primary/10 text-primary border-primary/30 text-xs">
                           <Zap className="w-3 h-3" /> Plus
                         </Badge>

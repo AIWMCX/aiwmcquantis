@@ -4,6 +4,7 @@ import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
 import { supabase } from '@/integrations/supabase/client';
+import { useSubscription } from '@/hooks/useSubscription';
 import { logger } from '@/lib/logger';
 import { 
   TrendingUp, 
@@ -85,6 +86,8 @@ function formatTimeAgo(dateString: string | null): string {
 }
 
 export function PlusValueIndicator() {
+  const { isPro } = useSubscription();
+  const tierLabel = isPro ? 'Pro' : 'Plus';
   const [metrics, setMetrics] = useState<AILearningMetrics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -186,7 +189,7 @@ export function PlusValueIndicator() {
                 <CheckCircle2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="font-semibold text-foreground">Plus Intelligence Active</p>
+                <p className="font-semibold text-foreground">{tierLabel} Intelligence Active</p>
                 <p className="text-sm text-muted-foreground">
                   Your analyses use enhanced accuracy mode
                 </p>
@@ -309,7 +312,7 @@ export function PlusValueIndicator() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Your Plus Advantage</CardTitle>
+            <CardTitle className="text-lg">Your {tierLabel} Advantage</CardTitle>
           </div>
           <CardDescription>
             Compare analysis quality between tiers
@@ -332,7 +335,7 @@ export function PlusValueIndicator() {
                       : metric.freeValue}{metric.unit}
                   </span>
                   <span className="text-primary font-semibold">
-                    Plus: {typeof metric.plusValue === 'number' && metric.plusValue >= 1000 
+                    {tierLabel}: {typeof metric.plusValue === 'number' && metric.plusValue >= 1000 
                       ? formatNumber(metric.plusValue) 
                       : metric.plusValue}{metric.unit}
                   </span>
