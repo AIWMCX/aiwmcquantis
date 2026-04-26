@@ -383,7 +383,7 @@ export function useAnalysis() {
     // Analysis state
     result,
     setResult,
-    isLoading: mutation.isPending,
+    isLoading,
     isError: mutation.isError,
     error: mutation.error as Error | null,
     retry: () => {
@@ -392,6 +392,12 @@ export function useAnalysis() {
     },
     rateLimitError,
     clearRateLimitError,
+
+    // Pro background-job progress (queued / running / completed / failed / timed_out).
+    // Components can render a status panel by reading proJobState.
+    proJobState,
+    proRequestId,
+    isProJobActive,
     
     // Actions
     handleSubmit,
