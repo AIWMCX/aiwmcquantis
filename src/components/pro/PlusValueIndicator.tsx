@@ -312,7 +312,7 @@ export function PlusValueIndicator() {
         <CardHeader>
           <div className="flex items-center gap-2">
             <TrendingUp className="w-5 h-5 text-primary" />
-            <CardTitle className="text-lg">Your Plus Advantage</CardTitle>
+            <CardTitle className="text-lg">Your {tierLabel} Advantage</CardTitle>
           </div>
           <CardDescription>
             Compare analysis quality between tiers
