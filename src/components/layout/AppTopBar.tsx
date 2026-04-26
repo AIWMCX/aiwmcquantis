@@ -25,8 +25,10 @@ export function AppTopBar({ title }: AppTopBarProps) {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
   const { user, signOut } = useAuth();
+  const { isPro } = useSubscription();
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
 
   const handleSignOut = async () => {
     await signOut();
