@@ -104,8 +104,11 @@ export function AppSidebar() {
   const { isPlus, isPro } = useSubscription();
   const { isAdmin } = useAdmin();
 
+  const resolveUrl = (url: string) => url.replace('__settings__', settingsPath);
+
   const isActive = (url: string) => {
-    const [path, query] = url.split('?');
+    const resolvedUrl = resolveUrl(url);
+    const [path, query] = resolvedUrl.split('?');
     if (query) {
       return location.pathname === path && location.search.includes(query);
     }
