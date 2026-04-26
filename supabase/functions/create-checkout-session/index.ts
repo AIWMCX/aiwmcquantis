@@ -175,12 +175,14 @@ serve(async (req) => {
       subscription_data: {
         metadata: {
           supabase_user_id: userId,
-          plan: "plus",
+          plan,
         },
+        // Spec §11.3 — PRO ships with a 14-day free trial. Plus has no trial.
+        ...(plan === 'pro' ? { trial_period_days: 14 } : {}),
       },
       metadata: {
         supabase_user_id: userId,
-        plan: "plus",
+        plan,
       },
     });
 
