@@ -2900,9 +2900,10 @@ serve(async (req) => {
 
     // Worker run flag — when set, the request was made by analyze-pro-worker
     // re-entering this function. Skip the queue branch and run synchronously.
-    const isWorkerRun = (requestBody as Record<string, unknown>)._worker_run === true;
-    const workerRequestId = (requestBody as Record<string, unknown>)._worker_request_id as string | undefined;
-    const workerUserId = (requestBody as Record<string, unknown>)._worker_user_id as string | undefined;
+    const _rawBody = requestBody as unknown as Record<string, unknown>;
+    const isWorkerRun = _rawBody._worker_run === true;
+    const workerRequestId = _rawBody._worker_request_id as string | undefined;
+    const workerUserId = _rawBody._worker_user_id as string | undefined;
 
     // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
     // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
