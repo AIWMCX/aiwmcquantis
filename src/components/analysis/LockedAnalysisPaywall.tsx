@@ -79,13 +79,13 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
                 Plus members only
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground">
-                {config.title}
+                {trigger.headline}
               </h3>
             </div>
           </div>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-            {config.subtitle}
+            {trigger.body}
           </p>
 
           {/* Gated items grid */}
