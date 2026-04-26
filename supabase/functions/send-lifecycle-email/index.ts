@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 interface LifecycleEmailRequest {
   user_id?: string;
   email?: string;
@@ -222,6 +225,9 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
 };
 
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('send-lifecycle-email', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -315,12 +321,12 @@ serve(async (req: Request): Promise<Response> => {
 
     if (!emailResponse.ok) {
       const errorText = await emailResponse.text();
-      console.error("Resend error:", errorText);
+      log.error("Resend error:", errorText);
       throw new Error(`Failed to send email: ${errorText}`);
     }
 
     const result = await emailResponse.json();
-    console.log(`Lifecycle email sent: ${template_key} to ${recipientEmail}`);
+    log.info(`Lifecycle email sent: ${template_key} to ${recipientEmail}`);
 
     // Log every send to email_send_log for global 48h cooldown tracking
     if (user_id) {
@@ -345,7 +351,7 @@ serve(async (req: Request): Promise<Response> => {
       });
       // Ignore duplicate constraint errors (user already received this step)
       if (logError && !logError.message?.includes("unique") && !logError.message?.includes("duplicate")) {
-        console.warn("Failed to log email sequence:", logError.message);
+        log.warn("Failed to log email sequence:", logError.message);
       }
     }
 
@@ -355,7 +361,7 @@ serve(async (req: Request): Promise<Response> => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in send-lifecycle-email:", message);
+    log.error("Error in send-lifecycle-email:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

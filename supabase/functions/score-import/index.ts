@@ -1,11 +1,17 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 /**
  * SCORE Import Edge Function
  * Parses a CSV body with SCORE-format fields and maps them to Quantis inputs.
  */
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('score-import', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -96,7 +102,7 @@ serve(async (req: Request): Promise<Response> => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (err) {
-    console.error('SCORE import error:', err);
+    log.error('SCORE import error:', err);
     return new Response(
       JSON.stringify({ error: 'Failed to parse SCORE data' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

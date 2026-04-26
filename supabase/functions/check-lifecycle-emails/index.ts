@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "npm:@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 /**
  * Lifecycle Email Cron Function
  * Runs every hour via pg_cron to check which users qualify for lifecycle emails.
@@ -13,6 +16,9 @@ import { corsHeadersFor } from '../_shared/cors.ts';
  * - reengagement_step_1: 7+ days inactive
  */
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('check-lifecycle-emails', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -25,7 +31,7 @@ serve(async (req: Request): Promise<Response> => {
     const expectedCronSecret = Deno.env.get("CRON_SECRET");
 
     if (!expectedCronSecret || expectedCronSecret.length < 10 || cronSecretHeader !== expectedCronSecret) {
-      console.error("[check-lifecycle-emails] Unauthorized: missing or invalid CRON_SECRET");
+      log.error("[check-lifecycle-emails] Unauthorized: missing or invalid CRON_SECRET");
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -236,7 +242,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log(`Lifecycle email check complete: ${emailsSent} emails sent, ${errors.length} errors`);
+    log.info(`Lifecycle email check complete: ${emailsSent} emails sent, ${errors.length} errors`);
 
     return new Response(
       JSON.stringify({
@@ -252,7 +258,7 @@ serve(async (req: Request): Promise<Response> => {
     );
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in check-lifecycle-emails:", message);
+    log.error("Error in check-lifecycle-emails:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

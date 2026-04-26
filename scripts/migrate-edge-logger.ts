@@ -122,7 +122,7 @@ function rewrite(path: string, src: string): { src: string; ok: boolean; reason?
   // 2. Inject reqId/log at the top of the serve handler. We re-find the handler
   // in `next` to account for the import insertion shifting offsets.
   const newServe = next.match(
-    /(serve|Deno\.serve)\s*\(\s*async\s*\(\s*([a-zA-Z_$][\w$]*)\s*(?::[^)]+)?\s*\)\s*=>\s*\{/,
+    /(serve|Deno\.serve)\s*\(\s*async\s*\(\s*([a-zA-Z_$][\w$]*)\s*(?::[^)]+)?\s*\)(?:\s*:\s*[^=]+?)?\s*=>\s*\{/,
   );
   if (!newServe) {
     return { src, ok: false, reason: 'serve handler vanished after rewrite' };

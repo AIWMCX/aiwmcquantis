@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 interface ChurnCheckResult {
   users_checked: number;
   churn_risks_updated: number;
@@ -10,6 +13,9 @@ interface ChurnCheckResult {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('check-churn-signals', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -193,7 +199,7 @@ serve(async (req: Request): Promise<Response> => {
 
       // Churning (71-100): Create admin alert
       if (risk > 70 && previousRisk <= 70) {
-        console.log(`CHURN ALERT: User ${user.id} (${user.full_name}) has entered churning state. Risk: ${risk}`);
+        log.info(`CHURN ALERT: User ${user.id} (${user.full_name}) has entered churning state. Risk: ${risk}`);
         
         // Could trigger admin webhook here
         await supabase.from("user_notifications").insert({
@@ -209,7 +215,7 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    console.log("Churn check complete:", result);
+    log.info("Churn check complete:", result);
 
     return new Response(JSON.stringify(result), {
       status: 200,
@@ -217,7 +223,7 @@ serve(async (req: Request): Promise<Response> => {
     });
   } catch (error: unknown) {
     const message = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in check-churn-signals:", message);
+    log.error("Error in check-churn-signals:", message);
     return new Response(JSON.stringify({ error: message }), {
       status: 500,
       headers: { ...corsHeaders, "Content-Type": "application/json" },

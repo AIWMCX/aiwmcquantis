@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Styled HTML page for unsubscribe confirmation
 function getUnsubscribeHtml(success: boolean, message: string): string {
   return `
@@ -108,6 +111,9 @@ function getUnsubscribeHtml(success: boolean, message: string): string {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('newsletter-unsubscribe', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -153,7 +159,7 @@ serve(async (req: Request): Promise<Response> => {
       .single();
 
     if (fetchError || !lead) {
-      console.error("Lead not found:", leadId, fetchError);
+      log.error("Lead not found:", leadId, fetchError);
       return new Response(
         getUnsubscribeHtml(false, "We couldn't find your subscription. It may have already been removed."),
         { 
@@ -184,7 +190,7 @@ serve(async (req: Request): Promise<Response> => {
       .eq("id", leadId);
 
     if (updateError) {
-      console.error("Failed to unsubscribe:", leadId, updateError);
+      log.error("Failed to unsubscribe:", leadId, updateError);
       return new Response(
         getUnsubscribeHtml(false, "There was an error processing your request. Please try again or contact support."),
         { 
@@ -194,7 +200,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Successfully unsubscribed lead: ${leadId}`);
+    log.info(`Successfully unsubscribed lead: ${leadId}`);
 
     return new Response(
       getUnsubscribeHtml(true, "You've been successfully unsubscribed from our weekly insights newsletter. We're sorry to see you go, but you're always welcome back!"),
@@ -205,7 +211,7 @@ serve(async (req: Request): Promise<Response> => {
     );
 
   } catch (error) {
-    console.error("Unsubscribe error:", error);
+    log.error("Unsubscribe error:", error);
     return new Response(
       getUnsubscribeHtml(false, "An unexpected error occurred. Please try again later."),
       { 
