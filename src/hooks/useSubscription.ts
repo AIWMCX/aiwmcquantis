@@ -4,6 +4,12 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 import { logger } from '@/lib/logger';
+import {
+  planToTier,
+  FEATURE_MANIFEST,
+  type Tier,
+  type FeatureManifest,
+} from '@/lib/tier-spec';
 /**
  * Subscription data interface - excludes sensitive Stripe IDs
  * SECURITY: Stripe customer/subscription IDs are never exposed to frontend
