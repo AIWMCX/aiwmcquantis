@@ -6,7 +6,7 @@ const CACHE_KEY_RE = /^[0-9a-f]{64}$/i;
 const MAX_HTML_BYTES = 500 * 1024; // 500 KB
 const BUCKET = "document-exports";
 
-function errorResponse(code: string, message: string, status = 400) {
+function errorResponse(code: string, message: string, status = 400, corsHeaders: Record<string, string> = {}) {
   return new Response(
     JSON.stringify({ error: true, code, message }),
     { status, headers: { ...corsHeaders, "Content-Type": "application/json" } },

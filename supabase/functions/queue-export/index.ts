@@ -55,8 +55,10 @@ Deno.serve(async (req) => {
       Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
     );
     try {
-      await requireFeature(adminClient, userId, 'watermarkFree', '/queue-export');
-      await requireDownloadQuota(adminClient, userId, '/queue-export');
+      // deno-lint-ignore no-explicit-any
+      await requireFeature(adminClient as any, userId, 'watermarkFree', '/queue-export');
+      // deno-lint-ignore no-explicit-any
+      await requireDownloadQuota(adminClient as any, userId, '/queue-export');
     } catch (e) {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;

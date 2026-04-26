@@ -913,7 +913,7 @@ function safeParseJSON(str: string, fallback: any): any {
 
 interface CalculationAudit {
   formula: string;
-  inputs: Record<string, number>;
+  inputs: Record<string, number | string>;
   result: number;
   isValid: boolean;
   notes?: string;
@@ -946,6 +946,7 @@ interface StrictFinancialResult {
   roiYear1Percent: number;
   breakEvenRevenue: number;
   revenueFor45kProfit: number;
+  npv3Years?: number;
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
   audit: CalculationAudit[];
@@ -3568,7 +3569,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // Transform using either AI result or fallback
     const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
-    delete result._calc;
+    delete (result as Record<string, unknown>)._calc;
     
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // Run the bulletproof validation and recommendation engine
@@ -3586,7 +3587,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } : undefined,
       expenses: undefined, // Will be populated from documents if available
       selectedIndustry: selected_industry,
-      documents: documents,
+      documents: documents as unknown as QuantisEngineInput['documents'],
       benchmarks: detectedIndustry,
       locationMultipliers,
       subIndustry,
@@ -3986,7 +3987,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     try {
       crossValidation = crossValidateEngines(
         { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses, cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths, roiYear1Percent: calc.roiYear1Percent, breakEvenRevenue: calc.breakEvenRevenue, npv3Years: calc.npv3Years },
-        { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
+        { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths ?? 0, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
       );
       log.info(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
     } catch (cvErr) {
@@ -4265,7 +4266,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
         checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
         checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
-        const riskLevel = quantisOutput.validation.healthScores?.overall || 'medium';
+        const riskLevel = (quantisOutput.validation.healthScores as Record<string, unknown>)?.overall || 'medium';
         const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
         checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
         checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: quantisOutput.metrics.ltvCacRatio > 0 });
@@ -4313,8 +4314,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           ltv: quantisOutput?.metrics?.ltv ?? null,
           cac: quantisOutput?.metrics?.cac ?? null,
           ltv_cac_ratio: quantisOutput?.metrics?.ltvCacRatio ?? null,
-          gross_margin: (result as any)?.gross_margin ?? quantisOutput?.metrics?.grossMargin ?? null,
-          net_margin: (result as any)?.net_margin ?? quantisOutput?.metrics?.netMargin ?? null,
+          gross_margin: (result as any)?.gross_margin ?? (quantisOutput?.metrics as any)?.grossMargin ?? null,
+          net_margin: (result as any)?.net_margin ?? (quantisOutput?.metrics as any)?.netMargin ?? null,
           monthly_revenue: quantisOutput?.metrics?.mrr ?? null,
           monthly_profit: (result as any)?.monthly_profit ?? null,
           payback_months: (result as any)?.payback_months ?? null,

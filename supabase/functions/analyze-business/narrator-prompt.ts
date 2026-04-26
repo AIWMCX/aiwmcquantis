@@ -570,8 +570,8 @@ export function generateFallbackNarrator(
     },
     
     market_analysis: {
-      tam: benchmarks.market_size_usd 
-        ? `Estimated TAM: $${(benchmarks.market_size_usd / 1e9).toFixed(1)}B — ${benchmarks.name} market (benchmark-derived estimate, replace with actual market research).`
+      tam: (benchmarks as any).market_size_usd 
+        ? `Estimated TAM: $${((benchmarks as any).market_size_usd / 1e9).toFixed(1)}B — ${benchmarks.name} market (benchmark-derived estimate, replace with actual market research).`
         : `Estimated TAM: $${((metrics.mrr * 12 * 500) / 1e6).toFixed(1)}M — derived from ${benchmarks.name} revenue potential × 500x market multiplier for ${location}. This is a benchmark-derived estimate requiring validation.`,
       sam: `Estimated SAM: $${((metrics.mrr * 12 * 50) / 1e6).toFixed(1)}M — ${benchmarks.name} serviceable market in ${location}, narrowed from TAM by geography and business format.`,
       som: `SOM: $${(metrics.mrr * 12).toLocaleString()} — first-year revenue target based on ${metrics.clientsActive} active customers at $${metrics.averageCheck} average transaction.`,
@@ -588,7 +588,7 @@ export function generateFallbackNarrator(
       barriers_to_entry: `Initial investment of $${metrics.startupInvestment.toLocaleString()}, customer acquisition costs (CAC: $${metrics.cac}), and time to build reputation in ${location}.`,
       growth_opportunities: metrics.isProfitable 
         ? `Scale ${benchmarks.name} operations in ${location} while maintaining unit economics (current LTV:CAC ${metrics.ltvCacRatio}x).`
-        : `Reach profitability first (current monthly profit: $${metrics.monthlyProfit.toLocaleString()}), then scale ${benchmarks.name} operations in ${location}.`,
+        : `Reach profitability first (current monthly profit: $${((metrics as any).monthlyProfit ?? 0).toLocaleString()}), then scale ${benchmarks.name} operations in ${location}.`,
     },
     
     action_plan: [
