@@ -137,6 +137,11 @@ const App = () => {
                     <PlusSettings />
                   </ProtectedRoute>
                 } />
+                <Route path="/pro-settings" element={
+                  <ProtectedRoute>
+                    <PlusSettings />
+                  </ProtectedRoute>
+                } />
                 <Route path="/docs" element={
                   <ProtectedRoute>
                     <PlusGate module="docs">
