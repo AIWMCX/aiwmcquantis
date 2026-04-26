@@ -121,6 +121,16 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Busine
         throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
       }
 
+      // Spec §09.2 — quota / tier-gate envelope returned with HTTP 402.
+      // We surface it as a typed error so React-Query consumers can route
+      // the user to /pricing instead of showing a generic failure.
+      if ('error' in data && (data.error === 'QUOTA_EXCEEDED' || data.error === 'TIER_GATE')) {
+        const d = data as Record<string, unknown>;
+        const message = (d.message as string) || 'Upgrade required to continue.';
+        const upgradeUrl = (d.upgrade_url as string) || '/pricing';
+        throw new Error(`TIER_GATE: ${message} | upgrade_url=${upgradeUrl}`);
+      }
+
       if (!data.success || !data.data) {
         throw new Error(data.error || 'Analysis failed');
       }
