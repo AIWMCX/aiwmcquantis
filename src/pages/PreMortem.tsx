@@ -158,13 +158,20 @@ export default function PreMortem() {
         )}
 
         {showResults && isLoading && !result && (
-          <div className="rounded-xl border border-border/60 bg-card p-10 text-center">
-            <Activity className="w-8 h-8 text-primary mx-auto animate-pulse" />
-            <p className="mt-3 text-sm text-foreground font-medium">Running stress-test simulation…</p>
-            <p className="text-xs text-muted-foreground mt-1">
-              Modeling 1,000+ Monte Carlo paths across 4 stress dimensions
-            </p>
-          </div>
+          <>
+            {/* Pro background-job progress (queued/running/completed/failed/timed_out). */}
+            {isProJobActive || proJobState.phase !== 'idle' ? (
+              <ProJobProgressPanel state={proJobState} />
+            ) : (
+              <div className="rounded-xl border border-border/60 bg-card p-10 text-center">
+                <Activity className="w-8 h-8 text-primary mx-auto animate-pulse" />
+                <p className="mt-3 text-sm text-foreground font-medium">Running stress-test simulation…</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  Pro Audit takes 30–90 seconds. Monte Carlo + scenario stress test in progress.
+                </p>
+              </div>
+            )}
+          </>
         )}
       </div>
     </AppLayout>
