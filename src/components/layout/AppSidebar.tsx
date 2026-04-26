@@ -119,7 +119,7 @@ export function AppSidebar() {
     if (item.external) {
       window.open(item.url, '_blank', 'noopener,noreferrer');
     } else {
-      navigate(item.url);
+      navigate(resolveUrl(item.url));
     }
   };
 
