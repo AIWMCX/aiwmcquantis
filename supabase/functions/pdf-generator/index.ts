@@ -100,7 +100,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ---------- 3. Upload HTML ----------
-    const htmlBytes = new TextEncoder().encode(htmlContent);
+    const htmlBytes = new TextEncoder().encode(renderedHtml);
 
     const { error: uploadError } = await supabase.storage
       .from(BUCKET)
