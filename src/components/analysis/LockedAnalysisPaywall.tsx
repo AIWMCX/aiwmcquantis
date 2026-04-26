@@ -1,5 +1,6 @@
 import React from 'react';
 import { Lock, Zap, TrendingUp, Activity, FileText, Target, CheckCircle2 } from 'lucide-react';
+import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
