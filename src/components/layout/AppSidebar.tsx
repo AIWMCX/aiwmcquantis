@@ -58,7 +58,6 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
       { title: 'History', url: '/app?tab=history', icon: Clock },
-      { title: 'Pre-Mortem', url: '/app/pre-mortem', icon: ShieldAlert, plusOnly: true },
     ],
   },
   {
