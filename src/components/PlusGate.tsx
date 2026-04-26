@@ -26,13 +26,6 @@ const MODULE_TO_TRIGGER: Record<PlusGateProps['module'], keyof typeof UPGRADE_TR
   docs: 'locked_document_studio',
 };
 
-const COPY: Record<PlusGateProps['module'], {
-  eyebrow: string;
-  title: string;
-  subtitle: string;
-  question: string;
-  bullets: string[];
-}> = {
 /**
  * Module-local bullets — these intentionally extend the spec UPGRADE_TRIGGER
  * with concrete deliverables for each module. Headline / CTA come from spec.
