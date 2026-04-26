@@ -13,6 +13,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Bell, LogOut, Settings, User } from 'lucide-react';
+import { TierBadge } from './TierBadge';
 
 interface AppTopBarProps {
   title?: string;
@@ -42,8 +43,9 @@ export function AppTopBar({ title }: AppTopBarProps) {
         )}
       </div>
 
-      {/* Right: Notifications + User */}
+      {/* Right: Tier badge + Notifications + User */}
       <div className="flex items-center gap-2">
+        <TierBadge />
         {/* Notification Bell */}
         <Button
           variant="ghost"
