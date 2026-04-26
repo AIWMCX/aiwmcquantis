@@ -28,7 +28,7 @@ async function getAnonymousHeaders(): Promise<Record<string, string>> {
   };
 }
 
-export async function generateAnalysis(request: AnalysisRequest): Promise<BusinessAnalysisResult> {
+export async function generateAnalysis(request: AnalysisRequest): Promise<AnalysisGenerationResult> {
   let lastError: Error | null = null;
 
   // Get anonymous tracking headers
