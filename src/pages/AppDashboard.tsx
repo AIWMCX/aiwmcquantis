@@ -511,6 +511,12 @@ export default function Index() {
                             : undefined}
                           onDismiss={() => {}}
                         />
+                        {!isFree && (
+                          <div className="mt-6 grid grid-cols-1 gap-4">
+                            <CapacityCheckCard parentAnalysisId={currentAnalysisId ?? undefined} />
+                            <MarketSizingCard />
+                          </div>
+                        )}
                       </SectionErrorBoundary>
                     ) : hasPrefill || isLoading ? (
                       <div className="rounded-xl border border-border bg-card p-8 flex flex-col items-center justify-center min-h-[200px] text-center">
