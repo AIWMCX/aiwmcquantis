@@ -380,7 +380,7 @@ export interface QueuedAnalysisJob {
   kind: 'queued_job';
   job_id: string;
   request_id?: string;
-  depth_requested: 'pro' | 'deep';
+  depth_requested: 'pro';
 }
 
 export type AnalysisGenerationResult = BusinessAnalysisResult | QueuedAnalysisJob;
@@ -478,7 +478,7 @@ export interface AnalysisRequest {
   location: string;
   financial_inputs?: OptionalFinancialInputs;
   documents?: DocumentData[];
-  analysis_depth?: 'quick' | 'full' | 'deep';
+  analysis_depth?: 'quick' | 'full' | 'deep' | 'pro';
 }
 
 // 10 Key Outputs that every analysis must show
