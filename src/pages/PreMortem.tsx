@@ -29,6 +29,7 @@ export default function PreMortem() {
     errors, clearError, result, setResult,
     isLoading, handleSubmit, reset, isFormValid,
     files, isUploading, uploadFiles, removeFile, maxFiles, allowedExtensions,
+    proJobState, isProJobActive,
   } = useAnalysis();
 
   const [showResults, setShowResults] = useState(false);
