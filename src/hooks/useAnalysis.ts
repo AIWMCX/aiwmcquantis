@@ -105,38 +105,53 @@ export function useAnalysis() {
         });
       }
     },
-    onError: (error: Error) => {
+    onError: (error: Error, variables) => {
       logger.error('Analysis error:', error);
 
-      let message: string;
-      const isRateLimit =
-        error.message.includes('RATE_LIMIT_EXCEEDED') ||
-        error.message.includes('429') ||
-        error.message.includes('RATE_LIMIT');
+      const msg = error.message || '';
+      const isRateLimit = msg.includes('RATE_LIMIT_EXCEEDED') || msg.includes('429') || msg.includes('RATE_LIMIT');
+      const isInvalidIdea = msg.includes('INVALID_BUSINESS_IDEA');
+      const isQuota = msg.includes('402') || msg.includes('PAYMENT') || msg.includes('USAGE_LIMIT');
+      const isNetwork = /network|fetch|Failed to fetch|ECONN|NetworkError/i.test(msg);
+      const isTimeout = /timeout|abort|ETIMEDOUT/i.test(msg);
+      const isServer = /\b5\d{2}\b|server|INTERNAL/i.test(msg);
+      const isAi = /AI|model|provider|JSON|PARSE/i.test(msg);
 
-      const isInvalidIdea = error.message.includes('INVALID_BUSINESS_IDEA');
-
+      // Specific message — falls back to raw error if nothing matches.
+      let title: string;
+      let description: string | undefined;
       if (isRateLimit) {
-        // Set the banner state so the UI can show a persistent prompt
-        setRateLimitError(error.message);
-        message = error.message.replace('RATE_LIMIT_EXCEEDED: ', '');
+        setRateLimitError(msg);
+        title = msg.replace('RATE_LIMIT_EXCEEDED: ', '');
+        description = 'Please wait a bit, or sign in / upgrade to Plus for higher limits.';
       } else if (isInvalidIdea) {
-        // Strip the code prefix, show the user-friendly message
-        message = error.message.replace('INVALID_BUSINESS_IDEA: ', '');
-      } else if (
-        error.message.includes('402') ||
-        error.message.includes('PAYMENT') ||
-        error.message.includes('USAGE_LIMIT')
-      ) {
-        message = 'Monthly analysis limit reached. Upgrade your plan for more analyses.';
+        title = msg.replace('INVALID_BUSINESS_IDEA: ', '');
+      } else if (isQuota) {
+        title = 'Monthly analysis limit reached. Upgrade your plan for more analyses.';
+      } else if (isNetwork) {
+        title = 'Network error — check your connection and retry.';
+      } else if (isTimeout) {
+        title = 'Server took too long to respond. The analysis may still complete on retry.';
+      } else if (isServer) {
+        title = 'Our analysis engine is having a hiccup. Please try again.';
+      } else if (isAi) {
+        title = 'AI provider returned an unexpected response. Retry usually fixes this.';
       } else {
-        message = error.message || 'An error occurred during analysis';
+        title = msg || 'Something went wrong while running your analysis.';
       }
 
-      toast.error(message, {
-        duration: isInvalidIdea ? 8000 : 5000,
-        description: isRateLimit
-          ? 'Please wait a bit, or sign in / upgrade to Plus for higher limits.'
+      // Transient failures get an actionable Try-again button. The underlying
+      // generateAnalysis() already retries twice silently — this surfaces a
+      // third user-initiated attempt with a fresh request.
+      const isTransient = isNetwork || isTimeout || isServer || isAi;
+      toast.error(title, {
+        duration: isInvalidIdea ? 8000 : isTransient ? 10000 : 5000,
+        description,
+        action: isTransient
+          ? {
+              label: 'Try again',
+              onClick: () => mutation.mutate(variables),
+            }
           : undefined,
       });
     },

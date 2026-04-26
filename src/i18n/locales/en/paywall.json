@@ -1,0 +1,114 @@
+{
+  "common": {
+    "back_to_dashboard": "Back to dashboard",
+    "loading": "Loading…",
+    "try_again": "Try again",
+    "unlock_full_report": "Unlock Full Report",
+    "members_only": "Plus members only",
+    "this_module_answers": "This module answers",
+    "trust_strip": {
+      "benchmarks": "✓ 95,500 benchmarks",
+      "monte_carlo": "✓ Monte Carlo simulations",
+      "pdf_export": "✓ PDF export",
+      "unlimited": "✓ Unlimited analyses"
+    },
+    "anchor": "vs. $25,000 you risk losing on the wrong assumption · vs. $350/hr for a financial consultant",
+    "anchor_short_top": "vs. $350/hr for a financial consultant",
+    "anchor_short_bottom": "vs. $89/mo for generic AI tools",
+    "value_line": "<strong>$17/mo</strong> = $0.56/day. One Plus analysis surfaces the fatal assumption that would have cost you $25,000+ on the wrong idea.",
+    "trial_note": "14-day free trial · cancel anytime",
+    "plus_summary": "Unlimited analyses · Pre-Mortem · Invoices · Docs · PDF · Cancel anytime"
+  },
+  "module": {
+    "pre-mortem": {
+      "eyebrow": "Pre-Mortem Stress Test · Plus",
+      "question": "“Where will this business break if conditions change?”",
+      "bullets": [
+        "Monte Carlo collapse scenarios (P10 / P50 / P90)",
+        "Customer concentration & churn shock simulator",
+        "Cash runway under 6 stress conditions",
+        "Failure-mode ranking with mitigation playbook",
+        "Comparison: your numbers vs. industry survival rate"
+      ]
+    },
+    "invoices": {
+      "eyebrow": "Invoice & Capacity Check · Plus",
+      "question": "“Can I actually deliver this profitably?”",
+      "bullets": [
+        "Branded invoice generator (PDF export)",
+        "Capacity vs. utilization analysis",
+        "Project profitability calculator (margin, hours, opportunity cost)",
+        "Cash-flow timing: when does this deal hurt vs. help?",
+        "Client concentration risk warnings"
+      ]
+    },
+    "docs": {
+      "eyebrow": "Document Studio · Plus",
+      "question": "“How do I package this for investors / partners / banks?”",
+      "bullets": [
+        "12+ professional templates (BI report, pre-mortem, pitch data, exec memo)",
+        "Auto-populated from your analysis — zero re-typing",
+        "Branded PDF export with your logo & colors",
+        "Editable, versioned, shareable via private link",
+        "Replaces $1,500 consultant-built decks"
+      ]
+    }
+  },
+  "triggers": {
+    "free_quota_hit": {
+      "headline": "You're out of free analyses",
+      "body": "Your monthly analysis is used. Upgrade for unlimited, with Monte Carlo and full P&L.",
+      "cta": "Unlock Unlimited — $17/mo"
+    },
+    "locked_premortem": {
+      "headline": "Stress-test your business",
+      "body": "Discover the exact churn shock, cost spike, and concentration scenario that breaks your model — before it happens.",
+      "cta": "Unlock Pre-Mortem — Plus"
+    },
+    "clean_pdf_export": {
+      "headline": "Remove the watermark",
+      "body": "Download clean, branded PDFs unlimited times. Add your logo. Look professional.",
+      "cta": "Get Clean Exports — $17/mo"
+    },
+    "locked_document_studio": {
+      "headline": "12 documents, auto-written",
+      "body": "Business case, financial projection, risk register, action tracker — all auto-populated from your analysis.",
+      "cta": "Unlock Document Studio"
+    },
+    "free_returning_7d": {
+      "headline": "Your idea is still waiting",
+      "body": "Run your full Monte Carlo analysis and get a complete 36-month P&L. Takes 90 seconds.",
+      "cta": "Start Full Analysis — $17/mo"
+    },
+    "plus_complete_investor": {
+      "headline": "Ready for investors?",
+      "body": "Get your TAM/SAM/SOM, pitch deck data package, 5-year model, and week-by-week strategic roadmap.",
+      "cta": "Upgrade to Pro — $49/mo"
+    },
+    "plus_share_team": {
+      "headline": "Bring your co-founders",
+      "body": "Pro includes 3 team seats so your whole founding team can access and collaborate on every analysis.",
+      "cta": "Get Team Access — Pro"
+    },
+    "plus_embed_api": {
+      "headline": "Put Quantis in your product",
+      "body": "Pro API access lets you embed Quantis analyses in your own tools, dashboards, or client reports.",
+      "cta": "Get API Access — Pro"
+    },
+    "plus_white_label": {
+      "headline": "White-label for clients",
+      "body": "Remove all Quantis branding and deliver reports under your own brand. Pro includes full white-label.",
+      "cta": "Go White-Label — Pro"
+    },
+    "plus_5th_analysis": {
+      "headline": "How do investors see this?",
+      "body": "Your Pro upgrade includes an investor-ready pitch deck data package and 5-year model. Start your 14-day trial.",
+      "cta": "Start Pro Trial — Free 14 Days"
+    },
+    "free_post_analysis": {
+      "headline": "Want the full picture?",
+      "body": "Unlock Monte Carlo simulation, 36-month P&L, and your action plan on Plus.",
+      "cta": "Upgrade to Plus — $17/mo"
+    }
+  }
+}

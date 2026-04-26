@@ -1,0 +1,27 @@
+{
+  "analysis": {
+    "generic": "Something went wrong while running your analysis.",
+    "network": "Network error — check your connection and retry.",
+    "timeout": "Server took too long to respond. The analysis may still complete on retry.",
+    "server": "Our analysis engine is having a hiccup. Please try again.",
+    "ai": "AI provider returned an unexpected response. Retry usually fixes this.",
+    "rate_limit": "You're sending requests too fast. Wait a moment and try again.",
+    "quota": "Monthly analysis limit reached. Upgrade your plan for more analyses.",
+    "invalid_idea": "We couldn't validate your business idea. Please rephrase and try again.",
+    "validation": "Some of your input couldn't be processed. Please review the form.",
+    "title": "Analysis failed",
+    "try_again": "Try again",
+    "auto_retry_note": "We tried twice automatically before showing this — your retry will start fresh."
+  },
+  "tier_badge": {
+    "free": "Free",
+    "plus": "Plus",
+    "pro": "Pro",
+    "remaining": "{{count}} analyses left this month",
+    "remaining_one": "1 analysis left this month",
+    "remaining_other": "{{count}} analyses left this month",
+    "out_of_quota": "0 left — upgrade to keep analysing",
+    "unlimited": "Unlimited",
+    "click_to_upgrade": "Click to upgrade"
+  }
+}
