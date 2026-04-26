@@ -4,11 +4,22 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
+import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
 
 interface LockedAnalysisPaywallProps {
   /** What section is being gated — 'levers' (Step 2) or 'action-plan' (Step 3) */
   section: 'levers' | 'action-plan';
 }
+
+/**
+ * Map gated dashboard sections → canonical Master Spec UPGRADE_TRIGGERS keys.
+ *  - levers (Step 2: Monte Carlo / P&L / live assumptions) → free_returning_7d
+ *  - action-plan (Step 3: prioritized fix-list, PDF, mitigation) → locked_document_studio
+ */
+const SECTION_TRIGGER: Record<LockedAnalysisPaywallProps['section'], keyof typeof UPGRADE_TRIGGERS> = {
+  levers: 'free_returning_7d',
+  'action-plan': 'locked_document_studio',
+};
 
 /**
  * LockedAnalysisPaywall — Aggressive monetization gate for free users.
@@ -32,10 +43,11 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
     }
   };
 
+  // Spec-canonical headline + body + CTA from §10 UPGRADE_TRIGGERS,
+  // paired with section-specific gated-feature bullets.
+  const trigger = UPGRADE_TRIGGERS[SECTION_TRIGGER[section]];
   const config = section === 'levers'
     ? {
-        title: 'Levers Lab is locked',
-        subtitle: 'Adjust pricing, CAC, rent, and churn — see how your numbers shift in real time. The way investors stress-test plans.',
         gatedItems: [
           { icon: TrendingUp, label: '36-Month Revenue Projection', desc: 'Pessimistic / Base / Optimistic scenarios' },
           { icon: Activity, label: 'Live Assumption Editor', desc: 'Stress-test CAC, churn, rent, ticket size' },
@@ -43,8 +55,6 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
         ],
       }
     : {
-        title: 'Action Plan is locked',
-        subtitle: 'Get the prioritized fix-list with mitigation tactics, expected impact, time-to-result, and cost estimates — straight from your benchmarked analysis.',
         gatedItems: [
           { icon: Target, label: 'Prioritized Action Plan', desc: 'Critical / This Week / This Month — sequenced for execution' },
           { icon: CheckCircle2, label: 'Risk Mitigation Tactics', desc: 'Step-by-step fixes for every red flag, with effort + cost' },
@@ -69,13 +79,13 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
                 Plus members only
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground">
-                {config.title}
+                {trigger.headline}
               </h3>
             </div>
           </div>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-            {config.subtitle}
+            {trigger.body}
           </p>
 
           {/* Gated items grid */}
@@ -120,7 +130,7 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
             className="gap-2 font-semibold shadow-lg shadow-primary/20 w-full lg:w-auto"
           >
             <Zap className="w-4 h-4" />
-            {isLoading ? 'Loading…' : 'Unlock Full Report'}
+            {isLoading ? 'Loading…' : trigger.cta}
           </Button>
 
           <p className="text-[10px] text-muted-foreground/80 text-center lg:text-right max-w-[220px]">

@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireFeature, EntitlementError } from "../_shared/entitlements.ts";
+import { tierGate } from "../_shared/tier-gate.ts";
+import { ENDPOINTS } from "../_shared/tier-spec.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
@@ -39,7 +41,7 @@ serve(async (req) => {
       });
     }
 
-    // ========== ENTITLEMENT GATE ==========
+    // ========== ENTITLEMENT GATE (legacy) ==========
     try {
       await requireFeature(supabaseAdmin, user.id, 'documentStudio', '/generate-document');
     } catch (e) {
@@ -47,7 +49,20 @@ serve(async (req) => {
       throw e;
     }
 
-    log.info(`[generate-document] user=${user.id} authorized`);
+    // ========== MASTER SPEC TIER GATE (defense-in-depth, §08) ==========
+    // Independent spec-canonical check: emits the standardized 402 envelope
+    // (success/error/required_tier/upgrade_url/cta) when blocked. Does not
+    // double-charge usage — generate-document is not a quota-counted endpoint.
+    const gate = await tierGate(req, ENDPOINTS.DOCUMENTS_STUDIO);
+    if (gate.blocked) {
+      log.info(`[generate-document] tier-gate blocked: ${gate.body.error}`);
+      return new Response(JSON.stringify(gate.body), {
+        status: gate.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    log.info(`[generate-document] user=${user.id} tier=${gate.tier} authorized`);
 
     // ========== ORIGINAL LOGIC ==========
     const body = await req.json();
