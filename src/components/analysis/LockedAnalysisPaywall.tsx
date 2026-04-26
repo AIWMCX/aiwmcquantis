@@ -4,11 +4,22 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
+import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
 
 interface LockedAnalysisPaywallProps {
   /** What section is being gated — 'levers' (Step 2) or 'action-plan' (Step 3) */
   section: 'levers' | 'action-plan';
 }
+
+/**
+ * Map gated dashboard sections → canonical Master Spec UPGRADE_TRIGGERS keys.
+ *  - levers (Step 2: Monte Carlo / P&L / live assumptions) → free_returning_7d
+ *  - action-plan (Step 3: prioritized fix-list, PDF, mitigation) → locked_document_studio
+ */
+const SECTION_TRIGGER: Record<LockedAnalysisPaywallProps['section'], keyof typeof UPGRADE_TRIGGERS> = {
+  levers: 'free_returning_7d',
+  'action-plan': 'locked_document_studio',
+};
 
 /**
  * LockedAnalysisPaywall — Aggressive monetization gate for free users.
