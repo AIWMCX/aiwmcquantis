@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 /**
  * Edge Function Warming Service
  * 
@@ -22,6 +25,9 @@ const FUNCTIONS_TO_WARM = [
 ];
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('warm-functions', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === 'OPTIONS') {
@@ -35,7 +41,7 @@ serve(async (req) => {
     const expectedCronSecret = Deno.env.get('CRON_SECRET');
 
     if (!expectedCronSecret || expectedCronSecret.length < 10 || cronSecretHeader !== expectedCronSecret) {
-      console.error('[warm-functions] Unauthorized request - invalid or missing CRON_SECRET');
+      log.error('[warm-functions] Unauthorized request - invalid or missing CRON_SECRET');
       return new Response(
         JSON.stringify({ error: 'Unauthorized' }),
         { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -45,7 +51,7 @@ serve(async (req) => {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_ANON_KEY')!;
     
-    console.log(`[warm-functions] Starting warm cycle at ${new Date().toISOString()}`);
+    log.info(`[warm-functions] Starting warm cycle at ${new Date().toISOString()}`);
 
     const results: Record<string, { success: boolean; latency: number; error?: string }> = {};
 
@@ -83,7 +89,7 @@ serve(async (req) => {
           error: isSuccess ? undefined : `Status ${response.status}`,
         };
 
-        console.log(`[warm-functions] ${funcName}: ${latency}ms - ${isSuccess ? 'OK' : 'FAILED'}`);
+        log.info(`[warm-functions] ${funcName}: ${latency}ms - ${isSuccess ? 'OK' : 'FAILED'}`);
       } catch (error) {
         const latency = Date.now() - startTime;
         results[funcName] = {
@@ -91,7 +97,7 @@ serve(async (req) => {
           latency,
           error: error instanceof Error ? error.message : 'Unknown error',
         };
-        console.error(`[warm-functions] ${funcName} failed:`, error);
+        log.error(`[warm-functions] ${funcName} failed:`, error);
       }
     }
 
@@ -107,7 +113,7 @@ serve(async (req) => {
       results,
     };
 
-    console.log(`[warm-functions] Complete: ${successCount}/${FUNCTIONS_TO_WARM.length} warmed, avg ${Math.round(avgLatency)}ms`);
+    log.info(`[warm-functions] Complete: ${successCount}/${FUNCTIONS_TO_WARM.length} warmed, avg ${Math.round(avgLatency)}ms`);
 
     return new Response(
       JSON.stringify(summary),
@@ -118,7 +124,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[warm-functions] Critical error:', error);
+    log.error('[warm-functions] Critical error:', error);
     return new Response(
       JSON.stringify({ 
         error: 'Warming failed', 

@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Admin key for secure uploads - must be set as a secret
 const ADMIN_UPLOAD_KEY = Deno.env.get("ADMIN_UPLOAD_KEY");
 
@@ -117,6 +120,9 @@ function sanitizeRecord(record: unknown): BenchmarkRecord | null {
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('manage-benchmarks', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -126,7 +132,7 @@ serve(async (req) => {
     // Verify admin key
     const adminKey = req.headers.get('x-admin-key');
     if (!ADMIN_UPLOAD_KEY || adminKey !== ADMIN_UPLOAD_KEY) {
-      console.error('Unauthorized benchmark upload attempt');
+      log.error('Unauthorized benchmark upload attempt');
       return new Response(
         JSON.stringify({ error: 'Unauthorized. Admin access required.' }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -177,14 +183,14 @@ serve(async (req) => {
         .select('id, industry_id, industry_name');
 
       if (insertError) {
-        console.error('Insert error:', insertError);
+        log.error('Insert error:', insertError);
         return new Response(
           JSON.stringify({ error: 'Failed to upload benchmarks', details: insertError.message }),
           { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
-      console.log(`Successfully uploaded ${sanitizedRecords.length} benchmark records`);
+      log.info(`Successfully uploaded ${sanitizedRecords.length} benchmark records`);
       
       return new Response(
         JSON.stringify({ 
@@ -211,7 +217,7 @@ serve(async (req) => {
         );
       }
 
-      console.log('All benchmark data cleared');
+      log.info('All benchmark data cleared');
       return new Response(
         JSON.stringify({ success: true, message: 'All benchmarks cleared' }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -251,7 +257,7 @@ serve(async (req) => {
     );
     
   } catch (error) {
-    console.error('Benchmark management error:', error);
+    log.error('Benchmark management error:', error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

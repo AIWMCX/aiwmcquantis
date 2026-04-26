@@ -3,7 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { requireFeature, EntitlementError } from "../_shared/entitlements.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('generate-document', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -41,7 +47,7 @@ serve(async (req) => {
       throw e;
     }
 
-    console.log(`[generate-document] user=${user.id} authorized`);
+    log.info(`[generate-document] user=${user.id} authorized`);
 
     // ========== ORIGINAL LOGIC ==========
     const body = await req.json();
@@ -83,7 +89,7 @@ Provide structured, professional content suitable for ${template_id}. Be specifi
 
     if (!aiResponse.ok) {
       const errText = await aiResponse.text();
-      console.error('[generate-document] AI error:', aiResponse.status, errText);
+      log.error('[generate-document] AI error:', aiResponse.status, errText);
       return new Response(JSON.stringify({ success: false, error: 'AI generation failed' }), {
         status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -107,7 +113,7 @@ Provide structured, professional content suitable for ${template_id}. Be specifi
       .single();
 
     if (insErr) {
-      console.error('[generate-document] insert error:', insErr);
+      log.error('[generate-document] insert error:', insErr);
       return new Response(JSON.stringify({ success: false, error: 'Failed to save document' }), {
         status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
@@ -117,7 +123,7 @@ Provide structured, professional content suitable for ${template_id}. Be specifi
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (err: any) {
-    console.error('[generate-document] error:', err);
+    log.error('[generate-document] error:', err);
     return new Response(JSON.stringify({ success: false, error: err?.message ?? 'Unknown error' }), {
       status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

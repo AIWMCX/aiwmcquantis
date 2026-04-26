@@ -1,6 +1,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL_GPT = "openai/gpt-5-mini";
 const MODEL_GEMINI = "google/gemini-3-flash-preview";
@@ -201,6 +204,9 @@ function weightedMerge(
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('ai-consensus', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -250,10 +256,10 @@ serve(async (req) => {
       // Single-model fallback
       if (!gptResult && geminiResult) {
         gptResult = { ...geminiResult, modelId: "gpt5-mini", confidence: 0, rawOutput: "", parsedData: {} };
-        console.warn("GPT model failed, using Gemini-only fallback");
+        log.warn("GPT model failed, using Gemini-only fallback");
       } else if (gptResult && !geminiResult) {
         geminiResult = { ...gptResult, modelId: "gemini", confidence: 0, rawOutput: "", parsedData: {} };
-        console.warn("Gemini model failed, using GPT-only fallback");
+        log.warn("Gemini model failed, using GPT-only fallback");
       } else if (!gptResult && !geminiResult) {
         const gptErr = gptSettled.status === "rejected" ? gptSettled.reason : "unknown";
         const gemErr = geminiSettled.status === "rejected" ? geminiSettled.reason : "unknown";
@@ -315,7 +321,7 @@ serve(async (req) => {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (err) {
-    console.error("ai-consensus error:", err);
+    log.error("ai-consensus error:", err);
 
     const message = err instanceof Error ? err.message : "Unknown error";
     const status = message.includes("429") ? 429 : message.includes("402") ? 402 : 500;

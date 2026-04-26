@@ -15,6 +15,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 interface AlertPayload {
   alert_type: 'down' | 'up' | 'degraded' | 'error_spike' | 'budget_exceeded' | 'kill_switch';
   source: string;
@@ -38,7 +41,7 @@ function validateAlertSecret(req: Request): boolean {
   
   // If no secret is configured, allow the request (for initial setup)
   if (!expectedSecret) {
-    console.warn('ALERT_WEBHOOK_SECRET not configured - accepting all requests');
+    console.warn('[alert-webhook] ALERT_WEBHOOK_SECRET not configured - accepting all requests');
     return true;
   }
   
@@ -237,11 +240,14 @@ async function logAlert(
       },
     });
   } catch (error) {
-    console.error('Failed to log alert:', error);
+    console.error('[alert-webhook] Failed to log alert:', error);
   }
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('alert-webhook', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -322,7 +328,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('Alert webhook error:', error);
+    log.error('Alert webhook error:', error);
     
     return new Response(
       JSON.stringify({ 

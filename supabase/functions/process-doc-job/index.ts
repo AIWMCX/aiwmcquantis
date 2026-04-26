@@ -1,7 +1,13 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 Deno.serve(async (req: Request) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('process-doc-job', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });
@@ -58,7 +64,7 @@ Deno.serve(async (req: Request) => {
       );
 
       if (aiError) {
-        console.warn("AI generation fallback:", aiError);
+        log.warn("AI generation fallback:", aiError);
         generatedContent = JSON.stringify(inputData);
       } else {
         generatedContent = typeof aiResult === "string" ? aiResult : JSON.stringify(aiResult);
@@ -106,7 +112,7 @@ Deno.serve(async (req: Request) => {
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
-    console.error("process-doc-job error:", err);
+    log.error("process-doc-job error:", err);
 
     // Try to mark job as failed
     try {

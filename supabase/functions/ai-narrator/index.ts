@@ -16,6 +16,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeadersFor } from "../_shared/cors.ts";
 
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 // Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
 
@@ -270,6 +273,9 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
 // ========== MAIN HANDLER ==========
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('ai-narrator', reqId);
+
   // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
   const corsHeaders = corsHeadersFor(req);
 
@@ -299,7 +305,7 @@ serve(async (req) => {
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     
     if (!LOVABLE_API_KEY) {
-      console.log("LOVABLE_API_KEY not found, using fallback");
+      log.info("LOVABLE_API_KEY not found, using fallback");
       const fallbackContent = generateFallbackContent(input);
       return new Response(
         JSON.stringify({
@@ -355,7 +361,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
     const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for fast fallback
 
     try {
-      console.log("Making AI narrator request...");
+      log.info("Making AI narrator request...");
       
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -376,7 +382,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`AI error: ${response.status} - ${errorText}`);
+        log.error(`AI error: ${response.status} - ${errorText}`);
         
         // Use fallback for non-auth errors
         if (response.status !== 401 && response.status !== 403) {
@@ -409,7 +415,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
       const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
 
       if (!toolCall) {
-        console.log("No tool call in AI response, using fallback");
+        log.info("No tool call in AI response, using fallback");
         const fallbackContent = generateFallbackContent(input);
         return new Response(
           JSON.stringify({
@@ -424,7 +430,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
       }
 
       const content = JSON.parse(toolCall.function.arguments);
-      console.log(`AI narrator succeeded in ${Date.now() - startTime}ms`);
+      log.info(`AI narrator succeeded in ${Date.now() - startTime}ms`);
 
       return new Response(
         JSON.stringify({
@@ -441,7 +447,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
       clearTimeout(timeoutId);
       
       const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
-      console.error(`AI fetch error: ${errorMessage}`);
+      log.error(`AI fetch error: ${errorMessage}`);
       
       // Use fallback for timeout and network errors
       const fallbackContent = generateFallbackContent(input);
@@ -459,7 +465,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
     }
 
   } catch (err) {
-    console.error("Narrator error:", err);
+    log.error("Narrator error:", err);
     return new Response(
       JSON.stringify({
         success: false,

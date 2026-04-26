@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 type SectionType =
   | 'executive_summary'
   | 'market_analysis'
@@ -215,6 +218,9 @@ Use formal business language and clear strategic intent.
 };
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('generate-document-content', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -315,7 +321,7 @@ serve(async (req) => {
 
       if (!response.ok) {
         const errorText = await response.text();
-        console.error(`[generate-document-content] AI API error ${response.status} for suggestion ${i + 1}:`, errorText);
+        log.error(`[generate-document-content] AI API error ${response.status} for suggestion ${i + 1}:`, errorText);
 
         if (response.status === 429) {
           return new Response(
@@ -352,7 +358,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[generate-document-content] User ${user.id} generated ${suggestions.length} suggestions for ${section_type}`);
+    log.info(`[generate-document-content] User ${user.id} generated ${suggestions.length} suggestions for ${section_type}`);
 
     return new Response(
       JSON.stringify({
@@ -366,7 +372,7 @@ serve(async (req) => {
     );
 
   } catch (error) {
-    console.error('[generate-document-content] Error:', error);
+    log.error('[generate-document-content] Error:', error);
     return new Response(
       JSON.stringify({ error: 'Internal server error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

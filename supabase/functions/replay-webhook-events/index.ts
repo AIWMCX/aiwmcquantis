@@ -3,12 +3,15 @@ import Stripe from "https://esm.sh/stripe@14.21.0";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
-console.log("=== Replay Webhook Events Function Started ===");
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
+log.info("=== Replay Webhook Events Function Started ===");
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
   const requestId = crypto.randomUUID().slice(0, 8);
-  console.log(`[${requestId}] Replay request received`);
+  log.info(`[${requestId}] Replay request received`);
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -73,7 +76,7 @@ serve(async (req) => {
       );
     }
 
-    console.log(`[${requestId}] Admin verified: ${userId}`);
+    log.info(`[${requestId}] Admin verified: ${userId}`);
 
     const body = await req.json();
     const { action, event_ids, stripe_event_id, status_filter } = body;
@@ -94,18 +97,18 @@ serve(async (req) => {
           return customer.email;
         }
       } catch (err) {
-        console.error(`[${requestId}] Error fetching customer:`, err.message);
+        log.error(`[${requestId}] Error fetching customer:`, err.message);
       }
       return null;
     }
 
     async function processStripeEvent(stripeEventId: string): Promise<{ success: boolean; message: string }> {
-      console.log(`[${requestId}] Processing Stripe event: ${stripeEventId}`);
+      log.info(`[${requestId}] Processing Stripe event: ${stripeEventId}`);
       
       try {
         // Fetch event from Stripe
         const event = await stripe.events.retrieve(stripeEventId);
-        console.log(`[${requestId}] Retrieved event type: ${event.type}`);
+        log.info(`[${requestId}] Retrieved event type: ${event.type}`);
 
         if (event.type === "checkout.session.completed") {
           const session = event.data.object as Stripe.Checkout.Session;
@@ -207,7 +210,7 @@ serve(async (req) => {
 
         return { success: false, message: `Unsupported event type: ${event.type}` };
       } catch (err) {
-        console.error(`[${requestId}] Error processing event:`, err);
+        log.error(`[${requestId}] Error processing event:`, err);
         return { success: false, message: err.message };
       }
     }
@@ -276,7 +279,7 @@ serve(async (req) => {
           );
         }
 
-        console.log(`[${requestId}] Syncing subscription for email: ${email}`);
+        log.info(`[${requestId}] Syncing subscription for email: ${email}`);
 
         // Find user
         const userId = await findUserByEmail(email);
@@ -357,7 +360,7 @@ serve(async (req) => {
         );
     }
   } catch (error) {
-    console.error(`[${requestId}] Error:`, error);
+    log.error(`[${requestId}] Error:`, error);
     return new Response(
       JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

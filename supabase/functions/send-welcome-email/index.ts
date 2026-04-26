@@ -1,6 +1,8 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
 // Resend API client - using fetch directly to avoid npm dependency issues
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -229,6 +231,8 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('send-welcome-email', reqId);
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight requests
   if (req.method === "OPTIONS") {

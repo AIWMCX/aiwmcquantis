@@ -14,6 +14,9 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // ========== TYPES ==========
 
 export interface IndustryBenchmarks {
@@ -686,6 +689,9 @@ function computeFinancials(input: FinancialsInput): FinancialsOutput {
 // ========== REQUEST HANDLER ==========
 
 serve(async (req: Request) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('calculate-financials', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // CORS preflight
   if (req.method === 'OPTIONS') {
@@ -720,13 +726,13 @@ serve(async (req: Request) => {
 
     // Log what we're using
     const resolvedBenchmarks = body.benchmarks || detectBenchmarkFromIndustry(body.industry);
-    console.log(`Using benchmarks: ${resolvedBenchmarks.name} (${body.benchmarks ? 'provided' : 'auto-detected'})`);
+    log.info(`Using benchmarks: ${resolvedBenchmarks.name} (${body.benchmarks ? 'provided' : 'auto-detected'})`);
 
     // Run calculations
     const result = computeFinancials(body);
     
     const latencyMs = Date.now() - startTime;
-    console.log(`calculate-financials completed in ${latencyMs}ms`);
+    log.info(`calculate-financials completed in ${latencyMs}ms`);
 
     return new Response(
       JSON.stringify(result),
@@ -741,7 +747,7 @@ serve(async (req: Request) => {
     );
 
   } catch (error) {
-    console.error('calculate-financials error:', error);
+    log.error('calculate-financials error:', error);
     return new Response(
       JSON.stringify({ 
         success: false, 

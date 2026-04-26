@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 /* ─── 100 BUSINESS CASE SEEDS ───
    Each seed provides a specific, financially-calculable concept with realistic
    ranges the AI must respect. Grouped by sector for variety. */
@@ -240,6 +243,9 @@ function getRandomSeed(industry?: string): { industry: string; concept: string; 
 }
 
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('generate-idea', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -390,7 +396,7 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
         );
       }
       const t = await response.text();
-      console.error("AI gateway error:", status, t);
+      log.error("AI gateway error:", status, t);
       throw new Error("AI gateway error");
     }
 
@@ -425,7 +431,7 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
-    console.error("generate-idea error:", e);
+    log.error("generate-idea error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Weekly content templates - curated, industry-specific insights
 const WEEKLY_CONTENT = [
   {
@@ -187,6 +190,9 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('send-weekly-insights', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
@@ -199,7 +205,7 @@ serve(async (req: Request): Promise<Response> => {
     const expectedSecret = Deno.env.get("CRON_SECRET");
     
     if (cronSecret !== expectedSecret) {
-      console.error("Invalid or missing cron secret");
+      log.error("Invalid or missing cron secret");
       return new Response(
         JSON.stringify({ error: "Unauthorized" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -221,7 +227,7 @@ serve(async (req: Request): Promise<Response> => {
     const year = today.getFullYear();
     const todayStr = today.toISOString().split("T")[0];
 
-    console.log(`Starting weekly insights send for Week ${weekNumber}, ${year}`);
+    log.info(`Starting weekly insights send for Week ${weekNumber}, ${year}`);
 
     // Get newsletter subscribers who haven't unsubscribed
     const { data: subscribers, error: subscribersError } = await supabase
@@ -235,14 +241,14 @@ serve(async (req: Request): Promise<Response> => {
     }
 
     if (!subscribers || subscribers.length === 0) {
-      console.log("No active newsletter subscribers found");
+      log.info("No active newsletter subscribers found");
       return new Response(
         JSON.stringify({ success: true, sent: 0, message: "No subscribers" }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    console.log(`Found ${subscribers.length} active subscribers`);
+    log.info(`Found ${subscribers.length} active subscribers`);
 
     // Get content for this week (rotate through available content)
     const contentIndex = (weekNumber - 1) % WEEKLY_CONTENT.length;
@@ -264,7 +270,7 @@ serve(async (req: Request): Promise<Response> => {
           .single();
 
         if (existingSend) {
-          console.log(`Skipping lead ${subscriber.id} - already sent this week`);
+          log.info(`Skipping lead ${subscriber.id} - already sent this week`);
           skipCount++;
           continue;
         }
@@ -274,7 +280,7 @@ serve(async (req: Request): Promise<Response> => {
           .rpc("decrypt_pii", { encrypted_data: subscriber.email_encrypted });
 
         if (decryptError || !emailData) {
-          console.error(`Failed to decrypt email for lead ${subscriber.id}:`, decryptError);
+          log.error(`Failed to decrypt email for lead ${subscriber.id}:`, decryptError);
           errors.push(`Decrypt failed for ${subscriber.id}`);
           continue;
         }
@@ -308,13 +314,13 @@ serve(async (req: Request): Promise<Response> => {
 
         if (!resendResponse.ok) {
           const errorText = await resendResponse.text();
-          console.error(`Resend error for ${subscriber.id}:`, errorText);
+          log.error(`Resend error for ${subscriber.id}:`, errorText);
           errors.push(`Send failed for ${subscriber.id}: ${errorText}`);
           continue;
         }
 
         const resendResult = await resendResponse.json();
-        console.log(`Sent to lead ${subscriber.id}, email ID: ${resendResult.id}`);
+        log.info(`Sent to lead ${subscriber.id}, email ID: ${resendResult.id}`);
 
         // Log successful send
         const { error: logError } = await supabase
@@ -328,7 +334,7 @@ serve(async (req: Request): Promise<Response> => {
           });
 
         if (logError) {
-          console.error(`Failed to log send for ${subscriber.id}:`, logError);
+          log.error(`Failed to log send for ${subscriber.id}:`, logError);
         }
 
         sentCount++;
@@ -337,12 +343,12 @@ serve(async (req: Request): Promise<Response> => {
         await new Promise(resolve => setTimeout(resolve, 100));
 
       } catch (err) {
-        console.error(`Error processing subscriber ${subscriber.id}:`, err);
+        log.error(`Error processing subscriber ${subscriber.id}:`, err);
         errors.push(`Error for ${subscriber.id}: ${err instanceof Error ? err.message : "Unknown"}`);
       }
     }
 
-    console.log(`Weekly insights complete: ${sentCount} sent, ${skipCount} skipped, ${errors.length} errors`);
+    log.info(`Weekly insights complete: ${sentCount} sent, ${skipCount} skipped, ${errors.length} errors`);
 
     return new Response(
       JSON.stringify({
@@ -357,7 +363,7 @@ serve(async (req: Request): Promise<Response> => {
     );
 
   } catch (error) {
-    console.error("Weekly insights error:", error);
+    log.error("Weekly insights error:", error);
     return new Response(
       JSON.stringify({ error: error instanceof Error ? error.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }

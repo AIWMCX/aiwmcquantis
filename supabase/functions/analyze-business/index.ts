@@ -83,6 +83,8 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 // Per-request correlation ID — links UI logs ↔ this function ↔ ai_calls rows.
 import { getRequestId, requestIdHeader } from "../_shared/request-id.ts";
 
+import { createLogger } from '../_shared/logger.ts';
+
 // ========== SECURITY UTILITIES ==========
 
 /**
@@ -577,27 +579,27 @@ async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<Databa
     
     if (cachedBenchmarks && cachedBenchmarks.length > 0) {
       const stats = getCacheStats();
-      console.log(`Using ${cachedBenchmarks.length} cached benchmarks (expires: ${stats.benchmarkCacheExpiry || 'soon'})`);
+      log.info(`Using ${cachedBenchmarks.length} cached benchmarks (expires: ${stats.benchmarkCacheExpiry || 'soon'})`);
       return cachedBenchmarks as DatabaseBenchmarkRecord[];
     }
     
     // Fallback to direct DB query if cache fails
-    console.log('[CACHE MISS] Falling back to direct DB query');
+    log.info('[CACHE MISS] Falling back to direct DB query');
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
     
     if (error) {
-      console.error('Failed to fetch benchmarks from database:', error.message);
+      log.error('Failed to fetch benchmarks from database:', error.message);
       return [];
     }
     
     if (data && data.length > 0) {
-      console.log(`Fetched ${data.length} benchmark records from database (cache miss)`);
+      log.info(`Fetched ${data.length} benchmark records from database (cache miss)`);
     }
     return data || [];
   } catch (err) {
-    console.error('Database benchmark fetch error:', err);
+    log.error('Database benchmark fetch error:', err);
     return [];
   }
 }
@@ -671,7 +673,7 @@ async function detectIndustryFromDatabase(
     // First check database
     const dbMatch = dbBenchmarks.find(db => db.industry_id === selectedIndustryId);
     if (dbMatch) {
-      console.log(`Using user-selected industry from database: ${dbMatch.industry_name}`);
+      log.info(`Using user-selected industry from database: ${dbMatch.industry_name}`);
       return {
         benchmark: transformDbBenchmark(dbMatch),
         source: 'database',
@@ -686,7 +688,7 @@ async function detectIndustryFromDatabase(
     // Then check hardcoded
     const hardcodedMatch = INDUSTRY_BENCHMARKS.find(i => i.id === selectedIndustryId);
     if (hardcodedMatch) {
-      console.log(`Using user-selected industry from hardcoded: ${hardcodedMatch.name}`);
+      log.info(`Using user-selected industry from hardcoded: ${hardcodedMatch.name}`);
       return {
         benchmark: hardcodedMatch,
         source: 'hardcoded',
@@ -725,7 +727,7 @@ async function detectIndustryFromDatabase(
     
     // Use region-matched benchmark if available and has good score
     if (regionMatch && bestDbScore >= 20) {
-      console.log(`Matched database benchmark with region: ${regionMatch.industry_name} (${regionMatch.region}), score: ${bestDbScore}`);
+      log.info(`Matched database benchmark with region: ${regionMatch.industry_name} (${regionMatch.region}), score: ${bestDbScore}`);
       return {
         benchmark: transformDbBenchmark(regionMatch),
         source: 'database',
@@ -739,7 +741,7 @@ async function detectIndustryFromDatabase(
     
     // Use best matching benchmark if score is high enough
     if (bestDbMatch && bestDbScore >= 10) {
-      console.log(`Matched database benchmark: ${bestDbMatch.industry_name}, score: ${bestDbScore}`);
+      log.info(`Matched database benchmark: ${bestDbMatch.industry_name}, score: ${bestDbScore}`);
       return {
         benchmark: transformDbBenchmark(bestDbMatch),
         source: 'database',
@@ -773,7 +775,7 @@ async function detectIndustryFromDatabase(
   }
   
   const finalBenchmark = bestMatch || INDUSTRY_BENCHMARKS.find(i => i.id === 'general')!;
-  console.log(`Using hardcoded benchmark: ${finalBenchmark.name}, score: ${bestScore}`);
+  log.info(`Using hardcoded benchmark: ${finalBenchmark.name}, score: ${bestScore}`);
   
   return {
     benchmark: finalBenchmark,
@@ -968,9 +970,9 @@ function calculateStrictFinancials(
   const adjustedOther = Math.round(benchmarks.other_fixed * locationMultipliers.overall);
   
   // Log location adjustment details
-  console.log(`Location adjustments: salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, utility=${locationMultipliers.utility}x, marketing=${locationMultipliers.marketing}x`);
+  log.info(`Location adjustments: salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, utility=${locationMultipliers.utility}x, marketing=${locationMultipliers.marketing}x`);
   if (locationMultipliers.matched) {
-    console.log(`Matched city: ${locationMultipliers.matchedCity} (${locationMultipliers.region})`);
+    log.info(`Matched city: ${locationMultipliers.matchedCity} (${locationMultipliers.region})`);
   }
   
   // ===== ENHANCED: Apply sub-industry modifiers to benchmarks =====
@@ -1005,9 +1007,9 @@ function calculateStrictFinancials(
       effectiveChurnRate = getSubIndustryChurnRate(subIndustry);
     }
     
-    console.log(`Sub-industry detected: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale})`);
-    console.log(`Applied modifiers: CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x, Churn=${subIndustry.modifiers.churn_multiplier}x`);
-    console.log(`Effective churn rate: ${(effectiveChurnRate * 100).toFixed(1)}%/month`);
+    log.info(`Sub-industry detected: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale})`);
+    log.info(`Applied modifiers: CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x, Churn=${subIndustry.modifiers.churn_multiplier}x`);
+    log.info(`Effective churn rate: ${(effectiveChurnRate * 100).toFixed(1)}%/month`);
     
     audit.push({
       formula: 'Sub-Industry Detection',
@@ -1271,7 +1273,7 @@ function calculateStrictFinancials(
     finalTotalExpenses = targetExpenses;
     finalNetProfit = mrr - targetExpenses;
     finalNetMarginPercent = clampedMargin;
-    console.warn(`⚠️ Margin ceiling enforced: ${netMarginPercent}% → ${clampedMargin}% (max for ${benchmarks.name} = ${benchmarks.net_margin_max}%)`);
+    log.warn(`⚠️ Margin ceiling enforced: ${netMarginPercent}% → ${clampedMargin}% (max for ${benchmarks.name} = ${benchmarks.net_margin_max}%)`);
   }
   
   audit.push({
@@ -2167,19 +2169,19 @@ function transformResponse(
   const userProvidedCustomers = userInputs?.expected_customers;
   
   // Log input source for debugging
-  console.log(`Input sources: MRR=${userInputs?.monthly_revenue ? 'USER' : 'AI'}($${rawMrr}), Investment=${userInputs?.startup_investment ? 'USER' : 'AI'}($${rawInvestment}), CAC=${userInputs?.cac ? 'USER' : 'AI'}($${rawCac})`);
+  log.info(`Input sources: MRR=${userInputs?.monthly_revenue ? 'USER' : 'AI'}($${rawMrr}), Investment=${userInputs?.startup_investment ? 'USER' : 'AI'}($${rawInvestment}), CAC=${userInputs?.cac ? 'USER' : 'AI'}($${rawCac})`);
   
   // Validation: warn if AI values significantly differ from user inputs
   if (userInputs?.monthly_revenue && fa.mrr) {
     const diff = Math.abs(fa.mrr - userInputs.monthly_revenue) / userInputs.monthly_revenue;
     if (diff > 0.2) {
-      console.warn(`⚠️ AI estimated revenue $${fa.mrr} differs ${Math.round(diff * 100)}% from user input $${userInputs.monthly_revenue}`);
+      log.warn(`⚠️ AI estimated revenue $${fa.mrr} differs ${Math.round(diff * 100)}% from user input $${userInputs.monthly_revenue}`);
     }
   }
   if (userInputs?.startup_investment && fa.startup_investment) {
     const diff = Math.abs(fa.startup_investment - userInputs.startup_investment) / userInputs.startup_investment;
     if (diff > 0.2) {
-      console.warn(`⚠️ AI estimated investment $${fa.startup_investment} differs ${Math.round(diff * 100)}% from user input $${userInputs.startup_investment}`);
+      log.warn(`⚠️ AI estimated investment $${fa.startup_investment} differs ${Math.round(diff * 100)}% from user input $${userInputs.startup_investment}`);
     }
   }
   
@@ -2419,7 +2421,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         
         // Log warning if there's a mismatch with calc.totalExpenses
         if (Math.abs(breakdownSum - calc.totalExpenses) > 1) {
-          console.warn(`⚠️ Expense mismatch detected: breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses}. Using sum.`);
+          log.warn(`⚠️ Expense mismatch detected: breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses}. Using sum.`);
         }
         
         return {
@@ -2622,7 +2624,7 @@ serve(async (req) => {
     // ========== HTTP REQUEST VALIDATION ==========
     const httpValidation = validateHttpRequest(req);
     if (!httpValidation.valid) {
-      console.error(`HTTP validation failed: ${httpValidation.error}`);
+      log.error(`HTTP validation failed: ${httpValidation.error}`);
       return new Response(
         JSON.stringify({ error: httpValidation.error, code: "VALIDATION_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -2671,7 +2673,7 @@ serve(async (req) => {
       if (!userError && user) {
         userId = user.id;
         isAnonymous = false;
-        console.log(`Authenticated user: ${user.email}`);
+        log.info(`Authenticated user: ${user.email}`);
         
         // Check subscription
         const { data: subscription } = await supabaseAuth
@@ -2684,7 +2686,7 @@ serve(async (req) => {
           userPlan = subscription.plan_id;
         }
         
-        console.log(`User plan: ${userPlan}`);
+        log.info(`User plan: ${userPlan}`);
         
         // If free tier, check monthly usage
         if (userPlan === 'free') {
@@ -2700,7 +2702,7 @@ serve(async (req) => {
           const currentUsage = usage?.analyses_count || 0;
           
           if (currentUsage >= FREE_TIER_LIMIT) {
-            console.log(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
             return new Response(
               JSON.stringify({ 
                 error: "Monthly analysis limit reached. Upgrade to Plus for unlimited analyses.", 
@@ -2726,7 +2728,7 @@ serve(async (req) => {
         || req.headers.get('x-real-ip')
         || 'unknown-ip';
       
-      console.log(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
+      log.info(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
       
       // Create hashes for storage (privacy-preserving)
       const encoder = new TextEncoder();
@@ -2768,14 +2770,14 @@ serve(async (req) => {
           .rpc('check_anonymous_rate_limit', rateLimitParams);
         
         if (rateLimitError) {
-          console.error('Anonymous rate limit check failed:', rateLimitError);
+          log.error('Anonymous rate limit check failed:', rateLimitError);
           // Fall back to old method if new system fails
         } else if (rateLimitResult && !rateLimitResult.allowed) {
           const reason = rateLimitResult.reason as string;
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
           
-          console.log(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
+          log.info(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
           
           return new Response(
             JSON.stringify({ 
@@ -2798,10 +2800,10 @@ serve(async (req) => {
             }
           );
         } else if (rateLimitResult) {
-          console.log(`Anonymous rate limit check passed: Device remaining: ${rateLimitResult.device_remaining}, IP remaining: ${rateLimitResult.ip_remaining}`);
+          log.info(`Anonymous rate limit check passed: Device remaining: ${rateLimitResult.device_remaining}, IP remaining: ${rateLimitResult.ip_remaining}`);
         }
       } catch (anonRlError) {
-        console.error('Anonymous rate limit system error:', anonRlError);
+        log.error('Anonymous rate limit system error:', anonRlError);
         // Fall through to standard rate limiting
       }
     }
@@ -2822,10 +2824,10 @@ serve(async (req) => {
           });
         
         if (rateLimitError) {
-          console.error('Rate limit check failed:', rateLimitError);
+          log.error('Rate limit check failed:', rateLimitError);
           // Fail open - allow request but log the error
         } else if (rateLimitResult && !rateLimitResult.allowed) {
-          console.log(`Rate limit exceeded for user ${userId}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
+          log.info(`Rate limit exceeded for user ${userId}: ${rateLimitResult.current_count}/${rateLimitResult.limit}`);
           
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
@@ -2855,10 +2857,10 @@ serve(async (req) => {
             }
           );
         } else if (rateLimitResult) {
-          console.log(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
+          log.info(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
         }
       } catch (rlError) {
-        console.error('Rate limit system error:', rlError);
+        log.error('Rate limit system error:', rlError);
         // Fail open on error
       }
     }
@@ -2869,7 +2871,7 @@ serve(async (req) => {
     try {
       requestBody = await req.json() as AnalysisRequest;
     } catch (parseError) {
-      console.error('JSON parse error:', parseError);
+      log.error('JSON parse error:', parseError);
       return new Response(
         JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
         { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -2894,7 +2896,7 @@ serve(async (req) => {
       // Free + anonymous → forced to quick, regardless of body input
       depthLevel = 'quick';
       if (requestedDepth !== 'quick') {
-        console.log(`[tier-gate] Coerced depth '${requestedDepth}' → 'quick' for ${userPlan} user (${userId ?? 'anon'})`);
+        log.info(`[tier-gate] Coerced depth '${requestedDepth}' → 'quick' for ${userPlan} user (${userId ?? 'anon'})`);
         // Log denial for observability — abuse signal
         if (userId) {
           try {
@@ -2909,7 +2911,7 @@ serve(async (req) => {
         }
       }
     }
-    console.log(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth})`);
+    log.info(`[tier-gate] Final depth: ${depthLevel} (plan=${userPlan}, requested=${requestedDepth})`);
 
     // ========== INPUT VALIDATION & SANITIZATION ==========
     
@@ -3019,7 +3021,7 @@ serve(async (req) => {
     const idea_clean = sanitizedIdea;
     const location_clean = sanitizedLocation;
 
-    console.log(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
+    log.info(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
 
     // Build document context if files were uploaded
     let documentContext = '';
@@ -3069,43 +3071,43 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
         if (!documentDerivedInputs.monthly_revenue) {
           if (docFin.metrics?.mrr) {
             documentDerivedInputs.monthly_revenue = docFin.metrics.mrr;
-            console.log(`Document data: MRR $${docFin.metrics.mrr} from ${docFin.source_document}`);
+            log.info(`Document data: MRR $${docFin.metrics.mrr} from ${docFin.source_document}`);
           } else if (docFin.revenue?.monthly) {
             documentDerivedInputs.monthly_revenue = docFin.revenue.monthly;
-            console.log(`Document data: Monthly revenue $${docFin.revenue.monthly} from ${docFin.source_document}`);
+            log.info(`Document data: Monthly revenue $${docFin.revenue.monthly} from ${docFin.source_document}`);
           } else if (docFin.revenue?.quarterly) {
             documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.quarterly / 3);
-            console.log(`Document data: Quarterly revenue $${docFin.revenue.quarterly} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
+            log.info(`Document data: Quarterly revenue $${docFin.revenue.quarterly} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
           } else if (docFin.revenue?.total) {
             // Assume quarterly if > 50k, otherwise monthly
             const divisor = docFin.revenue.total > 50000 ? 3 : 1;
             documentDerivedInputs.monthly_revenue = Math.round(docFin.revenue.total / divisor);
-            console.log(`Document data: Total revenue $${docFin.revenue.total} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
+            log.info(`Document data: Total revenue $${docFin.revenue.total} -> Monthly $${documentDerivedInputs.monthly_revenue} from ${docFin.source_document}`);
           }
         }
         
         // Costs
         if (!documentDerivedInputs.monthly_costs && docFin.costs?.monthly) {
           documentDerivedInputs.monthly_costs = docFin.costs.monthly;
-          console.log(`Document data: Monthly costs $${docFin.costs.monthly} from ${docFin.source_document}`);
+          log.info(`Document data: Monthly costs $${docFin.costs.monthly} from ${docFin.source_document}`);
         }
         
         // Investment
         if (!documentDerivedInputs.startup_investment && docFin.investment?.total) {
           documentDerivedInputs.startup_investment = docFin.investment.total;
-          console.log(`Document data: Investment $${docFin.investment.total} from ${docFin.source_document}`);
+          log.info(`Document data: Investment $${docFin.investment.total} from ${docFin.source_document}`);
         }
         
         // CAC
         if (!documentDerivedInputs.cac && docFin.metrics?.cac) {
           documentDerivedInputs.cac = docFin.metrics.cac;
-          console.log(`Document data: CAC $${docFin.metrics.cac} from ${docFin.source_document}`);
+          log.info(`Document data: CAC $${docFin.metrics.cac} from ${docFin.source_document}`);
         }
         
         // Customers
         if (!documentDerivedInputs.expected_customers && docFin.metrics?.customer_count) {
           documentDerivedInputs.expected_customers = docFin.metrics.customer_count;
-          console.log(`Document data: Customers ${docFin.metrics.customer_count} from ${docFin.source_document}`);
+          log.info(`Document data: Customers ${docFin.metrics.customer_count} from ${docFin.source_document}`);
         }
       }
     }
@@ -3118,9 +3120,9 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     
     // Log data sources
     if (Object.keys(documentDerivedInputs).length > 0) {
-      console.log('Document-derived inputs:', documentDerivedInputs);
-      console.log('User-provided inputs:', financial_inputs);
-      console.log('Merged inputs:', mergedFinancialInputs);
+      log.info('Document-derived inputs:', documentDerivedInputs);
+      log.info('User-provided inputs:', financial_inputs);
+      log.info('Merged inputs:', mergedFinancialInputs);
     }
 
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
@@ -3137,7 +3139,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     try {
       dbBenchmarks = await fetchDatabaseBenchmarks(supabaseService);
     } catch (err) {
-      console.error('Failed to fetch database benchmarks, using hardcoded:', err);
+      log.error('Failed to fetch database benchmarks, using hardcoded:', err);
     }
     
     // Detect industry using database-first approach
@@ -3161,9 +3163,9 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
       v2BenchmarkSummary = await getBenchmarkSummary(supabaseService, v2Query);
-      console.log(`V2 Benchmarks: ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality}`);
+      log.info(`V2 Benchmarks: ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality}`);
     } catch (err) {
-      console.error('V2 benchmark fetch failed, continuing with legacy:', err);
+      log.error('V2 benchmark fetch failed, continuing with legacy:', err);
     }
 
     // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
@@ -3171,7 +3173,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
     if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
-      console.log(`V2 overlay active: overriding legacy benchmarks with V2 data (match: ${v2BenchmarkSummary.overall_match_quality})`);
+      log.info(`V2 overlay active: overriding legacy benchmarks with V2 data (match: ${v2BenchmarkSummary.overall_match_quality})`);
       
       if (v2BenchmarkSummary.core) {
         const core = v2BenchmarkSummary.core;
@@ -3217,7 +3219,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
         }
       }
       
-      console.log(`V2 overlay applied: cogs=${detectedIndustry.cogs_percent}%, CAC=$${detectedIndustry.cac_typical}, lifetime=${detectedIndustry.client_lifetime_months}mo`);
+      log.info(`V2 overlay applied: cogs=${detectedIndustry.cogs_percent}%, CAC=$${detectedIndustry.cac_typical}, lifetime=${detectedIndustry.client_lifetime_months}mo`);
     }
 
     // ========== ENHANCED LOCATION INTELLIGENCE ==========
@@ -3227,10 +3229,10 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // ========== SUB-INDUSTRY DETECTION ==========
     const subIndustry = detectSubIndustry(idea_clean, detectedIndustry.id);
     
-    console.log(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}%`);
-    console.log(`Location: ${locationMultipliers.matched ? locationMultipliers.matchedCity : 'regional'} (${locationMultipliers.region}) | salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, marketing=${locationMultipliers.marketing}x`);
+    log.info(`Analyzing: "${idea_clean.substring(0, 40)}..." in ${location_clean} | Industry: ${detectedIndustry.name} (${benchmarkSource}${industryWasManuallySelected ? ', user-selected' : ', auto-detected'}) | Confidence: ${benchmarkConfidence}%`);
+    log.info(`Location: ${locationMultipliers.matched ? locationMultipliers.matchedCity : 'regional'} (${locationMultipliers.region}) | salary=${locationMultipliers.salary}x, rent=${locationMultipliers.rent}x, marketing=${locationMultipliers.marketing}x`);
     if (subIndustry.confidence > 50) {
-      console.log(`Sub-industry: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale}) | CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x`);
+      log.info(`Sub-industry: ${subIndustry.subIndustryName} (${subIndustry.businessModel}, ${subIndustry.targetScale}) | CAC=${subIndustry.modifiers.cac_multiplier}x, LTV=${subIndustry.modifiers.ltv_multiplier}x`);
     }
 
     // Build user financial context for AI prompt
@@ -3413,7 +3415,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        console.log(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
+        log.info(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
         
         const controller = new AbortController();
         const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
@@ -3436,13 +3438,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         clearTimeout(timeoutId);
         
         if (response.ok) {
-          console.log(`AI request succeeded on attempt ${attempt}`);
+          log.info(`AI request succeeded on attempt ${attempt}`);
           break;
         }
         
         const errorText = await response.text();
         lastError = `HTTP ${response.status}: ${errorText}`;
-        console.error(`AI error on attempt ${attempt}: ${lastError}`);
+        log.error(`AI error on attempt ${attempt}: ${lastError}`);
         
         // Don't retry on rate limit or auth errors
         if (response.status === 429 || response.status === 401 || response.status === 403) {
@@ -3451,12 +3453,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         
         // Short delay before retry
         if (attempt < MAX_RETRIES) {
-          console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
+          log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
-        console.error(`Fetch error on attempt ${attempt}: ${lastError}`);
+        log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
         
         if (lastError.includes('abort')) {
           lastError = `Request timed out after ${AI_TIMEOUT_MS / 1000} seconds`;
@@ -3464,7 +3466,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         
         // Short delay before retry - fail fast to fallback
         if (attempt < MAX_RETRIES) {
-          console.log(`Retrying in ${RETRY_DELAY_MS}ms...`);
+          log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       }
@@ -3476,8 +3478,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let usedFallback = false;
     
     if (!response || !response.ok) {
-      console.log(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
-      console.log("Generating deterministic fallback analysis...");
+      log.info(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
+      log.info("Generating deterministic fallback analysis...");
       
       // For rate limit (429), still return error as user should wait
       if (response?.status === 429) {
@@ -3512,14 +3514,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         mergedFinancialInputs
       );
       usedFallback = true;
-      console.log("Deterministic fallback generated successfully");
+      log.info("Deterministic fallback generated successfully");
     } else {
       // AI succeeded - parse response
       const aiResponse = await response.json();
-      console.log("AI Response received");
+      log.info("AI Response received");
 
       if (aiResponse.error) {
-        console.log("AI returned error, using fallback:", JSON.stringify(aiResponse.error));
+        log.info("AI returned error, using fallback:", JSON.stringify(aiResponse.error));
         rawResult = generateDeterministicFallbackResult(
           idea_clean,
           location_clean,
@@ -3531,7 +3533,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } else {
         const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
         if (!toolCall) {
-          console.log("No tool call in AI response, using fallback");
+          log.info("No tool call in AI response, using fallback");
           rawResult = generateDeterministicFallbackResult(
             idea_clean,
             location_clean,
@@ -3544,7 +3546,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           try {
             rawResult = JSON.parse(toolCall.function.arguments);
           } catch (e) {
-            console.log("Failed to parse AI response, using fallback:", e);
+            log.info("Failed to parse AI response, using fallback:", e);
             rawResult = generateDeterministicFallbackResult(
               idea_clean,
               location_clean,
@@ -3587,7 +3589,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     
     // Process through Quantis 2.0 engine
     const quantisOutput = processQuantisAnalysis(quantisInput);
-    console.log(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
     
     // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
@@ -3889,7 +3891,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     
     result.confidence_score = reliabilityScore;
     
-    console.log(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
+    log.info(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
     // ========== RECORD USAGE ==========
     // Record anonymous usage for rate limiting
@@ -3929,9 +3931,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           p_location_hash: locationHash,
           p_fingerprint_hash: fingerprintHash,
         });
-        console.log(`Anonymous usage recorded for device ${deviceId.substring(0, 8)}...${fingerprintHash ? ', fingerprint tracked' : ''}`);
+        log.info(`Anonymous usage recorded for device ${deviceId.substring(0, 8)}...${fingerprintHash ? ', fingerprint tracked' : ''}`);
       } catch (e) {
-        console.error('Failed to record anonymous usage:', e);
+        log.error('Failed to record anonymous usage:', e);
       }
     }
     
@@ -3940,9 +3942,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       try {
         const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
-        console.log(`Usage incremented for user ${userId}`);
+        log.info(`Usage incremented for user ${userId}`);
       } catch (e) {
-        console.error('Failed to increment usage:', e);
+        log.error('Failed to increment usage:', e);
       }
     }
     // ========== END USAGE RECORDING ==========
@@ -3981,9 +3983,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses, cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths, roiYear1Percent: calc.roiYear1Percent, breakEvenRevenue: calc.breakEvenRevenue, npv3Years: calc.npv3Years },
         { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
       );
-      console.log(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
+      log.info(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
     } catch (cvErr) {
-      console.error('Cross-validation failed:', cvErr);
+      log.error('Cross-validation failed:', cvErr);
     }
 
     let sensitivityAnalysis: SensitivityResult | undefined;
@@ -3995,9 +3997,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         fixedCosts: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
         clientsActive: calc.clientsActive, ordersPerClient: detectedIndustry.orders_per_client, churnRate,
       });
-      console.log(`Sensitivity: most=${sensitivityAnalysis.mostSensitiveVariable}, least=${sensitivityAnalysis.leastSensitiveVariable}`);
+      log.info(`Sensitivity: most=${sensitivityAnalysis.mostSensitiveVariable}, least=${sensitivityAnalysis.leastSensitiveVariable}`);
     } catch (saErr) {
-      console.error('Sensitivity analysis failed:', saErr);
+      log.error('Sensitivity analysis failed:', saErr);
     }
 
     let benchmarkConfidenceData: BenchmarkConfidenceResult | undefined;
@@ -4008,9 +4010,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmarkSampleSize || null,
         benchmarkDataSource || null
       );
-      console.log(`Benchmark confidence: ${benchmarkConfidenceData.adjustedScore}% (${benchmarkConfidenceData.confidenceLabel})`);
+      log.info(`Benchmark confidence: ${benchmarkConfidenceData.adjustedScore}% (${benchmarkConfidenceData.confidenceLabel})`);
     } catch (bcErr) {
-      console.error('Benchmark confidence calc failed:', bcErr);
+      log.error('Benchmark confidence calc failed:', bcErr);
     }
 
     // ========== ANTI-BS SANITY CHECKS ==========
@@ -4024,10 +4026,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         clientsActive: calc.clientsActive,
       }, detectedIndustry.id);
       if (sanityFlags.length > 0) {
-        console.log(`Anti-BS: ${sanityFlags.length} flags (${sanityFlags.filter(f => f.severity === 'critical').length} critical)`);
+        log.info(`Anti-BS: ${sanityFlags.length} flags (${sanityFlags.filter(f => f.severity === 'critical').length} critical)`);
       }
     } catch (abErr) {
-      console.error('Anti-BS check failed:', abErr);
+      log.error('Anti-BS check failed:', abErr);
     }
 
     // ========== ASSUMPTION GRAPH ==========
@@ -4050,9 +4052,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         sensitivityAnalysis,
         benchmarkConfidence || 75
       );
-      console.log(`Assumption graph: fragility=${assumptionGraph.fragility_score}, critical_path=${assumptionGraph.criticalPath.length}`);
+      log.info(`Assumption graph: fragility=${assumptionGraph.fragility_score}, critical_path=${assumptionGraph.criticalPath.length}`);
     } catch (agErr) {
-      console.error('Assumption graph failed:', agErr);
+      log.error('Assumption graph failed:', agErr);
     }
 
     // ========== MODEL CONFIDENCE (PREDICTION ENGINE v0) ==========
@@ -4073,9 +4075,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industryId: detectedIndustry.id,
         location: location_clean,
       });
-      console.log(`Model confidence: ${modelConfidence.confidence} (${modelConfidence.recommendation_level})`);
+      log.info(`Model confidence: ${modelConfidence.confidence} (${modelConfidence.recommendation_level})`);
     } catch (mcErr) {
-      console.error('Model confidence failed:', mcErr);
+      log.error('Model confidence failed:', mcErr);
     }
 
     // ========== MARKET PRIOR ENGINE ==========
@@ -4097,19 +4099,19 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         };
         const anomalyScores = computeAnomalyScores(userMetrics, distributions);
         marketPrior = generateMarketPrior(anomalyScores, naicsCode, distributions.length);
-        console.log(`Market prior: ${anomalyScores.filter(a => a.severity === 'outlier').length} outliers, ${anomalyScores.filter(a => a.severity === 'notable').length} notable`);
+        log.info(`Market prior: ${anomalyScores.filter(a => a.severity === 'outlier').length} outliers, ${anomalyScores.filter(a => a.severity === 'notable').length} notable`);
       }
     } catch (mpErr) {
-      console.error('Market prior engine failed (non-blocking):', mpErr);
+      log.error('Market prior engine failed (non-blocking):', mpErr);
     }
 
     // ========== SCORE COMPLIANCE ==========
     let scoreCompliance: SCORECompliance | undefined;
     try {
       scoreCompliance = computeSCORECompliance(result);
-      console.log(`SCORE compliance: ${scoreCompliance.score}% (${scoreCompliance.filledFields.length} filled, ${scoreCompliance.missingFields.length} missing)`);
+      log.info(`SCORE compliance: ${scoreCompliance.score}% (${scoreCompliance.filledFields.length} filled, ${scoreCompliance.missingFields.length} missing)`);
     } catch (scErr) {
-      console.error('SCORE compliance failed (non-blocking):', scErr);
+      log.error('SCORE compliance failed (non-blocking):', scErr);
     }
 
     // ========== CASE MEMORY INSERT (Non-blocking) ==========
@@ -4133,9 +4135,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         .select('id')
         .single();
       caseId = caseData?.id;
-      if (caseId) console.log(`Case memory saved: ${caseId}`);
+      if (caseId) log.info(`Case memory saved: ${caseId}`);
     } catch (cmErr) {
-      console.error('Case memory insert failed (non-blocking):', cmErr);
+      log.error('Case memory insert failed (non-blocking):', cmErr);
     }
 
     // ========== BUILD FULL PAYLOAD ==========
@@ -4314,7 +4316,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           top_risks: ((result as any)?.risks || (result as any)?.top_risks || []).slice(0, 3),
           benchmark_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         });
-        console.log(
+        log.info(
           `[validator] ok=${validatorResult.ok} warnings=${validatorResult.warnings.length} ` +
           `ran_llm=${validatorResult.ran_llm} latency=${validatorResult.total_latency_ms}ms`
         );
@@ -4328,7 +4330,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           llm_summary: validatorResult.llm_review?.summary,
         };
       } catch (vErr) {
-        console.error('[validator] failed (non-blocking):', vErr);
+        log.error('[validator] failed (non-blocking):', vErr);
       }
     }
 
@@ -4387,7 +4389,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     })() : fullPayload;
 
     if (isFreeOrAnon) {
-      console.log(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
+      log.info(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
     }
 
     return new Response(
@@ -4398,8 +4400,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : '';
-    console.error("Unhandled error:", errorMessage);
-    console.error("Stack:", errorStack);
+    log.error("Unhandled error:", errorMessage);
+    log.error("Stack:", errorStack);
     
     // Provide user-friendly error messages
     let userMessage = "Something went wrong. Please try again.";

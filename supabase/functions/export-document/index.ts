@@ -3,7 +3,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { requireFeature, requireDownloadQuota, EntitlementError } from "../_shared/entitlements.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 serve(async (req) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('export-document', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -36,7 +42,7 @@ serve(async (req) => {
     // Get user from auth token
     const { data: { user }, error: authError } = await supabaseUser.auth.getUser();
     if (authError || !user) {
-      console.error('Auth error:', authError);
+      log.error('Auth error:', authError);
       return new Response(JSON.stringify({
         success: false,
         error: 'Invalid authentication',
@@ -54,7 +60,7 @@ serve(async (req) => {
       if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
       throw e;
     }
-    console.log(`[export-document] user=${user.id} authorized + quota consumed`);
+    log.info(`[export-document] user=${user.id} authorized + quota consumed`);
 
     const { document_id, export_id, format } = await req.json();
 
@@ -120,7 +126,7 @@ serve(async (req) => {
     });
 
   } catch (error) {
-    console.error('Export document error:', error);
+    log.error('Export document error:', error);
     return new Response(JSON.stringify({
       success: false,
       error: error.message,

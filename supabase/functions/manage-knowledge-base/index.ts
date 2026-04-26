@@ -2,6 +2,9 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
+
 // Valid tables in the knowledge base
 const VALID_TABLES = [
   'industry_benchmarks',
@@ -15,6 +18,9 @@ const VALID_TABLES = [
 type ValidTable = typeof VALID_TABLES[number];
 
 serve(async (req: Request): Promise<Response> => {
+  const reqId = getRequestId(req);
+  const log = createLogger('manage-knowledge-base', reqId);
+
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -26,7 +32,7 @@ serve(async (req: Request): Promise<Response> => {
     const expectedKey = Deno.env.get("ADMIN_UPLOAD_KEY");
     
     if (!adminKey || adminKey !== expectedKey) {
-      console.error("[manage-knowledge-base] Invalid admin key");
+      log.error("[manage-knowledge-base] Invalid admin key");
       return new Response(
         JSON.stringify({ error: "Unauthorized: Invalid admin key" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -47,7 +53,7 @@ serve(async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`[manage-knowledge-base] Action: ${action}, Table: ${table}`);
+    log.info(`[manage-knowledge-base] Action: ${action}, Table: ${table}`);
 
     switch (action) {
       case "stats": {
@@ -61,7 +67,7 @@ serve(async (req: Request): Promise<Response> => {
             .select("*", { count: "exact", head: true });
           
           if (error) {
-            console.error(`[manage-knowledge-base] Error counting ${t}:`, error);
+            log.error(`[manage-knowledge-base] Error counting ${t}:`, error);
             stats[t] = 0;
           } else {
             stats[t] = count || 0;
@@ -96,7 +102,7 @@ serve(async (req: Request): Promise<Response> => {
         const { data: result, error } = await query.limit(1000);
 
         if (error) {
-          console.error(`[manage-knowledge-base] Select error:`, error);
+          log.error(`[manage-knowledge-base] Select error:`, error);
           return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -124,14 +130,14 @@ serve(async (req: Request): Promise<Response> => {
           .select();
 
         if (error) {
-          console.error(`[manage-knowledge-base] Insert error:`, error);
+          log.error(`[manage-knowledge-base] Insert error:`, error);
           return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
-        console.log(`[manage-knowledge-base] Inserted ${result?.length || 0} records into ${table}`);
+        log.info(`[manage-knowledge-base] Inserted ${result?.length || 0} records into ${table}`);
         return new Response(
           JSON.stringify({ success: true, inserted: result?.length || 0, data: result }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -166,14 +172,14 @@ serve(async (req: Request): Promise<Response> => {
           .select();
 
         if (error) {
-          console.error(`[manage-knowledge-base] Upsert error:`, error);
+          log.error(`[manage-knowledge-base] Upsert error:`, error);
           return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
-        console.log(`[manage-knowledge-base] Upserted ${result?.length || 0} records into ${table}`);
+        log.info(`[manage-knowledge-base] Upserted ${result?.length || 0} records into ${table}`);
         return new Response(
           JSON.stringify({ success: true, upserted: result?.length || 0, data: result }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -201,14 +207,14 @@ serve(async (req: Request): Promise<Response> => {
         const { error } = await query;
 
         if (error) {
-          console.error(`[manage-knowledge-base] Delete error:`, error);
+          log.error(`[manage-knowledge-base] Delete error:`, error);
           return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
-        console.log(`[manage-knowledge-base] Deleted records from ${table} with filters:`, filters);
+        log.info(`[manage-knowledge-base] Deleted records from ${table} with filters:`, filters);
         return new Response(
           JSON.stringify({ success: true, message: "Records deleted successfully" }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -220,14 +226,14 @@ serve(async (req: Request): Promise<Response> => {
         const { error } = await supabase.from(table).delete().neq('id', '00000000-0000-0000-0000-000000000000');
 
         if (error) {
-          console.error(`[manage-knowledge-base] Truncate error:`, error);
+          log.error(`[manage-knowledge-base] Truncate error:`, error);
           return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
 
-        console.log(`[manage-knowledge-base] Truncated table: ${table}`);
+        log.info(`[manage-knowledge-base] Truncated table: ${table}`);
         return new Response(
           JSON.stringify({ success: true, message: `Table ${table} truncated successfully` }),
           { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -241,7 +247,7 @@ serve(async (req: Request): Promise<Response> => {
         );
     }
   } catch (err) {
-    console.error("[manage-knowledge-base] Unexpected error:", err);
+    log.error("[manage-knowledge-base] Unexpected error:", err);
     return new Response(
       JSON.stringify({ error: err instanceof Error ? err.message : "Unknown error" }),
       { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
