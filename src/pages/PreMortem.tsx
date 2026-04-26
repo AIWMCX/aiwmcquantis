@@ -31,9 +31,14 @@ export default function PreMortem() {
   } = useAnalysis();
 
   const [showResults, setShowResults] = useState(false);
+  const { allowed: canRunDeep } = useFeature('pre_mortem');
 
   const onSubmit = (e?: React.FormEvent) => {
     e?.preventDefault();
+    if (!canRunDeep) {
+      navigate('/pricing?reason=pre_mortem');
+      return;
+    }
     handleSubmit(undefined, 'deep');
     setShowResults(true);
   };
