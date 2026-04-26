@@ -608,6 +608,76 @@ serve(async (req) => {
         break;
       }
 
+      // Spec §11.3 — failed payment: 3-day grace period, then downgrade to FREE.
+      // Stripe re-fires `invoice.payment_failed` on each smart-retry attempt.
+      // We persist the FIRST failure timestamp on the subscription row and
+      // only downgrade once `now() - first_failure >= 3 days` AND the
+      // subscription is still in a non-active state.
+      case "invoice.payment_failed": {
+        const invoice = event.data.object as Stripe.Invoice;
+        const subId = (invoice as any).subscription as string | null;
+        log.info(`[${requestId}] === Invoice Payment Failed ===`);
+        log.info(`[${requestId}] Invoice ID: ${invoice.id} · Subscription: ${subId}`);
+
+        if (!subId) {
+          log.warn(`[${requestId}] payment_failed event has no subscription — skipping`);
+          break;
+        }
+
+        try {
+          const { data: subRow } = await supabase
+            .from("subscriptions")
+            .select("user_id, payment_failed_at, status")
+            .eq("stripe_subscription_id", subId)
+            .maybeSingle();
+
+          const nowIso = new Date().toISOString();
+          const firstFailureIso = subRow?.payment_failed_at ?? nowIso;
+
+          // Always record (or refresh) the first failure timestamp + flag the
+          // status. If this is the first failure we set payment_failed_at=now;
+          // subsequent failures keep the original timestamp so the grace
+          // window doesn't reset on every retry.
+          if (!subRow?.payment_failed_at) {
+            await supabase
+              .from("subscriptions")
+              .update({ payment_failed_at: nowIso, status: "past_due" })
+              .eq("stripe_subscription_id", subId);
+          }
+
+          const ageMs = Date.now() - new Date(firstFailureIso).getTime();
+          const GRACE_MS = 3 * 24 * 60 * 60 * 1000;
+
+          if (ageMs >= GRACE_MS) {
+            // Grace expired — downgrade to FREE immediately.
+            await supabase
+              .from("subscriptions")
+              .update({
+                plan_id: "free",
+                status: "canceled",
+                canceled_at: nowIso,
+              })
+              .eq("stripe_subscription_id", subId);
+            log.info(`[${requestId}] Grace expired (${Math.round(ageMs / 86400000)}d) — downgraded ${subId} to FREE`);
+
+            if (subRow?.user_id) {
+              supabase.functions.invoke("send-lifecycle-email", {
+                body: {
+                  user_id: subRow.user_id,
+                  template_key: "payment_failed_downgraded",
+                  dynamic_data: {},
+                },
+              }).catch((err) => log.error(`[${requestId}] downgrade email failed:`, err instanceof Error ? err.message : String(err)));
+            }
+          } else {
+            log.info(`[${requestId}] Within grace window (${Math.round(ageMs / 3600000)}h / 72h) — keeping access`);
+          }
+        } catch (err) {
+          log.error(`[${requestId}] payment_failed handler error:`, err instanceof Error ? err.message : String(err));
+        }
+        break;
+      }
+
       default:
         log.info(`[${requestId}] Unhandled event type: ${event.type}`);
     }

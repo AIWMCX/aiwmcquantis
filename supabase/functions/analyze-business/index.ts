@@ -2709,11 +2709,23 @@ serve(async (req) => {
           
           if (currentUsage >= FREE_TIER_LIMIT) {
             log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            // Spec §09.2 — canonical TIER_GATE / QUOTA_EXCEEDED envelope.
+            // Mirrors `evaluateGate()` so the frontend's `unwrap()` helper
+            // surfaces the same toast (with upgrade CTA) for both ad-hoc
+            // checks and tierGate-protected endpoints.
+            const now = new Date();
+            const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
             return new Response(
-              JSON.stringify({ 
-                error: "Monthly analysis limit reached. Upgrade to Plus for unlimited analyses.", 
-                code: "USAGE_LIMIT_EXCEEDED",
-                usage: { current: currentUsage, limit: FREE_TIER_LIMIT }
+              JSON.stringify({
+                success: false,
+                error: "QUOTA_EXCEEDED",
+                code: "USAGE_LIMIT_EXCEEDED", // legacy alias for older clients
+                message: `Monthly analysis limit reached (${currentUsage}/${FREE_TIER_LIMIT}). Upgrade to Plus for unlimited analyses.`,
+                required_tier: "PLUS",
+                upgrade_url: "https://www.aiwmcquantis.com/pricing",
+                cta: "Upgrade to Plus",
+                resets_at: resetsAt,
+                usage: { current: currentUsage, limit: FREE_TIER_LIMIT },
               }),
               { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
