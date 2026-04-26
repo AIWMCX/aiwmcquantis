@@ -34,6 +34,7 @@ import {
   CreditCard,
   HelpCircle,
   Zap,
+  Crown,
   Lock,
 } from 'lucide-react';
 
