@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import { Brain, MapPin, Loader2, FileText, Zap, DollarSign, Users, Lightbulb, Navigation } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Brain, MapPin, Loader2, FileText, Zap, DollarSign, Users, Lightbulb, Navigation, Lock } from 'lucide-react';
+import { useFeature } from '@/hooks/useTier';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Input } from '@/components/ui/input';
@@ -103,6 +105,13 @@ export function WizardForm({
   isAuthenticated = false,
 }: WizardFormProps) {
   const [analysisDepth, setAnalysisDepth] = useState<'quick' | 'full' | 'deep'>('full');
+  const navigate = useNavigate();
+  // Monte Carlo / Deep Audit is a PLUS feature — gate it for FREE users.
+  const { allowed: canRunDeep } = useFeature('monte_carlo');
+  // If the user downgrades while 'deep' is selected, snap back to 'full'.
+  useEffect(() => {
+    if (!canRunDeep && analysisDepth === 'deep') setAnalysisDepth('full');
+  }, [canRunDeep, analysisDepth]);
   const [hasDraft, setHasDraft] = useState(false);
   const [draftAge, setDraftAge] = useState<string | null>(null);
   const [isRestored, setIsRestored] = useState(false);
