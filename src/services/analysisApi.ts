@@ -203,16 +203,15 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
       // We surface this as a typed result so the caller can poll the
       // analysis_jobs table instead of crashing on missing `data`.
       // ───────────────────────────────────────────────────────────────
-      if ((data as any).queued === true && (data as any).job_id) {
-        const d = data as any;
+      if (isQueuedResponse(data)) {
         logger.info('Analysis enqueued for background processing', {
-          metadata: { job_id: d.job_id, request_id: d.request_id ?? requestId },
+          metadata: { job_id: data.job_id, request_id: data.request_id ?? requestId },
         });
         return {
           kind: 'queued_job',
-          job_id: d.job_id as string,
-          request_id: (d.request_id as string) ?? requestId,
-          depth_requested: (request.analysis_depth === 'deep' ? 'deep' : 'pro'),
+          job_id: data.job_id,
+          request_id: data.request_id ?? requestId,
+          depth_requested: 'pro',
         };
       }
 
@@ -245,7 +244,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         throw new Error(`TIER_GATE: ${message} | upgrade_url=${upgradeUrl}`);
       }
 
-      if (!data.success || !data.data) {
+      if (!isCompletedAnalysisResponse(data)) {
         throw new Error(data.error || 'Analysis failed');
       }
 
@@ -265,7 +264,10 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     }
   }
 
-  throw lastError || new Error('Analysis failed after retries');
+  logger.warn('Analysis service failed after retries; returning emergency deterministic fallback', {
+    metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
+  });
+  return emergencyFallbackAnalysis(request, lastError?.message ?? 'analysis service unavailable');
 }
 
 // Validation helpers
