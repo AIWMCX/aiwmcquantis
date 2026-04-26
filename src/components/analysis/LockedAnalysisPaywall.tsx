@@ -82,16 +82,16 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
             </div>
             <div>
               <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-primary/80">
-                Plus members only
+                {t('common.members_only')}
               </p>
               <h3 className="text-xl sm:text-2xl font-bold text-foreground">
-                {trigger.headline}
+                {headline}
               </h3>
             </div>
           </div>
 
           <p className="text-sm sm:text-base text-muted-foreground leading-relaxed max-w-xl">
-            {trigger.body}
+            {body}
           </p>
 
           {/* Gated items grid */}
@@ -115,7 +115,11 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
           <div className="flex items-start gap-2 p-3 rounded-lg bg-primary/5 border border-primary/20">
             <Zap className="w-4 h-4 text-primary mt-0.5 shrink-0" />
             <p className="text-xs text-foreground/90 leading-relaxed">
-              <span className="font-semibold">$17/mo</span> = $0.56/day. One Plus analysis surfaces the fatal assumption that would have cost you $25,000+ on the wrong idea.
+              <Trans
+                i18nKey="common.value_line"
+                ns="paywall"
+                components={{ strong: <span className="font-semibold" /> }}
+              />
             </p>
           </div>
         </div>
@@ -126,7 +130,7 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
             <p className="text-3xl font-black text-foreground leading-none">
               $17<span className="text-base font-medium text-muted-foreground">/mo</span>
             </p>
-            <p className="text-[11px] text-muted-foreground mt-1">14-day free trial · cancel anytime</p>
+            <p className="text-[11px] text-muted-foreground mt-1">{t('common.trial_note')}</p>
           </div>
 
           <Button
@@ -136,22 +140,22 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
             className="gap-2 font-semibold shadow-lg shadow-primary/20 w-full lg:w-auto"
           >
             <Zap className="w-4 h-4" />
-            {isLoading ? 'Loading…' : trigger.cta}
+            {isLoading ? t('common.loading') : cta}
           </Button>
 
           <p className="text-[10px] text-muted-foreground/80 text-center lg:text-right max-w-[220px]">
-            vs. $350/hr for a financial consultant<br />
-            vs. $89/mo for generic AI tools
+            {t('common.anchor_short_top')}<br />
+            {t('common.anchor_short_bottom')}
           </p>
         </div>
       </div>
 
       {/* Faint trust strip */}
       <div className="border-t border-border/50 bg-background/30 px-6 py-3 flex flex-wrap items-center justify-center gap-x-5 gap-y-1 text-[10px] text-muted-foreground/80">
-        <span>✓ 95,500 benchmarks</span>
-        <span>✓ Monte Carlo simulations</span>
-        <span>✓ PDF export</span>
-        <span>✓ Unlimited analyses</span>
+        <span>{t('common.trust_strip.benchmarks')}</span>
+        <span>{t('common.trust_strip.monte_carlo')}</span>
+        <span>{t('common.trust_strip.pdf_export')}</span>
+        <span>{t('common.trust_strip.unlimited')}</span>
       </div>
     </div>
   );
