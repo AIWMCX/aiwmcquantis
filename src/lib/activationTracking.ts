@@ -102,7 +102,11 @@ export async function trackActivationEvent(
       recentEvents.set(key, Date.now());
     }
 
-    const { error } = await supabase.from('activation_events').insert({
+    // Cast required because the generated Supabase types lag behind the migration
+    // until the next regeneration cycle. Insert is server-validated by RLS regardless.
+    const { error } = await (supabase.from('activation_events') as unknown as {
+      insert: (row: Record<string, unknown>) => Promise<{ error: { message: string } | null }>;
+    }).insert({
       user_id: userId,
       event_type: type,
       event_value: EVENT_WEIGHTS[type],
