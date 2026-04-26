@@ -72,11 +72,11 @@ export function AppTopBar({ title }: AppTopBarProps) {
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end" className="w-48">
-            <DropdownMenuItem onClick={() => navigate('/plus-settings')}>
+            <DropdownMenuItem onClick={() => navigate(settingsPath)}>
               <User className="mr-2 h-4 w-4" />
               Profile
             </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => navigate('/plus-settings')}>
+            <DropdownMenuItem onClick={() => navigate(settingsPath)}>
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
