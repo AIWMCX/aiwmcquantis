@@ -20,18 +20,20 @@ import {
 import type { MonteCarloResult } from '@/lib/monte-carlo';
 
 function unwrap<T>(resp: SpecApiResponse<T>): T {
-  if (resp.success) return resp.data;
-  if (resp.required_tier) {
-    toast.error(resp.message ?? 'Upgrade required', {
-      description: resp.cta ?? `Upgrade to ${resp.required_tier}`,
-      action: resp.upgrade_url
-        ? { label: 'View pricing', onClick: () => window.open(resp.upgrade_url!, '_self') }
+  if (resp.success === true) return resp.data;
+  // resp is SpecApiError here
+  const err = resp;
+  if (err.required_tier) {
+    toast.error(err.message ?? 'Upgrade required', {
+      description: err.cta ?? `Upgrade to ${err.required_tier}`,
+      action: err.upgrade_url
+        ? { label: 'View pricing', onClick: () => window.open(err.upgrade_url!, '_self') }
         : undefined,
     });
   } else {
-    toast.error(resp.message ?? resp.error ?? 'Request failed');
+    toast.error(err.message ?? err.error ?? 'Request failed');
   }
-  throw new Error(resp.message ?? resp.error);
+  throw new Error(err.message ?? err.error);
 }
 
 export function usePlusAnalysis() {
