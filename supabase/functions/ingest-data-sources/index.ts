@@ -164,7 +164,8 @@ async function ingestProjectionHub(supabase: any, provenanceId: string, runId: s
     const links = rows.map((r: any) => ({
       benchmark_id: r.id,
       provenance_id: provenanceId,
-      ingested_at: new Date().toISOString(),
+      metric_name: 'aggregate',
+      weight: 1.0,
     }));
     await supabase.from('benchmark_sources').upsert(links, { onConflict: 'benchmark_id,provenance_id' });
   }
@@ -265,7 +266,8 @@ async function ingestSecXbrl(supabase: any, provenanceId: string) {
     await supabase.from('benchmark_sources').upsert([{
       benchmark_id: row.id,
       provenance_id: provenanceId,
-      ingested_at: new Date().toISOString(),
+      metric_name: 'aggregate',
+      weight: 1.0,
     }], { onConflict: 'benchmark_id,provenance_id' });
   }
 
