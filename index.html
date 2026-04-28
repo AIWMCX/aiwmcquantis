@@ -32,7 +32,8 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-NZE7RGVNEN', { send_page_view: true });
-      // Load gtag.js after the page is interactive
+      // Load gtag.js only AFTER window 'load' fires, then on idle.
+      // Prevents GA from inflating the longest-task / Max FID window during initial paint.
       (function(){
         function loadGtag() {
           var s = document.createElement('script');
@@ -40,10 +41,17 @@
           s.async = true;
           document.head.appendChild(s);
         }
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(loadGtag, { timeout: 3000 });
+        function schedule() {
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(loadGtag, { timeout: 5000 });
+          } else {
+            setTimeout(loadGtag, 3000);
+          }
+        }
+        if (document.readyState === 'complete') {
+          schedule();
         } else {
-          setTimeout(loadGtag, 2000);
+          window.addEventListener('load', schedule, { once: true });
         }
       })();
     </script>
@@ -78,14 +86,30 @@
       })();
     </script>
 
-    <!-- Microsoft Clarity — Session Recording & Heatmaps -->
+    <!-- Microsoft Clarity disabled: placeholder project ID was issuing blocking 404 requests
+         to clarity.ms on every page load, inflating Max FID and main-thread time.
+         Restore by replacing CLARITY_ID below with a real project ID and uncommenting. -->
+    <!--
     <script type="text/javascript">
-      (function(c,l,a,r,i,t,y){
-        c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
-        t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
-        y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
-      })(window, document, "clarity", "script", "YOUR_CLARITY_PROJECT_ID");
+      (function(){
+        function loadClarity(){
+          (function(c,l,a,r,i,t,y){
+            c[a]=c[a]||function(){(c[a].q=c[a].q||[]).push(arguments)};
+            t=l.createElement(r);t.async=1;t.src="https://www.clarity.ms/tag/"+i;
+            y=l.getElementsByTagName(r)[0];y.parentNode.insertBefore(t,y);
+          })(window, document, "clarity", "script", "CLARITY_ID");
+        }
+        if (document.readyState === 'complete') {
+          ('requestIdleCallback' in window) ? requestIdleCallback(loadClarity, {timeout: 5000}) : setTimeout(loadClarity, 3000);
+        } else {
+          window.addEventListener('load', function(){
+            ('requestIdleCallback' in window) ? requestIdleCallback(loadClarity, {timeout: 5000}) : setTimeout(loadClarity, 3000);
+          }, { once: true });
+        }
+      })();
     </script>
+    -->
+
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Business Idea Validator & Financial Pre-Mortem Tool | AIWMC Quantis</title>
