@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX IF NOT EXISTS uq_benchmark_sources_pair ON public.benchmark_sources(benchmark_id, provenance_id);

@@ -505,6 +505,107 @@ export type Database = {
           },
         ]
       }
+      benchmark_calibration: {
+        Row: {
+          bias_pct: number | null
+          confidence_adjustment: number
+          geo_region: string
+          id: string
+          last_updated: string
+          mape: number | null
+          mean_actual: number | null
+          mean_predicted: number | null
+          metric_name: string
+          sample_size: number
+          sector_level1: string
+          sector_level2: string
+        }
+        Insert: {
+          bias_pct?: number | null
+          confidence_adjustment?: number
+          geo_region?: string
+          id?: string
+          last_updated?: string
+          mape?: number | null
+          mean_actual?: number | null
+          mean_predicted?: number | null
+          metric_name: string
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string
+        }
+        Update: {
+          bias_pct?: number | null
+          confidence_adjustment?: number
+          geo_region?: string
+          id?: string
+          last_updated?: string
+          mape?: number | null
+          mean_actual?: number | null
+          mean_predicted?: number | null
+          metric_name?: string
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string
+        }
+        Relationships: []
+      }
+      benchmark_ingestion_runs: {
+        Row: {
+          error_message: string | null
+          finished_at: string | null
+          id: string
+          metadata: Json | null
+          provenance_id: string | null
+          rows_fetched: number | null
+          rows_inserted: number | null
+          rows_skipped: number | null
+          rows_updated: number | null
+          source_name: string
+          started_at: string
+          status: string
+          triggered_by: string
+        }
+        Insert: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json | null
+          provenance_id?: string | null
+          rows_fetched?: number | null
+          rows_inserted?: number | null
+          rows_skipped?: number | null
+          rows_updated?: number | null
+          source_name: string
+          started_at?: string
+          status: string
+          triggered_by?: string
+        }
+        Update: {
+          error_message?: string | null
+          finished_at?: string | null
+          id?: string
+          metadata?: Json | null
+          provenance_id?: string | null
+          rows_fetched?: number | null
+          rows_inserted?: number | null
+          rows_skipped?: number | null
+          rows_updated?: number | null
+          source_name?: string
+          started_at?: string
+          status?: string
+          triggered_by?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "benchmark_ingestion_runs_provenance_id_fkey"
+            columns: ["provenance_id"]
+            isOneToOne: false
+            referencedRelation: "data_provenance"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benchmark_sources: {
         Row: {
           benchmark_id: string | null
@@ -1493,6 +1594,48 @@ export type Database = {
           subject?: string
           template_key?: string
           trigger_condition?: Json | null
+        }
+        Relationships: []
+      }
+      engine_learning_signals: {
+        Row: {
+          actual_value: number
+          analysis_id: string | null
+          created_at: string
+          geo_region: string | null
+          id: string
+          metric_name: string
+          predicted_value: number
+          sector_level1: string
+          sector_level2: string | null
+          source: string
+          user_id: string | null
+        }
+        Insert: {
+          actual_value: number
+          analysis_id?: string | null
+          created_at?: string
+          geo_region?: string | null
+          id?: string
+          metric_name: string
+          predicted_value: number
+          sector_level1: string
+          sector_level2?: string | null
+          source?: string
+          user_id?: string | null
+        }
+        Update: {
+          actual_value?: number
+          analysis_id?: string | null
+          created_at?: string
+          geo_region?: string | null
+          id?: string
+          metric_name?: string
+          predicted_value?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          source?: string
+          user_id?: string | null
         }
         Relationships: []
       }
@@ -3833,6 +3976,20 @@ export type Database = {
             }
             Returns: undefined
           }
+      record_engine_learning_signal: {
+        Args: {
+          p_actual: number
+          p_analysis_id: string
+          p_geo_region: string
+          p_metric_name: string
+          p_predicted: number
+          p_sector_level1: string
+          p_sector_level2: string
+          p_source?: string
+          p_user_id: string
+        }
+        Returns: undefined
+      }
       rotate_pii_encryption_key: { Args: never; Returns: Json }
       run_scheduled_cleanup: { Args: never; Returns: Json }
       track_referral_click: {
