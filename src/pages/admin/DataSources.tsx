@@ -1,12 +1,14 @@
-import React from 'react';
-import { useQuery } from '@tanstack/react-query';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Database, ExternalLink, Shield, Clock, FileCheck, AlertTriangle } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Database, ExternalLink, Shield, Clock, FileCheck, AlertTriangle, RefreshCw } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, formatDistanceToNow } from 'date-fns';
+import { toast } from 'sonner';
 
 interface ProvenanceRecord {
   id: string;
@@ -42,6 +44,26 @@ const DATASET_ICONS: Record<string, string> = {
 };
 
 export default function DataSources() {
+  const queryClient = useQueryClient();
+  const [ingestingAll, setIngestingAll] = useState(false);
+
+  const triggerIngest = async (sourceKey: 'all' | 'projectionhub' | 'sec_xbrl', label: string) => {
+    if (sourceKey === 'all') setIngestingAll(true);
+    const t = toast.loading(`Ingesting ${label}…`);
+    try {
+      const { data, error } = await supabase.functions.invoke('ingest-data-sources', {
+        body: { source: sourceKey, triggered_by: 'admin_manual' },
+      });
+      if (error) throw error;
+      toast.success(`Ingestion complete: ${label}`, { id: t, description: JSON.stringify(data?.results?.map((r: any) => `${r.source}:${r.status}`)) });
+      queryClient.invalidateQueries({ queryKey: ['admin-data-provenance'] });
+    } catch (e: any) {
+      toast.error(`Ingestion failed`, { id: t, description: e.message });
+    } finally {
+      if (sourceKey === 'all') setIngestingAll(false);
+    }
+  };
+
   const { data: sources, isLoading } = useQuery({
     queryKey: ['admin-data-provenance'],
     queryFn: async () => {
