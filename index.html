@@ -32,7 +32,8 @@
       function gtag(){dataLayer.push(arguments);}
       gtag('js', new Date());
       gtag('config', 'G-NZE7RGVNEN', { send_page_view: true });
-      // Load gtag.js after the page is interactive
+      // Load gtag.js only AFTER window 'load' fires, then on idle.
+      // Prevents GA from inflating the longest-task / Max FID window during initial paint.
       (function(){
         function loadGtag() {
           var s = document.createElement('script');
@@ -40,10 +41,17 @@
           s.async = true;
           document.head.appendChild(s);
         }
-        if ('requestIdleCallback' in window) {
-          requestIdleCallback(loadGtag, { timeout: 3000 });
+        function schedule() {
+          if ('requestIdleCallback' in window) {
+            requestIdleCallback(loadGtag, { timeout: 5000 });
+          } else {
+            setTimeout(loadGtag, 3000);
+          }
+        }
+        if (document.readyState === 'complete') {
+          schedule();
         } else {
-          setTimeout(loadGtag, 2000);
+          window.addEventListener('load', schedule, { once: true });
         }
       })();
     </script>
