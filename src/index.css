@@ -34,13 +34,13 @@
     --q-bg-surface-dark: #F1F5F9;
     
     /* ── BRAND / ACCENT COLORS ── */
-    --q-accent-primary: #4F8EF7;
-    --q-accent-glow: rgba(79, 142, 247, 0.12);
-    --q-accent-hover: #6BA3FF;
-    --q-accent-pressed: #3A72D4;
+    --q-accent-primary: #1F6FEB;
+    --q-accent-glow: rgba(31, 111, 235, 0.12);
+    --q-accent-hover: #3A82EF;
+    --q-accent-pressed: #1657C2;
     
     /* ── SEMANTIC STATUS COLORS ── */
-    --q-status-green: #10B981;
+    --q-status-green: #047857;
     --q-status-green-light: #6EE7B7;
     --q-status-green-bg: #ECFDF5;
     --q-status-green-border: #A7F3D0;
