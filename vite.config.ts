@@ -68,7 +68,11 @@ export default defineConfig(({ mode }) => ({
     },
     minify: 'esbuild',
     chunkSizeWarningLimit: 500,
-    sourcemap: mode === 'development',
+    // Always emit source maps. In production, 'hidden' generates .map files
+    // (so Lighthouse / Sentry can use them) without appending the
+    // //# sourceMappingURL comment to the JS, keeping browser DevTools clean
+    // for end users while still satisfying the audit.
+    sourcemap: mode === 'development' ? true : 'hidden',
     target: 'esnext',
     // Enable CSS code splitting
     cssCodeSplit: true,
