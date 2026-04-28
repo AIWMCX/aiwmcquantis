@@ -63,6 +63,14 @@ export interface InvoiceBenchmarkResult {
   match_quality: MatchQuality;
 }
 
+export interface CalibrationAdjustment {
+  sample_size: number;
+  bias_pct: number | null;
+  mape: number | null;
+  confidence_adjustment: number;
+  last_updated: string | null;
+}
+
 export interface BenchmarkSummaryForCase {
   core: CoreBenchmarkResult | null;
   unit_econ: UnitEconBenchmarkResult | null;
@@ -72,6 +80,8 @@ export interface BenchmarkSummaryForCase {
   sector_label: string;
   geo_label: string;
   overall_match_quality: MatchQuality;
+  /** Self-learning calibration: shrinks confidence when reality has diverged from past predictions. */
+  calibration?: CalibrationAdjustment | null;
 }
 
 // ─── Hierarchical Fallback Query ───
@@ -238,6 +248,20 @@ export async function getBenchmarkSummary(
   const qualityOrder: MatchQuality[] = ['exact', 'partial_no_size', 'partial_no_stage', 'country_level', 'region_level', 'sector_fallback', 'none'];
   const worst = qualities.reduce((a, b) => qualityOrder.indexOf(a) > qualityOrder.indexOf(b) ? a : b, 'exact');
 
+  // Self-learning: pull calibration row for this slice (silent on miss / RLS denial)
+  let calibration: CalibrationAdjustment | null = null;
+  try {
+    const { data: cal } = await supabase
+      .from('benchmark_calibration')
+      .select('sample_size, bias_pct, mape, confidence_adjustment, last_updated')
+      .eq('sector_level1', query.sector_level1)
+      .eq('sector_level2', query.sector_level2 || '')
+      .eq('geo_region', query.geo_region || '')
+      .eq('metric_name', 'op_margin_p50')
+      .maybeSingle();
+    if (cal) calibration = cal as CalibrationAdjustment;
+  } catch (_) { /* table may not yet exist in older deploys */ }
+
   return {
     core,
     unit_econ,
@@ -247,6 +271,7 @@ export async function getBenchmarkSummary(
     sector_label: `${query.sector_level1}${query.sector_level2 ? ' > ' + query.sector_level2 : ''}`,
     geo_label: `${query.country || query.geo_region || 'Global'}${query.city_tier ? ' ' + query.city_tier : ''}`,
     overall_match_quality: worst,
+    calibration,
   };
 }
 
