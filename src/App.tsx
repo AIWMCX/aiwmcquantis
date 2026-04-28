@@ -169,6 +169,11 @@ const App = () => {
                     <BrandProfileSettings />
                   </ProtectedRoute>
                 } />
+                <Route path="/settings/api-keys" element={
+                  <ProtectedRoute>
+                    <ApiKeysSettings />
+                  </ProtectedRoute>
+                } />
                 
                 {/* Admin routes - require authentication + admin role */}
                 <Route path="/admin" element={
