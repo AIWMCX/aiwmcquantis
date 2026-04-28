@@ -100,7 +100,7 @@ export function useSubscription(): SubscriptionData {
       // The RLS policy + view ensure Stripe IDs are never exposed
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, plan_id, status, current_period_start, current_period_end')
+        .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
