@@ -68,7 +68,10 @@ export default defineConfig(({ mode }) => ({
     },
     minify: 'esbuild',
     chunkSizeWarningLimit: 500,
-    sourcemap: mode === 'development',
+    // Emit source maps in all builds so Lighthouse, Sentry, and DevTools can
+    // map minified bundles back to original source. .map files are served as
+    // separate requests and do not affect runtime performance.
+    sourcemap: true,
     target: 'esnext',
     // Enable CSS code splitting
     cssCodeSplit: true,
