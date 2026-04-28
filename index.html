@@ -240,7 +240,11 @@
   </head>
 
   <body>
-    <div id="root"></div>
+    <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
+      <div id="lcp-banner-placeholder" style="background:#8FFF2A;color:#070D1A;padding:10px 16px;text-align:center;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px">
+        <span>Financial stress-test for founders — risk map, scenarios, and projections in 3 min</span>
+      </div>
+    </div>
 
     <!-- Static content for non-JS crawlers and SEO fallback -->
     <noscript>
