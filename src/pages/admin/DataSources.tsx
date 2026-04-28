@@ -114,14 +114,20 @@ export default function DataSources() {
   return (
     <AppLayout title="Data Sources">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 py-8 space-y-8">
-        <div className="space-y-2">
-          <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
-            <Database className="w-8 h-8 text-primary" />
-            Data Provenance Registry
-          </h1>
-          <p className="text-muted-foreground">
-            Tracks every external dataset's license, allowed uses, and freshness for audit compliance.
-          </p>
+        <div className="flex items-start justify-between gap-4">
+          <div className="space-y-2">
+            <h1 className="text-3xl font-bold tracking-tight flex items-center gap-3">
+              <Database className="w-8 h-8 text-primary" />
+              Data Provenance Registry
+            </h1>
+            <p className="text-muted-foreground">
+              Tracks every external dataset's license, allowed uses, and freshness for audit compliance.
+            </p>
+          </div>
+          <Button onClick={() => triggerIngest('all', 'all sources')} disabled={ingestingAll} className="shrink-0">
+            <RefreshCw className={`w-4 h-4 mr-2 ${ingestingAll ? 'animate-spin' : ''}`} />
+            {ingestingAll ? 'Ingesting…' : 'Ingest All Now'}
+          </Button>
         </div>
 
         {/* Summary Cards */}
