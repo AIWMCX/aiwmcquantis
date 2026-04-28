@@ -205,6 +205,11 @@ export function useSubscription(): SubscriptionData {
   const planId = subscription?.plan_id || 'free';
   const status = subscription?.status || 'active';
   const isActive = status === 'active' || status === 'trialing';
+  const isTrialing = status === 'trialing';
+  const trialEndsAt = subscription?.trial_ends_at ?? null;
+  const trialDaysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+    : null;
   // Resolve canonical tier; if subscription is inactive, downgrade to FREE.
   const tier: Tier = isActive ? planToTier(planId) : 'FREE';
   const manifest: FeatureManifest = FEATURE_MANIFEST[tier];
