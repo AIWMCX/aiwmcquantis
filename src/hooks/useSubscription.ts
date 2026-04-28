@@ -41,6 +41,9 @@ interface SubscriptionData {
   isPro: boolean;
   isFree: boolean;
   isActive: boolean;
+  isTrialing: boolean;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
   analysesUsed: number;
   analysesLimit: number;
   canAnalyze: boolean;
