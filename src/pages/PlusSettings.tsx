@@ -164,6 +164,25 @@ export default function PlusSettings() {
             <BrandingSettings />
           </TabsContent>
         </Tabs>
+
+        {isPro && (
+          <Card className="mt-8">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Lock className="w-4 h-4" />
+                API Access
+              </CardTitle>
+              <CardDescription>
+                Generate, label and revoke API keys for programmatic Quantis analyses.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button variant="outline" onClick={() => navigate('/settings/api-keys')} className="min-h-[48px]">
+                Manage API keys
+              </Button>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </AppLayout>
   );
