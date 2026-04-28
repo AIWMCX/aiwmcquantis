@@ -147,8 +147,9 @@
     <meta name="twitter:description" content="A financial consultant charges $1,500–$25,000 to stress-test your business model. Quantis does it in 90 seconds with 95,500 real benchmarks. Free.">
     <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/1kOH5ilbvlbUNCb3D2ADIr3Rq2F3/social-images/social-1771665343336-photo_2026-02-21_02-15-35.webp">
     
-    <!-- Cabinet Grotesk (AIWMC primary) from Fontshare -->
-    <link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap">
+    <!-- Cabinet Grotesk (AIWMC primary) from Fontshare — non-blocking load (font already display=swap) -->
+    <link rel="preload" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap"></noscript>
     <!-- Google Fonts: Sora (display) + DM Sans (body) + JetBrains Mono (data) -->
     <link rel="preload" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap"></noscript>
