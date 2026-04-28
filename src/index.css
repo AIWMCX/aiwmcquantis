@@ -34,13 +34,14 @@
     --q-bg-surface-dark: #F1F5F9;
     
     /* ── BRAND / ACCENT COLORS ── */
-    --q-accent-primary: #4F8EF7;
-    --q-accent-glow: rgba(79, 142, 247, 0.12);
-    --q-accent-hover: #6BA3FF;
-    --q-accent-pressed: #3A72D4;
+    --q-accent-primary: #1F6FEB;
+    --q-accent-glow: rgba(31, 111, 235, 0.12);
+    --q-accent-hover: #3A82EF;
+    --q-accent-pressed: #1657C2;
     
     /* ── SEMANTIC STATUS COLORS ── */
-    --q-status-green: #10B981;
+    --q-status-green: #047857;
+    --q-status-green-hsl: 162 94% 24%;
     --q-status-green-light: #6EE7B7;
     --q-status-green-bg: #ECFDF5;
     --q-status-green-border: #A7F3D0;
@@ -152,21 +153,21 @@
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 217 91% 64%;
+    --primary: 217 88% 52%;
     --primary-foreground: 0 0% 100%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215 16% 47%;
+    --muted-foreground: 215 19% 40%;
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 0 0% 100%;
     --border: 214 32% 91%;
     --input: 214 32% 91%;
-    --ring: 217 91% 64%;
+    --ring: 217 88% 52%;
     --radius: 0.625rem;
-    --success: 160 84% 39%;
+    --success: 160 84% 30%;
     --success-foreground: 0 0% 100%;
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 0%;
