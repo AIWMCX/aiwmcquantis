@@ -22,6 +22,7 @@ interface Subscription {
   status: string;
   current_period_start: string | null;
   current_period_end: string | null;
+  trial_ends_at: string | null;
 }
 
 interface UsageTracking {
@@ -40,6 +41,9 @@ interface SubscriptionData {
   isPro: boolean;
   isFree: boolean;
   isActive: boolean;
+  isTrialing: boolean;
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
   analysesUsed: number;
   analysesLimit: number;
   canAnalyze: boolean;
@@ -96,7 +100,7 @@ export function useSubscription(): SubscriptionData {
       // The RLS policy + view ensure Stripe IDs are never exposed
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
-        .select('id, user_id, plan_id, status, current_period_start, current_period_end')
+        .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
         .eq('user_id', user.id)
         .maybeSingle();
 
@@ -201,6 +205,11 @@ export function useSubscription(): SubscriptionData {
   const planId = subscription?.plan_id || 'free';
   const status = subscription?.status || 'active';
   const isActive = status === 'active' || status === 'trialing';
+  const isTrialing = status === 'trialing';
+  const trialEndsAt = subscription?.trial_ends_at ?? null;
+  const trialDaysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((new Date(trialEndsAt).getTime() - Date.now()) / 86_400_000))
+    : null;
   // Resolve canonical tier; if subscription is inactive, downgrade to FREE.
   const tier: Tier = isActive ? planToTier(planId) : 'FREE';
   const manifest: FeatureManifest = FEATURE_MANIFEST[tier];
@@ -315,6 +324,9 @@ export function useSubscription(): SubscriptionData {
     isPro,
     isFree,
     isActive,
+    isTrialing,
+    trialEndsAt,
+    trialDaysRemaining,
     analysesUsed,
     analysesLimit,
     canAnalyze,
