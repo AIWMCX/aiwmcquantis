@@ -41,6 +41,7 @@ const RiskGallery = lazy(() => import("./pages/RiskGallery"));
 const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
 const InvoiceManager = lazy(() => import("./pages/InvoiceManager"));
 const BrandProfileSettings = lazy(() => import("./pages/settings/BrandProfile"));
+const ApiKeysSettings = lazy(() => import("./pages/settings/ApiKeys"));
 const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
