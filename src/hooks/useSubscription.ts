@@ -22,6 +22,7 @@ interface Subscription {
   status: string;
   current_period_start: string | null;
   current_period_end: string | null;
+  trial_ends_at: string | null;
 }
 
 interface UsageTracking {
