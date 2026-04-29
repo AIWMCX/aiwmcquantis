@@ -353,6 +353,8 @@ export function trackCheckoutStart(planId: string, value?: number): void {
     value: value || 0,
     items: [{ item_id: planId, item_name: planId }],
   });
+  // SOW canonical alias
+  recordFunnelEvent('paid_checkout_start', { plan_id: planId, value: value || 0 });
 }
 
 /**
@@ -368,6 +370,12 @@ export function trackPurchase(
     currency: 'USD',
     value: value,
     items: [{ item_id: planId, item_name: planId }],
+  });
+  // SOW canonical alias
+  recordFunnelEvent('paid_checkout_complete', {
+    plan_id: planId,
+    transaction_id: transactionId,
+    value,
   });
 }
 
