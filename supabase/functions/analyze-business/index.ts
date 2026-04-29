@@ -4377,6 +4377,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
         benchmark_v2_datapoints: 97500,
+        benchmark_v2_calibration: v2BenchmarkSummary?.calibration || null,
+        benchmark_confidence_adjusted: typeof benchmarkConfidence === 'number' && v2BenchmarkSummary?.calibration
+          ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))
+          : benchmarkConfidence,
         used_fallback: usedFallback,
       },
     };
