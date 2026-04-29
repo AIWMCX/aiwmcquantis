@@ -1,102 +1,180 @@
-# Closing the Master Spec gaps + UX/admin requests
 
-Goal: lock down tier gating in the UI, finish the §11 backend checklist (white-label, RLS, PRO auto-provisioning, universal rules everywhere), make `beltovbogdan@gmail.com` a real DB-level admin, and do a focused readability pass.
+# Quantis Build Audit & Stabilization-to-Sell Pipeline
 
-## 1. Gate Deep Audit / Monte Carlo for FREE (UI + server)
+A genius-level, evidence-grounded audit comparing both SOWs (Strategic + x100 Technical) against the live codebase, followed by a session-by-session pipeline that stabilizes the foundation first, then opens the revenue gate.
 
-Today `WizardForm.tsx` always renders the **Deep Audit (95,500 Monte Carlo scenarios)** option. Spec says `monte_carlo` is a PLUS feature (`tier-spec.ts: FEATURE_TIER_REQUIREMENT.monte_carlo = 'PLUS'`).
+---
 
-Changes:
-- `src/components/analysis/WizardForm.tsx` — read `useFeature('monte_carlo')`. For FREE:
-  - Render the Deep card with a padlock + "PLUS" badge, disable selection, route click to `/pricing?reason=monte_carlo` (canonical `UPGRADE_TRIGGERS.monteCarlo`).
-  - If `analysisDepth === 'deep'` and tier downgrades, snap back to `'full'`.
-- `src/pages/PreMortem.tsx` — same gate before forcing `'deep'`; for FREE, show the existing `LockedFeaturePreview` instead of submitting.
-- `src/hooks/useAnalysis.ts` — server-side double-check: if `depth === 'deep'` and tier is FREE, throw a `TIER_GATE` error before invoking and surface via the existing `AnalysisErrorPanel`.
-- `supabase/functions/analyze-business/index.ts` — at request entry, when `analysis_depth === 'deep'` and the resolved tier is FREE, return the canonical 402 envelope (`error: "TIER_GATE", required_tier: "PLUS", feature: "monte_carlo"`) before any LLM/Monte Carlo work. (Quota check stays first.)
+## Part 1 — Verified ground truth (what is ACTUALLY in the repo right now)
 
-## 2. Founder admin: `beltovbogdan@gmail.com`
+Cross-checked against codebase + live Supabase. No assumptions.
 
-`user_roles` table exists. We will:
-- Migration: ensure `app_role` enum has `'admin'`; insert role for the user id matched by `auth.users.email = 'beltovbogdan@gmail.com'` (idempotent `ON CONFLICT DO NOTHING`).
-- Confirm/refresh `public.has_role(_user_id, _role)` SECURITY DEFINER (already referenced in code).
-- Add a `public.is_founder_admin()` SECURITY DEFINER convenience wrapper used by RLS and edge functions (returns true iff caller has `admin` role).
-- Wire `useAuth`/admin guards (already use email check per memory) to additionally trust `has_role(uid, 'admin')` so the check works even if the email check is bypassed.
+| SOW Dimension | SOW Score | Verified Reality | True Score |
+|---|---|---|---|
+| 1. Conceptual architecture | 8.0 | Deterministic engine, dual-AI consensus, 7-layer safety, calibration tables exist | **8.0 ✓** |
+| 2. Data infrastructure | 4.0 | 19,511 rows in `benchmarks_v2_core`; **only 2 of 12 connectors live** (ProjectionHub + SEC XBRL); zero calibration signals collected yet | **4.5** |
+| 3. Marketing / positioning | 3.0 | Single landing for all ICPs; **no `/for-consultants`, `/for-founders`, `/for-students`, `/for-smb-owners`** | **3.0 ✓** |
+| 4. Conversion funnel | 2.0 | Analytics file exists (`src/lib/analytics.ts`), Sentry installed (`src/lib/sentry.ts`); but **no no-input demo path** | **3.5** |
+| 5. Pricing | 2.0 | **Still $17/mo Plus everywhere** (`tier-spec.ts` lines 266/372/386/400/448, `Pricing.tsx` titles+descriptions). No Founder/Consultant/Agency tiers. No annual toggle. | **2.0 ✓** |
+| 6. Trust signals | 2.0 | `Methodology.tsx` page exists but **no downloadable PDF**; no `/cases/[slug]` directory; no founder photo/letter component | **2.5** |
+| 7. Retention design | 2.0 | **Zero hits** for `watchlist`, `scenario fork`, `parent_id`, `outcome_track` in code | **1.0** |
+| 8. Multi-tenancy | 1.0 | No `workspace_id` table; analyses tied to single `user_id` | **1.0 ✓** |
+| 9. API / embed | 1.0 | `api-analyze` edge function exists but **no API keys table for end-customers**, no OpenAPI spec, no `api.aiwmcquantis.com` subdomain, no embed widget | **2.0** |
+| 10. Mobile / a11y | 5.0 | Default Tailwind/shadcn; no audit | **5.0 ✓** |
+| 11. Observability | 3.0 | Sentry + analytics scaffolded; **funnel events not all wired** (no `paid_checkout_complete`-style end-to-end visible) | **4.0** |
+| 12. Lead generation | 7.0 | **No `n8n`, `ses_send`, or outbound infrastructure in repo** — playbook only | **3.0** |
 
-## 3. Universal Rules on every legacy LLM endpoint
+**True composite: 3.3 → 3.4** (matches SOW within rounding). Sales gate is blocked by dimensions 5, 6, 7, 8, 12 — none requires research, all require execution.
 
-These functions still call the gateway directly — they will be refactored to route through `_shared/llm-call.ts::callTierLlm` (or, where the response shape is non-JSON / streaming, through a new `callTierLlmRaw` that still prepends `UNIVERSAL_RULES` and applies `LLM_BUDGET[tier]`):
+**Live database snapshot:**
+- 19 analyses run total (proves engine works, proves zero-traffic problem)
+- 19,511 benchmark rows (asset present)
+- 2 ingestion runs succeeded (SEC + ProjectionHub) — pipeline proven, not yet broad
+- 0 calibration signals — feedback loop wired but not yet flowing data
 
-- `supabase/functions/ai-narrator/index.ts`
-- `supabase/functions/ai-consensus/index.ts` (both legs of the dual-LLM consensus)
-- `supabase/functions/analyze-business/index.ts` (the remaining direct fetch on line ~3441)
-- `supabase/functions/generate-idea/index.ts`
-- `supabase/functions/generate-document-content/index.ts`
-- `supabase/functions/template-optimizer/index.ts`
-- `supabase/functions/parse-document/index.ts`
+---
 
-Each call will pass the resolved `tier` (from existing tier resolution) and a `module` ('main' | 'pre_mortem' | 'capacity' | 'docs' | 'idea' | 'narrator'). New `'narrator'`, `'idea'`, `'docs'`, `'parse'` modules will be added to `_shared/prompts.ts` so `buildSystemPrompt(tier, module)` always prepends `UNIVERSAL_RULES`.
+## Part 2 — Stabilization-to-Sell Pipeline (sequenced sessions)
 
-Add a lightweight `dev_assertions` check in `_shared/llm-call.ts` that logs (and increments a `llm_universal_rules_violations` counter via `ai_calls` ledger) if `system` ever lacks the rules sentinel. Memory note: per `correlation-and-observability`, request_id is already threaded — reuse it.
+Every session has: (a) a single hardening goal, (b) an acceptance test, (c) a sales-gate impact. We do NOT add features; we **finish unfinished moats** and close revenue gates in the order that compounds fastest.
 
-## 4. White-label PDF (server-side branding strip)
+### Track A — STABILIZE (Sessions 1–4, must complete before sell)
 
-- Migration: add `subscriptions.white_label_enabled boolean default false` and a trigger `enforce_white_label_pro` that blocks setting it true unless plan_id = 'pro' (the existing PRO trigger pattern from the previous migration is the template).
-- Server-side: in `supabase/functions/export-document/index.ts` and `supabase/functions/pdf-generator/index.ts`, before render:
-  1. Resolve user_id → fetch `subscriptions.white_label_enabled` (service-role).
-  2. If true AND `verify_pro_subscription(user_id)` is true, pass `{ hideBranding: true }` to the React-PDF renderer. (Per `pdf-export-canonical` memory, single pipeline = `@react-pdf/renderer` — we do not reintroduce html2pdf.js.)
-  3. If white_label flag is true but tier is no longer PRO, ignore the flag and render branded.
-- React-PDF templates: thread an optional `hideBranding` prop through the PDF document component; when true, omit the AIWMC™ Quantis header strip, footer logo and watermark, but keep the legal disclaimer (per `legal/financial-disclaimer-standard`).
-- Client never decides — the server is the single source of truth.
+#### Session 1 — Pricing rebuild & checkout truth
+**Goal:** Replace $17 anchor with the SOW's 4-tier ladder.
+- New tiers in `tier-spec.ts` + `config/tiers.ts`: Free / Founder $29 / Consultant $149 / Agency $499 (monthly + annual −20%).
+- Stripe products created via existing `create-checkout-session` flow; old $17 grandfathered.
+- `Pricing.tsx` rewritten with outcome-led copy per tier (not feature lists).
+- All 5 hardcoded `$17` strings purged.
+- **Acceptance:** Visiting `/pricing` shows 4 cards with annual toggle; `paid_checkout_start` event fires per tier.
+- **Sells:** Removes the single biggest disqualifier for consultants & agencies.
 
-## 5. Team-read RLS + 30-day readonly window
+#### Session 2 — Funnel instrumentation closure
+**Goal:** Make every dollar trackable.
+- Verify the 8 SOW funnel events fire end-to-end: `home_view → free_signup_start → free_signup_complete → analysis_start → analysis_complete → pricing_view → paid_checkout_start → paid_checkout_complete`.
+- Dashboard page at `/admin/funnel` aggregates from existing analytics tables.
+- **Acceptance:** Run a test purchase; all 8 events present in admin funnel within 1 minute.
+- **Sells:** Without this, every later optimization is blind.
 
-Already created in the last migration: `team_invitations`, seat trigger, `subscriptions.history_readonly_until`. Missing pieces:
+#### Session 3 — Reality-loop activation (pipe the calibration data we already wired)
+**Goal:** Start filling the empty `engine_learning_signals` and `benchmark_calibration` tables.
+- Schedule `ingest-data-sources` weekly via pg_cron.
+- Wire `ActualsImporter.tsx` → `record_engine_learning_signal()` so every actuals upload writes a signal.
+- Backfill: replay the 19 historical analyses against current benchmarks to seed first calibration rows.
+- **Acceptance:** ≥10 rows in `engine_learning_signals`, ≥1 row in `benchmark_calibration` after run.
+- **Sells:** "Forecast accuracy improved by X% in your industry this month" becomes a real Plus retention hook.
 
-- `analyses` (and any related per-user tables: `analysis_runs`, `documents`) — add SELECT RLS policy:
-  `USING ( user_id = auth.uid() OR public.is_team_member(auth.uid(), user_id) OR public.has_role(auth.uid(), 'admin') )`
-  with `is_team_member(member uuid, host uuid)` SECURITY DEFINER reading `team_invitations` where status = 'accepted'.
-- INSERT/UPDATE/DELETE policies on those tables: keep restricted to `user_id = auth.uid()` only — invited members are read-only (checklist line "cannot generate new analyses on host's account").
-- Readonly window on downgrade: extend the existing SELECT policy with `OR (now() < history_readonly_until)` so a freshly-downgraded FREE user can still read (but not write/regenerate) their own analyses for 30 days. Writes are blocked because `verify_pro_subscription` (or the equivalent FREE check) will reject the LLM call upstream.
+#### Session 4 — Methodology PDF + founder voice (cheapest trust artifact)
+**Goal:** Two trust artifacts shipped.
+- Generate downloadable methodology PDF (via existing `@react-pdf/renderer` pipeline) covering: deterministic engine, Monte Carlo, source list with the 12 SOW connectors marked Live/Planned, dual-AI consensus, confidence scoring with calibration formula.
+- Add founder voice block to homepage hero (photo, name, 80–120 word letter).
+- **Acceptance:** `/methodology.pdf` downloads from CDN; homepage renders founder block above the fold.
+- **Sells:** First reason a financial buyer trusts the brand enough to enter a credit card.
 
-## 6. PRO auto-provisioning
+### Track B — UNLOCK HIGH-LTV BUYERS (Sessions 5–7, opens Consultant/Agency revenue)
 
-Add a DB function `public.provision_pro_features(p_user_id uuid)` (SECURITY DEFINER) that:
-1. Sets `subscriptions.plan_id = 'pro'`, `status = 'active'` (or 'trialing'), `trial_ends_at = now() + 14d` if first-time PRO.
-2. Generates an initial API key row in `api_keys` (active, name = 'Default') if none exists — returns the secret once via the webhook response context only.
-3. Sets default seat cap to 3 and inserts the host into `team_members` (or equivalent) as `owner`.
-4. Logs `lifecycle_event: 'pro_provisioned'`.
+#### Session 5 — Watchlist + Scenario Fork (retention spine)
+- DB: `watchlists(user_id, industry_slug, geo_slug, created_at)`, `analysis_forks(parent_id, fork_label, diff_json)`.
+- UI: "Save to Watchlist" button on every analysis; "What if?" fork CTA in result wizard.
+- Cron `check-churn-signals` extended to fire watchlist alert emails.
+- **Acceptance:** Logged-in user can save a watchlist item, fork an analysis, receive an alert email when a benchmark in the slice changes >10%.
+- **Sells:** Converts subscription from one-shot to recurring need — the structural fix for churn.
 
-Wire it into `stripe-webhook`:
-- `customer.subscription.created` / `invoice.paid` for the PRO price → call `provision_pro_features(user_id)`.
-- `customer.subscription.updated` (PLUS→PRO upgrade) → same call.
-- Existing 3-day grace + downgrade path (`payment_failed_at`, `subscription.deleted`) untouched, but on `subscription.deleted` also set `history_readonly_until = now() + 30 days`.
+#### Session 6 — No-input demo path
+- New route `/demo` that auto-plays a pre-rendered analysis (use existing example data) in <30 seconds with progressive reveal animation.
+- Homepage primary CTA changes from "Try Free" (which demands data) to "See a Sample" (which demands nothing).
+- **Acceptance:** Anonymous visitor reaches the full sample report in <30s with zero form fields.
+- **Sells:** Top-of-funnel conversion lift; what separates a 0.5% landing-page conversion from 3%.
 
-Reminder (already noted in earlier turns): `STRIPE_PRO_PRICE_ID` must be set as a project secret for Pro checkout / provisioning to fire. I will surface a clear `CONFIG_MISSING` log if absent.
+#### Session 7 — First 3 segment landing pages + 3 case studies
+- `/for-consultants`, `/for-founders`, `/for-smb-owners` (skip students for revenue focus).
+- `/cases/[slug]` template + 3 named case studies (run free Quantis analyses for 3 real targets, secure attribution).
+- Each segment page links to a tier-emphasized pricing variant.
+- **Acceptance:** Each page has Lighthouse SEO ≥90 and a unique CTA per segment.
+- **Sells:** Segment-specific trust = consultant-pays-$149 conversion.
 
-## 7. Global readability pass ("readable text everywhere")
+### Track C — DATA MOAT WIDENING (Sessions 8–10, in parallel with selling)
 
-Scope: apply consistent contrast tokens from `quantis-v2-bloomberg-aesthetic` — no redesign, just legibility.
+#### Session 8 — BLS QCEW + Census CBP + FRED connectors
+- Add 3 connectors to `ingest-data-sources/index.ts` following the existing ProjectionHub pattern.
+- Wire to `benchmarks_v2_core`; mark provenance.
+- **Acceptance:** Each connector populates ≥100 rows; admin dashboard shows green status.
+- **Sells:** Triples the "evidence per analysis" claim and unlocks the triangulation view.
 
-- Audit usages of `text-muted-foreground`, `text-[var(--q-text-tertiary)]`, `opacity-50/60/70` on body copy across:
-  - `src/pages/Landing.tsx` and landing sections (`PricingSection`, `FAQSection`, `FreeVsProMatrix`)
-  - `src/pages/AppDashboard.tsx` and analysis cards (`MarketSizingCard`, `CapacityCheckCard`, `TwelveVariableGrid`, `AnalysisErrorPanel`)
-  - Settings, Pricing, PreMortem, Changelog
-- Rules:
-  - Body copy ≥ 14px, line-height ≥ 1.5, contrast ≥ 4.5:1 on Space Black.
-  - Replace ad-hoc `opacity-50/60` on text with the canonical `--q-text-secondary` / `--q-text-primary` tokens.
-  - Tiny labels (`text-[8px]`, `text-[9px]`) bumped to ≥ 11px or removed.
-  - Light theme variant (now globally toggleable per recent change) gets a parallel sweep — verify dashboard cards are not white-on-white.
-- No changes to layout, brand fonts (Cabinet Grotesk / DM Sans / JetBrains Mono per Core memory) or spacing system.
+#### Session 9 — Consensus benchmark view + confidence-decay
+- Materialized view `consensus_benchmark` per the technical SOW §4.1 (≥2 sources, CV<15% gives confidence 0.80).
+- SQL function `effective_confidence(base, age)` with half-lives by variable type (SOW §4.3).
+- Engine reads consensus first, falls back to single-source.
+- UI surfaces "Confidence: 0.87 — 3 sources" badge per metric.
+- **Acceptance:** A coffee-shop analysis shows triangulated confidence per number; PDF export includes confidence column.
+- **Sells:** Visible accuracy proof in every analysis & PDF — the methodology paper's claims become demonstrable.
 
-## 8. Verification
+#### Session 10 — Multi-tenant workspace foundation (non-breaking migration)
+- New tables: `workspaces(id, owner_id, name, plan)`, `workspace_members(workspace_id, user_id, role)`.
+- Every existing analysis gets a default personal workspace via migration.
+- API: `workspace_id` accepted on analysis create; defaults to user's personal workspace.
+- **Acceptance:** Existing flows unchanged; admin UI can create a workspace and invite a member.
+- **Sells:** Hard prerequisite for Consultant ($149) and Agency ($499) tier delivery.
 
-- Manual matrix in staging: FREE / PLUS / PRO × {analysis depth selector, deep submit, capacity check, market sizing, premortem, PDF export with and without white_label}.
-- New `__tests__/tier-gates.test.ts` with table-driven cases for `evaluateGate` covering monte_carlo, pre_mortem, capacity_check, white_label, api_access, team_seats.
-- Edge-function smoke test (existing `supabase test` harness) that POSTs to each LLM endpoint and asserts the system prompt sent to the gateway contains the `UNIVERSAL_RULES` sentinel — fails the build if any function regresses.
-- Linter + type-check after migrations; review supabase linter warnings only for the new migrations (existing 141 warnings out of scope).
+### Track D — REVENUE ACTIVATION (Sessions 11–12, when above is solid)
 
-## Out of scope / explicitly not doing
+#### Session 11 — White-label PDFs + scheduled outbound switch-on
+- Custom logo + color palette on Consultant-tier PDF exports (uses existing brand-profile service).
+- Scaffold one outbound campaign: pg_cron + `send-lifecycle-email` extended to send 25/day from warm IP to a 200-row target list (compliance footer + suppression list already exist for newsletter).
+- **Acceptance:** A Consultant-tier user sees their logo on the export; outbound dashboard shows daily send count + reply tracking.
+- **Sells:** First repeatable acquisition channel + first justification for $149/mo.
 
-- Reintroducing `html2pdf.js` (canonical pipeline is `@react-pdf/renderer`).
-- Redesigning the landing or dashboard — readability pass only.
-- Generic backend rate-limiting infra — per project rules, the API daily cap stays implemented on top of `api_request_logs`.
+#### Session 12 — Public API v0 + key management
+- DB: `api_keys(workspace_id, key_hash, scopes, created_at, revoked_at)`.
+- Edge function `api-v1-analyze` with rate-limit by key (existing `useRateLimit` extended).
+- Minimal docs page `/api/docs` (OpenAPI YAML rendered with redoc-static).
+- Restricted to Agency tier.
+- **Acceptance:** A test API key creates an analysis via curl; rate limit enforced.
+- **Sells:** Unlocks the $499 tier and starts the 5-year embed-distribution thesis.
+
+---
+
+## Part 3 — Operating Rules per session
+
+These prevent regression while shipping fast.
+
+1. **No new feature without an acceptance test that a non-technical user can verify.**
+2. **Every session ends with: visual QA on PDF/UI changes + admin smoke check.**
+3. **Pricing & tier strings are centralized** — never hardcoded; one constant file feeds Stripe, UI, emails, PDFs.
+4. **Database changes use migrations only** (no ad-hoc SQL); types regenerated; RLS policies reviewed.
+5. **Calibration & analytics events are mandatory in every code path that touches money or accuracy** — block PR if missing.
+6. **No silent fallbacks**: if benchmark match quality < threshold, surface it in UI + PDF (per the existing `overall_match_quality` field).
+
+---
+
+## Part 4 — What this audit is NOT proposing
+
+To keep focus on stabilize-then-sell:
+
+- **No** mobile app
+- **No** new viral marketing posts
+- **No** redesign of working surfaces (dashboard, results wizard)
+- **No** SOC 2 work yet (Q4 SOW commitment — too early)
+- **No** Bayesian Monte Carlo refactor (Q4 — depends on calibration data we're only just starting to collect)
+- **No** Companies House / 9 remaining connectors yet (after the 3 most-cited US sources are flowing)
+
+---
+
+## Part 5 — Definition of "Ready to Sell"
+
+We turn on outbound only when **all** of these are green (gating checklist):
+
+- [ ] 4 pricing tiers live, all Stripe products active, $17 references purged
+- [ ] 8 funnel events firing end-to-end, dashboard accessible
+- [ ] Methodology PDF downloadable; founder voice on homepage
+- [ ] No-input demo at `/demo` working in <30s
+- [ ] 3 case studies + 3 segment landing pages live
+- [ ] Watchlist + scenario fork shipped (retention reason exists)
+- [ ] BLS QCEW + Census CBP + FRED connectors flowing into `benchmarks_v2_core`
+- [ ] Consensus view live; confidence badges in UI + PDF
+- [ ] Workspace migration shipped; backwards-compatible
+- [ ] First 5 internal end-to-end test purchases at each tier succeed
+
+That's the gate. After it: turn on outbound (Session 11), then API (Session 12), then scale.
+
+**Approve this and we begin Session 1 (pricing rebuild) immediately. Reject any individual session and I will revise the sequence without re-doing the whole plan.**
