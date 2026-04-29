@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useRef } from 'react';
+import React, { lazy, Suspense, useRef, useEffect } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackCtaClick, recordFunnelEvent } from '@/lib/analytics';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
