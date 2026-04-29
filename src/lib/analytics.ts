@@ -280,6 +280,8 @@ export function trackAnalysisStarted(idea: string, location: string): void {
     idea_category: idea.substring(0, 50), // Truncate for privacy
     location: location,
   });
+  // SOW canonical alias
+  recordFunnelEvent('analysis_start', { location });
 }
 
 /**
@@ -295,15 +297,23 @@ export function trackAnalysisCompleted(
     payback_months: paybackMonths,
     confidence_score: confidenceScore,
   });
+  // SOW canonical alias
+  recordFunnelEvent('analysis_complete', {
+    monthly_profit_range: getProfitRange(monthlyProfit),
+    payback_months: paybackMonths,
+    confidence_score: confidenceScore,
+  });
 }
 
 /**
- * Track user signup
+ * Track user signup completion (post-confirmation)
  */
 export function trackSignup(method: string = 'email'): void {
   trackEvent('sign_up', {
     method: method,
   });
+  // SOW canonical alias
+  recordFunnelEvent('free_signup_complete', { method });
 }
 
 /**
