@@ -28,6 +28,7 @@ import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
 import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
 import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
+import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
 
 export default function Index() {
