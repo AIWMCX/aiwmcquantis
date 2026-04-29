@@ -43,6 +43,11 @@ export default function Landing() {
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
 
+  // SOW §6.1 funnel event: home_view fires once per session on landing
+  useEffect(() => {
+    recordFunnelEvent('home_view');
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <StructuredData 
