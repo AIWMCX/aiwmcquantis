@@ -1,12 +1,20 @@
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+
 /**
- * Google Analytics 4 Integration with Bot Filtering
- * Professional analytics tracking for AIWMC Quantis
- * 
+ * Google Analytics 4 + Supabase Funnel Sink (Session 2 / SOW §6.1)
+ * ================================================================
+ * Dual-writer:
+ *  - GA4 receives every event for marketing analytics
+ *  - Supabase `funnel_events` receives the 8 SOW canonical events for
+ *    the /admin/funnel dashboard. We write via the
+ *    `record_funnel_event` RPC (SECURITY DEFINER, anon-callable).
+ *
  * Features:
  * - Spam referrer filtering
  * - Bot user-agent detection
  * - Session quality verification
+ * - Stable session_id stored in sessionStorage for funnel attribution
  */
 
 declare global {
