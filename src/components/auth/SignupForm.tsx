@@ -89,6 +89,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const handleFieldFocus = (fieldName: string) => {
     if (!touchedFields.email && !touchedFields.password) {
       trackEvent('signup_started', { source: 'form', form_version: 'simplified_v3' });
+      // SOW canonical alias — fires once per session on first interaction
+      recordFunnelEvent('free_signup_start', { form_version: 'simplified_v3' });
       setFormStartTime(Date.now());
       
       // Track mobile-specific start
