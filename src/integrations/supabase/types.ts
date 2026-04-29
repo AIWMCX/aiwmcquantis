@@ -1713,6 +1713,48 @@ export type Database = {
           },
         ]
       }
+      funnel_events: {
+        Row: {
+          created_at: string
+          event_name: string
+          id: string
+          metadata: Json
+          path: string | null
+          referrer: string | null
+          session_id: string
+          user_id: string | null
+          utm_campaign: string | null
+          utm_medium: string | null
+          utm_source: string | null
+        }
+        Insert: {
+          created_at?: string
+          event_name: string
+          id?: string
+          metadata?: Json
+          path?: string | null
+          referrer?: string | null
+          session_id: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Update: {
+          created_at?: string
+          event_name?: string
+          id?: string
+          metadata?: Json
+          path?: string | null
+          referrer?: string | null
+          session_id?: string
+          user_id?: string | null
+          utm_campaign?: string | null
+          utm_medium?: string | null
+          utm_source?: string | null
+        }
+        Relationships: []
+      }
       golden_test_vectors: {
         Row: {
           business_type: string
@@ -3706,6 +3748,25 @@ export type Database = {
       }
     }
     Views: {
+      funnel_daily_30d: {
+        Row: {
+          day: string | null
+          event_name: string | null
+          unique_sessions: number | null
+        }
+        Relationships: []
+      }
+      funnel_summary_30d: {
+        Row: {
+          event_name: string | null
+          first_seen: string | null
+          last_seen: string | null
+          total_events: number | null
+          unique_sessions: number | null
+          unique_users: number | null
+        }
+        Relationships: []
+      }
       realism_by_industry: {
         Row: {
           avg_score: number | null
@@ -3989,6 +4050,19 @@ export type Database = {
           p_user_id: string
         }
         Returns: undefined
+      }
+      record_funnel_event: {
+        Args: {
+          _event_name: string
+          _metadata?: Json
+          _path?: string
+          _referrer?: string
+          _session_id: string
+          _utm_campaign?: string
+          _utm_medium?: string
+          _utm_source?: string
+        }
+        Returns: string
       }
       rotate_pii_encryption_key: { Args: never; Returns: Json }
       run_scheduled_cleanup: { Args: never; Returns: Json }
