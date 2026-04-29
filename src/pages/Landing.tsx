@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useRef } from 'react';
+import React, { lazy, Suspense, useRef, useEffect } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
@@ -9,7 +9,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackCtaClick, recordFunnelEvent } from '@/lib/analytics';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
@@ -42,6 +42,11 @@ export default function Landing() {
   const faqSection = useLazySection({ rootMargin: '200px' });
   const heroRef = useRef<HTMLDivElement>(null);
   const pricingRef = useRef<HTMLDivElement>(null);
+
+  // SOW §6.1 funnel event: home_view fires once per session on landing
+  useEffect(() => {
+    recordFunnelEvent('home_view');
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">

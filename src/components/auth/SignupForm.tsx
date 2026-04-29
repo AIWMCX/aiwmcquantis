@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed } from '@/lib/analytics';
+import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed, recordFunnelEvent } from '@/lib/analytics';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
@@ -89,6 +89,8 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
   const handleFieldFocus = (fieldName: string) => {
     if (!touchedFields.email && !touchedFields.password) {
       trackEvent('signup_started', { source: 'form', form_version: 'simplified_v3' });
+      // SOW canonical alias — fires once per session on first interaction
+      recordFunnelEvent('free_signup_start', { form_version: 'simplified_v3' });
       setFormStartTime(Date.now());
       
       // Track mobile-specific start

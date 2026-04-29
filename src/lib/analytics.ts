@@ -1,12 +1,20 @@
 import { logger } from '@/lib/logger';
+import { supabase } from '@/integrations/supabase/client';
+
 /**
- * Google Analytics 4 Integration with Bot Filtering
- * Professional analytics tracking for AIWMC Quantis
- * 
+ * Google Analytics 4 + Supabase Funnel Sink (Session 2 / SOW §6.1)
+ * ================================================================
+ * Dual-writer:
+ *  - GA4 receives every event for marketing analytics
+ *  - Supabase `funnel_events` receives the 8 SOW canonical events for
+ *    the /admin/funnel dashboard. We write via the
+ *    `record_funnel_event` RPC (SECURITY DEFINER, anon-callable).
+ *
  * Features:
  * - Spam referrer filtering
  * - Bot user-agent detection
  * - Session quality verification
+ * - Stable session_id stored in sessionStorage for funnel attribution
  */
 
 declare global {
@@ -166,8 +174,103 @@ export function trackEvent(
 }
 
 // ============================================
-// Business-Specific Event Tracking Functions
+// SOW §6.1 Canonical Funnel Events (Session 2)
 // ============================================
+// 8 canonical events that flow into the /admin/funnel dashboard via the
+// `record_funnel_event` SECURITY DEFINER RPC. We always also forward to
+// GA4 so marketing keeps its existing reports.
+
+export type SowFunnelEvent =
+  | 'home_view'
+  | 'free_signup_start'
+  | 'free_signup_complete'
+  | 'analysis_start'
+  | 'analysis_complete'
+  | 'pricing_view'
+  | 'paid_checkout_start'
+  | 'paid_checkout_complete';
+
+const SESSION_KEY = 'aiwmc_funnel_session_id';
+
+function getSessionId(): string {
+  if (typeof window === 'undefined') return 'ssr';
+  try {
+    let id = window.sessionStorage.getItem(SESSION_KEY);
+    if (!id) {
+      id =
+        (typeof crypto !== 'undefined' && 'randomUUID' in crypto
+          ? crypto.randomUUID()
+          : Math.random().toString(36).slice(2) + Date.now().toString(36));
+      window.sessionStorage.setItem(SESSION_KEY, id);
+    }
+    return id;
+  } catch {
+    return 'no-storage';
+  }
+}
+
+function readUtm(): {
+  utm_source?: string;
+  utm_medium?: string;
+  utm_campaign?: string;
+} {
+  if (typeof window === 'undefined') return {};
+  try {
+    const p = new URLSearchParams(window.location.search);
+    return {
+      utm_source: p.get('utm_source') || undefined,
+      utm_medium: p.get('utm_medium') || undefined,
+      utm_campaign: p.get('utm_campaign') || undefined,
+    };
+  } catch {
+    return {};
+  }
+}
+
+/**
+ * Record a canonical SOW funnel event (writes to Supabase + GA4).
+ * Safe to call from anon and authed contexts. Bot/spam sessions are
+ * skipped to keep the funnel clean.
+ */
+export function recordFunnelEvent(
+  eventName: SowFunnelEvent,
+  metadata: Record<string, unknown> = {},
+): void {
+  if (!shouldTrack()) return;
+
+  // 1. GA4 mirror (keeps marketing dashboards intact)
+  trackEvent(eventName, metadata);
+
+  // 2. Supabase sink (powers /admin/funnel)
+  try {
+    const utm = readUtm();
+    const path = typeof window !== 'undefined' ? window.location.pathname : null;
+    const referrer = typeof document !== 'undefined' ? document.referrer || null : null;
+
+    // Fire-and-forget; never block the UI on analytics.
+    void supabase
+      .rpc('record_funnel_event', {
+        _event_name: eventName,
+        _session_id: getSessionId(),
+        _path: path,
+        _referrer: referrer,
+        _utm_source: utm.utm_source ?? null,
+        _utm_medium: utm.utm_medium ?? null,
+        _utm_campaign: utm.utm_campaign ?? null,
+        _metadata: metadata as never,
+      })
+      .then(({ error }) => {
+        if (error && import.meta.env.DEV) {
+          logger.warn(`funnel_event RPC failed for ${eventName}`, error);
+        }
+      });
+  } catch (err) {
+    if (import.meta.env.DEV) {
+      logger.warn(`funnel_event sink threw for ${eventName}`, err);
+    }
+  }
+}
+
 
 /**
  * Track when user starts an analysis
@@ -177,6 +280,8 @@ export function trackAnalysisStarted(idea: string, location: string): void {
     idea_category: idea.substring(0, 50), // Truncate for privacy
     location: location,
   });
+  // SOW canonical alias
+  recordFunnelEvent('analysis_start', { location });
 }
 
 /**
@@ -192,15 +297,23 @@ export function trackAnalysisCompleted(
     payback_months: paybackMonths,
     confidence_score: confidenceScore,
   });
+  // SOW canonical alias
+  recordFunnelEvent('analysis_complete', {
+    monthly_profit_range: getProfitRange(monthlyProfit),
+    payback_months: paybackMonths,
+    confidence_score: confidenceScore,
+  });
 }
 
 /**
- * Track user signup
+ * Track user signup completion (post-confirmation)
  */
 export function trackSignup(method: string = 'email'): void {
   trackEvent('sign_up', {
     method: method,
   });
+  // SOW canonical alias
+  recordFunnelEvent('free_signup_complete', { method });
 }
 
 /**
@@ -240,6 +353,8 @@ export function trackCheckoutStart(planId: string, value?: number): void {
     value: value || 0,
     items: [{ item_id: planId, item_name: planId }],
   });
+  // SOW canonical alias
+  recordFunnelEvent('paid_checkout_start', { plan_id: planId, value: value || 0 });
 }
 
 /**
@@ -255,6 +370,12 @@ export function trackPurchase(
     currency: 'USD',
     value: value,
     items: [{ item_id: planId, item_name: planId }],
+  });
+  // SOW canonical alias
+  recordFunnelEvent('paid_checkout_complete', {
+    plan_id: planId,
+    transaction_id: transactionId,
+    value,
   });
 }
 

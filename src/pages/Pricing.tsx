@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -6,8 +6,14 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { Footer } from '@/components/layout/Footer';
 import { PricingSection } from '@/components/landing/PricingSection';
+import { recordFunnelEvent } from '@/lib/analytics';
 
 export default function Pricing() {
+  // SOW §6.1 funnel event: pricing_view fires once per /pricing visit
+  useEffect(() => {
+    recordFunnelEvent('pricing_view', { surface: 'standalone_page' });
+  }, []);
+
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
