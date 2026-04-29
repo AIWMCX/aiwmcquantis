@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useAuth } from '@/hooks/useAuth';
 import { toast } from 'sonner';
-import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed } from '@/lib/analytics';
+import { trackSignup, trackEvent, trackMobileSignupStarted, trackMobileSignupCompleted, trackSimplifiedFormConversion, trackPasswordValidationPassed, recordFunnelEvent } from '@/lib/analytics';
 import { GoogleLoginButton } from './GoogleLoginButton';
 import { cn } from '@/lib/utils';
 import { sendWelcomeEmail, markWelcomeEmailSent } from '@/lib/welcomeEmail';
