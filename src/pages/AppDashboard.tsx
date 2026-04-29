@@ -164,6 +164,8 @@ export default function Index() {
     const checkoutStatus = searchParams.get('checkout');
     const successStatus = searchParams.get('success');
     if (checkoutStatus === 'success' || successStatus === 'true') {
+      // SOW canonical funnel event — fires on Stripe success redirect
+      recordFunnelEvent('paid_checkout_complete', { source: 'stripe_redirect' });
       setSearchParams({});
       setCheckoutPolling(true);
       let attempts = 0;
