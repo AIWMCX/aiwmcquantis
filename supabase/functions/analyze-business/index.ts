@@ -3392,6 +3392,12 @@ ${v2BenchmarkSummary.risk ? `### Risk Profile
 ${v2BenchmarkSummary.invoice ? `### Invoice/Credit
 - Avg terms: ${v2BenchmarkSummary.invoice.avg_invoice_terms_days} days | Late payment: ${((v2BenchmarkSummary.invoice.late_payment_rate||0)*100).toFixed(1)}% | Bad debt: ${((v2BenchmarkSummary.invoice.bad_debt_pct_rev||0)*100).toFixed(2)}%
 - Safe DSCR: ${v2BenchmarkSummary.invoice.safe_dscr_threshold} | Max invoice/rev ratio: ${((v2BenchmarkSummary.invoice.max_safe_invoice_to_rev_ratio||0)*100).toFixed(0)}%` : ''}
+${v2BenchmarkSummary.calibration ? `### Self-Learning Calibration (reality-bridge feedback)
+- Sample size: ${v2BenchmarkSummary.calibration.sample_size} prior predictions vs. real outcomes
+- Bias: ${v2BenchmarkSummary.calibration.bias_pct !== null ? v2BenchmarkSummary.calibration.bias_pct.toFixed(1) + '%' : 'n/a'} (positive = model historically over-predicts in this slice)
+- MAPE: ${v2BenchmarkSummary.calibration.mape !== null ? v2BenchmarkSummary.calibration.mape.toFixed(1) + '%' : 'n/a'}
+- Confidence multiplier applied: ${v2BenchmarkSummary.calibration.confidence_adjustment.toFixed(2)}x
+ADJUST your projections for this historical bias and explicitly disclose the calibration in the methodology note.` : ''}
 USE these v2 benchmarks to ground your TAM/SAM/SOM, risk analysis, and competitive assessment. Reference specific percentiles.
 ` : ''}
 ${userFinancialContext}${documentContext}
