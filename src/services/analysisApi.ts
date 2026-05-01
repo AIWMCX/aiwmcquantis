@@ -259,11 +259,11 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
 
       // SOW canonical funnel — fire `analysis_complete` on a real success.
       try {
-        const fa = data.data?.financial_analysis as Record<string, unknown> | undefined;
+        const fa = data.data?.financial_analysis as unknown as Record<string, unknown> | undefined;
         const monthlyProfit = Number(fa?.net_profit ?? fa?.monthly_profit ?? 0) || 0;
         const payback = Number(fa?.payback_months ?? 0) || 0;
         const confidence = Number(
-          (data.data as Record<string, unknown>)?.confidence_score ?? 0,
+          (data.data as unknown as Record<string, unknown>)?.confidence_score ?? 0,
         ) || 0;
         trackAnalysisCompleted(monthlyProfit, payback, confidence);
       } catch {
