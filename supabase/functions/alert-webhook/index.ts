@@ -39,12 +39,12 @@ function validateAlertSecret(req: Request): boolean {
   const providedSecret = req.headers.get('x-alert-secret');
   const expectedSecret = Deno.env.get('ALERT_WEBHOOK_SECRET');
   
-  // If no secret is configured, allow the request (for initial setup)
+  // Fail closed: if no secret is configured, reject all requests.
   if (!expectedSecret) {
-    console.warn('[alert-webhook] ALERT_WEBHOOK_SECRET not configured - accepting all requests');
-    return true;
+    console.error('[alert-webhook] ALERT_WEBHOOK_SECRET not configured — rejecting all requests');
+    return false;
   }
-  
+  if (!providedSecret) return false;
   return providedSecret === expectedSecret;
 }
 
