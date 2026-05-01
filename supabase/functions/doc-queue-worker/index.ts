@@ -138,12 +138,11 @@ Deno.serve(async (req: Request) => {
             upsert: true,
           });
 
+        // Store storage path (not public URL). Clients fetch a short-lived
+        // signed URL via a dedicated endpoint that verifies ownership.
         let outputUrl = "";
         if (!uploadErr) {
-          const { data: urlData } = supabase.storage
-            .from("document-exports")
-            .getPublicUrl(fileName);
-          outputUrl = urlData.publicUrl;
+          outputUrl = `storage://document-exports/${fileName}`;
         }
 
         const processingMs = Date.now() - jobStart;
