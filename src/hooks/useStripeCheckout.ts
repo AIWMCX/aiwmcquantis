@@ -8,9 +8,18 @@
 import { useState, useCallback, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { trackCheckoutStart } from '@/lib/analytics';
 
 import { logger } from '@/lib/logger';
 type Plan = 'plus_monthly' | 'plus_annual' | 'pro_monthly' | 'pro_annual';
+
+// Approximate plan values (USD) for funnel value tracking. Source of truth is Stripe.
+const PLAN_VALUES: Record<Plan, number> = {
+  plus_monthly: 17,
+  plus_annual: 168,   // $14/mo × 12
+  pro_monthly: 49,
+  pro_annual: 492,    // $41/mo × 12
+};
 
 // Payment Links - configured in Stripe Dashboard with 14-day trials
 // Plus: $17/mo or $14/mo annual. Pro: $49/mo or $41/mo annual.
@@ -58,6 +67,14 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 
     logger.info('[PaymentLinks] Starting redirect', { metadata: { plan, userId } });
 
+    // SOW canonical funnel — fire `paid_checkout_start` BEFORE the redirect
+    // so we capture intent even when the user bounces from the Stripe page.
+    try {
+      trackCheckoutStart(plan, PLAN_VALUES[plan]);
+    } catch {
+      /* analytics must never block checkout */
+    }
+
     // Build URL
     const url = buildPaymentLinkUrl(plan, userId, email);
     
@@ -95,7 +112,14 @@ export function usePaymentLinks(): UsePaymentLinksReturn {
 // Standalone function for use outside React (e.g., after auth)
 export function redirectToPaymentLink(plan: Plan, userId: string, email?: string): void {
   logger.info('[PaymentLinks Standalone] Starting redirect for plan:', plan);
-  
+
+  // Mirror the hook's funnel emission for the standalone post-auth path.
+  try {
+    trackCheckoutStart(plan, PLAN_VALUES[plan]);
+  } catch {
+    /* analytics must never block checkout */
+  }
+
   const url = buildPaymentLinkUrl(plan, userId, email);
   window.location.href = url;
 }

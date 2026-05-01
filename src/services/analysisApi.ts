@@ -8,6 +8,7 @@ import type {
 import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
 import { startRequestContext, requestHeaders } from '@/lib/correlation';
 import { QuantisMath } from '@/lib/quantis-math';
+import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
 
 import { logger } from '@/lib/logger';
 const MAX_RETRIES = 2;
@@ -132,6 +133,14 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
   const requestId = startRequestContext();
   logger.info('Analysis request started', { metadata: { request_id: requestId } });
 
+  // SOW canonical funnel — fire `analysis_start` exactly once per submission
+  // (before retries) so /admin/funnel reflects user intent, not retry volume.
+  try {
+    trackAnalysisStarted(request.idea ?? '', request.location ?? '');
+  } catch {
+    /* analytics must never break the analysis path */
+  }
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
@@ -246,6 +255,19 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
 
       if (!isCompletedAnalysisResponse(data)) {
         throw new Error(data.error || 'Analysis failed');
+      }
+
+      // SOW canonical funnel — fire `analysis_complete` on a real success.
+      try {
+        const fa = data.data?.financial_analysis as unknown as Record<string, unknown> | undefined;
+        const monthlyProfit = Number(fa?.net_profit ?? fa?.monthly_profit ?? 0) || 0;
+        const payback = Number(fa?.payback_months ?? 0) || 0;
+        const confidence = Number(
+          (data.data as unknown as Record<string, unknown>)?.confidence_score ?? 0,
+        ) || 0;
+        trackAnalysisCompleted(monthlyProfit, payback, confidence);
+      } catch {
+        /* analytics must never break the analysis path */
       }
 
       return data.data;
