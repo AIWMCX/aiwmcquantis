@@ -877,7 +877,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 2 of 9')
+        React.createElement(Text, null, 'Page 2 of 10')
       )
     ),
     // Financial Analysis Page
@@ -960,7 +960,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 3 of 9')
+        React.createElement(Text, null, 'Page 3 of 10')
       )
     ),
     // Scenario Analysis Page
@@ -1079,7 +1079,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 4 of 9')
+        React.createElement(Text, null, 'Page 4 of 10')
       )
     ),
     // Market Analysis Page
@@ -1168,7 +1168,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 5 of 9')
+        React.createElement(Text, null, 'Page 5 of 10')
       )
     ),
     // Risk Assessment Page
@@ -1228,7 +1228,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 6 of 9')
+        React.createElement(Text, null, 'Page 6 of 10')
       )
     ),
     // Action Plan Page
@@ -1298,7 +1298,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 7 of 9')
+        React.createElement(Text, null, 'Page 7 of 10')
       )
     ),
     // Appendix Page
@@ -1382,7 +1382,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} ${footerText}. All Rights Reserved.`),
-        React.createElement(Text, null, 'Page 9 of 9')
+        React.createElement(Text, null, 'Page 10 of 10')
       )
     )
   );
