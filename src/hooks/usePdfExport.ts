@@ -14,6 +14,20 @@ import {
 } from '@react-pdf/renderer';
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  lookupBenchmark,
+  formatBenchmarkValue,
+  type BenchmarkContext,
+  type BenchmarkMetric,
+  type BenchmarkResult,
+} from '@/services/benchmark-lookup';
+
+interface PdfBenchmarkRow {
+  label: string;
+  metric: BenchmarkMetric;
+  userValue?: number;
+  bench: BenchmarkResult;
+}
 
 // ============================================
 // BRANDING CONFIGURATION
