@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 /* ─── 100 BUSINESS CASE SEEDS ───
    Each seed provides a specific, financially-calculable concept with realistic
@@ -276,8 +277,7 @@ serve(async (req) => {
     }
 
     const { industry } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
 
     const seed = getRandomSeed(industry);
     const r = seed.ranges;
