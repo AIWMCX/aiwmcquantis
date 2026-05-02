@@ -413,13 +413,8 @@ async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileTyp
 
   try {
     // Use Gemini's vision capability with structured extraction prompt
-    const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${LOVABLE_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
+    const aiResult = await aiCall(
+      {
         model: "google/gemini-2.5-flash",
         messages: [
           {
@@ -483,33 +478,11 @@ Then, at the end of your response, include a JSON block with extracted financial
 \`\`\`json
 {
   "document_type": "revenue_statement|invoice|marketing_report|financial_forecast|general",
-  "revenue": {
-    "total": number_or_null,
-    "monthly": number_or_null,
-    "quarterly": number_or_null,
-    "annual": number_or_null,
-    "breakdown": {"category": amount}
-  },
-  "costs": {
-    "total": number_or_null,
-    "monthly": number_or_null,
-    "breakdown": {"category": amount}
-  },
-  "metrics": {
-    "roi": number_or_null,
-    "profit_margin": number_or_null,
-    "net_profit": number_or_null,
-    "customer_count": number_or_null,
-    "mrr": number_or_null,
-    "arr": number_or_null,
-    "cac": number_or_null,
-    "ltv": number_or_null
-  },
-  "investment": {
-    "total": number_or_null,
-    "breakdown": {"category": amount}
-  },
-  "key_findings": ["Finding 1: specific value", "Finding 2: specific metric"],
+  "revenue": {"total": number_or_null, "monthly": number_or_null, "quarterly": number_or_null, "annual": number_or_null, "breakdown": {"category": "amount"}},
+  "costs": {"total": number_or_null, "monthly": number_or_null, "breakdown": {"category": "amount"}},
+  "metrics": {"roi": number_or_null, "profit_margin": number_or_null, "net_profit": number_or_null, "customer_count": number_or_null, "mrr": number_or_null, "arr": number_or_null, "cac": number_or_null, "ltv": number_or_null},
+  "investment": {"total": number_or_null, "breakdown": {"category": "amount"}},
+  "key_findings": ["Finding 1: specific value"],
   "confidence": 0-100
 }
 \`\`\`
@@ -526,21 +499,20 @@ Be precise with numbers. Include currency and period context in key_findings.`
           }
         ],
         max_tokens: 16000,
-      }),
-    });
+      },
+      { task: 'parse-document', timeoutMs: 60_000, metadata: { fileName, fileType, bytes: arrayBuffer.byteLength } },
+    );
 
-    if (!response.ok) {
-      const errorText = await response.text();
-      log.error("AI extraction error:", response.status, errorText);
-      
+    if (!aiResult.ok) {
+      log.error("AI extraction error:", aiResult.status, aiResult.error);
       return {
         content: `[Document: ${fileName}]\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes\n\nNote: Full content extraction unavailable. The AI analysis will use the document information provided above.`,
         financials: defaultFinancials
       };
     }
 
-    const result = await response.json();
-    const extractedContent = result.choices?.[0]?.message?.content || "";
+    const choices = aiResult.data.choices as Array<{ message?: { content?: string } }> | undefined;
+    const extractedContent = choices?.[0]?.message?.content || "";
 
     // Parse extracted financials from JSON block
     let parsedFinancials: ExtractedFinancials = {
