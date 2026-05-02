@@ -212,6 +212,8 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
           const upgradeUrl = body.upgrade_url || '/pricing';
           throw new Error(`TIER_GATE: ${msg} | upgrade_url=${upgradeUrl}`);
         }
+
+        throw new Error(error.message || 'Failed to invoke analysis function');
       }
 
       if (!data) {
