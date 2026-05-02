@@ -1376,6 +1376,8 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         React.createElement(Text, null, 'Page 8 of 10')
       )
     ),
+    // Appendix Page (Page 10 of 10)
+    React.createElement(
       Page,
       { size: 'A4', style: styles.page },
       React.createElement(
