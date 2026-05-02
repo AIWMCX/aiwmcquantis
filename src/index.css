@@ -341,7 +341,7 @@
     --secondary: 215 40% 12%;
     --secondary-foreground: 226 100% 97%;
     --muted: 215 40% 12%;
-    --muted-foreground: 215 25% 60%;
+    --muted-foreground: 215 25% 78%; /* WCAG AA: 9.1:1 on Space Black */
     --accent: 215 40% 12%;
     --accent-foreground: 226 100% 97%;
     --destructive: 0 72% 51%;
