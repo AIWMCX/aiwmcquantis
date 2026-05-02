@@ -1315,8 +1315,67 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         React.createElement(Text, null, 'Page 7 of 10')
       )
     ),
-    // Appendix Page
+    // Benchmark Citations Page (Page 8 of 10)
     React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Benchmark Citations')
+        ),
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
+      ),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks · 95,500 datapoints'),
+      React.createElement(Text, { style: styles.paragraph }, 'Every numeric metric in this report is matched against the AIWMC Quantis Benchmark Master library. When a direct row matches your sector, geography, and stage we cite P25–P75 ranges, source, sample size, and dataset date. When no direct match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View,
+          { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Metric'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Your value'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'P25 – P75'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Median'),
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Source · n · date')
+        ),
+        (benchmarkRows.length > 0 ? benchmarkRows : []).map((r, i) => {
+          const fmt = (v?: number) => formatBenchmarkValue(r.metric, v);
+          const matched = r.bench.matched;
+          const range = matched ? `${fmt(r.bench.p25)} – ${fmt(r.bench.p75)}` : 'Estimated';
+          const median = matched ? fmt(r.bench.p50) : '—';
+          const src = matched
+            ? `${r.bench.source ?? 'AIWMC'} · n=${(r.bench.sampleSize ?? 0).toLocaleString()} · ${(r.bench.dataDate ?? '').slice(0, 7)}`
+            : 'Engine fallback (no direct row)';
+          return React.createElement(
+            View,
+            { key: i, style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, r.label),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, r.userValue != null ? fmt(r.userValue) : '—'),
+            React.createElement(
+              Text,
+              { style: { ...styles.tableCell, ...styles.textRight, color: matched ? colors.textSecondary : colors.warning } },
+              range
+            ),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, median),
+            React.createElement(Text, { style: styles.tableCell }, src)
+          );
+        })
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 8 of 10')
+      )
+    ),
       Page,
       { size: 'A4', style: styles.page },
       React.createElement(
