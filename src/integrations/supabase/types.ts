@@ -606,6 +606,387 @@ export type Database = {
           },
         ]
       }
+      benchmark_master_core: {
+        Row: {
+          business_model: string | null
+          city_tier: string | null
+          company_stage: string | null
+          country: string | null
+          data_date: string
+          data_version: string
+          days_payable: number | null
+          days_receivable: number | null
+          ebitda_margin_p50: number | null
+          geo_region: string | null
+          gm_margin_p25: number | null
+          gm_margin_p50: number | null
+          gm_margin_p75: number | null
+          id: number
+          inventory_turnover: number | null
+          marketing_pct_rev_p50: number | null
+          op_margin_p50: number | null
+          payroll_pct_rev_p50: number | null
+          rent_pct_rev_p50: number | null
+          revenue_growth_yoy_p50: number | null
+          revenue_volatility: number | null
+          sample_size: number
+          sector_level1: string
+          sector_level2: string | null
+          size_bucket: string | null
+          source: string
+        }
+        Insert: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          days_payable?: number | null
+          days_receivable?: number | null
+          ebitda_margin_p50?: number | null
+          geo_region?: string | null
+          gm_margin_p25?: number | null
+          gm_margin_p50?: number | null
+          gm_margin_p75?: number | null
+          id?: number
+          inventory_turnover?: number | null
+          marketing_pct_rev_p50?: number | null
+          op_margin_p50?: number | null
+          payroll_pct_rev_p50?: number | null
+          rent_pct_rev_p50?: number | null
+          revenue_growth_yoy_p50?: number | null
+          revenue_volatility?: number | null
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Update: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          days_payable?: number | null
+          days_receivable?: number | null
+          ebitda_margin_p50?: number | null
+          geo_region?: string | null
+          gm_margin_p25?: number | null
+          gm_margin_p50?: number | null
+          gm_margin_p75?: number | null
+          id?: number
+          inventory_turnover?: number | null
+          marketing_pct_rev_p50?: number | null
+          op_margin_p50?: number | null
+          payroll_pct_rev_p50?: number | null
+          rent_pct_rev_p50?: number | null
+          revenue_growth_yoy_p50?: number | null
+          revenue_volatility?: number | null
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      benchmark_master_geo: {
+        Row: {
+          business_model: string | null
+          city_tier: string | null
+          company_stage: string | null
+          consumer_spend_index: number | null
+          cost_of_living_index: number | null
+          country: string | null
+          data_date: string
+          data_version: string
+          geo_region: string | null
+          id: number
+          rent_multiplier: number | null
+          sample_size: number
+          sector_level1: string
+          sector_level2: string | null
+          size_bucket: string | null
+          source: string
+          wage_multiplier: number | null
+        }
+        Insert: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          consumer_spend_index?: number | null
+          cost_of_living_index?: number | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          rent_multiplier?: number | null
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+          wage_multiplier?: number | null
+        }
+        Update: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          consumer_spend_index?: number | null
+          cost_of_living_index?: number | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          rent_multiplier?: number | null
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+          wage_multiplier?: number | null
+        }
+        Relationships: []
+      }
+      benchmark_master_invoice: {
+        Row: {
+          avg_invoice_terms_days: number | null
+          bad_debt_pct_rev: number | null
+          business_model: string | null
+          city_tier: string | null
+          company_stage: string | null
+          country: string | null
+          data_date: string
+          data_version: string
+          geo_region: string | null
+          id: number
+          late_payment_rate: number | null
+          max_safe_invoice_to_rev_ratio: number | null
+          safe_dscr_threshold: number | null
+          sample_size: number
+          sector_level1: string
+          sector_level2: string | null
+          size_bucket: string | null
+          source: string
+        }
+        Insert: {
+          avg_invoice_terms_days?: number | null
+          bad_debt_pct_rev?: number | null
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          late_payment_rate?: number | null
+          max_safe_invoice_to_rev_ratio?: number | null
+          safe_dscr_threshold?: number | null
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Update: {
+          avg_invoice_terms_days?: number | null
+          bad_debt_pct_rev?: number | null
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          late_payment_rate?: number | null
+          max_safe_invoice_to_rev_ratio?: number | null
+          safe_dscr_threshold?: number | null
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      benchmark_master_risk: {
+        Row: {
+          business_model: string | null
+          city_tier: string | null
+          company_stage: string | null
+          country: string | null
+          data_date: string
+          data_version: string
+          failure_mode_1: string | null
+          failure_mode_2: string | null
+          failure_mode_3: string | null
+          geo_region: string | null
+          id: number
+          median_survival_years: number | null
+          risk_customer_concentration: number | null
+          risk_market_volatility: number | null
+          risk_operational: number | null
+          risk_regulatory: number | null
+          sample_size: number
+          sector_level1: string
+          sector_level2: string | null
+          size_bucket: string | null
+          source: string
+        }
+        Insert: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          failure_mode_1?: string | null
+          failure_mode_2?: string | null
+          failure_mode_3?: string | null
+          geo_region?: string | null
+          id?: number
+          median_survival_years?: number | null
+          risk_customer_concentration?: number | null
+          risk_market_volatility?: number | null
+          risk_operational?: number | null
+          risk_regulatory?: number | null
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Update: {
+          business_model?: string | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          failure_mode_1?: string | null
+          failure_mode_2?: string | null
+          failure_mode_3?: string | null
+          geo_region?: string | null
+          id?: number
+          median_survival_years?: number | null
+          risk_customer_concentration?: number | null
+          risk_market_volatility?: number | null
+          risk_operational?: number | null
+          risk_regulatory?: number | null
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
+      benchmark_master_unit_econ: {
+        Row: {
+          arpu_median: number | null
+          business_model: string | null
+          cac_p25: number | null
+          cac_p50: number | null
+          cac_p75: number | null
+          cac_payback_p25: number | null
+          cac_payback_p50: number | null
+          cac_payback_p75: number | null
+          churn_monthly_p25: number | null
+          churn_monthly_p50: number | null
+          churn_monthly_p75: number | null
+          city_tier: string | null
+          company_stage: string | null
+          country: string | null
+          data_date: string
+          data_version: string
+          geo_region: string | null
+          id: number
+          ltv_cac_ratio_p25: number | null
+          ltv_cac_ratio_p50: number | null
+          ltv_cac_ratio_p75: number | null
+          ltv_p25: number | null
+          ltv_p50: number | null
+          ltv_p75: number | null
+          retention_12m: number | null
+          sample_size: number
+          sector_level1: string
+          sector_level2: string | null
+          size_bucket: string | null
+          source: string
+        }
+        Insert: {
+          arpu_median?: number | null
+          business_model?: string | null
+          cac_p25?: number | null
+          cac_p50?: number | null
+          cac_p75?: number | null
+          cac_payback_p25?: number | null
+          cac_payback_p50?: number | null
+          cac_payback_p75?: number | null
+          churn_monthly_p25?: number | null
+          churn_monthly_p50?: number | null
+          churn_monthly_p75?: number | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          ltv_cac_ratio_p25?: number | null
+          ltv_cac_ratio_p50?: number | null
+          ltv_cac_ratio_p75?: number | null
+          ltv_p25?: number | null
+          ltv_p50?: number | null
+          ltv_p75?: number | null
+          retention_12m?: number | null
+          sample_size?: number
+          sector_level1: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Update: {
+          arpu_median?: number | null
+          business_model?: string | null
+          cac_p25?: number | null
+          cac_p50?: number | null
+          cac_p75?: number | null
+          cac_payback_p25?: number | null
+          cac_payback_p50?: number | null
+          cac_payback_p75?: number | null
+          churn_monthly_p25?: number | null
+          churn_monthly_p50?: number | null
+          churn_monthly_p75?: number | null
+          city_tier?: string | null
+          company_stage?: string | null
+          country?: string | null
+          data_date?: string
+          data_version?: string
+          geo_region?: string | null
+          id?: number
+          ltv_cac_ratio_p25?: number | null
+          ltv_cac_ratio_p50?: number | null
+          ltv_cac_ratio_p75?: number | null
+          ltv_p25?: number | null
+          ltv_p50?: number | null
+          ltv_p75?: number | null
+          retention_12m?: number | null
+          sample_size?: number
+          sector_level1?: string
+          sector_level2?: string | null
+          size_bucket?: string | null
+          source?: string
+        }
+        Relationships: []
+      }
       benchmark_sources: {
         Row: {
           benchmark_id: string | null
@@ -3798,6 +4179,18 @@ export type Database = {
           rls_forced: boolean
           table_name: string
         }[]
+      }
+      benchmark_lookup: {
+        Args: {
+          p_business_model?: string
+          p_city_tier?: string
+          p_country?: string
+          p_metric: string
+          p_sector?: string
+          p_size?: string
+          p_stage?: string
+        }
+        Returns: Json
       }
       can_access_pii: { Args: { target_user_id: string }; Returns: boolean }
       capture_lead: {
