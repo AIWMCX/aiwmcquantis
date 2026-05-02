@@ -19,6 +19,7 @@ import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
+import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
@@ -403,6 +404,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
+            {/* Benchmark Citations — every numeric metric tied to the 95,500-row library */}
+            <section className="q-card p-5 mt-5">
+              <BenchmarkCitations
+                context={benchmarkContext}
+                metrics={[
+                  { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
+                  { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },
+                  { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: metrics.ltvCac },
+                  { label: 'CAC Payback', metric: 'cac_payback', userValue: metrics.breakEven },
+                  { label: 'Survival', metric: 'survival_years', userValue: metrics.runway / 12 },
+                ]}
+              />
+            </section>
             </div>
             );
           })()}
