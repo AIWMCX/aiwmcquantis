@@ -351,6 +351,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
                     chip={metrics.breakEven <= 12 ? `Mo.${metrics.breakEven} — fast recovery` : metrics.breakEven <= 18 ? `Mo.${metrics.breakEven} — moderate` : `Mo.${metrics.breakEven > 24 ? '24+' : metrics.breakEven} — slow`}
                     explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
+                    benchmarkMetric="cac_payback"
+                    benchmarkContext={benchmarkContext}
+                    numericValue={metrics.breakEven}
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 
@@ -358,6 +361,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
                     chip={metrics.runway >= 12 ? `${metrics.runway} mo — safe buffer` : `${metrics.runway} mo — tight`}
                     explanation="How many months your business can survive on current cash if revenue stopped. 12+ months gives breathing room."
+                    benchmarkMetric="survival_years"
+                    benchmarkContext={benchmarkContext}
+                    numericValue={metrics.runway / 12}
                   />
                 </div>
 
