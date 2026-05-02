@@ -73,6 +73,9 @@ export function Footer() {
             <Link to="/methodology" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Methodology
             </Link>
+            <Link to="/cases" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+              Reference Cases
+            </Link>
             <Link to="/status" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
               Status
             </Link>

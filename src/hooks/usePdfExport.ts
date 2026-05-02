@@ -14,6 +14,20 @@ import {
 } from '@react-pdf/renderer';
 import React from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import {
+  lookupBenchmark,
+  formatBenchmarkValue,
+  type BenchmarkContext,
+  type BenchmarkMetric,
+  type BenchmarkResult,
+} from '@/services/benchmark-lookup';
+
+interface PdfBenchmarkRow {
+  label: string;
+  metric: BenchmarkMetric;
+  userValue?: number;
+  bench: BenchmarkResult;
+}
 
 // ============================================
 // BRANDING CONFIGURATION
@@ -709,7 +723,7 @@ function prepareSafeResult(result: BusinessAnalysisResult): SafeResult {
 // CREATE EXECUTIVE REPORT
 // ============================================
 
-const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding) => {
+const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
   
@@ -877,7 +891,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 2 of 9')
+        React.createElement(Text, null, 'Page 2 of 10')
       )
     ),
     // Financial Analysis Page
@@ -960,7 +974,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 3 of 9')
+        React.createElement(Text, null, 'Page 3 of 10')
       )
     ),
     // Scenario Analysis Page
@@ -1079,7 +1093,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 4 of 9')
+        React.createElement(Text, null, 'Page 4 of 10')
       )
     ),
     // Market Analysis Page
@@ -1168,7 +1182,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 5 of 9')
+        React.createElement(Text, null, 'Page 5 of 10')
       )
     ),
     // Risk Assessment Page
@@ -1228,7 +1242,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 6 of 9')
+        React.createElement(Text, null, 'Page 6 of 10')
       )
     ),
     // Action Plan Page
@@ -1298,10 +1312,71 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 7 of 9')
+        React.createElement(Text, null, 'Page 7 of 10')
       )
     ),
-    // Appendix Page
+    // Benchmark Citations Page (Page 8 of 10)
+    React.createElement(
+      Page,
+      { size: 'A4', style: styles.page },
+      React.createElement(
+        View,
+        { style: styles.pageHeader },
+        React.createElement(
+          View,
+          { style: styles.pageHeaderLeft },
+          React.createElement(Text, { style: styles.pageHeaderTitle }, result.metadata.idea),
+          React.createElement(Text, { style: styles.separator }, ' | '),
+          React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary } }, 'Benchmark Citations')
+        ),
+        React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
+      ),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks · 95,500 datapoints'),
+      React.createElement(Text, { style: styles.paragraph }, 'Every numeric metric in this report is matched against the AIWMC Quantis Benchmark Master library. When a direct row matches your sector, geography, and stage we cite P25–P75 ranges, source, sample size, and dataset date. When no direct match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.'),
+      React.createElement(
+        View,
+        { style: styles.table },
+        React.createElement(
+          View,
+          { style: styles.tableHeader },
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Metric'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Your value'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'P25 – P75'),
+          React.createElement(Text, { style: { ...styles.tableHeaderCell, ...styles.textRight } }, 'Median'),
+          React.createElement(Text, { style: styles.tableHeaderCell }, 'Source · n · date')
+        ),
+        (benchmarkRows.length > 0 ? benchmarkRows : []).map((r, i) => {
+          const fmt = (v?: number) => formatBenchmarkValue(r.metric, v);
+          const matched = r.bench.matched;
+          const range = matched ? `${fmt(r.bench.p25)} – ${fmt(r.bench.p75)}` : 'Estimated';
+          const median = matched ? fmt(r.bench.p50) : '—';
+          const src = matched
+            ? `${r.bench.source ?? 'AIWMC'} · n=${(r.bench.sampleSize ?? 0).toLocaleString()} · ${(r.bench.dataDate ?? '').slice(0, 7)}`
+            : 'Engine fallback (no direct row)';
+          return React.createElement(
+            View,
+            { key: i, style: styles.tableRow },
+            React.createElement(Text, { style: styles.tableCell }, r.label),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, r.userValue != null ? fmt(r.userValue) : '—'),
+            React.createElement(
+              Text,
+              { style: { ...styles.tableCell, ...styles.textRight, color: matched ? colors.textSecondary : colors.warning } },
+              range
+            ),
+            React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, median),
+            React.createElement(Text, { style: styles.tableCell }, src)
+          );
+        })
+      ),
+      React.createElement(
+        View,
+        { style: styles.pageFooter },
+        React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
+        React.createElement(Text, null, ''),
+        React.createElement(Text, null, 'Page 8 of 10')
+      )
+    ),
+    // Appendix Page (Page 10 of 10)
     React.createElement(
       Page,
       { size: 'A4', style: styles.page },
@@ -1382,7 +1457,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} ${footerText}. All Rights Reserved.`),
-        React.createElement(Text, null, 'Page 9 of 9')
+        React.createElement(Text, null, 'Page 10 of 10')
       )
     )
   );
@@ -1463,8 +1538,36 @@ export function usePdfExport() {
       const date = new Date().toISOString().split('T')[0];
       const filename = `${brandPrefix}_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
+      // Pre-fetch benchmark citations so the PDF can render P25–P75, source, n, date
+      const meta: any = result.metadata || {};
+      const fin: any = result.financial_analysis || {};
+      const benchContext: BenchmarkContext = {
+        sector: meta.industry_detected || meta.selected_industry || meta.sector,
+        businessModel: meta.business_model,
+        country: meta.country,
+        cityTier: meta.city_tier,
+        stage: meta.company_stage || 'idea',
+        size: meta.size_bucket,
+      };
+      const monthlyRev = typeof fin?.monthly_revenue === 'number'
+        ? fin.monthly_revenue
+        : (fin?.monthly_revenue?.realistic ?? fin?.mrr ?? 0);
+      const netProfit = fin?.scenarios?.base?.net_profit ?? fin?.monthly_profit ?? 0;
+      const grossMargin = fin?.scenarios?.base?.gross_margin;
+      const ltvCac = fin?.unit_economics?.ltv_cac_ratio;
+      const cacPayback = fin?.payback_period_months ?? fin?.returns?.payback_period_months;
+      const desired: Array<{ label: string; metric: BenchmarkMetric; userValue?: number }> = [
+        { label: 'Gross Margin', metric: 'gross_margin', userValue: typeof grossMargin === 'number' ? (grossMargin > 1 ? grossMargin / 100 : grossMargin) : undefined },
+        { label: 'Operating Margin', metric: 'operating_margin', userValue: monthlyRev > 0 ? netProfit / monthlyRev : undefined },
+        { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
+        { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPayback === 'number' ? cacPayback : undefined },
+      ];
+      const benchmarkRows: PdfBenchmarkRow[] = await Promise.all(
+        desired.map(async (d) => ({ ...d, bench: await lookupBenchmark(d.metric, benchContext) }))
+      );
+
       // Generate PDF blob using @react-pdf/renderer with timeout
-      const doc = createExecutiveReport(result, activeBranding);
+      const doc = createExecutiveReport(result, activeBranding, benchmarkRows);
       
       const blobPromise = pdf(doc).toBlob();
       const timeoutPromise = new Promise<never>((_, reject) => 

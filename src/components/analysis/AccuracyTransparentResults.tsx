@@ -19,6 +19,7 @@ import { MarketAnalysisSection } from './MarketAnalysisSection';
 import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
+import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
@@ -296,6 +297,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
                         chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
                         explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
+                        benchmarkMetric="operating_margin"
+                        benchmarkContext={benchmarkContext}
+                        numericValue={metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined}
                       />
                     </div>
                     {isFree && (
@@ -348,6 +352,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
                     chip={metrics.breakEven <= 12 ? `Mo.${metrics.breakEven} — fast recovery` : metrics.breakEven <= 18 ? `Mo.${metrics.breakEven} — moderate` : `Mo.${metrics.breakEven > 24 ? '24+' : metrics.breakEven} — slow`}
                     explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
+                    benchmarkMetric="cac_payback"
+                    benchmarkContext={benchmarkContext}
+                    numericValue={metrics.breakEven}
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 
@@ -355,6 +362,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
                     chip={metrics.runway >= 12 ? `${metrics.runway} mo — safe buffer` : `${metrics.runway} mo — tight`}
                     explanation="How many months your business can survive on current cash if revenue stopped. 12+ months gives breathing room."
+                    benchmarkMetric="survival_years"
+                    benchmarkContext={benchmarkContext}
+                    numericValue={metrics.runway / 12}
                   />
                 </div>
 
@@ -394,6 +404,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
+            {/* Benchmark Citations — every numeric metric tied to the 95,500-row library */}
+            <section className="q-card p-5 mt-5">
+              <BenchmarkCitations
+                context={benchmarkContext}
+                metrics={[
+                  { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
+                  { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },
+                  { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: metrics.ltvCac },
+                  { label: 'CAC Payback', metric: 'cac_payback', userValue: metrics.breakEven },
+                  { label: 'Survival', metric: 'survival_years', userValue: metrics.runway / 12 },
+                ]}
+              />
+            </section>
             </div>
             );
           })()}
