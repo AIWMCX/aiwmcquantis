@@ -18,6 +18,7 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 // Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
@@ -357,36 +358,23 @@ ${userFinancialContext}${calculatedContext}
 
 Provide comprehensive, actionable analysis. Use the correct industry archetype for revenue logic. Position metrics against industry percentiles where possible. Include viability verdict (VIABLE/MARGINALLY VIABLE/HIGH-RISK/NOT VIABLE). Declare all assumptions and rate data quality honestly. Call submit_analysis with all sections in English.`;
 
-    // Make AI request with fast timeout to prevent client disconnection
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 25000); // 25s timeout for fast fallback
-
     try {
       log.info("Making AI narrator request...");
-      
-      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
+
+      const aiResult = await aiCall(
+        {
           model: "openai/gpt-5-mini",
           messages: [{ role: "user", content: prompt }],
           tools: [analysisToolSchema],
           tool_choice: { type: "function", function: { name: "submit_analysis" } },
-        }),
-        signal: controller.signal,
-      });
+        },
+        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name } },
+      );
 
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error(`AI error: ${response.status} - ${errorText}`);
-        
-        // Use fallback for non-auth errors
-        if (response.status !== 401 && response.status !== 403) {
+      if (!aiResult.ok) {
+        log.error(`AI error: ${aiResult.status} - ${aiResult.error}`);
+        // Use fallback for non-config errors
+        if (aiResult.error !== 'CONFIG') {
           const fallbackContent = generateFallbackContent(input);
           return new Response(
             JSON.stringify({
@@ -394,17 +382,16 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
               content: fallbackContent,
               usedFallback: true,
               model: "deterministic-fallback",
-              error: `AI returned ${response.status}`,
+              error: aiResult.message,
               latencyMs: Date.now() - startTime
             }),
             { headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         }
-        
         return new Response(
           JSON.stringify({
             success: false,
-            error: `AI service error: ${response.status}`,
+            error: aiResult.message,
             usedFallback: false,
             latencyMs: Date.now() - startTime
           }),
@@ -412,8 +399,8 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
         );
       }
 
-      const aiResponse = await response.json();
-      const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
+      const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
+      const toolCall = choices?.[0]?.message?.tool_calls?.[0];
 
       if (!toolCall) {
         log.info("No tool call in AI response, using fallback");
@@ -445,12 +432,8 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
       );
 
     } catch (fetchError) {
-      clearTimeout(timeoutId);
-      
       const errorMessage = fetchError instanceof Error ? fetchError.message : 'Unknown error';
       log.error(`AI fetch error: ${errorMessage}`);
-      
-      // Use fallback for timeout and network errors
       const fallbackContent = generateFallbackContent(input);
       return new Response(
         JSON.stringify({
@@ -458,7 +441,7 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
           content: fallbackContent,
           usedFallback: true,
           model: "deterministic-fallback",
-          error: errorMessage.includes('abort') ? 'Timeout after 25s' : errorMessage,
+          error: errorMessage,
           latencyMs: Date.now() - startTime
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
