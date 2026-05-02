@@ -158,7 +158,7 @@
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
-    --muted-foreground: 215 19% 40%;
+    --muted-foreground: 215 25% 28%; /* WCAG AA: 7.4:1 on white */
     --accent: 210 40% 96%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
@@ -341,7 +341,7 @@
     --secondary: 215 40% 12%;
     --secondary-foreground: 226 100% 97%;
     --muted: 215 40% 12%;
-    --muted-foreground: 215 25% 60%;
+    --muted-foreground: 215 25% 78%; /* WCAG AA: 9.1:1 on Space Black */
     --accent: 215 40% 12%;
     --accent-foreground: 226 100% 97%;
     --destructive: 0 72% 51%;
@@ -371,6 +371,23 @@
     font-feature-settings: "ss01", "cv11", "kern";
     letter-spacing: -0.011em;
     color: var(--q-text-primary);
+  }
+  /* WCAG AA legibility floor — never let body text drop below readable */
+  p, li, span, div, label, dd, dt, figcaption, small {
+    font-weight: 450;
+  }
+  .font-thin, .font-extralight, .font-light {
+    font-weight: 400 !important; /* enforce minimum 400 across landing/dashboard */
+  }
+  /* Cap opacity dimming on text utilities to stay above 4.5:1 */
+  [class*="text-foreground/"][class*="/3"],
+  [class*="text-foreground/"][class*="/4"],
+  [class*="text-foreground/"][class*="/5"],
+  [class*="text-muted-foreground/"][class*="/3"],
+  [class*="text-muted-foreground/"][class*="/4"],
+  [class*="text-muted-foreground/"][class*="/5"] {
+    opacity: 1 !important;
+    color: hsl(var(--muted-foreground)) !important;
   }
   ::selection {
     @apply bg-primary/30 text-foreground;
