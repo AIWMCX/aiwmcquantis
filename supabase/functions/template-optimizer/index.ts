@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.49.4";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 const SIGNAL_WEIGHTS: Record<string, number> = {
   downloaded: 1,
@@ -123,110 +124,92 @@ Deno.serve(async (req: Request) => {
 
         // Call Lovable AI for improvement suggestions
         try {
-          const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-          if (LOVABLE_API_KEY) {
-            const aiResponse = await fetch(
-              "https://ai.gateway.lovable.dev/v1/chat/completions",
-              {
-                method: "POST",
-                headers: {
-                  Authorization: `Bearer ${LOVABLE_API_KEY}`,
-                  "Content-Type": "application/json",
+          const aiResult = await aiCall(
+            {
+              model: "google/gemini-3-flash-preview",
+              messages: [
+                {
+                  role: "system",
+                  content:
+                    "You are a document template quality analyst. Return structured improvement suggestions.",
                 },
-                body: JSON.stringify({
-                  model: "google/gemini-3-flash-preview",
-                  messages: [
-                    {
-                      role: "system",
-                      content:
-                        "You are a document template quality analyst. Return structured improvement suggestions.",
-                    },
-                    {
-                      role: "user",
-                      content: `Template "${template.name}" (ID: ${template.template_id}) is rated ${avgRating.toFixed(1)}/5 based on ${sampleSize} signals. Users frequently edited these sections: ${JSON.stringify([...new Set(editedSections)])}. Suggest 3 specific improvements.`,
-                    },
-                  ],
-                  tools: [
-                    {
-                      type: "function",
-                      function: {
-                        name: "suggest_improvements",
-                        description: "Return 3 specific template improvement suggestions.",
-                        parameters: {
-                          type: "object",
-                          properties: {
-                            suggestions: {
-                              type: "array",
-                              items: {
-                                type: "object",
-                                properties: {
-                                  section: { type: "string" },
-                                  issue: { type: "string" },
-                                  improvement: { type: "string" },
-                                  confidence: {
-                                    type: "number",
-                                    description: "0-100 confidence score",
-                                  },
-                                },
-                                required: ["section", "issue", "improvement", "confidence"],
-                                additionalProperties: false,
-                              },
+                {
+                  role: "user",
+                  content: `Template "${template.name}" (ID: ${template.template_id}) is rated ${avgRating.toFixed(1)}/5 based on ${sampleSize} signals. Users frequently edited these sections: ${JSON.stringify([...new Set(editedSections)])}. Suggest 3 specific improvements.`,
+                },
+              ],
+              tools: [
+                {
+                  type: "function",
+                  function: {
+                    name: "suggest_improvements",
+                    description: "Return 3 specific template improvement suggestions.",
+                    parameters: {
+                      type: "object",
+                      properties: {
+                        suggestions: {
+                          type: "array",
+                          items: {
+                            type: "object",
+                            properties: {
+                              section: { type: "string" },
+                              issue: { type: "string" },
+                              improvement: { type: "string" },
+                              confidence: { type: "number", description: "0-100 confidence score" },
                             },
+                            required: ["section", "issue", "improvement", "confidence"],
+                            additionalProperties: false,
                           },
-                          required: ["suggestions"],
-                          additionalProperties: false,
                         },
                       },
+                      required: ["suggestions"],
+                      additionalProperties: false,
                     },
-                  ],
-                  tool_choice: {
-                    type: "function",
-                    function: { name: "suggest_improvements" },
                   },
-                }),
-              },
-            );
+                },
+              ],
+              tool_choice: { type: "function", function: { name: "suggest_improvements" } },
+            },
+            { task: 'template-optimizer', metadata: { template_id: template.template_id } },
+          );
 
-            if (aiResponse.ok) {
-              const aiData = await aiResponse.json();
-              const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+          if (aiResult.ok) {
+            const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
+            const toolCall = choices?.[0]?.message?.tool_calls?.[0];
 
-              if (toolCall) {
-                const parsed = JSON.parse(toolCall.function.arguments);
-                const suggestions = parsed.suggestions || [];
+            if (toolCall) {
+              const parsed = JSON.parse(toolCall.function.arguments);
+              const suggestions = parsed.suggestions || [];
 
-                const avgConfidence =
-                  suggestions.reduce(
-                    (sum: number, s: { confidence: number }) => sum + s.confidence,
-                    0,
-                  ) / (suggestions.length || 1);
+              const avgConfidence =
+                suggestions.reduce(
+                  (sum: number, s: { confidence: number }) => sum + s.confidence,
+                  0,
+                ) / (suggestions.length || 1);
 
-                await supabase.from("template_improvement_suggestions").insert({
-                  template_id: template.template_id,
-                  suggestion: suggestions,
-                  ai_confidence: avgConfidence,
-                  status: avgConfidence > 90 ? "pending" : "pending",
+              await supabase.from("template_improvement_suggestions").insert({
+                template_id: template.template_id,
+                suggestion: suggestions,
+                ai_confidence: avgConfidence,
+                status: avgConfidence > 90 ? "pending" : "pending",
+              });
+
+              improvementTriggered = true;
+
+              if (avgConfidence > 90) {
+                await supabase.from("user_notifications").insert({
+                  user_id: "00000000-0000-0000-0000-000000000000",
+                  notification_type: "template_improvement",
+                  title: `Template "${template.name}" needs attention`,
+                  message: `AI suggested ${suggestions.length} improvements with ${avgConfidence.toFixed(0)}% confidence. Rating: ${avgRating.toFixed(1)}/5.`,
+                  action_url: "/admin/templates",
+                  action_label: "Review Suggestions",
+                  icon: "⚡",
                 });
-
-                improvementTriggered = true;
-
-                // Alert admin if high confidence
-                if (avgConfidence > 90) {
-                  await supabase.from("user_notifications").insert({
-                    user_id: "00000000-0000-0000-0000-000000000000", // placeholder admin
-                    notification_type: "template_improvement",
-                    title: `Template "${template.name}" needs attention`,
-                    message: `AI suggested ${suggestions.length} improvements with ${avgConfidence.toFixed(0)}% confidence. Rating: ${avgRating.toFixed(1)}/5.`,
-                    action_url: "/admin/templates",
-                    action_label: "Review Suggestions",
-                    icon: "⚡",
-                  });
-                }
               }
-            } else {
-              const errText = await aiResponse.text();
-              log.error("AI gateway error:", aiResponse.status, errText);
             }
+          } else {
+            log.error("AI gateway error:", aiResult.status, aiResult.error);
           }
         } catch (aiErr) {
           log.error("AI improvement suggestion failed:", aiErr);
