@@ -296,6 +296,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         variant={metrics.netProfit >= 0 ? 'success' : 'danger'}
                         chip={metrics.netProfit >= 0 ? `Profitable at Mo.12` : `Losing $${Math.abs(metrics.netProfit / 1000).toFixed(1)}k/mo`}
                         explanation="What you actually take home after paying all expenses — rent, salaries, marketing, everything."
+                        benchmarkMetric="operating_margin"
+                        benchmarkContext={benchmarkContext}
+                        numericValue={metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined}
                       />
                     </div>
                     {isFree && (
