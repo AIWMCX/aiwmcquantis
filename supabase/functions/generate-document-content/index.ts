@@ -280,13 +280,7 @@ serve(async (req) => {
       );
     }
 
-    const aiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!aiKey) {
-      return new Response(
-        JSON.stringify({ error: 'AI service is not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+
 
     const basePrompt = SECTION_PROMPTS[section_type](context);
     const prompt = current_content
