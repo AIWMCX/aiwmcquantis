@@ -9,6 +9,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Wifi, Clock, ServerCrash, ShieldAlert, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { trackError } from '@/lib/analytics';
 
 export interface AnalysisErrorPanelProps {
   error: Error;
@@ -25,6 +26,8 @@ interface ParsedError {
   Icon: React.ElementType;
   tone: 'destructive' | 'warning' | 'info';
   isTransient: boolean;
+  retryAfterSeconds?: number;
+  upgradeUrl?: string;
 }
 
 function parseError(err: Error): ParsedError {
