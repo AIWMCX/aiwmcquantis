@@ -29,7 +29,7 @@ export async function getAnalysisCaseGrid(caseId: string): Promise<AnalysisCaseG
   const p = (async () => {
     const { data, error } = await supabase.rpc('get_analysis_case_grid', { p_case_id: caseId });
     if (error || !data) return null;
-    return data as AnalysisCaseGrid;
+    return data as unknown as AnalysisCaseGrid;
   })();
   cache.set(caseId, p);
   return p;
