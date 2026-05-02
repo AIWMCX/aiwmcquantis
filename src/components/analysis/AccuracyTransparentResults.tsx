@@ -52,6 +52,21 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const businessType = result.metadata?.idea || (result.metadata as any)?.business_type || undefined;
   const location = result.metadata?.location || undefined;
 
+  // Benchmark context — feeds the 95,500-row Benchmark Master library
+  const benchmarkContext = useMemo(() => {
+    const meta: any = result.metadata || {};
+    const sector = meta.industry_detected || meta.selected_industry || meta.sector || undefined;
+    const country = meta.country || (typeof location === 'string' && location.length === 2 ? location : undefined);
+    return {
+      sector,
+      businessModel: meta.business_model,
+      country,
+      cityTier: meta.city_tier,
+      stage: meta.company_stage || 'idea',
+      size: meta.size_bucket,
+    };
+  }, [result.metadata, location]);
+
   const scenarioMetrics = useMemo(() => {
     const scenarios = result.financial_analysis?.scenarios;
     let baseRevenue = result.financial_analysis?.mrr || 0;
@@ -297,6 +312,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         variant={metrics.grossMargin >= 50 ? 'success' : metrics.grossMargin >= 30 ? 'warning' : 'danger'}
                         chip={`${metrics.grossMargin.toFixed(0)}% of revenue kept`}
                         explanation="For every $1 you earn, this is how many cents remain after direct production costs. Higher is better."
+                        benchmarkMetric="gross_margin"
+                        benchmarkContext={benchmarkContext}
+                        numericValue={metrics.grossMargin / 100}
                       />
                     </div>
                     {isFree && (
@@ -313,6 +331,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                         variant={metrics.ltvCac >= 3 ? 'success' : metrics.ltvCac >= 2 ? 'warning' : 'danger'}
                         chip={metrics.ltvCac >= 3 ? `${metrics.ltvCac.toFixed(1)}x — healthy` : `${metrics.ltvCac.toFixed(1)}x — below 3x target`}
                         explanation="How much a customer is worth over their lifetime divided by what it costs to acquire them. Above 3× means healthy unit economics."
+                        benchmarkMetric="ltv_cac_ratio"
+                        benchmarkContext={benchmarkContext}
+                        numericValue={metrics.ltvCac}
                       />
                     </div>
                     {isFree && (
