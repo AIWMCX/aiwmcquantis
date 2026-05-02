@@ -231,6 +231,156 @@ export type Database = {
           },
         ]
       }
+      analysis_break_even: {
+        Row: {
+          be_signal: string | null
+          break_even_revenue: number | null
+          break_even_units: number | null
+          business: string | null
+          case_id: string
+          cm_ratio: number | null
+          contribution_margin: number | null
+          current_revenue: number | null
+          current_units: number | null
+          d_a_mo: number | null
+          data_date: string
+          data_version: string
+          fixed_costs_mo: number | null
+          interest_mo: number | null
+          months_to_be_from_launch: number | null
+          price: number | null
+          safety_margin: number | null
+          sample_size: number
+          source: string
+          total_fixed_mo: number | null
+          units_above_be: number | null
+          variable_cost: number | null
+        }
+        Insert: {
+          be_signal?: string | null
+          break_even_revenue?: number | null
+          break_even_units?: number | null
+          business?: string | null
+          case_id: string
+          cm_ratio?: number | null
+          contribution_margin?: number | null
+          current_revenue?: number | null
+          current_units?: number | null
+          d_a_mo?: number | null
+          data_date?: string
+          data_version?: string
+          fixed_costs_mo?: number | null
+          interest_mo?: number | null
+          months_to_be_from_launch?: number | null
+          price?: number | null
+          safety_margin?: number | null
+          sample_size?: number
+          source?: string
+          total_fixed_mo?: number | null
+          units_above_be?: number | null
+          variable_cost?: number | null
+        }
+        Update: {
+          be_signal?: string | null
+          break_even_revenue?: number | null
+          break_even_units?: number | null
+          business?: string | null
+          case_id?: string
+          cm_ratio?: number | null
+          contribution_margin?: number | null
+          current_revenue?: number | null
+          current_units?: number | null
+          d_a_mo?: number | null
+          data_date?: string
+          data_version?: string
+          fixed_costs_mo?: number | null
+          interest_mo?: number | null
+          months_to_be_from_launch?: number | null
+          price?: number | null
+          safety_margin?: number | null
+          sample_size?: number
+          source?: string
+          total_fixed_mo?: number | null
+          units_above_be?: number | null
+          variable_cost?: number | null
+        }
+        Relationships: []
+      }
+      analysis_burn_runway: {
+        Row: {
+          business: string | null
+          case_id: string
+          cash_at_12mo: number | null
+          cash_at_24mo: number | null
+          data_date: string
+          data_version: string
+          death_date_months: number | null
+          dilution_seed: number | null
+          efficiency_score: number | null
+          funding_need: number | null
+          gross_burn_mo: number | null
+          initial_cash: number | null
+          months_to_breakeven: number | null
+          net_burn_mo: number | null
+          pre_money_val_est: number | null
+          revenue_mo: number | null
+          runway_grade: string | null
+          runway_months: string | null
+          runway_ok: string | null
+          sample_size: number
+          source: string
+          survival_score: number | null
+        }
+        Insert: {
+          business?: string | null
+          case_id: string
+          cash_at_12mo?: number | null
+          cash_at_24mo?: number | null
+          data_date?: string
+          data_version?: string
+          death_date_months?: number | null
+          dilution_seed?: number | null
+          efficiency_score?: number | null
+          funding_need?: number | null
+          gross_burn_mo?: number | null
+          initial_cash?: number | null
+          months_to_breakeven?: number | null
+          net_burn_mo?: number | null
+          pre_money_val_est?: number | null
+          revenue_mo?: number | null
+          runway_grade?: string | null
+          runway_months?: string | null
+          runway_ok?: string | null
+          sample_size?: number
+          source?: string
+          survival_score?: number | null
+        }
+        Update: {
+          business?: string | null
+          case_id?: string
+          cash_at_12mo?: number | null
+          cash_at_24mo?: number | null
+          data_date?: string
+          data_version?: string
+          death_date_months?: number | null
+          dilution_seed?: number | null
+          efficiency_score?: number | null
+          funding_need?: number | null
+          gross_burn_mo?: number | null
+          initial_cash?: number | null
+          months_to_breakeven?: number | null
+          net_burn_mo?: number | null
+          pre_money_val_est?: number | null
+          revenue_mo?: number | null
+          runway_grade?: string | null
+          runway_months?: string | null
+          runway_ok?: string | null
+          sample_size?: number
+          source?: string
+          survival_score?: number | null
+        }
+        Relationships: []
+      }
       analysis_cases: {
         Row: {
           analysis_id: string | null
@@ -289,6 +439,306 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      analysis_cash_flow: {
+        Row: {
+          annual_fcf: number | null
+          business: string | null
+          capex_mo: number | null
+          case_id: string
+          cash_signal: string | null
+          cumul_cf_m12: number | null
+          cumul_cf_m6: number | null
+          data_date: string
+          data_version: string
+          debt_service_mo: number | null
+          dso_days: number | null
+          fcf_yield: number | null
+          free_cf_mo: number | null
+          mo_ebitda: number | null
+          months_to_fcf: number | null
+          net_cf_mo: number | null
+          op_cf_mo: number | null
+          sample_size: number
+          source: string
+          working_cap: number | null
+        }
+        Insert: {
+          annual_fcf?: number | null
+          business?: string | null
+          capex_mo?: number | null
+          case_id: string
+          cash_signal?: string | null
+          cumul_cf_m12?: number | null
+          cumul_cf_m6?: number | null
+          data_date?: string
+          data_version?: string
+          debt_service_mo?: number | null
+          dso_days?: number | null
+          fcf_yield?: number | null
+          free_cf_mo?: number | null
+          mo_ebitda?: number | null
+          months_to_fcf?: number | null
+          net_cf_mo?: number | null
+          op_cf_mo?: number | null
+          sample_size?: number
+          source?: string
+          working_cap?: number | null
+        }
+        Update: {
+          annual_fcf?: number | null
+          business?: string | null
+          capex_mo?: number | null
+          case_id?: string
+          cash_signal?: string | null
+          cumul_cf_m12?: number | null
+          cumul_cf_m6?: number | null
+          data_date?: string
+          data_version?: string
+          debt_service_mo?: number | null
+          dso_days?: number | null
+          fcf_yield?: number | null
+          free_cf_mo?: number | null
+          mo_ebitda?: number | null
+          months_to_fcf?: number | null
+          net_cf_mo?: number | null
+          op_cf_mo?: number | null
+          sample_size?: number
+          source?: string
+          working_cap?: number | null
+        }
+        Relationships: []
+      }
+      analysis_dcf: {
+        Row: {
+          business: string | null
+          case_id: string
+          current_revenue: number | null
+          data_date: string
+          data_version: string
+          debt: number | null
+          enterprise_value: number | null
+          equity_value: number | null
+          ev_ebitda: number | null
+          ev_rev: number | null
+          fcf_yr1: number | null
+          fcf_yr2: number | null
+          fcf_yr3: number | null
+          fcf_yr4: number | null
+          fcf_yr5: number | null
+          pv_fcfs: number | null
+          sample_size: number
+          source: string
+          term_growth_g: number | null
+          terminal_value: number | null
+          valuation_grade: string | null
+          wacc: number | null
+        }
+        Insert: {
+          business?: string | null
+          case_id: string
+          current_revenue?: number | null
+          data_date?: string
+          data_version?: string
+          debt?: number | null
+          enterprise_value?: number | null
+          equity_value?: number | null
+          ev_ebitda?: number | null
+          ev_rev?: number | null
+          fcf_yr1?: number | null
+          fcf_yr2?: number | null
+          fcf_yr3?: number | null
+          fcf_yr4?: number | null
+          fcf_yr5?: number | null
+          pv_fcfs?: number | null
+          sample_size?: number
+          source?: string
+          term_growth_g?: number | null
+          terminal_value?: number | null
+          valuation_grade?: string | null
+          wacc?: number | null
+        }
+        Update: {
+          business?: string | null
+          case_id?: string
+          current_revenue?: number | null
+          data_date?: string
+          data_version?: string
+          debt?: number | null
+          enterprise_value?: number | null
+          equity_value?: number | null
+          ev_ebitda?: number | null
+          ev_rev?: number | null
+          fcf_yr1?: number | null
+          fcf_yr2?: number | null
+          fcf_yr3?: number | null
+          fcf_yr4?: number | null
+          fcf_yr5?: number | null
+          pv_fcfs?: number | null
+          sample_size?: number
+          source?: string
+          term_growth_g?: number | null
+          terminal_value?: number | null
+          valuation_grade?: string | null
+          wacc?: number | null
+        }
+        Relationships: []
+      }
+      analysis_dscr_credit: {
+        Row: {
+          annual_debt_svc: number | null
+          annual_noi: number | null
+          bad_debt_rev: number | null
+          business: string | null
+          case_id: string
+          credit_tier: string | null
+          current_debt: number | null
+          current_ratio: number | null
+          data_date: string
+          data_version: string
+          debt_equity: number | null
+          dscr: number | null
+          dscr_after_tax: number | null
+          dscr_vs_1_25_min: number | null
+          effective_tax_rate: number | null
+          invoice_terms_days: number | null
+          lender_signal: string | null
+          max_safe_ar: number | null
+          max_safe_debt: number | null
+          sample_size: number
+          source: string
+        }
+        Insert: {
+          annual_debt_svc?: number | null
+          annual_noi?: number | null
+          bad_debt_rev?: number | null
+          business?: string | null
+          case_id: string
+          credit_tier?: string | null
+          current_debt?: number | null
+          current_ratio?: number | null
+          data_date?: string
+          data_version?: string
+          debt_equity?: number | null
+          dscr?: number | null
+          dscr_after_tax?: number | null
+          dscr_vs_1_25_min?: number | null
+          effective_tax_rate?: number | null
+          invoice_terms_days?: number | null
+          lender_signal?: string | null
+          max_safe_ar?: number | null
+          max_safe_debt?: number | null
+          sample_size?: number
+          source?: string
+        }
+        Update: {
+          annual_debt_svc?: number | null
+          annual_noi?: number | null
+          bad_debt_rev?: number | null
+          business?: string | null
+          case_id?: string
+          credit_tier?: string | null
+          current_debt?: number | null
+          current_ratio?: number | null
+          data_date?: string
+          data_version?: string
+          debt_equity?: number | null
+          dscr?: number | null
+          dscr_after_tax?: number | null
+          dscr_vs_1_25_min?: number | null
+          effective_tax_rate?: number | null
+          invoice_terms_days?: number | null
+          lender_signal?: string | null
+          max_safe_ar?: number | null
+          max_safe_debt?: number | null
+          sample_size?: number
+          source?: string
+        }
+        Relationships: []
+      }
+      analysis_edge_cases: {
+        Row: {
+          business_idea: string | null
+          cac: number | null
+          cac_payback_mo: number | null
+          case_id: string
+          churn_mo: number | null
+          city: string | null
+          data_date: string
+          data_version: string
+          edge_case_note: string | null
+          gross_margin: number | null
+          industry: string | null
+          initial_inv: number | null
+          ltv: number | null
+          ltv_cac: number | null
+          mo_customers: number | null
+          mo_ebitda: number | null
+          mo_gross_profit: number | null
+          mo_op_costs: number | null
+          mo_revenue: number | null
+          net_margin: number | null
+          opex_rev: number | null
+          sample_size: number
+          source: string
+          tam_b: number | null
+          unit_price: number | null
+        }
+        Insert: {
+          business_idea?: string | null
+          cac?: number | null
+          cac_payback_mo?: number | null
+          case_id: string
+          churn_mo?: number | null
+          city?: string | null
+          data_date?: string
+          data_version?: string
+          edge_case_note?: string | null
+          gross_margin?: number | null
+          industry?: string | null
+          initial_inv?: number | null
+          ltv?: number | null
+          ltv_cac?: number | null
+          mo_customers?: number | null
+          mo_ebitda?: number | null
+          mo_gross_profit?: number | null
+          mo_op_costs?: number | null
+          mo_revenue?: number | null
+          net_margin?: number | null
+          opex_rev?: number | null
+          sample_size?: number
+          source?: string
+          tam_b?: number | null
+          unit_price?: number | null
+        }
+        Update: {
+          business_idea?: string | null
+          cac?: number | null
+          cac_payback_mo?: number | null
+          case_id?: string
+          churn_mo?: number | null
+          city?: string | null
+          data_date?: string
+          data_version?: string
+          edge_case_note?: string | null
+          gross_margin?: number | null
+          industry?: string | null
+          initial_inv?: number | null
+          ltv?: number | null
+          ltv_cac?: number | null
+          mo_customers?: number | null
+          mo_ebitda?: number | null
+          mo_gross_profit?: number | null
+          mo_op_costs?: number | null
+          mo_revenue?: number | null
+          net_margin?: number | null
+          opex_rev?: number | null
+          sample_size?: number
+          source?: string
+          tam_b?: number | null
+          unit_price?: number | null
+        }
+        Relationships: []
       }
       analysis_jobs: {
         Row: {
@@ -380,6 +830,384 @@ export type Database = {
           payload?: Json
           severity?: string
           user_id?: string | null
+        }
+        Relationships: []
+      }
+      analysis_monte_carlo: {
+        Row: {
+          business: string | null
+          case_id: string
+          data_date: string
+          data_version: string
+          growth_rate: number | null
+          mo_rev_base: number | null
+          p10_mo1: number | null
+          p10_mo12: number | null
+          p10_mo6: number | null
+          p50_mo1: number | null
+          p50_mo12: number | null
+          p50_mo6: number | null
+          p90_mo1: number | null
+          p90_mo12: number | null
+          p90_mo6: number | null
+          quantis_signal: string | null
+          rev_at_risk_p10_p50: number | null
+          sample_size: number
+          source: string
+          var: number | null
+          volatility: number | null
+        }
+        Insert: {
+          business?: string | null
+          case_id: string
+          data_date?: string
+          data_version?: string
+          growth_rate?: number | null
+          mo_rev_base?: number | null
+          p10_mo1?: number | null
+          p10_mo12?: number | null
+          p10_mo6?: number | null
+          p50_mo1?: number | null
+          p50_mo12?: number | null
+          p50_mo6?: number | null
+          p90_mo1?: number | null
+          p90_mo12?: number | null
+          p90_mo6?: number | null
+          quantis_signal?: string | null
+          rev_at_risk_p10_p50?: number | null
+          sample_size?: number
+          source?: string
+          var?: number | null
+          volatility?: number | null
+        }
+        Update: {
+          business?: string | null
+          case_id?: string
+          data_date?: string
+          data_version?: string
+          growth_rate?: number | null
+          mo_rev_base?: number | null
+          p10_mo1?: number | null
+          p10_mo12?: number | null
+          p10_mo6?: number | null
+          p50_mo1?: number | null
+          p50_mo12?: number | null
+          p50_mo6?: number | null
+          p90_mo1?: number | null
+          p90_mo12?: number | null
+          p90_mo6?: number | null
+          quantis_signal?: string | null
+          rev_at_risk_p10_p50?: number | null
+          sample_size?: number
+          source?: string
+          var?: number | null
+          volatility?: number | null
+        }
+        Relationships: []
+      }
+      analysis_pre_mortem: {
+        Row: {
+          business: string | null
+          case_id: string
+          composite_risk: number | null
+          data_date: string
+          data_version: string
+          failure_mode_1: string | null
+          failure_mode_2: string | null
+          failure_mode_3: string | null
+          i1: number | null
+          i2: number | null
+          i3: number | null
+          mitigation_priority: string | null
+          p1: number | null
+          p2: number | null
+          p3: number | null
+          sample_size: number
+          score1: number | null
+          score2: number | null
+          score3: number | null
+          source: string
+          survival_prob: number | null
+          time_horizon: string | null
+        }
+        Insert: {
+          business?: string | null
+          case_id: string
+          composite_risk?: number | null
+          data_date?: string
+          data_version?: string
+          failure_mode_1?: string | null
+          failure_mode_2?: string | null
+          failure_mode_3?: string | null
+          i1?: number | null
+          i2?: number | null
+          i3?: number | null
+          mitigation_priority?: string | null
+          p1?: number | null
+          p2?: number | null
+          p3?: number | null
+          sample_size?: number
+          score1?: number | null
+          score2?: number | null
+          score3?: number | null
+          source?: string
+          survival_prob?: number | null
+          time_horizon?: string | null
+        }
+        Update: {
+          business?: string | null
+          case_id?: string
+          composite_risk?: number | null
+          data_date?: string
+          data_version?: string
+          failure_mode_1?: string | null
+          failure_mode_2?: string | null
+          failure_mode_3?: string | null
+          i1?: number | null
+          i2?: number | null
+          i3?: number | null
+          mitigation_priority?: string | null
+          p1?: number | null
+          p2?: number | null
+          p3?: number | null
+          sample_size?: number
+          score1?: number | null
+          score2?: number | null
+          score3?: number | null
+          source?: string
+          survival_prob?: number | null
+          time_horizon?: string | null
+        }
+        Relationships: []
+      }
+      analysis_scenario: {
+        Row: {
+          base_ebitda_yr5: number | null
+          base_irr: number | null
+          base_npv: number | null
+          base_rev_yr5: number | null
+          bear_ebitda_yr5: number | null
+          bear_irr: number | null
+          bear_npv: number | null
+          bear_rev_yr5: number | null
+          bull_ebitda_yr5: number | null
+          bull_irr: number | null
+          bull_npv: number | null
+          bull_rev_yr5: number | null
+          business: string | null
+          case_id: string
+          data_date: string
+          data_version: string
+          npv_range: number | null
+          sample_size: number
+          scenario_grade: string | null
+          source: string
+          upside_downside: number | null
+          wacc: number | null
+        }
+        Insert: {
+          base_ebitda_yr5?: number | null
+          base_irr?: number | null
+          base_npv?: number | null
+          base_rev_yr5?: number | null
+          bear_ebitda_yr5?: number | null
+          bear_irr?: number | null
+          bear_npv?: number | null
+          bear_rev_yr5?: number | null
+          bull_ebitda_yr5?: number | null
+          bull_irr?: number | null
+          bull_npv?: number | null
+          bull_rev_yr5?: number | null
+          business?: string | null
+          case_id: string
+          data_date?: string
+          data_version?: string
+          npv_range?: number | null
+          sample_size?: number
+          scenario_grade?: string | null
+          source?: string
+          upside_downside?: number | null
+          wacc?: number | null
+        }
+        Update: {
+          base_ebitda_yr5?: number | null
+          base_irr?: number | null
+          base_npv?: number | null
+          base_rev_yr5?: number | null
+          bear_ebitda_yr5?: number | null
+          bear_irr?: number | null
+          bear_npv?: number | null
+          bear_rev_yr5?: number | null
+          bull_ebitda_yr5?: number | null
+          bull_irr?: number | null
+          bull_npv?: number | null
+          bull_rev_yr5?: number | null
+          business?: string | null
+          case_id?: string
+          data_date?: string
+          data_version?: string
+          npv_range?: number | null
+          sample_size?: number
+          scenario_grade?: string | null
+          source?: string
+          upside_downside?: number | null
+          wacc?: number | null
+        }
+        Relationships: []
+      }
+      analysis_tam_sam_som: {
+        Row: {
+          arpu_implied: number | null
+          bottoms_up_rev_yr1_m: number | null
+          bottoms_up_rev_yr3_m: number | null
+          business: string | null
+          case_id: string
+          data_date: string
+          data_version: string
+          industry: string | null
+          market_growth_yr: number | null
+          market_signal: string | null
+          penetration_needed: number | null
+          sam_m: number | null
+          sam_tam: number | null
+          sample_size: number
+          som_sam_yr1: number | null
+          som_sam_yr3: number | null
+          som_yr1_m: number | null
+          som_yr3_m: number | null
+          source: string
+          tam_b: number | null
+          tb_vs_bu_gap: string | null
+          total_users_in_tam: number | null
+        }
+        Insert: {
+          arpu_implied?: number | null
+          bottoms_up_rev_yr1_m?: number | null
+          bottoms_up_rev_yr3_m?: number | null
+          business?: string | null
+          case_id: string
+          data_date?: string
+          data_version?: string
+          industry?: string | null
+          market_growth_yr?: number | null
+          market_signal?: string | null
+          penetration_needed?: number | null
+          sam_m?: number | null
+          sam_tam?: number | null
+          sample_size?: number
+          som_sam_yr1?: number | null
+          som_sam_yr3?: number | null
+          som_yr1_m?: number | null
+          som_yr3_m?: number | null
+          source?: string
+          tam_b?: number | null
+          tb_vs_bu_gap?: string | null
+          total_users_in_tam?: number | null
+        }
+        Update: {
+          arpu_implied?: number | null
+          bottoms_up_rev_yr1_m?: number | null
+          bottoms_up_rev_yr3_m?: number | null
+          business?: string | null
+          case_id?: string
+          data_date?: string
+          data_version?: string
+          industry?: string | null
+          market_growth_yr?: number | null
+          market_signal?: string | null
+          penetration_needed?: number | null
+          sam_m?: number | null
+          sam_tam?: number | null
+          sample_size?: number
+          som_sam_yr1?: number | null
+          som_sam_yr3?: number | null
+          som_yr1_m?: number | null
+          som_yr3_m?: number | null
+          source?: string
+          tam_b?: number | null
+          tb_vs_bu_gap?: string | null
+          total_users_in_tam?: number | null
+        }
+        Relationships: []
+      }
+      analysis_unit_economics: {
+        Row: {
+          annual_churn: number | null
+          arpu: number | null
+          business: string | null
+          cac: number | null
+          cac_payback_mo: number | null
+          case_id: string
+          cohort_ltv_m12: number | null
+          cohort_ltv_m3: number | null
+          cohort_ltv_m6: number | null
+          data_date: string
+          data_version: string
+          gm: number | null
+          health_signal: string | null
+          ltv: number | null
+          ltv_cac: number | null
+          ltv_tier: string | null
+          magic_number: number | null
+          monthly_churn: number | null
+          n_12mo_retention: number | null
+          nrr_net_rev_ret: number | null
+          payback_ok: number | null
+          rule_of_40: number | null
+          sample_size: number
+          source: string
+        }
+        Insert: {
+          annual_churn?: number | null
+          arpu?: number | null
+          business?: string | null
+          cac?: number | null
+          cac_payback_mo?: number | null
+          case_id: string
+          cohort_ltv_m12?: number | null
+          cohort_ltv_m3?: number | null
+          cohort_ltv_m6?: number | null
+          data_date?: string
+          data_version?: string
+          gm?: number | null
+          health_signal?: string | null
+          ltv?: number | null
+          ltv_cac?: number | null
+          ltv_tier?: string | null
+          magic_number?: number | null
+          monthly_churn?: number | null
+          n_12mo_retention?: number | null
+          nrr_net_rev_ret?: number | null
+          payback_ok?: number | null
+          rule_of_40?: number | null
+          sample_size?: number
+          source?: string
+        }
+        Update: {
+          annual_churn?: number | null
+          arpu?: number | null
+          business?: string | null
+          cac?: number | null
+          cac_payback_mo?: number | null
+          case_id?: string
+          cohort_ltv_m12?: number | null
+          cohort_ltv_m3?: number | null
+          cohort_ltv_m6?: number | null
+          data_date?: string
+          data_version?: string
+          gm?: number | null
+          health_signal?: string | null
+          ltv?: number | null
+          ltv_cac?: number | null
+          ltv_tier?: string | null
+          magic_number?: number | null
+          monthly_churn?: number | null
+          n_12mo_retention?: number | null
+          nrr_net_rev_ret?: number | null
+          payback_ok?: number | null
+          rule_of_40?: number | null
+          sample_size?: number
+          source?: string
         }
         Relationships: []
       }
@@ -4288,6 +5116,7 @@ export type Database = {
         }[]
       }
       get_ai_learning_metrics: { Args: never; Returns: Json }
+      get_analysis_case_grid: { Args: { p_case_id: string }; Returns: Json }
       get_daily_signups: {
         Args: { days_back?: number }
         Returns: {
