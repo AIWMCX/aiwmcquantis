@@ -13,8 +13,8 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { tierGate } from '../_shared/tier-gate.ts';
 import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
-const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-flash';
 
 interface CapacityRequestBody {
@@ -112,18 +112,8 @@ serve(async (req) => {
       .filter(Boolean)
       .join('\n');
 
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableKey) {
-      return json({ success: false, error: 'CONFIG', message: 'AI gateway key missing.' }, 500);
-    }
-
-    const aiResp = await fetch(LOVABLE_AI_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const aiResult = await aiCall(
+      {
         model: body.model ?? DEFAULT_MODEL,
         messages: [
           { role: 'system', content: system },
@@ -133,26 +123,20 @@ serve(async (req) => {
         top_p: budget.top_p,
         max_tokens: 2_400,
         response_format: { type: 'json_object' },
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (aiResp.status === 429) {
-      return json({ success: false, error: 'RATE_LIMIT_EXCEEDED', message: 'AI rate-limited.' }, 429);
+      },
+      {
+        task: 'invoice-capacity-check',
+        timeoutMs: 30_000,
+        injectUniversalRules: false,
+        userId: gate.userId,
+        requestId,
+        metadata: { tier: gate.tier, endpoint: 'TOOLS_CAPACITY_CHECK' },
+      },
+    );
+    if (!aiResult.ok) {
+      return json({ success: false, error: aiResult.error, message: aiResult.message }, aiResult.status);
     }
-    if (aiResp.status === 402) {
-      return json(
-        { success: false, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace out of credits.' },
-        402,
-      );
-    }
-    if (!aiResp.ok) {
-      const t = await aiResp.text().catch(() => '');
-      console.error('[invoice-capacity-check] AI error', aiResp.status, t);
-      return json({ success: false, error: 'AI_ERROR', message: 'Capacity analysis failed.' }, 502);
-    }
-
-    const aiJson = await aiResp.json();
+    const aiJson = aiResult.data as { choices?: Array<{ message?: { content?: string } }> };
     const rawContent = aiJson.choices?.[0]?.message?.content ?? '{}';
     let parsed: Record<string, unknown> = {};
     try {
