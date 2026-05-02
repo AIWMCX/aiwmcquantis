@@ -41,16 +41,25 @@ function parseError(err: Error): ParsedError {
   const codeMatch = msg.match(/^([A-Z][A-Z0-9_]{2,})\s*[:|]/);
   const explicitCode = codeMatch?.[1];
 
+  // Extract retry_after=N (seconds) and upgrade_url=… added by analysisApi.
+  const retryAfterMatch = msg.match(/retry_after=(\d+)/);
+  const retryAfterSeconds = retryAfterMatch ? Number(retryAfterMatch[1]) : undefined;
+  const upgradeMatch = msg.match(/upgrade_url=([^\s|]+)/);
+  const upgradeUrl = upgradeMatch?.[1];
+
   if (/RATE_LIMIT/i.test(msg) || status === 429) {
     return {
       code: explicitCode ?? 'RATE_LIMIT_EXCEEDED',
       status: status ?? 429,
-      title: 'You\'ve hit the analysis rate limit',
+      title: "You've hit the analysis rate limit",
       guidance:
-        'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
+        retryAfterSeconds
+          ? `Please wait before retrying. The retry button will re-enable automatically.`
+          : 'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
       Icon: Clock,
       tone: 'warning',
       isTransient: true,
+      retryAfterSeconds,
     };
   }
 
@@ -64,6 +73,7 @@ function parseError(err: Error): ParsedError {
       Icon: CreditCard,
       tone: 'warning',
       isTransient: false,
+      upgradeUrl: upgradeUrl ?? '/pricing',
     };
   }
 
