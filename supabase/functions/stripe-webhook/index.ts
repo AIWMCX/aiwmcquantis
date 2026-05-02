@@ -361,6 +361,23 @@ serve(async (req) => {
         const result = await upsertSubscription(subscriptionData);
         if (result.success) {
           log.info(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
+
+          // ISSUE-004 — Provision PRO immediately on checkout completion so
+          // the buyer gets api_keys/white-label without waiting for invoice.paid.
+          if (plan === "pro") {
+            try {
+              const { error: provErr } = await supabase.rpc("provision_pro_features", {
+                p_user_id: userId,
+                p_period_end: subscriptionData.current_period_end,
+                p_stripe_customer_id: customerId,
+                p_stripe_subscription_id: subscriptionId,
+              });
+              if (provErr) log.error(`[${requestId}] provision_pro_features (checkout) error:`, provErr.message);
+              else log.info(`[${requestId}] ✓ PRO features provisioned at checkout for ${userId}`);
+            } catch (provErr) {
+              log.error(`[${requestId}] PRO provisioning crashed (checkout):`, provErr instanceof Error ? provErr.message : String(provErr));
+            }
+          }
         } else {
           log.error(`[${requestId}] FAILED to create subscription:`, result.error);
         }
@@ -423,6 +440,28 @@ serve(async (req) => {
               requestId
             );
             log.info(`[${requestId}] SUCCESS: Subscription updated by subscription_id`);
+
+            // ISSUE-004 — Auto-provision PRO entitlements when the subscription
+            // transitions to (or stays on) the PRO plan with active/trialing status.
+            // RPC is idempotent so repeated `customer.subscription.updated` fires
+            // are safe and the call is a no-op when nothing has changed.
+            if (plan === "pro" && (status === "active" || status === "trialing")) {
+              try {
+                const { error: provErr } = await supabase.rpc("provision_pro_features", {
+                  p_user_id: existing.user_id,
+                  p_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  p_stripe_customer_id: (subscription as any).customer as string,
+                  p_stripe_subscription_id: (subscription as any).id,
+                });
+                if (provErr) {
+                  log.error(`[${requestId}] provision_pro_features (updated) error:`, provErr.message);
+                } else {
+                  log.info(`[${requestId}] ✓ PRO features (re)provisioned for ${existing.user_id}`);
+                }
+              } catch (provErr) {
+                log.error(`[${requestId}] PRO provisioning crashed (updated):`, provErr instanceof Error ? provErr.message : String(provErr));
+              }
+            }
           } else {
             // Fallback: Find user by customer email and upsert
             log.info(`[${requestId}] Subscription not found by ID, attempting email fallback...`);

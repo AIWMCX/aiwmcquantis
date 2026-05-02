@@ -198,8 +198,21 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
             message = 'This exact analysis was already performed recently. Try a different idea or location.';
           }
           
-          throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
+          throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
         }
+
+        // Spec §09.2 — explicit 402 from edge transport (Quota / Tier gate)
+        if (status === 402) {
+          let body: any = {};
+          try {
+            const rb = error.context?.body;
+            body = typeof rb === 'string' ? JSON.parse(rb) : (rb || {});
+          } catch {}
+          const msg = body.message || 'Upgrade required to continue.';
+          const upgradeUrl = body.upgrade_url || '/pricing';
+          throw new Error(`TIER_GATE: ${msg} | upgrade_url=${upgradeUrl}`);
+        }
+
         throw new Error(error.message || 'Failed to invoke analysis function');
       }
 
@@ -240,7 +253,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
           message = 'This exact analysis was already performed recently. Try a different idea or location.';
         }
         
-        throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
+        throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
       }
 
       // Spec §09.2 — quota / tier-gate envelope returned with HTTP 402.

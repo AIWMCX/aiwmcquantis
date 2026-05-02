@@ -9,6 +9,7 @@
 import React from 'react';
 import { AlertTriangle, RefreshCw, Wifi, Clock, ServerCrash, ShieldAlert, CreditCard } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { trackError } from '@/lib/analytics';
 
 export interface AnalysisErrorPanelProps {
   error: Error;
@@ -25,6 +26,8 @@ interface ParsedError {
   Icon: React.ElementType;
   tone: 'destructive' | 'warning' | 'info';
   isTransient: boolean;
+  retryAfterSeconds?: number;
+  upgradeUrl?: string;
 }
 
 function parseError(err: Error): ParsedError {
@@ -38,16 +41,25 @@ function parseError(err: Error): ParsedError {
   const codeMatch = msg.match(/^([A-Z][A-Z0-9_]{2,})\s*[:|]/);
   const explicitCode = codeMatch?.[1];
 
+  // Extract retry_after=N (seconds) and upgrade_url=… added by analysisApi.
+  const retryAfterMatch = msg.match(/retry_after=(\d+)/);
+  const retryAfterSeconds = retryAfterMatch ? Number(retryAfterMatch[1]) : undefined;
+  const upgradeMatch = msg.match(/upgrade_url=([^\s|]+)/);
+  const upgradeUrl = upgradeMatch?.[1];
+
   if (/RATE_LIMIT/i.test(msg) || status === 429) {
     return {
       code: explicitCode ?? 'RATE_LIMIT_EXCEEDED',
       status: status ?? 429,
-      title: 'You\'ve hit the analysis rate limit',
+      title: "You've hit the analysis rate limit",
       guidance:
-        'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
+        retryAfterSeconds
+          ? `Please wait before retrying. The retry button will re-enable automatically.`
+          : 'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
       Icon: Clock,
       tone: 'warning',
       isTransient: true,
+      retryAfterSeconds,
     };
   }
 
@@ -61,6 +73,7 @@ function parseError(err: Error): ParsedError {
       Icon: CreditCard,
       tone: 'warning',
       isTransient: false,
+      upgradeUrl: upgradeUrl ?? '/pricing',
     };
   }
 
@@ -153,6 +166,37 @@ export function AnalysisErrorPanel({
   const parsed = React.useMemo(() => parseError(error), [error]);
   const { Icon } = parsed;
 
+  // Live retry-after countdown (seconds). Decrements once a second; the
+  // Retry button is disabled until it hits zero.
+  const [secondsLeft, setSecondsLeft] = React.useState<number>(
+    parsed.retryAfterSeconds ?? 0
+  );
+  React.useEffect(() => {
+    setSecondsLeft(parsed.retryAfterSeconds ?? 0);
+  }, [parsed.retryAfterSeconds]);
+  React.useEffect(() => {
+    if (secondsLeft <= 0) return;
+    const t = window.setInterval(() => {
+      setSecondsLeft((s) => (s > 0 ? s - 1 : 0));
+    }, 1000);
+    return () => window.clearInterval(t);
+  }, [secondsLeft]);
+
+  // Consistent telemetry — fire once per distinct (code, message) pair.
+  const trackedRef = React.useRef<string | null>(null);
+  React.useEffect(() => {
+    const key = `${parsed.code}:${error.message?.slice(0, 120) ?? ''}`;
+    if (trackedRef.current === key) return;
+    trackedRef.current = key;
+    try {
+      trackError(parsed.code, error.message?.slice(0, 240) ?? parsed.title);
+    } catch {
+      /* analytics must never break UI */
+    }
+  }, [parsed.code, parsed.title, error.message]);
+
+  const retryDisabled = secondsLeft > 0;
+
   return (
     <div
       role="alert"
@@ -170,7 +214,14 @@ export function AnalysisErrorPanel({
             </span>
           </div>
 
-          <p className="mt-1.5 text-sm text-muted-foreground">{parsed.guidance}</p>
+          <p className="mt-1.5 text-sm text-muted-foreground">
+            {parsed.guidance}
+            {retryDisabled && (
+              <span className="ml-1 font-mono text-foreground" aria-live="polite">
+                ({secondsLeft}s)
+              </span>
+            )}
+          </p>
 
           {/* Raw message — collapsed by default, useful for support tickets. */}
           {error.message && error.message !== parsed.title && (
@@ -184,16 +235,30 @@ export function AnalysisErrorPanel({
             </details>
           )}
 
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
             {onRetry && parsed.isTransient && (
               <Button
                 type="button"
                 size="sm"
                 variant="outline"
                 onClick={onRetry}
+                disabled={retryDisabled}
                 className="gap-1.5"
               >
-                <RefreshCw className="w-3.5 h-3.5" /> Retry
+                <RefreshCw className={`w-3.5 h-3.5 ${retryDisabled ? '' : ''}`} />
+                {retryDisabled ? `Retry in ${secondsLeft}s` : 'Retry'}
+              </Button>
+            )}
+            {parsed.upgradeUrl && (
+              <Button
+                type="button"
+                size="sm"
+                variant="default"
+                onClick={() => {
+                  window.location.assign(parsed.upgradeUrl!);
+                }}
+              >
+                Upgrade to Plus
               </Button>
             )}
             {onDismiss && (
