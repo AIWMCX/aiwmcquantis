@@ -200,6 +200,32 @@ export function useSubscription(): SubscriptionData {
     return () => window.removeEventListener('focus', handleFocus);
   }, [user, loading, fetchData]);
 
+  // ISSUE-004 — Realtime listener: react instantly when the Stripe webhook
+  // flips plan_id (checkout → 'pro', grace expired → 'free', etc.) so the
+  // user sees Pro features unlock without a reload.
+  useEffect(() => {
+    if (!user) return;
+    const channel = supabase
+      .channel(`subscription:${user.id}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'subscriptions',
+          filter: `user_id=eq.${user.id}`,
+        },
+        (payload) => {
+          logger.info('[Subscription realtime] change received', { metadata: { event: payload.eventType } });
+          fetchData();
+        }
+      )
+      .subscribe();
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, fetchData]);
+
   // Computed values — graceful fallback to free tier on any error.
   // Master Spec v1.0 supports FREE | PLUS | PRO (enterprise → PRO).
   const planId = subscription?.plan_id || 'free';
