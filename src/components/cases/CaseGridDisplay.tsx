@@ -58,12 +58,12 @@ function BlockCard({ spec, data }: { spec: BlockSpec; data: Record<string, unkno
         <h3 className="font-semibold text-sm text-foreground">{spec.title}</h3>
         <p className="text-[11px] text-muted-foreground">{spec.description}</p>
       </header>
-      <dl className="grid grid-cols-2 gap-x-3 gap-y-1.5 text-[12px]">
+      <dl className="grid grid-cols-[1fr_auto] gap-x-3 gap-y-1.5 text-[12px]">
         {entries.map(([k, v]) => (
-          <React.Fragment key={k}>
+          <div key={k} className="contents">
             <dt className="text-muted-foreground truncate">{fmtKey(k)}</dt>
             <dd className="font-mono text-foreground text-right">{fmtVal(v)}</dd>
-          </React.Fragment>
+          </div>
         ))}
       </dl>
     </div>
