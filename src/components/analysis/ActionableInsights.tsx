@@ -260,7 +260,7 @@ export function ActionableInsights({ insights }: ActionableInsightsProps) {
     );
   }
   const { summary } = insights;
-  const healthKey = (summary.overall_health && healthConfig[healthKey]) ? summary.overall_health : 'fair';
+  const healthKey = (summary.overall_health && healthConfig[summary.overall_health as keyof typeof healthConfig]) ? summary.overall_health : 'fair';
   const HealthIcon = healthConfig[healthKey].icon;
   
   return (
