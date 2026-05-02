@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 /* ─── 100 BUSINESS CASE SEEDS ───
    Each seed provides a specific, financially-calculable concept with realistic
@@ -276,8 +277,7 @@ serve(async (req) => {
     }
 
     const { industry } = await req.json();
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
 
     const seed = getRandomSeed(industry);
     const r = seed.ranges;
@@ -311,97 +311,68 @@ DIFFERENTIATION RULES:
 
 Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousands).`;
 
-    const response = await fetch(
-      "https://ai.gateway.lovable.dev/v1/chat/completions",
+    const aiResult = await aiCall(
       {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${LOVABLE_API_KEY}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          model: "google/gemini-3-flash-preview",
-          messages: [
-            { role: "system", content: systemPrompt },
-            {
-              role: "user",
-              content: `Generate a unique, investment-ready ${industry || seed.industry} business idea. Make it specific enough that a founder could pitch it tomorrow. Include precise financial projections that pass reconciliation checks.`,
-            },
-          ],
-          tools: [
-            {
-              type: "function",
-              function: {
-                name: "suggest_idea",
-                description: "Return a specific, financially-validated business idea",
-                parameters: {
-                  type: "object",
-                  properties: {
-                    idea: {
-                      type: "string",
-                      description: "One-sentence specific concept with target customer and location context",
-                    },
-                    differentiator: {
-                      type: "string",
-                      description: "The specific financial moat, competitive edge, or market inefficiency exploited",
-                    },
-                    targetCustomer: {
-                      type: "string",
-                      description: "Specific customer persona (age, income, pain point)",
-                    },
-                    startingCapital: { type: "number", description: "Total capital needed to launch (USD)" },
-                    pricePerCustomer: { type: "number", description: "Average transaction value (USD)" },
-                    customersAtLaunch: { type: "number", description: "Realistic month-1 customer count" },
-                    monthlyOpCosts: { type: "number", description: "Total monthly operating expenses (USD)" },
-                    estimatedBreakEven: { type: "number", description: "Months to reach profitability" },
-                    estimatedRevM12: { type: "number", description: "Projected monthly revenue at month 12 (USD)" },
-                    grossMarginPct: { type: "number", description: "Gross margin percentage (0-100)" },
-                    riskNote: {
-                      type: "string",
-                      description: "Primary risk factor that could cause failure",
-                    },
-                    mitigationStrategy: {
-                      type: "string",
-                      description: "How to mitigate the primary risk",
-                    },
-                  },
-                  required: [
-                    "idea", "differentiator", "targetCustomer",
-                    "startingCapital", "pricePerCustomer", "customersAtLaunch",
-                    "monthlyOpCosts", "estimatedBreakEven", "estimatedRevM12",
-                    "grossMarginPct", "riskNote", "mitigationStrategy",
-                  ],
-                  additionalProperties: false,
+        model: "google/gemini-3-flash-preview",
+        messages: [
+          { role: "system", content: systemPrompt },
+          {
+            role: "user",
+            content: `Generate a unique, investment-ready ${industry || seed.industry} business idea. Make it specific enough that a founder could pitch it tomorrow. Include precise financial projections that pass reconciliation checks.`,
+          },
+        ],
+        tools: [
+          {
+            type: "function",
+            function: {
+              name: "suggest_idea",
+              description: "Return a specific, financially-validated business idea",
+              parameters: {
+                type: "object",
+                properties: {
+                  idea: { type: "string", description: "One-sentence specific concept with target customer and location context" },
+                  differentiator: { type: "string", description: "The specific financial moat, competitive edge, or market inefficiency exploited" },
+                  targetCustomer: { type: "string", description: "Specific customer persona (age, income, pain point)" },
+                  startingCapital: { type: "number", description: "Total capital needed to launch (USD)" },
+                  pricePerCustomer: { type: "number", description: "Average transaction value (USD)" },
+                  customersAtLaunch: { type: "number", description: "Realistic month-1 customer count" },
+                  monthlyOpCosts: { type: "number", description: "Total monthly operating expenses (USD)" },
+                  estimatedBreakEven: { type: "number", description: "Months to reach profitability" },
+                  estimatedRevM12: { type: "number", description: "Projected monthly revenue at month 12 (USD)" },
+                  grossMarginPct: { type: "number", description: "Gross margin percentage (0-100)" },
+                  riskNote: { type: "string", description: "Primary risk factor that could cause failure" },
+                  mitigationStrategy: { type: "string", description: "How to mitigate the primary risk" },
                 },
+                required: [
+                  "idea", "differentiator", "targetCustomer",
+                  "startingCapital", "pricePerCustomer", "customersAtLaunch",
+                  "monthlyOpCosts", "estimatedBreakEven", "estimatedRevM12",
+                  "grossMarginPct", "riskNote", "mitigationStrategy",
+                ],
+                additionalProperties: false,
               },
             },
-          ],
-          tool_choice: { type: "function", function: { name: "suggest_idea" } },
-        }),
-      }
+          },
+        ],
+        tool_choice: { type: "function", function: { name: "suggest_idea" } },
+      },
+      { task: 'generate-idea', metadata: { industry: industry || seed.industry } },
     );
 
-    if (!response.ok) {
-      const status = response.status;
-      if (status === 429) {
-        return new Response(
-          JSON.stringify({ error: "Rate limit exceeded. Try again shortly." }),
-          { status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      if (status === 402) {
-        return new Response(
-          JSON.stringify({ error: "Credits exhausted. Please add funds in Settings > Workspace > Usage." }),
-          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      const t = await response.text();
-      log.error("AI gateway error:", status, t);
-      throw new Error("AI gateway error");
+    if (!aiResult.ok) {
+      log.error("AI gateway error:", aiResult.status, aiResult.error);
+      const userMsg =
+        aiResult.status === 429 ? "Rate limit exceeded. Try again shortly." :
+        aiResult.status === 402 ? "Credits exhausted. Please add funds in Settings > Workspace > Usage." :
+        aiResult.message;
+      return new Response(
+        JSON.stringify({ error: userMsg, code: aiResult.error }),
+        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    const data = await response.json();
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+    const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
+    const toolCall = choices?.[0]?.message?.tool_calls?.[0];
     if (!toolCall) throw new Error("No tool call in response");
 
     const result = JSON.parse(toolCall.function.arguments);

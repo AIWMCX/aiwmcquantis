@@ -4,6 +4,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.50.0";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 type SectionType =
   | 'executive_summary'
@@ -279,13 +280,7 @@ serve(async (req) => {
       );
     }
 
-    const aiKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!aiKey) {
-      return new Response(
-        JSON.stringify({ error: 'AI service is not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+
 
     const basePrompt = SECTION_PROMPTS[section_type](context);
     const prompt = current_content
@@ -296,13 +291,8 @@ serve(async (req) => {
     const safeCount = Math.max(1, Math.min(Number(count) || 3, 3));
 
     for (let i = 0; i < safeCount; i++) {
-      const response = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${aiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
+      const result = await aiCall(
+        {
           model: 'google/gemini-3-flash-preview',
           messages: [
             {
@@ -316,14 +306,14 @@ serve(async (req) => {
           ],
           max_tokens: 800,
           temperature: 0.65 + (i * 0.1),
-        }),
-      });
+        },
+        { task: 'generate-document-content', userId: user.id, metadata: { section_type, variation: i + 1 } },
+      );
 
-      if (!response.ok) {
-        const errorText = await response.text();
-        log.error(`[generate-document-content] AI API error ${response.status} for suggestion ${i + 1}:`, errorText);
+      if (!result.ok) {
+        log.error(`[generate-document-content] AI error ${result.status} for suggestion ${i + 1}: ${result.error}`);
 
-        if (response.status === 429) {
+        if (result.status === 429) {
           return new Response(
             JSON.stringify({
               error: 'AI suggestion generation is temporarily rate-limited. Please retry in a moment.',
@@ -333,7 +323,7 @@ serve(async (req) => {
           );
         }
 
-        if (response.status === 402) {
+        if (result.status === 402) {
           return new Response(
             JSON.stringify({
               error: 'AI credits are currently unavailable. Please top up workspace usage and retry.',
@@ -346,8 +336,8 @@ serve(async (req) => {
         continue;
       }
 
-      const result = await response.json();
-      const content = result.choices?.[0]?.message?.content?.trim();
+      const choices = result.data.choices as Array<{ message?: { content?: string } }> | undefined;
+      const content = choices?.[0]?.message?.content?.trim();
       if (content) suggestions.push(content);
     }
 

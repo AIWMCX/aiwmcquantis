@@ -84,6 +84,7 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 import { getRequestId, requestIdHeader } from "../_shared/request-id.ts";
 
 import { createLogger } from '../_shared/logger.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 // Module-scope logger for helpers defined outside the request handler.
 // Per-request handlers should still create their own logger via createLogger(...)
@@ -3221,8 +3222,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info('Merged inputs:', mergedFinancialInputs);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    if (!Deno.env.get("LOVABLE_API_KEY")) {
       return new Response(
         JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -3512,48 +3512,45 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const AI_TIMEOUT_MS = 25000; // 25 seconds - fast fail for responsive UX
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
-    let response: Response | null = null;
+    let response: { ok: true; data: Record<string, unknown> } | null = null;
     let lastError: string | null = null;
-    
+    let lastStatus: number | null = null;
+
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         log.info(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-        
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+
+        const aiResult = await aiCall(
+          {
             model: "openai/gpt-5-mini",
             messages: [{ role: "user", content: prompt }],
             tools: [analysisToolSchema],
             tool_choice: { type: "function", function: { name: "submit_analysis" } },
-          }),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
+          },
+          {
+            task: 'analyze-business',
+            timeoutMs: AI_TIMEOUT_MS,
+            requestId: reqId,
+            userId: userId,
+            metadata: { attempt, industry: detectedIndustry.name },
+          },
+        );
+
+        if (aiResult.ok) {
+          response = { ok: true, data: aiResult.data };
           log.info(`AI request succeeded on attempt ${attempt}`);
           break;
         }
-        
-        const errorText = await response.text();
-        lastError = `HTTP ${response.status}: ${errorText}`;
+
+        lastStatus = aiResult.status;
+        lastError = `${aiResult.error}: ${aiResult.message}`;
         log.error(`AI error on attempt ${attempt}: ${lastError}`);
-        
-        // Don't retry on rate limit or auth errors
-        if (response.status === 429 || response.status === 401 || response.status === 403) {
+
+        // Don't retry on rate limit / credits / config
+        if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') {
           break;
         }
-        
-        // Short delay before retry
+
         if (attempt < MAX_RETRIES) {
           log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
@@ -3561,14 +3558,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
         log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
-        
-        if (lastError.includes('abort')) {
-          lastError = `Request timed out after ${AI_TIMEOUT_MS / 1000} seconds`;
-        }
-        
-        // Short delay before retry - fail fast to fallback
         if (attempt < MAX_RETRIES) {
-          log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       }
@@ -3579,21 +3569,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let rawResult: any;
     let usedFallback = false;
     
-    if (!response || !response.ok) {
-      log.info(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
+    if (!response) {
+      log.info(`All ${MAX_RETRIES} AI attempts failed. Last status=${lastStatus} error=${lastError}`);
       log.info("Generating deterministic fallback analysis...");
-      
-      // External AI errors must never leave the user without an analysis.
-      // Rate limits/auth/provider outages degrade to deterministic fallback.
-      if (response?.status === 429) {
+
+      if (lastStatus === 429) {
         log.warn("AI service rate-limited; using deterministic fallback instead of failing the analysis");
       }
-      
-      if (response?.status === 401 || response?.status === 403) {
-        log.error("AI service authentication failed; using deterministic fallback instead of failing the analysis");
-      }
-      
-      // Generate deterministic fallback for all other failures (503, timeout, etc.)
+
       rawResult = generateDeterministicFallbackResult(
         idea_clean,
         location_clean,
@@ -3605,11 +3588,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.info("Deterministic fallback generated successfully");
     } else {
       // AI succeeded - parse response
-      const aiResponse = await response.json();
+      const aiResponse = response.data;
       log.info("AI Response received");
 
-      if (aiResponse.error) {
-        log.info("AI returned error, using fallback:", JSON.stringify(aiResponse.error));
+      const choices = aiResponse.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
+      const toolCall = choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        log.info("No tool call in AI response, using fallback");
         rawResult = generateDeterministicFallbackResult(
           idea_clean,
           location_clean,
@@ -3619,9 +3604,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
         usedFallback = true;
       } else {
-        const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-        if (!toolCall) {
-          log.info("No tool call in AI response, using fallback");
+        try {
+          rawResult = JSON.parse(toolCall.function.arguments);
+        } catch (e) {
+          log.info("Failed to parse AI response, using fallback:", e);
           rawResult = generateDeterministicFallbackResult(
             idea_clean,
             location_clean,
@@ -3630,20 +3616,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             mergedFinancialInputs
           );
           usedFallback = true;
-        } else {
-          try {
-            rawResult = JSON.parse(toolCall.function.arguments);
-          } catch (e) {
-            log.info("Failed to parse AI response, using fallback:", e);
-            rawResult = generateDeterministicFallbackResult(
-              idea_clean,
-              location_clean,
-              detectedIndustry,
-              locationMultipliers,
-              mergedFinancialInputs
-            );
-            usedFallback = true;
-          }
         }
       }
     }

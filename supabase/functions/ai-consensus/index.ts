@@ -3,8 +3,8 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
-const AI_GATEWAY = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const MODEL_GPT = "openai/gpt-5-mini";
 const MODEL_GEMINI = "google/gemini-3-flash-preview";
 const MODEL_TIMEOUT_MS = 25_000;
@@ -22,100 +22,76 @@ interface ModelCallResult {
 const SYSTEM_PROMPT = `You are a precision financial analysis engine. Respond ONLY with valid JSON matching the provided schema. No prose, no markdown, no code blocks. Every numeric value must be accompanied by a confidence field (0–100). If data is insufficient for a calculation, return null for that field and include an 'insufficient_reason' string.`;
 
 async function callModel(
-  apiKey: string,
   model: string,
   modelId: "gpt5-mini" | "gemini",
   prompt: string,
-  schema: Record<string, unknown>
+  schema: Record<string, unknown>,
+  reqCtx: { reqId: string }
 ): Promise<ModelCallResult> {
   const start = Date.now();
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), MODEL_TIMEOUT_MS);
 
-  try {
-    const toolDef = {
-      type: "function" as const,
-      function: {
-        name: "analysis_output",
-        description: "Return structured analysis matching the provided schema.",
-        parameters: schema,
-      },
-    };
+  const toolDef = {
+    type: "function" as const,
+    function: {
+      name: "analysis_output",
+      description: "Return structured analysis matching the provided schema.",
+      parameters: schema,
+    },
+  };
 
-    const response = await fetch(AI_GATEWAY, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${apiKey}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: SYSTEM_PROMPT },
-          { role: "user", content: prompt },
-        ],
-        tools: [toolDef],
-        tool_choice: { type: "function", function: { name: "analysis_output" } },
-      }),
-      signal: controller.signal,
-    });
+  const result = await aiCall(
+    {
+      model,
+      messages: [
+        { role: "system", content: SYSTEM_PROMPT },
+        { role: "user", content: prompt },
+      ],
+      tools: [toolDef],
+      tool_choice: { type: "function", function: { name: "analysis_output" } },
+    },
+    { task: 'ai-consensus', timeoutMs: MODEL_TIMEOUT_MS, requestId: reqCtx.reqId, metadata: { modelId } },
+  );
 
-    clearTimeout(timeout);
-
-    if (!response.ok) {
-      const text = await response.text();
-      throw new Error(`${model} returned ${response.status}: ${text}`);
-    }
-
-    const data = await response.json();
-    const latencyMs = Date.now() - start;
-
-    // Extract tool call result
-    const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
-    let parsedData: Record<string, unknown> = {};
-    let rawOutput = "";
-
-    if (toolCall?.function?.arguments) {
-      rawOutput = toolCall.function.arguments;
-      try {
-        parsedData = JSON.parse(rawOutput);
-      } catch {
-        // Fallback: try message content
-        const content = data.choices?.[0]?.message?.content || "";
-        rawOutput = content;
-        try {
-          parsedData = JSON.parse(content);
-        } catch {
-          parsedData = {};
-        }
-      }
-    } else {
-      // No tool call, try content directly
-      const content = data.choices?.[0]?.message?.content || "";
-      rawOutput = content;
-      try {
-        parsedData = JSON.parse(content);
-      } catch {
-        parsedData = {};
-      }
-    }
-
-    const tokensUsed =
-      (data.usage?.prompt_tokens || 0) + (data.usage?.completion_tokens || 0);
-
-    return {
-      modelId,
-      rawOutput,
-      parsedData,
-      confidence: typeof parsedData.confidence === "number" ? parsedData.confidence : 70,
-      latencyMs,
-      tokensUsed,
-      timestamp: new Date().toISOString(),
-    };
-  } catch (err) {
-    clearTimeout(timeout);
-    throw err;
+  if (!result.ok) {
+    throw new Error(`${model} returned ${result.status}: ${result.error} ${result.message}`);
   }
+
+  const data = result.data;
+  const latencyMs = Date.now() - start;
+
+  // Extract tool call result
+  const choices = data.choices as Array<{ message?: { tool_calls?: Array<{ function?: { arguments?: string } }>; content?: string } }> | undefined;
+  const toolCall = choices?.[0]?.message?.tool_calls?.[0];
+  let parsedData: Record<string, unknown> = {};
+  let rawOutput = "";
+
+  if (toolCall?.function?.arguments) {
+    rawOutput = toolCall.function.arguments;
+    try {
+      parsedData = JSON.parse(rawOutput);
+    } catch {
+      const content = choices?.[0]?.message?.content || "";
+      rawOutput = content;
+      try { parsedData = JSON.parse(content); } catch { parsedData = {}; }
+    }
+  } else {
+    const content = choices?.[0]?.message?.content || "";
+    rawOutput = content;
+    try { parsedData = JSON.parse(content); } catch { parsedData = {}; }
+  }
+
+  const usage = (data.usage ?? {}) as { prompt_tokens?: number; completion_tokens?: number };
+  const tokensUsed = (usage.prompt_tokens || 0) + (usage.completion_tokens || 0);
+
+  return {
+    modelId,
+    rawOutput,
+    parsedData,
+    confidence: typeof parsedData.confidence === "number" ? parsedData.confidence : 70,
+    latencyMs,
+    tokensUsed,
+    timestamp: new Date().toISOString(),
+  };
 }
 
 /**
@@ -213,11 +189,6 @@ serve(async (req) => {
   }
 
   try {
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
-      throw new Error("LOVABLE_API_KEY is not configured");
-    }
-
     const { prompt, schema, options } = await req.json();
 
     if (!prompt || !schema) {
@@ -234,24 +205,20 @@ serve(async (req) => {
     let geminiResult: ModelCallResult | null = null;
 
     if (forceModel === "gpt") {
-      gptResult = await callModel(LOVABLE_API_KEY, MODEL_GPT, "gpt5-mini", prompt, schema);
+      gptResult = await callModel(MODEL_GPT, "gpt5-mini", prompt, schema, { reqId });
       geminiResult = { ...gptResult, modelId: "gemini", confidence: 0, rawOutput: "", parsedData: {} };
     } else if (forceModel === "gemini") {
-      geminiResult = await callModel(LOVABLE_API_KEY, MODEL_GEMINI, "gemini", prompt, schema);
+      geminiResult = await callModel(MODEL_GEMINI, "gemini", prompt, schema, { reqId });
       gptResult = { ...geminiResult, modelId: "gpt5-mini", confidence: 0, rawOutput: "", parsedData: {} };
     } else {
       // Parallel dual-model call
       const [gptSettled, geminiSettled] = await Promise.allSettled([
-        callModel(LOVABLE_API_KEY, MODEL_GPT, "gpt5-mini", prompt, schema),
-        callModel(LOVABLE_API_KEY, MODEL_GEMINI, "gemini", prompt, schema),
+        callModel(MODEL_GPT, "gpt5-mini", prompt, schema, { reqId }),
+        callModel(MODEL_GEMINI, "gemini", prompt, schema, { reqId }),
       ]);
 
-      if (gptSettled.status === "fulfilled") {
-        gptResult = gptSettled.value;
-      }
-      if (geminiSettled.status === "fulfilled") {
-        geminiResult = geminiSettled.value;
-      }
+      if (gptSettled.status === "fulfilled") gptResult = gptSettled.value;
+      if (geminiSettled.status === "fulfilled") geminiResult = geminiSettled.value;
 
       // Single-model fallback
       if (!gptResult && geminiResult) {
