@@ -723,7 +723,7 @@ function prepareSafeResult(result: BusinessAnalysisResult): SafeResult {
 // CREATE EXECUTIVE REPORT
 // ============================================
 
-const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding) => {
+const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
   
