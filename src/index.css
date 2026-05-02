@@ -372,6 +372,23 @@
     letter-spacing: -0.011em;
     color: var(--q-text-primary);
   }
+  /* WCAG AA legibility floor — never let body text drop below readable */
+  p, li, span, div, label, dd, dt, figcaption, small {
+    font-weight: 450;
+  }
+  .font-thin, .font-extralight, .font-light {
+    font-weight: 400 !important; /* enforce minimum 400 across landing/dashboard */
+  }
+  /* Cap opacity dimming on text utilities to stay above 4.5:1 */
+  [class*="text-foreground/"][class*="/3"],
+  [class*="text-foreground/"][class*="/4"],
+  [class*="text-foreground/"][class*="/5"],
+  [class*="text-muted-foreground/"][class*="/3"],
+  [class*="text-muted-foreground/"][class*="/4"],
+  [class*="text-muted-foreground/"][class*="/5"] {
+    opacity: 1 !important;
+    color: hsl(var(--muted-foreground)) !important;
+  }
   ::selection {
     @apply bg-primary/30 text-foreground;
   }
