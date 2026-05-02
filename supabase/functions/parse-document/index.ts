@@ -3,6 +3,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 // Module-scope logger for helpers outside the request handler.
 const log = createLogger('parse-document', 'module');
@@ -389,8 +390,6 @@ interface AIExtractionResult {
 }
 
 async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileType: string): Promise<AIExtractionResult> {
-  const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-  
   const defaultFinancials: ExtractedFinancials = {
     document_type: 'unknown',
     confidence: 20,
@@ -398,8 +397,8 @@ async function extractWithAI(arrayBuffer: ArrayBuffer, fileName: string, fileTyp
     source_document: fileName,
     extraction_notes: ['AI extraction not available']
   };
-  
-  if (!LOVABLE_API_KEY) {
+
+  if (!Deno.env.get("LOVABLE_API_KEY")) {
     log.warn("LOVABLE_API_KEY not configured, returning placeholder");
     return {
       content: `[Document: ${fileName}]\n\nNote: Document parsing requires AI configuration. Please contact support to enable full document parsing.\n\nFile type: ${fileType}\nFile size: ${arrayBuffer.byteLength} bytes`,
