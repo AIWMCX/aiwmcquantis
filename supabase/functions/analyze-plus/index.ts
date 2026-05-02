@@ -26,8 +26,8 @@ import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS, type FeatureManifest } from '../_shared/tier-spec.ts';
 import { validateAndSanitizeInput } from '../_shared/ai-safety-guardrails.ts';
 import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
-const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
 
 interface PlusRequestBody {
@@ -117,18 +117,8 @@ serve(async (req) => {
       JSON.stringify(body.monte_carlo_data, null, 2),
     ].join('\n');
 
-    const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-    if (!lovableKey) {
-      return json({ success: false, error: 'CONFIG', message: 'AI gateway key missing.' }, 500);
-    }
-
-    const aiResp = await fetch(LOVABLE_AI_URL, {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${lovableKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const aiResult = await aiCall(
+      {
         model: body.model ?? DEFAULT_MODEL,
         messages: [
           { role: 'system', content: system },
@@ -138,42 +128,28 @@ serve(async (req) => {
         top_p: budget.top_p,
         max_tokens: budget.max_tokens,
         response_format: { type: 'json_object' },
-      }),
-      // Hard timeout per spec budget
-      signal: AbortSignal.timeout(budget.timeout_ms),
-    });
+      },
+      {
+        task: 'analyze-plus',
+        timeoutMs: budget.timeout_ms,
+        injectUniversalRules: false, // already prepended by buildSystemPrompt
+        analysisId: requestId,
+        userId: gate.userId,
+        requestId,
+        metadata: { tier: gate.tier, endpoint: 'ANALYSE_MAIN' },
+      },
+    );
 
-    if (aiResp.status === 429) {
+    if (!aiResult.ok) {
+      const code = aiResult.error;
+      const status = aiResult.status;
       await logAnalysisEvent({
         analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
-        severity: 'error', payload: { code: 'RATE_LIMIT_EXCEEDED', status: 429 },
+        severity: 'error', payload: { code, status },
       });
-      return json(
-        { success: false, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry in a moment.' },
-        429,
-      );
+      return json({ success: false, error: code, message: aiResult.message }, status);
     }
-    if (aiResp.status === 402) {
-      await logAnalysisEvent({
-        analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
-        severity: 'error', payload: { code: 'AI_CREDITS_EXHAUSTED', status: 402 },
-      });
-      return json(
-        { success: false, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace is out of credits. Add funds to continue.' },
-        402,
-      );
-    }
-    if (!aiResp.ok) {
-      const errText = await aiResp.text().catch(() => '');
-      console.error('[analyze-plus] AI gateway error', aiResp.status, errText);
-      await logAnalysisEvent({
-        analysis_id: requestId, user_id: gate.userId, event_type: 'engine_error',
-        severity: 'error', payload: { code: 'AI_ERROR', status: aiResp.status, detail: errText.slice(0, 500) },
-      });
-      return json({ success: false, error: 'AI_ERROR', message: 'AI analysis failed.' }, 502);
-    }
-
-    const aiJson = await aiResp.json();
+    const aiJson = aiResult.data as { choices?: Array<{ message?: { content?: string } }> };
     const rawContent = aiJson.choices?.[0]?.message?.content ?? '{}';
     let parsed: Record<string, unknown> = {};
     try {
