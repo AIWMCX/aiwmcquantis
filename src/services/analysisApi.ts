@@ -253,7 +253,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
           message = 'This exact analysis was already performed recently. Try a different idea or location.';
         }
         
-        throw new Error(`RATE_LIMIT_EXCEEDED: ${message}`);
+        throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
       }
 
       // Spec §09.2 — quota / tier-gate envelope returned with HTTP 402.
