@@ -55,6 +55,7 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
+const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -122,6 +123,7 @@ const App = () => {
                 <Route path="/security" element={<Security />} />
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/changelog" element={<Changelog />} />
+                <Route path="/cases" element={<CaseBrowser />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
