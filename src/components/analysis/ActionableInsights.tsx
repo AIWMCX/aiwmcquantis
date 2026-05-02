@@ -260,7 +260,7 @@ export function ActionableInsights({ insights }: ActionableInsightsProps) {
     );
   }
   const { summary } = insights;
-  const healthKey = (summary.overall_health && healthConfig[summary.overall_health]) ? summary.overall_health : 'fair';
+  const healthKey = (summary.overall_health && healthConfig[healthKey]) ? summary.overall_health : 'fair';
   const HealthIcon = healthConfig[healthKey].icon;
   
   return (
@@ -308,11 +308,11 @@ export function ActionableInsights({ insights }: ActionableInsightsProps) {
           
           {/* Overall Health */}
           <div className="flex items-center gap-2 p-3 bg-muted/50 rounded-lg">
-            <HealthIcon className={cn("w-5 h-5", healthConfig[summary.overall_health].color)} />
+            <HealthIcon className={cn("w-5 h-5", healthConfig[healthKey].color)} />
             <span className="text-sm">
               <span className="font-medium">Status: </span>
-              <span className={healthConfig[summary.overall_health].color}>
-                {healthConfig[summary.overall_health].label}
+              <span className={healthConfig[healthKey].color}>
+                {healthConfig[healthKey].label}
               </span>
             </span>
           </div>
