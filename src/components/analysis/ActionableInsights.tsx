@@ -242,8 +242,26 @@ Time to Result: ${insight.action_plan.time_to_result}
 }
 
 export function ActionableInsights({ insights }: ActionableInsightsProps) {
+  if (!insights || !insights.summary) {
+    return (
+      <Card className="section-card">
+        <CardHeader className="pb-3">
+          <div className="flex items-center gap-2">
+            <Target className="w-5 h-5 text-primary" />
+            <CardTitle className="text-lg">Action Plan</CardTitle>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            No red flags or action items were generated for this analysis. Try re-running the analysis or refining your inputs to surface targeted recommendations.
+          </p>
+        </CardContent>
+      </Card>
+    );
+  }
   const { summary } = insights;
-  const HealthIcon = healthConfig[summary.overall_health].icon;
+  const healthKey = (summary.overall_health && healthConfig[summary.overall_health]) ? summary.overall_health : 'fair';
+  const HealthIcon = healthConfig[healthKey].icon;
   
   return (
     <div className="space-y-4 animate-fade-in">
