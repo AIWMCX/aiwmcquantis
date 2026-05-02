@@ -3569,21 +3569,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let rawResult: any;
     let usedFallback = false;
     
-    if (!response || !response.ok) {
-      log.info(`All ${MAX_RETRIES} AI attempts failed. Last error: ${lastError}`);
+    if (!response) {
+      log.info(`All ${MAX_RETRIES} AI attempts failed. Last status=${lastStatus} error=${lastError}`);
       log.info("Generating deterministic fallback analysis...");
-      
-      // External AI errors must never leave the user without an analysis.
-      // Rate limits/auth/provider outages degrade to deterministic fallback.
-      if (response?.status === 429) {
+
+      if (lastStatus === 429) {
         log.warn("AI service rate-limited; using deterministic fallback instead of failing the analysis");
       }
-      
-      if (response?.status === 401 || response?.status === 403) {
-        log.error("AI service authentication failed; using deterministic fallback instead of failing the analysis");
-      }
-      
-      // Generate deterministic fallback for all other failures (503, timeout, etc.)
+
       rawResult = generateDeterministicFallbackResult(
         idea_clean,
         location_clean,
@@ -3595,11 +3588,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.info("Deterministic fallback generated successfully");
     } else {
       // AI succeeded - parse response
-      const aiResponse = await response.json();
+      const aiResponse = response.data;
       log.info("AI Response received");
 
-      if (aiResponse.error) {
-        log.info("AI returned error, using fallback:", JSON.stringify(aiResponse.error));
+      const choices = aiResponse.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
+      const toolCall = choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) {
+        log.info("No tool call in AI response, using fallback");
         rawResult = generateDeterministicFallbackResult(
           idea_clean,
           location_clean,
@@ -3609,9 +3604,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
         usedFallback = true;
       } else {
-        const toolCall = aiResponse.choices?.[0]?.message?.tool_calls?.[0];
-        if (!toolCall) {
-          log.info("No tool call in AI response, using fallback");
+        try {
+          rawResult = JSON.parse(toolCall.function.arguments);
+        } catch (e) {
+          log.info("Failed to parse AI response, using fallback:", e);
           rawResult = generateDeterministicFallbackResult(
             idea_clean,
             location_clean,
@@ -3620,20 +3616,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             mergedFinancialInputs
           );
           usedFallback = true;
-        } else {
-          try {
-            rawResult = JSON.parse(toolCall.function.arguments);
-          } catch (e) {
-            log.info("Failed to parse AI response, using fallback:", e);
-            rawResult = generateDeterministicFallbackResult(
-              idea_clean,
-              location_clean,
-              detectedIndustry,
-              locationMultipliers,
-              mergedFinancialInputs
-            );
-            usedFallback = true;
-          }
         }
       }
     }
