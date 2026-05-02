@@ -84,6 +84,7 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 import { getRequestId, requestIdHeader } from "../_shared/request-id.ts";
 
 import { createLogger } from '../_shared/logger.ts';
+import { aiCall } from '../_shared/llm-call.ts';
 
 // Module-scope logger for helpers defined outside the request handler.
 // Per-request handlers should still create their own logger via createLogger(...)
@@ -3221,8 +3222,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info('Merged inputs:', mergedFinancialInputs);
     }
 
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    if (!LOVABLE_API_KEY) {
+    if (!Deno.env.get("LOVABLE_API_KEY")) {
       return new Response(
         JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
@@ -3512,48 +3512,45 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const AI_TIMEOUT_MS = 25000; // 25 seconds - fast fail for responsive UX
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
-    let response: Response | null = null;
+    let response: { ok: true; data: Record<string, unknown> } | null = null;
     let lastError: string | null = null;
-    
+    let lastStatus: number | null = null;
+
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
         log.info(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
-        
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
-        
-        response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
+
+        const aiResult = await aiCall(
+          {
             model: "openai/gpt-5-mini",
             messages: [{ role: "user", content: prompt }],
             tools: [analysisToolSchema],
             tool_choice: { type: "function", function: { name: "submit_analysis" } },
-          }),
-          signal: controller.signal,
-        });
-        
-        clearTimeout(timeoutId);
-        
-        if (response.ok) {
+          },
+          {
+            task: 'analyze-business',
+            timeoutMs: AI_TIMEOUT_MS,
+            requestId: reqId,
+            userId: userId,
+            metadata: { attempt, industry: detectedIndustry.name },
+          },
+        );
+
+        if (aiResult.ok) {
+          response = { ok: true, data: aiResult.data };
           log.info(`AI request succeeded on attempt ${attempt}`);
           break;
         }
-        
-        const errorText = await response.text();
-        lastError = `HTTP ${response.status}: ${errorText}`;
+
+        lastStatus = aiResult.status;
+        lastError = `${aiResult.error}: ${aiResult.message}`;
         log.error(`AI error on attempt ${attempt}: ${lastError}`);
-        
-        // Don't retry on rate limit or auth errors
-        if (response.status === 429 || response.status === 401 || response.status === 403) {
+
+        // Don't retry on rate limit / credits / config
+        if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') {
           break;
         }
-        
-        // Short delay before retry
+
         if (attempt < MAX_RETRIES) {
           log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
@@ -3561,14 +3558,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
         log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
-        
-        if (lastError.includes('abort')) {
-          lastError = `Request timed out after ${AI_TIMEOUT_MS / 1000} seconds`;
-        }
-        
-        // Short delay before retry - fail fast to fallback
         if (attempt < MAX_RETRIES) {
-          log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
           await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
         }
       }
