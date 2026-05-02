@@ -2,6 +2,8 @@ import React from 'react';
 import { cn } from '@/lib/utils';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Info } from 'lucide-react';
+import { BenchmarkBadge } from './BenchmarkBadge';
+import type { BenchmarkMetric, BenchmarkContext } from '@/services/benchmark-lookup';
 
 interface SimpleMetricCardProps {
   title: string;
@@ -15,6 +17,12 @@ interface SimpleMetricCardProps {
   explanation?: string;
   /** Plain-language hint always visible below metric */
   hint?: string;
+  /** Metric key for the 95,500-row Benchmark Master library */
+  benchmarkMetric?: BenchmarkMetric;
+  /** Sector/geo context for benchmark lookup */
+  benchmarkContext?: BenchmarkContext;
+  /** Numeric form of the user's value, used to position vs P25/P75 */
+  numericValue?: number;
 }
 
 /** Plain-language default hints for common metric titles */
@@ -27,7 +35,7 @@ const DEFAULT_HINTS: Record<string, string> = {
   'Cash Runway': 'How many months you can operate before running out of money',
 };
 
-export function SimpleMetricCard({ title, value, variant = 'standard', chip, benchmarkNote, explanation, hint }: SimpleMetricCardProps) {
+export function SimpleMetricCard({ title, value, variant = 'standard', chip, benchmarkNote, explanation, hint, benchmarkMetric, benchmarkContext, numericValue }: SimpleMetricCardProps) {
   const variantColors = {
     standard: 'text-foreground',
     success: 'text-[var(--q-status-green)]',
@@ -64,9 +72,13 @@ export function SimpleMetricCard({ title, value, variant = 'standard', chip, ben
       {resolvedHint && (
         <p className="text-[11px] text-[var(--q-text-secondary)] leading-tight mt-1 border-l-2 border-[var(--q-accent-primary)]/30 pl-2">{resolvedHint}</p>
       )}
-      {benchmarkNote && (
+      {benchmarkMetric ? (
+        <div className="pt-1 flex justify-center">
+          <BenchmarkBadge metric={benchmarkMetric} context={benchmarkContext} userValue={numericValue} />
+        </div>
+      ) : benchmarkNote ? (
         <p className="text-[10px] text-[var(--q-text-tertiary)] font-mono">{benchmarkNote}</p>
-      )}
+      ) : null}
     </div>
   );
 

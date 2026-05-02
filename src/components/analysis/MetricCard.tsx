@@ -3,6 +3,8 @@ import { HelpCircle, TrendingUp, TrendingDown } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { ExplainPanel, type ExplainPanelProps } from './ExplainPanel';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { BenchmarkBadge } from './BenchmarkBadge';
+import type { BenchmarkMetric, BenchmarkContext } from '@/services/benchmark-lookup';
 
 interface MetricCardProps {
   label: string;
@@ -12,11 +14,14 @@ interface MetricCardProps {
   trend?: 'up' | 'down';
   delta?: string;
   explainData?: Omit<ExplainPanelProps, 'isOpen' | 'onClose'>;
+  benchmarkMetric?: BenchmarkMetric;
+  benchmarkContext?: BenchmarkContext;
+  numericValue?: number;
 }
 
 const isBlocked = (tier?: string) => tier === 'blocked';
 
-export function ExplainableMetricCard({ label, value, positive = true, unit, trend, delta, explainData }: MetricCardProps) {
+export function ExplainableMetricCard({ label, value, positive = true, unit, trend, delta, explainData, benchmarkMetric, benchmarkContext, numericValue }: MetricCardProps) {
   const [explainOpen, setExplainOpen] = useState(false);
   const blocked = isBlocked(explainData?.confidenceTier);
 
@@ -76,6 +81,11 @@ export function ExplainableMetricCard({ label, value, positive = true, unit, tre
           )}
         </div>
         {!blocked && delta && <p className="text-[10px] text-[var(--q-text-tertiary)] mt-0.5">{delta}</p>}
+        {!blocked && benchmarkMetric && (
+          <div className="mt-1.5 flex justify-center">
+            <BenchmarkBadge metric={benchmarkMetric} context={benchmarkContext} userValue={numericValue} />
+          </div>
+        )}
       </div>
 
       {explainData && (
