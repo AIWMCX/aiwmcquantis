@@ -361,6 +361,23 @@ serve(async (req) => {
         const result = await upsertSubscription(subscriptionData);
         if (result.success) {
           log.info(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
+
+          // ISSUE-004 — Provision PRO immediately on checkout completion so
+          // the buyer gets api_keys/white-label without waiting for invoice.paid.
+          if (plan === "pro") {
+            try {
+              const { error: provErr } = await supabase.rpc("provision_pro_features", {
+                p_user_id: userId,
+                p_period_end: subscriptionData.current_period_end,
+                p_stripe_customer_id: customerId,
+                p_stripe_subscription_id: subscriptionId,
+              });
+              if (provErr) log.error(`[${requestId}] provision_pro_features (checkout) error:`, provErr.message);
+              else log.info(`[${requestId}] ✓ PRO features provisioned at checkout for ${userId}`);
+            } catch (provErr) {
+              log.error(`[${requestId}] PRO provisioning crashed (checkout):`, provErr instanceof Error ? provErr.message : String(provErr));
+            }
+          }
         } else {
           log.error(`[${requestId}] FAILED to create subscription:`, result.error);
         }
