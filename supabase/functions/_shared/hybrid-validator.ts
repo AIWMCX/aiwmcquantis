@@ -17,6 +17,7 @@ import {
   stripFinancialFields,
 } from './anthropic.ts';
 import { logAiCall } from './ai-logger.ts';
+import { aiCall } from './llm-call.ts';
 
 const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY');
 
@@ -313,13 +314,8 @@ Decide.`;
   }
 
   try {
-    const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${LOVABLE_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
+    const aiResult = await aiCall(
+      {
         model: 'google/gemini-2.5-flash-lite',
         messages: [
           { role: 'system', content: systemPrompt },
@@ -327,12 +323,19 @@ Decide.`;
         ],
         temperature: 0.1,
         max_completion_tokens: 200,
-      }),
-    });
+      },
+      {
+        task: 'hybrid_validator',
+        analysisId: input.analysis_id ?? null,
+        userId: input.user_id ?? null,
+        requestId: input.request_id ?? null,
+        timeoutMs: 15_000,
+      },
+    );
 
     const latency = Date.now() - start;
 
-    if (!res.ok) {
+    if (!aiResult.ok) {
       void logAiCall({
         ...callerCtx,
         task: 'hybrid_validator',
@@ -343,33 +346,30 @@ Decide.`;
         cost_usd: 0,
         latency_ms: latency,
         ok: false,
-        error: `gateway_${res.status}`,
+        error: `gateway_${aiResult.status}_${aiResult.error}`,
       });
       return {
         triggered: true,
         verdict: 'pass', // fail-open
-        summary: `LLM validator unavailable (${res.status}); deterministic rules used as authority.`,
+        summary: `LLM validator unavailable (${aiResult.status}); deterministic rules used as authority.`,
         latency_ms: latency,
         provider: 'lovable_gateway',
         fallback_reason: 'anthropic_unavailable',
       };
     }
 
-    const data = await res.json();
-    const text = data.choices?.[0]?.message?.content?.trim() ?? '{}';
+    const choices = aiResult.data.choices as Array<{ message?: { content?: string } }> | undefined;
+    const text = choices?.[0]?.message?.content?.trim() ?? '{}';
     const rawParsed = JSON.parse(text.replace(/```json|```/g, '').trim());
     const safe = stripFinancialFields(rawParsed);
-    const usage = data?.usage ?? {};
-    const inTok = Number(usage.prompt_tokens ?? usage.input_tokens ?? 0);
-    const outTok = Number(usage.completion_tokens ?? usage.output_tokens ?? 0);
 
     void logAiCall({
       ...callerCtx,
       task: 'hybrid_validator',
       provider: 'lovable_gateway',
       model: 'google/gemini-2.5-flash-lite',
-      input_tokens: inTok,
-      output_tokens: outTok,
+      input_tokens: aiResult.inputTokens,
+      output_tokens: aiResult.outputTokens,
       cost_usd: 0.002,
       latency_ms: latency,
       ok: true,
