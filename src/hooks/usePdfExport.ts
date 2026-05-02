@@ -1538,8 +1538,36 @@ export function usePdfExport() {
       const date = new Date().toISOString().split('T')[0];
       const filename = `${brandPrefix}_Executive_Report_${sanitizedIdea}_${date}.pdf`;
 
+      // Pre-fetch benchmark citations so the PDF can render P25–P75, source, n, date
+      const meta: any = result.metadata || {};
+      const fin: any = result.financial_analysis || {};
+      const benchContext: BenchmarkContext = {
+        sector: meta.industry_detected || meta.selected_industry || meta.sector,
+        businessModel: meta.business_model,
+        country: meta.country,
+        cityTier: meta.city_tier,
+        stage: meta.company_stage || 'idea',
+        size: meta.size_bucket,
+      };
+      const monthlyRev = typeof fin?.monthly_revenue === 'number'
+        ? fin.monthly_revenue
+        : (fin?.monthly_revenue?.realistic ?? fin?.mrr ?? 0);
+      const netProfit = fin?.scenarios?.base?.net_profit ?? fin?.monthly_profit ?? 0;
+      const grossMargin = fin?.scenarios?.base?.gross_margin;
+      const ltvCac = fin?.unit_economics?.ltv_cac_ratio;
+      const cacPayback = fin?.payback_period_months ?? fin?.returns?.payback_period_months;
+      const desired: Array<{ label: string; metric: BenchmarkMetric; userValue?: number }> = [
+        { label: 'Gross Margin', metric: 'gross_margin', userValue: typeof grossMargin === 'number' ? (grossMargin > 1 ? grossMargin / 100 : grossMargin) : undefined },
+        { label: 'Operating Margin', metric: 'operating_margin', userValue: monthlyRev > 0 ? netProfit / monthlyRev : undefined },
+        { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
+        { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPayback === 'number' ? cacPayback : undefined },
+      ];
+      const benchmarkRows: PdfBenchmarkRow[] = await Promise.all(
+        desired.map(async (d) => ({ ...d, bench: await lookupBenchmark(d.metric, benchContext) }))
+      );
+
       // Generate PDF blob using @react-pdf/renderer with timeout
-      const doc = createExecutiveReport(result, activeBranding);
+      const doc = createExecutiveReport(result, activeBranding, benchmarkRows);
       
       const blobPromise = pdf(doc).toBlob();
       const timeoutPromise = new Promise<never>((_, reject) => 
