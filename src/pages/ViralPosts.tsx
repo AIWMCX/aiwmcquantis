@@ -16,8 +16,9 @@ const platformMeta: Record<Platform, { label: string; icon: React.ReactNode; col
 };
 
 export default function ViralPosts() {
-  useDocumentTitle('Marketing Copy Library — AIWMC Quantis');
+  useDocumentTitle('April 2026 Marketing Copy Library — AIWMC Quantis');
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showPrompt, setShowPrompt] = useState(false);
 
   const copy = async (id: string, text: string) => {
     await navigator.clipboard.writeText(text);
@@ -41,12 +42,44 @@ export default function ViralPosts() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              Marketing Copy Library
+              April 2026 Marketing Library
             </h1>
           </div>
-          <p className="text-muted-foreground mb-8 ml-8">
-            15 unique, ready-to-publish posts. Click copy → paste → post.
+          <p className="text-muted-foreground mb-6 ml-8">
+            15 ready-to-publish posts engineered for the April Q1-actuals window. Click copy → paste → post.
           </p>
+
+          {/* Master generation prompt — collapsible */}
+          <Card className="mb-8 border-primary/30 bg-primary/5">
+            <CardContent className="p-5">
+              <button
+                onClick={() => setShowPrompt((v) => !v)}
+                className="w-full flex items-center justify-between gap-3 text-left"
+              >
+                <div className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4 text-primary" />
+                  <span className="font-semibold text-foreground">Master Generation Prompt (April 2026)</span>
+                  <Badge variant="secondary" className="text-[10px]">copy into any LLM</Badge>
+                </div>
+                <ChevronDown className={`h-4 w-4 text-muted-foreground transition-transform ${showPrompt ? 'rotate-180' : ''}`} />
+              </button>
+              {showPrompt && (
+                <div className="mt-4 space-y-3">
+                  <pre className="whitespace-pre-wrap font-mono text-xs text-muted-foreground leading-relaxed max-h-[320px] overflow-y-auto p-3 rounded-md bg-background/60 border border-border/40">
+                    {MASTER_PROMPT}
+                  </pre>
+                  <Button
+                    size="sm"
+                    onClick={() => copy('master-prompt', MASTER_PROMPT)}
+                    className="gap-1.5"
+                  >
+                    {copiedId === 'master-prompt' ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
+                    {copiedId === 'master-prompt' ? 'Copied' : 'Copy prompt'}
+                  </Button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           <Tabs defaultValue="linkedin" className="w-full">
             <TabsList className="mb-6 w-full sm:w-auto">
