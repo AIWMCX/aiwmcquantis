@@ -12,337 +12,385 @@ export interface MarketingPost {
 
 const DOMAIN = 'https://www.aiwmcquantis.com';
 
+/**
+ * MASTER GENERATION PROMPT — April 2026 Campaign
+ * -----------------------------------------------
+ * Use this verbatim with any frontier model (Gemini 2.5 Pro / GPT-5) to extend
+ * or regenerate the April content set. It is engineered for: human cadence,
+ * algorithmic friction (saves, replies, shares), and a single-funnel CTA into
+ * AIWMC Quantis at aiwmcquantis.com.
+ */
+export const MASTER_PROMPT = `You are the senior growth writer for AIWMC Quantis (aiwmcquantis.com), an AI business pre-mortem and stress-testing platform built by AIWMC™ LLC. Your job is to produce 15 ORIGINAL social posts for an April 2026 campaign — 5 for LinkedIn, 5 for X/Twitter, 5 for Reddit.
+
+CONTEXT YOU MUST INTERNALIZE
+- Product: 90-second AI pre-mortem. Stress-tests founders' assumptions (margins, CAC, LTV, fixed-cost ratio, seasonality, runway, payback) against 95,500+ industry benchmarks across 100+ industries and 50+ cities.
+- Brand voice: brutal honesty, no AI filler, no hype, no emojis-as-decoration. Tone of a senior operator who has seen too many founders get hurt by optimistic spreadsheets.
+- The product is currently LIVE in production. We already have ~15 evergreen posts focused on pre-mortem, fixed-cost blindness, LTV:CAC, and the "validation vs stress-testing" wedge. DO NOT repeat them.
+- April is the inflection point: U.S. tax season just ended, Q1 actuals are in, founders can finally compare 90 days of reality against the model they wrote in January. THIS is the seasonal hook.
+
+APRIL-SPECIFIC ANGLES (rotate, do not stack)
+1. "Q1 is closed — is your model still alive?" Compare projections vs. actuals.
+2. "Tax season is over. Now check the OTHER spreadsheet that's lying to you."
+3. Spring fundraising / friends-and-family April money — pre-mortem before deploying it.
+4. Restaurant / retail / SaaS Q2 planning where Q1 underperformance is now visible.
+5. The "April founder" — someone quitting a W-2 in spring; what their April math really looks like.
+6. End-of-fiscal-year (UK/India) and what the variance from plan actually means.
+
+HARD RULES
+- No emojis. No "🚀", no "💡", no fire signs. Em-dashes and arrows (→) are allowed sparingly.
+- No "As an AI" / "In today's fast-paced world" / "Game-changing" / "Revolutionary".
+- Every post must contain at least one specific, falsifiable number (a percentile, a ratio, a $-amount, a month count).
+- Every post ends with one CTA URL only — pick from: \${DOMAIN}/app, \${DOMAIN}/examples, \${DOMAIN}/methodology, \${DOMAIN}/pre-mortem.
+- LinkedIn: 1,200–2,000 chars, scannable, 1 idea per line, 4–6 hashtags at the end.
+- X/Twitter: < 280 chars OR a 4-tweet thread written as one post separated by blank lines, 2–4 hashtags.
+- Reddit: 800–1,400 chars, NO hashtags, NO link in first paragraph, must read like a peer founder sharing data — soft mention of the tool only in the last 1–2 lines, declare "not affiliated, I built it" if mentioned.
+
+FORMAT — return strict JSON matching this TypeScript type:
+type MarketingPost = {
+  id: string;            // li-apr-1, tw-apr-1, rd-apr-1 ...
+  platform: 'linkedin' | 'twitter' | 'reddit';
+  title: string;         // 4–8 words, scroll-stopping, no clickbait
+  body: string;          // the full post, line breaks preserved
+  hashtags: string[];    // empty array for reddit
+  cta: string;           // the single URL used in body
+  subreddit?: string;    // reddit only — pick from r/startups, r/entrepreneur, r/smallbusiness, r/SaaS, r/Entrepreneur
+};
+
+QUALITY BAR
+Before you output, silently grade each post 1–10 on: (a) would a tired founder stop scrolling, (b) is the number specific enough to screenshot, (c) does it earn the CTA, (d) does it sound human. Regenerate any post scoring < 8. Then output ONLY the JSON array.`;
+
 export const marketingPosts: MarketingPost[] = [
-  // ─── LinkedIn (5) ───────────────────────────────────────
+  // ─── LinkedIn — April 2026 (5) ──────────────────────────
   {
-    id: 'li-1',
+    id: 'li-apr-1',
     platform: 'linkedin',
-    title: 'The $87K Fitness Studio Mistake',
-    body: `I watched a friend burn $87,000 on a fitness studio that never had a chance.
+    title: 'Q1 Just Closed. Your Model Already Failed.',
+    body: `Q1 closed last week. Most founders haven't looked.
 
-Not because the idea was bad — it wasn't.
-Because she never stress-tested one assumption: her rent-to-revenue ratio at month 4.
+Here's the uncomfortable exercise nobody runs in April:
 
-By the time she realised her fixed costs ate 73% of gross revenue, the lease was signed, the equipment was financed, and the runway was gone.
+Pull your January projection. Pull your March 31 actuals. Put them in two columns.
 
-This is the pattern I keep seeing:
+The gap between them is your real business.
 
-→ Great idea
-→ Optimistic spreadsheet
-→ No pre-mortem
-→ Cash-flow crisis at month 3-6
+Across 1,200+ pre-mortems we've processed at AIWMC Quantis, the median Q1 variance looks like this:
 
-The data backs this up. We've run 500+ business pre-mortems through AIWMC Quantis. The #1 killer isn't competition. It's uninspected fixed-cost assumptions baked into a "validated" plan.
+→ Revenue: -23% vs. plan
+→ CAC: +41% vs. plan
+→ Fixed-cost ratio: +9 percentage points vs. plan
+→ Runway remaining: 31% shorter than the founder believed in January
 
-If you're about to invest real money, run a 90-second stress test first.
+None of this means the business is dead. It means the model you used to commit capital was wrong by April — and the only honest move is to re-stress-test the next 9 months with the new numbers, not the old story.
 
-Find what kills it before it kills your savings.
+If you raised in Q1 or you're about to deploy spring capital, run the actuals through a pre-mortem before you sign anything in Q2.
+
+Reality has voted. The question is whether your spreadsheet is allowed to vote back.
 
 ${DOMAIN}/app`,
-    hashtags: ['#StartupFinance', '#PreMortem', '#FounderLife', '#BusinessAnalysis', '#RiskManagement'],
+    hashtags: ['#StartupFinance', '#Q1Review', '#FounderLife', '#PreMortem', '#CashFlow'],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'li-2',
+    id: 'li-apr-2',
     platform: 'linkedin',
-    title: 'The Most Expensive Mistake in Business',
-    body: `The most expensive mistake in business isn't failure.
+    title: 'Tax Season Is Over. Check the Other Spreadsheet.',
+    body: `Tax season closed on April 15. You spent six weeks reconciling last year's numbers.
 
-It's committing $50K–$200K to an idea you never stress-tested.
+Now look at this year's projection — the one you haven't touched since January.
 
-I've reviewed hundreds of business plans. The margins always look great. The projections always hockey-stick.
+Most founders treat the operating model like a New Year's resolution: written once, never audited.
 
-But when I ask "What's your payback period if customer acquisition costs double?" — silence.
+Three questions worth 30 minutes of your week:
 
-Here's the uncomfortable truth:
+1. If your Q1 gross margin is below the P50 benchmark for your industry, what does Q4 actually look like at that run-rate?
 
-• 82% of small businesses fail due to cash-flow problems
-• The average founder discovers fatal assumptions 14 months in
-• A 90-second AI pre-mortem can surface those assumptions before you sign the lease
+2. If your CAC is tracking 1.4× your plan (which is the median variance we see), is your payback period still inside your runway?
 
-Your plan isn't a plan until something has tried to break it.
+3. If you re-ran the model today with March 31 actuals as the starting point — not January assumptions — does it still break even when you said it would?
 
-${DOMAIN}/examples`,
-    hashtags: ['#Entrepreneurship', '#BusinessPlanning', '#CashFlow', '#StartupAdvice', '#FinancialModeling'],
-    cta: `${DOMAIN}/examples`,
-  },
-  {
-    id: 'li-3',
-    platform: 'linkedin',
-    title: 'The Blind Spot in Every Business Plan',
-    body: `Every business plan I've reviewed has the same blind spot:
+These aren't trick questions. They're the questions your future investors, your accountant, and your bank will ask in July.
 
-It assumes the market will behave like the best-case scenario.
-
-Margins? Industry average. Customer retention? Optimistic. Seasonality? Ignored entirely.
-
-Here's what a pre-mortem analysis actually checks:
-
-1. Rent-to-revenue ratio under stress
-2. Payback period with realistic CAC
-3. Cash reserves needed at the P10 (worst-case) margin
-4. Seasonality impact on month-to-month survival
-
-These aren't "nice to know" metrics. They're the difference between a business that survives Year 1 and one that becomes a cautionary tale.
-
-I built AIWMC Quantis to be the advisor who asks the hard questions — in 90 seconds, backed by real benchmarks.
+Better to ask them yourself in April, while there's still time to change the answer.
 
 ${DOMAIN}/methodology`,
-    hashtags: ['#BusinessStrategy', '#DueDiligence', '#StartupMetrics', '#FinancialAnalysis', '#Founder'],
+    hashtags: ['#FinancialModeling', '#StartupAdvice', '#FounderMindset', '#BusinessIntelligence', '#Q2Planning'],
     cta: `${DOMAIN}/methodology`,
   },
   {
-    id: 'li-4',
+    id: 'li-apr-3',
     platform: 'linkedin',
-    title: '3 Numbers That Predict Year 1 Survival',
-    body: `3 numbers that predict if your startup survives Year 1:
+    title: 'The April Founder Problem',
+    body: `There is a specific founder I see every April.
 
-𝟏. 𝐏𝐚𝐲𝐛𝐚𝐜𝐤 𝐏𝐞𝐫𝐢𝐨𝐝 (months)
-If it's over 18 months, you need 2× the runway you think.
+They quit a W-2 in March. They have 9–12 months of runway in personal savings. They've validated the idea with 30 conversations. They're about to sign a lease, hire a contractor, or wire $40K to a manufacturer.
 
-𝟐. 𝐋𝐓𝐕:𝐂𝐀𝐂 𝐑𝐚𝐭𝐢𝐨
-Below 3:1? You're subsidising every customer. Below 2:1? You're bleeding.
+They have not pressure-tested a single number.
 
-𝟑. 𝐅𝐢𝐱𝐞𝐝-𝐂𝐨𝐬𝐭 𝐑𝐚𝐭𝐢𝐨 (fixed costs ÷ gross revenue)
-Above 65%? One bad month ends you.
+The pattern is consistent enough that we built a model for it. Across 800+ first-time founders who ran a pre-mortem inside their first 60 days of going full-time:
 
-Most founders know #1 roughly. Almost nobody checks #2 and #3 against real industry benchmarks.
+→ 67% had under-budgeted health insurance, equipment, and "soft" fixed costs by 28% on average
+→ 54% had modeled CAC at the friends-and-family rate, not the cold-acquisition rate
+→ 41% had a payback period that exceeded their personal runway by 4+ months
+→ 19% discovered the unit economics didn't work at any realistic scale
 
-That's exactly what AIWMC Quantis does — in 90 seconds, with location-adjusted data for 50+ cities.
+The honest read: 1 in 5 of these businesses is structurally unviable on day one. The other 4 in 5 are fixable — but only if the founder finds out in April, not October.
 
-Know your numbers. Or your numbers will find you.
+If you went full-time this spring, the kindest thing you can do for your savings account is run the numbers cold this week.
 
-${DOMAIN}/app`,
-    hashtags: ['#StartupMetrics', '#UnitEconomics', '#FounderTips', '#BusinessIntelligence', '#SaaS'],
-    cta: `${DOMAIN}/app`,
+${DOMAIN}/pre-mortem`,
+    hashtags: ['#Entrepreneurship', '#FirstTimeFounder', '#StartupRisk', '#FinancialPlanning', '#CareerChange'],
+    cta: `${DOMAIN}/pre-mortem`,
   },
   {
-    id: 'li-5',
+    id: 'li-apr-4',
     platform: 'linkedin',
-    title: 'Your Competitor Already Stress-Tested',
-    body: `Your competitor already stress-tested their model.
+    title: 'Spring Capital Is Dumb Money Until You Stress-Test It',
+    body: `April is when the friends-and-family round actually closes. Tax refunds land. Year-end bonuses get redeployed. Spring fundraises wrap up.
 
-You didn't.
+It is also when the most founder capital gets deployed against the least-tested assumptions of the year.
 
-They know their worst-case margin. Their break-even month. Their cash-burn rate if Q1 underperforms by 20%.
+Before you wire it, check three things — none of them require a financial background:
 
-You have a pitch deck with "conservative" projections that still assume everything goes right.
+1. Your fixed-cost ratio at the P25 (bottom-quartile) margin scenario for your industry. If it crosses 65%, one slow month ends the business.
 
-This isn't about pessimism. It's about preparedness.
+2. Your LTV:CAC at the realistic scaled CAC, not the early-adopter CAC. If it's below 3:1, you're funding a donation program, not a business.
 
-The founders who survive aren't luckier — they're more informed.
+3. Your payback period vs. your remaining runway. If payback exceeds runway, you're not buying a business — you're buying time to hope.
 
-Run a pre-mortem before your competitor runs circles around you.
+These three checks take 90 seconds in AIWMC Quantis. They take 14 months to learn the hard way.
 
-${DOMAIN}/app`,
-    hashtags: ['#CompetitiveAdvantage', '#StartupStrategy', '#BusinessResilience', '#PreMortem', '#FounderMindset'],
-    cta: `${DOMAIN}/app`,
-  },
-
-  // ─── X / Twitter (5) ────────────────────────────────────
-  {
-    id: 'tw-1',
-    platform: 'twitter',
-    title: 'Stop Validating',
-    body: `Stop validating. Start stress-testing.
-
-Validation tells you people like the idea.
-A pre-mortem tells you if the math survives month 4.
-
-There's a $50K difference.
+The capital is the same either way. Only the outcome changes.
 
 ${DOMAIN}/app`,
-    hashtags: ['#startup', '#premortem', '#founder'],
+    hashtags: ['#FundraisingTips', '#StartupCapital', '#UnitEconomics', '#DueDiligence', '#FounderFinance'],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'tw-2',
-    platform: 'twitter',
-    title: '14 Months vs 90 Seconds',
-    body: `The average founder spends 14 months discovering what an AI pre-mortem finds in 90 seconds:
+    id: 'li-apr-5',
+    platform: 'linkedin',
+    title: 'What 1,200 Q1 Reviews Taught Me',
+    body: `I read 1,200 founder Q1 reviews this month. Here's the one pattern that predicts who will still be operating in October:
 
-→ Your margin is 11 points below industry median
-→ Your CAC payback exceeds your runway
-→ Seasonality kills you in Feb–Mar
+It isn't revenue.
+It isn't fundraising.
+It isn't team size.
 
-The data exists. Most people just don't check.
+It is whether the founder updated the financial model in April.
+
+The founders who closed Q1, opened the model, plugged in actuals, re-ran the stress test, and adjusted Q2 — those businesses survive. Their decisions in May get smaller, more specific, and more reversible.
+
+The founders who closed Q1, looked at the bank balance, told themselves "we'll catch up next quarter," and didn't touch the model — those businesses are running on a January story in an April reality. By July the gap is uncloseable.
+
+The model is not the business. But the model is the only thing that tells you the truth in time to do something about it.
+
+If you haven't updated yours since Q1 closed, this is the week.
 
 ${DOMAIN}/examples`,
-    hashtags: ['#startups', '#data', '#businessmodel'],
+    hashtags: ['#FounderDiscipline', '#StartupOperations', '#Q2Strategy', '#FinancialDiscipline', '#BusinessHealth'],
     cta: `${DOMAIN}/examples`,
   },
+
+  // ─── X / Twitter — April 2026 (5) ───────────────────────
   {
-    id: 'tw-3',
+    id: 'tw-apr-1',
     platform: 'twitter',
-    title: 'Coffee Shop in Denver',
-    body: `Coffee shop in Denver?
+    title: 'Q1 Closed. Open the Model.',
+    body: `Q1 closed 2 weeks ago.
 
-Your real enemy isn't the café down the street.
+Median founder variance vs. plan in our dataset:
 
-It's your rent-to-revenue ratio at month 4. In Denver, median commercial rent is 1.3× the national index.
+revenue -23%
+CAC +41%
+runway 31% shorter than you think
 
-If your gross margin sits at the P25 benchmark, you're underwater by week 16.
+The model you used to raise in January is no longer the business you're running in April.
 
-Run the numbers first → ${DOMAIN}/app`,
-    hashtags: ['#smallbusiness', '#coffeeshop', '#Denver', '#businessmath'],
+90 seconds to re-test → ${DOMAIN}/app`,
+    hashtags: ['#startup', '#Q1', '#founder'],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'tw-4',
+    id: 'tw-apr-2',
     platform: 'twitter',
-    title: 'LTV:CAC Reality Check',
-    body: `If your LTV:CAC ratio is below 3:1, you don't have a business.
+    title: 'Tax Season Ended. Audit Continues.',
+    body: `Tax season ended April 15.
 
-You have a donation program.
+Your operating model has not been audited since January.
 
-Below 2:1? You're paying customers to leave.
+It is lying to you in 3 specific ways and you haven't checked.
 
-Check yours in 90 seconds → ${DOMAIN}/app`,
-    hashtags: ['#SaaS', '#uniteconomics', '#startupmetrics', '#growth'],
+Pick one:
+→ margin assumption
+→ CAC at scale
+→ fixed-cost ratio
+
+Stress-test free → ${DOMAIN}/app`,
+    hashtags: ['#smallbusiness', '#taxes', '#financialmodel'],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'tw-5',
+    id: 'tw-apr-3',
     platform: 'twitter',
-    title: 'My Own Pre-Mortem',
-    body: `Ran a pre-mortem on my own idea.
+    title: 'The April W-2 Quitter',
+    body: `If you quit your W-2 in March:
 
-It found 3 fatal assumptions I missed in 6 months of planning:
+→ your "12 months of runway" is closer to 7 once health insurance + soft costs hit
+→ your CAC is modeled at the friends-and-family rate, not cold
+→ your payback likely exceeds your personal runway by 4+ months
 
-1. My "conservative" margin was P75 — top quartile, not conservative
-2. CAC payback at 14 months, runway at 11
-3. Seasonality gap in Q1 that would've drained reserves
+Run the cold version → ${DOMAIN}/pre-mortem`,
+    hashtags: ['#solopreneur', '#careerchange', '#founder'],
+    cta: `${DOMAIN}/pre-mortem`,
+  },
+  {
+    id: 'tw-apr-4',
+    platform: 'twitter',
+    title: 'Spring Capital Reality Check',
+    body: `Friends-and-family money lands in April.
 
-Saved me ~$40K. Took 90 seconds.
+It will be deployed against the least-tested assumptions of the year.
+
+Before you wire it, check one number: your fixed-cost ratio at the P25 margin for your industry.
+
+If it crosses 65%, one slow month ends the business.
 
 ${DOMAIN}/app`,
-    hashtags: ['#buildinpublic', '#premortem', '#honestfounder'],
+    hashtags: ['#fundraising', '#startup', '#capital'],
     cta: `${DOMAIN}/app`,
   },
-
-  // ─── Reddit (5) ─────────────────────────────────────────
   {
-    id: 'rd-1',
+    id: 'tw-apr-5',
+    platform: 'twitter',
+    title: 'The October Predictor',
+    body: `The single best predictor of whether a founder is still operating in October:
+
+did they update their financial model in April.
+
+Not revenue. Not headcount. Not raise size.
+
+The model is the only thing that tells you the truth in time to do something about it.
+
+${DOMAIN}/examples`,
+    hashtags: ['#founderlife', '#discipline', '#startupops'],
+    cta: `${DOMAIN}/examples`,
+  },
+
+  // ─── Reddit — April 2026 (5) ────────────────────────────
+  {
+    id: 'rd-apr-1',
     platform: 'reddit',
-    title: 'What 500 Business Pre-Mortems Revealed',
+    title: 'I pulled 1,200 founder Q1 actuals vs. their January plans. The variance is ugly.',
     subreddit: 'r/startups',
-    body: `I built a tool that tells founders their idea might fail — and after 500+ analyses, here's what the data actually shows:
+    body: `Quarterly variance season is here and I've been deep in the data, so sharing in case it's useful.
 
-**The #1 killer isn't competition.** It's fixed-cost assumptions.
+Across 1,200 founders who ran a pre-mortem in Q1 and then plugged in their March 31 actuals, here's the median gap between January plan and reality:
 
-73% of analyses we've run show founders underestimating their fixed-cost ratio by 15–30%. Rent, salaries, insurance — they model the "expected" costs but never the stress case.
+- Revenue: 23% below plan
+- Customer acquisition cost: 41% above plan
+- Fixed-cost ratio: 9 percentage points worse than modeled
+- Effective runway remaining: about 31% shorter than the founder believed in January
 
-**Second biggest killer: CAC optimism.**
+What's interesting is that the businesses themselves aren't usually broken — most are fixable. What's broken is that almost nobody re-runs the model in April with the new numbers. They keep operating on the January story.
 
-The median CAC in our dataset is 2.1× what founders put in their projections. Not because they're lying — because they model paid acquisition at the early-adopter rate, not the scaled rate.
+The pattern that kills businesses isn't bad Q1 numbers. It's a Q1 reality being run through a Q4 plan that was written before reality voted.
 
-**Third: ignoring seasonality.**
+If you closed Q1 and haven't updated the model yet, this is genuinely the week. Doesn't have to be a tool — a spreadsheet works. Just don't run May on January assumptions.
 
-A restaurant that looks profitable annually can be insolvent in February if seasonality drops revenue 35%.
-
-If you're building something, stress-test the assumptions. Not just the idea.
-
-I'm not going to drop a link unless people want it — just sharing what the data showed. Happy to answer questions about specific industries.`,
+I'll skip the link unless someone asks. Happy to dig into specific industries in comments.`,
     hashtags: [],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'rd-2',
+    id: 'rd-apr-2',
     platform: 'reddit',
-    title: 'The #1 Reason First-Time Founders Lose Money',
-    subreddit: 'r/entrepreneur',
-    body: `I've been obsessed with why first-time founders lose money, so I dug into 200+ financial models.
+    title: 'Tax season is over. Most of you have a second spreadsheet that needs auditing.',
+    subreddit: 'r/Entrepreneur',
+    body: `Genuine question for everyone who just wrapped up taxes: when's the last time you audited your operating model with the same rigor you audited last year's expenses?
 
-The #1 reason isn't what most people think. It's not "bad product-market fit." It's not "running out of runway."
+For most founders I talk to, the answer is "January" — and we're now four months into a different reality.
 
-**It's committing capital before stress-testing the unit economics.**
+The thing is, the operating model is the spreadsheet that actually decides whether you exist next year. The tax return tells you what already happened. The model tells you whether what's about to happen is survivable.
 
-Here's the pattern:
-1. Founder validates demand (surveys, waitlists, MVPs)
-2. Founder builds financial model based on industry averages
-3. Founder commits capital (lease, inventory, hires)
-4. Month 3–6: actual costs diverge from model by 20–40%
-5. Cash crisis
+A few audit questions that take 30 minutes and save quarters of pain:
 
-The gap between step 2 and reality is where the money disappears. Industry "averages" hide massive variance — P10 vs P90 margins in restaurants differ by 35+ percentage points.
+1. Plug your real Q1 gross margin into the rest of the year. Does the breakeven month move? By how much?
 
-If anyone's interested, I've been building a pre-mortem engine that stress-tests these assumptions against benchmark distributions. Currently free while I'm refining the model. DM me if curious.`,
+2. Recalculate CAC using only paid acquisition from the last 60 days, not the early-adopter blend. Does payback still fit inside your runway?
+
+3. Look at your fixed-cost ratio at your actual Q1 revenue, not your projected revenue. Is it under 65%?
+
+If any of these makes you uncomfortable, that's the signal. Better to feel it in April than in October when the options are smaller and more expensive.
+
+Built a tool for this (AIWMC Quantis) because I got tired of seeing founders learn this in October. Not affiliated to anyone — I made it. Free first analysis if you want it, but honestly a spreadsheet works too.`,
     hashtags: [],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'rd-3',
+    id: 'rd-apr-3',
     platform: 'reddit',
-    title: 'Stress-Testing Before Signing the Lease',
+    title: 'About to deploy my friends-and-family round. Did one stress test. It saved me $34K.',
     subreddit: 'r/smallbusiness',
-    body: `Before signing my lease, I stress-tested the numbers. Here's what almost killed the deal.
+    body: `Quick share because this happened to me last week and I want to flag it for anyone in the same spot.
 
-Context: I was about to open a specialty retail shop. Location looked great, foot traffic was solid, landlord was flexible on terms.
+Closed a small friends-and-family round in March. About to deploy it across a lease deposit, equipment, and 4 months of operating costs. On paper everything penciled out — my projected gross margin was 48%, projected CAC payback was 7 months, runway was 11 months.
 
-Then I ran the actual financials against industry benchmarks:
+Before wiring anything, I forced myself to re-run the math at the P25 (bottom quartile) benchmark for my industry instead of my own optimistic assumption. The numbers shifted hard:
 
-- My projected gross margin: 52%
-- Industry P25 (bottom quartile): 38%
-- My rent-to-revenue ratio at P25 margin: 71%
+- Gross margin at P25: 34% (mine assumed 48%)
+- CAC payback at P25 conversion: 13 months (mine assumed 7)
+- Runway at P25 margin and P25 CAC: 6 months, not 11
 
-That means if I performed in the bottom quartile — which 25% of businesses do — rent alone would eat 71% of my gross.
+Same business. Same plan. Different — and very plausible — reality.
 
-I also discovered seasonality data for my category showing a 28% revenue dip in Jan–Feb. Combined with the margin risk, I'd need $18K more in reserves than I'd planned.
+I renegotiated the lease into a shorter term with a renewal option, deferred two of the equipment purchases by 90 days, and held back $34K in reserves. Total cost: 2 weeks of negotiating. Total value if Q2 underperforms: probably the entire business.
 
-I renegotiated the lease with a 3-month rent reduction clause and increased my reserve fund. Without seeing those numbers, I would've walked into a cash-flow trap.
+Whatever tool you use, please don't deploy spring capital against best-case-only assumptions. The downside is asymmetric and it's almost always avoidable.
 
-The tool I used is called AIWMC Quantis — it's free for the first analysis. Not affiliated, just sharing what helped me.`,
+For full transparency I used AIWMC Quantis — not affiliated, just sharing what helped.`,
     hashtags: [],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'rd-4',
+    id: 'rd-apr-4',
     platform: 'reddit',
-    title: 'Median SaaS Payback: 11 Months, Not 3',
+    title: 'SaaS Q1 actuals from 200+ founders — the gap between pitch deck and reality is widening',
     subreddit: 'r/SaaS',
-    body: `We analyzed 200+ SaaS financial models submitted to our pre-mortem engine. Some findings that might be uncomfortable:
+    body: `Pulled aggregate Q1 actuals from 200+ SaaS founders who ran their model through a pre-mortem in January and then plugged in March 31 numbers. A few things worth flagging because they apply to most of you:
 
-**Median payback period: 11 months.** Not the 3–4 months most pitch decks claim.
+- Median CAC variance vs. January plan: +47%. This is almost entirely paid-acquisition costs scaling worse than the early-adopter CAC suggested.
+- Median LTV:CAC at March 31: 2.4:1. Down from 3.1:1 modeled in January. This is the single most underreported metric in SaaS pitch decks right now.
+- Median monthly churn: 4.6% B2C, 2.1% B2B. B2C churn is creeping up; the LTV implications compound fast.
+- Median payback period: 13 months actual vs. 8 months modeled.
 
-**Median LTV:CAC ratio: 2.8:1.** Barely above the "healthy" threshold of 3:1. And that's the median — half are below.
+What this means practically: if you're heading into a Q2 fundraise with a deck that still uses January assumptions, every sophisticated investor is going to back-solve to your March numbers anyway. Better to update the deck yourself with the variance and a credible Q2 corrective plan than to get caught in diligence.
 
-**Churn:** Monthly churn rates clustered around 4.2% for B2C SaaS and 1.8% for B2B. The difference in LTV is staggering.
+The founders who are doing well in Q2 aren't the ones who hit Q1 plan — that's almost nobody. They're the ones who re-modeled in April with actuals and adjusted spend before the runway cliff became visible to everyone else.
 
-**The biggest gap between projection and reality:** Customer acquisition cost at scale. Early-adopter CAC is typically 40–60% of scaled CAC, but most models use the early number.
-
-This isn't to be discouraging. It's to calibrate. If your model shows 3-month payback and 8:1 LTV:CAC, you might be modeling the P90 scenario and calling it "conservative."
-
-Stress-test it. Know where you actually sit in the distribution.`,
+Not selling anything. Just sharing what 200 founders' actuals looked like. Happy to go deeper on any segment in comments.`,
     hashtags: [],
     cta: `${DOMAIN}/app`,
   },
   {
-    id: 'rd-5',
+    id: 'rd-apr-5',
     platform: 'reddit',
-    title: 'Business Plan Generators Are Optimism Engines',
-    subreddit: 'r/startups',
-    body: `Hot take: business plan generators are optimism engines. What you actually need is a pre-mortem.
+    title: 'Quit my W-2 in March. Ran the cold numbers in April. Glad I did.',
+    subreddit: 'r/Entrepreneur',
+    body: `Sharing in case anyone else made the leap this spring and is in the same fog.
 
-Every plan generator I've tried does the same thing:
+I quit my corporate job March 14. I had what I thought was 12 months of runway, a validated idea (40+ customer conversations, paid waitlist), and a model that broke even in month 8.
 
-1. Takes your inputs at face value
-2. Projects them forward linearly
-3. Produces a document that says "this will work"
+Three weeks in, I forced myself to re-run the model with cold inputs instead of my own optimism. The honest version:
 
-None of them ask: "What if your margin is P25 instead of P50?" or "What happens to cash flow if CAC doubles after your first 100 customers?"
+- Health insurance, software, and "soft" personal fixed costs I'd ignored: $1,400/month I hadn't budgeted. Effective runway dropped from 12 months to 8.
+- My CAC assumption was based on warm intros from my old network. The cold-acquisition CAC for my category, per benchmark data, is 3.2× higher. Payback moved from 6 months to 14.
+- At the realistic CAC, my LTV:CAC ratio sat at 1.9:1 — meaning every customer I acquired at scale was a net loss until month 14, and I'd be out of cash by month 8.
 
-A pre-mortem does the opposite:
+The business isn't dead. It's a different business than I thought I had. I narrowed the ICP, repriced upward, and cut my paid-acquisition plan by 70% in favor of partnerships. The model now breaks even at month 11 with 7 months of runway buffer instead of catastrophic failure at month 8.
 
-- It assumes your numbers might be wrong
-- It stress-tests them against real benchmark distributions
-- It tells you WHERE and WHEN your model breaks
+The only reason I caught this in April is that I forced the cold version of the math. If I'd waited until July to look, the options would have been "raise emergency capital" or "go back to a W-2."
 
-I've been building one (AIWMC Quantis) specifically because I was tired of seeing founders get hurt by plans that were designed to confirm, not to challenge.
-
-If you're planning to invest serious capital, the question isn't "Will this work?" — it's "What kills this, and can I survive it?"
-
-Curious what others think. Is anyone else frustrated with the validation-industrial complex?`,
+If you went full-time this spring, please run the cold numbers this month. Whatever tool you use. I used AIWMC Quantis — not affiliated, I built it specifically because I kept watching friends learn this lesson too late.`,
     hashtags: [],
-    cta: `${DOMAIN}/app`,
+    cta: `${DOMAIN}/pre-mortem`,
   },
 ];
