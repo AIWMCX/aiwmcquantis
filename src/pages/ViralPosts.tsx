@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Copy, Check, Linkedin, Twitter, MessageSquare, ArrowLeft, Hash } from 'lucide-react';
+import { Copy, Check, Linkedin, Twitter, MessageSquare, ArrowLeft, Hash, Sparkles, ChevronDown } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
@@ -7,7 +7,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
-import { marketingPosts, type Platform } from '@/data/marketingPosts';
+import { marketingPosts, MASTER_PROMPT, type Platform } from '@/data/marketingPosts';
 
 const platformMeta: Record<Platform, { label: string; icon: React.ReactNode; color: string }> = {
   linkedin: { label: 'LinkedIn', icon: <Linkedin className="h-4 w-4" />, color: 'text-blue-600' },
