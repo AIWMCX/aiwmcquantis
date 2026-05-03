@@ -79,6 +79,27 @@ export default function ViralContent() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+        {/* April 2026 campaign banner */}
+        <Link
+          to="/viral-posts"
+          className="block mb-8 rounded-xl border border-primary/30 bg-gradient-to-r from-primary/10 via-primary/5 to-transparent p-5 hover:border-primary/50 transition-colors"
+        >
+          <div className="flex items-start justify-between gap-4 flex-wrap">
+            <div>
+              <div className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-1">
+                April 2026 Campaign · Q1 Actuals Window
+              </div>
+              <h2 className="text-lg font-bold text-foreground">
+                15 new posts + master AI prompt — engineered for the post-tax-season founder feed
+              </h2>
+              <p className="text-sm text-muted-foreground mt-1">
+                LinkedIn · X / Twitter · Reddit. Brutal honesty, specific numbers, single-funnel CTA.
+              </p>
+            </div>
+            <Button size="sm" className="shrink-0">Open library →</Button>
+          </div>
+        </Link>
+
         {!isLoaded ? (
           <div className="flex items-center justify-center py-20">
             <RefreshCw className="w-6 h-6 animate-spin text-muted-foreground" />
