@@ -271,7 +271,7 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
       overall_label: 'EXPLORATORY',
       notes: 'Fallback mode: upstream model response incomplete. Most metrics are benchmark-derived placeholders. Outputs are illustrative only and must not be used for final decisions.',
     }),
-    sources: "Industry benchmarks (reference ranges), location intelligence",
+    sources: canonicalDataSourcesAsStrings().join('; '),
     limitations: "Analysis based on industry averages (benchmark placeholders); results are illustrative and may vary significantly based on execution and real-world data",
     confidence: 45
   };
@@ -345,6 +345,8 @@ ${input.financialInputs.monthly_costs ? `- Monthly Operating Costs: $${input.fin
 ` : '';
 
     const prompt = `${MASTER_PROMPT_DIRECTIVES}
+
+${CANONICAL_DATA_SOURCES_PROMPT}
 
 ## BUSINESS IDEA
 ${input.businessIdea}
