@@ -19,6 +19,11 @@ import { corsHeadersFor } from "../_shared/cors.ts";
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { aiCall } from '../_shared/llm-call.ts';
+import {
+  CANONICAL_DATA_SOURCES_PROMPT,
+  canonicalDataSourcesAsStrings,
+  mergeCanonicalDataSources,
+} from '../_shared/canonical-data-sources.ts';
 
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 // Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
