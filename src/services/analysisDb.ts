@@ -37,13 +37,27 @@ export async function saveAnalysis(
   return { id: data.id };
 }
 
-export async function getAnalyses(userId: string): Promise<AnalysisHistoryEntry[]> {
-  const { data, error } = await supabase
+export const HISTORY_PAGE_SIZE = 25;
+
+/**
+ * Paginated fetch — keyset by created_at to avoid OFFSET cost and Supabase
+ * 1000-row ceiling. Pass `before` (created_at ISO) to load older rows.
+ */
+export async function getAnalyses(
+  userId: string,
+  opts: { limit?: number; before?: string } = {},
+): Promise<AnalysisHistoryEntry[]> {
+  const limit = opts.limit ?? HISTORY_PAGE_SIZE;
+  let query = supabase
     .from('analyses')
     .select('*')
     .eq('user_id', userId)
     .order('created_at', { ascending: false })
-    .limit(1000);
+    .limit(limit);
+  if (opts.before) {
+    query = query.lt('created_at', opts.before);
+  }
+  const { data, error } = await query;
 
   if (error) {
     logger.error('Failed to fetch analyses:', error);

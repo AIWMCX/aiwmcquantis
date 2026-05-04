@@ -1,6 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { getAnalyses, deleteAnalysis, migrateLocalStorageToDb } from '@/services/analysisDb';
+import {
+  getAnalyses,
+  deleteAnalysis,
+  migrateLocalStorageToDb,
+  HISTORY_PAGE_SIZE,
+} from '@/services/analysisDb';
 import { secureSetItem, secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import type { AnalysisHistoryEntry } from '@/types/analysis';
 
@@ -13,35 +18,32 @@ export function useAnalysisHistory() {
   const [history, setHistory] = useState<AnalysisHistoryEntry[]>([]);
   const [isLoaded, setIsLoaded] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
 
-  // Load history based on auth state
+  // Load first page (or all local) when auth is ready
   useEffect(() => {
     if (authLoading) return;
 
     const loadHistory = async () => {
       if (isAuthenticated && user) {
-        // Authenticated: load from database
         setIsSyncing(true);
-        
-        // First, migrate any local history (handles both encrypted and legacy data)
         const migrated = await migrateLocalStorageToDb(user.id);
         if (migrated > 0) {
           logger.info(`Migrated ${migrated} analyses to cloud`);
-          // Clear local storage after successful migration
           secureRemoveItem(STORAGE_KEY);
         }
-        
-        // Then fetch from database
-        const dbHistory = await getAnalyses(user.id);
-        setHistory(dbHistory);
+        const firstPage = await getAnalyses(user.id, { limit: HISTORY_PAGE_SIZE });
+        setHistory(firstPage);
+        setHasMore(firstPage.length === HISTORY_PAGE_SIZE);
         setIsSyncing(false);
       } else {
-        // Guest: load from encrypted localStorage
         try {
           const stored = await secureGetItem<AnalysisHistoryEntry[]>(STORAGE_KEY);
           if (stored && Array.isArray(stored)) {
             setHistory(stored);
           }
+          setHasMore(false);
         } catch (error) {
           logger.error('Failed to load local history:', error);
         }
@@ -52,65 +54,80 @@ export function useAnalysisHistory() {
     loadHistory();
   }, [isAuthenticated, user, authLoading]);
 
-  // Save to encrypted localStorage for guests (when history changes)
+  // Persist guest history
   useEffect(() => {
     if (!isLoaded || isAuthenticated || authLoading) return;
-    
-    const saveHistory = async () => {
-      try {
-        await secureSetItem(STORAGE_KEY, history);
-      } catch (error) {
-        logger.error('Failed to save local history:', error);
-      }
-    };
-
-    saveHistory();
+    secureSetItem(STORAGE_KEY, history).catch((err) =>
+      logger.error('Failed to save local history:', err),
+    );
   }, [history, isLoaded, isAuthenticated, authLoading]);
 
-  const addEntry = useCallback((entry: AnalysisHistoryEntry) => {
-    // For authenticated users, the entry is saved via useAnalysis hook
-    // This is mainly for local state update
-    setHistory(prev => {
-      const filtered = prev.filter(e => e.id !== entry.id);
-      return [entry, ...filtered].slice(0, isAuthenticated ? 1000 : MAX_LOCAL_ENTRIES);
-    });
-  }, [isAuthenticated]);
-
-  const removeEntry = useCallback(async (id: string) => {
-    if (isAuthenticated) {
-      const success = await deleteAnalysis(id);
-      if (success) {
-        setHistory(prev => prev.filter(e => e.id !== id));
-      }
-      return success;
-    } else {
-      setHistory(prev => prev.filter(e => e.id !== id));
-      return true;
+  const loadMore = useCallback(async () => {
+    if (!isAuthenticated || !user || !hasMore || isLoadingMore) return;
+    setIsLoadingMore(true);
+    try {
+      const oldest = history[history.length - 1]?.created_at;
+      const next = await getAnalyses(user.id, {
+        limit: HISTORY_PAGE_SIZE,
+        before: oldest,
+      });
+      setHistory((prev) => {
+        const seen = new Set(prev.map((e) => e.id));
+        const fresh = next.filter((e) => !seen.has(e.id));
+        return [...prev, ...fresh];
+      });
+      setHasMore(next.length === HISTORY_PAGE_SIZE);
+    } finally {
+      setIsLoadingMore(false);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, user, hasMore, isLoadingMore, history]);
+
+  const addEntry = useCallback(
+    (entry: AnalysisHistoryEntry) => {
+      setHistory((prev) => {
+        const filtered = prev.filter((e) => e.id !== entry.id);
+        return [entry, ...filtered].slice(0, isAuthenticated ? 1000 : MAX_LOCAL_ENTRIES);
+      });
+    },
+    [isAuthenticated],
+  );
+
+  const removeEntry = useCallback(
+    async (id: string) => {
+      if (isAuthenticated) {
+        const success = await deleteAnalysis(id);
+        if (success) {
+          setHistory((prev) => prev.filter((e) => e.id !== id));
+        }
+        return success;
+      } else {
+        setHistory((prev) => prev.filter((e) => e.id !== id));
+        return true;
+      }
+    },
+    [isAuthenticated],
+  );
 
   const clearHistory = useCallback(async () => {
     if (isAuthenticated) {
-      // Delete all analyses for user
       for (const entry of history) {
         await deleteAnalysis(entry.id);
       }
     } else {
-      // Clear encrypted local storage
       secureRemoveItem(STORAGE_KEY);
     }
     setHistory([]);
+    setHasMore(false);
   }, [isAuthenticated, history]);
 
-  const getEntry = useCallback((id: string) => {
-    return history.find(e => e.id === id);
-  }, [history]);
+  const getEntry = useCallback((id: string) => history.find((e) => e.id === id), [history]);
 
   const refresh = useCallback(async () => {
     if (isAuthenticated && user) {
       setIsSyncing(true);
-      const dbHistory = await getAnalyses(user.id);
-      setHistory(dbHistory);
+      const firstPage = await getAnalyses(user.id, { limit: HISTORY_PAGE_SIZE });
+      setHistory(firstPage);
+      setHasMore(firstPage.length === HISTORY_PAGE_SIZE);
       setIsSyncing(false);
     }
   }, [isAuthenticated, user]);
@@ -119,12 +136,15 @@ export function useAnalysisHistory() {
     history,
     isLoaded,
     isSyncing,
+    isLoadingMore,
+    hasMore,
     isAuthenticated,
     addEntry,
     removeEntry,
     clearHistory,
     getEntry,
     refresh,
+    loadMore,
     hasHistory: history.length > 0,
   };
 }

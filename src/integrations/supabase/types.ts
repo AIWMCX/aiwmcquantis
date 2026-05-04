@@ -5292,6 +5292,10 @@ export type Database = {
         Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
         Returns: string
       }
+      user_in_shared_pro_team: {
+        Args: { _owner: string; _viewer: string }
+        Returns: boolean
+      }
       user_owns_subscription: {
         Args: { subscription_user_id: string }
         Returns: boolean

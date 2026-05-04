@@ -32,14 +32,41 @@ function formatDate(dateStr: string): string {
 }
 
 export function AnalysisHistory({ onSelect, onClone }: AnalysisHistoryProps) {
-  const { history, isLoaded, isSyncing, isAuthenticated, removeEntry, clearHistory, hasHistory, refresh } = useAnalysisHistory();
-  
+  const {
+    history,
+    isLoaded,
+    isSyncing,
+    isAuthenticated,
+    removeEntry,
+    clearHistory,
+    hasHistory,
+    refresh,
+    loadMore,
+    hasMore,
+    isLoadingMore,
+  } = useAnalysisHistory();
+
   const { containerRef, pullDistance, isRefreshing } = usePullToRefresh({
     onRefresh: refresh,
     threshold: 80,
   });
 
-  // Calculate indicator opacity and rotation based on pull distance
+  // Infinite scroll: load next page when sentinel comes into view.
+  const sentinelRef = React.useRef<HTMLDivElement | null>(null);
+  React.useEffect(() => {
+    if (!hasMore || !sentinelRef.current) return;
+    const el = sentinelRef.current;
+    const root = (containerRef as React.RefObject<HTMLElement>).current ?? null;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) loadMore();
+      },
+      { root, rootMargin: '120px' },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, [hasMore, loadMore, containerRef]);
+
   const indicatorOpacity = Math.min(pullDistance / 40, 1);
   const indicatorRotation = (pullDistance / 80) * 180;
   const isThresholdReached = pullDistance >= 80;
@@ -215,6 +242,25 @@ export function AnalysisHistory({ onSelect, onClone }: AnalysisHistoryProps) {
               </div>
             </div>
           ))
+        )}
+        {hasHistory && hasMore && (
+          <div
+            ref={sentinelRef}
+            className="flex items-center justify-center py-4 text-xs text-muted-foreground"
+          >
+            {isLoadingMore ? (
+              <span className="flex items-center gap-2">
+                <Loader2 className="w-4 h-4 animate-spin" /> Loading more…
+              </span>
+            ) : (
+              <span>Scroll to load more</span>
+            )}
+          </div>
+        )}
+        {hasHistory && !hasMore && isAuthenticated && (
+          <div className="py-3 text-center text-[11px] text-muted-foreground">
+            End of history
+          </div>
         )}
       </CardContent>
     </Card>

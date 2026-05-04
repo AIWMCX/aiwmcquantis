@@ -21,6 +21,11 @@ import { tierGate } from '../_shared/tier-gate.ts';
 import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
 import { aiCall } from '../_shared/llm-call.ts';
+import {
+  CANONICAL_DATA_SOURCES_PROMPT,
+  canonicalDataSourcesAsStrings,
+  mergeCanonicalDataSources,
+} from '../_shared/canonical-data-sources.ts';
 
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
 
@@ -82,7 +87,7 @@ serve(async (req) => {
       {
         model: body.model ?? DEFAULT_MODEL,
         messages: [
-          { role: 'system', content: system },
+          { role: 'system', content: `${system}\n\n${CANONICAL_DATA_SOURCES_PROMPT}` },
           { role: 'user', content: userBlock },
         ],
         temperature: budget.temperature,
@@ -120,6 +125,16 @@ serve(async (req) => {
       (body.plus_analysis.analysis_id as string) ||
       requestId;
     parsed.pro_generated_at = (parsed.pro_generated_at as string) || new Date().toISOString();
+
+    // Force canonical provenance into data_sources (merge, dedup) so PRO PDFs
+    // cite the same ingested datasets as Free/Plus tiers.
+    const incomingSources = Array.isArray(parsed.data_sources)
+      ? (parsed.data_sources as unknown[]).filter((s): s is string => typeof s === 'string')
+      : typeof parsed.sources === 'string'
+        ? (parsed.sources as string).split(/[,;]\s*/).filter(Boolean)
+        : [];
+    parsed.data_sources = mergeCanonicalDataSources(incomingSources);
+    parsed.sources = canonicalDataSourcesAsStrings().join('; ');
 
     return json({
       success: true,
