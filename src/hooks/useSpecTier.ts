@@ -18,6 +18,7 @@ import {
   type SpecApiResponse,
 } from '@/services/specTierApi';
 import type { MonteCarloResult } from '@/lib/monte-carlo';
+import { emitUpgradeNudge } from '@/lib/upgradeNudgeBus';
 
 function unwrap<T>(resp: SpecApiResponse<T>): T {
   if (resp.success === true) return resp.data;
@@ -44,7 +45,13 @@ export function usePlusAnalysis() {
     stage?: 'IDEA' | 'EARLY' | 'GROWTH' | 'ESTABLISHED';
     monteCarlo: MonteCarloResult;
   }>({
-    mutationFn: async (args) => unwrap(await analyzePlus(args)),
+    mutationFn: async (args) => {
+      const result = unwrap(await analyzePlus(args));
+      if (result?.upgrade_nudge) {
+        emitUpgradeNudge({ ...result.upgrade_nudge, target_tier: 'PRO', source: 'analyze-plus' });
+      }
+      return result;
+    },
   });
 }
 
