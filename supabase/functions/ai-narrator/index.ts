@@ -425,6 +425,13 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
       }
 
       const content = JSON.parse(toolCall.function.arguments);
+      // Force canonical provenance into the sources field (merge, dedup).
+      const merged = mergeCanonicalDataSources(
+        typeof content.sources === 'string'
+          ? content.sources.split(/[,;]\s*/).filter(Boolean)
+          : [],
+      );
+      content.sources = merged.join('; ');
       log.info(`AI narrator succeeded in ${Date.now() - startTime}ms`);
 
       return new Response(
