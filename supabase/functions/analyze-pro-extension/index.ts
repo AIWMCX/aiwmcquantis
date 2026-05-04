@@ -21,6 +21,11 @@ import { tierGate } from '../_shared/tier-gate.ts';
 import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
 import { aiCall } from '../_shared/llm-call.ts';
+import {
+  CANONICAL_DATA_SOURCES_PROMPT,
+  canonicalDataSourcesAsStrings,
+  mergeCanonicalDataSources,
+} from '../_shared/canonical-data-sources.ts';
 
 const DEFAULT_MODEL = 'google/gemini-2.5-pro';
 
