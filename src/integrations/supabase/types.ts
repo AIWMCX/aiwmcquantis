@@ -5198,6 +5198,7 @@ export type Database = {
         Args: { p_month_year: string; p_user_id: string }
         Returns: undefined
       }
+      is_in_readonly_window: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_team_admin: {
         Args: { _team_id: string; _user_id: string }
