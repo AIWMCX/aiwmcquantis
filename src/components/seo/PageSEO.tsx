@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { Helmet } from 'react-helmet-async';
 
 const SITE_URL = 'https://aiwmcquantis.com';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
@@ -15,15 +15,15 @@ interface PageSEOProps {
 }
 
 /**
- * PageSEO - Dynamic SEO component for page-specific meta tags
- * 
- * Usage:
- * <PageSEO 
- *   title="Page Title - AIWMC Quantis"
- *   description="Page description under 160 characters"
- *   canonical="/page-path"
- *   noindex={false}
- * />
+ * PageSEO — per-route SEO via react-helmet-async.
+ *
+ * Renders <title>, canonical, robots, OpenGraph, Twitter, and optional JSON-LD
+ * during render (not in useEffect) so that prerendered HTML and crawlers see
+ * the correct per-page metadata BEFORE hydration.
+ *
+ * This fixes the canonical-collapse bug where every prerendered route inherited
+ * the static <link rel="canonical"> from index.html and Google consolidated the
+ * entire site to the homepage.
  */
 export function PageSEO({
   title,
@@ -35,88 +35,37 @@ export function PageSEO({
   twitterCard = 'summary_large_image',
   jsonLd,
 }: PageSEOProps) {
-  useEffect(() => {
-    // Update document title
-    document.title = title;
+  const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : SITE_URL;
+  const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow';
 
-    // Helper to update or create meta tags
-    const updateMetaTag = (selector: string, content: string, createAttrs?: Record<string, string>) => {
-      let element = document.querySelector(selector) as HTMLMetaElement | null;
-      if (element) {
-        element.setAttribute('content', content);
-      } else if (createAttrs) {
-        element = document.createElement('meta');
-        Object.entries(createAttrs).forEach(([key, value]) => {
-          element!.setAttribute(key, value);
-        });
-        element.setAttribute('content', content);
-        document.head.appendChild(element);
-      }
-    };
+  return (
+    <Helmet prioritizeSeoTags>
+      <title>{title}</title>
+      <meta name="description" content={description} />
+      <meta name="robots" content={robotsContent} />
+      <link rel="canonical" href={canonicalUrl} />
 
-    // Helper to update or create link tags
-    const updateLinkTag = (rel: string, href: string) => {
-      let element = document.querySelector(`link[rel="${rel}"]`) as HTMLLinkElement | null;
-      if (element) {
-        element.setAttribute('href', href);
-      } else {
-        element = document.createElement('link');
-        element.setAttribute('rel', rel);
-        element.setAttribute('href', href);
-        document.head.appendChild(element);
-      }
-    };
+      {/* OpenGraph */}
+      <meta property="og:title" content={title} />
+      <meta property="og:description" content={description} />
+      <meta property="og:url" content={canonicalUrl} />
+      <meta property="og:type" content={ogType} />
+      <meta property="og:image" content={ogImage} />
+      <meta property="og:site_name" content="AIWMC Quantis" />
 
-    // Update meta description
-    updateMetaTag('meta[name="description"]', description, { name: 'description' });
+      {/* Twitter */}
+      <meta name="twitter:card" content={twitterCard} />
+      <meta name="twitter:title" content={title} />
+      <meta name="twitter:description" content={description} />
+      <meta name="twitter:image" content={ogImage} />
 
-    // Update robots meta tag
-    const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow';
-    updateMetaTag('meta[name="robots"]', robotsContent, { name: 'robots' });
-
-    // Update canonical URL
-    const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : SITE_URL;
-    updateLinkTag('canonical', canonicalUrl);
-
-    // Update Open Graph tags
-    updateMetaTag('meta[property="og:title"]', title, { property: 'og:title' });
-    updateMetaTag('meta[property="og:description"]', description, { property: 'og:description' });
-    updateMetaTag('meta[property="og:url"]', canonicalUrl, { property: 'og:url' });
-    updateMetaTag('meta[property="og:type"]', ogType, { property: 'og:type' });
-    updateMetaTag('meta[property="og:image"]', ogImage, { property: 'og:image' });
-
-    // Update Twitter Card tags
-    updateMetaTag('meta[name="twitter:card"]', twitterCard, { name: 'twitter:card' });
-    updateMetaTag('meta[name="twitter:title"]', title, { name: 'twitter:title' });
-    updateMetaTag('meta[name="twitter:description"]', description, { name: 'twitter:description' });
-    updateMetaTag('meta[name="twitter:image"]', ogImage, { name: 'twitter:image' });
-
-    // Inject custom JSON-LD if provided
-    if (jsonLd) {
-      const existingScript = document.getElementById('page-jsonld');
-      if (existingScript) {
-        existingScript.remove();
-      }
-
-      const script = document.createElement('script');
-      script.id = 'page-jsonld';
-      script.type = 'application/ld+json';
-      script.textContent = JSON.stringify(jsonLd);
-      document.head.appendChild(script);
-    }
-
-    // Cleanup custom JSON-LD on unmount
-    return () => {
-      if (jsonLd) {
-        const script = document.getElementById('page-jsonld');
-        if (script) {
-          script.remove();
-        }
-      }
-    };
-  }, [title, description, canonical, noindex, ogImage, ogType, twitterCard, jsonLd]);
-
-  return null;
+      {jsonLd && (
+        <script type="application/ld+json">
+          {JSON.stringify(jsonLd)}
+        </script>
+      )}
+    </Helmet>
+  );
 }
 
 export default PageSEO;
