@@ -9,6 +9,7 @@ import { MobileNav } from '@/components/layout/MobileNav';
 import { UrgencyBanner } from '@/components/landing/UrgencyBanner';
 import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { trackCtaClick, recordFunnelEvent } from '@/lib/analytics';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
@@ -50,6 +51,11 @@ export default function Landing() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PageSEO
+        title="AIWMC Quantis — Audit-grade business validation in 90 seconds"
+        description="Deterministic financial engine + 95,500 verified benchmarks. Stress-test any business idea before the first dollar is spent. Free to start."
+        canonical="/"
+      />
       <StructuredData 
         includeFAQ
         faqItems={[

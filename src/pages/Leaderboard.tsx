@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '@/components/layout/Footer';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { logger } from '@/lib/logger';
 import { 
   Trophy, TrendingUp, ArrowRight, MapPin, 
@@ -116,6 +117,11 @@ export default function Leaderboard() {
 
   return (
     <div className="min-h-screen bg-background text-foreground">
+      <PageSEO
+        title="Quantis Leaderboard — Top-scoring validated business ideas"
+        description="Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against 95,500 real benchmarks."
+        canonical="/leaderboard"
+      />
       {/* Nav */}
       <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
