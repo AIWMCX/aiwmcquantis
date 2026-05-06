@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Footer } from '@/components/layout/Footer';
+import { PageSEO } from '@/components/seo/PageSEO';
 import { logger } from '@/lib/logger';
 import { 
   Trophy, TrendingUp, ArrowRight, MapPin, 
