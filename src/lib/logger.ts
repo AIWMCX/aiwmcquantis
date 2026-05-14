@@ -34,13 +34,7 @@ class Logger {
   private log(level: LogLevel, message: string, context?: LogContext) {
     const timestamp = new Date().toISOString();
     // Stamp every entry with the active correlation ID, if any.
-    const requestId = getRequestId();
-    if (requestId) {
-      context = {
-        ...context,
-        metadata: { request_id: requestId, ...(context?.metadata ?? {}) },
-      };
-    }
+    context = this.withRequestId(context);
     const logEntry: LogEntry = { timestamp, level, message, context };
 
     // Keep log history for debugging
@@ -128,6 +122,15 @@ class Logger {
       // Capture as message so non-Error rejections still reach Sentry.
       captureMessage(`[ERROR] ${message}`, 'error');
     }
+  }
+
+  private withRequestId(context?: LogContext): LogContext | undefined {
+    const requestId = getRequestId();
+    if (!requestId) return context;
+    return {
+      ...context,
+      metadata: { ...(context?.metadata ?? {}), request_id: requestId },
+    };
   }
 
   /**
