@@ -1,14 +1,16 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Share2, Save, Lock, Loader2, Check, Copy, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnalysisForView } from '@/services/analysisDb';
 import { computeVerdict, type Verdict } from '@/lib/verdict';
 import { useAuth } from '@/hooks/useAuth';
 import { useShareReport } from '@/hooks/useShareReport';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackEvent } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
+import { ShareRail } from '@/components/result/ShareRail';
+import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSkeleton';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 
