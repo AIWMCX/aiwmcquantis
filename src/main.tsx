@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
 import { initClarity } from './lib/clarity';
+import { scheduleAnonymousResultsSweep } from './lib/anonResultsCleanup';
 import './i18n'; // Side-effect import: initializes i18next before any component mounts
 import App from './App.tsx';
 import { logger } from '@/lib/logger';
