@@ -84,4 +84,4 @@ export const MANDATORY_DISCLAIMER =
   "performance does not guarantee future results. Consult a licensed financial " +
   "advisor, accountant, or attorney before making significant business or " +
   "investment decisions. AIWMC™ LLC is not liable for business outcomes, losses, " +
-  "or decisions made based on this analysis." as const;
+  "or decisions made based on this analysis.";
