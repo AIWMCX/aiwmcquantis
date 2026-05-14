@@ -75,8 +75,47 @@ export default function Pricing() {
           </p>
         </section>
 
-        {/* Reuse existing PricingSection component */}
-        <PricingSection />
+        {/* vs $3,000 Consultant Anchor — first thing the visitor sees */}
+        <section className="container max-w-5xl mx-auto px-4 sm:px-6 mb-2">
+          <div className="rounded-2xl border border-border bg-card overflow-hidden">
+            <div className="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-border">
+              <div className="p-6 md:p-7 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  Boutique Consultant
+                </p>
+                <p className="text-3xl md:text-4xl font-bold text-foreground line-through decoration-destructive/70 decoration-[3px]">
+                  $3,000
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">3-day engagement, 1 report, no live updates</p>
+              </div>
+              <div className="p-6 md:p-7 text-center">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">
+                  CFO Hourly
+                </p>
+                <p className="text-3xl md:text-4xl font-bold text-foreground line-through decoration-destructive/70 decoration-[3px]">
+                  $250 / hr
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">10-15 hours per scenario, you brief them</p>
+              </div>
+              <div className="p-6 md:p-7 text-center bg-primary/5">
+                <p className="text-[11px] font-semibold uppercase tracking-wider text-primary mb-2">
+                  Quantis Plus — Annual
+                </p>
+                <p className="text-3xl md:text-4xl font-bold text-foreground">
+                  $14<span className="text-base font-medium text-muted-foreground"> / mo</span>
+                </p>
+                <p className="text-xs text-muted-foreground mt-2">Unlimited analyses · 60-second turnaround</p>
+              </div>
+            </div>
+            <div className="px-6 py-3 text-center text-xs md:text-sm text-muted-foreground bg-muted/40 border-t border-border">
+              <span className="font-semibold text-foreground">Same depth.</span> 1/200th the price.
+              <span className="hidden md:inline"> · </span>
+              <span className="block md:inline mt-1 md:mt-0">
+                <span className="font-semibold text-foreground">7-day money-back guarantee</span> — no questions asked.
+              </span>
+            </div>
+          </div>
+        </section>
 
         {/* Bottom CTA */}
         <section className="py-12 md:py-16">

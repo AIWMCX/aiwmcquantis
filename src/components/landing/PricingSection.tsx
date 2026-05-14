@@ -69,12 +69,13 @@ export function PricingSection() {
   
   // Get experiment variant FIRST so we can use it for initial state
   const pricingVariant = useExperiment('pricing_display');
-  const showAnnualFirst = pricingVariant === 'annual_first';
-  
-  // Initialize billing period based on experiment variant (fixes race condition)
-  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>(() => 
-    showAnnualFirst ? 'annual' : 'monthly'
-  );
+  // Wave 2: yearly is the default (cheaper per-month + higher LTV).
+  // The annual_first experiment variant kept this behaviour; we now apply
+  // it for everyone so the anchor in the page header matches what's selected.
+  const showAnnualFirst = true;
+
+  // Initialize billing period to annual by default
+  const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
   
   // Ref to always have the current billing period (eliminates stale state on quick clicks)
