@@ -85,6 +85,12 @@ export default function AdminDashboard() {
                 Denials
               </Link>
             </Button>
+            <Button variant="default" size="sm" asChild>
+              <Link to="/admin/engine">
+                <BookOpen className="w-4 h-4 mr-2" />
+                Engine &amp; Spec v4
+              </Link>
+            </Button>
           </div>
         </div>
 
