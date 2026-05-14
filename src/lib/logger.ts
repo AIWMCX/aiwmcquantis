@@ -107,17 +107,20 @@ class Logger {
       ? { errorMessage: error.message, errorName: error.name }
       : {};
     const extraMetadata = extra !== undefined ? { extra } : {};
-    this.log('error', message, {
+    const logContext = {
       ...context,
       metadata: {
         ...context?.metadata,
         ...errorMetadata,
         ...extraMetadata,
       } as Record<string, unknown>,
-    });
+    };
+    this.log('error', message, logContext);
+
+    const sentryContext = this.withRequestId(context);
 
     if (error && !this.isDev) {
-      captureError(error, context as Record<string, unknown>);
+      captureError(error, sentryContext as Record<string, unknown> | undefined);
     } else if (extra !== undefined && !this.isDev) {
       // Capture as message so non-Error rejections still reach Sentry.
       captureMessage(`[ERROR] ${message}`, 'error');
