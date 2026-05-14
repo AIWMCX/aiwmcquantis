@@ -221,15 +221,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
+    width: 380,
     maxWidth: 380,
-    paddingRight: 16,
+    paddingRight: 12,
   },
   pageHeaderTitleWrap: {
-    width: 210,
+    width: 230,
     flexShrink: 0,
+    overflow: 'hidden',
   },
   pageHeaderSectionWrap: {
+    width: 118,
     flexShrink: 0,
+    overflow: 'hidden',
   },
   pageHeaderTitle: {
     fontSize: 10,
@@ -238,7 +242,7 @@ const styles = StyleSheet.create({
     lineHeight: 1.2,
   },
   pageHeaderSection: {
-    fontSize: 10,
+    fontSize: 9,
     color: colors.primary,
     fontFamily: 'Helvetica-Bold',
     lineHeight: 1.2,
