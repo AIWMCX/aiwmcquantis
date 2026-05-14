@@ -2,9 +2,12 @@ import { supabase } from '@/integrations/supabase/client';
 import type { BusinessAnalysisResult, AnalysisHistoryEntry } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
+import { getAnonymousDeviceId } from '@/lib/anonymousTracking';
 
 import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'business_analysis_history';
+const ANON_RESULT_PREFIX = 'quantis_anon_result_';
+const ANON_RECENT_KEY = 'quantis_anon_recent_id';
 
 export async function saveAnalysis(
   userId: string,
@@ -37,12 +40,120 @@ export async function saveAnalysis(
   return { id: data.id };
 }
 
-export const HISTORY_PAGE_SIZE = 25;
+/**
+ * Persist an anonymous analysis to the database with anonymous_session_id
+ * so the visitor can later claim it after signing up. Also caches the full
+ * result in localStorage keyed by id, which is the source of truth for the
+ * public /r/:id result page when the visitor is unauthenticated (RLS would
+ * otherwise hide the row from them).
+ */
+export async function saveAnonymousAnalysis(
+  idea: string,
+  location: string,
+  result: BusinessAnalysisResult,
+  depth: 'quick' | 'full' | 'pro' = 'full',
+): Promise<{ id: string } | null> {
+  const sessionId = getAnonymousDeviceId();
+
+  const { data, error } = await supabase
+    .from('analyses')
+    .insert({
+      user_id: null,
+      anonymous_session_id: sessionId,
+      idea,
+      location,
+      result: result as unknown as Record<string, unknown>,
+      confidence_score: result.confidence_score,
+      startup_investment: result.financial_analysis.startup_investment.total,
+      monthly_profit: getMonthlyProfit(result.financial_analysis),
+      payback_months: getPaybackMonths(result.financial_analysis),
+      depth,
+    } as any)
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    // DB write failed — fall back to a synthetic id and cache locally so the
+    // result page still works for the visitor.
+    logger.warn('Anonymous analysis DB save failed, using local-only id:', error?.message);
+    const localId = crypto.randomUUID();
+    cacheAnalysisLocally(localId, { idea, location, result });
+    return { id: localId };
+  }
+
+  cacheAnalysisLocally(data.id, { idea, location, result });
+  return { id: data.id };
+}
+
+interface CachedAnalysis {
+  idea: string;
+  location: string;
+  result: BusinessAnalysisResult;
+  cached_at: string;
+}
+
+export function cacheAnalysisLocally(
+  id: string,
+  payload: { idea: string; location: string; result: BusinessAnalysisResult },
+): void {
+  try {
+    const cached: CachedAnalysis = { ...payload, cached_at: new Date().toISOString() };
+    localStorage.setItem(ANON_RESULT_PREFIX + id, JSON.stringify(cached));
+    localStorage.setItem(ANON_RECENT_KEY, id);
+  } catch (e) {
+    logger.warn('Failed to cache analysis locally', e);
+  }
+}
+
+export function getCachedAnalysis(id: string): CachedAnalysis | null {
+  try {
+    const raw = localStorage.getItem(ANON_RESULT_PREFIX + id);
+    if (!raw) return null;
+    return JSON.parse(raw) as CachedAnalysis;
+  } catch {
+    return null;
+  }
+}
+
+export function getMostRecentCachedId(): string | null {
+  try {
+    return localStorage.getItem(ANON_RECENT_KEY);
+  } catch {
+    return null;
+  }
+}
 
 /**
- * Paginated fetch — keyset by created_at to avoid OFFSET cost and Supabase
- * 1000-row ceiling. Pass `before` (created_at ISO) to load older rows.
+ * Try DB first (works for owner/public analyses), then fall back to local cache
+ * (for anonymous visitors who just ran an analysis on this device).
  */
+export async function fetchAnalysisForView(
+  id: string,
+): Promise<{ idea: string; location: string; result: BusinessAnalysisResult; source: 'db' | 'cache' } | null> {
+  const { data } = await supabase
+    .from('analyses')
+    .select('idea, location, result')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (data) {
+    return {
+      idea: data.idea,
+      location: data.location,
+      result: data.result as unknown as BusinessAnalysisResult,
+      source: 'db',
+    };
+  }
+
+  const local = getCachedAnalysis(id);
+  if (local) {
+    return { idea: local.idea, location: local.location, result: local.result, source: 'cache' };
+  }
+  return null;
+}
+
+export const HISTORY_PAGE_SIZE = 25;
+
 export async function getAnalyses(
   userId: string,
   opts: { limit?: number; before?: string } = {},
@@ -89,14 +200,11 @@ export async function deleteAnalysis(id: string): Promise<boolean> {
 
 /**
  * Migrate localStorage data to database
- * Handles both encrypted (new) and unencrypted (legacy) data formats
  */
 export async function migrateLocalStorageToDb(userId: string): Promise<number> {
   try {
-    // Try to get encrypted data first
     let localHistory = await secureGetItem<AnalysisHistoryEntry[]>(STORAGE_KEY);
-    
-    // If no data found, check for legacy unencrypted data
+
     if (!localHistory) {
       const legacyStored = localStorage.getItem(STORAGE_KEY);
       if (legacyStored) {
@@ -106,7 +214,6 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
             localHistory = parsed;
           }
         } catch {
-          // Invalid legacy data
           return 0;
         }
       }
@@ -118,7 +225,6 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
 
     let migrated = 0;
     for (const entry of localHistory) {
-      // Validate entry has required fields
       if (!entry.idea || !entry.location || !entry.result) {
         continue;
       }
@@ -140,10 +246,8 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
       if (!error) migrated++;
     }
 
-    // Clear all localStorage data after successful migration
     if (migrated > 0) {
       secureRemoveItem(STORAGE_KEY);
-      // Also remove any legacy unencrypted data
       localStorage.removeItem(STORAGE_KEY);
     }
 
