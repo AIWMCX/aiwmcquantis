@@ -70,7 +70,7 @@ describe('logger', () => {
       const err = new Error('boom');
       logger.error('something failed', err);
       expect(captureError).toHaveBeenCalledTimes(1);
-      expect(captureError).toHaveBeenCalledWith(err, expect.anything());
+      expect(captureError).toHaveBeenCalledWith(err, undefined);
       expect(captureMessage).not.toHaveBeenCalled();
     });
 
