@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect, useRef } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { generateAnalysis, validateIdea, validateLocation } from '@/services/analysisApi';
-import { saveAnalysis } from '@/services/analysisDb';
+import { saveAnalysis, saveAnonymousAnalysis, cacheAnalysisLocally } from '@/services/analysisDb';
 import { useAnalysisHistory } from './useAnalysisHistory';
 import { useAuth } from './useAuth';
 import { useFileUpload } from './useFileUpload';
@@ -49,6 +49,7 @@ export function useAnalysis() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
+  const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
   // Pro-depth async job tracking. When the backend returns 202+job_id we set
@@ -97,18 +98,21 @@ export function useAnalysis() {
       const trimmedIdea = idea.trim();
       const trimmedLocation = location.trim();
 
+      const requestedDepth = lastRequestRef.current?.analysis_depth;
+      const depthFromResult = (data as any)?.depth_used;
+      const finalDepth: 'quick' | 'full' | 'pro' =
+        (depthFromResult === 'pro' || depthFromResult === 'full' || depthFromResult === 'quick')
+          ? depthFromResult
+          : (requestedDepth === 'deep' || requestedDepth === 'pro')
+            ? 'pro'
+            : (requestedDepth as 'quick' | 'full' | undefined) ?? 'full';
+
+      let savedId: string | null = null;
       if (isAuthenticated && user) {
-        // Determine depth from result metadata, lastRequest, or fallback to 'full'
-        const requestedDepth = lastRequestRef.current?.analysis_depth;
-        const depthFromResult = (data as any)?.depth_used;
-        const finalDepth: 'quick' | 'full' | 'pro' =
-          (depthFromResult === 'pro' || depthFromResult === 'full' || depthFromResult === 'quick')
-            ? depthFromResult
-            : (requestedDepth === 'deep' || requestedDepth === 'pro')
-              ? 'pro'
-              : (requestedDepth as 'quick' | 'full' | undefined) ?? 'full';
         const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data, finalDepth);
         if (saved) {
+          savedId = saved.id;
+          cacheAnalysisLocally(saved.id, { idea: trimmedIdea, location: trimmedLocation, result: data });
           addEntry({
             id: saved.id,
             idea: trimmedIdea,
@@ -118,14 +122,19 @@ export function useAnalysis() {
           });
         }
       } else {
-        addEntry({
-          id: crypto.randomUUID(),
-          idea: trimmedIdea,
-          location: trimmedLocation,
-          result: data,
-          created_at: new Date().toISOString(),
-        });
+        const saved = await saveAnonymousAnalysis(trimmedIdea, trimmedLocation, data, finalDepth);
+        if (saved) {
+          savedId = saved.id;
+          addEntry({
+            id: saved.id,
+            idea: trimmedIdea,
+            location: trimmedLocation,
+            result: data,
+            created_at: new Date().toISOString(),
+          });
+        }
       }
+      setAnalysisId(savedId);
     },
     [idea, location, isAuthenticated, user, addEntry],
   );
@@ -367,6 +376,7 @@ export function useAnalysis() {
     setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
     setErrors({});
     setResult(null);
+    setAnalysisId(null);
     setRateLimitError(null);
     setProJobId(null);
     setProRequestId(null);
@@ -402,6 +412,7 @@ export function useAnalysis() {
     // Analysis state
     result,
     setResult,
+    analysisId,
     isLoading,
     isError: mutation.isError,
     error: mutation.error as Error | null,
