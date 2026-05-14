@@ -1,6 +1,8 @@
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { assertEmailSendAllowed } from '../_shared/email-guard.ts';
 
 /**
  * Send Lead Magnet Edge Function
@@ -273,12 +275,35 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Strict email format check before doing anything else
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid email address' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     const emailContent = LEAD_MAGNET_EMAILS[offer];
     if (!emailContent) {
       return new Response(
         JSON.stringify({ error: `Unknown offer type: ${offer}` }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
+    }
+
+    // Rate-limit abuse: max 3 sends per recipient/hour, 20 per IP/hour
+    const admin = createClient(
+      Deno.env.get('SUPABASE_URL')!,
+      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!,
+    );
+    const guard = await assertEmailSendAllowed(
+      admin,
+      { req, recipient: email, templateKey: `lead_magnet:${offer}` },
+      corsHeaders,
+    );
+    if (!guard.ok) {
+      log.info('Lead-magnet send rate-limited', { offer });
+      return guard.response;
     }
 
     const htmlContent = generateEmailHtml(name, emailContent);
