@@ -5,6 +5,7 @@ const SENTRY_DSN = import.meta.env.VITE_SENTRY_DSN;
 export function initSentry() {
   if (!SENTRY_DSN || !import.meta.env.PROD) {
     if (!import.meta.env.PROD) return;
+    // eslint-disable-next-line no-console -- bootstrap before logger transport is ready
     console.warn('Sentry DSN not configured - error tracking disabled');
     return;
   }
@@ -36,6 +37,7 @@ export function initSentry() {
       ],
     });
   } catch (e) {
+    // eslint-disable-next-line no-console -- bootstrap before logger transport is ready
     console.warn('Sentry init failed:', e);
   }
 }

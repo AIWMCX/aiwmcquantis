@@ -1,145 +1,122 @@
+# AIWMC Quantis — Audit v3.1 Remediation Plan
 
-# AIWMC Quantis Conversion Overhaul — 3 Waves
-
-## Diagnostic Findings (from production DB, last 7d)
-
-- 69 home views → 3 analysis starts → 2 completions → 0 leads → 0 shares → 0 new subs
-- Only 2 of 8 canonical funnel events ever fire in production
-- Anonymous-first flow does not exist; every analysis requires auth
-- No schema support for public teardowns, share-as-teardown captions, or editable bio CTA
-
-The diagnosis matches the prior audit. Below is the exact ship sequence.
+Goal: close every P0/P1 from the audit, in dependency order, without regressing the conversion engine work shipped in Waves 1–3.
 
 ---
 
-## Wave 1 — Foundation (this is what makes everything else measurable & possible)
+## Wave A — Quick Wins (this week, all XS effort)
 
-**1.1 Microsoft Clarity install**
-Free, no API key, 10-min install. Adds session replay + heatmaps. Loaded async, no perf hit. Goes in `index.html` with a Cookiebot-respecting wrapper.
+Ship together in one PR. No risk, unblocks future waves.
 
-**1.2 Funnel event audit & fix**
-Walk every page and confirm `recordFunnelEvent` is called for: `home_view`, `analysis_start`, `analysis_complete`, `signup_complete`, `paywall_view`, `upgrade_click`, `checkout_start`, `checkout_complete`. Add a small `<FunnelDebug>` overlay (dev-only) and an admin `/admin/funnel` page that reads `funnel_summary_30d`.
+1. **ISSUE-106 — Refactor Logger to read `isDev` per-call**
+   - `src/lib/logger.ts`: replace constructor-captured `this.isDev` with a getter `get isDev() { return import.meta.env.DEV }`.
+   - Re-enable the 2 skipped tests in `src/__tests__/logger.test.ts` (forwarding Errors → `captureError`, non-Errors → `captureMessage`).
 
-**1.3 Schema migration — unlock all downstream features**
+2. **ISSUE-108 — Wire financial typecheck into build**
+   - `package.json`: add `"typecheck:financial": "tsc -p tsconfig.financial.json --noEmit"`.
+   - Chain into existing `build` (or `prebuild`) script so a null-safety regression in `quantis-math.ts` / `financial-engine.ts` / `reconciliation-engine.ts` / `formula-registry.ts` / `geo-calibrator.ts` fails the build.
+
+3. **ISSUE-110 — Justify the 2 sentry.ts bootstrap warns**
+   - `src/lib/sentry.ts:8,39`: add `// eslint-disable-next-line no-console -- bootstrap before logger transport is ready`.
+
+4. **ISSUE-111 — Drop the test-fixture console.error**
+   - `src/__tests__/quantis-math.test.ts:161`: remove the raw log; rely on Vitest's assertion message.
+
+5. **ISSUE-113 — `@ts-ignore` → `@ts-expect-error`** (2 occurrences across `src/`).
+
+Verification: `bun run test` green, `bun run typecheck:financial` green, `rg "@ts-ignore" src/` returns 0.
+
+---
+
+## Wave B — P0/P1 Hardening (next 2–3 weeks)
+
+### B1. ISSUE-104 — Kill the wildcard CORS footgun
+- `supabase/functions/_shared/cors.ts`: change the legacy `corsHeaders` export to an empty `{}` so any function still importing it visibly breaks in dev.
+- Migrate the 37 importers to `corsHeadersFor(req)` in a single sweep PR.
+- Add an ESLint rule (or a custom check in the existing lint config) banning `import { corsHeaders }` from `_shared/cors`.
+
+### B2. ISSUE-102 — Edge function logger + Sentry transport
+- Create `supabase/functions/_shared/logger.ts` mirroring frontend API (`info/warn/error/debug`), auto-stamping `request_id` from `_shared/request-id.ts`.
+- Optional Sentry HTTP transport gated on `SENTRY_DSN` env (POST to ingest endpoint; no SDK to keep cold-start small).
+- Run a Deno codemod across all 40 functions replacing `console.*` → `logger.*`. Keep raw `console.error` only inside the logger's own catch.
+- Priority order: `stripe-webhook` → `analyze-business` → `ai-consensus` → `analyze-plus` → `analyze-pro-worker` → rest.
+
+### B3. ISSUE-107 — Cost alert on `ai_calls`
+- Migration: Postgres trigger `ai_cost_runaway_check` on `ai_calls` insert. When rolling-1h `sum(cost_usd) WHERE user_id = NEW.user_id > 5`, call `pg_notify('ai_cost_alert', json)`.
+- New edge function `cost-alert` subscribes / is invoked by a 5-min cron checking the same condition (LISTEN over HTTP isn't reliable in serverless). Emits to Sentry + sends email to admin.
+- Hard cap (separate, defense-in-depth): same trigger raises an exception when rolling-1h cost > $20/user, blocking further inserts.
+
+### B4. ISSUE-109 — `request_id` on sibling log tables
+- Migration: `ALTER TABLE analysis_logs ADD COLUMN request_id text` + `CREATE INDEX idx_analysis_logs_request_id`.
+- Same for `reconciliation_log`.
+- Update insert sites in `src/services/quantis-logger.ts` and reconciliation engine to populate from `getCurrentRequestId()`.
+
+### B5. ISSUE-112 — Tighten Sentry ignore rules
+- `src/lib/sentry.ts`: move Apollo/Clarity from `ignoreErrors` (message regex) to `denyUrls` (script origin regex). Keeps legitimate errors that happen to mention the script URL.
+
+### B6. ISSUE-101 (start) — Flip `strictNullChecks` in `tsconfig.app.json`
+- Expect ~80 errors. Fix in `src/lib/` first (already partially clean from `tsconfig.financial.json`), then `src/services/`, then `src/hooks/`.
+- Track via `docs/strict-mode-rollout.md` Phase 2/3 checklist.
+
+---
+
+## Wave C — Architecture (Q1, larger lifts)
+
+### C1. ISSUE-103 — Split the 4.4k-line god function
+- Create `supabase/functions/_shared/runners/` with: `engine.ts`, `narrator.ts`, `safety.ts`, `persistence.ts`, `hybrid.ts`.
+- `analyze-business/index.ts` shrinks to a ~200-line orchestrator: parse → route → run → persist → respond.
+- Migrate behind feature flag `ANALYZE_BUSINESS_V2` (env var checked at request time). Old path remains for fallback for 2 weeks, then deleted.
+- Add unit tests per runner — currently impossible because logic is inlined.
+
+### C2. ISSUE-105 — Playwright E2E for the 3 conversion-critical flows
+- `bun add -d @playwright/test`, `playwright.config.ts` pointed at staging URL.
+- Tests:
+  - `e2e/anonymous-to-result.spec.ts` — single input → `/r/:id` → verdict visible within 5s.
+  - `e2e/signup-checkout.spec.ts` — signup → Stripe checkout test mode → webhook → tier upgraded.
+  - `e2e/plus-pdf-export.spec.ts` — Plus user → analysis → PDF download → file > 50KB and contains expected verdict.
+- Wire as a GitHub Action gate on PRs touching `src/pages/`, `src/services/`, or `supabase/functions/`.
+
+### C3. ISSUE-101 (finish) — Full `strict: true`
+- Once all phases of `docs/strict-mode-rollout.md` are green, flip `strict: true` in `tsconfig.app.json` and delete `tsconfig.financial.json`.
+
+---
+
+## Sequencing & Risk
+
 ```text
-analyses:
-  + is_public           boolean default false
-  + public_slug         text unique         (auto-set when made public)
-  + founder_display_name text                (opt-in; user-controlled)
-  + idea_summary        text                (140-char human label for cards)
-  + made_public_at      timestamptz
-
-shared_reports:
-  + kind                text default 'private'   ('private' | 'teardown')
-  + caption             text                     (LinkedIn/X-ready copy)
-  + og_image_url        text                     (generated social card URL)
-  + headline_verdict    text                     (cached for share preview)
-
-user_settings:
-  + bio_text            text                     (editable bio line)
-  + pinned_post_text    text                     (editable pinned post)
-  + public_profile_slug text unique              (founder profile page)
-  + show_in_teardowns   boolean default true
+Wave A (week 1)
+   │  XS items, no dependencies
+   ▼
+Wave B (weeks 2–4)
+   │  B1 (CORS) → B2 (edge logger) in parallel
+   │  B3 (cost alert) needs B2's logger to emit Sentry events
+   │  B4, B5, B6 independent
+   ▼
+Wave C (weeks 5–12)
+   │  C1 (god-function split) — feature-flagged, slow rollout
+   │  C2 (Playwright) — gate added once 3 specs are green on staging
+   │  C3 (strict: true) — capstone, only after B6 phases complete
 ```
 
-Add RLS:
-- `analyses` SELECT for anon: only when `is_public = true`
-- `analyses` UPDATE: only owner can flip `is_public`
-- New RPC `get_public_teardowns(limit, offset)` SECURITY DEFINER returning sanitized cards
-- New RPC `set_analysis_public(analysis_id, is_public, founder_name, idea_summary)` with slug auto-generation
-
-**1.4 Anonymous analysis persistence**
-Allow `analyses.user_id = NULL` inserts via RLS, with `anonymous_session_id` from `anonymous_usage` table. Tie to existing rate limits.
+Rollback for each wave: every change is additive or feature-flagged. CORS migration (B1) is the only one with a hard cutover — gated by ESLint rule + a 1-day staging soak before promoting.
 
 ---
 
-## Wave 2 — Conversion Engine
+## Out of Scope (deferred, tracked in audit but not this plan)
 
-**2.1 Anonymous-first single-input flow** (`/` and `/app`)
-- Hero gets a single textarea: *"Describe your idea in one sentence."*
-- Submit → calls `analyze-preview` edge function → returns immediately with verdict + locked-section previews
-- No auth wall. Auth gate only on: PDF export, Save analysis, Make Public, Run again.
-- Result lives at `/r/[token]` (anon-readable, expires 24h unless saved)
-
-**2.2 Result page redesign** (`AppDashboard` result view + new `/r/[token]`)
-- 32px headline verdict at top: *"Verdict: PIVOT — Your unit economics break at month 11."*
-- Below: assumption graph (already in code at `assumption-graph.ts`, currently hidden) — surface it.
-- Sticky right rail with: `Share as Teardown`, `Make Public`, `Save (sign in)`, `Export PDF (Plus)`.
-- Locked Pro sections shown blurred with one-line preview of what's hidden.
-
-**2.3 Pricing page rebuild** (`/pricing`)
-- Yearly/Monthly toggle defaults to **Yearly**, "Save $X" badge.
-- Anchor strip above tiers: `Consultant: 3 weeks · $3,000 · 1 scenario  ||  Quantis Plus: 90 sec · $17/mo · 95,500 scenarios`.
-- Each tier card includes:
-  - 1 example output thumbnail (real screenshots from `/examples`)
-  - "7-day refund — no questions" line
-  - Verdict-tied feature list, not generic
-- Inline FAQ: "Why $17 not $1,500?", "Refund policy", "Cancel anytime".
-
-**2.4 Lead capture wiring**
-Verify `usePostAnalysisLeadCapture` hook actually fires on result page (currently 0 leads despite 69 home views). Move the trigger from "3-sec delay" to "verdict viewed for >5 sec OR scrolled past locked section".
+- ISSUE-114, 115 (P3 docs) — fold into the next mem update naturally.
+- Frontend perf re-measurement — separate effort tied to LCP work, not type/observability.
 
 ---
 
-## Wave 3 — Distribution Engine
+## Acceptance Criteria
 
-**3.1 Public Teardowns Gallery** (`/teardowns` + `/teardowns/[slug]`)
-- Index page: grid of public analyses, sorted by recency + view count
-- Detail page: founder name (or anon), idea summary, headline verdict, full sanitized analysis
-- SEO: per-page `<Helmet>` title/description, JSON-LD Article, added to `sitemap.xml` via build-time script
-- "Made public by founder" badge (no scraping, opt-in only)
+- `bun run build` runs `typecheck:financial` and fails on null-safety regressions.
+- `rg "console\." supabase/functions/ -g '!_shared/logger.ts'` returns 0.
+- `rg "import { corsHeaders }" supabase/functions/` returns 0.
+- `analyze-business/index.ts` ≤ 250 lines.
+- 3 Playwright specs green on staging.
+- `tsconfig.app.json` has `"strict": true`.
+- Cost alert verified by injecting a synthetic $6 row into `ai_calls` in staging and confirming Sentry event + email.
 
-**3.2 Editable Profile CTA generator** (`/settings/profile`)
-- Auto-generates from user's plan + recent analyses:
-  - Bio: *"I stress-test startup ideas before founders waste $50k. {N} public teardowns → aiwmcquantis.com/u/{slug}"*
-  - Pinned post: 3 templates (LinkedIn / X / IG-bio) with one-click copy
-- Live preview pane. Stored in `user_settings.bio_text` / `pinned_post_text`.
-
-**3.3 "Stress-tested by Quantis" embeddable badge**
-- Generates HTML snippet: `<a href="https://aiwmcquantis.com/teardowns/{slug}?ref=badge"><img src="..." alt="Stress-tested by AIWMC Quantis"/></a>`
-- Three sizes (small/medium/large); SVG hosted at `/badges/[size].svg`
-- Each click tracks `funnel_event: badge_click` with referrer slug
-- `/settings/badge` page with copy-to-clipboard + live preview
-
-**3.4 Share-as-Teardown one-click export**
-- Button on result page: "Share as Teardown"
-- Triggers edge function `generate-share-card`:
-  - Renders 1200×630 PNG via `@vercel/og` style (use Lovable AI Gateway for image gen, or pure SVG-to-PNG via canvas in edge function)
-  - Caption auto-built from headline verdict + assumption graph top-3 nodes
-  - Stores PNG in Supabase Storage bucket `share-cards/{token}.png`
-- Frontend opens a modal: image preview, caption textarea (editable), "Copy caption", "Download image", "Open LinkedIn/X intent URL" buttons
-
----
-
-## Technical Detail Section
-
-**Edge functions to add:**
-- `generate-share-card` — Deno, builds PNG via SVG + resvg-js (`npm:@resvg/resvg-js`)
-- `publish-teardown` — wraps `set_analysis_public` RPC + cache-busts sitemap
-- (Existing) `share-report` — already shipped; reused for token issuance
-
-**OG image strategy for /teardowns/[slug]:**
-Pre-generated PNGs stored in Storage. Helmet tag `<meta property="og:image">` points to public URL. No runtime SSR needed.
-
-**Sitemap regeneration:**
-Add a build script `scripts/build-sitemap.ts` that queries `analyses WHERE is_public = true` and merges into `public/sitemap.xml`. Wire into Vite build.
-
-**Clarity install:**
-`<script>` injected via `index.html` with Project ID env var `VITE_CLARITY_PROJECT_ID`. Wrapped in `<noscript>` consent check.
-
-**Anonymous flow data model:**
-`anonymous_usage` table already exists. Tie `analyses.user_id IS NULL` rows to it via a new `anonymous_session_id` column (FK soft, no constraint, just for analytics correlation).
-
----
-
-## Sequencing & Estimate
-
-| Wave | Items | Estimated chat turns | What unlocks |
-|---|---|---|---|
-| 1 | Clarity, funnel fix, schema migration, anon persistence | 1 turn | Measurement + DB foundation |
-| 2 | Anon flow, result redesign, pricing rebuild, lead capture | 2 turns | Direct conversion lift |
-| 3 | Teardowns gallery, profile CTA, badge, share-as-teardown | 2 turns | Compounding distribution loop |
-
-I will ship **Wave 1 in full** in the next message immediately after you approve this plan. Then pause for you to verify Clarity is recording sessions and funnel events are reaching the DB before I touch the conversion-critical user-facing flows in Wave 2.
-
-If you want any item resequenced (e.g. ship the badge before the gallery), say so now.
+Approve to start Wave A.
