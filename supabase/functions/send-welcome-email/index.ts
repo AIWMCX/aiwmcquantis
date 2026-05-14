@@ -318,7 +318,7 @@ const handler = async (req: Request): Promise<Response> => {
     });
   } catch (error: unknown) {
     const errorMessage = error instanceof Error ? error.message : "Unknown error";
-    console.error("Error in send-welcome-email function:", errorMessage);
+    log.error("Error in send-welcome-email function:", errorMessage);
     
     return new Response(
       JSON.stringify({ error: errorMessage }),
