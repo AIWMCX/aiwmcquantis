@@ -2,6 +2,7 @@ import React from 'react';
 import { createRoot } from 'react-dom/client';
 import { initSentry } from './lib/sentry';
 import { initAnalytics } from './lib/analytics';
+import { initClarity } from './lib/clarity';
 import './i18n'; // Side-effect import: initializes i18next before any component mounts
 import App from './App.tsx';
 import { logger } from '@/lib/logger';
@@ -10,6 +11,7 @@ import './index.css';
 // Initialize monitoring and analytics before rendering
 initSentry();
 initAnalytics();
+initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
 
 const container = document.getElementById("root");
 if (container) {

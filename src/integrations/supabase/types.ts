@@ -164,16 +164,22 @@ export type Database = {
       }
       analyses: {
         Row: {
+          anonymous_session_id: string | null
           confidence_score: number | null
           created_at: string | null
           depth: string | null
           documents: Json | null
+          founder_display_name: string | null
           id: string
           idea: string
+          idea_summary: string | null
           idempotency_key: string | null
+          is_public: boolean
           location: string
+          made_public_at: string | null
           monthly_profit: number | null
           payback_months: number | null
+          public_slug: string | null
           result: Json
           startup_investment: number | null
           team_id: string | null
@@ -181,16 +187,22 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          anonymous_session_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
           depth?: string | null
           documents?: Json | null
+          founder_display_name?: string | null
           id?: string
           idea: string
+          idea_summary?: string | null
           idempotency_key?: string | null
+          is_public?: boolean
           location: string
+          made_public_at?: string | null
           monthly_profit?: number | null
           payback_months?: number | null
+          public_slug?: string | null
           result: Json
           startup_investment?: number | null
           team_id?: string | null
@@ -198,16 +210,22 @@ export type Database = {
           user_id: string
         }
         Update: {
+          anonymous_session_id?: string | null
           confidence_score?: number | null
           created_at?: string | null
           depth?: string | null
           documents?: Json | null
+          founder_display_name?: string | null
           id?: string
           idea?: string
+          idea_summary?: string | null
           idempotency_key?: string | null
+          is_public?: boolean
           location?: string
+          made_public_at?: string | null
           monthly_profit?: number | null
           payback_months?: number | null
+          public_slug?: string | null
           result?: Json
           startup_investment?: number | null
           team_id?: string | null
@@ -4199,30 +4217,42 @@ export type Database = {
       shared_reports: {
         Row: {
           analysis_id: string
+          caption: string | null
           created_at: string | null
           expires_at: string
+          headline_verdict: string | null
           id: string
           is_revoked: boolean | null
+          kind: string
+          og_image_url: string | null
           token: string
           user_id: string
           view_count: number | null
         }
         Insert: {
           analysis_id: string
+          caption?: string | null
           created_at?: string | null
           expires_at?: string
+          headline_verdict?: string | null
           id?: string
           is_revoked?: boolean | null
+          kind?: string
+          og_image_url?: string | null
           token?: string
           user_id: string
           view_count?: number | null
         }
         Update: {
           analysis_id?: string
+          caption?: string | null
           created_at?: string | null
           expires_at?: string
+          headline_verdict?: string | null
           id?: string
           is_revoked?: boolean | null
+          kind?: string
+          og_image_url?: string | null
           token?: string
           user_id?: string
           view_count?: number | null
@@ -4901,22 +4931,34 @@ export type Database = {
       }
       user_settings: {
         Row: {
+          bio_text: string | null
           created_at: string | null
           id: string
+          pinned_post_text: string | null
+          public_profile_slug: string | null
+          show_in_teardowns: boolean
           updated_at: string | null
           use_v2_engine: boolean
           user_id: string
         }
         Insert: {
+          bio_text?: string | null
           created_at?: string | null
           id?: string
+          pinned_post_text?: string | null
+          public_profile_slug?: string | null
+          show_in_teardowns?: boolean
           updated_at?: string | null
           use_v2_engine?: boolean
           user_id: string
         }
         Update: {
+          bio_text?: string | null
           created_at?: string | null
           id?: string
+          pinned_post_text?: string | null
+          public_profile_slug?: string | null
+          show_in_teardowns?: boolean
           updated_at?: string | null
           use_v2_engine?: boolean
           user_id?: string
@@ -5067,6 +5109,10 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_anonymous_analysis: {
+        Args: { p_analysis_id: string; p_anonymous_session_id: string }
+        Returns: Json
+      }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       cleanup_expired_shares: { Args: never; Returns: undefined }
       cleanup_old_analysis_jobs: { Args: never; Returns: undefined }
@@ -5135,6 +5181,35 @@ export type Database = {
       }
       get_my_phone: { Args: never; Returns: string }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
+      get_public_teardown_by_slug: {
+        Args: { p_slug: string }
+        Returns: {
+          confidence_score: number
+          founder_display_name: string
+          id: string
+          idea: string
+          idea_summary: string
+          industry: string
+          location: string
+          made_public_at: string
+          public_slug: string
+          result: Json
+        }[]
+      }
+      get_public_teardowns: {
+        Args: { p_limit?: number; p_offset?: number }
+        Returns: {
+          confidence_score: number
+          founder_display_name: string
+          headline_verdict: string
+          id: string
+          idea_summary: string
+          industry: string
+          location: string
+          made_public_at: string
+          public_slug: string
+        }[]
+      }
       get_recent_users: {
         Args: { days_back?: number }
         Returns: {
@@ -5289,6 +5364,15 @@ export type Database = {
       }
       rotate_pii_encryption_key: { Args: never; Returns: Json }
       run_scheduled_cleanup: { Args: never; Returns: Json }
+      set_analysis_public: {
+        Args: {
+          p_analysis_id: string
+          p_founder_name?: string
+          p_idea_summary?: string
+          p_is_public: boolean
+        }
+        Returns: Json
+      }
       track_referral_click: {
         Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
         Returns: string
