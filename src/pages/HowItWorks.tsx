@@ -85,6 +85,8 @@ export default function HowItWorks() {
         }} />
 
       <StructuredData
+        includeFAQ
+        faqItems={FAQ_ITEMS.map((f) => ({ question: f.q, answer: f.a }))}
         includeBreadcrumbs
         breadcrumbs={[
         { name: 'Home', url: '/' },
