@@ -17,8 +17,8 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Quantis Pricing — Free First Analysis & Plus at $17/mo"
-        description="Run 1 free analysis to see your viability score and top 3 risks. Upgrade to Plus at $17/mo for the full report — Monte Carlo, P&L, action plan, unlimited analyses, and PDF export."
+        title="Quantis Pricing — Free Analysis & Plus at $17/mo"
+        description="Run 1 free analysis to see your viability score and top 3 risks. Plus at $17/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export."
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
