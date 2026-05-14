@@ -71,7 +71,7 @@ export function HeroSingleInput() {
     e.preventDefault();
     if (idea.trim().length < 10) return;
     trackCtaClick('hero_single_input_submit', 'hero');
-    recordFunnelEvent('analysis_started', { source: 'hero_single_input', idea_length: idea.length });
+    recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
     handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
 

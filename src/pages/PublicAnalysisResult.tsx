@@ -6,7 +6,7 @@ import { fetchAnalysisForView } from '@/services/analysisDb';
 import { computeVerdict, type Verdict } from '@/lib/verdict';
 import { useAuth } from '@/hooks/useAuth';
 import { useShareReport } from '@/hooks/useShareReport';
-import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
+import { trackCtaClick } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
 import type { BusinessAnalysisResult } from '@/types/analysis';
@@ -47,7 +47,8 @@ export default function PublicAnalysisResult() {
           setError('We could not find this analysis. It may have expired or the link is wrong.');
         } else {
           setData(res);
-          recordFunnelEvent('result_view', { id, source: res.source });
+          // result_view is logged via a non-funnel custom event so it doesn't pollute the SOW funnel
+          import('@/lib/analytics').then(({ trackEvent }) => trackEvent('result_view', { id, source: res.source }));
         }
       })
       .catch(() => {
@@ -65,7 +66,7 @@ export default function PublicAnalysisResult() {
   useEffect(() => {
     if (!verdict || isAuthenticated) return;
     const t = setTimeout(() => {
-      recordFunnelEvent('verdict_seen_5s', { tone: verdict.tone });
+      import('@/lib/analytics').then(({ trackEvent }) => trackEvent('verdict_seen_5s', { tone: verdict.tone }));
     }, 5000);
     return () => clearTimeout(t);
   }, [verdict, isAuthenticated]);
