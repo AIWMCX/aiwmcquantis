@@ -22,6 +22,25 @@ export function useAuth() {
             id: session.user.id,
             email: session.user.email,
           });
+
+          // Wave 2 — claim any anonymous analysis the visitor ran before signing up.
+          // Defer (setTimeout 0) so we don't block other auth subscribers.
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            setTimeout(() => {
+              try {
+                const claimId = localStorage.getItem('quantis_claim_analysis_id');
+                const sessionDeviceId = localStorage.getItem('quantis_device_id');
+                if (claimId && sessionDeviceId) {
+                  void supabase.rpc('claim_anonymous_analysis', {
+                    p_analysis_id: claimId,
+                    p_anonymous_session_id: sessionDeviceId,
+                  } as any).then(() => {
+                    localStorage.removeItem('quantis_claim_analysis_id');
+                  });
+                }
+              } catch { /* non-fatal */ }
+            }, 0);
+          }
         } else {
           clearSentryUser();
         }
