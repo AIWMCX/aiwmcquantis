@@ -117,6 +117,9 @@ export default function Pricing() {
           </div>
         </section>
 
+        {/* Pricing tiers */}
+        <PricingSection />
+
         {/* Bottom CTA */}
         <section className="py-12 md:py-16">
           <div className="container max-w-3xl mx-auto px-4 sm:px-6 text-center">
