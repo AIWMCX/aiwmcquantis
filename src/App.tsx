@@ -57,6 +57,7 @@ const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
 const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
+const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
