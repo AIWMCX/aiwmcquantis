@@ -3,11 +3,14 @@ import type { BusinessAnalysisResult, AnalysisHistoryEntry } from '@/types/analy
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
 import { secureGetItem, secureRemoveItem } from '@/lib/secureStorage';
 import { getAnonymousDeviceId } from '@/lib/anonymousTracking';
+import {
+  ANON_RESULT_PREFIX,
+  ANON_RECENT_KEY,
+  sweepAnonymousResults,
+} from '@/lib/anonResultsCleanup';
 
 import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'business_analysis_history';
-const ANON_RESULT_PREFIX = 'quantis_anon_result_';
-const ANON_RECENT_KEY = 'quantis_anon_recent_id';
 
 export async function saveAnalysis(
   userId: string,
