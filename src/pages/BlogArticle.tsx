@@ -479,7 +479,7 @@ export default function BlogArticle() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title={`${article.title} — AIWMC Quantis`}
+        title={article.title.length > 60 ? article.title.slice(0, 57) + '…' : article.title}
         description={article.description}
         canonical={`/blog/${article.slug}`}
         ogType="article"
