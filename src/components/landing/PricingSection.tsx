@@ -143,13 +143,9 @@ export function PricingSection() {
   const proPricing = billingPeriod === 'annual' ? PRICING.pro.annual : PRICING.pro.monthly;
   const showValueAnchor = pricingVariant !== 'control';
 
-  // Safety: ensure annual_first variant stays on annual if somehow reverted
-  useEffect(() => {
-    if (showAnnualFirst && billingPeriod === 'monthly') {
-      setBillingPeriod('annual');
-      billingPeriodRef.current = 'annual';
-    }
-  }, [showAnnualFirst, billingPeriod]);
+  // Annual is the default initial selection (see useState above), but the user
+  // is free to switch to monthly. Do NOT force the value back here — that
+  // previously made the Monthly toggle un-clickable.
 
   return (
     <section id="pricing" className="py-16 md:py-24 bg-muted/30">
