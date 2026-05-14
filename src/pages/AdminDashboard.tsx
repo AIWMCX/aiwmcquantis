@@ -10,7 +10,7 @@ import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert } from 'lucide-react';
+import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageSEO } from '@/components/seo/PageSEO';
