@@ -13,6 +13,7 @@ import { ConfidenceIndicator } from '@/components/analysis/ConfidenceIndicator';
 import { ActionableInsights } from '@/components/analysis/ActionableInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { PageMeta } from '@/components/seo/PageMeta';
 
 import { logger } from '@/lib/logger';
 interface SharedReportData {
@@ -129,8 +130,20 @@ export default function SharedReport() {
     day: 'numeric',
   });
 
+  const ideaShort = (data.analysis.idea || 'Business analysis').slice(0, 80);
+  const locShort = (data.analysis.location || '').slice(0, 40);
+  const seoTitle = `Analysis: ${ideaShort}${locShort ? ` — ${locShort}` : ''}`.slice(0, 60);
+  const seoDesc = `AI financial stress-test for "${ideaShort}"${locShort ? ` in ${locShort}` : ''}. Projected profit, payback, and risk flags from AIWMC Quantis.`.slice(0, 160);
+
   return (
     <div className="min-h-screen bg-background">
+      <PageMeta
+        title={seoTitle}
+        description={seoDesc}
+        path={`/share/${token}`}
+        type="article"
+        noIndex
+      />
       {/* Header */}
       <header className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3">
