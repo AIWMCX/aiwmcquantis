@@ -68,7 +68,7 @@ export default function HowItWorks() {
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
         title="How Quantis Works — AI Financial Stress-Testing"
-        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 95,500 benchmarks, get your risk report with 3-scenario projections — in 90 seconds."
+        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 95,500 benchmarks, get your risk report — in 90 seconds."
         canonical="/how-it-works"
         jsonLd={{
           '@context': 'https://schema.org',
