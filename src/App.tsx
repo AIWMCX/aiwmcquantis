@@ -21,6 +21,7 @@ const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 const SharedReport = lazy(() => import("./pages/SharedReport"));
+const PublicAnalysisResult = lazy(() => import("./pages/PublicAnalysisResult"));
 const AdminBenchmarkUpload = lazy(() => import("./pages/AdminBenchmarkUpload"));
 const AdminDashboard = lazy(() => import("./pages/AdminDashboard"));
 const Privacy = lazy(() => import("./pages/Privacy"));
@@ -127,6 +128,9 @@ const App = () => {
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
+
+                {/* Anonymous-first result page — visitor lands here right after running their hero analysis */}
+                <Route path="/r/:id" element={<PublicAnalysisResult />} />
                 
                 {/* Protected routes - require authentication */}
                 <Route path="/app" element={<AppDashboard />} />
