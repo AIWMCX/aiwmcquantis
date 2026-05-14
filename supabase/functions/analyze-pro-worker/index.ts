@@ -14,17 +14,18 @@
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+import { corsHeadersFor } from '../_shared/cors.ts';
+import { createLogger } from '../_shared/logger.ts';
+import { getRequestId } from '../_shared/request-id.ts';
 
 interface WorkerPayload {
   job_id: string;
 }
 
 Deno.serve(async (req: Request) => {
+  const reqId = getRequestId(req);
+  const log = createLogger('analyze-pro-worker', reqId);
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { status: 204, headers: corsHeaders });
   }
@@ -161,7 +162,7 @@ Deno.serve(async (req: Request) => {
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);
-    console.error('[analyze-pro-worker] failure', { jobId, message });
+    log.error('failure', err, { jobId, message });
 
     if (jobId) {
       await admin
