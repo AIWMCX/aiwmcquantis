@@ -57,6 +57,7 @@ const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
 const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
+const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -215,6 +216,11 @@ const App = () => {
                 <Route path="/admin/denials" element={
                   <ProtectedRoute requireAdmin>
                     <AdminDenials />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/engine" element={
+                  <ProtectedRoute requireAdmin>
+                    <EngineInfo />
                   </ProtectedRoute>
                 } />
                 <Route path="/directory-tracker" element={

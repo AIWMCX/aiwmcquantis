@@ -16,4 +16,5 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run typecheck:financial
+      - run: bun run verify:business-logic
       - run: bun run test:quality
