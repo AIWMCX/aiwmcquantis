@@ -5,9 +5,12 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "bun run typecheck:financial && vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
+    "typecheck:financial": "tsc -p tsconfig.financial.json --noEmit",
+    "test:quality": "bunx vitest run src/__tests__/logger-prod-integration.test.ts src/__tests__/edge-runtime-guards.test.ts src/__tests__/pdf-export.test.ts",
+    "pre-commit": "bun run lint && bun run typecheck:financial && bun run test:quality",
     "preview": "vite preview"
   },
   "dependencies": {

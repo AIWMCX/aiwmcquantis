@@ -39,6 +39,13 @@ describe('usePdfExport — canonical PDF pipeline', () => {
     expect(HOOK).toMatch(/Font\.registerHyphenationCallback/);
   });
 
+  it('clips PDF page-header idea and section text so labels never collide', () => {
+    expect(HOOK).toMatch(/pageHeaderTitleWrap:[\s\S]*width: 230[\s\S]*overflow: 'hidden'/);
+    expect(HOOK).toMatch(/pageHeaderSectionWrap:[\s\S]*width: 118[\s\S]*overflow: 'hidden'/);
+    expect(HOOK.match(/maxLines: 1/g)?.length ?? 0).toBeGreaterThanOrEqual(8);
+    expect(HOOK).not.toMatch(/style: styles\.pageHeaderTitle }, result\.metadata\.idea/);
+  });
+
   it('enforces a generation timeout to prevent UI lock-ups', () => {
     expect(HOOK).toMatch(/PDF_TIMEOUT|Promise\.race/);
   });

@@ -12,6 +12,9 @@
  *   - any *.lovable.app subdomain (preview environments)
  *   - any *.lovableproject.com subdomain (preview environments)
  *   - http://localhost:* (local dev)
+ *
+ * No wildcard fallback is exported. Every browser-facing function must call
+ * `corsHeadersFor(req)` so private endpoints never echo arbitrary origins.
  */
 
 const STATIC_ALLOWED = new Set<string>([
@@ -35,7 +38,7 @@ const BASE_HEADERS: Record<string, string> = {
   'Vary': 'Origin',
 };
 
-function isAllowed(origin: string | null): boolean {
+export function isAllowedOrigin(origin: string | null): boolean {
   if (!origin) return false;
   if (STATIC_ALLOWED.has(origin)) return true;
   return ALLOWED_PATTERNS.some((re) => re.test(origin));
@@ -53,18 +56,8 @@ function isAllowed(origin: string | null): boolean {
  */
 export function corsHeadersFor(req: Request): Record<string, string> {
   const origin = req.headers.get('origin');
-  if (isAllowed(origin)) {
+  if (isAllowedOrigin(origin)) {
     return { ...BASE_HEADERS, 'Access-Control-Allow-Origin': origin! };
   }
   return { ...BASE_HEADERS };
 }
-
-/**
- * Backwards-compat export for files that still import `corsHeaders`.
- * Prefer `corsHeadersFor(req)` in new code so the origin is validated.
- * This fallback uses `*` only when no Origin header is present (e.g. server-to-server).
- */
-export const corsHeaders: Record<string, string> = {
-  ...BASE_HEADERS,
-  'Access-Control-Allow-Origin': '*',
-};

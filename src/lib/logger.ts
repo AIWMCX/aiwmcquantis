@@ -34,13 +34,7 @@ class Logger {
   private log(level: LogLevel, message: string, context?: LogContext) {
     const timestamp = new Date().toISOString();
     // Stamp every entry with the active correlation ID, if any.
-    const requestId = getRequestId();
-    if (requestId) {
-      context = {
-        ...context,
-        metadata: { request_id: requestId, ...(context?.metadata ?? {}) },
-      };
-    }
+    context = this.withRequestId(context);
     const logEntry: LogEntry = { timestamp, level, message, context };
 
     // Keep log history for debugging
@@ -113,21 +107,33 @@ class Logger {
       ? { errorMessage: error.message, errorName: error.name }
       : {};
     const extraMetadata = extra !== undefined ? { extra } : {};
-    this.log('error', message, {
+    const logContext = {
       ...context,
       metadata: {
         ...context?.metadata,
         ...errorMetadata,
         ...extraMetadata,
       } as Record<string, unknown>,
-    });
+    };
+    this.log('error', message, logContext);
+
+    const sentryContext = this.withRequestId(context);
 
     if (error && !this.isDev) {
-      captureError(error, context as Record<string, unknown>);
+      captureError(error, sentryContext as Record<string, unknown> | undefined);
     } else if (extra !== undefined && !this.isDev) {
       // Capture as message so non-Error rejections still reach Sentry.
       captureMessage(`[ERROR] ${message}`, 'error');
     }
+  }
+
+  private withRequestId(context?: LogContext): LogContext | undefined {
+    const requestId = getRequestId();
+    if (!requestId) return context;
+    return {
+      ...context,
+      metadata: { ...(context?.metadata ?? {}), request_id: requestId },
+    };
   }
 
   /**

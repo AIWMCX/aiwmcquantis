@@ -9,13 +9,13 @@
  * client-side gating in the UI is purely cosmetic.
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-import { corsHeaders } from '../_shared/cors.ts';
+import { corsHeadersFor } from '../_shared/cors.ts';
 
 interface Body {
   name?: string;
 }
 
-function jsonResponse(status: number, body: unknown): Response {
+function jsonResponse(status: number, body: unknown, corsHeaders: Record<string, string>): Response {
   return new Response(JSON.stringify(body), {
     status,
     headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -44,8 +44,9 @@ function generateKey(): { plaintext: string; prefix: string } {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
-  if (req.method !== 'POST') return jsonResponse(405, { error: 'METHOD_NOT_ALLOWED' });
+  if (req.method !== 'POST') return jsonResponse(405, { error: 'METHOD_NOT_ALLOWED' }, corsHeaders);
 
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -53,7 +54,7 @@ Deno.serve(async (req) => {
 
   const authHeader = req.headers.get('Authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) {
-    return jsonResponse(401, { error: 'UNAUTHORIZED' });
+    return jsonResponse(401, { error: 'UNAUTHORIZED' }, corsHeaders);
   }
 
   const userClient = createClient(SUPABASE_URL, ANON_KEY, {
@@ -61,17 +62,17 @@ Deno.serve(async (req) => {
   });
   const { data: userData } = await userClient.auth.getUser();
   const user = userData.user;
-  if (!user) return jsonResponse(401, { error: 'UNAUTHORIZED' });
+  if (!user) return jsonResponse(401, { error: 'UNAUTHORIZED' }, corsHeaders);
 
   let body: Body = {};
   try {
     body = await req.json();
   } catch {
-    return jsonResponse(400, { error: 'INVALID_JSON' });
+    return jsonResponse(400, { error: 'INVALID_JSON' }, corsHeaders);
   }
   const name = (body.name ?? '').trim();
-  if (!name) return jsonResponse(400, { error: 'NAME_REQUIRED' });
-  if (name.length > 64) return jsonResponse(400, { error: 'NAME_TOO_LONG' });
+  if (!name) return jsonResponse(400, { error: 'NAME_REQUIRED' }, corsHeaders);
+  if (name.length > 64) return jsonResponse(400, { error: 'NAME_TOO_LONG' }, corsHeaders);
 
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
@@ -91,7 +92,7 @@ Deno.serve(async (req) => {
       required_tier: 'PRO',
       upgrade_url: 'https://www.aiwmcquantis.com/pricing',
       cta: 'Unlock with Pro — $49/mo',
-    });
+    }, corsHeaders);
   }
 
   // Cap: max 10 active keys per user
@@ -101,7 +102,7 @@ Deno.serve(async (req) => {
     .eq('user_id', user.id)
     .eq('is_active', true);
   if ((count ?? 0) >= 10) {
-    return jsonResponse(429, { error: 'KEY_LIMIT_REACHED', max: 10 });
+    return jsonResponse(429, { error: 'KEY_LIMIT_REACHED', max: 10 }, corsHeaders);
   }
 
   const { plaintext, prefix } = generateKey();
@@ -124,8 +125,8 @@ Deno.serve(async (req) => {
     .single();
 
   if (insErr || !inserted) {
-    return jsonResponse(500, { error: 'INSERT_FAILED', detail: insErr?.message });
+    return jsonResponse(500, { error: 'INSERT_FAILED', detail: insErr?.message }, corsHeaders);
   }
 
-  return jsonResponse(201, { ...inserted, plaintext_key: plaintext });
+  return jsonResponse(201, { ...inserted, plaintext_key: plaintext }, corsHeaders);
 });

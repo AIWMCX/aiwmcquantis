@@ -14,13 +14,7 @@
  */
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-cron-secret',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-};
+import { corsHeadersFor } from '../_shared/cors.ts';
 
 interface BenchmarkRow {
   sector_level1: string;
@@ -280,6 +274,7 @@ async function ingestSecXbrl(supabase: any, provenanceId: string) {
 
 // ---------------- Main handler ----------------
 Deno.serve(async (req: Request) => {
+  const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 
   const supabase = createClient(
