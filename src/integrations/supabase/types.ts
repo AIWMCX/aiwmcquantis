@@ -3059,6 +3059,45 @@ export type Database = {
           },
         ]
       }
+      gsc_verification: {
+        Row: {
+          created_at: string
+          id: string
+          notes: string | null
+          site_url: string
+          status: string
+          updated_at: string
+          updated_by: string | null
+          verification_method: string
+          verification_token: string | null
+          verified_at: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          site_url: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_method?: string
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          notes?: string | null
+          site_url?: string
+          status?: string
+          updated_at?: string
+          updated_by?: string | null
+          verification_method?: string
+          verification_token?: string | null
+          verified_at?: string | null
+        }
+        Relationships: []
+      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null

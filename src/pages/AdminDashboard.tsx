@@ -91,6 +91,11 @@ export default function AdminDashboard() {
                 Engine &amp; Spec v4
               </Link>
             </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/search-console">
+                Search Console
+              </Link>
+            </Button>
           </div>
         </div>
 
