@@ -36,7 +36,6 @@ export default function PublicAnalysisResult() {
   const [data, setData] = useState<LoadedAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
