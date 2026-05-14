@@ -8,6 +8,7 @@
     "noEmit": true
   },
   "include": [
+    "src/vite-env.d.ts",
     "src/lib/quantis-math.ts",
     "src/lib/financial-engine.ts",
     "src/lib/reconciliation-engine.ts",

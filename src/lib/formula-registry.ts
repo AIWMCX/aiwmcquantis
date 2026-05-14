@@ -146,7 +146,7 @@ class FormulaRegistryImpl {
   }
 
   /** Run all test cases for all formulas */
-  testAll(): { totalPassed: number; totalFailed: number; results: Record<string, ReturnType<typeof this.test>> } {
+  testAll(): { totalPassed: number; totalFailed: number; results: Record<string, { passed: boolean; results: { name: string; passed: boolean; expected: number; actual: number }[] }> } {
     let totalPassed = 0;
     let totalFailed = 0;
     const results: Record<string, ReturnType<typeof this.test>> = {};
