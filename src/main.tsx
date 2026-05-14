@@ -13,6 +13,7 @@ import './index.css';
 initSentry();
 initAnalytics();
 initClarity(); // Session replay + heatmaps. No-op unless VITE_CLARITY_PROJECT_ID is set.
+scheduleAnonymousResultsSweep(); // Idle-time TTL + cap eviction for anon /r/:id cache.
 
 const container = document.getElementById("root");
 if (container) {
