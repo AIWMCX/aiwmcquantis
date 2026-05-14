@@ -1,8 +1,10 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { assertEmailSendAllowed } from '../_shared/email-guard.ts';
 // Resend API client - using fetch directly to avoid npm dependency issues
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -255,7 +257,7 @@ const handler = async (req: Request): Promise<Response> => {
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(email)) {
+    if (!emailRegex.test(email) || email.length > 254) {
       return new Response(
         JSON.stringify({ error: "Invalid email format" }),
         {
@@ -265,7 +267,39 @@ const handler = async (req: Request): Promise<Response> => {
       );
     }
 
-    console.log(`Sending welcome email to: ${email}`);
+    // Anti-abuse: 3 sends/hr per recipient, 20/hr per caller IP.
+    // If the caller is authenticated AND emailing themselves, skip the limit.
+    const admin = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
+    );
+    let skipLimit = false;
+    const authHeader = req.headers.get("Authorization") ?? "";
+    if (authHeader.startsWith("Bearer ")) {
+      try {
+        const userClient = createClient(
+          Deno.env.get("SUPABASE_URL")!,
+          Deno.env.get("SUPABASE_ANON_KEY")!,
+          { global: { headers: { Authorization: authHeader } } },
+        );
+        const { data: u } = await userClient.auth.getUser();
+        if (u.user?.email && u.user.email.toLowerCase() === email.toLowerCase()) {
+          skipLimit = true;
+        }
+      } catch { /* fall through to rate limit */ }
+    }
+
+    const guard = await assertEmailSendAllowed(
+      admin,
+      { req, recipient: email, templateKey: "welcome_email", skip: skipLimit },
+      corsHeaders,
+    );
+    if (!guard.ok) {
+      log.info("welcome-email send rate-limited");
+      return guard.response;
+    }
+
+    log.info(`Sending welcome email to: ${email}`);
 
     const emailResponse = await sendEmail({
       from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
@@ -275,7 +309,8 @@ const handler = async (req: Request): Promise<Response> => {
       html: generateWelcomeEmailHtml(name, email),
     });
 
-    console.log("Email sent successfully:", emailResponse);
+    await guard.recordSend((emailResponse as { id?: string })?.id ?? null);
+    log.info("Email sent successfully:", emailResponse);
 
     return new Response(JSON.stringify({ success: true, data: emailResponse }), {
       status: 200,

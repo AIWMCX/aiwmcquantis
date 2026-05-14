@@ -341,6 +341,7 @@ Deno.serve(async (req) => {
     }
 
     const resendData = await resendResponse.json();
+    await guard.recordSend(resendData?.id ?? null);
     log.info(`Lead magnet email sent for offer "${offer}" to ${email}:`, resendData);
 
     // Also send admin notification
