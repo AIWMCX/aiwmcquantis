@@ -51,15 +51,37 @@ describe('logger', () => {
     expect(last?.context?.metadata?.request_id).toBe(id);
   });
 
-  // The Logger captures `import.meta.env.DEV` at construction, so toggling
-  // it post-import doesn't flip the prod gate. These two assertions are
-  // covered by the dev-mode no-op test below + manual prod verification.
-  // TODO: refactor Logger to read DEV lazily, then re-enable.
-  it.skip('forwards Error instances to Sentry.captureError (prod path)', () => {});
-  it.skip('forwards non-Error rejections to Sentry.captureMessage (prod path)', () => {});
-
   it('does NOT call Sentry in dev mode', () => {
     logger.error('dev-only', new Error('x'));
     expect(captureError).not.toHaveBeenCalled();
+  });
+
+  // The Logger now reads `import.meta.env.DEV` lazily via a getter, so we can
+  // flip the prod gate per-test by stubbing the env.
+  describe('prod path (DEV=false)', () => {
+    beforeEach(() => {
+      vi.stubEnv('DEV', false);
+    });
+    afterEach(() => {
+      vi.unstubAllEnvs();
+    });
+
+    it('forwards Error instances to Sentry.captureError', () => {
+      const err = new Error('boom');
+      logger.error('something failed', err);
+      expect(captureError).toHaveBeenCalledTimes(1);
+      expect(captureError).toHaveBeenCalledWith(err, expect.anything());
+      expect(captureMessage).not.toHaveBeenCalled();
+    });
+
+    it('forwards non-Error rejections to Sentry.captureMessage', () => {
+      logger.error('weird rejection', { code: 'EBAD', value: 42 });
+      expect(captureMessage).toHaveBeenCalledTimes(1);
+      expect(captureMessage).toHaveBeenCalledWith(
+        expect.stringContaining('weird rejection'),
+        'error'
+      );
+      expect(captureError).not.toHaveBeenCalled();
+    });
   });
 });

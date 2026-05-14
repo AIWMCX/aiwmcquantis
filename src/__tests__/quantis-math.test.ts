@@ -153,18 +153,20 @@ describe('FormulaRegistry — All Formulas Pass Test Cases', () => {
   it('all formulas pass their built-in test cases', () => {
     const results = FormulaRegistry.testAll();
     
+    // Build a detailed failure list so Vitest's assertion message surfaces it
+    // without needing a raw console.error.
+    const failures: string[] = [];
     if (results.totalFailed > 0) {
-      // Log failures for debugging
       for (const [id, result] of Object.entries(results.results)) {
         for (const tc of result.results) {
           if (!tc.passed) {
-            console.error(`FAIL: ${id} / ${tc.name} — expected ${tc.expected}, got ${tc.actual}`);
+            failures.push(`${id} / ${tc.name} — expected ${tc.expected}, got ${tc.actual}`);
           }
         }
       }
     }
-    
-    expect(results.totalFailed).toBe(0);
+
+    expect(results.totalFailed, `Formula failures:\n${failures.join('\n')}`).toBe(0);
     expect(results.totalPassed).toBeGreaterThan(0);
   });
 });

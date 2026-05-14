@@ -23,7 +23,11 @@ interface LogEntry {
  * - Production: Sentry breadcrumbs and error capture
  */
 class Logger {
-  private isDev = import.meta.env.DEV;
+  // Read DEV lazily so tests can mock import.meta.env per-call.
+  // Capturing at construction time made the prod-path branches untestable.
+  private get isDev(): boolean {
+    return import.meta.env.DEV;
+  }
   private logHistory: LogEntry[] = [];
   private maxHistorySize = 100;
 
