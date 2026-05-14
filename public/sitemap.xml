@@ -119,4 +119,8 @@
   <!-- Legal -->
   <url><loc>https://aiwmcquantis.com/privacy</loc><lastmod>2026-02-01</lastmod><changefreq>yearly</changefreq><priority>0.4</priority></url>
   <url><loc>https://aiwmcquantis.com/terms</loc><lastmod>2026-02-01</lastmod><changefreq>yearly</changefreq><priority>0.4</priority></url>
+  <!-- Marketing utility pages -->
+  <url><loc>https://aiwmcquantis.com/viral-content</loc><lastmod>2026-04-06</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <url><loc>https://aiwmcquantis.com/viral-posts</loc><lastmod>2026-04-06</lastmod><changefreq>weekly</changefreq><priority>0.5</priority></url>
+  <!-- /auth, /thank-you, /reset-password intentionally excluded (transactional, noindex) -->
 </urlset>
