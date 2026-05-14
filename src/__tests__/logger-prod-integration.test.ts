@@ -59,6 +59,7 @@ describe('logger prod-mode Sentry routing', () => {
         metadata: expect.objectContaining({ model: 'gemini', request_id: 'q_prod_logger_e2e' }),
       })
     );
-    expect(logger.getHistory().at(-1)?.context?.metadata?.request_id).toBe('q_prod_logger_e2e');
+    const history = logger.getHistory();
+    expect(history[history.length - 1]?.context?.metadata?.request_id).toBe('q_prod_logger_e2e');
   });
 });
