@@ -1,14 +1,16 @@
 import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Share2, Save, Lock, Loader2, Check, Copy, AlertTriangle } from 'lucide-react';
+import { ArrowLeft, Save, Lock, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { fetchAnalysisForView } from '@/services/analysisDb';
 import { computeVerdict, type Verdict } from '@/lib/verdict';
 import { useAuth } from '@/hooks/useAuth';
 import { useShareReport } from '@/hooks/useShareReport';
-import { trackCtaClick } from '@/lib/analytics';
+import { trackEvent } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
+import { ShareRail } from '@/components/result/ShareRail';
+import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSkeleton';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 
@@ -34,7 +36,6 @@ export default function PublicAnalysisResult() {
   const [data, setData] = useState<LoadedAnalysis | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -71,51 +72,38 @@ export default function PublicAnalysisResult() {
     return () => clearTimeout(t);
   }, [verdict, isAuthenticated]);
 
-  const onShare = async () => {
+  const onCreateShareLink = async () => {
     if (!id) return;
-    trackCtaClick('share_result', 'result_rail');
     if (!isAuthenticated) {
       toast.info('Sign in to create a permanent share link', {
-        action: { label: 'Sign in', onClick: () => navigate('/auth') },
+        action: { label: 'Sign in', onClick: () => navigate(`/auth?next=/r/${id}`) },
       });
-      // Fallback: copy current URL
-      try {
-        await navigator.clipboard.writeText(window.location.href);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-        toast.success('Link copied to clipboard');
-      } catch {}
       return;
     }
     await shareReport(id);
   };
 
   const onSave = () => {
-    trackCtaClick('save_result', 'result_rail');
     if (!id) return;
     // Stash the id so post-signup we auto-claim
     try { localStorage.setItem('quantis_claim_analysis_id', id); } catch {}
     navigate(`/auth?next=/r/${id}`);
   };
 
-  const onCopyLink = async () => {
-    try {
-      await navigator.clipboard.writeText(window.location.href);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-      toast.success('Link copied');
-    } catch {
-      toast.error('Could not copy');
-    }
-  };
-
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background">
-        <div className="text-center">
-          <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-3" />
-          <p className="text-sm text-muted-foreground">Loading your analysis…</p>
-        </div>
+      <div className="min-h-screen bg-background text-foreground">
+        <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur-lg">
+          <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
+            <Link to="/" className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+              <ArrowLeft className="w-4 h-4" />
+              New analysis
+            </Link>
+          </div>
+        </header>
+        <main className="container max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12">
+          <AnalysisResultsSkeleton />
+        </main>
       </div>
     );
   }
@@ -151,22 +139,15 @@ export default function PublicAnalysisResult() {
             <ArrowLeft className="w-4 h-4" />
             New analysis
           </Link>
-          <div className="flex items-center gap-2">
-            <Button variant="ghost" size="sm" className="gap-2" onClick={onCopyLink}>
-              {copied ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-              <span className="hidden sm:inline">{copied ? 'Copied' : 'Copy link'}</span>
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2" onClick={onShare} disabled={isSharing}>
-              <Share2 className="w-4 h-4" />
-              <span className="hidden sm:inline">Share</span>
-            </Button>
-            {!isAuthenticated && (
-              <Button size="sm" className="gap-2" onClick={onSave}>
-                <Save className="w-4 h-4" />
-                Save analysis
-              </Button>
-            )}
-          </div>
+          <ShareRail
+            title={verdict.headline}
+            analysisId={id}
+            isAuthenticated={isAuthenticated}
+            showSave={!isAuthenticated}
+            onSave={onSave}
+            onCreateShareLink={onCreateShareLink}
+            isCreatingShareLink={isSharing}
+          />
         </div>
       </header>
 
@@ -225,25 +206,21 @@ export default function PublicAnalysisResult() {
                 </p>
               </div>
             </div>
-            <div className="flex gap-2 w-full sm:w-auto">
-              <Button onClick={onSave} className="gap-2 flex-1 sm:flex-none">
-                <Save className="w-4 h-4" />
-                Save free
-              </Button>
-              <Button variant="outline" onClick={onShare} className="gap-2 flex-1 sm:flex-none">
-                <Share2 className="w-4 h-4" />
-                Share
-              </Button>
-            </div>
+            <ShareRail
+              title={verdict.headline}
+              analysisId={id}
+              isAuthenticated={isAuthenticated}
+              showSave
+              onSave={onSave}
+              onCreateShareLink={onCreateShareLink}
+              isCreatingShareLink={isSharing}
+              className="w-full sm:w-auto"
+            />
           </section>
         )}
 
         {/* Full report — assumption graph, scenarios, financials */}
-        <Suspense
-          fallback={
-            <div className="rounded-2xl bg-muted/30 animate-pulse" style={{ height: 600 }} />
-          }
-        >
+        <Suspense fallback={<AnalysisResultsSkeleton />}>
           <AccuracyTransparentResults result={data.result} analysisId={id} />
         </Suspense>
       </main>
