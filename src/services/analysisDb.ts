@@ -103,8 +103,12 @@ export function cacheAnalysisLocally(
     const cached: CachedAnalysis = { ...payload, cached_at: new Date().toISOString() };
     localStorage.setItem(ANON_RESULT_PREFIX + id, JSON.stringify(cached));
     localStorage.setItem(ANON_RECENT_KEY, id);
+    // Enforce TTL + cap so /r/:id cache never bloats storage.
+    sweepAnonymousResults();
   } catch (e) {
     logger.warn('Failed to cache analysis locally', e);
+    // Quota likely full — sweep aggressively then surface failure upstream.
+    try { sweepAnonymousResults(); } catch { /* noop */ }
   }
 }
 
