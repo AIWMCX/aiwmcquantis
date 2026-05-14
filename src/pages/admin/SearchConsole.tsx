@@ -28,7 +28,7 @@ interface VerificationRow {
 }
 
 export default function SearchConsole() {
-  const { isAdmin, loading: adminLoading } = useAdmin();
+  const { isAdmin, isLoading: adminLoading } = useAdmin();
   const [row, setRow] = useState<VerificationRow | null>(null);
   const [token, setToken] = useState("");
   const [notes, setNotes] = useState("");
