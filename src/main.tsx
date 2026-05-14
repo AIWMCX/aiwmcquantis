@@ -25,8 +25,21 @@ if (container) {
   );
 }
 
-// Register service worker with aggressive update strategy
-if ('serviceWorker' in navigator) {
+// Register service worker with aggressive update strategy.
+// PREVIEW GUARD: skip registration inside Lovable iframe / preview hosts to avoid
+// stale-cache pollution that breaks live editing. Production hosts only.
+const isInIframe = (() => { try { return window.self !== window.top; } catch { return true; } })();
+const isPreviewHost =
+  window.location.hostname.includes('id-preview--') ||
+  window.location.hostname.includes('lovableproject.com') ||
+  window.location.hostname.includes('lovable.app');
+
+if ('serviceWorker' in navigator && (isInIframe || isPreviewHost)) {
+  // Clean up any previously-registered SW in preview environments.
+  navigator.serviceWorker.getRegistrations().then((regs) => regs.forEach((r) => r.unregister()));
+}
+
+if ('serviceWorker' in navigator && !isInIframe && !isPreviewHost) {
   window.addEventListener('load', async () => {
     try {
       // First, clear any stale caches on startup

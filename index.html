@@ -125,6 +125,28 @@
          crawlers that don't execute JS (LinkedIn, Slack, Facebook) when landing on the homepage. -->
     <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/02jw8cYqavMYVgbcUyUgCIbUR6r2/uploads/1767032494387-Снимок экрана 2025-11-28 221148.png">
 
+    <!-- PWA: installable manifest (Add to Home Screen). Service worker is preview-guarded in main.tsx. -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Quantis" />
+
+    <!-- Critical CSS inlined to eliminate render-blocking on initial paint.
+         Covers <html>/<body>/#root reset + LCP banner (already present below) +
+         system-font fallback so first paint is immediate before web fonts load. -->
+    <style>
+      *,*::before,*::after{box-sizing:border-box}
+      html,body{margin:0;padding:0;background:#fff;color:#0a0a0a;font-family:'DM Sans','Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+      #root{min-height:100vh;isolation:isolate}
+      #lcp-banner-placeholder{contain:layout style paint}
+      @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:0.01ms!important;transition-duration:0.01ms!important}}
+    </style>
+
+    <!-- Google Search Console verification meta tag.
+         Replace content="" with the token returned from the admin Search Console page. -->
+    <meta name="google-site-verification" content="" />
+
     <!-- Open Graph fallbacks (sitewide image + brand). Per-route og:title/description/url come from PageSEO. -->
     <meta property="og:site_name" content="AIWMC™ Quantis" />
     <meta property="og:locale" content="en_US" />
