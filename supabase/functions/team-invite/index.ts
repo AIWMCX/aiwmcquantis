@@ -58,6 +58,18 @@ Deno.serve(async (req: Request) => {
     });
   }
 
+  // Whitelist role values — prevents privilege escalation to 'owner'/'super_admin'/etc.
+  const ALLOWED_ROLES = ['member', 'admin'] as const;
+  if (!ALLOWED_ROLES.includes(role as (typeof ALLOWED_ROLES)[number])) {
+    return new Response(
+      JSON.stringify({
+        error: 'INVALID_ROLE',
+        message: `Role must be one of: ${ALLOWED_ROLES.join(', ')}.`,
+      }),
+      { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
 
   // Caller must be an admin/owner of this team
