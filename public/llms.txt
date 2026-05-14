@@ -1,0 +1,31 @@
+# AIWMC Quantis
+
+> AI-powered business validation. Stress-test any startup idea against 95,500 real industry benchmarks in 90 seconds — deterministic financial engine, Monte Carlo risk simulation, location-adjusted unit economics. Built by AIWMC™ LLC.
+
+Quantis runs a deterministic financial engine over your business idea (industry, location, pricing, costs) and returns: 3-scenario revenue projections, break-even timeline, LTV:CAC, risk flags, and a Monte Carlo distribution. Every number is sourced from verified benchmarks (BLS, XBRL filings, government data) — never hallucinated. Free tier gives one full analysis; Plus ($17/mo) unlocks unlimited runs, PDF export, and Document Studio.
+
+## Pages
+
+- [Home](/): What Quantis does and who it's for.
+- [How It Works](/how-it-works): 3-step flow from idea to risk report.
+- [Pricing](/pricing): Free vs Plus ($17/mo) vs Pro ($49/mo) tiers.
+- [Methodology](/methodology): Data sources, formulas, confidence scoring.
+- [Use Cases](/use-cases): Founder, consultant, investor, and operator workflows.
+- [Examples](/examples): 50+ worked analyses across industries and cities.
+- [Risk Gallery](/risk-gallery): Common failure patterns surfaced by the engine.
+- [Research](/research): Benchmark studies and accuracy reports.
+- [Blog](/blog): Articles on validation, unit economics, and pre-mortem thinking.
+- [Leaderboard](/leaderboard): Top recent analyses by score.
+- [Changelog](/changelog): Release notes.
+
+## Trust
+
+- [Security](/security): Data handling, encryption, access controls.
+- [Privacy Policy](/privacy)
+- [Terms of Service](/terms)
+- [Refund Policy](/refund-policy)
+- [Status](/status): Service health.
+
+## Optional
+
+- [Cases Browser](/cases): Reference table of analysis cases.

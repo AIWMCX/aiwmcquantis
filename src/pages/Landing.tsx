@@ -52,7 +52,7 @@ export default function Landing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="AIWMC Quantis — Audit-grade business validation in 90 seconds"
+        title="AIWMC Quantis — Audit-grade business validation"
         description="Deterministic financial engine + 95,500 verified benchmarks. Stress-test any business idea before the first dollar is spent. Free to start."
         canonical="/"
       />
