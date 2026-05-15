@@ -1,122 +1,121 @@
-# AIWMC Quantis — Audit v3.1 Remediation Plan
+# Day 1–7 Conversion Sprint — AIWMC Quantis
 
-Goal: close every P0/P1 from the audit, in dependency order, without regressing the conversion engine work shipped in Waves 1–3.
+Goal: turn the 1–3 daily visitors into paid signups by removing the 6 highest-friction conversion blockers identified in the audit, plus 8 supporting fixes. All scoped to **frontend + copy + light Supabase config** — no engine, no math, no schema migrations.
 
----
-
-## Wave A — Quick Wins (this week, all XS effort)
-
-Ship together in one PR. No risk, unblocks future waves.
-
-1. **ISSUE-106 — Refactor Logger to read `isDev` per-call**
-   - `src/lib/logger.ts`: replace constructor-captured `this.isDev` with a getter `get isDev() { return import.meta.env.DEV }`.
-   - Re-enable the 2 skipped tests in `src/__tests__/logger.test.ts` (forwarding Errors → `captureError`, non-Errors → `captureMessage`).
-
-2. **ISSUE-108 — Wire financial typecheck into build**
-   - `package.json`: add `"typecheck:financial": "tsc -p tsconfig.financial.json --noEmit"`.
-   - Chain into existing `build` (or `prebuild`) script so a null-safety regression in `quantis-math.ts` / `financial-engine.ts` / `reconciliation-engine.ts` / `formula-registry.ts` / `geo-calibrator.ts` fails the build.
-
-3. **ISSUE-110 — Justify the 2 sentry.ts bootstrap warns**
-   - `src/lib/sentry.ts:8,39`: add `// eslint-disable-next-line no-console -- bootstrap before logger transport is ready`.
-
-4. **ISSUE-111 — Drop the test-fixture console.error**
-   - `src/__tests__/quantis-math.test.ts:161`: remove the raw log; rely on Vitest's assertion message.
-
-5. **ISSUE-113 — `@ts-ignore` → `@ts-expect-error`** (2 occurrences across `src/`).
-
-Verification: `bun run test` green, `bun run typecheck:financial` green, `rg "@ts-ignore" src/` returns 0.
+Deliverable: `/mnt/documents/quantis-day1-7-sprint.md` — a checklist you can hand to me one item at a time, each with: file paths, exact change, acceptance criteria, estimated lift.
 
 ---
 
-## Wave B — P0/P1 Hardening (next 2–3 weeks)
+## The 14 fixes (grouped by day)
 
-### B1. ISSUE-104 — Kill the wildcard CORS footgun
-- `supabase/functions/_shared/cors.ts`: change the legacy `corsHeaders` export to an empty `{}` so any function still importing it visibly breaks in dev.
-- Migrate the 37 importers to `corsHeadersFor(req)` in a single sweep PR.
-- Add an ESLint rule (or a custom check in the existing lint config) banning `import { corsHeaders }` from `_shared/cors`.
+### Day 1 — Hero + Trust (highest leverage, lowest risk)
 
-### B2. ISSUE-102 — Edge function logger + Sentry transport
-- Create `supabase/functions/_shared/logger.ts` mirroring frontend API (`info/warn/error/debug`), auto-stamping `request_id` from `_shared/request-id.ts`.
-- Optional Sentry HTTP transport gated on `SENTRY_DSN` env (POST to ingest endpoint; no SDK to keep cold-start small).
-- Run a Deno codemod across all 40 functions replacing `console.*` → `logger.*`. Keep raw `console.error` only inside the logger's own catch.
-- Priority order: `stripe-webhook` → `analyze-business` → `ai-consensus` → `analyze-plus` → `analyze-pro-worker` → rest.
+1. **Hero H1 → loss-anchored variant**
+   - File: `src/pages/Landing.tsx` (hero section)
+   - Change: replace generic H1 with *"Before you spend $50,000 building it — find out if the math works. In 2 minutes."*
+   - Impact: +20–35% hero→scroll, +10–15% hero→CTA click
+2. **Move analysis input into the hero (no scroll, no signup)**
+   - File: `src/pages/Landing.tsx` + reuse `src/components/analysis/*` intake field
+   - Change: single textarea + "Run free verdict" button above the fold; route to `/analyze` with prefilled state
+   - Impact: collapses funnel by 1 step → +25–40% activation rate
+3. **Remove fabricated "4.9/5" rating row**
+   - File: `src/pages/Landing.tsx` (TrustBar/social-proof block)
+   - Change: replace stars with data-source badge row (SBA · BLS · OECD · 95,500 benchmarks)
+   - Impact: removes credibility risk; +5–10% trust-perception (qualitative, prevents bounce)
 
-### B3. ISSUE-107 — Cost alert on `ai_calls`
-- Migration: Postgres trigger `ai_cost_runaway_check` on `ai_calls` insert. When rolling-1h `sum(cost_usd) WHERE user_id = NEW.user_id > 5`, call `pg_notify('ai_cost_alert', json)`.
-- New edge function `cost-alert` subscribes / is invoked by a 5-min cron checking the same condition (LISTEN over HTTP isn't reliable in serverless). Emits to Sentry + sends email to admin.
-- Hard cap (separate, defense-in-depth): same trigger raises an exception when rolling-1h cost > $20/user, blocking further inserts.
+### Day 2 — Proof artifacts
 
-### B4. ISSUE-109 — `request_id` on sibling log tables
-- Migration: `ALTER TABLE analysis_logs ADD COLUMN request_id text` + `CREATE INDEX idx_analysis_logs_request_id`.
-- Same for `reconciliation_log`.
-- Update insert sites in `src/services/quantis-logger.ts` and reconciliation engine to populate from `getCurrentRequestId()`.
+4. **Real verdict screenshot strip in hero**
+   - File: `src/pages/Landing.tsx` + `src/assets/`
+   - Change: 3 anonymized verdict cards ("Fragile", "Viable", "Not a business") rendered as static React cards (not images — sharper, no CLS)
+   - Impact: +15–25% scroll depth, +8–12% CTA
+5. **"What you'll get" preview section above pricing**
+   - File: `src/pages/Landing.tsx`
+   - Change: 4-tile grid: Verdict · LTV:CAC · Stress map · 6-month forecast — each with a real screenshot crop
+   - Impact: +10–20% pricing-section reach
 
-### B5. ISSUE-112 — Tighten Sentry ignore rules
-- `src/lib/sentry.ts`: move Apollo/Clarity from `ignoreErrors` (message regex) to `denyUrls` (script origin regex). Keeps legitimate errors that happen to mention the script URL.
+### Day 3 — Pricing surgery
 
-### B6. ISSUE-101 (start) — Flip `strictNullChecks` in `tsconfig.app.json`
-- Expect ~80 errors. Fix in `src/lib/` first (already partially clean from `tsconfig.financial.json`), then `src/services/`, then `src/hooks/`.
-- Track via `docs/strict-mode-rollout.md` Phase 2/3 checklist.
+6. **Default pricing toggle to Annual + show $190/yr anchor**
+   - File: `src/components/landing/PricingSection.tsx`
+   - Change: default `billingPeriod = 'annual'`, show "$190/yr · save $38" with monthly as secondary toggle (already fixed click bug — verify)
+   - Impact: +30–50% ARPU on conversions
+7. **Add $49/mo Consultant tier (white-label PDF)**
+   - File: `src/config/tiers.ts` + `src/components/landing/PricingSection.tsx`
+   - Change: 3rd pricing column, no new backend — gates only existing `BrandProfile` + PDF export
+   - Impact: opens B2B segment; +1–3 high-LTV buyers/mo at current traffic
+8. **Pricing page bullet copy → outcome-led**
+   - File: `src/pages/Pricing.tsx`
+   - Change: rewrite each tier's bullets from features to outcomes ("Know if your idea is fundable in 2 min" not "AI analysis")
+   - Impact: +8–15% pricing→checkout
+
+### Day 4 — Activation loop
+
+9. **6-stage progress loader during analysis**
+   - File: `src/components/analysis/FormProgressBar.tsx` (extend) or new `AnalysisRunLoader.tsx`
+   - Change: show "Pulling SBA benchmarks → Calibrating CAC → Running Monte Carlo → ..." instead of spinner
+   - Impact: +20–30% completion rate (perceived value)
+10. **Upgrade trigger after 3rd analysis (free tier)**
+    - File: `src/hooks/useAnalysis.ts` or `src/lib/contextualTriggers.ts`
+    - Change: on 3rd successful run, show modal: "You've used 3 free verdicts. Unlock unlimited + PDF for $19/mo"
+    - Impact: +2–5% free→paid conversion
+
+### Day 5 — SEO/Indexing for the 1–3 daily visitors to grow
+
+11. **Verify prerender covers /pricing, /examples/*, /blog/***
+    - File: `public/prerender-urls.txt` + verify in deployed HTML via curl
+    - Change: ensure each public route has static HTML with H1 + meta + body copy (not just JS shell)
+    - Impact: unlocks Google indexing → 5–20× organic traffic over 30–60 days
+12. **Add `RouteSEO` / `PageMeta` to every public page missing it**
+    - Files: audit all `src/pages/*.tsx` against the existing `PageMeta` component
+    - Change: add `<PageMeta title=... description=... path=... />` to any public page lacking it
+    - Impact: better SERP CTR, canonical correctness
+
+### Day 6 — Conversion polish
+
+13. **CTA copy audit — replace all "Get started" / "Try it"**
+    - Files: grep for `Get started`, `Try it`, `Sign up free` across `src/pages/Landing.tsx`, `src/components/landing/*`
+    - Change: outcome verbs — "Run my free verdict", "Stress-test my idea", "See if my math works"
+    - Impact: +10–18% CTA CTR
+14. **Exit-intent: offer free PDF teardown of their idea**
+    - File: `src/hooks/useExitIntent.ts` (already exists) + new modal
+    - Change: on exit, capture email → send a sample teardown PDF (uses existing `send-lead-magnet` function)
+    - Impact: +30–60 leads/mo at current traffic; 3–8% convert to paid over 30 days
+
+### Day 7 — Measure + iterate
+
+- Wire/verify Posthog or Clarity events on: hero CTA, pricing toggle, checkout start, 3rd-analysis trigger, exit-intent capture
+- Files: `src/lib/analytics.ts`, `src/lib/clarity.ts`
+- Acceptance: dashboard shows funnel `Land → Run → Verdict → Pricing → Checkout`
 
 ---
 
-## Wave C — Architecture (Q1, larger lifts)
+## Estimated cumulative impact (90 days)
 
-### C1. ISSUE-103 — Split the 4.4k-line god function
-- Create `supabase/functions/_shared/runners/` with: `engine.ts`, `narrator.ts`, `safety.ts`, `persistence.ts`, `hybrid.ts`.
-- `analyze-business/index.ts` shrinks to a ~200-line orchestrator: parse → route → run → persist → respond.
-- Migrate behind feature flag `ANALYZE_BUSINESS_V2` (env var checked at request time). Old path remains for fallback for 2 weeks, then deleted.
-- Add unit tests per runner — currently impossible because logic is inlined.
+| Lever | Conservative | Optimistic |
+|---|---|---|
+| Visit→Verdict | 8% → 22% | 8% → 35% |
+| Verdict→Pricing | 20% → 35% | 20% → 50% |
+| Pricing→Paid | 1.5% → 3.5% | 1.5% → 6% |
+| ARPU (annual default + Consultant tier) | $19 → $34 | $19 → $52 |
 
-### C2. ISSUE-105 — Playwright E2E for the 3 conversion-critical flows
-- `bun add -d @playwright/test`, `playwright.config.ts` pointed at staging URL.
-- Tests:
-  - `e2e/anonymous-to-result.spec.ts` — single input → `/r/:id` → verdict visible within 5s.
-  - `e2e/signup-checkout.spec.ts` — signup → Stripe checkout test mode → webhook → tier upgraded.
-  - `e2e/plus-pdf-export.spec.ts` — Plus user → analysis → PDF download → file > 50KB and contains expected verdict.
-- Wire as a GitHub Action gate on PRs touching `src/pages/`, `src/services/`, or `supabase/functions/`.
-
-### C3. ISSUE-101 (finish) — Full `strict: true`
-- Once all phases of `docs/strict-mode-rollout.md` are green, flip `strict: true` in `tsconfig.app.json` and delete `tsconfig.financial.json`.
+At current 1–3 visitors/day, this alone won't be enough — fixes 11–12 (SEO indexing) are what unlocks the traffic these conversion fixes can monetize.
 
 ---
 
-## Sequencing & Risk
+## What this plan does NOT touch
 
-```text
-Wave A (week 1)
-   │  XS items, no dependencies
-   ▼
-Wave B (weeks 2–4)
-   │  B1 (CORS) → B2 (edge logger) in parallel
-   │  B3 (cost alert) needs B2's logger to emit Sentry events
-   │  B4, B5, B6 independent
-   ▼
-Wave C (weeks 5–12)
-   │  C1 (god-function split) — feature-flagged, slow rollout
-   │  C2 (Playwright) — gate added once 3 specs are green on staging
-   │  C3 (strict: true) — capstone, only after B6 phases complete
-```
+- Math engine, formulas, decimal.js (per project memory — frozen)
+- DB migrations, RLS, Supabase schema
+- New edge functions (only reuses existing `send-lead-magnet`)
+- Quantis math layers, accuracy harness, golden vectors
 
-Rollback for each wave: every change is additive or feature-flagged. CORS migration (B1) is the only one with a hard cutover — gated by ESLint rule + a 1-day staging soak before promoting.
+## Deliverable
 
----
+A single MD checklist at `/mnt/documents/quantis-day1-7-sprint.md` matching the structure above, with per-item:
+- Exact file path(s)
+- Before/after copy or diff sketch
+- Acceptance criteria (one bullet)
+- Conservative + optimistic impact
 
-## Out of Scope (deferred, tracked in audit but not this plan)
-
-- ISSUE-114, 115 (P3 docs) — fold into the next mem update naturally.
-- Frontend perf re-measurement — separate effort tied to LCP work, not type/observability.
-
----
-
-## Acceptance Criteria
-
-- `bun run build` runs `typecheck:financial` and fails on null-safety regressions.
-- `rg "console\." supabase/functions/ -g '!_shared/logger.ts'` returns 0.
-- `rg "import { corsHeaders }" supabase/functions/` returns 0.
-- `analyze-business/index.ts` ≤ 250 lines.
-- 3 Playwright specs green on staging.
-- `tsconfig.app.json` has `"strict": true`.
-- Cost alert verified by injecting a synthetic $6 row into `ai_calls` in staging and confirming Sentry event + email.
-
-Approve to start Wave A.
+Then I wait for you to say "ship #N" and I implement that one item.
