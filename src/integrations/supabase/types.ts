@@ -1351,6 +1351,317 @@ export type Database = {
           },
         ]
       }
+      autoposter_analytics_weekly: {
+        Row: {
+          app_visits: number | null
+          created_at: string
+          fb_ig_engagements: number | null
+          fb_ig_reach: number | null
+          id: string
+          li_engagement_pct: number | null
+          linkedin_impressions: number | null
+          mrr_usd: number | null
+          notes: string | null
+          paid_conversions: number | null
+          period_end: string
+          period_start: string
+          reddit_upvotes: number | null
+          signups: number | null
+          social_traffic_pct: number | null
+          top_post_id: string | null
+          website_visitors: number | null
+          week_number: number | null
+        }
+        Insert: {
+          app_visits?: number | null
+          created_at?: string
+          fb_ig_engagements?: number | null
+          fb_ig_reach?: number | null
+          id?: string
+          li_engagement_pct?: number | null
+          linkedin_impressions?: number | null
+          mrr_usd?: number | null
+          notes?: string | null
+          paid_conversions?: number | null
+          period_end: string
+          period_start: string
+          reddit_upvotes?: number | null
+          signups?: number | null
+          social_traffic_pct?: number | null
+          top_post_id?: string | null
+          website_visitors?: number | null
+          week_number?: number | null
+        }
+        Update: {
+          app_visits?: number | null
+          created_at?: string
+          fb_ig_engagements?: number | null
+          fb_ig_reach?: number | null
+          id?: string
+          li_engagement_pct?: number | null
+          linkedin_impressions?: number | null
+          mrr_usd?: number | null
+          notes?: string | null
+          paid_conversions?: number | null
+          period_end?: string
+          period_start?: string
+          reddit_upvotes?: number | null
+          signups?: number | null
+          social_traffic_pct?: number | null
+          top_post_id?: string | null
+          website_visitors?: number | null
+          week_number?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoposter_analytics_weekly_top_post_id_fkey"
+            columns: ["top_post_id"]
+            isOneToOne: false
+            referencedRelation: "autoposter_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autoposter_credentials: {
+        Row: {
+          access_token: string | null
+          account_id: string | null
+          id: string
+          is_active: boolean
+          last_tested: string | null
+          page_id: string | null
+          platform: string
+          refresh_token: string | null
+          token_expires: string | null
+          updated_at: string
+        }
+        Insert: {
+          access_token?: string | null
+          account_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_tested?: string | null
+          page_id?: string | null
+          platform: string
+          refresh_token?: string | null
+          token_expires?: string | null
+          updated_at?: string
+        }
+        Update: {
+          access_token?: string | null
+          account_id?: string | null
+          id?: string
+          is_active?: boolean
+          last_tested?: string | null
+          page_id?: string | null
+          platform?: string
+          refresh_token?: string | null
+          token_expires?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      autoposter_post_analytics: {
+        Row: {
+          clicks: number | null
+          comments: number | null
+          engagement_rate: number | null
+          fetched_at: string
+          id: string
+          impressions: number | null
+          likes: number | null
+          platform: string
+          post_platform_id: string
+          reach: number | null
+          saves: number | null
+          shares: number | null
+        }
+        Insert: {
+          clicks?: number | null
+          comments?: number | null
+          engagement_rate?: number | null
+          fetched_at?: string
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          platform: string
+          post_platform_id: string
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+        }
+        Update: {
+          clicks?: number | null
+          comments?: number | null
+          engagement_rate?: number | null
+          fetched_at?: string
+          id?: string
+          impressions?: number | null
+          likes?: number | null
+          platform?: string
+          post_platform_id?: string
+          reach?: number | null
+          saves?: number | null
+          shares?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoposter_post_analytics_post_platform_id_fkey"
+            columns: ["post_platform_id"]
+            isOneToOne: false
+            referencedRelation: "autoposter_post_platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autoposter_post_platforms: {
+        Row: {
+          best_time_mt: string | null
+          content: string
+          created_at: string
+          error_message: string | null
+          id: string
+          platform: string
+          platform_post_id: string | null
+          post_id: string
+          published_at: string | null
+          scheduled_at: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          best_time_mt?: string | null
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          platform: string
+          platform_post_id?: string | null
+          post_id: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          best_time_mt?: string | null
+          content?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          platform?: string
+          platform_post_id?: string | null
+          post_id?: string
+          published_at?: string | null
+          scheduled_at?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoposter_post_platforms_post_id_fkey"
+            columns: ["post_id"]
+            isOneToOne: false
+            referencedRelation: "autoposter_posts"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      autoposter_posts: {
+        Row: {
+          content_brief: string
+          created_at: string
+          cta: string | null
+          day_number: number | null
+          expected_reach: string | null
+          hashtags: string[] | null
+          hook: string
+          id: string
+          notes: string | null
+          post_date: string
+          post_type: string | null
+          status: string
+          updated_at: string
+          visual_type: string | null
+          week_number: number | null
+        }
+        Insert: {
+          content_brief: string
+          created_at?: string
+          cta?: string | null
+          day_number?: number | null
+          expected_reach?: string | null
+          hashtags?: string[] | null
+          hook: string
+          id?: string
+          notes?: string | null
+          post_date: string
+          post_type?: string | null
+          status?: string
+          updated_at?: string
+          visual_type?: string | null
+          week_number?: number | null
+        }
+        Update: {
+          content_brief?: string
+          created_at?: string
+          cta?: string | null
+          day_number?: number | null
+          expected_reach?: string | null
+          hashtags?: string[] | null
+          hook?: string
+          id?: string
+          notes?: string | null
+          post_date?: string
+          post_type?: string | null
+          status?: string
+          updated_at?: string
+          visual_type?: string | null
+          week_number?: number | null
+        }
+        Relationships: []
+      }
+      autoposter_publishing_logs: {
+        Row: {
+          action: string
+          created_at: string
+          duration_ms: number | null
+          id: string
+          post_platform_id: string | null
+          request_payload: Json | null
+          response_payload: Json | null
+          status: string
+        }
+        Insert: {
+          action: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          post_platform_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status: string
+        }
+        Update: {
+          action?: string
+          created_at?: string
+          duration_ms?: number | null
+          id?: string
+          post_platform_id?: string | null
+          request_payload?: Json | null
+          response_payload?: Json | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "autoposter_publishing_logs_post_platform_id_fkey"
+            columns: ["post_platform_id"]
+            isOneToOne: false
+            referencedRelation: "autoposter_post_platforms"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       benchmark_calibration: {
         Row: {
           bias_pct: number | null
