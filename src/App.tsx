@@ -230,6 +230,11 @@ const App = () => {
                     <SearchConsole />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/autoposter" element={
+                  <ProtectedRoute requireAdmin>
+                    <Autoposter />
+                  </ProtectedRoute>
+                } />
                 <Route path="/directory-tracker" element={
                   <ProtectedRoute requireAdmin>
                     <DirectoryTracker />
