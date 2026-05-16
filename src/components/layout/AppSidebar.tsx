@@ -36,6 +36,7 @@ import {
   Zap,
   Crown,
   Lock,
+  Megaphone,
 } from 'lucide-react';
 
 interface NavItem {
@@ -82,6 +83,12 @@ const NAV_SECTIONS: NavSection[] = [
       { title: 'Scenarios', url: '/app?tab=scenarios', icon: GitBranch },
       { title: 'My Stats', url: '/app/stats', icon: Trophy },
       { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
+    ],
+  },
+  {
+    label: 'ADMIN',
+    items: [
+      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
     ],
   },
   {

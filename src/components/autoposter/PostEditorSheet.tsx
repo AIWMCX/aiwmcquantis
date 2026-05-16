@@ -1,0 +1,137 @@
+import { useState, useEffect } from 'react';
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetDescription } from '@/components/ui/sheet';
+import { Textarea } from '@/components/ui/textarea';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import {
+  AutoposterPost,
+  AutoposterPlatformRow,
+  AP_PLATFORMS,
+  useGenerateContent,
+  useUpdatePlatformContent,
+  useApproveAndSchedule,
+} from '@/hooks/useAutoposter';
+
+interface Props {
+  post: AutoposterPost | null;
+  platforms: AutoposterPlatformRow[];
+  onClose: () => void;
+}
+
+const LABEL: Record<string, string> = {
+  linkedin: 'LinkedIn',
+  facebook: 'Facebook',
+  instagram: 'Instagram',
+};
+
+export function PostEditorSheet({ post, platforms, onClose }: Props) {
+  const [drafts, setDrafts] = useState<Record<string, string>>({});
+  const generate = useGenerateContent();
+  const update = useUpdatePlatformContent();
+  const approve = useApproveAndSchedule();
+
+  useEffect(() => {
+    const d: Record<string, string> = {};
+    platforms.forEach((p) => {
+      d[p.platform] = p.content;
+    });
+    setDrafts(d);
+  }, [platforms, post?.id]);
+
+  if (!post) return null;
+
+  const handleSave = async () => {
+    const tasks = platforms
+      .filter((p) => drafts[p.platform] !== undefined && drafts[p.platform] !== p.content)
+      .map((p) => update.mutateAsync({ id: p.id, content: drafts[p.platform] }));
+    await Promise.all(tasks);
+  };
+
+  const handleApprove = async () => {
+    await handleSave();
+    await approve.mutateAsync({ post, platforms });
+    onClose();
+  };
+
+  return (
+    <Sheet open={!!post} onOpenChange={(o) => !o && onClose()}>
+      <SheetContent side="right" className="w-full sm:max-w-2xl overflow-y-auto">
+        <SheetHeader>
+          <SheetTitle className="text-base">{post.hook}</SheetTitle>
+          <SheetDescription className="text-xs">
+            {post.post_date} · {post.post_type ?? '—'} · {post.visual_type ?? '—'}
+          </SheetDescription>
+        </SheetHeader>
+
+        <div className="mt-4 space-y-4">
+          <div className="rounded-md border border-[var(--q-border-subtle)] p-3 bg-[var(--q-bg-elevated)]">
+            <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] mb-1">Brief</div>
+            <div className="text-xs whitespace-pre-wrap">{post.content_brief}</div>
+            {post.cta && (
+              <div className="mt-2 text-xs">
+                <span className="text-[var(--q-text-secondary)]">CTA: </span>
+                {post.cta}
+              </div>
+            )}
+            {post.hashtags && post.hashtags.length > 0 && (
+              <div className="mt-2 flex flex-wrap gap-1">
+                {post.hashtags.map((h) => (
+                  <Badge key={h} variant="outline" className="text-[10px]">#{h.replace(/^#/, '')}</Badge>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="flex justify-end">
+            <Button
+              size="sm"
+              onClick={() => generate.mutate({ postId: post.id, platforms: [...AP_PLATFORMS] })}
+              disabled={generate.isPending}
+              className="bg-[var(--q-accent-primary)] text-black hover:bg-[var(--q-accent-primary)]/90"
+            >
+              {generate.isPending ? 'Generating…' : '✦ Generate all 3'}
+            </Button>
+          </div>
+
+          {AP_PLATFORMS.map((pl) => {
+            const row = platforms.find((p) => p.platform === pl);
+            return (
+              <div key={pl} className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <div className="text-sm font-medium">{LABEL[pl]}</div>
+                  <div className="text-[10px] font-mono text-[var(--q-text-secondary)]">
+                    {row?.best_time_mt ?? '—'} MT
+                    {row?.status && <span className="ml-2 uppercase">{row.status}</span>}
+                  </div>
+                </div>
+                <Textarea
+                  value={drafts[pl] ?? ''}
+                  onChange={(e) => setDrafts((d) => ({ ...d, [pl]: e.target.value }))}
+                  placeholder={row ? 'Empty' : 'Not generated yet — click "Generate all 3"'}
+                  disabled={!row}
+                  className="min-h-[140px] font-mono text-xs"
+                />
+              </div>
+            );
+          })}
+
+          <div className="flex gap-2 sticky bottom-0 bg-background pt-4 border-t border-[var(--q-border-subtle)]">
+            <Button variant="outline" onClick={onClose} className="flex-1">
+              Close
+            </Button>
+            <Button variant="outline" onClick={handleSave} disabled={update.isPending} className="flex-1">
+              Save drafts
+            </Button>
+            <Button
+              onClick={handleApprove}
+              disabled={approve.isPending || platforms.length === 0}
+              className="flex-1 bg-[var(--q-accent-primary)] text-black hover:bg-[var(--q-accent-primary)]/90"
+            >
+              Approve & schedule
+            </Button>
+          </div>
+        </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
