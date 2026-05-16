@@ -36,6 +36,7 @@ import {
   Zap,
   Crown,
   Lock,
+  Megaphone,
 } from 'lucide-react';
 
 interface NavItem {
