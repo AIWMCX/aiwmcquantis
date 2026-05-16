@@ -86,6 +86,12 @@ const NAV_SECTIONS: NavSection[] = [
     ],
   },
   {
+    label: 'ADMIN',
+    items: [
+      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
+    ],
+  },
+  {
     label: 'ACCOUNT',
     items: [
       { title: 'Settings', url: '__settings__', icon: Settings },
