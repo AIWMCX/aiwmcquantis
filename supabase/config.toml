@@ -101,3 +101,6 @@ verify_jwt = false
 
 [functions.team-invite]
 verify_jwt = true
+
+[functions.autoposter-generate-content]
+verify_jwt = false
