@@ -1,121 +1,93 @@
-# Day 1–7 Conversion Sprint — AIWMC Quantis
 
-Goal: turn the 1–3 daily visitors into paid signups by removing the 6 highest-friction conversion blockers identified in the audit, plus 8 supporting fixes. All scoped to **frontend + copy + light Supabase config** — no engine, no math, no schema migrations.
+# AIWMC Autoposter — In-App v1
 
-Deliverable: `/mnt/documents/quantis-day1-7-sprint.md` — a checklist you can hand to me one item at a time, each with: file paths, exact change, acceptance criteria, estimated lift.
+Scope: dashboard + Claude content generation inside Quantis. Publishing to LinkedIn / Facebook / Instagram is **deferred to v2** (n8n on your DigitalOcean instance will call `publish-post` once OAuth tokens exist). LinkedIn/Facebook/Instagram is locked in as the v2 target set.
 
----
+## What ships in v1
 
-## The 14 fixes (grouped by day)
+### 1. Database (Supabase migration)
+Six tables, all admin-only via RLS (only `beltovbogdan@gmail.com` can read/write; service role bypasses):
 
-### Day 1 — Hero + Trust (highest leverage, lowest risk)
+- `autoposter_posts` — master calendar row (week, day, date, hook, brief, post_type, visual_type, cta, hashtags[], expected_reach, status)
+- `autoposter_post_platforms` — one row per (post × platform) with Claude-generated content, `best_time_mt`, `scheduled_at`, `published_at`, `platform_post_id`, `status`, `error_message`
+- `autoposter_credentials` — encrypted platform tokens (LinkedIn / Facebook / Instagram). Empty in v1, populated in v2.
+- `autoposter_publishing_logs` — audit trail
+- `autoposter_analytics_weekly` — mirrors your Excel KPI sheet exactly (LI impressions, FB/IG reach, Reddit upvotes, signups, MRR, etc.)
+- `autoposter_post_analytics` — per-post engagement (filled in v2)
 
-1. **Hero H1 → loss-anchored variant**
-   - File: `src/pages/Landing.tsx` (hero section)
-   - Change: replace generic H1 with *"Before you spend $50,000 building it — find out if the math works. In 2 minutes."*
-   - Impact: +20–35% hero→scroll, +10–15% hero→CTA click
-2. **Move analysis input into the hero (no scroll, no signup)**
-   - File: `src/pages/Landing.tsx` + reuse `src/components/analysis/*` intake field
-   - Change: single textarea + "Run free verdict" button above the fold; route to `/analyze` with prefilled state
-   - Impact: collapses funnel by 1 step → +25–40% activation rate
-3. **Remove fabricated "4.9/5" rating row**
-   - File: `src/pages/Landing.tsx` (TrustBar/social-proof block)
-   - Change: replace stars with data-source badge row (SBA · BLS · OECD · 95,500 benchmarks)
-   - Impact: removes credibility risk; +5–10% trust-perception (qualitative, prevents bounce)
+All tables `ENABLE ROW LEVEL SECURITY` with `has_role(auth.uid(), 'admin')` policies. Service role full access for the edge function. Indexes on `(status, scheduled_at)`, `(post_id, platform)`, `(week_number)`.
 
-### Day 2 — Proof artifacts
+### 2. Edge Function: `generate-content`
+- Input: `{ postId, platforms: ['linkedin'|'facebook'|'instagram'][] }`
+- Calls Anthropic `claude-haiku-4-5` with platform-specific system prompts (LinkedIn = 150–300 words founder-honest; Facebook = 200–400 word storytelling; Instagram = hook→gap→value→CTA, hashtags separated)
+- Upserts into `autoposter_post_platforms` with `best_time_mt` defaults (LI 08:00, FB 13:00, IG 10:00 MT) and `status='pending'`
+- Logs the call in `autoposter_publishing_logs`
+- Requires `ANTHROPIC_API_KEY` secret (I will request it via the secrets tool before deploying — do not commit it)
+- Admin gate: validates caller JWT belongs to admin user
+- CORS enabled, registered in `supabase/config.toml` with `verify_jwt = false` (auth is checked in code)
 
-4. **Real verdict screenshot strip in hero**
-   - File: `src/pages/Landing.tsx` + `src/assets/`
-   - Change: 3 anonymized verdict cards ("Fragile", "Viable", "Not a business") rendered as static React cards (not images — sharper, no CLS)
-   - Impact: +15–25% scroll depth, +8–12% CTA
-5. **"What you'll get" preview section above pricing**
-   - File: `src/pages/Landing.tsx`
-   - Change: 4-tile grid: Verdict · LTV:CAC · Stress map · 6-month forecast — each with a real screenshot crop
-   - Impact: +10–20% pricing-section reach
+### 3. xlsx Importer
+You said "upload the .xlsx now" but I don't see `QUANTIS_SOCIAL_MEDIA_MASTERPLAN.xlsx` attached to this message. When you attach it I will:
+- Parse it once with `document--parse_document`
+- Generate a single `supabase--insert` call seeding `autoposter_posts` with all 84 rows (week, day, post_date, hook, content_brief, post_type, visual_type, cta, hashtags, expected_reach)
+- No in-app uploader — one-shot seed
 
-### Day 3 — Pricing surgery
+### 4. Admin route: `/admin/autoposter`
+Mounted in `App.tsx` behind the existing `useAdmin()` gate (redirects non-admins). Three tabs inside `AppLayout`:
 
-6. **Default pricing toggle to Annual + show $190/yr anchor**
-   - File: `src/components/landing/PricingSection.tsx`
-   - Change: default `billingPeriod = 'annual'`, show "$190/yr · save $38" with monthly as secondary toggle (already fixed click bug — verify)
-   - Impact: +30–50% ARPU on conversions
-7. **Add $49/mo Consultant tier (white-label PDF)**
-   - File: `src/config/tiers.ts` + `src/components/landing/PricingSection.tsx`
-   - Change: 3rd pricing column, no new backend — gates only existing `BrandProfile` + PDF export
-   - Impact: opens B2B segment; +1–3 high-LTV buyers/mo at current traffic
-8. **Pricing page bullet copy → outcome-led**
-   - File: `src/pages/Pricing.tsx`
-   - Change: rewrite each tier's bullets from features to outcomes ("Know if your idea is fundable in 2 min" not "AI analysis")
-   - Impact: +8–15% pricing→checkout
+**Tab 1 — Content Queue** (`PostQueue.tsx`)
+- Filterable list of `autoposter_posts` (this week / next week / all)
+- Each row: date, post_type, hook preview, status badge, per-platform chips (LI/FB/IG)
+- "✦ Generate" button per post → calls `generate-content` edge function with all 3 platforms → toast + auto-refresh
+- "Edit & Approve" opens a side sheet showing the 3 generated variants, editable textareas, "Approve & schedule" sets `status='scheduled'` and `scheduled_at = post_date + best_time_mt`
 
-### Day 4 — Activation loop
+**Tab 2 — 90-Day Calendar** (`PostCalendar.tsx`)
+- Month grid (3 months visible). Each cell = one post with color-coded status dot (draft / pending / scheduled / published / failed)
+- Click a cell → opens the same side sheet
+- Legend + week-number column
 
-9. **6-stage progress loader during analysis**
-   - File: `src/components/analysis/FormProgressBar.tsx` (extend) or new `AnalysisRunLoader.tsx`
-   - Change: show "Pulling SBA benchmarks → Calibrating CAC → Running Monte Carlo → ..." instead of spinner
-   - Impact: +20–30% completion rate (perceived value)
-10. **Upgrade trigger after 3rd analysis (free tier)**
-    - File: `src/hooks/useAnalysis.ts` or `src/lib/contextualTriggers.ts`
-    - Change: on 3rd successful run, show modal: "You've used 3 free verdicts. Unlock unlimited + PDF for $19/mo"
-    - Impact: +2–5% free→paid conversion
+**Tab 3 — KPI Tracker** (`KPITracker.tsx`)
+- Reads `autoposter_analytics_weekly` for the last 12 weeks
+- Cards: WoW deltas for LI impressions, FB/IG reach, signups, MRR
+- Recharts line chart (already in your stack) per metric
+- "Add weekly snapshot" form (admin manual entry until v2 auto-pull)
 
-### Day 5 — SEO/Indexing for the 1–3 daily visitors to grow
+All UI uses your existing tokens (`--q-bg-base`, Cabinet Grotesk / DM Sans, `#8FFF2A` accent for status badges) — no new colors. Glass cards, no generic AI icons, no fabricated metrics.
 
-11. **Verify prerender covers /pricing, /examples/*, /blog/***
-    - File: `public/prerender-urls.txt` + verify in deployed HTML via curl
-    - Change: ensure each public route has static HTML with H1 + meta + body copy (not just JS shell)
-    - Impact: unlocks Google indexing → 5–20× organic traffic over 30–60 days
-12. **Add `RouteSEO` / `PageMeta` to every public page missing it**
-    - Files: audit all `src/pages/*.tsx` against the existing `PageMeta` component
-    - Change: add `<PageMeta title=... description=... path=... />` to any public page lacking it
-    - Impact: better SERP CTR, canonical correctness
+## What is explicitly NOT in v1
 
-### Day 6 — Conversion polish
+- No publishing to any platform (no `publish-post` function, no OAuth, no token storage UX). The tables exist so v2 can drop in cleanly.
+- No n8n workflows. No GitHub monorepo scaffolding.
+- No Reddit / X / Threads.
+- No automatic analytics pulls (KPI is manual entry).
+- No changes to landing page, pricing, or any existing Quantis surface.
+- No new dependencies beyond what's already installed (uses `recharts`, `@supabase/supabase-js`, `date-fns` already in your bundle).
 
-13. **CTA copy audit — replace all "Get started" / "Try it"**
-    - Files: grep for `Get started`, `Try it`, `Sign up free` across `src/pages/Landing.tsx`, `src/components/landing/*`
-    - Change: outcome verbs — "Run my free verdict", "Stress-test my idea", "See if my math works"
-    - Impact: +10–18% CTA CTR
-14. **Exit-intent: offer free PDF teardown of their idea**
-    - File: `src/hooks/useExitIntent.ts` (already exists) + new modal
-    - Change: on exit, capture email → send a sample teardown PDF (uses existing `send-lead-magnet` function)
-    - Impact: +30–60 leads/mo at current traffic; 3–8% convert to paid over 30 days
+## Technical details
 
-### Day 7 — Measure + iterate
+```text
+src/pages/admin/Autoposter.tsx              (route, tab shell)
+src/components/autoposter/PostQueue.tsx
+src/components/autoposter/PostCalendar.tsx
+src/components/autoposter/KPITracker.tsx
+src/components/autoposter/PostEditorSheet.tsx
+src/hooks/useAutoposter.ts                  (react-query: posts, platforms, weekly stats)
+src/lib/autoposter/generateContent.ts       (client wrapper for edge fn)
+supabase/functions/generate-content/index.ts
+supabase/config.toml                        (+ [functions.generate-content] verify_jwt=false)
+supabase migration 20260516_autoposter.sql  (6 tables + RLS + indexes)
+```
 
-- Wire/verify Posthog or Clarity events on: hero CTA, pricing toggle, checkout start, 3rd-analysis trigger, exit-intent capture
-- Files: `src/lib/analytics.ts`, `src/lib/clarity.ts`
-- Acceptance: dashboard shows funnel `Land → Run → Verdict → Pricing → Checkout`
+Route registered in `App.tsx`. Sidebar link added to `AppSidebar.tsx` under an "Admin" section (only rendered when `useAdmin().isAdmin === true`).
 
----
+## Sequence after you approve
 
-## Estimated cumulative impact (90 days)
+1. I request `ANTHROPIC_API_KEY` via the secrets tool.
+2. I run the migration (6 tables + RLS).
+3. I write the edge function, hook, page, components, sidebar link.
+4. You attach `QUANTIS_SOCIAL_MEDIA_MASTERPLAN.xlsx` → I parse + seed `autoposter_posts` in one `supabase--insert` call.
+5. You open `/admin/autoposter`, click "✦ Generate" on row 1 → verify all 3 platform variants come back from Claude.
 
-| Lever | Conservative | Optimistic |
-|---|---|---|
-| Visit→Verdict | 8% → 22% | 8% → 35% |
-| Verdict→Pricing | 20% → 35% | 20% → 50% |
-| Pricing→Paid | 1.5% → 3.5% | 1.5% → 6% |
-| ARPU (annual default + Consultant tier) | $19 → $34 | $19 → $52 |
+v2 (separate sprint, not now): OAuth flows for LI/FB/IG, `publish-post` edge function, n8n scheduler workflow, auto-analytics.
 
-At current 1–3 visitors/day, this alone won't be enough — fixes 11–12 (SEO indexing) are what unlocks the traffic these conversion fixes can monetize.
-
----
-
-## What this plan does NOT touch
-
-- Math engine, formulas, decimal.js (per project memory — frozen)
-- DB migrations, RLS, Supabase schema
-- New edge functions (only reuses existing `send-lead-magnet`)
-- Quantis math layers, accuracy harness, golden vectors
-
-## Deliverable
-
-A single MD checklist at `/mnt/documents/quantis-day1-7-sprint.md` matching the structure above, with per-item:
-- Exact file path(s)
-- Before/after copy or diff sketch
-- Acceptance criteria (one bullet)
-- Conservative + optimistic impact
-
-Then I wait for you to say "ship #N" and I implement that one item.
+Confirm and I'll start with the secret request + migration.
