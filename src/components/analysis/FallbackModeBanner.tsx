@@ -41,6 +41,11 @@ export function FallbackModeBanner({ reason, onRetry, aiCallsAttempted, aiCallsS
               Reason: {reason}
             </p>
           )}
+          {typeof aiCallsAttempted === 'number' && (
+            <p className="mt-1 font-mono text-[11px] text-destructive/70">
+              AI calls: {aiCallsSucceeded ?? 0}/{aiCallsAttempted} succeeded
+            </p>
+          )}
         </div>
         {onRetry && (
           <Button
