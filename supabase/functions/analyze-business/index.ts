@@ -4354,6 +4354,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))
           : benchmarkConfidence,
         used_fallback: usedFallback,
+        // F1 — Canonical fallback flag consumed by <FallbackModeBanner /> in the dashboard.
+        // Always present so the UI can branch without optional-chaining gymnastics.
+        fallback_mode: usedFallback,
+        fallback_reason: usedFallback
+          ? (lastStatus
+              ? `LLM unavailable after ${MAX_RETRIES} attempts (HTTP ${lastStatus}): ${lastError ?? 'unknown error'}`
+              : 'AI narrator did not return a valid tool call. Deterministic engine used.')
+          : null,
+        ai_calls_attempted: MAX_RETRIES,
+        ai_calls_succeeded: usedFallback ? 0 : 1,
       },
     };
 
