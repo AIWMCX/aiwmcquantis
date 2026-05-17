@@ -76,6 +76,7 @@ import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts"
 
 // ========== HYBRID VALIDATOR (Forensic Issue #3) ==========
 import { validateAnalysis, type ValidatorResult } from "../_shared/hybrid-validator.ts";
+import { QMath } from "./quantis-math-server.ts";
 
 // CORS — strict origin allowlist (no more wildcard *).
 // `corsHeadersFor(req)` echoes back the Origin only when it's in the trusted set.
@@ -1112,7 +1113,12 @@ function calculateStrictFinancials(
   // Previously was raw revenue; now correctly represents what the business KEEPS from each customer.
   const effectiveLifetime = effectiveBenchmarks.client_lifetime_months;
   const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
-  const calculatedLtv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * effectiveLifetime);
+  const calculatedLtv = QMath.round(
+    QMath.sanitize(avgCheck)
+      .times(grossMarginFraction)
+      .times(benchmarks.orders_per_client)
+      .times(effectiveLifetime)
+  );
   
   audit.push({
     formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime',
@@ -1139,7 +1145,7 @@ function calculateStrictFinancials(
   }
   
   // 1.4 Validate LTV:CAC ratio
-  let ltvCacRatio = Math.round((ltv / cac) * 10) / 10;
+  let ltvCacRatio = QMath.ltvCacRatio(ltv, cac);
   
   audit.push({
     formula: 'LTV:CAC = LTV / CAC',
@@ -2335,7 +2341,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
         contribution_margin_ratio: (100 - benchmarks.cogs_percent) / 100,
         cac: calc.cac,
-        cac_payback_months: Math.ceil(calc.cac / (calc.averageCheck * (Math.max(calc.netMarginPercent, 5) / 100) * benchmarks.orders_per_client)),
+        cac_payback_months: QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - benchmarks.cogs_percent) / 100), 1),
         ltv: calc.ltv,
         ltv_cac_ratio: calc.ltvCacRatio
       },
@@ -2345,7 +2351,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         breakeven_months: calc.isProfitable ? Math.min(calc.paybackMonths, 24) : 0
       },
       returns: {
-        payback_period_months: calc.paybackMonths >= 999 ? 0 : calc.paybackMonths,
+        payback_period_months: calc.paybackMonths,
         roi_year_1: calc.roiYear1Percent,
         roi_year_3: Math.round((calc.netProfit * 36 / Math.max(calc.startupInvestment, 1)) * 100),
         // BUG FIX: True DCF NPV at 10% annual WACC — not cumulative profit
