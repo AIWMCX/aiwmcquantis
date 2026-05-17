@@ -31,29 +31,36 @@ function isCompletedAnalysisResponse(data: AnalysisAPIResponse): data is Complet
 
 function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): BusinessAnalysisResult {
   const f = request.financial_inputs ?? {};
+  // Match the idea against the top-20 industry priors. If matched, we lift
+  // confidence to 70–78 and bias unit-economics toward industry medians
+  // instead of generic 65% contribution-margin guess. See
+  // src/lib/industry-priors.ts for sources.
+  const prior: IndustryPrior = classifyIndustry(`${request.idea ?? ''} ${request.location ?? ''}`);
+  const usedRichPrior = isRichPrior(prior);
   const revenue = QuantisMath.round(f.monthly_revenue ?? QuantisMath.multiply(f.average_price ?? 75, f.expected_customers ?? 100));
   const startup = QuantisMath.round(f.startup_investment ?? QuantisMath.multiply(revenue || 7500, 6));
-  const fixedCosts = QuantisMath.round(f.monthly_costs ?? QuantisMath.multiply(revenue || 7500, 0.62));
-  const cogs = QuantisMath.round(QuantisMath.multiply(revenue, 0.35));
+  const fixedCosts = QuantisMath.round(f.monthly_costs ?? QuantisMath.multiply(revenue || 7500, prior.fixed_cost_pct_of_revenue));
+  const cogs = QuantisMath.round(QuantisMath.multiply(revenue, prior.cogs_pct / 100));
   const grossProfit = QuantisMath.round(QuantisMath.subtract(revenue, cogs));
   const netProfit = QuantisMath.round(QuantisMath.subtract(grossProfit, fixedCosts));
   const grossMargin = QuantisMath.toNumber(QuantisMath.percentage(grossProfit, revenue), 1);
   const netMargin = QuantisMath.toNumber(QuantisMath.percentage(netProfit, revenue), 1);
-  const cac = QuantisMath.round(f.cac ?? 120);
+  const cac = QuantisMath.round(f.cac ?? prior.cac_usd);
   const avgPrice = QuantisMath.round(f.average_price ?? 75);
-  const churn = QuantisMath.toNumber(QuantisMath.divide(f.churn_rate ?? 5, 100), 4);
-  const lifetimeMonths = churn > 0 ? QuantisMath.toNumber(QuantisMath.divide(1, churn), 1) : 24;
+  const churn = QuantisMath.toNumber(QuantisMath.divide(f.churn_rate ?? prior.churn_monthly_pct, 100), 4);
+  const lifetimeMonths = churn > 0 ? QuantisMath.toNumber(QuantisMath.divide(1, churn), 1) : prior.avg_lifetime_months;
   // Coherence rule (see /mnt/documents/quantis_engine_invariants.md):
   // If the business is unprofitable at the base case, CAC payback MUST be the 999 sentinel
   // and LTV:CAC must be capped, because contribution-only math is misleading when fixed
   // costs eat the gross profit. The reviewer-flagged "0.1 mo vs 999 mo" contradiction
   // came from skipping this guard in the fallback path.
   const isUnprofitable = netProfit <= 0;
-  const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
+  const contribRatio = prior.contribution_margin_ratio;
+  const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, contribRatio), lifetimeMonths));
   const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.toNumber(QuantisMath.multiply(cac, 4)))) : rawLtv;
   const rawLtvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
   const ltvCac = isUnprofitable ? Math.min(rawLtvCac, 4) : Math.min(rawLtvCac, 50);
-  const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, 0.65)), 1);
+  const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, contribRatio)), 1);
   const cacPaybackMonths = isUnprofitable ? 999 : Math.max(0.5, Math.min(rawCacPayback, 240));
   const payback = QuantisMath.ceil(QuantisMath.paybackMonths(startup, netProfit));
   const now = new Date().toISOString();
