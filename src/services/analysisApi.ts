@@ -12,6 +12,7 @@ import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
 
 import { logger } from '@/lib/logger';
 import { mergeCanonicalDataSources } from '@/lib/canonical-data-sources';
+import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industry-priors';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 
