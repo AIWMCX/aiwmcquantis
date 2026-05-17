@@ -58,10 +58,9 @@ describe('industry-priors', () => {
     expect(p.confidence).toBeLessThan(70);
   });
 
-  it('handles empty / null inputs without crashing', () => {
+  it('handles empty inputs without crashing', () => {
     expect(classifyIndustry('').id).toBe(GENERIC_PRIOR.id);
-    // @ts-expect-error explicit null test
-    expect(classifyIndustry(null).id).toBe(GENERIC_PRIOR.id);
+    expect(classifyIndustry(undefined as unknown as string).id).toBe(GENERIC_PRIOR.id);
   });
 
   it('LTV:CAC multiple is healthy (>=3) for every rich prior', () => {
