@@ -108,13 +108,17 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
     },
     marketing_plan: { positioning: 'Position around one painful customer problem and measurable ROI.', pricing_strategy: `Validate pricing around $${avgPrice.toLocaleString()} average revenue per customer.`, channels: [{ channel: 'Direct outreach', description: 'Manual founder-led sales to validate demand before scaling paid media.', budget_monthly: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.15)), expected_roi: 'Fastest learning loop' }], cac, ltv, first_3_months_plan: 'Month 1 validate. Month 2 launch paid pilot. Month 3 scale only channels with acceptable payback.' },
     market_analysis: { market_size: { tam: 'Requires benchmark refresh.', sam: `Local opportunity in ${request.location.trim()}.`, som: `Initial obtainable market modeled at $${QuantisMath.round(QuantisMath.multiply(revenue, 12)).toLocaleString()} annual revenue.` }, trends: ['Demand validation matters more than forecast precision at this stage'], competition: { main_competitors: [{ name: 'Existing alternatives', strengths: 'Customer awareness', weaknesses: 'Room for better execution' }], competitive_landscape: 'Assessed with deterministic fallback logic.', market_gaps: 'Validate unmet needs through customer interviews.' }, barriers_to_entry: 'Customer acquisition cost and operational execution.', growth_opportunities: 'Expand only after unit economics are proven.' },
-    confidence_score: 55,
+    confidence_score: isUnprofitable ? 40 : 55,
     data_sources: mergeCanonicalDataSources([
       'Client-side deterministic fallback (used because the live AI narrator was unreachable)',
       'User-provided inputs',
     ]),
-    limitations: [`Fallback used because: ${reason}`, 'Run Full/Pro again for full benchmark and AI narrative depth.'],
-    metadata: { idea: request.idea.trim(), location: request.location.trim(), generated_at: now, model: 'client-deterministic-fallback', version: 'analysis-fallback-v1' },
+    limitations: [
+      `Fallback used because: ${reason}`,
+      'Run Full/Pro again for full benchmark and AI narrative depth.',
+      ...(isUnprofitable ? ['Base case is unprofitable — CAC payback set to ∞ sentinel (999) and LTV:CAC capped at 4x per coherence rule R-CAC-NEG-NOPAY.'] : []),
+    ],
+    metadata: { idea: request.idea.trim(), location: request.location.trim(), generated_at: now, model: 'client-deterministic-fallback', version: 'analysis-fallback-v2' },
   };
 }
 
