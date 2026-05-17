@@ -344,10 +344,25 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     }
   }
 
-  logger.warn('Analysis service failed after retries; returning emergency deterministic fallback', {
+  // Step 4 of the benchmark-first plan: never fabricate an analysis on the
+  // client. A client-side fallback has no access to the 97.5K-row benchmark
+  // dataset and was the root cause of the "0.1 vs 999 month CAC payback"
+  // contradictions the reviewer flagged. Surface a clean error instead so
+  // the UI can show a retry CTA.
+  const allowClientFallback = import.meta.env.VITE_ALLOW_CLIENT_FALLBACK === 'true';
+  if (allowClientFallback) {
+    logger.warn('Analysis service failed; using opt-in client deterministic fallback', {
+      metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
+    });
+    return emergencyFallbackAnalysis(request, lastError?.message ?? 'analysis service unavailable');
+  }
+
+  logger.error('Analysis service unavailable after retries', {
     metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
   });
-  return emergencyFallbackAnalysis(request, lastError?.message ?? 'analysis service unavailable');
+  throw new Error(
+    `ANALYSIS_UNAVAILABLE: The analysis engine is temporarily unreachable. Please try again in a moment. (${lastError?.message ?? 'unknown error'})`,
+  );
 }
 
 // Validation helpers
