@@ -20,6 +20,7 @@ import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
 import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
+import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsBlock';
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
