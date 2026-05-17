@@ -19,6 +19,7 @@ import {
 import { Link } from 'react-router-dom';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { TierQaTile } from '@/components/admin/TierQaTile';
 
 // ── Types ──
 
@@ -336,6 +337,7 @@ export default function QuantisHealth() {
 
           {/* ── System Health Tab (existing) ── */}
           <TabsContent value="system">
+            <div className="mb-6"><TierQaTile /></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <KPICard label="Avg Confidence (24h)" value={metrics?.avgConfidence24h ?? 0} suffix="%" icon={<ShieldCheck className="w-4 h-4" />} good={v => v >= 60} />
               <KPICard label="Consensus Score" value={metrics?.avgConsensus24h ?? 0} suffix="%" icon={<BarChart3 className="w-4 h-4" />} good={v => v >= 70} />
