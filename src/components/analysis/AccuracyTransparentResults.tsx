@@ -20,6 +20,9 @@ import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
 import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
+import { FallbackModeBanner } from './FallbackModeBanner';
+import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
@@ -163,8 +166,32 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     };
   }, [result.financial_analysis, scenarioMetrics, breakEvenMonths, cashRunwayMonths]);
 
+  // F1 — Surface AI fallback state loudly so investor users can't mistake degraded output for full analysis.
+  const meta: any = result.metadata || {};
+  const fallbackMode: boolean = meta.fallback_mode === true;
+  const fallbackReason: string | null = meta.fallback_reason ?? null;
+  const aiCallsAttempted: number | undefined = meta.ai_calls_attempted;
+  const aiCallsSucceeded: number | undefined = meta.ai_calls_succeeded;
+
+  // F4 — Two distinct paybacks, never conflated.
+  // CAC payback = months for one customer's gross profit to recover their CAC.
+  // Project payback = months for net profit to recover total startup investment.
+  const cacPaybackMonths: number | undefined = result.financial_analysis?.unit_economics?.cac_payback_months;
+  const projectPaybackMonths: number = result.financial_analysis?.payback_period_months ?? 99;
+  const netProfitForPayback = scenarioMetrics.profit;
+
   return (
     <div className="space-y-0">
+      {fallbackMode && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <FallbackModeBanner
+            reason={fallbackReason || 'AI narrator unavailable. Deterministic engine used.'}
+            aiCallsAttempted={aiCallsAttempted}
+            aiCallsSucceeded={aiCallsSucceeded}
+            onRetry={onReset}
+          />
+        </div>
+      )}
       {/* Persistent Header with KPIs and Tabs */}
       <PersistentResultsHeader
         result={result}
@@ -280,6 +307,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
 
               {/* RIGHT: Metric Grid + Audit Trail (sticky) */}
               <div className="lg:sticky lg:top-[120px] space-y-5 self-start">
+                {/* F4 — Disambiguate CAC payback vs project payback before the grid */}
+                <MetricDisambiguationBanner
+                  cacPaybackMonths={typeof cacPaybackMonths === 'number' ? cacPaybackMonths : 0}
+                  projectPaybackYears={projectPaybackMonths >= 999 ? 999 : projectPaybackMonths / 12}
+                  initialInvestment={result.financial_analysis?.startup_investment?.total ?? 0}
+                />
                 {/* 2x3 Metric Grid — Free users see only Revenue + Break-even + Runway; advanced metrics blurred */}
                 <div className="grid grid-cols-2 gap-3">
                   <SimpleMetricCard 
@@ -347,14 +380,24 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     )}
                   </div>
                   <SimpleMetricCard 
-                    title="Break-even Month" 
-                    value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
-                    variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
-                    chip={metrics.breakEven <= 12 ? `Mo.${metrics.breakEven} — fast recovery` : metrics.breakEven <= 18 ? `Mo.${metrics.breakEven} — moderate` : `Mo.${metrics.breakEven > 24 ? '24+' : metrics.breakEven} — slow`}
-                    explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
+                    title="CAC Payback" 
+                    value={typeof cacPaybackMonths === 'number' && cacPaybackMonths < 999
+                      ? `${Math.round(cacPaybackMonths)} mo`
+                      : 'N/A'}
+                    variant={typeof cacPaybackMonths === 'number' && cacPaybackMonths <= 12 ? 'success' : typeof cacPaybackMonths === 'number' && cacPaybackMonths <= 18 ? 'warning' : 'danger'}
+                    chip="Per-customer recovery"
+                    explanation="Months for ONE customer's gross profit to recover their acquisition cost. Formula: CAC ÷ (avg ticket × gross margin). Different from project payback."
                     benchmarkMetric="cac_payback"
                     benchmarkContext={benchmarkContext}
-                    numericValue={metrics.breakEven}
+                    numericValue={cacPaybackMonths}
+                  />
+                  <SimpleMetricCard 
+                    title="Project Payback" 
+                    value={formatPaybackDisplay(projectPaybackMonths, netProfitForPayback)}
+                    variant={projectPaybackMonths <= 12 ? 'success' : projectPaybackMonths <= 24 ? 'warning' : 'danger'}
+                    chip="Total investment recovery"
+                    explanation="Months for cumulative net profit to recover your full startup investment. Different from CAC payback."
+                    numericValue={projectPaybackMonths}
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 

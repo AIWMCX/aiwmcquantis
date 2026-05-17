@@ -1,98 +1,44 @@
+## Quantis Accuracy Engine — Remaining F2/F3/F4/F5 Wire-Up
 
-# Quantis Accuracy Engine — Integration Plan (F1–F5)
+Foundational primitives (F1 metadata, canonical CAC/LTV math, two banner components) already shipped last turn. This plan completes the remaining 5 surgical batches so every fix is live end-to-end in preview today.
 
-## Why not paste the 8 files raw
+### Execution order (each batch = one focused turn)
 
-Your project already has a mature engine that conflicts with the spec's file layout:
+**Batch 1 — Dashboard wire-up (visible proof F1 works)**
+- Mount `<FallbackModeBanner reason={meta.fallback_reason} onRetry={...} />` at the top of `src/pages/AppDashboard.tsx` results view, gated on `meta.fallback_mode === true`.
+- Mount `<MetricDisambiguationBanner />` directly above the metrics grid.
+- Split the single payback `MetricCard` into two: **CAC Payback (months)** and **Project Payback (years)**, reading `cacPaybackMonths` and `projectPaybackYears` from the analysis result (use existing `formatPaybackDisplay` for the years card).
+- Pass `meta.ai_calls_attempted/succeeded` into an existing health chip so QA can see it.
 
-- `supabase/functions/analyze-business/` — 24 modules including `financial-engine.ts`, `quantis-math-server.ts`, `benchmark-engine-v2.ts`, `narrator-prompt.ts`, `bulletproof-validator.ts`, `assumption-graph.ts`. This is the production orchestrator.
-- `src/lib/financial-engine.ts`, `src/lib/quantis-math.ts`, `src/lib/monte-carlo.ts` — client-side mirrors locked to **decimal.js / QMath** (memory rule: "NEVER use raw JS math for financials").
-- `services/benchmark-lookup.ts` + `benchmark_lookup` SQL RPC — already wired to the 95,500 rows.
-- Memory rules: "Source Attribution Standard", "Accuracy Guardrails", "Anti-BS Sanity Checks", "PDF Export Canonical = @react-pdf/renderer".
+**Batch 2 — F3/F4 callsite migration (kill the contradiction at source)**
+- Grep `cac.*payback|payback.*cac|ltv\s*=\s*` across `src/lib/financial-engine.ts`, `src/lib/monte-carlo.ts`, `supabase/functions/analyze-business/*.ts`, `supabase/functions/_shared/business-logic.ts`.
+- Replace every inline CAC-payback / LTV formula with calls to `cacPaybackMonths()`, `ltvFromPrimitives()`, `projectPaybackYears()` from `quantis-math.ts` (client) and `quantis-math-server.ts` (edge).
+- Discard user-supplied LTV on ingest; always recompute. Keep raw input only in `meta.userProvidedLtv` for audit.
+- Update `src/types/analysis.ts` so `cacPaybackMonths` and `projectPaybackYears` are distinct required fields, not aliases.
 
-Pasting `/src/engine/*.ts` and a new `quantis-analyze` edge function would create a parallel engine that drifts from the deterministic twin, break QMath precision, duplicate the benchmark store, and orphan the existing dashboard. So I'm doing **surgical fixes against the 5 root causes** the spec correctly identifies — same intent, integrated into your stack.
+**Batch 3 — F2 live benchmark lookup with citations**
+- In `supabase/functions/analyze-business/benchmark-engine-v2.ts` (server) and `src/services/benchmark-lookup.ts` (client), call the existing `benchmark_lookup` RPC first with `(sector, stage, geo)`.
+- Compute real p25/p50/p75 from returned rows; only fall back to `embedded-benchmarks.ts` priors when `matched === false` OR `sample_size < 10`.
+- Stamp every returned metric with a `citation` string via existing `buildCitation()` / `formatCitationCompact()` in `src/lib/benchmark-citations.ts`: `"Based on N benchmarks from [source] · [date]"`.
+- Render citations in `BenchmarkPanel.tsx` (replace any "Estimated · No direct benchmark" placeholder).
 
-## What ships (file by file)
+**Batch 4 — F5 quality gates unconditional**
+- In `supabase/functions/_shared/hybrid-validator.ts` / `bulletproof-validator.ts`, hoist the 12 gates out of the AI-success branch into a single post-compute step that runs regardless of `fallback_mode`.
+- Critical gate failures still return 200 with `riskFlags[].severity = 'CRITICAL'` so banners render; never throw.
+- Add a `meta.gates_run` count and `meta.gates_failed[]` array for QA.
 
-### F1 — AI narrator silent failure → loud, gated, banner-driven
+**Batch 5 — Regression test pinning**
+- Extend `src/__tests__/quantis-math.test.ts` with golden vectors for the 3 new primitives (incl. boundary: `gm=0`, `churn=0`, `profit<=0` → 999).
+- Add a fallback-mode integration test that blanks `ANTHROPIC_API_KEY` and asserts: 200 response, `fallback_mode=true`, all 12 gates ran, banners renderable, payback fields distinct.
+- Pin one SaaS-B2B fixture end-to-end to lock the canonical CAC payback number against future drift.
 
-**Edit `supabase/functions/analyze-business/index.ts`**
-- Wrap each Claude call in `try / AbortSignal.timeout(45_000) / catch`.
-- On any LLM failure: still return 200 with `meta.fallbackMode = true` and `meta.fallbackReason: "<provider> <status> <message>"`. Never throw upstream.
-- Return shape gains `meta.aiCallsAttempted` and `meta.aiCallsSucceeded`.
+### Verification gates between batches
+After each batch: read changed files back, run `vitest run` on the touched test files, hit `analyze-business` via `supabase--curl_edge_functions` with a known fixture, and visually confirm banners/metrics in preview before moving on.
 
-**Edit `src/components/dashboard/AnalysisResults.tsx`** (or the actual top-level results component — confirm via grep)
-- Add `<FallbackModeBanner>` at the very top, red surface, when `meta.fallbackMode === true`. Copy: "AI narrative unavailable — deterministic engine output only. Do not use for investor decisions. Click to retry."
+### Non-goals (explicitly out of scope this round)
+- No new parallel engine, no rewrite of `financial-engine.ts` architecture.
+- No changes to `quantis-math.ts` math (already shipped & frozen).
+- No schema migrations — `benchmark_lookup` RPC and `benchmarks` table already exist.
+- No edits to `src/integrations/supabase/client.ts` or `types.ts`.
 
-### F2 — Benchmarks decorative → live-queried with citations
-
-**Edit `supabase/functions/analyze-business/benchmark-engine-v2.ts`**
-- In every metric resolver, call the existing `benchmark_lookup` RPC **first** (sector + business_model + country + city_tier + stage). Use the returned `match_level`, `sample_size`, `source`, `data_version`, `data_date`.
-- Only fall through to `embedded-benchmarks.ts` priors when RPC returns `matched: false` OR sample_size < 10.
-- Every numeric result gets a `citation` string: `"Based on N comparable benchmarks from <source> (<data_date>)"` per the **Source Attribution Standard** memory.
-- `match_type` enum: `direct_benchmark | similar_benchmark | estimated_no_direct` propagated to UI as the QSL pill.
-
-**Edit `src/components/dashboard/BenchmarkPanel.tsx`** (or equivalent)
-- Render the citation under each metric. Replace any hardcoded "Estimated · No direct benchmark" text with the live citation.
-
-### F3 — CAC payback contradiction → one canonical formula
-
-**Edit `src/lib/quantis-math.ts` and `supabase/functions/analyze-business/quantis-math-server.ts` (twin)**
-- Add ONE function: `cacPaybackMonths(cac, avgTicket, grossMargin)` returning `clamp(cac / (avgTicket × grossMargin), 1, 120)` via Decimal.
-- Delete every other CAC-payback computation site (grep `cac.*payback|payback.*cac` and route them through this function).
-- Discard any user-supplied LTV; recompute from primitives: `ltv = avgTicket × grossMargin × (1 / churnMonthly)` clamped to `[1, 240]` months lifetime.
-- Update `business-logic-parity.test.ts` and add a regression test pinning ONE value per scenario.
-
-### F4 — Project payback vs CAC payback → separated types and UI
-
-**Edit `src/types/analysis.ts`**
-- Split into two fields with non-interchangeable units:
-  - `cacPaybackMonths: number` (the unit-economics one)
-  - `projectPaybackYears: number` (the recover-initial-investment one) = `initialInvestment / max(annualNetProfit, 1)`
-
-**Edit dashboard**
-- Two separate `MetricCard`s with explicit subtitles.
-- Add a 1-line disambiguation banner under the metrics grid (per spec §UI lines 2085–2092).
-
-### F5 — Quality gates skipped in fallback → always run
-
-**Edit `supabase/functions/analyze-business/bulletproof-validator.ts`**
-- Move the 12 gates out of the LLM-success branch into the unconditional post-`FinancialEngine.compute()` step.
-- Return `qualityGateResults[]` in every response, fallback or not.
-- A CRITICAL gate failure (e.g. cash runway < 1mo, LTV:CAC > 20, GM > 95% outside software) still ships a result but with `riskFlags[].severity = 'CRITICAL'` and a top-of-page red banner.
-
-## Files I will edit (no new parallel engine)
-
-```text
-supabase/functions/analyze-business/index.ts                 [F1, F5]
-supabase/functions/analyze-business/benchmark-engine-v2.ts   [F2]
-supabase/functions/analyze-business/bulletproof-validator.ts [F5]
-supabase/functions/analyze-business/quantis-math-server.ts   [F3, F4]
-src/lib/quantis-math.ts                                      [F3, F4]
-src/lib/financial-engine.ts                                  [F3, F4]
-src/types/analysis.ts                                        [F4]
-src/components/dashboard/<results>.tsx                       [F1, F4 banners]
-src/components/dashboard/<benchmarks>.tsx                    [F2 citations]
-src/__tests__/quantis-math.test.ts                           [regression pins]
-```
-
-(Exact dashboard component paths confirmed by grep before editing.)
-
-## What I am NOT doing
-
-- Not creating `/src/engine/*` — duplicates existing `src/lib/*`.
-- Not creating a new `quantis-analyze` edge function — `analyze-business` is the production orchestrator.
-- Not introducing the spec's inline-style React (`<div style={{...}}>`) — your design system uses semantic tokens + Tailwind. Banners and cards will use existing shadcn primitives.
-- Not changing the 95,500-row schema — `benchmark_lookup` RPC already returns p25/p50/p75/source.
-- Not touching PDF export (canonical `@react-pdf/renderer` rule).
-
-## Verification before I declare done
-
-1. `bun test src/__tests__/quantis-math.test.ts` — CAC payback regression pinned.
-2. `bun test src/__tests__/business-logic-parity.test.ts` — client/server twin still matches.
-3. `supabase--curl_edge_functions` `analyze-business` with a SaaS B2B fixture — assert `meta.fallbackMode === false`, `benchmarks[].citation` non-empty, `qualityGateResults.length === 12`, `cacPaybackMonths` and `projectPaybackYears` both present and never equal.
-4. Re-run with `ANTHROPIC_API_KEY` deliberately blanked — assert 200, `fallbackMode === true`, 12 gates still returned, red banner renders in preview.
-
-## Scope confirm
-
-Reply **go** to ship the 5 fixes as scoped above. If you instead want me to literally paste the 8-file spec verbatim alongside the existing engine (parallel system, dual maintenance, breaks decimal.js parity), say **paste raw** and I'll do that — but flag that it violates 4 memory rules and the deterministic twin contract.
+Reply **go** to execute Batch 1 (dashboard wire-up — fastest visible win), or name a different batch to start.

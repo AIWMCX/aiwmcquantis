@@ -14,9 +14,11 @@ import { Button } from "@/components/ui/button";
 interface FallbackModeBannerProps {
   reason?: string | null;
   onRetry?: () => void;
+  aiCallsAttempted?: number;
+  aiCallsSucceeded?: number;
 }
 
-export function FallbackModeBanner({ reason, onRetry }: FallbackModeBannerProps) {
+export function FallbackModeBanner({ reason, onRetry, aiCallsAttempted, aiCallsSucceeded }: FallbackModeBannerProps) {
   return (
     <div
       role="alert"
@@ -37,6 +39,11 @@ export function FallbackModeBanner({ reason, onRetry }: FallbackModeBannerProps)
           {reason && (
             <p className="mt-2 font-mono text-xs text-destructive/80">
               Reason: {reason}
+            </p>
+          )}
+          {typeof aiCallsAttempted === 'number' && (
+            <p className="mt-1 font-mono text-[11px] text-destructive/70">
+              AI calls: {aiCallsSucceeded ?? 0}/{aiCallsAttempted} succeeded
             </p>
           )}
         </div>
