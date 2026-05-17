@@ -10,6 +10,11 @@ import {
   type BenchmarkSummaryForCase,
   type BenchmarkQuery 
 } from "./benchmark-engine-v2.ts";
+import {
+  buildBenchmarkRecords,
+  summarizeMatches,
+  type BenchmarkRecord,
+} from "./benchmark-records.ts";
 
 // ========== NEW INTELLIGENCE MODULES ==========
 import { 
