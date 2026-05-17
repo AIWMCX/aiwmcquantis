@@ -138,6 +138,60 @@ export class QMath {
     return inv.dividedBy(profit).ceil().toNumber();
   }
 
+  /** Clamp value between min and max */
+  static clamp(value: unknown, min: number, max: number): Decimal {
+    const v = QMath.sanitize(value);
+    if (v.lt(min)) return new Decimal(min);
+    if (v.gt(max)) return new Decimal(max);
+    return v;
+  }
+
+  // ========================================================================
+  // F3 / F4 — CANONICAL UNIT-ECONOMICS PRIMITIVES (server twin)
+  //
+  // Mirrors src/lib/quantis-math.ts exactly. Every CAC-payback / LTV /
+  // project-payback in the edge function MUST route through these. Do not
+  // inline the math anywhere else.
+  // ========================================================================
+
+  /**
+   * CAC payback (months): CAC / (avgTicket × grossMarginFraction).
+   * Clamped to [1, 120]. grossMarginFraction is 0–1, not percent.
+   */
+  static cacPaybackMonths(cac: unknown, avgTicket: unknown, grossMarginFraction: unknown): Decimal {
+    const cacD = QMath.sanitize(cac);
+    const ticketD = QMath.sanitize(avgTicket);
+    const gmD = QMath.sanitize(grossMarginFraction);
+    const grossProfitPerCustomer = ticketD.times(gmD);
+    if (grossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
+    return QMath.clamp(cacD.dividedBy(grossProfitPerCustomer), 1, 120);
+  }
+
+  /**
+   * LTV from primitives: avgTicket × grossMarginFraction × min(1/churn, 240).
+   * User-supplied LTV is discarded. This is the canonical computation.
+   */
+  static ltvFromPrimitives(avgTicket: unknown, grossMarginFraction: unknown, churnMonthly: unknown): Decimal {
+    const ticketD = QMath.sanitize(avgTicket);
+    const gmD = QMath.sanitize(grossMarginFraction);
+    const churnD = QMath.sanitize(churnMonthly);
+    if (churnD.lte(0) || ticketD.lte(0) || gmD.lte(0)) return new Decimal(0);
+    const lifetimeMonths = QMath.clamp(new Decimal(1).dividedBy(churnD), 1, 240);
+    return ticketD.times(gmD).times(lifetimeMonths);
+  }
+
+  /**
+   * Project payback (YEARS): initialInvestment / annualNetProfit.
+   * Distinct from cacPaybackMonths — never conflate. Returns 999 when unprofitable.
+   */
+  static projectPaybackYears(initialInvestment: unknown, annualNetProfit: unknown): Decimal {
+    const invD = QMath.sanitize(initialInvestment);
+    const profitD = QMath.sanitize(annualNetProfit);
+    if (profitD.lte(0)) return new Decimal(999);
+    if (invD.lte(0)) return new Decimal(0);
+    return invD.dividedBy(profitD);
+  }
+
   /**
    * Break-even revenue = fixedCosts / contributionMargin
    */

@@ -1,93 +1,98 @@
 
-# AIWMC Autoposter — In-App v1
+# Quantis Accuracy Engine — Integration Plan (F1–F5)
 
-Scope: dashboard + Claude content generation inside Quantis. Publishing to LinkedIn / Facebook / Instagram is **deferred to v2** (n8n on your DigitalOcean instance will call `publish-post` once OAuth tokens exist). LinkedIn/Facebook/Instagram is locked in as the v2 target set.
+## Why not paste the 8 files raw
 
-## What ships in v1
+Your project already has a mature engine that conflicts with the spec's file layout:
 
-### 1. Database (Supabase migration)
-Six tables, all admin-only via RLS (only `beltovbogdan@gmail.com` can read/write; service role bypasses):
+- `supabase/functions/analyze-business/` — 24 modules including `financial-engine.ts`, `quantis-math-server.ts`, `benchmark-engine-v2.ts`, `narrator-prompt.ts`, `bulletproof-validator.ts`, `assumption-graph.ts`. This is the production orchestrator.
+- `src/lib/financial-engine.ts`, `src/lib/quantis-math.ts`, `src/lib/monte-carlo.ts` — client-side mirrors locked to **decimal.js / QMath** (memory rule: "NEVER use raw JS math for financials").
+- `services/benchmark-lookup.ts` + `benchmark_lookup` SQL RPC — already wired to the 95,500 rows.
+- Memory rules: "Source Attribution Standard", "Accuracy Guardrails", "Anti-BS Sanity Checks", "PDF Export Canonical = @react-pdf/renderer".
 
-- `autoposter_posts` — master calendar row (week, day, date, hook, brief, post_type, visual_type, cta, hashtags[], expected_reach, status)
-- `autoposter_post_platforms` — one row per (post × platform) with Claude-generated content, `best_time_mt`, `scheduled_at`, `published_at`, `platform_post_id`, `status`, `error_message`
-- `autoposter_credentials` — encrypted platform tokens (LinkedIn / Facebook / Instagram). Empty in v1, populated in v2.
-- `autoposter_publishing_logs` — audit trail
-- `autoposter_analytics_weekly` — mirrors your Excel KPI sheet exactly (LI impressions, FB/IG reach, Reddit upvotes, signups, MRR, etc.)
-- `autoposter_post_analytics` — per-post engagement (filled in v2)
+Pasting `/src/engine/*.ts` and a new `quantis-analyze` edge function would create a parallel engine that drifts from the deterministic twin, break QMath precision, duplicate the benchmark store, and orphan the existing dashboard. So I'm doing **surgical fixes against the 5 root causes** the spec correctly identifies — same intent, integrated into your stack.
 
-All tables `ENABLE ROW LEVEL SECURITY` with `has_role(auth.uid(), 'admin')` policies. Service role full access for the edge function. Indexes on `(status, scheduled_at)`, `(post_id, platform)`, `(week_number)`.
+## What ships (file by file)
 
-### 2. Edge Function: `generate-content`
-- Input: `{ postId, platforms: ['linkedin'|'facebook'|'instagram'][] }`
-- Calls Anthropic `claude-haiku-4-5` with platform-specific system prompts (LinkedIn = 150–300 words founder-honest; Facebook = 200–400 word storytelling; Instagram = hook→gap→value→CTA, hashtags separated)
-- Upserts into `autoposter_post_platforms` with `best_time_mt` defaults (LI 08:00, FB 13:00, IG 10:00 MT) and `status='pending'`
-- Logs the call in `autoposter_publishing_logs`
-- Requires `ANTHROPIC_API_KEY` secret (I will request it via the secrets tool before deploying — do not commit it)
-- Admin gate: validates caller JWT belongs to admin user
-- CORS enabled, registered in `supabase/config.toml` with `verify_jwt = false` (auth is checked in code)
+### F1 — AI narrator silent failure → loud, gated, banner-driven
 
-### 3. xlsx Importer
-You said "upload the .xlsx now" but I don't see `QUANTIS_SOCIAL_MEDIA_MASTERPLAN.xlsx` attached to this message. When you attach it I will:
-- Parse it once with `document--parse_document`
-- Generate a single `supabase--insert` call seeding `autoposter_posts` with all 84 rows (week, day, post_date, hook, content_brief, post_type, visual_type, cta, hashtags, expected_reach)
-- No in-app uploader — one-shot seed
+**Edit `supabase/functions/analyze-business/index.ts`**
+- Wrap each Claude call in `try / AbortSignal.timeout(45_000) / catch`.
+- On any LLM failure: still return 200 with `meta.fallbackMode = true` and `meta.fallbackReason: "<provider> <status> <message>"`. Never throw upstream.
+- Return shape gains `meta.aiCallsAttempted` and `meta.aiCallsSucceeded`.
 
-### 4. Admin route: `/admin/autoposter`
-Mounted in `App.tsx` behind the existing `useAdmin()` gate (redirects non-admins). Three tabs inside `AppLayout`:
+**Edit `src/components/dashboard/AnalysisResults.tsx`** (or the actual top-level results component — confirm via grep)
+- Add `<FallbackModeBanner>` at the very top, red surface, when `meta.fallbackMode === true`. Copy: "AI narrative unavailable — deterministic engine output only. Do not use for investor decisions. Click to retry."
 
-**Tab 1 — Content Queue** (`PostQueue.tsx`)
-- Filterable list of `autoposter_posts` (this week / next week / all)
-- Each row: date, post_type, hook preview, status badge, per-platform chips (LI/FB/IG)
-- "✦ Generate" button per post → calls `generate-content` edge function with all 3 platforms → toast + auto-refresh
-- "Edit & Approve" opens a side sheet showing the 3 generated variants, editable textareas, "Approve & schedule" sets `status='scheduled'` and `scheduled_at = post_date + best_time_mt`
+### F2 — Benchmarks decorative → live-queried with citations
 
-**Tab 2 — 90-Day Calendar** (`PostCalendar.tsx`)
-- Month grid (3 months visible). Each cell = one post with color-coded status dot (draft / pending / scheduled / published / failed)
-- Click a cell → opens the same side sheet
-- Legend + week-number column
+**Edit `supabase/functions/analyze-business/benchmark-engine-v2.ts`**
+- In every metric resolver, call the existing `benchmark_lookup` RPC **first** (sector + business_model + country + city_tier + stage). Use the returned `match_level`, `sample_size`, `source`, `data_version`, `data_date`.
+- Only fall through to `embedded-benchmarks.ts` priors when RPC returns `matched: false` OR sample_size < 10.
+- Every numeric result gets a `citation` string: `"Based on N comparable benchmarks from <source> (<data_date>)"` per the **Source Attribution Standard** memory.
+- `match_type` enum: `direct_benchmark | similar_benchmark | estimated_no_direct` propagated to UI as the QSL pill.
 
-**Tab 3 — KPI Tracker** (`KPITracker.tsx`)
-- Reads `autoposter_analytics_weekly` for the last 12 weeks
-- Cards: WoW deltas for LI impressions, FB/IG reach, signups, MRR
-- Recharts line chart (already in your stack) per metric
-- "Add weekly snapshot" form (admin manual entry until v2 auto-pull)
+**Edit `src/components/dashboard/BenchmarkPanel.tsx`** (or equivalent)
+- Render the citation under each metric. Replace any hardcoded "Estimated · No direct benchmark" text with the live citation.
 
-All UI uses your existing tokens (`--q-bg-base`, Cabinet Grotesk / DM Sans, `#8FFF2A` accent for status badges) — no new colors. Glass cards, no generic AI icons, no fabricated metrics.
+### F3 — CAC payback contradiction → one canonical formula
 
-## What is explicitly NOT in v1
+**Edit `src/lib/quantis-math.ts` and `supabase/functions/analyze-business/quantis-math-server.ts` (twin)**
+- Add ONE function: `cacPaybackMonths(cac, avgTicket, grossMargin)` returning `clamp(cac / (avgTicket × grossMargin), 1, 120)` via Decimal.
+- Delete every other CAC-payback computation site (grep `cac.*payback|payback.*cac` and route them through this function).
+- Discard any user-supplied LTV; recompute from primitives: `ltv = avgTicket × grossMargin × (1 / churnMonthly)` clamped to `[1, 240]` months lifetime.
+- Update `business-logic-parity.test.ts` and add a regression test pinning ONE value per scenario.
 
-- No publishing to any platform (no `publish-post` function, no OAuth, no token storage UX). The tables exist so v2 can drop in cleanly.
-- No n8n workflows. No GitHub monorepo scaffolding.
-- No Reddit / X / Threads.
-- No automatic analytics pulls (KPI is manual entry).
-- No changes to landing page, pricing, or any existing Quantis surface.
-- No new dependencies beyond what's already installed (uses `recharts`, `@supabase/supabase-js`, `date-fns` already in your bundle).
+### F4 — Project payback vs CAC payback → separated types and UI
 
-## Technical details
+**Edit `src/types/analysis.ts`**
+- Split into two fields with non-interchangeable units:
+  - `cacPaybackMonths: number` (the unit-economics one)
+  - `projectPaybackYears: number` (the recover-initial-investment one) = `initialInvestment / max(annualNetProfit, 1)`
+
+**Edit dashboard**
+- Two separate `MetricCard`s with explicit subtitles.
+- Add a 1-line disambiguation banner under the metrics grid (per spec §UI lines 2085–2092).
+
+### F5 — Quality gates skipped in fallback → always run
+
+**Edit `supabase/functions/analyze-business/bulletproof-validator.ts`**
+- Move the 12 gates out of the LLM-success branch into the unconditional post-`FinancialEngine.compute()` step.
+- Return `qualityGateResults[]` in every response, fallback or not.
+- A CRITICAL gate failure (e.g. cash runway < 1mo, LTV:CAC > 20, GM > 95% outside software) still ships a result but with `riskFlags[].severity = 'CRITICAL'` and a top-of-page red banner.
+
+## Files I will edit (no new parallel engine)
 
 ```text
-src/pages/admin/Autoposter.tsx              (route, tab shell)
-src/components/autoposter/PostQueue.tsx
-src/components/autoposter/PostCalendar.tsx
-src/components/autoposter/KPITracker.tsx
-src/components/autoposter/PostEditorSheet.tsx
-src/hooks/useAutoposter.ts                  (react-query: posts, platforms, weekly stats)
-src/lib/autoposter/generateContent.ts       (client wrapper for edge fn)
-supabase/functions/generate-content/index.ts
-supabase/config.toml                        (+ [functions.generate-content] verify_jwt=false)
-supabase migration 20260516_autoposter.sql  (6 tables + RLS + indexes)
+supabase/functions/analyze-business/index.ts                 [F1, F5]
+supabase/functions/analyze-business/benchmark-engine-v2.ts   [F2]
+supabase/functions/analyze-business/bulletproof-validator.ts [F5]
+supabase/functions/analyze-business/quantis-math-server.ts   [F3, F4]
+src/lib/quantis-math.ts                                      [F3, F4]
+src/lib/financial-engine.ts                                  [F3, F4]
+src/types/analysis.ts                                        [F4]
+src/components/dashboard/<results>.tsx                       [F1, F4 banners]
+src/components/dashboard/<benchmarks>.tsx                    [F2 citations]
+src/__tests__/quantis-math.test.ts                           [regression pins]
 ```
 
-Route registered in `App.tsx`. Sidebar link added to `AppSidebar.tsx` under an "Admin" section (only rendered when `useAdmin().isAdmin === true`).
+(Exact dashboard component paths confirmed by grep before editing.)
 
-## Sequence after you approve
+## What I am NOT doing
 
-1. I request `ANTHROPIC_API_KEY` via the secrets tool.
-2. I run the migration (6 tables + RLS).
-3. I write the edge function, hook, page, components, sidebar link.
-4. You attach `QUANTIS_SOCIAL_MEDIA_MASTERPLAN.xlsx` → I parse + seed `autoposter_posts` in one `supabase--insert` call.
-5. You open `/admin/autoposter`, click "✦ Generate" on row 1 → verify all 3 platform variants come back from Claude.
+- Not creating `/src/engine/*` — duplicates existing `src/lib/*`.
+- Not creating a new `quantis-analyze` edge function — `analyze-business` is the production orchestrator.
+- Not introducing the spec's inline-style React (`<div style={{...}}>`) — your design system uses semantic tokens + Tailwind. Banners and cards will use existing shadcn primitives.
+- Not changing the 95,500-row schema — `benchmark_lookup` RPC already returns p25/p50/p75/source.
+- Not touching PDF export (canonical `@react-pdf/renderer` rule).
 
-v2 (separate sprint, not now): OAuth flows for LI/FB/IG, `publish-post` edge function, n8n scheduler workflow, auto-analytics.
+## Verification before I declare done
 
-Confirm and I'll start with the secret request + migration.
+1. `bun test src/__tests__/quantis-math.test.ts` — CAC payback regression pinned.
+2. `bun test src/__tests__/business-logic-parity.test.ts` — client/server twin still matches.
+3. `supabase--curl_edge_functions` `analyze-business` with a SaaS B2B fixture — assert `meta.fallbackMode === false`, `benchmarks[].citation` non-empty, `qualityGateResults.length === 12`, `cacPaybackMonths` and `projectPaybackYears` both present and never equal.
+4. Re-run with `ANTHROPIC_API_KEY` deliberately blanked — assert 200, `fallbackMode === true`, 12 gates still returned, red banner renders in preview.
+
+## Scope confirm
+
+Reply **go** to ship the 5 fixes as scoped above. If you instead want me to literally paste the 8-file spec verbatim alongside the existing engine (parallel system, dual maintenance, breaks decimal.js parity), say **paste raw** and I'll do that — but flag that it violates 4 memory rules and the deterministic twin contract.
