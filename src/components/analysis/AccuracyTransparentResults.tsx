@@ -374,14 +374,24 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     )}
                   </div>
                   <SimpleMetricCard 
-                    title="Break-even Month" 
-                    value={metrics.breakEven > 24 ? '24+' : `Mo. ${metrics.breakEven}`}
-                    variant={metrics.breakEven <= 12 ? 'success' : metrics.breakEven <= 18 ? 'warning' : 'danger'}
-                    chip={metrics.breakEven <= 12 ? `Mo.${metrics.breakEven} — fast recovery` : metrics.breakEven <= 18 ? `Mo.${metrics.breakEven} — moderate` : `Mo.${metrics.breakEven > 24 ? '24+' : metrics.breakEven} — slow`}
-                    explanation="The month when your cumulative revenue finally covers your initial investment. Under 12 months is excellent."
+                    title="CAC Payback" 
+                    value={typeof cacPaybackMonths === 'number' && cacPaybackMonths < 999
+                      ? `${Math.round(cacPaybackMonths)} mo`
+                      : 'N/A'}
+                    variant={typeof cacPaybackMonths === 'number' && cacPaybackMonths <= 12 ? 'success' : typeof cacPaybackMonths === 'number' && cacPaybackMonths <= 18 ? 'warning' : 'danger'}
+                    chip="Per-customer recovery"
+                    explanation="Months for ONE customer's gross profit to recover their acquisition cost. Formula: CAC ÷ (avg ticket × gross margin). Different from project payback."
                     benchmarkMetric="cac_payback"
                     benchmarkContext={benchmarkContext}
-                    numericValue={metrics.breakEven}
+                    numericValue={cacPaybackMonths}
+                  />
+                  <SimpleMetricCard 
+                    title="Project Payback" 
+                    value={formatPaybackDisplay(projectPaybackMonths, netProfitForPayback)}
+                    variant={projectPaybackMonths <= 12 ? 'success' : projectPaybackMonths <= 24 ? 'warning' : 'danger'}
+                    chip="Total investment recovery"
+                    explanation="Months for cumulative net profit to recover your full startup investment. Different from CAC payback."
+                    numericValue={projectPaybackMonths}
                   />
                   <SimpleMetricCard 
                     title="Cash Runway" 
