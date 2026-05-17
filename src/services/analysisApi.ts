@@ -49,7 +49,7 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
   // came from skipping this guard in the fallback path.
   const isUnprofitable = netProfit <= 0;
   const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
-  const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.multiply(cac, 4))) : rawLtv;
+  const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.toNumber(QuantisMath.multiply(cac, 4)))) : rawLtv;
   const rawLtvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
   const ltvCac = isUnprofitable ? Math.min(rawLtvCac, 4) : Math.min(rawLtvCac, 50);
   const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, 0.65)), 1);
