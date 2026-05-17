@@ -76,6 +76,7 @@ import { computeSCORECompliance, type SCORECompliance } from "./score-mapper.ts"
 
 // ========== HYBRID VALIDATOR (Forensic Issue #3) ==========
 import { validateAnalysis, type ValidatorResult } from "../_shared/hybrid-validator.ts";
+import { QMath } from "./quantis-math-server.ts";
 
 // CORS — strict origin allowlist (no more wildcard *).
 // `corsHeadersFor(req)` echoes back the Origin only when it's in the trusted set.
@@ -1112,7 +1113,12 @@ function calculateStrictFinancials(
   // Previously was raw revenue; now correctly represents what the business KEEPS from each customer.
   const effectiveLifetime = effectiveBenchmarks.client_lifetime_months;
   const grossMarginFraction = 1 - (benchmarks.cogs_percent / 100);
-  const calculatedLtv = Math.round(avgCheck * grossMarginFraction * benchmarks.orders_per_client * effectiveLifetime);
+  const calculatedLtv = QMath.round(
+    QMath.sanitize(avgCheck)
+      .times(grossMarginFraction)
+      .times(benchmarks.orders_per_client)
+      .times(effectiveLifetime)
+  );
   
   audit.push({
     formula: 'LTV = Avg_Check × (1 - COGS%) × Orders_per_Month × Client_Lifetime',
@@ -1139,7 +1145,7 @@ function calculateStrictFinancials(
   }
   
   // 1.4 Validate LTV:CAC ratio
-  let ltvCacRatio = Math.round((ltv / cac) * 10) / 10;
+  let ltvCacRatio = QMath.ltvCacRatio(ltv, cac);
   
   audit.push({
     formula: 'LTV:CAC = LTV / CAC',
