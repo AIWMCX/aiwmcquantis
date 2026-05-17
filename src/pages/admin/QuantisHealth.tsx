@@ -30,6 +30,11 @@ interface HealthMetrics {
   volume24h: number;
   dailyTrend: { date: string; avgConfidence: number; count: number }[];
   errorBreakdown: { code: string; count: number }[];
+  // Benchmark-First plan, Step 10: coverage telemetry.
+  benchmarkLivePct24h: number;       // % of analyses where benchmark_mode === 'live'
+  benchmarkDirectMatchPct24h: number;// avg direct-match share across all records
+  invariantsCoveragePct: number;     // share of invariant tests passing (proxied)
+  invariantsTotal: number;           // total invariant rules tracked
 }
 
 interface SelfTestResult {
