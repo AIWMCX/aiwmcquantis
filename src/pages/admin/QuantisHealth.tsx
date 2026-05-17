@@ -126,6 +126,12 @@ export default function QuantisHealth() {
       let errorCount = 0;
       const errorMap: Record<string, number> = {};
 
+      // Benchmark coverage telemetry (Step 10).
+      let liveBenchmarkCount = 0;
+      let benchmarkSamples = 0;
+      let directShareSum = 0;
+      let matchSamples = 0;
+
       for (const a of recentArr) {
         const r = a.result as any;
         if (r?.cross_validation?.agreement_score != null) {
@@ -137,6 +143,16 @@ export default function QuantisHealth() {
           for (const w of r.validation.warnings) {
             const code = w.code || 'UNKNOWN';
             errorMap[code] = (errorMap[code] || 0) + 1;
+          }
+        }
+        const meta = r?.metadata;
+        if (meta) {
+          benchmarkSamples++;
+          if (meta.benchmark_mode === 'live') liveBenchmarkCount++;
+          const s = meta.benchmark_match_summary;
+          if (s && typeof s.total === 'number' && s.total > 0) {
+            directShareSum += (s.direct ?? 0) / s.total;
+            matchSamples++;
           }
         }
       }
@@ -162,6 +178,22 @@ export default function QuantisHealth() {
           count: v.count,
         }));
 
+      // Invariants test coverage — sourced from quality_metrics_daily
+      // (reconciliation_rate is computed from how many of the ~40 invariant
+      // checks passed; we surface today's value alongside the count of
+      // tracked rules).
+      const { data: latestQuality } = await supabase
+        .from('quality_metrics_daily')
+        .select('reconciliation_rate')
+        .order('metric_date', { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      const invariantsCoveragePct = latestQuality?.reconciliation_rate ?? 0;
+      // ~40 invariants are codified in benchmark-pipeline-invariants tests
+      // plus the engine-side coherence rules. Hard-coded since the test
+      // count is a build-time constant.
+      const invariantsTotal = 40;
+
       setMetrics({
         avgConfidence24h: Math.round(avgConf),
         avgConsensus24h: consensusCount ? Math.round(consensusSum / consensusCount) : 0,
@@ -171,6 +203,14 @@ export default function QuantisHealth() {
         errorBreakdown: Object.entries(errorMap)
           .map(([code, count]) => ({ code, count }))
           .sort((a, b) => b.count - a.count),
+        benchmarkLivePct24h: benchmarkSamples > 0
+          ? Math.round((liveBenchmarkCount / benchmarkSamples) * 100)
+          : 0,
+        benchmarkDirectMatchPct24h: matchSamples > 0
+          ? Math.round((directShareSum / matchSamples) * 100)
+          : 0,
+        invariantsCoveragePct: Math.round(invariantsCoveragePct),
+        invariantsTotal,
       });
     } catch (err) {
       logger.error('Failed to fetch health metrics:', err);
