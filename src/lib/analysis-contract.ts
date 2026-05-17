@@ -162,9 +162,23 @@ function validateFinancial(issues: AnalysisContractIssue[], financial: Financial
     if (!approx(unit.ltv_cac_ratio, expectedLtvCac, RATIO_TOLERANCE)) {
       push(issues, 'error', 'financial_analysis.unit_economics.ltv_cac_ratio', 'LTV:CAC must equal LTV / CAC', expectedLtvCac, unit.ltv_cac_ratio);
     }
-    const expectedCacPayback = QuantisMath.toNumber(QuantisMath.cacPaybackMonths(unit.cac, price, unit.contribution_margin_ratio), 1);
-    if (price > 0 && !approx(unit.cac_payback_months, expectedCacPayback, 1.1)) {
+    const baseProfitForUnit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
+    if (baseProfitForUnit <= 0) {
+      // R-CAC-NEG-NOPAY: when the business loses money, contribution-margin CAC payback
+      // is misleading (e.g. "0.1 months") and contradicts the project payback. Force 999.
+      if (unit.cac_payback_months !== 999) {
+        push(issues, 'error', 'financial_analysis.unit_economics.cac_payback_months', 'Unprofitable base case must use 999 sentinel for CAC payback (R-CAC-NEG-NOPAY)', '999', unit.cac_payback_months);
+      }
+      // R-LTVCAC-CAP-UNPROFITABLE: cap reported LTV:CAC at 4x when business is unprofitable.
+      if (unit.ltv_cac_ratio > 4) {
+        push(issues, 'error', 'financial_analysis.unit_economics.ltv_cac_ratio', 'Unprofitable base case must cap LTV:CAC at 4x (R-LTVCAC-CAP-UNPROFITABLE)', '≤ 4', unit.ltv_cac_ratio);
+      }
+    } else if (price > 0 && !approx(unit.cac_payback_months, expectedCacPayback, 1.1)) {
       push(issues, 'error', 'financial_analysis.unit_economics.cac_payback_months', 'CAC payback must use canonical CAC ÷ (avg ticket × gross margin) formula', expectedCacPayback, unit.cac_payback_months);
+    }
+    // R-LTVCAC-HARD-CAP: nothing legitimate exceeds 50x in any honest market.
+    if (unit.ltv_cac_ratio > 50) {
+      push(issues, 'error', 'financial_analysis.unit_economics.ltv_cac_ratio', 'LTV:CAC > 50x is implausible — likely a stale prior leaking into output (R-LTVCAC-HARD-CAP)', '≤ 50', unit.ltv_cac_ratio);
     }
   }
 
