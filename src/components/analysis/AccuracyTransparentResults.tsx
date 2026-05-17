@@ -461,6 +461,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 ]}
               />
             </section>
+
+            {/* Live Benchmark Block — strict consumer of metadata.benchmarks[]
+                (Step 8 of Benchmark-First plan). No recomputation here. */}
+            <BenchmarkRecordsBlock
+              className="mt-5"
+              records={(meta.benchmarks as BenchmarkRecord[] | undefined) ?? null}
+              mode={meta.benchmark_mode}
+              summary={meta.benchmark_match_summary}
+            />
             </div>
             );
           })()}
