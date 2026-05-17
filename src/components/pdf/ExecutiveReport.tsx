@@ -33,6 +33,7 @@ export const ExecutiveReport = forwardRef<HTMLDivElement, ExecutiveReportProps>(
         <ReportMarketAnalysis result={result} />
         <ReportRiskAssessment result={result} />
         <ReportActionPlan result={result} />
+        <ReportBenchmarks result={result} />
         <ReportAppendix result={result} />
       </div>
     );
