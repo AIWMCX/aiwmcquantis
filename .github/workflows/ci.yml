@@ -5,16 +5,54 @@ on:
   push:
     branches: [main]
 
+# Cancel superseded runs on the same ref to save minutes and surface latest status fast.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   quality:
+    name: Lint · Typecheck · Verify · Tests
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-      - uses: oven-sh/setup-bun@v2
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
         with:
           bun-version: latest
-      - run: bun install --frozen-lockfile
-      - run: bun run lint
-      - run: bun run typecheck:financial
-      - run: bun run verify:business-logic
-      - run: bun run test:quality
+
+      - name: Cache Bun store
+        uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-${{ runner.os }}-${{ hashFiles('bun.lockb', 'package.json') }}
+          restore-keys: bun-${{ runner.os }}-
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Lint
+        run: bun run lint
+
+      - name: Typecheck (financial surface)
+        run: bun run typecheck:financial
+
+      - name: Verify business-logic spec hash
+        run: bun run verify:business-logic
+
+      - name: Quality tests (logger / edge guards / PDF)
+        run: bun run test:quality
+
+      - name: CI summary
+        if: always()
+        run: |
+          {
+            echo "## AIWMC Quantis — CI"
+            echo ""
+            echo "- Lint: ${{ steps.lint.outcome || 'see logs' }}"
+            echo "- Typecheck: financial surface"
+            echo "- Business-logic hash: docs/ + public/docs/"
+            echo "- Tests: logger-prod-integration, edge-runtime-guards, pdf-export"
+          } >> "$GITHUB_STEP_SUMMARY"
