@@ -4341,7 +4341,27 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         return { checks, all_passed: allPassed, engine_version: quantisOutput.version };
       })(),
 
-      metadata: {
+      metadata: (() => {
+        // ── Canonical benchmark records (Step 2 of benchmark-first plan) ──
+        // Build once per response so PDF/UI never re-derive percentiles.
+        const benchmarkRecords: BenchmarkRecord[] = buildBenchmarkRecords(
+          v2BenchmarkSummary,
+          {
+            gross_margin: typeof calc.grossMargin === 'number' ? calc.grossMargin / 100 : null,
+            net_margin: typeof calc.netMargin === 'number' ? calc.netMargin / 100 : null,
+            cac: typeof calc.cac === 'number' ? calc.cac : null,
+            ltv: typeof calc.ltv === 'number' ? calc.ltv : null,
+            ltv_cac_ratio: typeof calc.ltvCacRatio === 'number' ? calc.ltvCacRatio : null,
+            cac_payback_months: typeof calc.cacPaybackMonths === 'number' ? calc.cacPaybackMonths : null,
+            arpu: typeof calc.avgCheck === 'number' ? calc.avgCheck : null,
+          },
+        );
+        const matchSummary = summarizeMatches(benchmarkRecords);
+        const benchmarkMode: 'live' | 'unavailable' =
+          v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none'
+            ? 'live'
+            : 'unavailable';
+        return {
         idea: idea_clean,
         location: location_clean,
         industry_detected: calc.industryDetected,
@@ -4349,14 +4369,19 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         location_cost_multiplier: locationMultiplier,
         generated_at: new Date().toISOString(),
         model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
-        version: "9.1-resilient-fallback",
+        version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
+        // ── NEW: canonical benchmarks block ──
+        benchmarks: benchmarkRecords,
+        benchmark_mode: benchmarkMode,
+        benchmark_match_summary: matchSummary,
+        // ── legacy provenance fields kept for backwards compatibility ──
         benchmark_source: benchmarkSource,
         benchmark_confidence: benchmarkConfidence,
         benchmark_data_source: benchmarkDataSource,
         benchmark_sample_size: benchmarkSampleSize,
         benchmark_region: benchmarkMatchedRegion,
-        benchmark_v2_active: !!(v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none'),
+        benchmark_v2_active: benchmarkMode === 'live',
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
         benchmark_v2_datapoints: 97500,
@@ -4366,16 +4391,21 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           : benchmarkConfidence,
         used_fallback: usedFallback,
         // F1 — Canonical fallback flag consumed by <FallbackModeBanner /> in the dashboard.
-        // Always present so the UI can branch without optional-chaining gymnastics.
+        // The flag now refers ONLY to the AI narrator path. Benchmark coverage is
+        // independent and reported via `benchmark_mode`.
         fallback_mode: usedFallback,
+        // Correct copy: the edge function ran (we're inside it). What failed,
+        // if anything, is the LLM narrator. Never mention "Failed to send a
+        // request to the Edge Function" here — that's the client-side error.
         fallback_reason: usedFallback
           ? (lastStatus
-              ? `LLM unavailable after ${MAX_RETRIES} attempts (HTTP ${lastStatus}): ${lastError ?? 'unknown error'}`
-              : 'AI narrator did not return a valid tool call. Deterministic engine used.')
+              ? `AI narrator unavailable after ${MAX_RETRIES} attempts (HTTP ${lastStatus}); deterministic engine used with ${benchmarkMode === 'live' ? 'live benchmark percentiles' : 'no live benchmark match'}.`
+              : 'AI narrator did not return a valid tool call; deterministic engine used.')
           : null,
         ai_calls_attempted: MAX_RETRIES,
         ai_calls_succeeded: usedFallback ? 0 : 1,
-      },
+        };
+      })(),
     };
 
     // ========== HYBRID VALIDATOR (paid tiers only) ==========
