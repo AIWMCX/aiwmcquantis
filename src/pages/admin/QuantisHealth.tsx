@@ -390,6 +390,38 @@ export default function QuantisHealth() {
               <KPICard label="Volume (24h)" value={metrics?.volume24h ?? 0} suffix="" icon={<Zap className="w-4 h-4" />} good={() => true} />
             </div>
 
+            {/* Benchmark-First plan, Step 10: coverage + invariants telemetry. */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+              <KPICard
+                label="Benchmark Coverage (24h)"
+                value={metrics?.benchmarkLivePct24h ?? 0}
+                suffix="% live"
+                icon={<ShieldCheck className="w-4 h-4" />}
+                good={v => v >= 80}
+              />
+              <KPICard
+                label="Direct Match Share"
+                value={metrics?.benchmarkDirectMatchPct24h ?? 0}
+                suffix="%"
+                icon={<BarChart3 className="w-4 h-4" />}
+                good={v => v >= 50}
+              />
+              <KPICard
+                label="Invariants Passing"
+                value={metrics?.invariantsCoveragePct ?? 0}
+                suffix="%"
+                icon={<CheckCircle2 className="w-4 h-4" />}
+                good={v => v >= 95}
+              />
+              <KPICard
+                label="Invariants Tracked"
+                value={metrics?.invariantsTotal ?? 0}
+                suffix=""
+                icon={<FileText className="w-4 h-4" />}
+                good={() => true}
+              />
+            </div>
+
             <Card className="mb-6">
               <CardHeader className="pb-2">
                 <CardTitle className="text-sm font-semibold">7-Day Confidence Trend</CardTitle>
