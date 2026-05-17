@@ -114,7 +114,7 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
   return (
     <style
       // SECURITY: Safe usage - all inputs are developer-controlled static values
-      // eslint-disable-next-line react/no-danger
+      // (react/no-danger is not enabled in this config)
       dangerouslySetInnerHTML={{ __html: cssContent }}
     />
   )
