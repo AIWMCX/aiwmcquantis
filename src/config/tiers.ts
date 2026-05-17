@@ -60,8 +60,9 @@ export const TIERS = {
     id: 'plus',
     label: 'Plus',
     positioning: 'Full Analysis — should you actually start this business?',
-    priceMonthly: 14,
-    priceAnnual: 168,
+    priceMonthly: 17,
+    priceAnnual: 149,
+    priceAnnualMonthlyEquivalent: 12.42,
     limits: {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
