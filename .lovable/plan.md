@@ -1,121 +1,105 @@
-## Quantis Production Audit — Every Feature × Every Tier Verified
 
-Goal: prove that **everything advertised on Pricing for Plus ($17/mo) and Pro ($49/mo) actually works end-to-end in production**, lock it with an automated test matrix, and surface a live "Tier Health" dashboard so regressions are caught the same day they ship.
+# Month 1 Plan — Stabilize Accuracy to Investor-Ready Baseline
 
-### 0. Source of truth (already exists, do not rewrite)
-- `src/config/tiers.ts` — `TIERS.free | plus | pro` with `features{}` + `limits{}` (17 feature flags, 6 limit keys per tier).
-- `src/lib/tier-spec.ts` — `FEATURE_MANIFEST`, `enforceFeatureGate`, `UPGRADE_TRIGGERS`.
-- `supabase/functions/_shared/entitlements.ts` + `_shared/tier-spec.ts` — server twin.
-- `src/pages/Pricing.tsx` — marketing copy of what each tier promises.
+**Goal:** Lift average analysis confidence from ~55% → ~75%, remove the "fallback analysis" banner from >80% of reports, and turn the engine into a visible trust signal users can watch work in real time.
 
-**Pricing-vs-code mismatch to flag (not fix in this audit):** `tiers.ts` shows `plus.priceMonthly = 14`, `pro.priceMonthly = 41`, but messaging + Stripe legacy price + your request all say **$17 / $49**. Audit will report the delta; pricing reconciliation is a separate ticket.
-
----
-
-### 1. Build the canonical Feature×Tier matrix (artifact, ~1 page)
-
-For every advertised capability, one row in `/mnt/documents/quantis_tier_audit_matrix.md` with:
-
-| Feature | Promised on Pricing | Tier flag in `tiers.ts` | Code path that enforces it | Server gate? | Test ID | Status |
-
-Rows to cover (17 feature flags + 6 limits + 8 analysis-result fields):
-
-**Analysis depth & content**
-- depthQuick / depthFull / depthPro
-- Monte Carlo scenario count (free=0, plus=95,500, pro=95,500)
-- Projection horizon months (free=0, plus=36, pro=60)
-- 5-year financial model (pro-only)
-- Action plan generator (plus+)
-- TAM / SAM / SOM (pro-only)
-- Pre-Mortem stress test (plus+)
-- Strategic Roadmap (pro-only)
-- Pitch Deck data package (pro-only)
-
-**Analysis result values (every numeric field the dashboard renders)**
-- Monthly revenue, Net profit M12, Gross margin, LTV:CAC
-- CAC payback (months) ← the new F3/F4 canonical primitive
-- Project payback (years) ← split card just shipped
-- Cash runway
-- Confidence score, Stress map vectors
-- Benchmark citations on every metric (F2 — Batch 3 work)
-- Scenarios (pessimistic / base / optimistic), variance bands
-
-**Docs, exports, ops**
-- Document Studio (12 templates, plus+) + AI Doc Intelligence
-- Invoice & Capacity Check (plus+)
-- Custom branding (plus+) / White-label (pro-only)
-- Watermark-free PDFs (plus+)
-- Unlimited history (plus+)
-- API access (pro-only — explicitly marked "v2 Q2 2026"; flag as roadmap, not regression)
-- Team seats (free=0, plus=1, pro=3)
-- Downloads/day cap, analyses/month cap
+**Success criteria (measurable at end of Month 1):**
+- Fallback-mode rate < 20% across top 20 industries (today: ~50%)
+- Value Contract: 0 invariant violations on golden vectors (currently 11 invariants → expand to 40)
+- Accuracy harness public score ≥ 70% on `/methodology`
+- Every analysis emits a live SSE stream visible in the UI
+- Tier QA nightly run includes Value Contract checks per tier
 
 ---
 
-### 2. Automated tier-matrix test (the contract)
+## Week 1 — Kill fallback mode for top 20 industries
 
-Extend `src/__tests__/tier-matrix.test.ts` to:
+**Why first:** Both Perplexity audits showed 55% confidence "fallback" banners. This single change moves the trust needle more than anything else.
 
-1. For each `TierId × FeatureKey`, assert the **client flag** in `TIERS[tier].features[key]` matches the **server flag** in `supabase/functions/_shared/entitlements.ts` (parity test — fails CI if drift).
-2. For each feature flagged `true` on a tier, call the actual gated code path with a mocked subscription of that tier and assert it does NOT throw `FEATURE_GATED`.
-3. For each feature flagged `false`, assert it DOES throw with the correct `required_tier` and the correct upgrade copy from `UPGRADE_TRIGGERS`.
-4. Limit checks: monthly analyses, downloads/day, projection months, MC scenarios — assert the gate triggers at limit+1.
+1. **Identify top 20 industries** from `analyses` table (`select industry, count(*) group by industry order by count desc limit 20`).
+2. **Build `industry-priors.ts`** — hardcoded high-confidence priors (gross margin, CAC, LTV, churn, payback bands) for each, sourced from existing `canonical-data-sources.ts` + `benchmark-store`.
+3. **Refactor `buildFallbackResult` in `src/services/analysisApi.ts`**: if industry matches top-20, use rich prior (confidence 75–85), else current generic fallback (confidence 40–55).
+4. **Mirror server-side** in `supabase/functions/analyze-business/` and `_shared/business-logic.ts` so client/server parity holds.
+5. **Regression test** — add 20 golden vectors (one per industry) to `golden-test-vectors.ts`; assert confidence ≥ 70 and no fallback banner.
 
-Result: one `vitest` run = full tier contract verified. Wire into `.github/workflows/ci.yml` as a required check.
+## Week 2 — AI consensus as a live gate
 
----
+Today `ai-consensus` edge function exists but isn't called in the primary path.
 
-### 3. End-to-end analysis-value harness (the stabilization layer)
+1. **Wire `ai-consensus` into `analyze-business`** after narrator returns, before response is sent.
+2. **Coherence rules:** if >2 Value Contract invariants fail OR consensus disagreement >30%, retry narrator once with stricter system prompt; if still failing, downgrade confidence and label `consensus_failed: true`.
+3. **Expose result** in response payload → `_meta.consensus = { agreement_pct, retries, failed_invariants[] }`.
+4. **Admin telemetry:** log to `analysis_event_log` + new tile on `QuantisHealth` showing 7-day consensus pass rate.
 
-New edge function `supabase/functions/run-tier-qa-harness/index.ts` (admin-only via existing `beltovbogdan@gmail.com` SECURITY DEFINER pattern). On invocation:
+## Week 3 — Expand Value Contract: 11 → 40 invariants
 
-1. Run **6 canonical fixtures** (already exist in `src/lib/golden-test-vectors.ts` + `src/__tests__/golden-vectors.test.ts`): SaaS-B2B, marketplace, agency, e-com, brick-mortar, deep-tech.
-2. For each fixture × each tier (free/plus/pro), call `analyze-business` server-side with a forged subscription header.
-3. Assert every numeric field in the response:
-   - Present (not null/undefined)
-   - Within sane bounds (no `Infinity`, no `NaN`, no >1000% margins — leverages existing Anti-BS Checks)
-   - Internally consistent (CAC payback ≠ project payback collision; LTV recomputed from primitives matches `unit_economics.ltv`)
-   - Citation present on every benchmark-driven metric (Batch 3 of accuracy fix gates this)
-   - Quality gates ran (`meta.gates_run === 12`, `meta.gates_failed.length === 0` for golden vectors)
-4. Assert tier-specific deliverables actually appear:
-   - plus → action plan present, scenarios=3, projection_months=36, watermark=false
-   - pro → 5-year model present, TAM/SAM/SOM block populated, projection_months=60, pitch deck data block present, white-label flag honored
-5. Persist results in new `tier_qa_runs` table (one row per fixture×tier×run) and surface in `/admin/quantis-health`.
+Cover every metric in the report, not just unit economics. Group into 6 families:
 
----
+| Family | Invariants | Examples |
+|---|---|---|
+| Revenue coherence | 6 | MRR×12=ARR; clients×price=MRR; new+retained=active |
+| Expense coherence | 7 | sum(breakdown)=total; salaries≤revenue×4 in seed stage |
+| Scenario P&L | 6 | base.netProfit between worst & best; margins monotonic |
+| Unit economics | 8 | LTV ≥ avgPrice; payback ≤ lifetime_months; existing 3 cap rules |
+| Investment returns | 7 | NPV sign = ROI sign; payback_years ≥ 1/ROIy1 when positive |
+| Provenance | 6 | every metric has source_id + as_of_date; benchmark_count ≥ 1 |
 
-### 4. Live "Tier Health" admin dashboard
+Implement in `src/lib/analysis-contract.ts`; add 40 corresponding tests; wire into `run-tier-qa-harness` so nightly runs fail loudly on drift.
 
-Extend `src/pages/admin/QuantisHealth.tsx` with a section:
+## Week 4 — Streaming + public accuracy score
 
-- Grid: rows = features, columns = [Free, Plus, Pro], cells = green/yellow/red badge from latest harness run.
-- Red cell click → opens the failing assertion + last 3 run timestamps.
-- "Run now" button → calls `run-tier-qa-harness`.
-- Auto-runs nightly via existing pg_cron + `CRON_SECRET` pattern; alert webhook fires on any red cell.
-
----
-
-### 5. Pricing-page reconciliation report (read-only output)
-
-Generate `/mnt/documents/quantis_pricing_vs_reality.md`:
-
-- Side-by-side: every bullet on `/pricing` → corresponding `tiers.ts` flag → harness result.
-- Flags every claim with no enforcement path (e.g., "unlimited" not gated, "API access" advertised but UI ships Q2 2026, $17/$49 marketing vs $14/$41 in config).
-- This is the brutal-honesty deliverable that tells you what to fix before the next launch.
+1. **SSE streaming from `analyze-business`** — emit step events: `benchmark_fetched`, `monte_carlo_done`, `invariants_checked`, `narrator_done`, `consensus_passed`.
+2. **Frontend `AnalysisLiveStream` component** — replaces spinner; renders each step with check/warn icon as it arrives. Reuses existing `AccuracyTransparentResults` styling tokens.
+3. **Public accuracy score page** — `/methodology` shows latest harness score (pulled from `tier_qa_runs` + new `accuracy_harness_runs` summary view): "Quantis passed 78/80 golden vectors as of [date]".
+4. **"Beta — accuracy improving weekly" badge** in report header + report footer link to `/methodology`.
 
 ---
 
-### Execution order (estimated complexity — not credits)
+## Technical details
 
-1. **Matrix build** — read-only audit, generates the two `/mnt/documents` artifacts. **No code changes.**
-2. **Tier-matrix parity tests** — extends one existing test file. Catches client/server drift forever.
-3. **Schema + harness edge function** — new table `tier_qa_runs`, new function, 6 fixtures × 3 tiers = 18 assertions per run.
-4. **Admin dashboard tile** — read-only UI on existing admin page.
-5. **CI wire-up + cron schedule** — locks the contract.
+**Files to create:**
+- `src/lib/industry-priors.ts` (top-20 rich priors)
+- `src/components/analysis/AnalysisLiveStream.tsx`
+- `src/pages/Methodology.tsx` (already exists — extend with live harness score)
+- `supabase/functions/_shared/industry-priors.ts` (server mirror)
 
-Out of scope for this plan (each is its own ticket):
-- Pricing-config price correction ($14→$17, $41→$49) — needs business decision on grandfathering.
-- The remaining accuracy-fix Batches 2–5 (F2 citations, F3/F4 callsite migration, F5 gates always-on) — already planned separately.
-- Building features that don't exist yet (API access UI, white-label generator if missing).
+**Files to modify:**
+- `src/services/analysisApi.ts` — fallback branching
+- `supabase/functions/analyze-business/index.ts` — SSE response, consensus gate
+- `supabase/functions/ai-consensus/index.ts` — return structured agreement
+- `src/lib/analysis-contract.ts` — +29 invariants
+- `src/__tests__/analysis-contract.test.ts` — coverage to 40
+- `src/lib/golden-test-vectors.ts` — +20 industry vectors
+- `supabase/functions/run-tier-qa-harness/index.ts` — invoke contract per tier
+- `src/pages/admin/QuantisHealth.tsx` — consensus tile
 
-Reply **go** to start with Step 1 (matrix build — pure audit, zero risk), or name a different step to start.
+**Database (one migration):**
+- `accuracy_harness_runs` table (run_id, ran_at, vectors_total, vectors_passed, avg_confidence, fallback_rate)
+- View `v_latest_accuracy` for `/methodology` public read
+
+**No business-logic rewrites in tier pricing, RLS, Stripe, or doc engine.** Strictly accuracy + observability + streaming UX.
+
+---
+
+## Out of scope (explicitly deferred to Months 2–6)
+
+- Conversion/landing changes (Month 2–3 sprint per `quantis-day1-7-sprint.md`)
+- Wedge/vertical SEO pages (Month 4)
+- Retention cohort dashboard (Month 5)
+- SOC 2 (Month 5)
+- Pricing A/B (Month 5)
+
+---
+
+## Order of execution after approval
+
+1. Top-20 industries query + `industry-priors.ts` (client + server)
+2. Fallback branching + 20 golden vectors + regression tests
+3. AI consensus gate wiring
+4. Value Contract expansion to 40 invariants
+5. SSE streaming + `AnalysisLiveStream`
+6. `accuracy_harness_runs` migration + public `/methodology` score + Beta badge
+
+Each step ends with `vitest` green + `run-tier-qa-harness` green before moving on.
+
+Say **"go"** to start with Week 1, or **"start at step N"** to jump in.
