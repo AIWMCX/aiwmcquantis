@@ -166,8 +166,32 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     };
   }, [result.financial_analysis, scenarioMetrics, breakEvenMonths, cashRunwayMonths]);
 
+  // F1 — Surface AI fallback state loudly so investor users can't mistake degraded output for full analysis.
+  const meta: any = result.metadata || {};
+  const fallbackMode: boolean = meta.fallback_mode === true;
+  const fallbackReason: string | null = meta.fallback_reason ?? null;
+  const aiCallsAttempted: number | undefined = meta.ai_calls_attempted;
+  const aiCallsSucceeded: number | undefined = meta.ai_calls_succeeded;
+
+  // F4 — Two distinct paybacks, never conflated.
+  // CAC payback = months for one customer's gross profit to recover their CAC.
+  // Project payback = months for net profit to recover total startup investment.
+  const cacPaybackMonths: number | undefined = result.financial_analysis?.unit_economics?.cac_payback_months;
+  const projectPaybackMonths: number = result.financial_analysis?.payback_period_months ?? 99;
+  const netProfitForPayback = scenarioMetrics.profit;
+
   return (
     <div className="space-y-0">
+      {fallbackMode && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <FallbackModeBanner
+            reason={fallbackReason || 'AI narrator unavailable. Deterministic engine used.'}
+            aiCallsAttempted={aiCallsAttempted}
+            aiCallsSucceeded={aiCallsSucceeded}
+            onRetry={onReset}
+          />
+        </div>
+      )}
       {/* Persistent Header with KPIs and Tabs */}
       <PersistentResultsHeader
         result={result}
