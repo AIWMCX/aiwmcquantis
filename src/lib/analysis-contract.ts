@@ -7,7 +7,7 @@ export interface AnalysisContractIssue {
   severity: AnalysisContractSeverity;
   path: string;
   message: string;
-  expected?: string;
+  expected?: unknown;
   actual?: unknown;
 }
 
@@ -31,9 +31,11 @@ function approx(actual: number, expected: number, tolerance = MONEY_TOLERANCE): 
 
 function objectSum(value: Record<string, unknown> | undefined): number {
   if (!value) return 0;
-  return Object.values(value).reduce((sum, item) => {
-    return isFiniteNumber(item) ? QuantisMath.round(QuantisMath.add(sum, item)) : sum;
-  }, 0);
+  let sum = 0;
+  for (const item of Object.values(value)) {
+    if (isFiniteNumber(item)) sum = QuantisMath.round(QuantisMath.add(sum, item));
+  }
+  return sum;
 }
 
 function expectedPercent(numerator: number, denominator: number): number {
@@ -46,7 +48,7 @@ function push(
   severity: AnalysisContractSeverity,
   path: string,
   message: string,
-  expected?: string,
+  expected?: unknown,
   actual?: unknown,
 ): void {
   issues.push({ severity, path, message, expected, actual });
