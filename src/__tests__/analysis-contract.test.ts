@@ -79,5 +79,45 @@ describe('Analysis value contract', () => {
       'financial_analysis.returns.payback_period_months',
       'marketing_plan.cac',
     ]));
+  it('rejects "0.1 month CAC payback" when base case is unprofitable (R-CAC-NEG-NOPAY)', () => {
+    // Reviewer-reported pattern: scenario card showed 0.1 mo while benchmark table showed 999 mo.
+    const broken = makeResult();
+    broken.financial_analysis.scenarios!.base.net_profit = -900;
+    broken.financial_analysis.scenarios!.base.net_margin = -3.3;
+    broken.financial_analysis.monthly_profit = -900;
+    broken.financial_analysis.unit_economics!.cac_payback_months = 0.1;
+    broken.financial_analysis.returns!.payback_period_months = 999;
+
+    const report = validateAnalysisContract(broken);
+    expect(report.passed).toBe(false);
+    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.cac_payback_months');
+  });
+
+  it('rejects implausible LTV:CAC > 50x even when business is profitable (R-LTVCAC-HARD-CAP)', () => {
+    const broken = makeResult();
+    broken.financial_analysis.unit_economics!.ltv = 29250;
+    broken.financial_analysis.unit_economics!.cac = 120;
+    broken.financial_analysis.unit_economics!.ltv_cac_ratio = 243.8;
+    broken.marketing_plan.ltv = 29250;
+
+    const report = validateAnalysisContract(broken);
+    expect(report.passed).toBe(false);
+    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.ltv_cac_ratio');
+  });
+
+  it('rejects LTV:CAC > 4x when base case is unprofitable (R-LTVCAC-CAP-UNPROFITABLE)', () => {
+    const broken = makeResult();
+    broken.financial_analysis.scenarios!.base.net_profit = -900;
+    broken.financial_analysis.scenarios!.base.net_margin = -3.3;
+    broken.financial_analysis.monthly_profit = -900;
+    broken.financial_analysis.returns!.payback_period_months = 999;
+    broken.financial_analysis.unit_economics!.cac_payback_months = 999;
+    broken.financial_analysis.unit_economics!.ltv = 5000;
+    broken.financial_analysis.unit_economics!.ltv_cac_ratio = 41.6;
+    broken.marketing_plan.ltv = 5000;
+
+    const report = validateAnalysisContract(broken);
+    expect(report.passed).toBe(false);
+    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.ltv_cac_ratio');
   });
 });
