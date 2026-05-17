@@ -42,8 +42,18 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
   const avgPrice = QuantisMath.round(f.average_price ?? 75);
   const churn = QuantisMath.toNumber(QuantisMath.divide(f.churn_rate ?? 5, 100), 4);
   const lifetimeMonths = churn > 0 ? QuantisMath.toNumber(QuantisMath.divide(1, churn), 1) : 24;
-  const ltv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
-  const ltvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
+  // Coherence rule (see /mnt/documents/quantis_engine_invariants.md):
+  // If the business is unprofitable at the base case, CAC payback MUST be the 999 sentinel
+  // and LTV:CAC must be capped, because contribution-only math is misleading when fixed
+  // costs eat the gross profit. The reviewer-flagged "0.1 mo vs 999 mo" contradiction
+  // came from skipping this guard in the fallback path.
+  const isUnprofitable = netProfit <= 0;
+  const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
+  const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.toNumber(QuantisMath.multiply(cac, 4)))) : rawLtv;
+  const rawLtvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
+  const ltvCac = isUnprofitable ? Math.min(rawLtvCac, 4) : Math.min(rawLtvCac, 50);
+  const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, 0.65)), 1);
+  const cacPaybackMonths = isUnprofitable ? 999 : Math.max(0.5, Math.min(rawCacPayback, 240));
   const payback = QuantisMath.ceil(QuantisMath.paybackMonths(startup, netProfit));
   const now = new Date().toISOString();
 
@@ -72,7 +82,7 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
           net_margin: QuantisMath.toNumber(QuantisMath.multiply(netMargin, 1.25), 1),
         },
       },
-      unit_economics: { contribution_margin: QuantisMath.round(QuantisMath.multiply(avgPrice, 0.65)), contribution_margin_ratio: 0.65, cac, cac_payback_months: QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, 0.65)), 1), ltv, ltv_cac_ratio: ltvCac },
+      unit_economics: { contribution_margin: QuantisMath.round(QuantisMath.multiply(avgPrice, 0.65)), contribution_margin_ratio: 0.65, cac, cac_payback_months: cacPaybackMonths, ltv, ltv_cac_ratio: ltvCac },
       breakeven: { breakeven_units: QuantisMath.ceil(QuantisMath.divide(fixedCosts, QuantisMath.multiply(avgPrice, 0.65))), breakeven_revenue: QuantisMath.round(QuantisMath.divide(fixedCosts, 0.65)), breakeven_months: payback >= 999 ? 0 : payback },
       returns: { payback_period_months: payback, roi_year_1: QuantisMath.toNumber(QuantisMath.roi(QuantisMath.multiply(netProfit, 12), startup), 1), roi_year_3: QuantisMath.toNumber(QuantisMath.roi(QuantisMath.multiply(netProfit, 36), startup), 1), npv_3_years: QuantisMath.round(QuantisMath.npv(startup, netProfit, 36, 0.12)) },
       startup_investment: { total: startup, breakdown: { rent_deposit: QuantisMath.round(QuantisMath.multiply(startup, 0.18)), equipment: QuantisMath.round(QuantisMath.multiply(startup, 0.32)), inventory: QuantisMath.round(QuantisMath.multiply(startup, 0.15)), legal: QuantisMath.round(QuantisMath.multiply(startup, 0.05)), marketing_initial: QuantisMath.round(QuantisMath.multiply(startup, 0.12)), working_capital: QuantisMath.round(QuantisMath.multiply(startup, 0.18)) }, reasoning: 'Emergency deterministic fallback generated because the analysis service did not return a completed result.' },
@@ -98,13 +108,17 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
     },
     marketing_plan: { positioning: 'Position around one painful customer problem and measurable ROI.', pricing_strategy: `Validate pricing around $${avgPrice.toLocaleString()} average revenue per customer.`, channels: [{ channel: 'Direct outreach', description: 'Manual founder-led sales to validate demand before scaling paid media.', budget_monthly: QuantisMath.round(QuantisMath.multiply(fixedCosts, 0.15)), expected_roi: 'Fastest learning loop' }], cac, ltv, first_3_months_plan: 'Month 1 validate. Month 2 launch paid pilot. Month 3 scale only channels with acceptable payback.' },
     market_analysis: { market_size: { tam: 'Requires benchmark refresh.', sam: `Local opportunity in ${request.location.trim()}.`, som: `Initial obtainable market modeled at $${QuantisMath.round(QuantisMath.multiply(revenue, 12)).toLocaleString()} annual revenue.` }, trends: ['Demand validation matters more than forecast precision at this stage'], competition: { main_competitors: [{ name: 'Existing alternatives', strengths: 'Customer awareness', weaknesses: 'Room for better execution' }], competitive_landscape: 'Assessed with deterministic fallback logic.', market_gaps: 'Validate unmet needs through customer interviews.' }, barriers_to_entry: 'Customer acquisition cost and operational execution.', growth_opportunities: 'Expand only after unit economics are proven.' },
-    confidence_score: 55,
+    confidence_score: isUnprofitable ? 40 : 55,
     data_sources: mergeCanonicalDataSources([
       'Client-side deterministic fallback (used because the live AI narrator was unreachable)',
       'User-provided inputs',
     ]),
-    limitations: [`Fallback used because: ${reason}`, 'Run Full/Pro again for full benchmark and AI narrative depth.'],
-    metadata: { idea: request.idea.trim(), location: request.location.trim(), generated_at: now, model: 'client-deterministic-fallback', version: 'analysis-fallback-v1' },
+    limitations: [
+      `Fallback used because: ${reason}`,
+      'Run Full/Pro again for full benchmark and AI narrative depth.',
+      ...(isUnprofitable ? ['Base case is unprofitable — CAC payback set to ∞ sentinel (999) and LTV:CAC capped at 4x per coherence rule R-CAC-NEG-NOPAY.'] : []),
+    ],
+    metadata: { idea: request.idea.trim(), location: request.location.trim(), generated_at: now, model: 'client-deterministic-fallback', version: 'analysis-fallback-v2' },
   };
 }
 
