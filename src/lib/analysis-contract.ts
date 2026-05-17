@@ -162,6 +162,7 @@ function validateFinancial(issues: AnalysisContractIssue[], financial: Financial
     if (!approx(unit.ltv_cac_ratio, expectedLtvCac, RATIO_TOLERANCE)) {
       push(issues, 'error', 'financial_analysis.unit_economics.ltv_cac_ratio', 'LTV:CAC must equal LTV / CAC', expectedLtvCac, unit.ltv_cac_ratio);
     }
+    const expectedCacPayback = QuantisMath.toNumber(QuantisMath.cacPaybackMonths(unit.cac, price, unit.contribution_margin_ratio), 1);
     const baseProfitForUnit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
     if (baseProfitForUnit <= 0) {
       // R-CAC-NEG-NOPAY: when the business loses money, contribution-margin CAC payback
