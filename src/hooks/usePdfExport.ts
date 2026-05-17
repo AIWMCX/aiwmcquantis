@@ -845,11 +845,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Executive Summary'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Executive Summary'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -919,11 +919,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Financial Analysis'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Financial Analysis'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1006,11 +1006,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Scenario Analysis'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Scenario Analysis'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1129,11 +1129,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Market Analysis'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Market Analysis'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1222,11 +1222,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Risk Assessment'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Risk Assessment'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1286,11 +1286,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Action Plan'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Action Plan'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1360,11 +1360,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Benchmark Citations'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Benchmark Citations'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
@@ -1425,11 +1425,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           View,
           { style: styles.pageHeaderLeft },
           React.createElement(View, { style: styles.pageHeaderTitleWrap },
-            React.createElement(Text, { style: styles.pageHeaderTitle, maxLines: 1 }, headerIdea)
+            React.createElement(Text, ({ style: styles.pageHeaderTitle, maxLines: 1 } as any), headerIdea)
           ),
           React.createElement(Text, { style: styles.separator }, ' | '),
           React.createElement(View, { style: styles.pageHeaderSectionWrap },
-            React.createElement(Text, { style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 }, headerSection('Appendix'))
+            React.createElement(Text, ({ style: { ...styles.pageHeaderSection, color: brandedColors.primary }, maxLines: 1 } as any), headerSection('Appendix'))
           )
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
