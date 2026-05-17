@@ -131,7 +131,8 @@ export const TIERS = {
   free: {
     id: "free",
     priceMonthly: 0,
-    analysesPerMonth: 3,
+    priceAnnual: 0,
+    analysesPerMonth: 1,
     pdfExport: false,
     monteCarloP10P90: false,
     fullPnl: false,
@@ -145,8 +146,8 @@ export const TIERS = {
     monteCarloP10P90: true,
     fullPnl: true,
   },
-  consultant: {
-    id: "consultant",
+  pro: {
+    id: "pro",
     priceMonthly: 49,
     priceAnnual: 469,
     analysesPerMonth: Infinity,
@@ -154,7 +155,7 @@ export const TIERS = {
     whiteLabel: true,
     bulkAnalysis: true,
     apiAccess: true,
-    teamSeatsIncluded: 2,
+    teamSeatsIncluded: 3,
   },
 } as const;
 
