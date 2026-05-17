@@ -4533,6 +4533,24 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.info(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
     }
 
+    // ── Response validation at boundary (benchmark-first plan, Step 7) ──
+    // The UI/PDF read strictly from metadata.benchmarks[]; if it's malformed
+    // we fail loudly instead of shipping garbage to the dashboard.
+    try {
+      const { ResponseSchema } = await import('./schemas.ts');
+      ResponseSchema.parse({ success: true, data: wirePayload });
+    } catch (schemaErr) {
+      log.error('[response-schema] outgoing payload failed validation:', schemaErr);
+      return new Response(
+        JSON.stringify({
+          error: "Analysis output failed integrity check. Please retry.",
+          code: "RESPONSE_SCHEMA_INVALID",
+          details: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     return new Response(
       JSON.stringify({ success: true, data: wirePayload }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
