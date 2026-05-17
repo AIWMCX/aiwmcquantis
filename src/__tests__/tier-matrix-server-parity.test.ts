@@ -32,8 +32,9 @@ function extractRecord(
   identifier: 'FEATURES' | 'LIMITS',
 ): Record<TierId, Record<string, boolean | number>> {
   // Match: const FEATURES: Record<...> = { ... };
+  // Block ends at first line containing only "};"
   const re = new RegExp(
-    `const\\s+${identifier}\\s*:\\s*Record<[^>]+>\\s*=\\s*(\\{[\\s\\S]*?\\n\\};)`,
+    `const\\s+${identifier}\\s*:[^=]*=\\s*(\\{[\\s\\S]*?^\\};)`,
     'm',
   );
   const match = source.match(re);
