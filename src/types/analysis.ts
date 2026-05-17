@@ -212,7 +212,7 @@ export function getMonthlyProfit(financial: FinancialAnalysis): number {
 
 export function getPaybackMonths(financial: FinancialAnalysis): number {
   const raw = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
-  return raw >= 999 ? 0 : raw;
+  return raw;
 }
 
 export function getMonthlyRevenue(financial: FinancialAnalysis): number {
