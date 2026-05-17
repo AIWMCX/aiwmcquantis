@@ -97,8 +97,9 @@ export const TIERS = {
     id: 'pro',
     label: 'Pro',
     positioning: 'Investor-Ready — how do you convince investors to fund this?',
-    priceMonthly: 41,
-    priceAnnual: 492,
+    priceMonthly: 49,
+    priceAnnual: 469,
+    priceAnnualMonthlyEquivalent: 39.08,
     limits: {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
