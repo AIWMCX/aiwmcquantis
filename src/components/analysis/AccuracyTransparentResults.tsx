@@ -455,7 +455,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
                   { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },
                   { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: metrics.ltvCac },
-                  { label: 'CAC Payback', metric: 'cac_payback', userValue: metrics.breakEven },
+                  { label: 'CAC Payback', metric: 'cac_payback', userValue: cacPaybackMonths },
                   { label: 'Survival', metric: 'survival_years', userValue: metrics.runway / 12 },
                 ]}
               />
