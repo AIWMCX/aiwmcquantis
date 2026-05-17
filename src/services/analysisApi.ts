@@ -42,8 +42,18 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
   const avgPrice = QuantisMath.round(f.average_price ?? 75);
   const churn = QuantisMath.toNumber(QuantisMath.divide(f.churn_rate ?? 5, 100), 4);
   const lifetimeMonths = churn > 0 ? QuantisMath.toNumber(QuantisMath.divide(1, churn), 1) : 24;
-  const ltv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
-  const ltvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
+  // Coherence rule (see /mnt/documents/quantis_engine_invariants.md):
+  // If the business is unprofitable at the base case, CAC payback MUST be the 999 sentinel
+  // and LTV:CAC must be capped, because contribution-only math is misleading when fixed
+  // costs eat the gross profit. The reviewer-flagged "0.1 mo vs 999 mo" contradiction
+  // came from skipping this guard in the fallback path.
+  const isUnprofitable = netProfit <= 0;
+  const rawLtv = QuantisMath.round(QuantisMath.multiply(QuantisMath.multiply(avgPrice, 0.65), lifetimeMonths));
+  const ltv = isUnprofitable ? QuantisMath.round(Math.min(rawLtv, QuantisMath.multiply(cac, 4))) : rawLtv;
+  const rawLtvCac = QuantisMath.toNumber(QuantisMath.ltvCacRatio(ltv, cac), 2);
+  const ltvCac = isUnprofitable ? Math.min(rawLtvCac, 4) : Math.min(rawLtvCac, 50);
+  const rawCacPayback = QuantisMath.toNumber(QuantisMath.divide(cac, QuantisMath.multiply(avgPrice, 0.65)), 1);
+  const cacPaybackMonths = isUnprofitable ? 999 : Math.max(0.5, Math.min(rawCacPayback, 240));
   const payback = QuantisMath.ceil(QuantisMath.paybackMonths(startup, netProfit));
   const now = new Date().toISOString();
 
