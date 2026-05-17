@@ -2897,9 +2897,24 @@ serve(async (req) => {
     // ========== END RATE LIMITING ==========
 
     // ========== REQUEST BODY PARSING & VALIDATION ==========
+    // Step 7 of benchmark-first plan: Zod at the boundary. No malformed
+    // payload from a client ever reaches the analysis engine.
     let requestBody: AnalysisRequest;
     try {
-      requestBody = await req.json() as AnalysisRequest;
+      const rawJson = await req.json();
+      const parsed = (await import('./schemas.ts')).RequestSchema.safeParse(rawJson);
+      if (!parsed.success) {
+        log.error('Request schema validation failed:', parsed.error.flatten());
+        return new Response(
+          JSON.stringify({
+            error: "Request validation failed",
+            code: "REQUEST_SCHEMA_INVALID",
+            details: parsed.error.flatten().fieldErrors,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      requestBody = parsed.data as AnalysisRequest;
     } catch (parseError) {
       log.error('JSON parse error:', parseError);
       return new Response(
