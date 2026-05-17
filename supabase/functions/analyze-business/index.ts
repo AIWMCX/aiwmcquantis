@@ -2902,7 +2902,7 @@ serve(async (req) => {
     let requestBody: AnalysisRequest;
     try {
       const rawJson = await req.json();
-      const parsed = (await import('./schemas.ts')).RequestSchema.safeParse(rawJson);
+      const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
       if (!parsed.success) {
         log.error('Request schema validation failed:', parsed.error.flatten());
         return new Response(
@@ -4537,7 +4537,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // The UI/PDF read strictly from metadata.benchmarks[]; if it's malformed
     // we fail loudly instead of shipping garbage to the dashboard.
     try {
-      const { ResponseSchema } = await import('./schemas.ts');
+      const { ResponseSchema } = await import('./boundary-schemas.ts');
       ResponseSchema.parse({ success: true, data: wirePayload });
     } catch (schemaErr) {
       log.error('[response-schema] outgoing payload failed validation:', schemaErr);
