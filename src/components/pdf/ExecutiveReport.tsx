@@ -6,6 +6,7 @@ import { ReportFinancials } from './ReportFinancials';
 import { ReportMarketAnalysis } from './ReportMarketAnalysis';
 import { ReportRiskAssessment } from './ReportRiskAssessment';
 import { ReportActionPlan } from './ReportActionPlan';
+import { ReportBenchmarks } from './ReportBenchmarks';
 import { ReportAppendix } from './ReportAppendix';
 
 interface ExecutiveReportProps {
@@ -32,6 +33,7 @@ export const ExecutiveReport = forwardRef<HTMLDivElement, ExecutiveReportProps>(
         <ReportMarketAnalysis result={result} />
         <ReportRiskAssessment result={result} />
         <ReportActionPlan result={result} />
+        <ReportBenchmarks result={result} />
         <ReportAppendix result={result} />
       </div>
     );

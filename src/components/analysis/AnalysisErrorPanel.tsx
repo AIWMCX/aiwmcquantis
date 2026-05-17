@@ -113,6 +113,30 @@ function parseError(err: Error): ParsedError {
     };
   }
 
+  if (/ANALYSIS_UNAVAILABLE/i.test(msg)) {
+    return {
+      code: 'ANALYSIS_UNAVAILABLE',
+      title: 'Analysis engine temporarily unreachable',
+      guidance:
+        'We could not reach the benchmark engine. Your inputs are preserved — click Retry. If this keeps happening, the engine is warming up and should be back in a minute.',
+      Icon: ServerCrash,
+      tone: 'warning',
+      isTransient: true,
+    };
+  }
+
+  if (/RESPONSE_SCHEMA_INVALID|REQUEST_SCHEMA_INVALID/i.test(msg)) {
+    return {
+      code: 'SCHEMA_INVALID',
+      title: 'Analysis output failed integrity check',
+      guidance:
+        'The engine produced a result that did not pass our benchmark integrity checks. Retry usually fixes this — we never show numbers we cannot verify.',
+      Icon: ShieldAlert,
+      tone: 'warning',
+      isTransient: true,
+    };
+  }
+
   if (/\b5\d{2}\b|server|INTERNAL/i.test(msg)) {
     return {
       code: explicitCode ?? 'SERVER_ERROR',

@@ -20,6 +20,7 @@ import { TrafficLightBadge } from '@/components/ui/TrafficLightBadge';
 import { SimpleMetricCard } from './SimpleMetricCard';
 import { LastAuditedBadge } from './LastAuditedBadge';
 import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
+import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsBlock';
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
@@ -460,6 +461,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 ]}
               />
             </section>
+
+            {/* Live Benchmark Block — strict consumer of metadata.benchmarks[]
+                (Step 8 of Benchmark-First plan). No recomputation here. */}
+            <BenchmarkRecordsBlock
+              className="mt-5"
+              records={(meta.benchmarks as BenchmarkRecord[] | undefined) ?? null}
+              mode={meta.benchmark_mode}
+              summary={meta.benchmark_match_summary}
+            />
             </div>
             );
           })()}
