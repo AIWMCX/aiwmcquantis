@@ -60,8 +60,9 @@ export const TIERS = {
     id: 'plus',
     label: 'Plus',
     positioning: 'Full Analysis — should you actually start this business?',
-    priceMonthly: 14,
-    priceAnnual: 168,
+    priceMonthly: 17,
+    priceAnnual: 149,
+    priceAnnualMonthlyEquivalent: 12.42,
     limits: {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
@@ -96,8 +97,9 @@ export const TIERS = {
     id: 'pro',
     label: 'Pro',
     positioning: 'Investor-Ready — how do you convince investors to fund this?',
-    priceMonthly: 41,
-    priceAnnual: 492,
+    priceMonthly: 49,
+    priceAnnual: 469,
+    priceAnnualMonthlyEquivalent: 39.08,
     limits: {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,

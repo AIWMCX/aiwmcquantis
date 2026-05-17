@@ -4938,6 +4938,63 @@ export type Database = {
         }
         Relationships: []
       }
+      tier_qa_runs: {
+        Row: {
+          created_at: string
+          duration_ms: number | null
+          error_message: string | null
+          failed_cases: number
+          failures: Json
+          finished_at: string | null
+          id: string
+          pass_rate: number
+          passed_cases: number
+          run_id: string
+          started_at: string
+          status: string
+          summary: Json
+          tier: string | null
+          total_cases: number
+          triggered_by: string
+        }
+        Insert: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          failed_cases?: number
+          failures?: Json
+          finished_at?: string | null
+          id?: string
+          pass_rate?: number
+          passed_cases?: number
+          run_id: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          tier?: string | null
+          total_cases?: number
+          triggered_by?: string
+        }
+        Update: {
+          created_at?: string
+          duration_ms?: number | null
+          error_message?: string | null
+          failed_cases?: number
+          failures?: Json
+          finished_at?: string | null
+          id?: string
+          pass_rate?: number
+          passed_cases?: number
+          run_id?: string
+          started_at?: string
+          status?: string
+          summary?: Json
+          tier?: string | null
+          total_cases?: number
+          triggered_by?: string
+        }
+        Relationships: []
+      }
       training_cases: {
         Row: {
           accuracy_score: number | null
