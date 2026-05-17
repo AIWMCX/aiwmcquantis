@@ -79,6 +79,8 @@ describe('Analysis value contract', () => {
       'financial_analysis.returns.payback_period_months',
       'marketing_plan.cac',
     ]));
+  });
+
   it('rejects "0.1 month CAC payback" when base case is unprofitable (R-CAC-NEG-NOPAY)', () => {
     // Reviewer-reported pattern: scenario card showed 0.1 mo while benchmark table showed 999 mo.
     const broken = makeResult();
