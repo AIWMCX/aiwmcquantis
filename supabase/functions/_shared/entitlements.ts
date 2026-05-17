@@ -34,7 +34,7 @@ export type FeatureKey =
   | 'fiveYearModel' | 'actionPlan';
 export type LimitKey = 'analysesPerMonth' | 'downloadsPerDay' | 'projectionMonths' | 'monteCarloScenarios' | 'teamSeats' | 'templates';
 
-const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
+export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
   free: {
     depthQuick: true, depthFull: false, depthPro: false,
     preMortem: false, invoiceCapacity: false, documentStudio: false, aiDocIntelligence: false,
