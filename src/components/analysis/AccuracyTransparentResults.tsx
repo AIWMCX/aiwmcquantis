@@ -308,7 +308,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               {/* RIGHT: Metric Grid + Audit Trail (sticky) */}
               <div className="lg:sticky lg:top-[120px] space-y-5 self-start">
                 {/* F4 — Disambiguate CAC payback vs project payback before the grid */}
-                <MetricDisambiguationBanner />
+                <MetricDisambiguationBanner
+                  cacPaybackMonths={typeof cacPaybackMonths === 'number' ? cacPaybackMonths : 0}
+                  projectPaybackYears={projectPaybackMonths >= 999 ? 999 : projectPaybackMonths / 12}
+                  initialInvestment={result.financial_analysis?.startup_investment?.total ?? 0}
+                />
                 {/* 2x3 Metric Grid — Free users see only Revenue + Break-even + Runway; advanced metrics blurred */}
                 <div className="grid grid-cols-2 gap-3">
                   <SimpleMetricCard 
