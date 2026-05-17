@@ -4344,16 +4344,27 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       metadata: (() => {
         // ── Canonical benchmark records (Step 2 of benchmark-first plan) ──
         // Build once per response so PDF/UI never re-derive percentiles.
+        const gmFrac = typeof calc.grossMarginPercent === 'number' ? calc.grossMarginPercent / 100 : null;
+        const nmFrac = typeof calc.netMarginPercent === 'number' ? calc.netMarginPercent / 100 : null;
+        const contribPerOrder = (typeof calc.averageCheck === 'number' && gmFrac !== null)
+          ? calc.averageCheck * gmFrac : null;
+        // Coherence: unprofitable → CAC payback not meaningful (null), never 0.1 or 999.
+        const cacPaybackComputed =
+          (nmFrac !== null && nmFrac < 0) || (contribPerOrder !== null && contribPerOrder <= 0)
+            ? null
+            : (typeof calc.cac === 'number' && contribPerOrder && contribPerOrder > 0
+                ? Math.round((calc.cac / contribPerOrder) * 10) / 10
+                : null);
         const benchmarkRecords: BenchmarkRecord[] = buildBenchmarkRecords(
           v2BenchmarkSummary,
           {
-            gross_margin: typeof calc.grossMargin === 'number' ? calc.grossMargin / 100 : null,
-            net_margin: typeof calc.netMargin === 'number' ? calc.netMargin / 100 : null,
+            gross_margin: gmFrac,
+            net_margin: nmFrac,
             cac: typeof calc.cac === 'number' ? calc.cac : null,
             ltv: typeof calc.ltv === 'number' ? calc.ltv : null,
             ltv_cac_ratio: typeof calc.ltvCacRatio === 'number' ? calc.ltvCacRatio : null,
-            cac_payback_months: typeof calc.cacPaybackMonths === 'number' ? calc.cacPaybackMonths : null,
-            arpu: typeof calc.avgCheck === 'number' ? calc.avgCheck : null,
+            cac_payback_months: cacPaybackComputed,
+            arpu: typeof calc.averageCheck === 'number' ? calc.averageCheck : null,
           },
         );
         const matchSummary = summarizeMatches(benchmarkRecords);
