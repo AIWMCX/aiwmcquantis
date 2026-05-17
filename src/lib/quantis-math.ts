@@ -173,6 +173,76 @@ export class QuantisMath {
     return inv.dividedBy(profit).ceil();
   }
 
+  // ========================================================================
+  // F3 / F4 — CANONICAL UNIT-ECONOMICS PRIMITIVES
+  //
+  // ONE formula, ONE function, ONE answer. Per QUANTIS_ACCURACY_ENGINE spec.
+  // Every CAC-payback / LTV / project-payback computation in the codebase
+  // MUST route through these three methods. Do not inline the math anywhere.
+  // The server twin in `quantis-math-server.ts` mirrors these exactly.
+  // ========================================================================
+
+  /**
+   * CAC payback (months) — how long to recover the cost of acquiring ONE customer.
+   * Formula: CAC / (avgTicket × grossMarginFraction).
+   * Clamped to [1, 120] months. Returns 120 (capped) when unrecoverable.
+   * grossMarginFraction is 0–1 (e.g. 0.65), NOT a percent.
+   */
+  static cacPaybackMonths(
+    cac: DecimalInput,
+    avgTicket: DecimalInput,
+    grossMarginFraction: DecimalInput
+  ): Decimal {
+    const cacD = sanitize(cac);
+    const ticketD = sanitize(avgTicket);
+    const gmD = sanitize(grossMarginFraction);
+    const grossProfitPerCustomer = ticketD.times(gmD);
+    if (grossProfitPerCustomer.lte(0) || cacD.lte(0)) return new Decimal(120);
+    const raw = cacD.dividedBy(grossProfitPerCustomer);
+    return QuantisMath.clamp(raw, 1, 120);
+  }
+
+  /**
+   * LTV (lifetime value, $) computed ENTIRELY from primitives. User-supplied
+   * LTV is discarded — this is the single source of truth.
+   * Formula: avgTicket × grossMarginFraction × min(1 / churnMonthly, 240).
+   * Returns 0 if churn is 0 or inputs invalid.
+   */
+  static ltvFromPrimitives(
+    avgTicket: DecimalInput,
+    grossMarginFraction: DecimalInput,
+    churnMonthly: DecimalInput
+  ): Decimal {
+    const ticketD = sanitize(avgTicket);
+    const gmD = sanitize(grossMarginFraction);
+    const churnD = sanitize(churnMonthly);
+    if (churnD.lte(0) || ticketD.lte(0) || gmD.lte(0)) return new Decimal(0);
+    const lifetimeMonths = QuantisMath.clamp(
+      new Decimal(1).dividedBy(churnD),
+      1,
+      240
+    );
+    return ticketD.times(gmD).times(lifetimeMonths);
+  }
+
+  /**
+   * Project payback (YEARS) — how long to recover the TOTAL initial investment.
+   * Distinct from cacPaybackMonths. Never conflate.
+   * Formula: initialInvestment / max(annualNetProfit, 1) ÷ 12-month basis
+   *   → since annualNetProfit is already annual, this is investment / profit.
+   * Returns 999 sentinel when project is unprofitable.
+   */
+  static projectPaybackYears(
+    initialInvestment: DecimalInput,
+    annualNetProfit: DecimalInput
+  ): Decimal {
+    const invD = sanitize(initialInvestment);
+    const profitD = sanitize(annualNetProfit);
+    if (profitD.lte(0)) return new Decimal(999);
+    if (invD.lte(0)) return new Decimal(0);
+    return invD.dividedBy(profitD);
+  }
+
   /** LTV: avgCheck × grossMarginFraction × ordersPerMonth × lifetimeMonths */
   static ltv(
     avgCheck: DecimalInput,
