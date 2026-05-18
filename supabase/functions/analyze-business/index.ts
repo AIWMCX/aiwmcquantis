@@ -3599,8 +3599,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             messages: [
               {
                 role: "system",
-                content:
-                  "Return ONLY valid JSON matching the submit_analysis schema. No markdown. No prose outside JSON. Use the exact field names: financial_json, business_json, marketing_json, market_json, confidence, sources, limitations.",
+                content: QUANTIS_MASTER_SYSTEM_PROMPT,
               },
               { role: "user", content: prompt },
             ],
