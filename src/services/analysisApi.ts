@@ -5,8 +5,7 @@ import type {
   AnalysisGenerationResult,
   BusinessAnalysisResult,
 } from '@/types/analysis';
-import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
-import { startRequestContext, requestHeaders } from '@/lib/correlation';
+import { startRequestContext } from '@/lib/correlation';
 import { QuantisMath } from '@/lib/quantis-math';
 import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
 
@@ -138,19 +137,6 @@ function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): Bu
 
 async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
-}
-
-/**
- * Get anonymous tracking headers for abuse prevention
- */
-async function getAnonymousHeaders(): Promise<Record<string, string>> {
-  const deviceId = getAnonymousDeviceId();
-  const fingerprint = await getBrowserFingerprint();
-  
-  return {
-    'X-Device-Id': deviceId,
-    'X-Fingerprint': fingerprint,
-  };
 }
 
 export async function generateAnalysis(request: AnalysisRequest): Promise<AnalysisGenerationResult> {
