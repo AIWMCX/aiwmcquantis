@@ -382,6 +382,7 @@ export default function QuantisHealth() {
 
           {/* ── System Health Tab (existing) ── */}
           <TabsContent value="system">
+            <HealthAlertsBanner metrics={metrics} />
             <div className="mb-6"><TierQaTile /></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <KPICard label="Avg Confidence (24h)" value={metrics?.avgConfidence24h ?? 0} suffix="%" icon={<ShieldCheck className="w-4 h-4" />} good={v => v >= 60} />
