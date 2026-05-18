@@ -2211,7 +2211,11 @@ function transformResponse(
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
-  const sources = raw.sources ? raw.sources.split(',').map((s: string) => s.trim()) : ["Public sources", "Industry data"];
+  const sources = Array.isArray(raw.sources)
+    ? raw.sources.map((s: unknown) => String(s).trim()).filter(Boolean)
+    : (typeof raw.sources === 'string' && raw.sources.trim().length > 0)
+      ? raw.sources.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : ["Public sources", "Industry data"];
   const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Estimates based on industry benchmarks"];
 
   // CRITICAL FIX: PRIORITIZE USER-PROVIDED VALUES over AI-generated values
