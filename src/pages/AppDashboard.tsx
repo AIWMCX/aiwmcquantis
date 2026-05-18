@@ -501,7 +501,15 @@ export default function Index() {
                     <ContextualUpgradeBanner />
                     {isError && error && (
                       <div className="mb-4">
-                        <AnalysisErrorPanel error={error} onRetry={retry} />
+                        <AnalysisErrorPanel
+                          error={error}
+                          onRetry={() => {
+                            setRetryAttempt((n) => n + 1);
+                            retry();
+                          }}
+                          attempt={retryAttempt}
+                          maxAttempts={5}
+                        />
                       </div>
                     )}
                     {result ? (
