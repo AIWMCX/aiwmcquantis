@@ -3327,7 +3327,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
-    // ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+    // ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
     let v2BenchmarkSummary: BenchmarkSummaryForCase | null = null;
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
