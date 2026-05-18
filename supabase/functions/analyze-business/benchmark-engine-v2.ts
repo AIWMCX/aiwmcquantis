@@ -1,7 +1,7 @@
 /**
  * BENCHMARK ENGINE V2
  * 
- * Queries the 97K benchmark dataset with hierarchical fallback.
+ * Queries the 95,500-row benchmark dataset with hierarchical fallback.
  * Provides 5 query functions for core, unit_econ, geo, risk, and invoice benchmarks.
  * Each result includes match_quality for transparency.
  */
