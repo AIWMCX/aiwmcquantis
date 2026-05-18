@@ -16,6 +16,14 @@ export interface AnalysisErrorPanelProps {
   onRetry?: () => void;
   onDismiss?: () => void;
   className?: string;
+  /**
+   * Optional attempt counter. When provided, the panel surfaces "Attempt N/max"
+   * and applies exponential backoff between retries: min(2^(attempt-1), 30) seconds.
+   * Form-input persistence is handled upstream by WizardForm's draft system;
+   * we only reassure the user that their inputs are preserved.
+   */
+  attempt?: number;
+  maxAttempts?: number;
 }
 
 interface ParsedError {
