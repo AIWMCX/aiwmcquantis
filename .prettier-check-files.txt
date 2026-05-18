@@ -9,4 +9,4 @@ supabase/functions/analyze-business/boundary-schemas.ts
 supabase/functions/analyze-business/benchmark-records.ts
 supabase/functions/benchmarks-query/index.ts
 src/__tests__/benchmark-pipeline-invariants.test.ts
-src/__tests__/analysis-contract.test.ts
+src/__tests__/analysis-contract.test.tsx
