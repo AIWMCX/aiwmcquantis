@@ -4437,7 +4437,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_id: detectedIndustry.id,
         location_cost_multiplier: locationMultiplier,
         generated_at: new Date().toISOString(),
-        model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
+        model: usedFallback ? "deterministic-engine" : "google/gemini-3-flash-preview",
         version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
         // ── NEW: canonical benchmarks block ──
