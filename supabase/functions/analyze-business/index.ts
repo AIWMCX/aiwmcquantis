@@ -905,6 +905,8 @@ const analysisToolSchema = {
 
 function safeParseJSON(str: string, fallback: any): any {
   if (!str) return fallback;
+  if (typeof str === 'object') return str;
+  if (typeof str !== 'string') return fallback;
   try {
     return JSON.parse(str);
   } catch {
@@ -914,6 +916,44 @@ function safeParseJSON(str: string, fallback: any): any {
       return fallback;
     }
   }
+}
+
+function parseJsonFromAiText(text: unknown): Record<string, unknown> | null {
+  if (typeof text === 'object' && text !== null) return text as Record<string, unknown>;
+  if (typeof text !== 'string' || !text.trim()) return null;
+  let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    try {
+      return JSON.parse(cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/[\x00-\x1F\x7F]/g, '')) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function extractAnalysisPayload(aiResponse: Record<string, unknown>): { payload: Record<string, unknown>; source: string } | null {
+  const choices = aiResponse.choices as Array<{ message?: Record<string, unknown> }> | undefined;
+  const message = choices?.[0]?.message;
+  if (!message) return null;
+
+  const toolCalls = message.tool_calls as Array<{ function?: { arguments?: unknown } }> | undefined;
+  const toolArgs = toolCalls?.[0]?.function?.arguments;
+  const parsedToolArgs = parseJsonFromAiText(toolArgs);
+  if (parsedToolArgs) return { payload: parsedToolArgs, source: 'tool_calls[0].function.arguments' };
+
+  const legacyFunctionCall = message.function_call as { arguments?: unknown } | undefined;
+  const parsedLegacyArgs = parseJsonFromAiText(legacyFunctionCall?.arguments);
+  if (parsedLegacyArgs) return { payload: parsedLegacyArgs, source: 'function_call.arguments' };
+
+  const parsedContent = parseJsonFromAiText(message.content);
+  if (parsedContent) return { payload: parsedContent, source: 'message.content' };
+
+  return null;
 }
 
 // ========== STRICT FINANCIAL CALCULATOR ==========
