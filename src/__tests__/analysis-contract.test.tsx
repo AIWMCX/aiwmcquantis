@@ -117,7 +117,7 @@ describe('AnalysisErrorPanel — ANALYSIS_UNAVAILABLE handling', () => {
         onRetry={() => {}}
       />
     );
-    expect(screen.getByText(/integrity check/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/integrity check/i).length).toBeGreaterThan(0);
   });
 });
 
