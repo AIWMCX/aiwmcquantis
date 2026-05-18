@@ -9,7 +9,7 @@
 // Returns: { matches: BenchmarkRecord[] }
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
-import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
+import { corsHeadersFor } from '../_shared/cors.ts';
 
 type MatchType = 'direct' | 'similar' | 'none';
 
@@ -54,6 +54,8 @@ function unitFor(metric: string): 'percent' | 'months' | 'usd' | 'ratio' {
 }
 
 Deno.serve(async (req) => {
+  const corsHeaders = corsHeadersFor(req);
+
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
@@ -87,10 +89,16 @@ Deno.serve(async (req) => {
     );
   }
 
-  const supabase = createClient(
-    Deno.env.get('SUPABASE_URL')!,
-    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY')!
-  );
+  const supabaseUrl = Deno.env.get('SUPABASE_URL');
+  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+  if (!supabaseUrl || !supabaseKey) {
+    return new Response(JSON.stringify({ error: 'Benchmark service is not configured' }), {
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+  const supabase = createClient(supabaseUrl, supabaseKey);
 
   const results = await Promise.all(
     metrics.map(async (metric) => {

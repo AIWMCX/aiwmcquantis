@@ -5,8 +5,7 @@ import type {
   AnalysisGenerationResult,
   BusinessAnalysisResult,
 } from '@/types/analysis';
-import { getAnonymousDeviceId, getBrowserFingerprint } from '@/lib/anonymousTracking';
-import { startRequestContext, requestHeaders } from '@/lib/correlation';
+import { startRequestContext } from '@/lib/correlation';
 import { QuantisMath } from '@/lib/quantis-math';
 import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
 
@@ -140,24 +139,8 @@ async function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
 
-/**
- * Get anonymous tracking headers for abuse prevention
- */
-async function getAnonymousHeaders(): Promise<Record<string, string>> {
-  const deviceId = getAnonymousDeviceId();
-  const fingerprint = await getBrowserFingerprint();
-  
-  return {
-    'X-Device-Id': deviceId,
-    'X-Fingerprint': fingerprint,
-  };
-}
-
 export async function generateAnalysis(request: AnalysisRequest): Promise<AnalysisGenerationResult> {
   let lastError: Error | null = null;
-
-  // Get anonymous tracking headers
-  const anonymousHeaders = await getAnonymousHeaders();
 
   // Begin a correlation context for this analysis run. Every logger.* call
   // and every Sentry event between here and the end of the request will
@@ -181,7 +164,6 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
-        headers: requestHeaders(anonymousHeaders),
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),

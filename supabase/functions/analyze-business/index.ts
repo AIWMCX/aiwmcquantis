@@ -105,7 +105,7 @@ const log = createLogger('analyze-business', 'module');
 function validateHttpRequest(req: Request): { valid: boolean; error?: string } {
   // Check content type for POST requests
   const contentType = req.headers.get('content-type');
-  if (req.method !== 'GET' && req.method !== 'OPTIONS' && !contentType?.includes('application/json')) {
+  if (req.method !== 'GET' && req.method !== 'OPTIONS' && contentType && !contentType.includes('application/json')) {
     return { valid: false, error: 'Invalid content type. Expected application/json' };
   }
   
@@ -2671,9 +2671,16 @@ serve(async (req) => {
     let isAnonymous = true;
     
     // Create Supabase clients
-    const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
+    const supabaseUrl = Deno.env.get("SUPABASE_URL");
+    const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY");
+    const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
+      log.error("Server configuration error: missing required backend credentials");
+      return new Response(
+        JSON.stringify({ error: "Analysis service is not configured. Please retry shortly.", code: "CONFIG_ERROR" }),
+        { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
+      );
+    }
     
     // Service role client for rate limiting
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
@@ -2919,7 +2926,7 @@ serve(async (req) => {
       log.error('JSON parse error:', parseError);
       return new Response(
         JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
 
