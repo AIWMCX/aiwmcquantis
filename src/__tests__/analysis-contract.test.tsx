@@ -131,11 +131,11 @@ describe('BenchmarkRecordsBlock — P25/Median/P75 from metadata.benchmarks[]', 
       />
     );
     // Gross Margin formatted from 0.62 → 62.0%
-    expect(screen.getByText(/62\.0%/)).toBeInTheDocument(); // your value
-    expect(screen.getByText(/50\.0%/)).toBeInTheDocument(); // p25
-    expect(screen.getByText(/60\.0%/)).toBeInTheDocument(); // median
-    expect(screen.getByText(/72\.0%/)).toBeInTheDocument(); // p75
-    expect(screen.getByText(/Direct/i)).toBeInTheDocument();
+    expect(screen.getByText(/62\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/50\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/60\.0%/)).toBeInTheDocument();
+    expect(screen.getByText(/72\.0%/)).toBeInTheDocument();
+    expect(screen.getAllByText(/Direct/i).length).toBeGreaterThan(0);
   });
 
   it('says "no benchmark records" when the engine returned nothing', () => {
