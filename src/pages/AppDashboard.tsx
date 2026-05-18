@@ -84,6 +84,13 @@ export default function Index() {
     rateLimitError, clearRateLimitError,
   } = useAnalysis();
 
+  // Tracks how many times the user has clicked Retry for the current error
+  // session. Resets on a successful result or a fresh submission via the form.
+  const [retryAttempt, setRetryAttempt] = useState(0);
+  useEffect(() => {
+    if (!isError) setRetryAttempt(0);
+  }, [isError]);
+
   // Compute reliability score from form completeness
   const reliabilityData = useMemo(() => {
     let score = 0;
