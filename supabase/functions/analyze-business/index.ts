@@ -3664,10 +3664,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       const aiResponse = response.data;
       log.info("AI Response received");
 
-      const choices = aiResponse.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
-      const toolCall = choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) {
-        log.info("No tool call in AI response, using fallback");
+      const extractedPayload = extractAnalysisPayload(aiResponse);
+      if (!extractedPayload) {
+        log.info("No parseable structured AI payload in response, using fallback");
         rawResult = generateDeterministicFallbackResult(
           idea_clean,
           location_clean,
@@ -3677,19 +3676,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
         usedFallback = true;
       } else {
-        try {
-          rawResult = JSON.parse(toolCall.function.arguments);
-        } catch (e) {
-          log.info("Failed to parse AI response, using fallback:", e);
-          rawResult = generateDeterministicFallbackResult(
-            idea_clean,
-            location_clean,
-            detectedIndustry,
-            locationMultipliers,
-            mergedFinancialInputs
-          );
-          usedFallback = true;
-        }
+        log.info(`AI structured payload parsed from ${extractedPayload.source}`);
+        rawResult = extractedPayload.payload;
       }
     }
 
