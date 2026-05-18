@@ -3405,7 +3405,7 @@ ${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
 ${v2BenchmarkSummary ? `
-## V2 BENCHMARK DATA (97K-point dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
+## V2 BENCHMARK DATA (95,500-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
 ${v2BenchmarkSummary.core ? `### Core Benchmarks
 - Gross Margin: p25=${(v2BenchmarkSummary.core.gm_margin_p25*100).toFixed(1)}% | p50=${(v2BenchmarkSummary.core.gm_margin_p50*100).toFixed(1)}% | p75=${(v2BenchmarkSummary.core.gm_margin_p75*100).toFixed(1)}%
 - Op Margin p50: ${((v2BenchmarkSummary.core.op_margin_p50||0)*100).toFixed(1)}% | EBITDA p50: ${((v2BenchmarkSummary.core.ebitda_margin_p50||0)*100).toFixed(1)}%
