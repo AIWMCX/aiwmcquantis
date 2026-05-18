@@ -9,7 +9,7 @@ CREATE TABLE public.analysis_edge_cases (
   "mo_ebitda" NUMERIC, "net_margin" NUMERIC, "ltv" NUMERIC, "ltv_cac" NUMERIC,
   "cac_payback_mo" NUMERIC, "tam_b" NUMERIC, "edge_case_note" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500,
+  sample_size INT NOT NULL DEFAULT 95500,
   data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
@@ -24,7 +24,7 @@ CREATE TABLE public.analysis_unit_economics (
   "health_signal" TEXT, "ltv_tier" TEXT,
   "cohort_ltv_m3" NUMERIC, "cohort_ltv_m6" NUMERIC, "cohort_ltv_m12" NUMERIC,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -37,7 +37,7 @@ CREATE TABLE public.analysis_monte_carlo (
   "p10_mo12" NUMERIC, "p50_mo12" NUMERIC, "p90_mo12" NUMERIC,
   "rev_at_risk_p10_p50" NUMERIC, "var" NUMERIC, "quantis_signal" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -52,7 +52,7 @@ CREATE TABLE public.analysis_tam_sam_som (
   "total_users_in_tam" NUMERIC, "arpu_implied" NUMERIC,
   "penetration_needed" NUMERIC, "market_signal" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -67,7 +67,7 @@ CREATE TABLE public.analysis_break_even (
   "units_above_be" NUMERIC, "safety_margin" NUMERIC,
   "months_to_be_from_launch" NUMERIC, "be_signal" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -80,7 +80,7 @@ CREATE TABLE public.analysis_scenario (
   "bull_rev_yr5" NUMERIC, "bull_ebitda_yr5" NUMERIC, "bull_npv" NUMERIC, "bull_irr" NUMERIC,
   "npv_range" NUMERIC, "upside_downside" NUMERIC, "scenario_grade" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -93,7 +93,7 @@ CREATE TABLE public.analysis_cash_flow (
   "cumul_cf_m6" NUMERIC, "cumul_cf_m12" NUMERIC,
   "months_to_fcf" NUMERIC, "annual_fcf" NUMERIC, "fcf_yield" NUMERIC, "cash_signal" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -106,7 +106,7 @@ CREATE TABLE public.analysis_dcf (
   "current_revenue" NUMERIC, "ev_rev" NUMERIC, "ev_ebitda" NUMERIC,
   "debt" NUMERIC, "equity_value" NUMERIC, "valuation_grade" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -121,7 +121,7 @@ CREATE TABLE public.analysis_dscr_credit (
   "effective_tax_rate" NUMERIC, "dscr_after_tax" NUMERIC,
   "credit_tier" TEXT, "lender_signal" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -136,7 +136,7 @@ CREATE TABLE public.analysis_burn_runway (
   "death_date_months" NUMERIC, "survival_score" NUMERIC, "efficiency_score" NUMERIC,
   "cash_at_12mo" NUMERIC, "cash_at_24mo" NUMERIC, "runway_grade" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 
@@ -150,7 +150,7 @@ CREATE TABLE public.analysis_pre_mortem (
   "composite_risk" NUMERIC, "survival_prob" NUMERIC,
   "time_horizon" TEXT, "mitigation_priority" TEXT,
   source TEXT NOT NULL DEFAULT 'AIWMC Quantis 2026 Complete Analysis Dataset',
-  sample_size INT NOT NULL DEFAULT 97500, data_version TEXT NOT NULL DEFAULT '2026.v1',
+  sample_size INT NOT NULL DEFAULT 95500, data_version TEXT NOT NULL DEFAULT '2026.v1',
   data_date DATE NOT NULL DEFAULT '2026-01-01'
 );
 

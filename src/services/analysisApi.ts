@@ -327,7 +327,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
   }
 
   // Step 4 of the benchmark-first plan: never fabricate an analysis on the
-  // client. A client-side fallback has no access to the 97.5K-row benchmark
+  // client. A client-side fallback has no access to the 95,500-row benchmark
   // dataset and was the root cause of the "0.1 vs 999 month CAC payback"
   // contradictions the reviewer flagged. Surface a clean error instead so
   // the UI can show a retry CTA.

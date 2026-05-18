@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Embedded benchmarks are now seeded via database migration - no import needed
 
-// ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+// ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
 import { 
   getBenchmarkSummary, 
   buildQueryFromInput, 
@@ -905,6 +905,8 @@ const analysisToolSchema = {
 
 function safeParseJSON(str: string, fallback: any): any {
   if (!str) return fallback;
+  if (typeof str === 'object') return str;
+  if (typeof str !== 'string') return fallback;
   try {
     return JSON.parse(str);
   } catch {
@@ -914,6 +916,44 @@ function safeParseJSON(str: string, fallback: any): any {
       return fallback;
     }
   }
+}
+
+function parseJsonFromAiText(text: unknown): Record<string, unknown> | null {
+  if (typeof text === 'object' && text !== null) return text as Record<string, unknown>;
+  if (typeof text !== 'string' || !text.trim()) return null;
+  let cleaned = text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) cleaned = cleaned.slice(start, end + 1);
+  try {
+    return JSON.parse(cleaned) as Record<string, unknown>;
+  } catch {
+    try {
+      return JSON.parse(cleaned.replace(/,\s*}/g, '}').replace(/,\s*]/g, ']').replace(/[\x00-\x1F\x7F]/g, '')) as Record<string, unknown>;
+    } catch {
+      return null;
+    }
+  }
+}
+
+function extractAnalysisPayload(aiResponse: Record<string, unknown>): { payload: Record<string, unknown>; source: string } | null {
+  const choices = aiResponse.choices as Array<{ message?: Record<string, unknown> }> | undefined;
+  const message = choices?.[0]?.message;
+  if (!message) return null;
+
+  const toolCalls = message.tool_calls as Array<{ function?: { arguments?: unknown } }> | undefined;
+  const toolArgs = toolCalls?.[0]?.function?.arguments;
+  const parsedToolArgs = parseJsonFromAiText(toolArgs);
+  if (parsedToolArgs) return { payload: parsedToolArgs, source: 'tool_calls[0].function.arguments' };
+
+  const legacyFunctionCall = message.function_call as { arguments?: unknown } | undefined;
+  const parsedLegacyArgs = parseJsonFromAiText(legacyFunctionCall?.arguments);
+  if (parsedLegacyArgs) return { payload: parsedLegacyArgs, source: 'function_call.arguments' };
+
+  const parsedContent = parseJsonFromAiText(message.content);
+  if (parsedContent) return { payload: parsedContent, source: 'message.content' };
+
+  return null;
 }
 
 // ========== STRICT FINANCIAL CALCULATOR ==========
@@ -3287,7 +3327,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
-    // ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+    // ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
     let v2BenchmarkSummary: BenchmarkSummaryForCase | null = null;
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
@@ -3298,7 +3338,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     }
 
     // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
-    // When V2 97K-dataset returns data, overlay its percentile-based values onto
+    // When the V2 95,500-row benchmark dataset returns data, overlay its percentile-based values onto
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
     if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
@@ -3405,7 +3445,7 @@ ${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
 ${v2BenchmarkSummary ? `
-## V2 BENCHMARK DATA (97K-point dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
+## V2 BENCHMARK DATA (95,500-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
 ${v2BenchmarkSummary.core ? `### Core Benchmarks
 - Gross Margin: p25=${(v2BenchmarkSummary.core.gm_margin_p25*100).toFixed(1)}% | p50=${(v2BenchmarkSummary.core.gm_margin_p50*100).toFixed(1)}% | p75=${(v2BenchmarkSummary.core.gm_margin_p75*100).toFixed(1)}%
 - Op Margin p50: ${((v2BenchmarkSummary.core.op_margin_p50||0)*100).toFixed(1)}% | EBITDA p50: ${((v2BenchmarkSummary.core.ebitda_margin_p50||0)*100).toFixed(1)}%
@@ -3542,7 +3582,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // CRITICAL: Use short timeout (25s) with minimal retries (2) to prevent client disconnection
     // Total worst-case: 25s + 500ms + 25s = ~50s which fits within edge function limits
     const MAX_RETRIES = 2;
-    const AI_TIMEOUT_MS = 25000; // 25 seconds - fast fail for responsive UX
+    const AI_TIMEOUT_MS = 35000; // 35 seconds - enough for structured narrator JSON without client disconnects
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
     let response: { ok: true; data: Record<string, unknown> } | null = null;
@@ -3555,15 +3595,23 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
         const aiResult = await aiCall(
           {
-            model: "openai/gpt-5-mini",
-            messages: [{ role: "user", content: prompt }],
-            tools: [analysisToolSchema],
-            tool_choice: { type: "function", function: { name: "submit_analysis" } },
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Return ONLY valid JSON matching the submit_analysis schema. No markdown. No prose outside JSON. Use the exact field names: financial_json, business_json, marketing_json, market_json, confidence, sources, limitations.",
+              },
+              { role: "user", content: prompt },
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 6000,
+            temperature: 0.2,
           },
           {
             task: 'analyze-business',
             timeoutMs: AI_TIMEOUT_MS,
-            requestId: reqId,
+        requestId,
             userId: userId,
             metadata: { attempt, industry: detectedIndustry.name },
           },
@@ -3624,10 +3672,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       const aiResponse = response.data;
       log.info("AI Response received");
 
-      const choices = aiResponse.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
-      const toolCall = choices?.[0]?.message?.tool_calls?.[0];
-      if (!toolCall) {
-        log.info("No tool call in AI response, using fallback");
+      const extractedPayload = extractAnalysisPayload(aiResponse);
+      if (!extractedPayload) {
+        log.info("No parseable structured AI payload in response, using fallback");
         rawResult = generateDeterministicFallbackResult(
           idea_clean,
           location_clean,
@@ -3637,19 +3684,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         );
         usedFallback = true;
       } else {
-        try {
-          rawResult = JSON.parse(toolCall.function.arguments);
-        } catch (e) {
-          log.info("Failed to parse AI response, using fallback:", e);
-          rawResult = generateDeterministicFallbackResult(
-            idea_clean,
-            location_clean,
-            detectedIndustry,
-            locationMultipliers,
-            mergedFinancialInputs
-          );
-          usedFallback = true;
-        }
+        log.info(`AI structured payload parsed from ${extractedPayload.source}`);
+        rawResult = extractedPayload.payload;
       }
     }
 
@@ -4401,7 +4437,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_id: detectedIndustry.id,
         location_cost_multiplier: locationMultiplier,
         generated_at: new Date().toISOString(),
-        model: usedFallback ? "deterministic-engine" : "openai/gpt-5-mini",
+        model: usedFallback ? "deterministic-engine" : "google/gemini-3-flash-preview",
         version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
         // ── NEW: canonical benchmarks block ──
@@ -4417,7 +4453,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmark_v2_active: benchmarkMode === 'live',
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
-        benchmark_v2_datapoints: 97500,
+        benchmark_v2_datapoints: 95500,
         benchmark_v2_calibration: v2BenchmarkSummary?.calibration || null,
         benchmark_confidence_adjusted: typeof benchmarkConfidence === 'number' && v2BenchmarkSummary?.calibration
           ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))
@@ -4526,12 +4562,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           plus_trial_days: 14,
         },
         metadata: {
+          ...(fullPayload as any).metadata,
           idea: idea_clean,
           location: location_clean,
           industry_detected: calc.industryDetected,
-          generated_at: new Date().toISOString(),
           analysis_depth: 'quick',
-          version: '9.1-resilient-fallback',
         },
       };
     })() : fullPayload;
