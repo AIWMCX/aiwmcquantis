@@ -3582,7 +3582,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // CRITICAL: Use short timeout (25s) with minimal retries (2) to prevent client disconnection
     // Total worst-case: 25s + 500ms + 25s = ~50s which fits within edge function limits
     const MAX_RETRIES = 2;
-    const AI_TIMEOUT_MS = 25000; // 25 seconds - fast fail for responsive UX
+    const AI_TIMEOUT_MS = 35000; // 35 seconds - enough for structured narrator JSON without client disconnects
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
     let response: { ok: true; data: Record<string, unknown> } | null = null;
@@ -3595,10 +3595,18 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
         const aiResult = await aiCall(
           {
-            model: "openai/gpt-5-mini",
-            messages: [{ role: "user", content: prompt }],
-            tools: [analysisToolSchema],
-            tool_choice: { type: "function", function: { name: "submit_analysis" } },
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              {
+                role: "system",
+                content:
+                  "Return ONLY valid JSON matching the submit_analysis schema. No markdown. No prose outside JSON. Use the exact field names: financial_json, business_json, marketing_json, market_json, confidence, sources, limitations.",
+              },
+              { role: "user", content: prompt },
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 6000,
+            temperature: 0.2,
           },
           {
             task: 'analyze-business',
