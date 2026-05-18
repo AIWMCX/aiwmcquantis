@@ -7,6 +7,3 @@ src/integrations/supabase/types.ts
 **/*.md
 **/*.svg
 bun.lockb
-
-# Incremental adoption: legacy files are not enforced yet.
-# Add files here (or remove from .prettier-check-files.txt) as they get reformatted.
