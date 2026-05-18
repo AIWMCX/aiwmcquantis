@@ -5,16 +5,15 @@ on:
   push:
     branches: [main]
 
-# Cancel superseded runs on the same ref to save minutes and surface latest status fast.
 concurrency:
   group: ci-${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
   quality:
-    name: Lint · Typecheck · Verify · Tests
+    name: Lint · Format · Typecheck · Verify · Tests · Audit
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
 
@@ -33,26 +32,114 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      - name: Lint
-        run: bun run lint
+      # ── Lint ────────────────────────────────────────────────────────────────
+      - name: Lint (eslint)
+        id: lint
+        run: |
+          set -o pipefail
+          bun run lint 2>&1 | tee lint-output.txt
+          bun run lint:report || true
+        continue-on-error: false
 
+      - name: Lint failure hint
+        if: failure() && steps.lint.outcome == 'failure'
+        run: |
+          echo "::error title=Lint failed::ESLint reported errors. See lint-output.txt artifact for full output, or run 'bun run lint' locally."
+
+      # ── Format (Prettier, scoped) ───────────────────────────────────────────
+      - name: Format check (Prettier)
+        id: format
+        run: bun run format:check
+        continue-on-error: false
+
+      - name: Format failure hint
+        if: failure() && steps.format.outcome == 'failure'
+        run: |
+          echo "::error title=Prettier check failed::A file listed in .prettier-check-files.txt is not formatted. Run 'bun run format:write' locally and commit."
+
+      # ── Typecheck ───────────────────────────────────────────────────────────
       - name: Typecheck (financial surface)
+        id: typecheck
         run: bun run typecheck:financial
 
+      - name: Typecheck failure hint
+        if: failure() && steps.typecheck.outcome == 'failure'
+        run: |
+          echo "::error title=TypeScript failed::Financial-surface typecheck failed. Run 'bun run typecheck:financial' locally."
+
+      # ── Business-logic hash verification ────────────────────────────────────
       - name: Verify business-logic spec hash
+        id: verify
         run: bun run verify:business-logic
 
-      - name: Quality tests (logger / edge guards / PDF)
-        run: bun run test:quality
+      - name: Verify failure hint
+        if: failure() && steps.verify.outcome == 'failure'
+        run: |
+          echo "::error title=Business-logic spec drift::The QUANTIS_BUSINESS_LOGIC.md hash in docs/ and public/docs/ does not match scripts/verify-business-logic-hash.ts. Regenerate the hash if the spec was intentionally changed."
 
+      # ── Tests + coverage ────────────────────────────────────────────────────
+      - name: Quality tests
+        id: tests
+        run: |
+          set -o pipefail
+          bun run test:quality 2>&1 | tee test-output.txt
+
+      - name: Test failure hint
+        if: failure() && steps.tests.outcome == 'failure'
+        run: |
+          echo "::error title=Tests failed::A quality test failed. See test-output.txt artifact, or run 'bun run test:quality' locally."
+
+      - name: Coverage (best-effort)
+        if: always()
+        run: bun run test:coverage || true
+
+      # ── Dependency security audit ───────────────────────────────────────────
+      - name: Dependency audit (bun)
+        id: audit
+        continue-on-error: true
+        run: |
+          set -o pipefail
+          bun pm audit --prod 2>&1 | tee audit-report.txt || true
+
+      - name: Audit summary
+        if: always()
+        run: |
+          if grep -qE "high|critical" audit-report.txt 2>/dev/null; then
+            echo "::warning title=Dependency audit::High or critical advisories detected. See audit-report.txt artifact."
+          else
+            echo "Dependency audit clean (no high/critical advisories)."
+          fi
+
+      # ── Artifacts ───────────────────────────────────────────────────────────
+      - name: Upload CI artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-artifacts-${{ github.run_id }}
+          path: |
+            lint-output.txt
+            lint-report.json
+            test-output.txt
+            audit-report.txt
+            coverage/**
+          if-no-files-found: ignore
+          retention-days: 14
+
+      # ── Job summary ─────────────────────────────────────────────────────────
       - name: CI summary
         if: always()
         run: |
           {
             echo "## AIWMC Quantis — CI"
             echo ""
-            echo "- Lint: ${{ steps.lint.outcome || 'see logs' }}"
-            echo "- Typecheck: financial surface"
-            echo "- Business-logic hash: docs/ + public/docs/"
-            echo "- Tests: logger-prod-integration, edge-runtime-guards, pdf-export"
+            echo "| Step | Result |"
+            echo "|------|--------|"
+            echo "| Lint | ${{ steps.lint.outcome }} |"
+            echo "| Format (prettier) | ${{ steps.format.outcome }} |"
+            echo "| Typecheck (financial) | ${{ steps.typecheck.outcome }} |"
+            echo "| Business-logic hash | ${{ steps.verify.outcome }} |"
+            echo "| Tests | ${{ steps.tests.outcome }} |"
+            echo "| Audit | ${{ steps.audit.outcome }} |"
+            echo ""
+            echo "Download \`ci-artifacts-${{ github.run_id }}\` for lint, test, and audit logs."
           } >> "$GITHUB_STEP_SUMMARY"

@@ -382,6 +382,7 @@ export default function QuantisHealth() {
 
           {/* ── System Health Tab (existing) ── */}
           <TabsContent value="system">
+            <HealthAlertsBanner metrics={metrics} />
             <div className="mb-6"><TierQaTile /></div>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
               <KPICard label="Avg Confidence (24h)" value={metrics?.avgConfidence24h ?? 0} suffix="%" icon={<ShieldCheck className="w-4 h-4" />} good={v => v >= 60} />
@@ -676,6 +677,84 @@ function KPICard({ label, value, suffix, icon, good }: { label: string; value: n
         </p>
       </CardContent>
     </Card>
+  );
+}
+
+/**
+ * HealthAlertsBanner — surfaces critical conditions at the top of System Health.
+ * Triggers:
+ *   - Benchmark Coverage (24h) < 80% → engine running in fallback mode too often.
+ *   - Direct Match Share < 30%      → catalog gaps (most matches are "similar").
+ *   - Invariants Passing < 95%      → math reconciliation drift.
+ *   - Invariants Tracked == 0       → telemetry pipeline is dead.
+ */
+function HealthAlertsBanner({ metrics }: { metrics: HealthMetrics | null }) {
+  if (!metrics) return null;
+  const alerts: { level: 'critical' | 'warning'; title: string; detail: string }[] = [];
+
+  if (metrics.benchmarkLivePct24h < 50) {
+    alerts.push({
+      level: 'critical',
+      title: 'Benchmark coverage critical',
+      detail: `Only ${metrics.benchmarkLivePct24h}% of analyses ran with live benchmarks in the last 24h. Most users are seeing fallback output.`,
+    });
+  } else if (metrics.benchmarkLivePct24h < 80) {
+    alerts.push({
+      level: 'warning',
+      title: 'Benchmark coverage degraded',
+      detail: `${metrics.benchmarkLivePct24h}% live coverage (target ≥ 80%). Check benchmarks-query function logs.`,
+    });
+  }
+
+  if (metrics.benchmarkDirectMatchPct24h < 30 && metrics.benchmarkLivePct24h > 0) {
+    alerts.push({
+      level: 'warning',
+      title: 'Catalog gaps detected',
+      detail: `Direct-match share is ${metrics.benchmarkDirectMatchPct24h}% (target ≥ 50%). Most analyses are matching to "similar" benchmarks — expand benchmark_master_* coverage.`,
+    });
+  }
+
+  if (metrics.invariantsCoveragePct < 95 && metrics.invariantsCoveragePct > 0) {
+    alerts.push({
+      level: 'critical',
+      title: 'Invariant violations',
+      detail: `Only ${metrics.invariantsCoveragePct}% of metric invariants passed reconciliation. Recent reports may contain contradictory values (CAC payback, LTV:CAC, margins).`,
+    });
+  }
+
+  if (metrics.invariantsTotal === 0) {
+    alerts.push({
+      level: 'warning',
+      title: 'Invariant telemetry offline',
+      detail: 'No invariant rules registered. The metrics pipeline may not be writing to quality_metrics_daily.',
+    });
+  }
+
+  if (alerts.length === 0) return null;
+
+  return (
+    <div className="mb-6 space-y-2">
+      {alerts.map((a, i) => (
+        <div
+          key={`${a.level}-${i}`}
+          role="alert"
+          className={`rounded-lg border p-3 flex items-start gap-3 ${
+            a.level === 'critical'
+              ? 'border-destructive/40 bg-destructive/5 text-destructive'
+              : 'border-amber-500/40 bg-amber-500/5 text-amber-700 dark:text-amber-300'
+          }`}
+        >
+          <AlertTriangle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold text-foreground">{a.title}</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{a.detail}</p>
+          </div>
+          <Badge variant={a.level === 'critical' ? 'destructive' : 'outline'} className="text-[10px]">
+            {a.level}
+          </Badge>
+        </div>
+      ))}
+    </div>
   );
 }
 

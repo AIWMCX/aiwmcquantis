@@ -50,8 +50,10 @@ export default function ViralContent() {
               <ArrowLeft className="w-5 h-5" />
             </Link>
             <div>
-              <h1 className="text-lg font-bold text-foreground">Viral Content Studio</h1>
-              <p className="text-xs text-muted-foreground">Download shareable cards from your analyses</p>
+              <h1 className="text-lg font-bold text-foreground">Retargeting Asset Studio</h1>
+              <p className="text-xs text-muted-foreground">
+                Generate shareable cards from your analyses — ready to feed into the Admin Autoposter for retargeting campaigns.
+              </p>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -87,13 +89,14 @@ export default function ViralContent() {
           <div className="flex items-start justify-between gap-4 flex-wrap">
             <div>
               <div className="text-[11px] uppercase tracking-wider text-primary font-semibold mb-1">
-                April 2026 Campaign · Q1 Actuals Window
+                Retargeting Library · Q2 2026 Campaign Window
               </div>
               <h2 className="text-lg font-bold text-foreground">
-                15 new posts + master AI prompt — engineered for the post-tax-season founder feed
+                15 conversion-optimized posts + master prompt — sized for LinkedIn, X, Reddit retargeting feeds
               </h2>
               <p className="text-sm text-muted-foreground mt-1">
-                LinkedIn · X / Twitter · Reddit. Brutal honesty, specific numbers, single-funnel CTA.
+                Brutal-honesty copy mapped to specific funnel stages. Export PNGs below, then queue them
+                inside the Admin Autoposter — that is where scheduling, KPI tracking, and platform tokens live.
               </p>
             </div>
             <Button size="sm" className="shrink-0">Open library →</Button>

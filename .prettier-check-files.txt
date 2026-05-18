@@ -1,0 +1,9 @@
+src/lib/benchmarksCsv.ts
+src/components/analysis/BenchmarkRecordsBlock.tsx
+src/components/analysis/AnalysisErrorPanel.tsx
+src/components/pdf/ReportBenchmarks.tsx
+supabase/functions/analyze-business/boundary-schemas.ts
+supabase/functions/analyze-business/benchmark-records.ts
+supabase/functions/benchmarks-query/index.ts
+src/__tests__/benchmark-pipeline-invariants.test.ts
+src/__tests__/analysis-contract.test.tsx

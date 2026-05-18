@@ -50,7 +50,8 @@ const LABELS: Record<string, string> = {
 
 function fmt(v: number | null, unit: Rec['unit']): string {
   if (v === null || !Number.isFinite(v)) return '—';
-  if (unit === 'percent') return Math.abs(v) <= 1.5 ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}%`;
+  if (unit === 'percent')
+    return Math.abs(v) <= 1.5 ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}%`;
   if (unit === 'months') return `${v.toFixed(1)} mo`;
   if (unit === 'usd') return `$${v.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
   return `${v.toFixed(2)}×`;
@@ -77,7 +78,10 @@ export function ReportBenchmarks({ result }: Props) {
 
       <div style={pdfStyles.sectionTitle}>Live Benchmark Block</div>
       <div style={{ ...pdfStyles.paragraph, fontSize: 10, color: '#94a3b8' }}>
-        Mode: <span style={{ color: mode === 'live' ? '#10b981' : '#f59e0b', fontWeight: 700 }}>{mode}</span>
+        Mode:{' '}
+        <span style={{ color: mode === 'live' ? '#10b981' : '#f59e0b', fontWeight: 700 }}>
+          {mode}
+        </span>
         {summary
           ? `  ·  Direct ${summary.direct} / Similar ${summary.similar} / None ${summary.none} of ${summary.total}`
           : null}
@@ -85,8 +89,8 @@ export function ReportBenchmarks({ result }: Props) {
 
       {records.length === 0 ? (
         <div style={pdfStyles.paragraph}>
-          No benchmark records were returned by the engine. This report shows engine-computed
-          values only; no percentile comparisons are claimed.
+          No benchmark records were returned by the engine. This report shows engine-computed values
+          only; no percentile comparisons are claimed.
         </div>
       ) : (
         <table style={pdfStyles.table}>
@@ -109,7 +113,9 @@ export function ReportBenchmarks({ result }: Props) {
                   {fmt(r.value, r.unit)}
                 </td>
                 <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>{fmt(r.p25, r.unit)}</td>
-                <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>{fmt(r.median, r.unit)}</td>
+                <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>
+                  {fmt(r.median, r.unit)}
+                </td>
                 <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>{fmt(r.p75, r.unit)}</td>
                 <td
                   style={{
@@ -133,8 +139,8 @@ export function ReportBenchmarks({ result }: Props) {
       )}
 
       <div style={{ ...pdfStyles.paragraph, fontSize: 9, color: '#94a3b8', marginTop: 12 }}>
-        Source: {source}. Percentiles are rendered exactly as the engine produced them — this
-        page does not recompute or interpolate values.
+        Source: {source}. Percentiles are rendered exactly as the engine produced them — this page
+        does not recompute or interpolate values.
       </div>
 
       <ReportFooter pageNumber={7} />

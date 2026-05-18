@@ -1,0 +1,9 @@
+dist
+build
+node_modules
+public
+.lovable
+src/integrations/supabase/types.ts
+**/*.md
+**/*.svg
+bun.lockb

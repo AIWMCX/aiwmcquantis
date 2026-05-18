@@ -17,9 +17,8 @@ function deriveCacPayback(opts: {
   netMarginFrac: number | null;
 }): number | null {
   const { cac, averageCheck, grossMarginFrac, netMarginFrac } = opts;
-  const contrib = averageCheck !== null && grossMarginFrac !== null
-    ? averageCheck * grossMarginFrac
-    : null;
+  const contrib =
+    averageCheck !== null && grossMarginFrac !== null ? averageCheck * grossMarginFrac : null;
   if ((netMarginFrac !== null && netMarginFrac < 0) || (contrib !== null && contrib <= 0)) {
     return null;
   }
@@ -29,20 +28,33 @@ function deriveCacPayback(opts: {
 
 describe('CAC payback coherence invariant', () => {
   it('returns null when the business is unprofitable (negative net margin)', () => {
-    expect(deriveCacPayback({
-      cac: 1200, averageCheck: 99, grossMarginFrac: 0.7, netMarginFrac: -0.25,
-    })).toBeNull();
+    expect(
+      deriveCacPayback({
+        cac: 1200,
+        averageCheck: 99,
+        grossMarginFrac: 0.7,
+        netMarginFrac: -0.25,
+      })
+    ).toBeNull();
   });
 
   it('returns null when contribution per order is non-positive', () => {
-    expect(deriveCacPayback({
-      cac: 1200, averageCheck: 50, grossMarginFrac: -0.1, netMarginFrac: 0.1,
-    })).toBeNull();
+    expect(
+      deriveCacPayback({
+        cac: 1200,
+        averageCheck: 50,
+        grossMarginFrac: -0.1,
+        netMarginFrac: 0.1,
+      })
+    ).toBeNull();
   });
 
   it('never produces a 0.1 sentinel or a 999 sentinel', () => {
     const profitable = deriveCacPayback({
-      cac: 240, averageCheck: 99, grossMarginFrac: 0.7, netMarginFrac: 0.2,
+      cac: 240,
+      averageCheck: 99,
+      grossMarginFrac: 0.7,
+      netMarginFrac: 0.2,
     });
     expect(profitable).not.toBeNull();
     expect(profitable).not.toBe(0.1);
@@ -52,9 +64,14 @@ describe('CAC payback coherence invariant', () => {
 
   it('matches the expected math when the business is profitable', () => {
     // cac 600 / (avg 100 × gm 0.6) = 600 / 60 = 10 months
-    expect(deriveCacPayback({
-      cac: 600, averageCheck: 100, grossMarginFrac: 0.6, netMarginFrac: 0.15,
-    })).toBe(10);
+    expect(
+      deriveCacPayback({
+        cac: 600,
+        averageCheck: 100,
+        grossMarginFrac: 0.6,
+        netMarginFrac: 0.15,
+      })
+    ).toBe(10);
   });
 });
 
@@ -62,7 +79,13 @@ describe('Benchmark match-type mapping', () => {
   // Mirrors matchQualityToType in supabase/functions/analyze-business/benchmark-records.ts
   function matchQualityToType(q: string | null | undefined): 'direct' | 'similar' | 'none' {
     if (!q || q === 'none') return 'none';
-    if (q === 'exact' || q === 'partial_no_size' || q === 'partial_no_stage' || q === 'country_level') return 'direct';
+    if (
+      q === 'exact' ||
+      q === 'partial_no_size' ||
+      q === 'partial_no_stage' ||
+      q === 'country_level'
+    )
+      return 'direct';
     return 'similar';
   }
 
