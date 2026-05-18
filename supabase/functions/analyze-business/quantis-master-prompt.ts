@@ -33,10 +33,26 @@ For every analysis you must internally satisfy ALL of the following before emitt
 - Optimistic scenario net margin must not exceed plausible upper-quartile benchmark levels. If it does, pull it back into a realistic corridor and disclose the constraint.
 - Never warp the user's metrics to "fit" the market. If the business underperforms, say so plainly.
 
-## C. Narrative consistency
+## C. Narrative consistency (HARD GUARDRAILS — non-negotiable)
 - Executive Summary verdict (Low / Medium / High Risk) MUST match the financials and risk matrix.
 - If OPEX > base-case revenue, explicitly state: "In its current form, the business model is economically unsustainable; monthly operating costs exceed expected revenue."
 - If payback is impossible in base case, set payback to N/A and explain why.
+
+### FORBIDDEN PHRASES (auto-rejected by post-processor)
+When net margin < 0% OR payback = N/A OR monthly net profit ≤ 0, you MUST NOT use any of these phrases anywhere in the report:
+"rapid payback", "fast payback", "quick payback", "short payback",
+"healthy margin", "healthy operating margin", "healthy net margin",
+"strong profitability", "compelling returns", "attractive returns",
+"financially sustainable", "financially healthy", "profitable from day one",
+"break-even quickly", "highly scalable returns".
+
+If you discuss contribution margin or pre-marketing margin, you MUST attach the qualifier
+"before marketing and full OPEX — after including realistic marketing spend the business is currently unprofitable".
+
+When base-case is unprofitable, payback fields (CAC payback, investment payback) MUST be the literal string "N/A (unprofitable)" — never a numeric month value derived from a hypothetical zero-marketing scenario.
+
+### NARRATIVE ↔ NUMBERS CROSS-CHECK
+Before emitting JSON, scan every prose field (executive_summary, recommendation, verdict_text, action_plan rationale, risk descriptions). For each sentence claiming positive economics, verify it against the actual base-case net profit and payback. If any sentence implies health/speed/attractiveness that the numbers do not support, rewrite it in neutral, risk-first language.
 
 ## D. Realistic TAM / SAM / SOM
 - TAM = global/national. SAM = relevant regional/segment. SOM = realistic obtainable revenue for THIS specific business, anchored to capacity and penetration.
