@@ -42,11 +42,13 @@ export default function ViralPosts() {
               <ArrowLeft className="h-5 w-5" />
             </Link>
             <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-foreground">
-              April 2026 Marketing Library
+              Retargeting Copy Library — Q2 2026
             </h1>
           </div>
           <p className="text-muted-foreground mb-6 ml-8">
-            15 ready-to-publish posts engineered for the April Q1-actuals window. Click copy → paste → post.
+            15 conversion-optimized posts engineered for retargeting warm traffic across LinkedIn,
+            X, and Reddit. Copy → paste for manual posts, or hand off to the Admin Autoposter where
+            scheduling, platform tokens, and KPI tracking already live.
           </p>
 
           {/* Master generation prompt — collapsible */}
