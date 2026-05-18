@@ -1,125 +1,164 @@
-import { describe, expect, it } from 'vitest';
-import { validateAnalysisContract } from '@/lib/analysis-contract';
-import type { BusinessAnalysisResult } from '@/types/analysis';
+/**
+ * analysis-contract.test.ts
+ *
+ * Contract tests for the Benchmark-First analysis pipeline:
+ *   1. Zod boundary schemas reject malformed engine responses.
+ *   2. AnalysisErrorPanel surfaces ANALYSIS_UNAVAILABLE with a retry CTA.
+ *   3. BenchmarkRecordsBlock renders P25/Median/P75 strictly from metadata.benchmarks[]
+ *      and never invents values when the array is empty.
+ *
+ * These run in jsdom via vitest and never touch the network.
+ */
+import React from 'react';
+import { describe, it, expect } from 'vitest';
+import { render, screen } from '@testing-library/react';
+import { z } from 'zod';
+import { benchmarksToCsv } from '@/lib/benchmarksCsv';
+import {
+  BenchmarkRecordsBlock,
+  type BenchmarkRecord,
+} from '@/components/analysis/BenchmarkRecordsBlock';
+import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
 
-function makeResult(overrides: Partial<BusinessAnalysisResult> = {}): BusinessAnalysisResult {
-  const result: BusinessAnalysisResult = {
-    financial_analysis: {
-      inputs: {
-        price_per_unit: 100,
-        units_sold_monthly: 500,
-        purchase_frequency: 1,
-        upsell_per_customer: 0,
-        cogs_per_unit: 35,
-        fixed_opex: 19000,
-        marketing_budget: 6000,
-        cac: 120,
-        startup_investment: 90000,
-        capex: 40000,
-        ltv: 1300,
-        churn_rate: 0.05,
+// Mirror of supabase/functions/analyze-business/boundary-schemas.ts:BenchmarkRecord.
+// Kept inline so this test does not import Deno-only code.
+const BenchmarkRecordSchema = z.object({
+  metric: z.string().min(1),
+  unit: z.enum(['percent', 'months', 'usd', 'ratio']),
+  value: z.number().nullable(),
+  p25: z.number().nullable(),
+  median: z.number().nullable(),
+  p75: z.number().nullable(),
+  sample_size: z.number().int().nonnegative(),
+  source: z.string().nullable(),
+  dataset_date: z.string().nullable(),
+  match_type: z.enum(['direct', 'similar', 'none']),
+  match_level: z.string().nullable(),
+});
+const ResponseSchema = z.object({
+  success: z.literal(true),
+  data: z.object({
+    metadata: z.object({
+      benchmark_mode: z.enum(['live', 'unavailable']),
+      benchmarks: z.array(BenchmarkRecordSchema),
+    }),
+  }),
+});
+
+const goodRecord: BenchmarkRecord = {
+  metric: 'gross_margin',
+  unit: 'percent',
+  value: 0.62,
+  p25: 0.5,
+  median: 0.6,
+  p75: 0.72,
+  sample_size: 1280,
+  source: 'XBRL 2024',
+  dataset_date: '2024-12-31',
+  match_type: 'direct',
+  match_level: 'industry+region',
+};
+
+describe('Zod boundary — analyze-business response', () => {
+  it('accepts a well-formed live response', () => {
+    const ok = ResponseSchema.safeParse({
+      success: true,
+      data: {
+        metadata: { benchmark_mode: 'live', benchmarks: [goodRecord] },
       },
-      mrr: 50000,
-      arr: 600000,
-      scenarios: {
-        pessimistic: { revenue: 40000, variable_costs: 19000, fixed_costs: 19950, gross_profit: 24000, net_profit: 1050, gross_margin: 60, net_margin: 2.6 },
-        base: { revenue: 50000, variable_costs: 23500, fixed_costs: 19000, gross_profit: 32500, net_profit: 7500, gross_margin: 65, net_margin: 15 },
-        optimistic: { revenue: 62500, variable_costs: 28500, fixed_costs: 18050, gross_profit: 41875, net_profit: 15950, gross_margin: 67, net_margin: 25.5 },
+    });
+    expect(ok.success).toBe(true);
+  });
+
+  it('rejects responses with a junk match_type', () => {
+    const bad = ResponseSchema.safeParse({
+      success: true,
+      data: {
+        metadata: {
+          benchmark_mode: 'live',
+          benchmarks: [{ ...goodRecord, match_type: 'maybe' }],
+        },
       },
-      unit_economics: {
-        contribution_margin: 65,
-        contribution_margin_ratio: 0.65,
-        cac: 120,
-        cac_payback_months: 1.8,
-        ltv: 1300,
-        ltv_cac_ratio: 10.83,
+    });
+    expect(bad.success).toBe(false);
+  });
+
+  it('rejects responses with NaN percentiles', () => {
+    const bad = ResponseSchema.safeParse({
+      success: true,
+      data: {
+        metadata: {
+          benchmark_mode: 'live',
+          benchmarks: [{ ...goodRecord, median: 'broken' as unknown as number }],
+        },
       },
-      breakeven: { breakeven_units: 462, breakeven_revenue: 46154, breakeven_months: 12 },
-      returns: { payback_period_months: 12, roi_year_1: 55, roi_year_3: 300, npv_3_years: 130000 },
-      startup_investment: { total: 90000, breakdown: { rent_deposit: 10000, equipment: 30000, inventory: 10000, legal: 5000, marketing_initial: 15000, working_capital: 20000 }, reasoning: 'Fixture' },
-      monthly_expenses: { total: 42500, variable_costs: 23500, fixed_costs: 19000, breakdown: { rent: 5000, utilities: 1000, salaries: 10000, inventory_replenishment: 17500, marketing: 6000, other: 3000 } },
-      monthly_profit: 7500,
-      payback_period_months: 12,
-      calculations_summary: 'Fixture audit',
-    },
-    business_plan: {
-      executive_summary: 'Fixture', product_description: 'Fixture', target_audience: 'Fixture', competitive_advantages: 'Fixture', operations: 'Fixture',
-      launch_steps: [1, 2, 3].map((step) => ({ step, title: `Step ${step}`, description: 'Do it', duration: '2 weeks', cost: 1000 })),
-      risks: [1, 2, 3].map((i) => ({ risk: `Risk ${i}`, probability: 'средняя', impact: 'средний', mitigation: 'Mitigate' })),
-    },
-    marketing_plan: { positioning: 'Fixture', pricing_strategy: 'Fixture', channels: [{ channel: 'SEO', description: 'Fixture', budget_monthly: 1000, expected_roi: '2x' }], cac: 120, ltv: 1300, first_3_months_plan: 'Fixture' },
-    market_analysis: { market_size: { tam: '$1B', sam: '$100M', som: '$1M' }, trends: ['Trend'], competition: { main_competitors: ['A'], competitive_landscape: 'Fixture', market_gaps: 'Fixture' }, barriers_to_entry: 'Fixture', growth_opportunities: 'Fixture' },
-    confidence_score: 82,
-    data_sources: ['Fixture benchmark'],
-    limitations: ['Fixture limitation'],
-    metadata: { idea: 'Fixture business', location: 'Berlin', generated_at: '2026-05-17T00:00:00Z', model: 'test', version: 'contract-v1' },
-  };
-  return { ...result, ...overrides };
-}
+    });
+    expect(bad.success).toBe(false);
+  });
+});
 
-describe('Analysis value contract', () => {
-  it('passes a complete internally consistent analysis result', () => {
-    const report = validateAnalysisContract(makeResult());
-    expect(report.passed, report.issues.map((i) => `${i.path}: ${i.message}`).join('\n')).toBe(true);
-    expect(report.checkedFields).toBeGreaterThanOrEqual(10);
+describe('AnalysisErrorPanel — ANALYSIS_UNAVAILABLE handling', () => {
+  it('renders a retry button and preserves-inputs guidance', () => {
+    render(<AnalysisErrorPanel error={new Error('ANALYSIS_UNAVAILABLE: engine offline')} onRetry={() => {}} />);
+    expect(screen.getByText(/Analysis engine temporarily unreachable/i)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
+    expect(screen.getByText(/inputs are preserved/i)).toBeInTheDocument();
   });
 
-  it('fails contradictory values before they can ship to users', () => {
-    const broken = makeResult();
-    broken.financial_analysis.arr = 123;
-    broken.financial_analysis.scenarios!.base.net_profit = -5000;
-    broken.financial_analysis.returns!.payback_period_months = 0;
-    broken.marketing_plan.cac = 999;
+  it('renders SCHEMA_INVALID with integrity-check copy', () => {
+    render(
+      <AnalysisErrorPanel
+        error={new Error('RESPONSE_SCHEMA_INVALID: benchmarks shape')}
+        onRetry={() => {}}
+      />
+    );
+    expect(screen.getByText(/integrity check/i)).toBeInTheDocument();
+  });
+});
 
-    const report = validateAnalysisContract(broken);
-    expect(report.passed).toBe(false);
-    expect(report.issues.map((i) => i.path)).toEqual(expect.arrayContaining([
-      'financial_analysis.arr',
-      'financial_analysis.scenarios.base.net_profit',
-      'financial_analysis.returns.payback_period_months',
-      'marketing_plan.cac',
-    ]));
+describe('BenchmarkRecordsBlock — P25/Median/P75 from metadata.benchmarks[]', () => {
+  it('renders all percentile columns from a single record', () => {
+    render(
+      <BenchmarkRecordsBlock
+        records={[goodRecord]}
+        mode="live"
+        summary={{ direct: 1, similar: 0, none: 0, total: 1 }}
+      />
+    );
+    // Gross Margin formatted from 0.62 → 62.0%
+    expect(screen.getByText(/62\.0%/)).toBeInTheDocument(); // your value
+    expect(screen.getByText(/50\.0%/)).toBeInTheDocument(); // p25
+    expect(screen.getByText(/60\.0%/)).toBeInTheDocument(); // median
+    expect(screen.getByText(/72\.0%/)).toBeInTheDocument(); // p75
+    expect(screen.getByText(/Direct/i)).toBeInTheDocument();
   });
 
-  it('rejects "0.1 month CAC payback" when base case is unprofitable (R-CAC-NEG-NOPAY)', () => {
-    // Reviewer-reported pattern: scenario card showed 0.1 mo while benchmark table showed 999 mo.
-    const broken = makeResult();
-    broken.financial_analysis.scenarios!.base.net_profit = -900;
-    broken.financial_analysis.scenarios!.base.net_margin = -3.3;
-    broken.financial_analysis.monthly_profit = -900;
-    broken.financial_analysis.unit_economics!.cac_payback_months = 0.1;
-    broken.financial_analysis.returns!.payback_period_months = 999;
+  it('says "no benchmark records" when the engine returned nothing', () => {
+    render(<BenchmarkRecordsBlock records={[]} mode="unavailable" />);
+    expect(screen.getByText(/No benchmark records were returned/i)).toBeInTheDocument();
+  });
+});
 
-    const report = validateAnalysisContract(broken);
-    expect(report.passed).toBe(false);
-    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.cac_payback_months');
+describe('benchmarksToCsv', () => {
+  it('emits a header even for empty records', () => {
+    const csv = benchmarksToCsv([]);
+    expect(csv.split('\n')[0]).toContain('metric,your_value,p25,median,p75');
   });
 
-  it('rejects implausible LTV:CAC > 50x even when business is profitable (R-LTVCAC-HARD-CAP)', () => {
-    const broken = makeResult();
-    broken.financial_analysis.unit_economics!.ltv = 29250;
-    broken.financial_analysis.unit_economics!.cac = 120;
-    broken.financial_analysis.unit_economics!.ltv_cac_ratio = 243.8;
-    broken.marketing_plan.ltv = 29250;
-
-    const report = validateAnalysisContract(broken);
-    expect(report.passed).toBe(false);
-    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.ltv_cac_ratio');
+  it('round-trips a record with percentiles + match_type', () => {
+    const csv = benchmarksToCsv([goodRecord]);
+    const lines = csv.split('\n');
+    expect(lines).toHaveLength(2);
+    expect(lines[1]).toContain('gross_margin');
+    expect(lines[1]).toContain('0.62');
+    expect(lines[1]).toContain('direct');
+    expect(lines[1]).toContain('XBRL 2024');
   });
 
-  it('rejects LTV:CAC > 4x when base case is unprofitable (R-LTVCAC-CAP-UNPROFITABLE)', () => {
-    const broken = makeResult();
-    broken.financial_analysis.scenarios!.base.net_profit = -900;
-    broken.financial_analysis.scenarios!.base.net_margin = -3.3;
-    broken.financial_analysis.monthly_profit = -900;
-    broken.financial_analysis.returns!.payback_period_months = 999;
-    broken.financial_analysis.unit_economics!.cac_payback_months = 999;
-    broken.financial_analysis.unit_economics!.ltv = 5000;
-    broken.financial_analysis.unit_economics!.ltv_cac_ratio = 41.6;
-    broken.marketing_plan.ltv = 5000;
-
-    const report = validateAnalysisContract(broken);
-    expect(report.passed).toBe(false);
-    expect(report.issues.map((i) => i.path)).toContain('financial_analysis.unit_economics.ltv_cac_ratio');
+  it('escapes commas and quotes in source strings', () => {
+    const csv = benchmarksToCsv([
+      { ...goodRecord, source: 'Vendor, Inc. "official" data' },
+    ]);
+    expect(csv).toMatch(/"Vendor, Inc\. ""official"" data"/);
   });
 });

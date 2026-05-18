@@ -1,0 +1,92 @@
+name: Production Deploy
+
+# Auto deploy to production after CI passes on main.
+# Uses the "production" GitHub Environment (configure required reviewers there
+# if you want a manual approval gate). No-op when hosting secrets are absent.
+on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
+jobs:
+  deploy-production:
+    name: Deploy to production
+    # Only when the triggering CI run actually succeeded.
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ steps.deploy.outputs.url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build (production)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: bun run build
+
+      - name: Detect deploy provider
+        id: provider
+        run: |
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "provider=vercel" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ]; then
+            echo "provider=netlify" >> "$GITHUB_OUTPUT"
+          else
+            echo "provider=none" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Deploy to Vercel (production)
+        id: deploy
+        if: steps.provider.outputs.provider == 'vercel'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+        run: |
+          bunx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          bunx vercel@latest build --prod --token "$VERCEL_TOKEN"
+          URL=$(bunx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Deploy to Netlify (production)
+        if: steps.provider.outputs.provider == 'netlify'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
+        run: |
+          bunx netlify-cli@latest deploy --prod --dir=dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --json | tee netlify.json
+          URL=$(jq -r '.deploy_url' netlify.json)
+          echo "Production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: No provider configured
+        if: steps.provider.outputs.provider == 'none'
+        run: |
+          {
+            echo "## Production deploy skipped"
+            echo ""
+            echo "No hosting secrets configured in the **production** environment."
+            echo "AIWMC Quantis is currently deployed via Lovable Publish; this workflow"
+            echo "becomes active when Vercel/Netlify secrets are added under"
+            echo "Settings → Environments → production."
+          } >> "$GITHUB_STEP_SUMMARY"
