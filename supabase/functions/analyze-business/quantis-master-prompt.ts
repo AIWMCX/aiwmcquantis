@@ -33,10 +33,26 @@ For every analysis you must internally satisfy ALL of the following before emitt
 - Optimistic scenario net margin must not exceed plausible upper-quartile benchmark levels. If it does, pull it back into a realistic corridor and disclose the constraint.
 - Never warp the user's metrics to "fit" the market. If the business underperforms, say so plainly.
 
-## C. Narrative consistency
+## C. Narrative consistency (HARD GUARDRAILS — non-negotiable)
 - Executive Summary verdict (Low / Medium / High Risk) MUST match the financials and risk matrix.
 - If OPEX > base-case revenue, explicitly state: "In its current form, the business model is economically unsustainable; monthly operating costs exceed expected revenue."
 - If payback is impossible in base case, set payback to N/A and explain why.
+
+### FORBIDDEN PHRASES (auto-rejected by post-processor)
+When net margin < 0% OR payback = N/A OR monthly net profit ≤ 0, you MUST NOT use any of these phrases anywhere in the report:
+"rapid payback", "fast payback", "quick payback", "short payback",
+"healthy margin", "healthy operating margin", "healthy net margin",
+"strong profitability", "compelling returns", "attractive returns",
+"financially sustainable", "financially healthy", "profitable from day one",
+"break-even quickly", "highly scalable returns".
+
+If you discuss contribution margin or pre-marketing margin, you MUST attach the qualifier
+"before marketing and full OPEX — after including realistic marketing spend the business is currently unprofitable".
+
+When base-case is unprofitable, payback fields (CAC payback, investment payback) MUST be the literal string "N/A (unprofitable)" — never a numeric month value derived from a hypothetical zero-marketing scenario.
+
+### NARRATIVE ↔ NUMBERS CROSS-CHECK
+Before emitting JSON, scan every prose field (executive_summary, recommendation, verdict_text, action_plan rationale, risk descriptions). For each sentence claiming positive economics, verify it against the actual base-case net profit and payback. If any sentence implies health/speed/attractiveness that the numbers do not support, rewrite it in neutral, risk-first language.
 
 ## D. Realistic TAM / SAM / SOM
 - TAM = global/national. SAM = relevant regional/segment. SOM = realistic obtainable revenue for THIS specific business, anchored to capacity and penetration.
@@ -80,3 +96,99 @@ Return ONLY valid JSON matching the submit_analysis schema. No markdown, no pros
 - "sources" lists the datasets/benchmarks actually used (e.g. "AIWMC Quantis Benchmark Master v2.0 · n=95,500 · 2026").
 
 All content in English. Investor-grade. No hype. Numbers always win.`;
+
+// ============================================================================
+// Narrative Honesty Sanitizer
+// Post-processes AI output: when the business is unprofitable or payback = N/A,
+// it strips forbidden marketing phrases and rewrites them with neutral wording.
+// Numbers always win over narrative tone.
+// ============================================================================
+
+interface SanitizerContext {
+  netProfit: number;
+  netMarginPct: number;
+  paybackMonths: number | null; // null means N/A / impossible
+  isProfitable: boolean;
+}
+
+const FORBIDDEN_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\brapid payback(?: period)?\b/gi, "no viable payback in base case"],
+  [/\b(fast|quick|short) payback(?: period)?\b/gi, "no viable payback in base case"],
+  [/\bbreak[- ]even quickly\b/gi, "no near-term path to break-even"],
+  [/\bprofitable from day one\b/gi, "currently unprofitable"],
+  [/\bfinancially (sustainable|healthy)\b/gi, "currently financially unsustainable"],
+  [/\bhealthy (operating |net |gross )?margin(s)?\b/gi, "contribution margin before marketing and full OPEX (after realistic marketing spend the business is currently unprofitable)"],
+  [/\bstrong profitability\b/gi, "weak profitability (base case unprofitable)"],
+  [/\b(compelling|attractive) returns\b/gi, "unattractive risk-adjusted returns at current cost structure"],
+  [/\bhighly scalable returns\b/gi, "scalability constrained by current unit economics"],
+];
+
+function sanitizeString(text: string): string {
+  let out = text;
+  for (const [pattern, replacement] of FORBIDDEN_REPLACEMENTS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
+function walkAndSanitize(node: unknown): unknown {
+  if (typeof node === "string") return sanitizeString(node);
+  if (Array.isArray(node)) return node.map(walkAndSanitize);
+  if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = walkAndSanitize(v);
+    return out;
+  }
+  return node;
+}
+
+/**
+ * Sanitize narrator output against the financial reality.
+ * Only applies forbidden-phrase rewrites when the business is unprofitable
+ * or payback is impossible. Returns { result, corrections: string[] }.
+ */
+export function sanitizeNarrativeAgainstNumbers<T extends Record<string, unknown>>(
+  payload: T,
+  ctx: SanitizerContext
+): { result: T; corrections: string[] } {
+  const corrections: string[] = [];
+  const shouldSanitize =
+    !ctx.isProfitable ||
+    ctx.netProfit <= 0 ||
+    ctx.netMarginPct < 0 ||
+    ctx.paybackMonths === null;
+
+  if (!shouldSanitize) return { result: payload, corrections };
+
+  // Snapshot a JSON of string contents to detect changes
+  const before = JSON.stringify(payload);
+  const sanitized = walkAndSanitize(payload) as T;
+  const after = JSON.stringify(sanitized);
+
+  if (before !== after) {
+    corrections.push(
+      "Narrative sanitizer rewrote forbidden optimistic phrases (e.g. 'rapid payback', 'healthy margin') to match the unprofitable base-case financials."
+    );
+  }
+
+  // Force payback fields to N/A when impossible
+  if (ctx.paybackMonths === null) {
+    const forcePaybackNA = (obj: Record<string, unknown>) => {
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (/payback/i.test(k) && (typeof v === "number" || typeof v === "string")) {
+          if (String(v).trim() !== "N/A (unprofitable)") {
+            obj[k] = "N/A (unprofitable)";
+            corrections.push(`Forced field "${k}" to N/A (unprofitable) — base case has no viable payback.`);
+          }
+        } else if (v && typeof v === "object" && !Array.isArray(v)) {
+          forcePaybackNA(v as Record<string, unknown>);
+        }
+      }
+    };
+    forcePaybackNA(sanitized as Record<string, unknown>);
+  }
+
+  return { result: sanitized, corrections };
+}
