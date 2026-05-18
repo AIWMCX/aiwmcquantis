@@ -156,9 +156,6 @@ async function getAnonymousHeaders(): Promise<Record<string, string>> {
 export async function generateAnalysis(request: AnalysisRequest): Promise<AnalysisGenerationResult> {
   let lastError: Error | null = null;
 
-  // Get anonymous tracking headers
-  const anonymousHeaders = await getAnonymousHeaders();
-
   // Begin a correlation context for this analysis run. Every logger.* call
   // and every Sentry event between here and the end of the request will
   // carry the same `request_id`, and the edge function will echo it back.
@@ -181,7 +178,6 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
-        headers: requestHeaders(anonymousHeaders),
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
