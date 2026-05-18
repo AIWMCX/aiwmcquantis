@@ -3693,7 +3693,34 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
     delete (result as Record<string, unknown>)._calc;
-    
+
+    // ========== NARRATIVE HONESTY SANITIZER ==========
+    // Strip forbidden optimistic phrases ("rapid payback", "healthy margin", etc.)
+    // when the base-case financials do not support them. Numbers always win.
+    try {
+      const netMarginPct = calc.mrr > 0 ? (calc.netProfit / calc.mrr) * 100 : -100;
+      const paybackMonths = (!calc.isProfitable || !Number.isFinite(calc.cacPaybackMonths) || calc.cacPaybackMonths <= 0)
+        ? null
+        : calc.cacPaybackMonths;
+      const { result: cleaned, corrections } = sanitizeNarrativeAgainstNumbers(
+        result as Record<string, unknown>,
+        {
+          netProfit: calc.netProfit,
+          netMarginPct,
+          paybackMonths,
+          isProfitable: calc.isProfitable,
+        }
+      );
+      Object.assign(result, cleaned);
+      if (corrections.length > 0) {
+        log.info(`Narrative sanitizer applied ${corrections.length} correction(s): ${corrections.join(" | ")}`);
+        (result as Record<string, unknown>)._sanitizer_corrections = corrections;
+      }
+    } catch (sanitizeErr) {
+      log.warn(`Narrative sanitizer failed (non-fatal): ${String(sanitizeErr)}`);
+    }
+
+
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // Run the bulletproof validation and recommendation engine
     const quantisInput: QuantisEngineInput = {
