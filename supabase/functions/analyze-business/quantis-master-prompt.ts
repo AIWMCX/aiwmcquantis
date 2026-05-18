@@ -96,3 +96,99 @@ Return ONLY valid JSON matching the submit_analysis schema. No markdown, no pros
 - "sources" lists the datasets/benchmarks actually used (e.g. "AIWMC Quantis Benchmark Master v2.0 · n=95,500 · 2026").
 
 All content in English. Investor-grade. No hype. Numbers always win.`;
+
+// ============================================================================
+// Narrative Honesty Sanitizer
+// Post-processes AI output: when the business is unprofitable or payback = N/A,
+// it strips forbidden marketing phrases and rewrites them with neutral wording.
+// Numbers always win over narrative tone.
+// ============================================================================
+
+interface SanitizerContext {
+  netProfit: number;
+  netMarginPct: number;
+  paybackMonths: number | null; // null means N/A / impossible
+  isProfitable: boolean;
+}
+
+const FORBIDDEN_REPLACEMENTS: Array<[RegExp, string]> = [
+  [/\brapid payback(?: period)?\b/gi, "no viable payback in base case"],
+  [/\b(fast|quick|short) payback(?: period)?\b/gi, "no viable payback in base case"],
+  [/\bbreak[- ]even quickly\b/gi, "no near-term path to break-even"],
+  [/\bprofitable from day one\b/gi, "currently unprofitable"],
+  [/\bfinancially (sustainable|healthy)\b/gi, "currently financially unsustainable"],
+  [/\bhealthy (operating |net |gross )?margin(s)?\b/gi, "contribution margin before marketing and full OPEX (after realistic marketing spend the business is currently unprofitable)"],
+  [/\bstrong profitability\b/gi, "weak profitability (base case unprofitable)"],
+  [/\b(compelling|attractive) returns\b/gi, "unattractive risk-adjusted returns at current cost structure"],
+  [/\bhighly scalable returns\b/gi, "scalability constrained by current unit economics"],
+];
+
+function sanitizeString(text: string): string {
+  let out = text;
+  for (const [pattern, replacement] of FORBIDDEN_REPLACEMENTS) {
+    out = out.replace(pattern, replacement);
+  }
+  return out;
+}
+
+function walkAndSanitize(node: unknown): unknown {
+  if (typeof node === "string") return sanitizeString(node);
+  if (Array.isArray(node)) return node.map(walkAndSanitize);
+  if (node && typeof node === "object") {
+    const obj = node as Record<string, unknown>;
+    const out: Record<string, unknown> = {};
+    for (const [k, v] of Object.entries(obj)) out[k] = walkAndSanitize(v);
+    return out;
+  }
+  return node;
+}
+
+/**
+ * Sanitize narrator output against the financial reality.
+ * Only applies forbidden-phrase rewrites when the business is unprofitable
+ * or payback is impossible. Returns { result, corrections: string[] }.
+ */
+export function sanitizeNarrativeAgainstNumbers<T extends Record<string, unknown>>(
+  payload: T,
+  ctx: SanitizerContext
+): { result: T; corrections: string[] } {
+  const corrections: string[] = [];
+  const shouldSanitize =
+    !ctx.isProfitable ||
+    ctx.netProfit <= 0 ||
+    ctx.netMarginPct < 0 ||
+    ctx.paybackMonths === null;
+
+  if (!shouldSanitize) return { result: payload, corrections };
+
+  // Snapshot a JSON of string contents to detect changes
+  const before = JSON.stringify(payload);
+  const sanitized = walkAndSanitize(payload) as T;
+  const after = JSON.stringify(sanitized);
+
+  if (before !== after) {
+    corrections.push(
+      "Narrative sanitizer rewrote forbidden optimistic phrases (e.g. 'rapid payback', 'healthy margin') to match the unprofitable base-case financials."
+    );
+  }
+
+  // Force payback fields to N/A when impossible
+  if (ctx.paybackMonths === null) {
+    const forcePaybackNA = (obj: Record<string, unknown>) => {
+      for (const k of Object.keys(obj)) {
+        const v = obj[k];
+        if (/payback/i.test(k) && (typeof v === "number" || typeof v === "string")) {
+          if (String(v).trim() !== "N/A (unprofitable)") {
+            obj[k] = "N/A (unprofitable)";
+            corrections.push(`Forced field "${k}" to N/A (unprofitable) — base case has no viable payback.`);
+          }
+        } else if (v && typeof v === "object" && !Array.isArray(v)) {
+          forcePaybackNA(v as Record<string, unknown>);
+        }
+      }
+    };
+    forcePaybackNA(sanitized as Record<string, unknown>);
+  }
+
+  return { result: sanitized, corrections };
+}
