@@ -4562,12 +4562,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           plus_trial_days: 14,
         },
         metadata: {
+          ...(fullPayload as any).metadata,
           idea: idea_clean,
           location: location_clean,
           industry_detected: calc.industryDetected,
-          generated_at: new Date().toISOString(),
           analysis_depth: 'quick',
-          version: '9.1-resilient-fallback',
         },
       };
     })() : fullPayload;
