@@ -76,3 +76,4 @@
 /examples/healthtech-telemedicine-mumbai
 /examples/edtech-language-app-tokyo
 /examples/ecommerce-dach-zurich
+/cases
