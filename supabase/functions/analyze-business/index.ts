@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Embedded benchmarks are now seeded via database migration - no import needed
 
-// ========== BENCHMARK ENGINE V2 (97K dataset) ==========
+// ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
 import { 
   getBenchmarkSummary, 
   buildQueryFromInput, 
@@ -3298,7 +3298,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     }
 
     // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
-    // When V2 97K-dataset returns data, overlay its percentile-based values onto
+    // When the V2 95,500-row benchmark dataset returns data, overlay its percentile-based values onto
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
     if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
@@ -3563,7 +3563,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           {
             task: 'analyze-business',
             timeoutMs: AI_TIMEOUT_MS,
-            requestId: reqId,
+        requestId,
             userId: userId,
             metadata: { attempt, industry: detectedIndustry.name },
           },
@@ -4417,7 +4417,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmark_v2_active: benchmarkMode === 'live',
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
-        benchmark_v2_datapoints: 97500,
+        benchmark_v2_datapoints: 95500,
         benchmark_v2_calibration: v2BenchmarkSummary?.calibration || null,
         benchmark_confidence_adjusted: typeof benchmarkConfidence === 'number' && v2BenchmarkSummary?.calibration
           ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))
