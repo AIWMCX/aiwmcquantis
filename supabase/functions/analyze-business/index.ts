@@ -55,7 +55,7 @@ import {
 
 // ========== FALLBACK NARRATOR ==========
 import { generateFallbackNarrator } from "./narrator-prompt.ts";
-import { QUANTIS_MASTER_SYSTEM_PROMPT } from "./quantis-master-prompt.ts";
+import { QUANTIS_MASTER_SYSTEM_PROMPT, sanitizeNarrativeAgainstNumbers } from "./quantis-master-prompt.ts";
 
 // ========== BENCHMARK CACHING LAYER ==========
 import { 
