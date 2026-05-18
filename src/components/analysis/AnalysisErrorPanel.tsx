@@ -194,18 +194,26 @@ export function AnalysisErrorPanel({
   onRetry,
   onDismiss,
   className,
+  attempt,
+  maxAttempts = 5,
 }: AnalysisErrorPanelProps) {
   const parsed = React.useMemo(() => parseError(error), [error]);
   const { Icon } = parsed;
 
-  // Live retry-after countdown (seconds). Decrements once a second; the
-  // Retry button is disabled until it hits zero.
-  const [secondsLeft, setSecondsLeft] = React.useState<number>(
-    parsed.retryAfterSeconds ?? 0
-  );
+  // Exponential backoff: 0, 2s, 4s, 8s, 16s (cap 30s). Only applied when
+  // an attempt count is provided AND the error class is transient. Server-
+  // supplied retry_after wins when present (e.g. RATE_LIMIT_EXCEEDED).
+  const backoffSeconds = React.useMemo(() => {
+    if (parsed.retryAfterSeconds && parsed.retryAfterSeconds > 0) return parsed.retryAfterSeconds;
+    if (!attempt || attempt < 1 || !parsed.isTransient) return 0;
+    return Math.min(2 ** (attempt - 1), 30);
+  }, [attempt, parsed.isTransient, parsed.retryAfterSeconds]);
+
+  // Live countdown.
+  const [secondsLeft, setSecondsLeft] = React.useState<number>(backoffSeconds);
   React.useEffect(() => {
-    setSecondsLeft(parsed.retryAfterSeconds ?? 0);
-  }, [parsed.retryAfterSeconds]);
+    setSecondsLeft(backoffSeconds);
+  }, [backoffSeconds, error]);
   React.useEffect(() => {
     if (secondsLeft <= 0) return;
     const t = window.setInterval(() => {
@@ -214,10 +222,12 @@ export function AnalysisErrorPanel({
     return () => window.clearInterval(t);
   }, [secondsLeft]);
 
-  // Consistent telemetry — fire once per distinct (code, message) pair.
+  const exhausted = typeof attempt === 'number' && attempt >= maxAttempts;
+
+  // Telemetry — fire once per distinct (code, message) pair.
   const trackedRef = React.useRef<string | null>(null);
   React.useEffect(() => {
-    const key = `${parsed.code}:${error.message?.slice(0, 120) ?? ''}`;
+    const key = `${parsed.code}:${error.message?.slice(0, 120) ?? ''}:${attempt ?? ''}`;
     if (trackedRef.current === key) return;
     trackedRef.current = key;
     try {
@@ -225,9 +235,9 @@ export function AnalysisErrorPanel({
     } catch {
       /* analytics must never break UI */
     }
-  }, [parsed.code, parsed.title, error.message]);
+  }, [parsed.code, parsed.title, error.message, attempt]);
 
-  const retryDisabled = secondsLeft > 0;
+  const retryDisabled = secondsLeft > 0 || exhausted;
 
   return (
     <div
@@ -242,20 +252,45 @@ export function AnalysisErrorPanel({
           <div className="flex items-center gap-2 flex-wrap">
             <h3 className="text-sm font-semibold text-foreground">{parsed.title}</h3>
             <span className="inline-flex items-center gap-1 text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded border border-border/50 bg-background/60 text-muted-foreground">
-              {parsed.status ? `${parsed.status} · ` : ''}{parsed.code}
+              {parsed.status ? `${parsed.status} · ` : ''}
+              {parsed.code}
             </span>
+            {typeof attempt === 'number' && attempt > 0 && (
+              <span
+                className="inline-flex items-center text-[10px] font-mono uppercase tracking-wide px-1.5 py-0.5 rounded border border-border/50 bg-background/60 text-muted-foreground"
+                title="Number of times this submission has been attempted"
+              >
+                Attempt {attempt}/{maxAttempts}
+              </span>
+            )}
           </div>
 
           <p className="mt-1.5 text-sm text-muted-foreground">
             {parsed.guidance}
-            {retryDisabled && (
+            {retryDisabled && secondsLeft > 0 && (
               <span className="ml-1 font-mono text-foreground" aria-live="polite">
                 ({secondsLeft}s)
               </span>
             )}
           </p>
 
-          {/* Raw message — collapsed by default, useful for support tickets. */}
+          {/* Persistent reassurance about input preservation — drives confidence
+              to hit Retry instead of bailing. The WizardForm draft system
+              already serializes inputs to localStorage on every change. */}
+          {parsed.isTransient && (
+            <p className="mt-1.5 text-xs text-muted-foreground/80">
+              Your idea, location, and financial inputs are saved locally and will be
+              restored automatically — retrying will not erase anything you typed.
+            </p>
+          )}
+
+          {exhausted && (
+            <p className="mt-1.5 text-xs text-destructive font-medium">
+              Max retries reached. Refresh the page or contact support — the engine
+              may be having an outage.
+            </p>
+          )}
+
           {error.message && error.message !== parsed.title && (
             <details className="mt-2 text-xs">
               <summary className="cursor-pointer text-muted-foreground hover:text-foreground select-none">
@@ -277,8 +312,12 @@ export function AnalysisErrorPanel({
                 disabled={retryDisabled}
                 className="gap-1.5"
               >
-                <RefreshCw className={`w-3.5 h-3.5 ${retryDisabled ? '' : ''}`} />
-                {retryDisabled ? `Retry in ${secondsLeft}s` : 'Retry'}
+                <RefreshCw className="w-3.5 h-3.5" />
+                {exhausted
+                  ? 'Retries exhausted'
+                  : secondsLeft > 0
+                  ? `Retry in ${secondsLeft}s`
+                  : 'Retry'}
               </Button>
             )}
             {parsed.upgradeUrl && (
