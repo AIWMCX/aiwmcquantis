@@ -11,7 +11,8 @@
  *   - components/pdf/ReportBenchmarks.tsx (print)
  */
 import React from 'react';
-import { ShieldCheck, AlertTriangle, MinusCircle } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, MinusCircle, Download } from 'lucide-react';
+import { downloadBenchmarksCsv } from '@/lib/benchmarksCsv';
 
 export type MatchType = 'direct' | 'similar' | 'none';
 
@@ -120,15 +121,35 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
         <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
           <span>
             Mode:{' '}
-            <span className={mode === 'live' ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'}>
+            <span
+              className={
+                mode === 'live'
+                  ? 'text-emerald-500 font-semibold'
+                  : 'text-amber-500 font-semibold'
+              }
+            >
               {mode ?? (hasAnyMatch ? 'live' : 'unavailable')}
             </span>
           </span>
           {summary && (
             <span>
-              · Direct {summary.direct} / Similar {summary.similar} / None {summary.none} of {summary.total}
+              · Direct {summary.direct} / Similar {summary.similar} / None {summary.none} of{' '}
+              {summary.total}
             </span>
           )}
+          <button
+            type="button"
+            onClick={() =>
+              downloadBenchmarksCsv(
+                records,
+                `quantis-benchmarks-${new Date().toISOString().slice(0, 10)}.csv`
+              )
+            }
+            className="inline-flex items-center gap-1 px-2 py-0.5 rounded border border-border/60 bg-background/60 hover:bg-background text-foreground"
+            title="Download P25 / Median / P75 + match_type as CSV"
+          >
+            <Download className="w-3 h-3" /> CSV
+          </button>
         </div>
       </div>
       <div className="overflow-x-auto">
