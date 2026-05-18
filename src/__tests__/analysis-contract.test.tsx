@@ -99,7 +99,12 @@ describe('Zod boundary — analyze-business response', () => {
 
 describe('AnalysisErrorPanel — ANALYSIS_UNAVAILABLE handling', () => {
   it('renders a retry button and preserves-inputs guidance', () => {
-    render(<AnalysisErrorPanel error={new Error('ANALYSIS_UNAVAILABLE: engine offline')} onRetry={() => {}} />);
+    render(
+      <AnalysisErrorPanel
+        error={new Error('ANALYSIS_UNAVAILABLE: engine offline')}
+        onRetry={() => {}}
+      />
+    );
     expect(screen.getByText(/Analysis engine temporarily unreachable/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument();
     expect(screen.getByText(/inputs are preserved/i)).toBeInTheDocument();
@@ -156,9 +161,7 @@ describe('benchmarksToCsv', () => {
   });
 
   it('escapes commas and quotes in source strings', () => {
-    const csv = benchmarksToCsv([
-      { ...goodRecord, source: 'Vendor, Inc. "official" data' },
-    ]);
+    const csv = benchmarksToCsv([{ ...goodRecord, source: 'Vendor, Inc. "official" data' }]);
     expect(csv).toMatch(/"Vendor, Inc\. ""official"" data"/);
   });
 });

@@ -7,7 +7,15 @@
  *   - One-click retry that re-runs the last submission
  */
 import React from 'react';
-import { AlertTriangle, RefreshCw, Wifi, Clock, ServerCrash, ShieldAlert, CreditCard } from 'lucide-react';
+import {
+  AlertTriangle,
+  RefreshCw,
+  Wifi,
+  Clock,
+  ServerCrash,
+  ShieldAlert,
+  CreditCard,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { trackError } from '@/lib/analytics';
 
@@ -60,10 +68,9 @@ function parseError(err: Error): ParsedError {
       code: explicitCode ?? 'RATE_LIMIT_EXCEEDED',
       status: status ?? 429,
       title: "You've hit the analysis rate limit",
-      guidance:
-        retryAfterSeconds
-          ? `Please wait before retrying. The retry button will re-enable automatically.`
-          : 'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
+      guidance: retryAfterSeconds
+        ? `Please wait before retrying. The retry button will re-enable automatically.`
+        : 'Wait ~60 seconds before retrying, or sign in / upgrade to Plus for higher limits.',
       Icon: Clock,
       tone: 'warning',
       isTransient: true,
@@ -89,8 +96,9 @@ function parseError(err: Error): ParsedError {
     return {
       code: explicitCode ?? 'VALIDATION_ERROR',
       status: status ?? 400,
-      title: 'We couldn\'t parse that input',
-      guidance: msg.replace(/^[A-Z_]+:\s*/, '').slice(0, 240) ||
+      title: "We couldn't parse that input",
+      guidance:
+        msg.replace(/^[A-Z_]+:\s*/, '').slice(0, 240) ||
         'Please describe a real business idea (≥10 characters) and a city/region.',
       Icon: ShieldAlert,
       tone: 'destructive',
@@ -185,8 +193,7 @@ const TONE_STYLES: Record<ParsedError['tone'], string> = {
     'border-destructive/30 bg-destructive/5 text-destructive [&_.tone-icon]:text-destructive',
   warning:
     'border-amber-500/30 bg-amber-500/5 text-amber-700 dark:text-amber-300 [&_.tone-icon]:text-amber-500',
-  info:
-    'border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 [&_.tone-icon]:text-sky-500',
+  info: 'border-sky-500/30 bg-sky-500/5 text-sky-700 dark:text-sky-300 [&_.tone-icon]:text-sky-500',
 };
 
 export function AnalysisErrorPanel({
@@ -279,15 +286,15 @@ export function AnalysisErrorPanel({
               already serializes inputs to localStorage on every change. */}
           {parsed.isTransient && (
             <p className="mt-1.5 text-xs text-muted-foreground/80">
-              Your idea, location, and financial inputs are saved locally and will be
-              restored automatically — retrying will not erase anything you typed.
+              Your idea, location, and financial inputs are saved locally and will be restored
+              automatically — retrying will not erase anything you typed.
             </p>
           )}
 
           {exhausted && (
             <p className="mt-1.5 text-xs text-destructive font-medium">
-              Max retries reached. Refresh the page or contact support — the engine
-              may be having an outage.
+              Max retries reached. Refresh the page or contact support — the engine may be having an
+              outage.
             </p>
           )}
 
@@ -316,8 +323,8 @@ export function AnalysisErrorPanel({
                 {exhausted
                   ? 'Retries exhausted'
                   : secondsLeft > 0
-                  ? `Retry in ${secondsLeft}s`
-                  : 'Retry'}
+                    ? `Retry in ${secondsLeft}s`
+                    : 'Retry'}
               </Button>
             )}
             {parsed.upgradeUrl && (

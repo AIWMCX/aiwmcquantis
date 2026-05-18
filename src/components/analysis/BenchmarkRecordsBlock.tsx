@@ -107,13 +107,13 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
       <div className={`q-card p-5 ${className ?? ''}`}>
         <h3 className="font-semibold text-sm mb-2">Benchmark Coverage</h3>
         <p className="text-xs text-muted-foreground">
-          No benchmark records were returned by the engine for this analysis. The dashboard
-          shows engine-computed values only.
+          No benchmark records were returned by the engine for this analysis. The dashboard shows
+          engine-computed values only.
         </p>
       </div>
     );
   }
-  const hasAnyMatch = records.some(r => r.match_type !== 'none');
+  const hasAnyMatch = records.some((r) => r.match_type !== 'none');
   return (
     <div className={`q-card p-5 ${className ?? ''}`}>
       <div className="flex items-center justify-between flex-wrap gap-2 mb-3">
@@ -123,9 +123,7 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
             Mode:{' '}
             <span
               className={
-                mode === 'live'
-                  ? 'text-emerald-500 font-semibold'
-                  : 'text-amber-500 font-semibold'
+                mode === 'live' ? 'text-emerald-500 font-semibold' : 'text-amber-500 font-semibold'
               }
             >
               {mode ?? (hasAnyMatch ? 'live' : 'unavailable')}
@@ -166,16 +164,26 @@ export function BenchmarkRecordsBlock({ records, mode, summary, className }: Pro
             </tr>
           </thead>
           <tbody>
-            {records.map(r => (
+            {records.map((r) => (
               <tr key={r.metric} className="border-b border-border/50 last:border-0">
-                <td className="py-1.5 pr-3 text-foreground">{METRIC_LABELS[r.metric] ?? r.metric}</td>
+                <td className="py-1.5 pr-3 text-foreground">
+                  {METRIC_LABELS[r.metric] ?? r.metric}
+                </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums font-medium text-foreground">
                   {fmt(r.value, r.unit)}
                 </td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">{fmt(r.p25, r.unit)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">{fmt(r.median, r.unit)}</td>
-                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">{fmt(r.p75, r.unit)}</td>
-                <td className="py-1.5 pr-3"><MatchBadge type={r.match_type} /></td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">
+                  {fmt(r.p25, r.unit)}
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">
+                  {fmt(r.median, r.unit)}
+                </td>
+                <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">
+                  {fmt(r.p75, r.unit)}
+                </td>
+                <td className="py-1.5 pr-3">
+                  <MatchBadge type={r.match_type} />
+                </td>
                 <td className="py-1.5 pr-3 text-right tabular-nums text-muted-foreground">
                   {r.sample_size > 0 ? r.sample_size : '—'}
                 </td>

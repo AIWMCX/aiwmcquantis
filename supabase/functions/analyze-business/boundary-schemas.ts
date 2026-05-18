@@ -9,7 +9,7 @@
  * Kept separate from the engine's internal type-only `schemas.ts` so this
  * file owns runtime validation at the HTTP boundary only.
  */
-import { z } from "npm:zod@3.23.8";
+import { z } from 'npm:zod@3.23.8';
 
 // ── Request ──────────────────────────────────────────────────────────
 
@@ -33,7 +33,7 @@ export const RequestSchema = z
     financial_inputs: FinancialInputsSchema.optional(),
     selected_industry: z.string().max(100).optional(),
     documents: z.array(z.unknown()).max(10).optional(),
-    analysis_depth: z.enum(["quick", "full", "pro", "deep"]).optional(),
+    analysis_depth: z.enum(['quick', 'full', 'pro', 'deep']).optional(),
   })
   .passthrough();
 
@@ -41,7 +41,7 @@ export const RequestSchema = z
 
 export const BenchmarkRecordSchema = z.object({
   metric: z.string().min(1),
-  unit: z.enum(["percent", "months", "usd", "ratio"]),
+  unit: z.enum(['percent', 'months', 'usd', 'ratio']),
   value: z.number().nullable(),
   p25: z.number().nullable(),
   median: z.number().nullable(),
@@ -49,7 +49,7 @@ export const BenchmarkRecordSchema = z.object({
   sample_size: z.number().int().nonnegative(),
   source: z.string().nullable(),
   dataset_date: z.string().nullable(),
-  match_type: z.enum(["direct", "similar", "none"]),
+  match_type: z.enum(['direct', 'similar', 'none']),
   match_level: z.string().nullable(),
 });
 
@@ -68,7 +68,7 @@ export const MetadataSchema = z
     model: z.string(),
     version: z.string(),
     benchmarks: z.array(BenchmarkRecordSchema).optional(),
-    benchmark_mode: z.enum(["live", "unavailable"]).optional(),
+    benchmark_mode: z.enum(['live', 'unavailable']).optional(),
     benchmark_match_summary: BenchmarkMatchSummarySchema.optional(),
     fallback_mode: z.boolean().optional(),
     fallback_reason: z.string().nullable().optional(),
