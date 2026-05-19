@@ -30,6 +30,7 @@ import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
+import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 
 export default function Index() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -607,7 +608,7 @@ export default function Index() {
                   <TabsContent value="history">
                     <AnalysisHistory
                       onSelect={(selectedResult, analysisId) => {
-                        setResult(selectedResult);
+                        setResult(normalizeAnalysisResult(selectedResult));
                         setCurrentAnalysisId(analysisId);
                         setActiveTab('analyze');
                       }}
