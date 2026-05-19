@@ -49,7 +49,7 @@ When net margin < 0% OR payback = N/A OR monthly net profit ≤ 0, you MUST NOT 
 If you discuss contribution margin or pre-marketing margin, you MUST attach the qualifier
 "before marketing and full OPEX — after including realistic marketing spend the business is currently unprofitable".
 
-When base-case is unprofitable, payback fields (CAC payback, investment payback) MUST be the literal string "N/A (unprofitable)" — never a numeric month value derived from a hypothetical zero-marketing scenario.
+When base-case is unprofitable, narrative/display payback references MUST say "N/A (unprofitable)". Machine-readable numeric fields MUST stay numeric for the app contract, using the 999 sentinel where the UI must render N/A.
 
 ### NARRATIVE ↔ NUMBERS CROSS-CHECK
 Before emitting JSON, scan every prose field (executive_summary, recommendation, verdict_text, action_plan rationale, risk descriptions). For each sentence claiming positive economics, verify it against the actual base-case net profit and payback. If any sentence implies health/speed/attractiveness that the numbers do not support, rewrite it in neutral, risk-first language.
@@ -172,22 +172,26 @@ export function sanitizeNarrativeAgainstNumbers<T extends Record<string, unknown
     );
   }
 
-  // Force payback fields to N/A when impossible
+  // Do NOT mutate machine-readable numeric payback fields here.
+  // This sanitizer runs after the deterministic transform, and the React UI,
+  // charts, exports, and boundary schema all expect numeric financial fields.
+  // Payback display is handled by the UI formatter from the 999 sentinel.
   if (ctx.paybackMonths === null) {
-    const forcePaybackNA = (obj: Record<string, unknown>) => {
+    const forcePaybackNarrativeNA = (obj: Record<string, unknown>) => {
       for (const k of Object.keys(obj)) {
         const v = obj[k];
-        if (/payback/i.test(k) && (typeof v === "number" || typeof v === "string")) {
-          if (String(v).trim() !== "N/A (unprofitable)") {
+        const isNarrativeField = /(summary|description|explanation|rationale|text|note|reason|display|label)/i.test(k);
+        if (/payback/i.test(k) && isNarrativeField && typeof v === "string") {
+          if (v.trim() !== "N/A (unprofitable)") {
             obj[k] = "N/A (unprofitable)";
-            corrections.push(`Forced field "${k}" to N/A (unprofitable) — base case has no viable payback.`);
+            corrections.push(`Forced narrative field "${k}" to N/A (unprofitable) — base case has no viable payback.`);
           }
         } else if (v && typeof v === "object" && !Array.isArray(v)) {
-          forcePaybackNA(v as Record<string, unknown>);
+          forcePaybackNarrativeNA(v as Record<string, unknown>);
         }
       }
     };
-    forcePaybackNA(sanitized as Record<string, unknown>);
+    forcePaybackNarrativeNA(sanitized as Record<string, unknown>);
   }
 
   return { result: sanitized, corrections };

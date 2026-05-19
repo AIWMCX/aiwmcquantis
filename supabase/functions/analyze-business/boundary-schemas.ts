@@ -75,10 +75,20 @@ export const MetadataSchema = z
   })
   .passthrough();
 
+const NumericPaybackSchema = z.number().finite().nonnegative();
+
+export const FinancialAnalysisWireSchema = z
+  .object({
+    unit_economics: z.object({ cac_payback_months: NumericPaybackSchema.optional() }).passthrough().optional(),
+    returns: z.object({ payback_period_months: NumericPaybackSchema.optional() }).passthrough().optional(),
+    payback_period_months: NumericPaybackSchema.optional(),
+  })
+  .passthrough();
+
 export const WirePayloadSchema = z
   .object({
     metadata: MetadataSchema,
-    financial_analysis: z.unknown().optional(),
+    financial_analysis: FinancialAnalysisWireSchema.optional(),
     business_plan: z.unknown().optional(),
     confidence_score: z.number().optional(),
   })

@@ -12,6 +12,7 @@ import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
 import { logger } from '@/lib/logger';
 import { mergeCanonicalDataSources } from '@/lib/canonical-data-sources';
 import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industry-priors';
+import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 const MAX_RETRIES = 2;
 const RETRY_DELAY = 1000;
 
@@ -303,7 +304,7 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         ...data.data,
         data_sources: mergeCanonicalDataSources(data.data.data_sources as string[] | undefined),
       };
-      return enriched;
+      return normalizeAnalysisResult(enriched);
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));

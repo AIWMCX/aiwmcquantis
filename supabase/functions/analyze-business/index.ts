@@ -3703,9 +3703,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // when the base-case financials do not support them. Numbers always win.
     try {
       const netMarginPct = calc.mrr > 0 ? (calc.netProfit / calc.mrr) * 100 : -100;
-      const paybackMonths = (!calc.isProfitable || !Number.isFinite(calc.cacPaybackMonths) || calc.cacPaybackMonths <= 0)
+      const paybackMonths = (!calc.isProfitable || !Number.isFinite(calc.paybackMonths) || calc.paybackMonths <= 0 || calc.paybackMonths >= 999)
         ? null
-        : calc.cacPaybackMonths;
+        : calc.paybackMonths;
       const { result: cleaned, corrections } = sanitizeNarrativeAgainstNumbers(
         result as Record<string, unknown>,
         {
@@ -3716,6 +3716,19 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         }
       );
       Object.assign(result, cleaned);
+      // Contract hardening: the narrative sanitizer must never turn financial
+      // numbers into display strings. UI/PDF/chart consumers format the 999
+      // sentinel as N/A; the transport payload stays numeric.
+      if (result.financial_analysis?.unit_economics) {
+        result.financial_analysis.unit_economics.cac_payback_months =
+          !calc.isProfitable ? 999 : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - detectedIndustry.cogs_percent) / 100), 1);
+      }
+      if (result.financial_analysis) {
+        result.financial_analysis.payback_period_months = calc.paybackMonths;
+      }
+      if (result.financial_analysis?.returns) {
+        result.financial_analysis.returns.payback_period_months = calc.paybackMonths;
+      }
       if (corrections.length > 0) {
         log.info(`Narrative sanitizer applied ${corrections.length} correction(s): ${corrections.join(" | ")}`);
         (result as Record<string, unknown>)._sanitizer_corrections = corrections;
