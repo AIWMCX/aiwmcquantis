@@ -15,6 +15,7 @@ import type {
 } from '@/types/analysis';
 import { isQueuedAnalysisJob } from '@/types/analysis';
 import { trackActivationEvent } from '@/lib/activationTracking';
+import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 
 import { logger } from '@/lib/logger';
 interface FormErrors {
@@ -92,7 +93,8 @@ export function useAnalysis() {
    */
   const persistCompletedResult = useCallback(
     async (data: BusinessAnalysisResult) => {
-      setResult(data);
+      const safeData = normalizeAnalysisResult(data);
+      setResult(safeData);
       void trackActivationEvent('calculation_completed', { idea_length: idea.length });
 
       const trimmedIdea = idea.trim();
@@ -109,27 +111,27 @@ export function useAnalysis() {
 
       let savedId: string | null = null;
       if (isAuthenticated && user) {
-        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, data, finalDepth);
+        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, safeData, finalDepth);
         if (saved) {
           savedId = saved.id;
-          cacheAnalysisLocally(saved.id, { idea: trimmedIdea, location: trimmedLocation, result: data });
+          cacheAnalysisLocally(saved.id, { idea: trimmedIdea, location: trimmedLocation, result: safeData });
           addEntry({
             id: saved.id,
             idea: trimmedIdea,
             location: trimmedLocation,
-            result: data,
+            result: safeData,
             created_at: new Date().toISOString(),
           });
         }
       } else {
-        const saved = await saveAnonymousAnalysis(trimmedIdea, trimmedLocation, data, finalDepth);
+        const saved = await saveAnonymousAnalysis(trimmedIdea, trimmedLocation, safeData, finalDepth);
         if (saved) {
           savedId = saved.id;
           addEntry({
             id: saved.id,
             idea: trimmedIdea,
             location: trimmedLocation,
-            result: data,
+            result: safeData,
             created_at: new Date().toISOString(),
           });
         }
