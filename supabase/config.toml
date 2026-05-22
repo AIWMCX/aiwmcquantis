@@ -104,3 +104,6 @@ verify_jwt = true
 
 [functions.autoposter-generate-content]
 verify_jwt = false
+
+[functions.publish-due-posts]
+verify_jwt = false
