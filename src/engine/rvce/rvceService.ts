@@ -7,6 +7,8 @@ import type { AnalysisCorePayload, AnalysisValidationPayload } from './types';
 import { RVCE_VERSION } from './types';
 
 const RVCE_TIMEOUT_MS = 25_000;
+const RVCE_ENABLED =
+  (import.meta as { env?: Record<string, string> }).env?.VITE_RVCE_ENABLED !== 'false';
 
 export async function runRVCEValidation(
   payload: AnalysisCorePayload,
@@ -22,6 +24,8 @@ export async function runRVCEValidation(
     latency_ms: 0,
     status: 'UNAVAILABLE',
   };
+
+  if (!RVCE_ENABLED) return fallback;
 
   try {
     const controller = new AbortController();

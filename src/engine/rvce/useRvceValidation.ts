@@ -23,6 +23,15 @@ export function useRvceValidation(payload: AnalysisCorePayload | null) {
     runRVCEValidation(payload)
       .then((result) => {
         if (!cancelled) setData(result);
+        if (typeof console !== 'undefined') {
+          console.log('[RVCE] Validation complete:', {
+            status: result.status,
+            confidence: result.global_confidence_score,
+            metrics: Object.keys(result.metrics_validation ?? {}).length,
+            outliers: (result.flags ?? []).length,
+            latency: result.latency_ms + 'ms',
+          });
+        }
       })
       .finally(() => {
         if (!cancelled) setLoading(false);
@@ -33,5 +42,5 @@ export function useRvceValidation(payload: AnalysisCorePayload | null) {
     };
   }, [payload?.analysis_id, payload]);
 
-  return { validation: data, loading };
+  return { validation: data, loading, isLoading: loading };
 }

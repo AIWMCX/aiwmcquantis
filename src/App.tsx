@@ -60,6 +60,7 @@ const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
+const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -128,6 +129,7 @@ const App = () => {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/cases" element={<CaseBrowser />} />
+                <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
