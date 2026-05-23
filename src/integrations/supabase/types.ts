@@ -4338,6 +4338,45 @@ export type Database = {
         }
         Relationships: []
       }
+      rvce_cache: {
+        Row: {
+          business_type: string | null
+          cache_key: string
+          created_at: string
+          evidence: Json
+          expires_at: string
+          id: string
+          location: string | null
+          observation_count: number
+          tier_cap: number
+          variable: string
+        }
+        Insert: {
+          business_type?: string | null
+          cache_key: string
+          created_at?: string
+          evidence: Json
+          expires_at?: string
+          id?: string
+          location?: string | null
+          observation_count?: number
+          tier_cap: number
+          variable: string
+        }
+        Update: {
+          business_type?: string | null
+          cache_key?: string
+          created_at?: string
+          evidence?: Json
+          expires_at?: string
+          id?: string
+          location?: string | null
+          observation_count?: number
+          tier_cap?: number
+          variable?: string
+        }
+        Relationships: []
+      }
       rvce_observation_cache: {
         Row: {
           expires_at: string
