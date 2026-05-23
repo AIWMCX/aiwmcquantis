@@ -597,9 +597,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               {/* RIGHT: Assumption Editor + Impact Preview */}
               <div className="space-y-5">
                 <InlineAssumptionEditor 
-                  initialCac={result.financial_analysis?.unit_economics?.cac || 50}
-                  initialRent={result.financial_analysis?.monthly_expenses?.fixed_costs || 1000}
-                  initialTicketSize={result.financial_analysis?.inputs?.price_per_unit || 100}
+                  initialCac={initialCac}
+                  initialRent={initialRent}
+                  initialTicketSize={initialTicket}
                   onRecalculate={(newOverrides) => setOverrides(newOverrides)}
                 />
                 
@@ -611,14 +611,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Revenue</span>
                       <span className={overrides.ticketSize ? 'text-[var(--q-status-green)]' : 'text-foreground'}>
-                        ${(scenarioMetrics.revenue / 1000).toFixed(1)}k
+                        ${(safeRevenue / 1000).toFixed(1)}k
                         {overrides.ticketSize && ' ↑'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Profit</span>
                       <span className={scenarioMetrics.profit >= 0 ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'}>
-                        ${(scenarioMetrics.profit / 1000).toFixed(1)}k
+                        ${((Number.isFinite(scenarioMetrics.profit) ? scenarioMetrics.profit : 0) / 1000).toFixed(1)}k
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -635,7 +635,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}
