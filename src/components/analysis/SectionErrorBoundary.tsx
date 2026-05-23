@@ -31,6 +31,7 @@ export class SectionErrorBoundary extends Component<Props, State> {
 
   render() {
     if (this.state.hasError) {
+      const msg = this.state.error?.message || 'Unknown error';
       return (
         <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-8 flex flex-col items-center text-center">
           <AlertCircle className="w-10 h-10 text-destructive mb-3" />
@@ -40,6 +41,14 @@ export class SectionErrorBoundary extends Component<Props, State> {
           <p className="text-sm text-muted-foreground mb-4 max-w-md">
             This section encountered an unexpected error. Your other data is safe.
           </p>
+          <details className="mb-4 max-w-md text-left w-full">
+            <summary className="text-xs text-muted-foreground/80 cursor-pointer hover:text-foreground">
+              Technical details
+            </summary>
+            <pre className="mt-2 text-[11px] text-muted-foreground/80 whitespace-pre-wrap break-all bg-background/60 p-2 rounded border border-border max-h-40 overflow-auto">
+              {msg}
+            </pre>
+          </details>
           <div className="flex items-center gap-2">
             <Button size="sm" onClick={this.handleRetry} className="gap-1.5">
               <RefreshCw className="w-3.5 h-3.5" /> Retry
