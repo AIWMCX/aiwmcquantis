@@ -27,6 +27,7 @@ import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsB
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
+import { ForensicDetailPanels } from './ForensicDetailPanels';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
