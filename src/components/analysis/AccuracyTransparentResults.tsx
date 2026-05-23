@@ -27,6 +27,7 @@ import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsB
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
+import { ForensicDetailPanels } from './ForensicDetailPanels';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -50,7 +51,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const [prevStep, setPrevStep] = useState(1);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
-  const { isFree } = useSubscription();
+  const { isFree, tier } = useSubscription();
+  const rvceObsCap = tier === 'PRO' ? 100 : tier === 'PLUS' ? 40 : 20;
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
@@ -661,9 +663,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               )}
               {rvceValidation && !rvceLoading && (
                 <SectionErrorBoundary section="external validation">
+                  <div className="flex items-center justify-end -mb-2">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
+                      {tier} tier · up to {rvceObsCap} obs / variable
+                    </span>
+                  </div>
                   <RvceValidationSection validation={rvceValidation} />
                 </SectionErrorBoundary>
               )}
+
+              {/* Forensic engine outputs (5 previously hidden datasets) */}
+              <SectionErrorBoundary section="forensic detail">
+                <ForensicDetailPanels result={result} />
+              </SectionErrorBoundary>
 
               <div className="grid lg:grid-cols-2 gap-5">
 
@@ -734,7 +746,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                     )}
                                     {tactics.length > 0 ? (
                                       <div className="space-y-2">
-                                        {tactics.slice(0, 3).map((tactic, ti) => (
+                                        {tactics.map((tactic, ti) => (
                                           <div key={ti} className="flex items-start gap-2 text-xs">
                                             <span className="shrink-0 w-4 h-4 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-[9px] font-bold mt-0.5">{ti + 1}</span>
                                             <div className="flex-1">
@@ -788,7 +800,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       const priorityInsights = insights
                         .filter(i => i.priority === 'critical' || i.priority === 'high')
                         .slice(0, 4);
-                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 3);
+                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 6);
                       
                       if (itemsToShow.length === 0) {
                         return actionItems.map((action, idx) => (
