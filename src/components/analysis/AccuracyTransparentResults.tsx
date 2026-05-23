@@ -800,7 +800,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       const priorityInsights = insights
                         .filter(i => i.priority === 'critical' || i.priority === 'high')
                         .slice(0, 4);
-                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 3);
+                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 6);
                       
                       if (itemsToShow.length === 0) {
                         return actionItems.map((action, idx) => (
