@@ -292,7 +292,11 @@ export function useAnalysis() {
     onSettled: handleJobSettled,
   });
 
-  const handleSubmit = useCallback((e?: React.FormEvent, depth?: string) => {
+  const handleSubmit = useCallback((
+    e?: React.FormEvent,
+    depth?: string,
+    opts?: { isLandingDemo?: boolean },
+  ) => {
     e?.preventDefault();
 
     if (!validate()) return;
@@ -319,6 +323,9 @@ export function useAnalysis() {
       ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
       ...(documents.length > 0 && { documents }),
       ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
+      // Landing-demo opt-in: API layer falls back to deterministic engine
+      // instead of throwing ANALYSIS_UNAVAILABLE.
+      ...(opts?.isLandingDemo && { allow_demo_fallback: true }),
     };
 
     // Snapshot for potential auto-fallback to Full on Pro timeout.

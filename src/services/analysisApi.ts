@@ -332,12 +332,32 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
   // dataset and was the root cause of the "0.1 vs 999 month CAC payback"
   // contradictions the reviewer flagged. Surface a clean error instead so
   // the UI can show a retry CTA.
+  //
+  // EXCEPTION: the homepage hero CTA opts in via `allow_demo_fallback` so
+  // the top of the funnel never surfaces a raw "ANALYSIS_UNAVAILABLE" — it
+  // shows a deterministic demo result tagged `metadata.demo_fallback = true`
+  // instead. Authenticated /app analyses still get the strict path.
   const allowClientFallback = import.meta.env.VITE_ALLOW_CLIENT_FALLBACK === 'true';
-  if (allowClientFallback) {
-    logger.warn('Analysis service failed; using opt-in client deterministic fallback', {
-      metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
+  const allowDemoFallback = request.allow_demo_fallback === true;
+  if (allowClientFallback || allowDemoFallback) {
+    logger.warn('Analysis service failed; using deterministic fallback', {
+      metadata: {
+        request_id: requestId,
+        reason: lastError?.message ?? 'unknown',
+        path: allowDemoFallback ? 'landing_demo' : 'opt_in_env',
+      },
     });
-    return emergencyFallbackAnalysis(request, lastError?.message ?? 'analysis service unavailable');
+    const fallback = emergencyFallbackAnalysis(request, lastError?.message ?? 'analysis service unavailable');
+    if (allowDemoFallback) {
+      // Tag so the hero card can show "Demo scenario — your idea will be
+      // analyzed fully after signup."
+      (fallback as any).metadata = {
+        ...(fallback as any).metadata,
+        demo_fallback: true,
+        demo_fallback_reason: lastError?.message ?? 'engine_unavailable',
+      };
+    }
+    return normalizeAnalysisResult(fallback);
   }
 
   logger.error('Analysis service unavailable after retries', {
