@@ -26,6 +26,7 @@ import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
 import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsBlock';
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
+import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
