@@ -4338,6 +4338,99 @@ export type Database = {
         }
         Relationships: []
       }
+      rvce_observation_cache: {
+        Row: {
+          expires_at: string
+          fetched_at: string
+          id: string
+          metric: string
+          observation_value: number | null
+          ref_class_id: string
+          source_snippet: string | null
+          source_url: string | null
+        }
+        Insert: {
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          metric: string
+          observation_value?: number | null
+          ref_class_id: string
+          source_snippet?: string | null
+          source_url?: string | null
+        }
+        Update: {
+          expires_at?: string
+          fetched_at?: string
+          id?: string
+          metric?: string
+          observation_value?: number | null
+          ref_class_id?: string
+          source_snippet?: string | null
+          source_url?: string | null
+        }
+        Relationships: []
+      }
+      rvce_validation_log: {
+        Row: {
+          analysis_id: string
+          created_at: string
+          evidence_samples: Json | null
+          flags: Json | null
+          global_confidence: number | null
+          id: string
+          latency_ms: number | null
+          metrics_count: number | null
+          metrics_validation: Json | null
+          no_data_count: number | null
+          outlier_count: number | null
+          reference_classes: Json | null
+          rvce_version: string
+          status: string | null
+          total_observations: number | null
+          user_id: string | null
+          warn_count: number | null
+        }
+        Insert: {
+          analysis_id: string
+          created_at?: string
+          evidence_samples?: Json | null
+          flags?: Json | null
+          global_confidence?: number | null
+          id?: string
+          latency_ms?: number | null
+          metrics_count?: number | null
+          metrics_validation?: Json | null
+          no_data_count?: number | null
+          outlier_count?: number | null
+          reference_classes?: Json | null
+          rvce_version?: string
+          status?: string | null
+          total_observations?: number | null
+          user_id?: string | null
+          warn_count?: number | null
+        }
+        Update: {
+          analysis_id?: string
+          created_at?: string
+          evidence_samples?: Json | null
+          flags?: Json | null
+          global_confidence?: number | null
+          id?: string
+          latency_ms?: number | null
+          metrics_count?: number | null
+          metrics_validation?: Json | null
+          no_data_count?: number | null
+          outlier_count?: number | null
+          reference_classes?: Json | null
+          rvce_version?: string
+          status?: string | null
+          total_observations?: number | null
+          user_id?: string | null
+          warn_count?: number | null
+        }
+        Relationships: []
+      }
       safety_evaluations: {
         Row: {
           analysis_id: string | null

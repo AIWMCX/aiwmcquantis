@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.publish-due-posts]
 verify_jwt = false
+
+[functions.rvce-validate]
+verify_jwt = false
