@@ -132,15 +132,17 @@ interface Observation {
   confidence: number;
 }
 
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
+  'Access-Control-Max-Age': '86400',
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response(null, {
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
-      },
-    });
+    return new Response(null, { headers: CORS_HEADERS });
   }
 
   const startTime = Date.now();
