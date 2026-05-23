@@ -48,6 +48,18 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  // Public probe → minimal payload for uptime monitors. Detailed diagnostics
+  // require a valid CRON_SECRET (or x-health-secret) header.
+  const healthSecret = req.headers.get('x-health-secret') ?? req.headers.get('x-cron-secret');
+  const expectedSecret = Deno.env.get('HEALTH_CHECK_SECRET') ?? Deno.env.get('CRON_SECRET');
+  const isAuthorized = !!expectedSecret && expectedSecret.length >= 10 && healthSecret === expectedSecret;
+  if (!isAuthorized) {
+    return new Response(
+      JSON.stringify({ status: 'ok' }),
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   const startTime = Date.now();
   const checks: HealthCheckResult['checks'] = {
     database: { status: 'down', message: 'Not checked' },
