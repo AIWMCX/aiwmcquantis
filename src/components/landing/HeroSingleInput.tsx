@@ -72,7 +72,10 @@ export function HeroSingleInput() {
     if (idea.trim().length < 10) return;
     trackCtaClick('hero_single_input_submit', 'hero');
     recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
-    handleSubmit(e, 'quick');
+    // Landing demo MUST always produce a result — never surface
+    // ANALYSIS_UNAVAILABLE on first failure. Opts into deterministic
+    // fallback at the API layer.
+    handleSubmit(e, 'quick', { isLandingDemo: true });
   }, [idea, handleSubmit]);
 
   const valid = idea.trim().length >= 10;

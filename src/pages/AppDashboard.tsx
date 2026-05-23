@@ -545,7 +545,7 @@ export default function Index() {
                         )}
                         <PostAnalysisEmailCapture
                           ideaTitle={idea}
-                          monthlyProfit={result?.financial_analysis?.scenarios?.base?.net_profit 
+                          monthlyProfit={result?.financial_analysis?.scenarios?.base?.net_profit
                             ? `$${Math.round(result.financial_analysis.scenarios.base.net_profit).toLocaleString()}`
                             : undefined}
                           onDismiss={() => {}}
