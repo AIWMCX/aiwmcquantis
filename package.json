@@ -9,7 +9,7 @@
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
     "lint:report": "eslint . --format json --output-file lint-report.json || true",
-    "typecheck:financial": "tsc -p tsconfig.financial.json --noEmit",
+    "typecheck:financial": "node_modules/.bin/tsc -p tsconfig.financial.json --noEmit",
     "verify:business-logic": "bun scripts/verify-business-logic-hash.ts",
     "test:quality": "bunx vitest run src/__tests__/logger-prod-integration.test.ts src/__tests__/edge-runtime-guards.test.ts src/__tests__/pdf-export.test.ts src/__tests__/benchmark-pipeline-invar[...]",
     "test:coverage": "bunx vitest run --coverage src/__tests__/logger-prod-integration.test.ts src/__tests__/pdf-export.test.ts src/__tests__/benchmark-pipeline-invariants.test.ts src/__tests__/an[...]",
