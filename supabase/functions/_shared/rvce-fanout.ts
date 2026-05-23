@@ -12,6 +12,8 @@
  * the legacy Anthropic web-search path in rvce-validate/index.ts is used.
  */
 import { callDeepseek } from './deepseek.ts';
+import { logAiCall } from './ai-logger.ts';
+import { addCost, assertCostBudget } from './cost-guard.ts';
 import {
   buildRvceCacheKey,
   RVCE_FANOUT_CONCURRENCY,
@@ -51,6 +53,10 @@ export interface FanoutContext {
   city: string;
   country: string;
   business_model: string;
+  /** Phase 2 — telemetry/cost-guard hooks. All optional, additive. */
+  analysis_id?: string;
+  user_id?: string | null;
+  request_id?: string | null;
 }
 
 /** ─── pLimit: minimal concurrency limiter (no deps). ─────────────── */
@@ -212,7 +218,15 @@ export async function fanoutVariable(
   if (!observations) {
     const limit = pLimit(RVCE_FANOUT_CONCURRENCY);
     const tasks = Array.from({ length: cap }, (_, i) =>
-      limit(() => fetchOneObservation(variable, ctx, i)),
+      limit(async () => {
+        // Phase 2 — cost guard: stop scheduling new calls once ceiling hit.
+        if (ctx.analysis_id && !assertCostBudget(ctx.analysis_id, 0.001)) return null;
+        const obs = await fetchOneObservation(variable, ctx, i);
+        // ~$0.001 per deepseek-chat fan-out call; book it whether or not it
+        // returned a valid observation (we still paid for the request).
+        if (ctx.analysis_id) addCost(ctx.analysis_id, 0.001);
+        return obs;
+      }),
     );
     const settled = await Promise.all(tasks);
     observations = settled.filter((o): o is FanoutObservation => !!o);
@@ -230,6 +244,32 @@ export async function fanoutVariable(
   } else if (observations.length > cap) {
     // Slice cached evidence down to the user's tier cap.
     observations = observations.slice(0, cap);
+  }
+
+  // Phase 2 — single roll-up telemetry row per (analysis, variable). The
+  // RvceFanoutTile groups by metadata.cache_hit to derive hit rate.
+  if (ctx.analysis_id) {
+    logAiCall({
+      analysis_id: ctx.analysis_id,
+      user_id: ctx.user_id ?? null,
+      request_id: ctx.request_id ?? null,
+      task: 'other',
+      provider: 'deepseek',
+      model: 'deepseek-chat',
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: cacheHit ? 0 : (observations?.length ?? 0) * 0.001,
+      latency_ms: 0,
+      ok: (observations?.length ?? 0) >= 3,
+      metadata: {
+        kind: 'rvce_fanout',
+        variable,
+        tier,
+        cap,
+        cache_hit: cacheHit,
+        observation_count: observations?.length ?? 0,
+      },
+    }).catch(() => {});
   }
 
   if (!observations || observations.length < 3) {
