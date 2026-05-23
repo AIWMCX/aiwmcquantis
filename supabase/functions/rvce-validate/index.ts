@@ -161,6 +161,32 @@ serve(async (req) => {
     const { industry, location_city, business_model } = business_profile;
     const location_country = business_profile.location_country || 'US';
 
+    // ── Phase 1B: tier-aware DeepSeek fan-out path (flag-gated) ─────
+    const tier: Tier = getTierForAnalysis({
+      tier_at_creation: payload.tier_at_creation ?? business_profile?.tier_at_creation,
+      plan_id: payload.plan_id ?? business_profile?.plan_id,
+      user_tier: payload.user_tier ?? business_profile?.user_tier,
+    });
+
+    if (isRvceFanoutEnabled() && Deno.env.get('DEEPSEEK_API_KEY')) {
+      const fanoutResult = await runFanoutPipeline({
+        analysis_id,
+        tier,
+        startTime,
+        core_metrics,
+        ctx: {
+          industry,
+          city: location_city,
+          country: location_country,
+          business_model,
+        },
+      });
+      logValidation(fanoutResult).catch(() => {});
+      return jsonResponse(fanoutResult);
+    }
+    // ── End fan-out branch ──────────────────────────────────────────
+
+
     const referenceClasses = [
       { id: `rc-${slug(industry)}-${slug(location_city)}`, description: `${location_city} ${industry}`, sample_size: 0 },
       { id: `rc-${slug(industry)}-${slug(location_country)}`, description: `${location_country} ${industry}`, sample_size: 0 },
