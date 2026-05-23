@@ -355,19 +355,19 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Contribution Margin (CM)</span>
-                      <span className="font-bold">{formatCurrency(financial.unit_economics.contribution_margin)}</span>
+                      <span className="font-bold">{formatCurrency(financial.unit_economics?.contribution_margin ?? 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CM Ratio</span>
-                      <span className="font-bold">{(financial.unit_economics.contribution_margin_ratio * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{((financial.unit_economics?.contribution_margin_ratio ?? 0) * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC</span>
-                      <span className="font-bold">{formatCurrency(financial.unit_economics.cac)}</span>
+                      <span className="font-bold">{formatCurrency(financial.unit_economics?.cac ?? 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC Payback</span>
-                      <span className="font-bold">{formatNumber(financial.unit_economics.cac_payback_months)} mo.</span>
+                      <span className="font-bold">{formatNumber(financial.unit_economics?.cac_payback_months ?? 0)} mo.</span>
                     </div>
                   </div>
                 </div>

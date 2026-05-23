@@ -10,14 +10,17 @@ interface RevenueChartProps {
 }
 
 function generateData(baseRevenue: number, multiplier: number, volatility: number, months: number) {
+  const safeBase = Number.isFinite(baseRevenue) && baseRevenue > 0 ? baseRevenue : 1000;
+  const safeMult = Number.isFinite(multiplier) && multiplier > 0 ? multiplier : 1;
+  const safeVol = Number.isFinite(volatility) && volatility >= 0 ? volatility : 0.15;
   const data = [];
   for (let m = 1; m <= months; m++) {
-    const growth = 1 + (m / months) * 0.5 * multiplier;
-    const base = baseRevenue * growth * multiplier;
-    const p10 = base * (1 - volatility);
-    const p25 = base * (1 - volatility * 0.5);
-    const p75 = base * (1 + volatility * 0.5);
-    const p90 = base * (1 + volatility);
+    const growth = 1 + (m / months) * 0.5 * safeMult;
+    const base = safeBase * growth * safeMult;
+    const p10 = base * (1 - safeVol);
+    const p25 = base * (1 - safeVol * 0.5);
+    const p75 = base * (1 + safeVol * 0.5);
+    const p90 = base * (1 + safeVol);
     data.push({
       month: m,
       base: Math.round(base),
