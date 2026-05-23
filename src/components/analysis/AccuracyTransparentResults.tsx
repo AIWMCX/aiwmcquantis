@@ -659,7 +659,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               )}
               {rvceValidation && !rvceLoading && (
-                <RvceValidationSection validation={rvceValidation} />
+                <SectionErrorBoundary section="external validation">
+                  <RvceValidationSection validation={rvceValidation} />
+                </SectionErrorBoundary>
               )}
 
               <div className="grid lg:grid-cols-2 gap-5">
