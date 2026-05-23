@@ -129,6 +129,7 @@ const App = () => {
                 <Route path="/refund-policy" element={<RefundPolicy />} />
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/cases" element={<CaseBrowser />} />
+                <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
