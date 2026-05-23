@@ -109,7 +109,24 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
                     : '—'}
                 </td>
                 <td className="px-2 py-2">
-                  <ValidationStatusBadge metric={key} validation={val} />
+                  <div className="flex items-center gap-2">
+                    <ValidationStatusBadge metric={key} validation={val} />
+                    {Array.isArray((val as any).observations) && (val as any).observations.length > 0 && (
+                      <RvceEvidenceModal
+                        metric={key}
+                        observations={(val as any).observations}
+                        median={val.external_median}
+                        p25={val.p25}
+                        p75={val.p75}
+                        tierCap={(val as any).observations.length}
+                        trigger={
+                          <Button variant="ghost" size="sm" className="h-6 px-2 text-[11px]">
+                            View {(val as any).observations.length} obs
+                          </Button>
+                        }
+                      />
+                    )}
+                  </div>
                 </td>
               </tr>
             ))}
