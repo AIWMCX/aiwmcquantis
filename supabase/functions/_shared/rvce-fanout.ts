@@ -12,6 +12,8 @@
  * the legacy Anthropic web-search path in rvce-validate/index.ts is used.
  */
 import { callDeepseek } from './deepseek.ts';
+import { logAiCall } from './ai-logger.ts';
+import { addCost, assertCostBudget } from './cost-guard.ts';
 import {
   buildRvceCacheKey,
   RVCE_FANOUT_CONCURRENCY,
