@@ -33,5 +33,5 @@ export function useRvceValidation(payload: AnalysisCorePayload | null) {
     };
   }, [payload?.analysis_id, payload]);
 
-  return { validation: data, loading };
+  return { validation: data, loading, isLoading: loading };
 }
