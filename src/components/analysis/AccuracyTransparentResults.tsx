@@ -663,9 +663,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               )}
               {rvceValidation && !rvceLoading && (
                 <SectionErrorBoundary section="external validation">
+                  <div className="flex items-center justify-end -mb-2">
+                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
+                      {tier} tier · up to {rvceObsCap} obs / variable
+                    </span>
+                  </div>
                   <RvceValidationSection validation={rvceValidation} />
                 </SectionErrorBoundary>
               )}
+
+              {/* Forensic engine outputs (5 previously hidden datasets) */}
+              <SectionErrorBoundary section="forensic detail">
+                <ForensicDetailPanels result={result} />
+              </SectionErrorBoundary>
 
               <div className="grid lg:grid-cols-2 gap-5">
 
