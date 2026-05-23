@@ -2,6 +2,8 @@ import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { METRIC_LABELS, type AnalysisValidationPayload } from '@/engine/rvce/types';
 import { ValidationStatusBadge } from './ValidationStatusBadge';
 import { SearchHealthBar } from './SearchHealthBar';
+import RvceEvidenceModal from './RvceEvidenceModal';
+import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
 function fmt(metric: string, value: number | null): string {
