@@ -75,6 +75,57 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     };
   }, [result.metadata, location]);
 
+  // ── RVCE (Layer 8) — Reality Validation & Calibration Engine ──
+  // Cross-checks our metrics against external benchmarks via Claude Haiku + web search.
+  // Fail-safe: never blocks the analysis. Runs once per analysis_id.
+  const rvcePayload = useMemo(() => {
+    const fa: any = result.financial_analysis;
+    if (!fa) return null;
+
+    const meta: any = result.metadata || {};
+    const metrics: Record<string, number> = {};
+
+    const rev = fa.mrr ?? fa.monthly_revenue?.realistic;
+    if (typeof rev === 'number' && Number.isFinite(rev)) metrics.revenue_monthly = rev;
+
+    const gmRaw = fa.scenarios?.base?.gross_margin ?? fa.unit_economics?.gross_margin;
+    if (typeof gmRaw === 'number' && Number.isFinite(gmRaw)) {
+      metrics.gross_margin_pct = gmRaw <= 1 ? gmRaw * 100 : gmRaw;
+    }
+
+    const exp = fa.monthly_expenses;
+    if (typeof exp?.breakdown?.rent === 'number') metrics.opex_rent_monthly = exp.breakdown.rent;
+    if (typeof exp?.breakdown?.marketing === 'number') metrics.opex_marketing_monthly = exp.breakdown.marketing;
+    if (typeof exp?.breakdown?.salaries === 'number') metrics.opex_payroll_monthly = exp.breakdown.salaries;
+    if (typeof exp?.total === 'number') metrics.total_opex_monthly = exp.total;
+
+    const ue = fa.unit_economics;
+    if (typeof ue?.ltv === 'number') metrics.ltv = ue.ltv;
+    if (typeof ue?.cac === 'number') metrics.cac = ue.cac;
+    if (typeof ue?.ltv_cac_ratio === 'number') metrics.ltv_cac_ratio = ue.ltv_cac_ratio;
+    if (typeof ue?.cac_payback_months === 'number') metrics.cac_payback_months = ue.cac_payback_months;
+
+    if (typeof fa.startup_investment?.total === 'number') metrics.startup_investment_total = fa.startup_investment.total;
+    if (typeof rev === 'number' && Number.isFinite(rev)) metrics.som_year1_revenue = rev * 12;
+
+    if (Object.keys(metrics).length < 3) return null;
+
+    const profile = {
+      title: meta.idea || meta.business_type || '',
+      description: meta.idea || meta.business_type || '',
+      industry: meta.industry_detected || meta.selected_industry || meta.sector || 'General',
+      business_model: meta.business_model || 'B2C',
+      location_city: meta.location_city || meta.city || meta.location || 'Unknown',
+      location_country: meta.location_country || meta.country || 'US',
+      stage: meta.company_stage || 'pre-revenue',
+    };
+
+    return buildCorePayload(analysisId || (result as any).id || 'anonymous', profile, metrics);
+  }, [result, analysisId]);
+
+  const { validation: rvceValidation, isLoading: rvceLoading } = useRvceValidation(rvcePayload);
+
+
   const scenarioMetrics = useMemo(() => {
     const scenarios = result.financial_analysis?.scenarios;
     let baseRevenue = result.financial_analysis?.mrr || 0;
