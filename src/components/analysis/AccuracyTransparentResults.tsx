@@ -51,7 +51,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const [prevStep, setPrevStep] = useState(1);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
-  const { isFree } = useSubscription();
+  const { isFree, tier } = useSubscription();
+  const rvceObsCap = tier === 'PRO' ? 100 : tier === 'PLUS' ? 40 : 20;
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
