@@ -1604,9 +1604,16 @@ export function usePdfExport() {
         { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
         { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPayback === 'number' ? cacPayback : undefined },
       ];
-      const benchmarkRows: PdfBenchmarkRow[] = await Promise.all(
-        desired.map(async (d) => ({ ...d, bench: await lookupBenchmark(d.metric, benchContext) }))
+      // Fail-soft benchmark lookups — never let a benchmark network error kill PDF generation
+      const benchSettled = await Promise.allSettled(
+        desired.map((d) => lookupBenchmark(d.metric, benchContext))
       );
+      const benchmarkRows: PdfBenchmarkRow[] = desired.map((d, i) => ({
+        ...d,
+        bench: benchSettled[i].status === 'fulfilled'
+          ? (benchSettled[i] as PromiseFulfilledResult<BenchmarkResult>).value
+          : ({ status: 'no_match', metric: d.metric } as unknown as BenchmarkResult),
+      }));
 
       // Generate PDF blob using @react-pdf/renderer with timeout
       const doc = createExecutiveReport(result, activeBranding, benchmarkRows);
