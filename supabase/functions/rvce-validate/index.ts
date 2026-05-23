@@ -603,6 +603,129 @@ function chunk<T>(arr: T[], size: number): T[][] {
   return result;
 }
 
+/* ─────────────────────────────────────────────────────────────────────
+ * Phase 1B fan-out pipeline (flag-gated). Builds an rvce-validate-shaped
+ * payload using DeepSeek per-variable fan-out + Anthropic Haiku calibration.
+ * ──────────────────────────────────────────────────────────────────── */
+async function runFanoutPipeline(args: {
+  analysis_id: string | undefined;
+  tier: Tier;
+  startTime: number;
+  core_metrics: Record<string, number>;
+  ctx: { industry: string; city: string; country: string; business_model: string };
+}) {
+  const { analysis_id, tier, startTime, core_metrics, ctx } = args;
+
+  const metricsToProcess = METRICS_TO_VALIDATE.filter(
+    (m) => core_metrics[m] !== undefined && core_metrics[m] !== null && core_metrics[m] !== 0,
+  );
+
+  // Fan out across ALL variables in parallel — internal pLimit caps inflight calls.
+  const settled = await Promise.all(
+    metricsToProcess.map((m) => fanoutVariable(m, core_metrics[m], ctx, tier)),
+  );
+
+  let perVariable: Record<string, ReturnType<typeof toLegacyShape>['legacy']> = {};
+  const evidenceSamples: any[] = [];
+  const fanoutMap: Record<string, (typeof settled)[number]> = {};
+
+  metricsToProcess.forEach((m, i) => {
+    fanoutMap[m] = settled[i];
+  });
+
+  // Calibrate via single Haiku call (best-effort).
+  const calibrated = await calibrateWithHaiku(fanoutMap, core_metrics);
+
+  metricsToProcess.forEach((m) => {
+    const v = calibrated[m];
+    const { legacy, samples } = toLegacyShape(m, v);
+    perVariable[m] = legacy;
+    evidenceSamples.push(...samples);
+  });
+
+  const entries = Object.values(perVariable);
+  let confidence = 90;
+  confidence -= entries.filter((e) => e.status === 'OUTLIER').length * 12;
+  confidence -= entries.filter((e) => e.status === 'WARN').length * 5;
+  confidence -= entries.filter((e) => e.status === 'NO_DATA').length * 4;
+  confidence = Math.max(0, Math.min(100, confidence)) / 100;
+
+  const flags = Object.entries(perVariable)
+    .filter(([, v]) => v.status === 'OUTLIER')
+    .map(([metric, v]) => ({
+      severity: 'high' as const,
+      metric,
+      message: `${metric.replace(/_/g, ' ')} is ${Math.abs(v.discrepancy_pct).toFixed(0)}% off the fan-out median (${v.observation_count} obs). ${v.notes}`,
+      impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
+    }));
+
+  const totalObs = entries.reduce((s, e) => s + e.observation_count, 0);
+  const cacheHits = entries.filter((e) => (e as any).cache_hit).length;
+  const expectedCap = RVCE_OBS_CAP[tier];
+
+  return {
+    analysis_id,
+    rvce_version: RVCE_VERSION,
+    rvce_engine: 'fanout',
+    tier,
+    obs_cap_per_variable: expectedCap,
+    global_confidence_score: parseFloat(confidence.toFixed(3)),
+    reference_classes: [
+      { id: `rc-${slug(ctx.industry)}-${slug(ctx.city)}`, description: `${ctx.city} ${ctx.industry}`, sample_size: totalObs },
+      { id: `rc-${slug(ctx.industry)}-${slug(ctx.country)}`, description: `${ctx.country} ${ctx.industry}`, sample_size: totalObs },
+    ],
+    metrics_validation: perVariable,
+    flags,
+    evidence_samples: evidenceSamples.slice(0, 60),
+    latency_ms: Date.now() - startTime,
+    status: totalObs > 0 ? 'COMPLETED' : 'PARTIAL',
+    search_health: {
+      total_metrics_searched: metricsToProcess.length,
+      total_observations_collected: totalObs,
+      cache_hit_count: cacheHits,
+      cache_hit_ratio: parseFloat((metricsToProcess.length ? cacheHits / metricsToProcess.length : 0).toFixed(2)),
+      web_search_fired_count: metricsToProcess.length - cacheHits,
+      web_search_fired_ratio: parseFloat((metricsToProcess.length ? (metricsToProcess.length - cacheHits) / metricsToProcess.length : 0).toFixed(2)),
+      total_source_urls: new Set(evidenceSamples.flatMap((e: any) => (e.url ? [e.url] : []))).size,
+      fallback_queries_used: 0,
+      metrics_with_zero_observations: entries.filter((e) => e.observation_count === 0).length,
+    },
+    search_diagnostics: [],
+  };
+}
+
+function toLegacyShape(metric: string, v: ReturnType<typeof fanoutVariable> extends Promise<infer R> ? R : never) {
+  const legacy = {
+    original_value: v.original_value,
+    external_median: v.external_median,
+    p25: v.p25,
+    p75: v.p75,
+    status: v.status,
+    discrepancy_score: v.discrepancy_pct, // legacy field name kept for UI compat
+    discrepancy_pct: v.discrepancy_pct,
+    notes: v.notes,
+    observation_count: v.observation_count,
+    web_search_fired: !v.cache_hit,
+    sources_used: new Set(v.observations.map((o) => o.url || o.source)).size,
+    confidence: v.confidence,
+    cache_hit: v.cache_hit,
+    observations: v.observations, // full evidence for the modal
+    ...(v.status === 'OUTLIER' && v.external_median != null
+      ? { recommended_value: v.external_median }
+      : {}),
+  };
+  const samples = v.observations.slice(0, 5).map((o) => ({
+    metric,
+    source: o.source,
+    url: o.url || '',
+    summary: `${o.metric_estimate} ${o.units} — ${o.source}`,
+    value: o.metric_estimate,
+    snippet: o.snippet,
+  }));
+  return { legacy, samples };
+}
+
+
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
