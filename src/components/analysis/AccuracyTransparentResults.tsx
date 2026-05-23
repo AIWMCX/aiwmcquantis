@@ -634,7 +634,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {currentStep === 3 && isFree && <LockedAnalysisPaywall section="action-plan" />}
           {currentStep === 3 && !isFree && (
             <div className="space-y-6">
+              {/* ── RVCE Layer 8 — External Reality Validation ── */}
+              {rvceLoading && (
+                <div className="rounded-lg border border-border bg-card/40 p-4 flex items-center gap-3 text-sm text-muted-foreground">
+                  <div className="h-4 w-4 rounded-full border-2 border-muted-foreground/40 border-t-foreground animate-spin" />
+                  Validating against external benchmarks...
+                </div>
+              )}
+              {rvceValidation && !rvceLoading && (
+                <RvceValidationSection validation={rvceValidation} />
+              )}
+
               <div className="grid lg:grid-cols-2 gap-5">
+
                 {/* LEFT: Risk Flags */}
                 <div className="space-y-4">
                   <h3 className="font-semibold">Red Flags Blocking Investment</h3>
