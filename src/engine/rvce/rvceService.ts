@@ -25,6 +25,8 @@ export async function runRVCEValidation(
     status: 'UNAVAILABLE',
   };
 
+  if (!RVCE_ENABLED) return fallback;
+
   try {
     const controller = new AbortController();
     const t = setTimeout(() => controller.abort(), RVCE_TIMEOUT_MS);
