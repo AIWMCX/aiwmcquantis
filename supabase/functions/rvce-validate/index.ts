@@ -1,320 +1,470 @@
-/**
- * RVCE Layer 8 — External Reality Validation edge function.
- *
- * Receives analysis core metrics + business profile, uses Claude Haiku
- * with web_search to gather external observations per metric, aggregates,
- * and returns a validation payload.
- *
- * Fail-safe: any internal error produces an UNAVAILABLE payload (200 OK)
- * so the calling analysis never breaks.
- */
-import { createClient } from 'npm:@supabase/supabase-js@2';
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
-const SERVICE_ROLE = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
-const RVCE_VERSION = 'rvce-0.1.0';
-const HAIKU_MODEL = 'claude-haiku-4-5-20251001';
-
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type',
-};
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
+const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const RVCE_VERSION = 'rvce-0.2.0';
 
 const METRICS_TO_VALIDATE = [
-  'revenue_monthly',
-  'gross_margin_pct',
-  'opex_marketing_monthly',
-  'opex_rent_monthly',
-  'opex_payroll_monthly',
-  'total_opex_monthly',
-  'ltv',
-  'cac',
-  'ltv_cac_ratio',
-  'cac_payback_months',
-  'startup_investment_total',
-  'som_year1_revenue',
+  'revenue_monthly', 'gross_margin_pct', 'opex_marketing_monthly',
+  'opex_rent_monthly', 'opex_payroll_monthly', 'ltv', 'cac',
+  'ltv_cac_ratio', 'cac_payback_months', 'startup_investment_total',
 ];
 
-const QUERY_TEMPLATES: Record<string, string[]> = {
-  revenue_monthly: [
-    '{industry} average monthly revenue {city}',
-    '{industry} small business revenue benchmark',
-  ],
-  gross_margin_pct: [
-    '{industry} gross margin benchmark',
-    'average gross margin {business_model}',
-  ],
-  opex_marketing_monthly: [
-    '{industry} monthly marketing budget small business',
-    '{business_model} average marketing spend per month',
-  ],
-  opex_rent_monthly: [
-    'commercial rent {city} small business monthly',
-    '{industry} rent cost {city}',
-  ],
-  opex_payroll_monthly: [
-    '{industry} payroll cost small business {city}',
-    '{industry} labor cost percentage revenue',
-  ],
-  total_opex_monthly: [
-    '{industry} monthly operating expenses small business',
-    '{business_model} typical monthly opex',
-  ],
-  ltv: [
-    '{industry} customer lifetime value benchmark',
-    '{business_model} average LTV',
-  ],
-  cac: [
-    '{industry} customer acquisition cost benchmark',
-    '{business_model} average CAC',
-  ],
-  ltv_cac_ratio: [
-    '{industry} LTV CAC ratio benchmark healthy',
-    'good LTV to CAC ratio {business_model}',
-  ],
-  cac_payback_months: [
-    '{industry} CAC payback period months benchmark',
-    '{business_model} payback period months',
-  ],
-  startup_investment_total: [
-    'cost to start {industry} business {city}',
-    '{industry} startup costs breakdown',
-  ],
-  som_year1_revenue: [
-    '{industry} first year revenue realistic',
-    'average year 1 revenue {industry} startup',
-  ],
+const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }> = {
+  revenue_monthly: {
+    primary: [
+      '{industry} average monthly revenue {city} 2024 2025',
+      '{industry} small business revenue benchmark United States',
+    ],
+    fallback: [
+      'average monthly revenue small business {industry}',
+      'how much does a {industry} business make per month',
+    ],
+  },
+  gross_margin_pct: {
+    primary: [
+      '{industry} gross margin percentage benchmark 2024',
+      '{industry} average gross profit margin small business',
+    ],
+    fallback: [
+      'typical gross margin {business_model} business',
+      'gross margin benchmark by industry',
+    ],
+  },
+  opex_marketing_monthly: {
+    primary: [
+      '{industry} monthly marketing budget small business {city}',
+      '{business_model} average marketing spend per month 2024',
+    ],
+    fallback: [
+      'small business marketing spend percentage revenue',
+      'average monthly marketing cost startup',
+    ],
+  },
+  opex_rent_monthly: {
+    primary: [
+      'commercial rent {city} small business per month 2024 2025',
+      '{industry} office rent cost {city} monthly',
+    ],
+    fallback: [
+      'average commercial rent per month {city}',
+      'small business rent cost United States average',
+    ],
+  },
+  opex_payroll_monthly: {
+    primary: [
+      '{industry} payroll cost small business {city} 2024',
+      '{industry} average employee salary {city}',
+    ],
+    fallback: [
+      'small business payroll percentage of revenue',
+      'average payroll cost per employee {city}',
+    ],
+  },
+  ltv: {
+    primary: [
+      '{industry} customer lifetime value benchmark',
+      '{business_model} average customer LTV 2024',
+    ],
+    fallback: [
+      'average customer lifetime value by industry',
+      'LTV benchmark small business',
+    ],
+  },
+  cac: {
+    primary: [
+      '{industry} customer acquisition cost 2024 2025',
+      '{business_model} average CAC benchmark',
+    ],
+    fallback: [
+      'average customer acquisition cost by industry',
+      'CAC benchmark small business digital',
+    ],
+  },
+  ltv_cac_ratio: {
+    primary: [
+      '{industry} LTV to CAC ratio benchmark healthy',
+      'good LTV CAC ratio {business_model} 2024',
+    ],
+    fallback: [
+      'ideal LTV CAC ratio by industry',
+    ],
+  },
+  cac_payback_months: {
+    primary: [
+      '{industry} CAC payback period months benchmark',
+      '{business_model} payback period average',
+    ],
+    fallback: [
+      'average CAC payback period months startup',
+    ],
+  },
+  startup_investment_total: {
+    primary: [
+      'how much does it cost to start a {industry} business in {city} 2024 2025',
+      '{industry} startup costs breakdown average',
+    ],
+    fallback: [
+      'average startup cost {industry} United States',
+      'cost to open a {industry} business',
+    ],
+  },
 };
+
+interface SearchDiagnostics {
+  metric: string;
+  queries_sent: string[];
+  web_search_tool_fired: boolean;
+  tool_use_count: number;
+  tool_result_count: number;
+  raw_results_found: number;
+  parsed_observations: number;
+  fallback_used: boolean;
+  source_urls: string[];
+  error: string | null;
+}
 
 interface Observation {
   value: number;
   source: string;
+  url?: string;
+  confidence: number;
 }
 
-Deno.serve(async (req) => {
+serve(async (req) => {
   if (req.method === 'OPTIONS') {
-    return new Response('ok', { headers: corsHeaders });
+    return new Response(null, {
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Methods': 'POST, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization, apikey',
+      },
+    });
   }
 
   const startTime = Date.now();
 
-  // Identify caller (best-effort) — RVCE works for both authed + anon analyses.
-  let userId: string | null = null;
-  try {
-    const auth = req.headers.get('Authorization') ?? '';
-    if (auth.startsWith('Bearer ') && SUPABASE_URL) {
-      const supa = createClient(SUPABASE_URL, SERVICE_ROLE);
-      const { data } = await supa.auth.getUser(auth.replace('Bearer ', ''));
-      userId = data?.user?.id ?? null;
-    }
-  } catch { /* ignore */ }
-
-  let analysisId = 'unknown';
-
   try {
     const payload = await req.json();
-    analysisId = payload?.analysis_id ?? 'unknown';
-    const businessProfile = payload?.business_profile;
-    const coreMetrics = payload?.core_metrics;
+    const { analysis_id, business_profile, core_metrics } = payload;
 
-    if (!businessProfile || !coreMetrics) {
-      return jsonResponse(
-        unavailablePayload(analysisId, Date.now() - startTime, 'Missing payload'),
-        200,
-      );
-    }
-    if (!ANTHROPIC_API_KEY) {
-      return jsonResponse(
-        unavailablePayload(
-          analysisId,
-          Date.now() - startTime,
-          'ANTHROPIC_API_KEY missing',
-        ),
-        200,
-      );
+    if (!business_profile || !core_metrics) {
+      return jsonResponse({ error: 'Missing business_profile or core_metrics' }, 400);
     }
 
-    const industry = String(businessProfile.industry ?? 'General');
-    const city = String(businessProfile.location_city ?? '');
-    const country = String(businessProfile.location_country ?? 'US');
-    const businessModel = String(businessProfile.business_model ?? 'B2C');
+    const { industry, location_city, business_model } = business_profile;
+    const location_country = business_profile.location_country || 'US';
 
-    // Reference classes (descriptive only at this layer)
     const referenceClasses = [
-      {
-        id: `rc-${slug(industry)}-${slug(city)}`,
-        description: `${city} ${industry} businesses`,
-        industry,
-        geo_region: `${city}, ${country}`,
-        business_model: businessModel,
-        sample_size: 0,
-      },
-      {
-        id: `rc-${slug(industry)}-${slug(country)}`,
-        description: `${country} ${industry} businesses`,
-        industry,
-        geo_region: country,
-        business_model: businessModel,
-        sample_size: 0,
-      },
-      ...(businessModel
-        ? [
-            {
-              id: `rc-${slug(businessModel)}`,
-              description: `${businessModel} reference class`,
-              business_model: businessModel,
-              sample_size: 0,
-            },
-          ]
-        : []),
+      { id: `rc-${slug(industry)}-${slug(location_city)}`, description: `${location_city} ${industry}`, sample_size: 0 },
+      { id: `rc-${slug(industry)}-${slug(location_country)}`, description: `${location_country} ${industry}`, sample_size: 0 },
+      ...(business_model ? [{ id: `rc-${slug(business_model)}`, description: `${business_model} class`, sample_size: 0 }] : []),
     ];
 
-    // Validate metrics in parallel batches of 3 (Anthropic rate-limit friendly)
-    const candidates = METRICS_TO_VALIDATE.filter(
-      (m) =>
-        typeof coreMetrics[m] === 'number' &&
-        Number.isFinite(coreMetrics[m]) &&
-        coreMetrics[m] !== 0,
+    const metricsValidation: Record<string, any> = {};
+    const evidenceSamples: any[] = [];
+    const searchDiagnostics: SearchDiagnostics[] = [];
+
+    const metricsToProcess = METRICS_TO_VALIDATE.filter(
+      m => core_metrics[m] !== undefined && core_metrics[m] !== null && core_metrics[m] !== 0
     );
 
-    const metricsValidation: Record<string, ReturnType<typeof calibrate>> = {};
-    const evidenceSamples: Array<{
-      metric: string;
-      source: string;
-      summary: string;
-      value: number;
-    }> = [];
-    let totalObservations = 0;
+    const batches = chunk(metricsToProcess, 3);
 
-    for (const batch of chunk(candidates, 3)) {
-      const results = await Promise.all(
-        batch.map((metric) =>
-          validateSingleMetric(metric, coreMetrics[metric], {
-            industry,
-            city,
-            business_model: businessModel,
-          }).catch(() => ({
-            validation: noDataValidation(coreMetrics[metric], 0, 'Validation error'),
-            evidence: [] as typeof evidenceSamples,
-            obsCount: 0,
-          })),
-        ),
+    for (const batch of batches) {
+      const results = await Promise.allSettled(
+        batch.map(metric =>
+          validateMetricWithSearch(
+            metric,
+            core_metrics[metric],
+            { industry, city: location_city, business_model, country: location_country }
+          )
+        )
       );
-      results.forEach((r, i) => {
+
+      results.forEach((result, i) => {
         const metric = batch[i];
-        metricsValidation[metric] = r.validation;
-        totalObservations += r.obsCount;
-        for (const e of r.evidence) evidenceSamples.push(e);
+        if (result.status === 'fulfilled') {
+          metricsValidation[metric] = result.value.validation;
+          evidenceSamples.push(...result.value.evidence);
+          searchDiagnostics.push(result.value.diagnostics);
+        } else {
+          metricsValidation[metric] = {
+            original_value: core_metrics[metric],
+            external_median: null,
+            p25: null, p75: null,
+            status: 'NO_DATA',
+            discrepancy_score: 0,
+            notes: `Search failed: ${result.reason}`,
+            observation_count: 0,
+            web_search_fired: false,
+          };
+          searchDiagnostics.push({
+            metric,
+            queries_sent: [],
+            web_search_tool_fired: false,
+            tool_use_count: 0,
+            tool_result_count: 0,
+            raw_results_found: 0,
+            parsed_observations: 0,
+            fallback_used: false,
+            source_urls: [],
+            error: String(result.reason),
+          });
+        }
       });
     }
 
-    const entries = Object.values(metricsValidation);
+    const entries = Object.values(metricsValidation) as any[];
     let confidence = 85;
-    confidence -= entries.filter((e) => e.status === 'OUTLIER').length * 12;
-    confidence -= entries.filter((e) => e.status === 'WARN').length * 5;
-    confidence -= entries.filter((e) => e.status === 'NO_DATA').length * 3;
-    const avgObs =
-      entries.reduce((s, e) => s + (e.observation_count ?? 0), 0) /
-      Math.max(1, entries.length);
-    if (avgObs >= 10) confidence += 5;
+    confidence -= entries.filter((e: any) => e.status === 'OUTLIER').length * 12;
+    confidence -= entries.filter((e: any) => e.status === 'WARN').length * 5;
+    confidence -= entries.filter((e: any) => e.status === 'NO_DATA').length * 3;
+
+    const searchFiredCount = searchDiagnostics.filter(d => d.web_search_tool_fired).length;
+    const searchFiredRatio = metricsToProcess.length > 0
+      ? searchFiredCount / metricsToProcess.length
+      : 0;
+    if (searchFiredRatio >= 0.8) confidence += 5;
+    if (searchFiredRatio < 0.3) confidence -= 10;
+
     confidence = Math.max(0, Math.min(100, confidence)) / 100;
 
     const flags = Object.entries(metricsValidation)
-      .filter(([, v]) => v.status === 'OUTLIER')
-      .map(([metricKey, v]) => ({
+      .filter(([, v]: [string, any]) => v.status === 'OUTLIER')
+      .map(([metric, v]: [string, any]) => ({
         severity: 'high' as const,
-        metric: metricKey,
-        message: `${metricKey.replace(/_/g, ' ')} is ${Math.abs(
-          v.discrepancy_score,
-        ).toFixed(1)}σ ${v.discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${v.notes}`,
+        metric,
+        message: `${metric.replace(/_/g, ' ')} is ${Math.abs(v.discrepancy_score).toFixed(1)}σ ${v.discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${v.notes}`,
         impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
       }));
 
     const latencyMs = Date.now() - startTime;
-    const outlierCount = entries.filter((e) => e.status === 'OUTLIER').length;
-    const warnCount = entries.filter((e) => e.status === 'WARN').length;
-    const noDataCount = entries.filter((e) => e.status === 'NO_DATA').length;
 
-    const response = {
-      analysis_id: analysisId,
-      rvce_version: RVCE_VERSION,
-      global_confidence_score: Number(confidence.toFixed(3)),
-      reference_classes: referenceClasses,
-      metrics_validation: metricsValidation,
-      flags,
-      evidence_samples: evidenceSamples.slice(0, 20),
-      latency_ms: latencyMs,
-      status: Object.keys(metricsValidation).length > 0 ? 'COMPLETED' : 'PARTIAL',
+    const searchHealth = {
+      total_metrics_searched: metricsToProcess.length,
+      web_search_fired_count: searchFiredCount,
+      web_search_fired_ratio: parseFloat(searchFiredRatio.toFixed(2)),
+      total_observations_collected: searchDiagnostics.reduce((s, d) => s + d.parsed_observations, 0),
+      total_source_urls: [...new Set(searchDiagnostics.flatMap(d => d.source_urls))].length,
+      fallback_queries_used: searchDiagnostics.filter(d => d.fallback_used).length,
+      metrics_with_zero_observations: searchDiagnostics.filter(d => d.parsed_observations === 0).length,
     };
 
-    // Best-effort log (never blocks response)
-    void logRun({
-      analysis_id: analysisId,
-      user_id: userId,
-      global_confidence: response.global_confidence_score,
-      metrics_count: entries.length,
-      outlier_count: outlierCount,
-      warn_count: warnCount,
-      no_data_count: noDataCount,
-      total_observations: totalObservations,
+    const validationPayload = {
+      analysis_id,
+      rvce_version: RVCE_VERSION,
+      global_confidence_score: parseFloat(confidence.toFixed(3)),
       reference_classes: referenceClasses,
       metrics_validation: metricsValidation,
       flags,
-      evidence_samples: response.evidence_samples,
+      evidence_samples: evidenceSamples.slice(0, 30),
       latency_ms: latencyMs,
-      status: response.status,
-    });
+      status: searchFiredCount > 0 ? 'COMPLETED' : (metricsToProcess.length > 0 ? 'PARTIAL' : 'UNAVAILABLE'),
+      search_health: searchHealth,
+      search_diagnostics: searchDiagnostics,
+    };
 
-    return jsonResponse(response, 200);
+    logValidation(validationPayload).catch(() => {});
+
+    return jsonResponse(validationPayload);
+
   } catch (err) {
-    return jsonResponse(
-      unavailablePayload(
-        analysisId,
-        Date.now() - startTime,
-        err instanceof Error ? err.message : 'unknown',
-      ),
-      200,
-    );
+    return jsonResponse({
+      analysis_id: 'unknown',
+      rvce_version: RVCE_VERSION,
+      global_confidence_score: 0,
+      reference_classes: [],
+      metrics_validation: {},
+      flags: [],
+      evidence_samples: [],
+      latency_ms: Date.now() - startTime,
+      status: 'UNAVAILABLE',
+      search_health: { total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0, total_observations_collected: 0, total_source_urls: 0, fallback_queries_used: 0, metrics_with_zero_observations: 0 },
+      search_diagnostics: [],
+      error: (err as Error).message,
+    });
   }
 });
 
-// ─────────────────────────────────────────────────────────
-// Validate a single metric using Claude Haiku + web_search
-// ─────────────────────────────────────────────────────────
-async function validateSingleMetric(
+async function validateMetricWithSearch(
   metric: string,
   originalValue: number,
-  profile: { industry: string; city: string; business_model: string },
-) {
-  const templates = QUERY_TEMPLATES[metric] ?? [
-    `${profile.industry} ${metric.replace(/_/g, ' ')} benchmark`,
-  ];
-  const queries = templates.map((t) =>
-    t
-      .replace('{industry}', profile.industry)
-      .replace('{city}', profile.city)
-      .replace('{business_model}', profile.business_model),
-  );
+  profile: { industry: string; city: string; business_model: string; country: string }
+): Promise<{ validation: any; evidence: any[]; diagnostics: SearchDiagnostics }> {
 
-  const prompt = `You are a financial benchmark researcher. Find real market data for the metric "${metric.replace(/_/g, ' ')}" for businesses in the "${profile.industry}" industry${profile.city ? ` in ${profile.city}` : ''}.
+  const templates = QUERY_TEMPLATES[metric] || {
+    primary: [`${profile.industry} ${metric.replace(/_/g, ' ')} benchmark`],
+    fallback: [`average ${metric.replace(/_/g, ' ')} small business`],
+  };
 
-Search queries to consider: ${queries.join(' | ')}
+  const fillTemplate = (tpl: string) =>
+    tpl.replace(/{industry}/g, profile.industry)
+       .replace(/{city}/g, profile.city)
+       .replace(/{business_model}/g, profile.business_model)
+       .replace(/{country}/g, profile.country);
 
-After searching, extract ALL numeric values you find that are relevant to this metric. Return ONLY valid JSON (no markdown, no backticks, no commentary):
-{"observations":[{"value":12000,"source":"BLS data on restaurant revenue"},{"value":15000,"source":"Industry report on coffee shops"}],"notes":"Brief context"}
+  const primaryQueries = templates.primary.map(fillTemplate);
+  const fallbackQueries = templates.fallback.map(fillTemplate);
 
-Rules:
-- Only include numbers that specifically relate to "${metric.replace(/_/g, ' ')}".
-- Convert annual figures to monthly when the metric is monthly.
-- For percentage metrics return whole-number percent (e.g. 56 for 56%, NOT 0.56).
-- For ratio metrics (ltv_cac_ratio) return the ratio as a number (e.g. 3.2, not 320%).
-- If nothing relevant found, return {"observations":[],"notes":"No relevant data found"}.
-- Output JSON only, nothing else.`;
+  const diagnostics: SearchDiagnostics = {
+    metric,
+    queries_sent: [],
+    web_search_tool_fired: false,
+    tool_use_count: 0,
+    tool_result_count: 0,
+    raw_results_found: 0,
+    parsed_observations: 0,
+    fallback_used: false,
+    source_urls: [],
+    error: null,
+  };
 
-  const res = await fetch('https://api.anthropic.com/v1/messages', {
+  let observations: Observation[] = [];
+
+  try {
+    const result1 = await callClaudeWithWebSearch(metric, originalValue, primaryQueries, profile);
+    diagnostics.queries_sent.push(...primaryQueries);
+    diagnostics.web_search_tool_fired = result1.searchFired;
+    diagnostics.tool_use_count += result1.toolUseCount;
+    diagnostics.tool_result_count += result1.toolResultCount;
+    diagnostics.source_urls.push(...result1.sourceUrls);
+    observations.push(...result1.observations);
+  } catch (err) {
+    diagnostics.error = `Primary search failed: ${(err as Error).message}`;
+  }
+
+  if (observations.length < 3 && fallbackQueries.length > 0) {
+    diagnostics.fallback_used = true;
+    try {
+      const result2 = await callClaudeWithWebSearch(metric, originalValue, fallbackQueries, profile);
+      diagnostics.queries_sent.push(...fallbackQueries);
+      if (result2.searchFired) diagnostics.web_search_tool_fired = true;
+      diagnostics.tool_use_count += result2.toolUseCount;
+      diagnostics.tool_result_count += result2.toolResultCount;
+      diagnostics.source_urls.push(...result2.sourceUrls);
+      observations.push(...result2.observations);
+    } catch (err) {
+      diagnostics.error = (diagnostics.error || '') + ` Fallback also failed: ${(err as Error).message}`;
+    }
+  }
+
+  observations = deduplicateObservations(observations);
+  diagnostics.source_urls = [...new Set(diagnostics.source_urls)];
+  diagnostics.raw_results_found = observations.length;
+  diagnostics.parsed_observations = observations.length;
+
+  if (observations.length < 2) {
+    return {
+      validation: {
+        original_value: originalValue,
+        external_median: null,
+        p25: null, p75: null,
+        status: 'NO_DATA',
+        discrepancy_score: 0,
+        notes: diagnostics.web_search_tool_fired
+          ? 'Web search ran but found insufficient relevant data for this metric.'
+          : 'Web search did not activate. Insufficient data.',
+        observation_count: observations.length,
+        web_search_fired: diagnostics.web_search_tool_fired,
+        sources_used: diagnostics.source_urls.length,
+      },
+      evidence: [],
+      diagnostics,
+    };
+  }
+
+  const values = observations.map(o => o.value).sort((a, b) => a - b);
+  const n = values.length;
+  const median = n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
+  const p25 = values[Math.max(0, Math.floor(n * 0.25))];
+  const p75 = values[Math.min(n - 1, Math.floor(n * 0.75))];
+  const mean = values.reduce((s, v) => s + v, 0) / n;
+  const std = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1));
+  const effectiveStd = std > 0 ? std : Math.max(1e-6, Math.abs(median) * 0.1);
+  const discrepancy = (originalValue - median) / effectiveStd;
+
+  let status: string;
+  if (Math.abs(discrepancy) < 1.0) status = 'OK';
+  else if (Math.abs(discrepancy) < 2.0) status = 'WARN';
+  else status = 'OUTLIER';
+
+  const validation: any = {
+    original_value: originalValue,
+    external_median: parseFloat(median.toFixed(2)),
+    p25: parseFloat(p25.toFixed(2)),
+    p75: parseFloat(p75.toFixed(2)),
+    status,
+    discrepancy_score: parseFloat(discrepancy.toFixed(2)),
+    notes: status === 'OUTLIER'
+      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median of $${median.toLocaleString()} from ${n} external sources.`
+      : status === 'WARN'
+      ? `Value is at the boundary of the typical range ($${p25.toLocaleString()}–$${p75.toLocaleString()}) from ${n} external sources.`
+      : `Value aligns with external reality (median $${median.toLocaleString()}) from ${n} sources.`,
+    observation_count: observations.length,
+    web_search_fired: diagnostics.web_search_tool_fired,
+    sources_used: diagnostics.source_urls.length,
+  };
+
+  if (status === 'OUTLIER') {
+    validation.recommended_value = parseFloat(median.toFixed(2));
+  }
+
+  const evidence = observations.slice(0, 5).map(o => ({
+    metric,
+    source: o.source,
+    url: o.url || '',
+    summary: `$${o.value.toLocaleString()} — ${o.source}`,
+    value: o.value,
+  }));
+
+  return { validation, evidence, diagnostics };
+}
+
+async function callClaudeWithWebSearch(
+  metric: string,
+  _originalValue: number,
+  queries: string[],
+  profile: { industry: string; city: string; business_model: string }
+): Promise<{
+  observations: Observation[];
+  searchFired: boolean;
+  toolUseCount: number;
+  toolResultCount: number;
+  sourceUrls: string[];
+}> {
+  const metricLabel = metric.replace(/_/g, ' ');
+  const isPercentage = metric.includes('pct') || metric.includes('ratio');
+  const unit = isPercentage ? (metric.includes('ratio') ? 'x' : '%') : 'USD per month';
+
+  const systemPrompt = `You are a financial benchmark researcher. You MUST use the web_search tool to find real, current data. Do NOT answer from memory or training data — every number you return MUST come from a web search result you just retrieved. If you cannot find data via web search, return an empty observations array. Never fabricate benchmarks.`;
+
+  const userPrompt = `I need you to find real market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
+
+STEP 1: Use your web_search tool to search for EACH of these queries (search for ALL of them):
+${queries.map((q, i) => `  ${i + 1}. "${q}"`).join('\n')}
+
+STEP 2: From the search results, extract every numeric value that specifically represents "${metricLabel}". The unit is ${unit}.
+
+STEP 3: Return ONLY this JSON (no markdown, no backticks, no preamble):
+{
+  "observations": [
+    {"value": 12000, "source": "Brief description of where this number came from", "url": "https://source-url-if-available"},
+    {"value": 15000, "source": "Another source", "url": ""}
+  ],
+  "search_executed": true
+}
+
+CRITICAL RULES:
+- You MUST call web_search before returning any data
+- Convert annual figures to monthly (divide by 12) for monthly metrics
+- For percentage metrics, return the number (e.g., 62 not 0.62 for 62%)
+- Only include numbers directly related to "${metricLabel}"
+- If search returns nothing relevant, return {"observations": [], "search_executed": true}
+- Include the source URL when available from search results`;
+
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
@@ -322,205 +472,139 @@ Rules:
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: HAIKU_MODEL,
-      max_tokens: 1024,
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      system: systemPrompt,
       tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: prompt }],
+      messages: [{ role: 'user', content: userPrompt }],
     }),
   });
 
-  if (!res.ok) {
-    return {
-      validation: noDataValidation(originalValue, 0, `Anthropic ${res.status}`),
-      evidence: [],
-      obsCount: 0,
-    };
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Claude API ${response.status}: ${errText.slice(0, 200)}`);
   }
 
-  const data = await res.json();
-  const textContent: string =
-    (data?.content ?? [])
-      .filter((b: { type: string }) => b.type === 'text')
-      .map((b: { text: string }) => b.text)
-      .join('\n') ?? '';
+  const data = await response.json();
+  const content = data.content || [];
 
-  const observations = parseObservations(textContent);
+  let searchFired = false;
+  let toolUseCount = 0;
+  let toolResultCount = 0;
+  const sourceUrls: string[] = [];
+  const textBlocks: string[] = [];
 
-  if (observations.length < 2) {
-    return {
-      validation: noDataValidation(
-        originalValue,
-        observations.length,
-        'Insufficient external data found.',
-      ),
-      evidence: [],
-      obsCount: observations.length,
-    };
+  for (const block of content) {
+    if (block.type === 'tool_use' || block.type === 'server_tool_use') {
+      toolUseCount++;
+      if (block.name === 'web_search') searchFired = true;
+    }
+    if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
+      toolResultCount++;
+      const resultContent = block.content;
+      if (Array.isArray(resultContent)) {
+        for (const item of resultContent) {
+          if (item.type === 'web_search_result' && item.url) {
+            sourceUrls.push(item.url);
+          } else if (item.url) {
+            sourceUrls.push(item.url);
+          }
+        }
+      }
+      if (typeof resultContent === 'string' && resultContent.includes('http')) {
+        const urls = resultContent.match(/https?:\/\/[^\s"'<>]+/g);
+        if (urls) sourceUrls.push(...urls);
+      }
+    }
+    if (block.type === 'text') {
+      textBlocks.push(block.text);
+    }
   }
 
-  const validation = calibrate(originalValue, observations);
-  const evidence = observations.slice(0, 3).map((o) => ({
-    metric,
-    source: o.source,
-    summary: `Found value: ${formatVal(o.value)}`,
-    value: o.value,
-  }));
+  const fullText = textBlocks.join('\n');
+  let observations: Observation[] = [];
 
-  return { validation, evidence, obsCount: observations.length };
-}
-
-function parseObservations(text: string): Observation[] {
-  // Try strict JSON first
-  const cleaned = text.replace(/```json|```/g, '').trim();
   try {
-    const parsed = JSON.parse(cleaned);
-    if (Array.isArray(parsed?.observations)) {
-      return parsed.observations
-        .filter(
-          (o: { value: unknown }) =>
-            typeof o.value === 'number' && Number.isFinite(o.value) && o.value > 0,
-        )
-        .map((o: { value: number; source?: string }) => ({
+    const cleaned = fullText.replace(/```json|```/g, '').trim();
+    const jsonMatch = cleaned.match(/\{[\s\S]*"observations"[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      observations = (parsed.observations || [])
+        .filter((o: any) => typeof o.value === 'number' && isFinite(o.value) && o.value > 0)
+        .map((o: any) => ({
           value: o.value,
-          source: o.source ?? 'web search',
+          source: o.source || 'web search',
+          url: o.url || '',
+          confidence: searchFired ? 0.8 : 0.3,
         }));
     }
   } catch {
-    /* fall through to regex */
+    const patterns = isPercentage
+      ? /(\d+(?:\.\d+)?)\s*%/g
+      : /\$\s*([\d,]+(?:\.\d+)?)/g;
+    const matches = [...fullText.matchAll(patterns)];
+    observations = matches.slice(0, 8).map(m => ({
+      value: parseFloat((m[1] || m[0]).replace(/[$,]/g, '')),
+      source: 'extracted from search text',
+      confidence: searchFired ? 0.5 : 0.2,
+    })).filter(o => isFinite(o.value) && o.value > 0);
   }
 
-  // Loose extract: try first JSON object inside the string
-  const match = cleaned.match(/\{[\s\S]*\}/);
-  if (match) {
-    try {
-      const parsed = JSON.parse(match[0]);
-      if (Array.isArray(parsed?.observations)) {
-        return parsed.observations
-          .filter(
-            (o: { value: unknown }) =>
-              typeof o.value === 'number' && Number.isFinite(o.value) && o.value > 0,
-          )
-          .map((o: { value: number; source?: string }) => ({
-            value: o.value,
-            source: o.source ?? 'web search',
-          }));
-      }
-    } catch { /* ignore */ }
+  return { observations, searchFired, toolUseCount, toolResultCount, sourceUrls: [...new Set(sourceUrls)] };
+}
+
+function deduplicateObservations(obs: Observation[]): Observation[] {
+  const unique: Observation[] = [];
+  for (const o of obs) {
+    const isDupe = unique.some(u => Math.abs(u.value - o.value) / Math.max(u.value, 1) < 0.01);
+    if (!isDupe) unique.push(o);
   }
-
-  return [];
-}
-
-function calibrate(originalValue: number, observations: Observation[]) {
-  const values = observations.map((o) => o.value).sort((a, b) => a - b);
-  const n = values.length;
-  const mean = values.reduce((s, v) => s + v, 0) / n;
-  const median =
-    n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
-  const p25 = values[Math.max(0, Math.floor(n * 0.25))];
-  const p75 = values[Math.min(n - 1, Math.floor(n * 0.75))];
-  const variance = values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1);
-  const std = Math.sqrt(variance);
-  const effectiveStd = std > 0 ? std : Math.max(1e-6, Math.abs(median) * 0.1);
-  const discrepancy = (originalValue - median) / effectiveStd;
-  const abs = Math.abs(discrepancy);
-
-  let status: 'OK' | 'WARN' | 'OUTLIER';
-  if (abs < 1.0) status = 'OK';
-  else if (abs < 2.0) status = 'WARN';
-  else status = 'OUTLIER';
-
-  const out = {
-    original_value: originalValue,
-    external_median: round2(median),
-    p25: round2(p25),
-    p75: round2(p75),
-    status,
-    discrepancy_score: round2(discrepancy),
-    notes:
-      status === 'OUTLIER'
-        ? `Value is ${abs.toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} external median.`
-        : status === 'WARN'
-          ? 'Value is at the boundary of the typical range.'
-          : 'Value aligns with external reality.',
-    observation_count: n,
-  } as {
-    original_value: number;
-    external_median: number;
-    p25: number;
-    p75: number;
-    status: 'OK' | 'WARN' | 'OUTLIER' | 'NO_DATA';
-    discrepancy_score: number;
-    recommended_value?: number;
-    notes: string;
-    observation_count: number;
-  };
-
-  if (status === 'OUTLIER') out.recommended_value = round2(median);
-  return out;
-}
-
-function noDataValidation(originalValue: number, obsCount: number, notes: string) {
-  return {
-    original_value: originalValue,
-    external_median: null as number | null,
-    p25: null as number | null,
-    p75: null as number | null,
-    status: 'NO_DATA' as const,
-    discrepancy_score: 0,
-    notes,
-    observation_count: obsCount,
-  };
-}
-
-function unavailablePayload(analysisId: string, latencyMs: number, reason: string) {
-  return {
-    analysis_id: analysisId,
-    rvce_version: RVCE_VERSION,
-    global_confidence_score: 0,
-    reference_classes: [],
-    metrics_validation: {},
-    flags: [],
-    evidence_samples: [],
-    latency_ms: latencyMs,
-    status: 'UNAVAILABLE',
-    error: reason,
-  };
-}
-
-async function logRun(row: Record<string, unknown>): Promise<void> {
-  if (!SUPABASE_URL || !SERVICE_ROLE) return;
-  try {
-    const supa = createClient(SUPABASE_URL, SERVICE_ROLE);
-    await supa.from('rvce_validation_log').insert({
-      ...row,
-      rvce_version: RVCE_VERSION,
-    });
-  } catch { /* never block */ }
-}
-
-function jsonResponse(data: unknown, status = 200) {
-  return new Response(JSON.stringify(data), {
-    status,
-    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-  });
-}
-
-function chunk<T>(arr: T[], size: number): T[][] {
-  const out: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) out.push(arr.slice(i, i + size));
-  return out;
+  return unique;
 }
 
 function slug(s: string): string {
-  return (s ?? '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-function round2(n: number): number {
-  return Math.round(n * 100) / 100;
+function chunk<T>(arr: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
+  return result;
 }
 
-function formatVal(v: number): string {
-  if (v >= 1000) return `$${Math.round(v).toLocaleString()}`;
-  return v.toString();
+function jsonResponse(data: any, status = 200) {
+  return new Response(JSON.stringify(data), {
+    status,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+  });
+}
+
+async function logValidation(payload: any) {
+  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
+  try {
+    await fetch(`${SUPABASE_URL}/rest/v1/rvce_validation_log`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'apikey': SUPABASE_SERVICE_ROLE_KEY,
+        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        'Prefer': 'return=minimal',
+      },
+      body: JSON.stringify({
+        analysis_id: payload.analysis_id || crypto.randomUUID(),
+        rvce_version: payload.rvce_version,
+        global_confidence: payload.global_confidence_score,
+        metrics_count: Object.keys(payload.metrics_validation || {}).length,
+        outlier_count: payload.flags?.length || 0,
+        warn_count: Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'WARN').length,
+        no_data_count: Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'NO_DATA').length,
+        total_observations: Object.values(payload.metrics_validation || {}).reduce((s: number, v: any) => s + (v.observation_count || 0), 0),
+        reference_classes: payload.reference_classes,
+        metrics_validation: payload.metrics_validation,
+        flags: payload.flags,
+        evidence_samples: payload.evidence_samples,
+        latency_ms: payload.latency_ms,
+      }),
+    });
+  } catch { /* best-effort */ }
 }
