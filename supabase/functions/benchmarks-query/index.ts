@@ -90,7 +90,8 @@ Deno.serve(async (req) => {
   }
 
   const supabaseUrl = Deno.env.get('SUPABASE_URL');
-  const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
+  const supabaseKey =
+    Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');
   if (!supabaseUrl || !supabaseKey) {
     return new Response(JSON.stringify({ error: 'Benchmark service is not configured' }), {
       status: 500,
