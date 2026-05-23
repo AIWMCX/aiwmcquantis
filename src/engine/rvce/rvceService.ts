@@ -6,7 +6,7 @@ import { supabase } from '@/integrations/supabase/client';
 import type { AnalysisCorePayload, AnalysisValidationPayload } from './types';
 import { RVCE_VERSION } from './types';
 
-const RVCE_TIMEOUT_MS = 25_000;
+const RVCE_TIMEOUT_MS = 50_000;
 const RVCE_ENABLED =
   (import.meta as { env?: Record<string, string> }).env?.VITE_RVCE_ENABLED !== 'false';
 
