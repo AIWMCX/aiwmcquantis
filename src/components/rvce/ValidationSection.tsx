@@ -1,6 +1,7 @@
 import { AlertTriangle, HelpCircle } from 'lucide-react';
 import { METRIC_LABELS, type AnalysisValidationPayload } from '@/engine/rvce/types';
 import { ValidationStatusBadge } from './ValidationStatusBadge';
+import { SearchHealthBar } from './SearchHealthBar';
 import { cn } from '@/lib/utils';
 
 function fmt(metric: string, value: number | null): string {
@@ -121,6 +122,12 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
           {validation.reference_classes.map((rc) => rc.description).join(' · ')}
         </p>
       )}
+
+      {/* Search health diagnostics */}
+      <SearchHealthBar
+        health={validation.search_health}
+        diagnostics={validation.search_diagnostics}
+      />
     </section>
   );
 }

@@ -26,6 +26,8 @@ export interface MetricValidation {
   recommended_value?: number;
   notes: string;
   observation_count: number;
+  web_search_fired?: boolean;
+  sources_used?: number;
 }
 
 export interface ValidationFlag {
@@ -40,6 +42,7 @@ export interface EvidenceSample {
   source: string;
   summary: string;
   value: number;
+  url?: string;
 }
 
 export interface AnalysisCorePayload {
@@ -56,6 +59,29 @@ export interface AnalysisCorePayload {
   core_metrics: Record<string, number>;
 }
 
+export interface SearchHealth {
+  total_metrics_searched: number;
+  web_search_fired_count: number;
+  web_search_fired_ratio: number;
+  total_observations_collected: number;
+  total_source_urls: number;
+  fallback_queries_used: number;
+  metrics_with_zero_observations: number;
+}
+
+export interface SearchDiagnosticEntry {
+  metric: string;
+  queries_sent: string[];
+  web_search_tool_fired: boolean;
+  tool_use_count: number;
+  tool_result_count: number;
+  raw_results_found: number;
+  parsed_observations: number;
+  fallback_used: boolean;
+  source_urls: string[];
+  error: string | null;
+}
+
 export interface AnalysisValidationPayload {
   analysis_id: string;
   rvce_version: string;
@@ -66,6 +92,8 @@ export interface AnalysisValidationPayload {
   evidence_samples: EvidenceSample[];
   latency_ms: number;
   status: RvceRunStatus;
+  search_health?: SearchHealth;
+  search_diagnostics?: SearchDiagnosticEntry[];
 }
 
 export const METRICS_TO_VALIDATE = [
@@ -100,4 +128,4 @@ export const METRIC_LABELS: Record<string, string> = {
   som_year1_revenue: 'Year 1 Revenue (SOM)',
 };
 
-export const RVCE_VERSION = 'rvce-0.1.0';
+export const RVCE_VERSION = 'rvce-0.2.0';
