@@ -135,6 +135,33 @@ const TEST_SCENARIOS: { name: string; payload: AnalysisCorePayload }[] = [
     },
   },
   {
+    name: '🔍 WEB SEARCH ISOLATION — Houston barbershop (must find real data)',
+    payload: {
+      analysis_id: crypto.randomUUID(),
+      business_profile: {
+        title: 'Standard barbershop in Houston Texas',
+        description: 'Traditional barbershop with 3 chairs in a strip mall in Houston, Texas',
+        industry: 'Personal Care / Barbershop',
+        business_model: 'B2C retail service',
+        location_city: 'Houston',
+        location_country: 'US',
+        stage: 'pre-revenue',
+      },
+      core_metrics: {
+        revenue_monthly: 15000,
+        gross_margin_pct: 75,
+        opex_rent_monthly: 2200,
+        opex_payroll_monthly: 6000,
+        opex_marketing_monthly: 500,
+        total_opex_monthly: 9500,
+        startup_investment_total: 45000,
+        cac: 25,
+        ltv: 850,
+        ltv_cac_ratio: 34,
+      },
+    },
+  },
+  {
     name: '⚡ FAIL-SAFE TEST — empty metrics (should return UNAVAILABLE / NO_DATA)',
     payload: {
       analysis_id: crypto.randomUUID(),
@@ -208,7 +235,7 @@ export default function RvceTestPanel() {
       <header className="space-y-2">
         <h1 className="text-2xl font-bold">RVCE Test Panel</h1>
         <p className="text-sm text-muted-foreground">
-          Run 5 test scenarios against the live <code>rvce-validate</code> Edge
+          Run {TEST_SCENARIOS.length} test scenarios against the live <code>rvce-validate</code> Edge
           Function. Each test calls Claude Haiku 4.5 with{' '}
           <code>web_search_20250305</code> to validate metrics.
         </p>
@@ -218,7 +245,7 @@ export default function RvceTestPanel() {
         onClick={runAll}
         className="px-4 py-2 rounded-lg bg-foreground text-background text-sm font-medium hover:opacity-90 transition"
       >
-        Run All 5 Tests Sequentially →
+        Run All {TEST_SCENARIOS.length} Tests Sequentially →
       </button>
 
       {TEST_SCENARIOS.map((scenario, i) => {
@@ -288,6 +315,34 @@ export default function RvceTestPanel() {
                   />
                 </div>
 
+                {result.validation.search_health && (
+                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
+                    <Stat
+                      label="Search fired"
+                      value={`${result.validation.search_health.web_search_fired_count}/${result.validation.search_health.total_metrics_searched}`}
+                      valueClass={
+                        result.validation.search_health.web_search_fired_ratio >= 0.7
+                          ? 'text-emerald-500'
+                          : result.validation.search_health.web_search_fired_ratio >= 0.3
+                            ? 'text-amber-500'
+                            : 'text-red-500'
+                      }
+                    />
+                    <Stat
+                      label="Observations"
+                      value={String(result.validation.search_health.total_observations_collected)}
+                    />
+                    <Stat
+                      label="Source URLs"
+                      value={String(result.validation.search_health.total_source_urls)}
+                    />
+                    <Stat
+                      label="Fallbacks"
+                      value={String(result.validation.search_health.fallback_queries_used)}
+                    />
+                  </div>
+                )}
+
                 <details className="text-xs">
                   <summary className="cursor-pointer text-muted-foreground hover:text-foreground">
                     View raw JSON response
@@ -334,13 +389,13 @@ export default function RvceTestPanel() {
   );
 }
 
-function Stat({ label, value }: { label: string; value: string }) {
+function Stat({ label, value, valueClass }: { label: string; value: string; valueClass?: string }) {
   return (
     <div className="rounded border border-border bg-muted/30 px-2 py-1">
       <div className="text-[10px] uppercase tracking-wide text-muted-foreground">
         {label}
       </div>
-      <div className="font-mono text-sm">{value}</div>
+      <div className={`font-mono text-sm ${valueClass ?? ''}`}>{value}</div>
     </div>
   );
 }
