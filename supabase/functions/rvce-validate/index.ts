@@ -1,14 +1,17 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { isRvceFanoutEnabled, getTierForAnalysis, RVCE_OBS_CAP, type Tier } from '../_shared/tier.ts';
+import { calibrateWithHaiku, fanoutVariable } from '../_shared/rvce-fanout.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const RVCE_VERSION = 'rvce-0.2.0';
+const RVCE_VERSION = 'rvce-0.3.0';
 
 const METRICS_TO_VALIDATE = [
   'revenue_monthly', 'gross_margin_pct', 'opex_marketing_monthly',
   'opex_rent_monthly', 'opex_payroll_monthly', 'ltv', 'cac',
   'ltv_cac_ratio', 'cac_payback_months', 'startup_investment_total',
+  'churn_rate_monthly', 'arpu_monthly',
 ];
 
 const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }> = {
