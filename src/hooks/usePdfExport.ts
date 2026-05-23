@@ -794,9 +794,14 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
       React.createElement(
         View,
         { style: styles.logoSection },
-        branding.logoUrl 
-          ? React.createElement(Image, { src: branding.logoUrl, style: { width: 180, height: 60, marginBottom: 10, objectFit: 'contain' } })
-          : React.createElement(Text, { style: brandedLogoText }, displayBrandName),
+        (() => {
+          const url = branding.logoUrl?.trim();
+          // Only embed logos served over http(s) — data: URLs and bad refs blow up @react-pdf
+          const isSafeLogo = !!url && /^https?:\/\//i.test(url);
+          return isSafeLogo
+            ? React.createElement(Image, { src: url!, style: { width: 180, height: 60, marginBottom: 10, objectFit: 'contain' } })
+            : React.createElement(Text, { style: brandedLogoText }, displayBrandName);
+        })(),
         React.createElement(Text, { style: styles.logoSubtext }, brandSubtitle)
       ),
       React.createElement(
@@ -1604,9 +1609,16 @@ export function usePdfExport() {
         { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
         { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPayback === 'number' ? cacPayback : undefined },
       ];
-      const benchmarkRows: PdfBenchmarkRow[] = await Promise.all(
-        desired.map(async (d) => ({ ...d, bench: await lookupBenchmark(d.metric, benchContext) }))
+      // Fail-soft benchmark lookups — never let a benchmark network error kill PDF generation
+      const benchSettled = await Promise.allSettled(
+        desired.map((d) => lookupBenchmark(d.metric, benchContext))
       );
+      const benchmarkRows: PdfBenchmarkRow[] = desired.map((d, i) => ({
+        ...d,
+        bench: benchSettled[i].status === 'fulfilled'
+          ? (benchSettled[i] as PromiseFulfilledResult<BenchmarkResult>).value
+          : ({ status: 'no_match', metric: d.metric } as unknown as BenchmarkResult),
+      }));
 
       // Generate PDF blob using @react-pdf/renderer with timeout
       const doc = createExecutiveReport(result, activeBranding, benchmarkRows);
