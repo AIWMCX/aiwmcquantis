@@ -546,7 +546,16 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && isFree && <LockedAnalysisPaywall section="levers" />}
-          {currentStep === 2 && !isFree && (
+          {currentStep === 2 && !isFree && (() => {
+            const fa: any = result.financial_analysis || {};
+            const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
+              ? scenarioMetrics.revenue
+              : (fa.mrr || fa.scenarios?.base?.revenue || 1000);
+            const safeMargin = Number.isFinite(scenarioMetrics.margin) ? scenarioMetrics.margin : 0.2;
+            const initialCac = fa.unit_economics?.cac ?? 50;
+            const initialRent = fa.monthly_expenses?.fixed_costs ?? 1000;
+            const initialTicket = fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user ?? 100;
+            return (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
               {/* LEFT: Chart + P&L */}
               <div className="space-y-5">
@@ -555,7 +564,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <h3 className="font-semibold">36-Month Revenue Projection</h3>
                     <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
                   </div>
-                  <RevenueChart baseRevenue={scenarioMetrics.revenue} margin={scenarioMetrics.margin} activeScenario={activeScenario} />
+                  <RevenueChart baseRevenue={safeRevenue} margin={safeMargin} activeScenario={activeScenario} />
                   <div className="pt-4 border-t border-border">
                     <ScenarioBar activeScenario={activeScenario} onScenarioChange={setActiveScenario} />
                   </div>
@@ -588,9 +597,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               {/* RIGHT: Assumption Editor + Impact Preview */}
               <div className="space-y-5">
                 <InlineAssumptionEditor 
-                  initialCac={result.financial_analysis?.unit_economics?.cac || 50}
-                  initialRent={result.financial_analysis?.monthly_expenses?.fixed_costs || 1000}
-                  initialTicketSize={result.financial_analysis?.inputs?.price_per_unit || 100}
+                  initialCac={initialCac}
+                  initialRent={initialRent}
+                  initialTicketSize={initialTicket}
                   onRecalculate={(newOverrides) => setOverrides(newOverrides)}
                 />
                 
@@ -602,14 +611,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Revenue</span>
                       <span className={overrides.ticketSize ? 'text-[var(--q-status-green)]' : 'text-foreground'}>
-                        ${(scenarioMetrics.revenue / 1000).toFixed(1)}k
+                        ${(safeRevenue / 1000).toFixed(1)}k
                         {overrides.ticketSize && ' ↑'}
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Profit</span>
                       <span className={scenarioMetrics.profit >= 0 ? 'text-[var(--q-status-green)]' : 'text-[var(--q-status-red)]'}>
-                        ${(scenarioMetrics.profit / 1000).toFixed(1)}k
+                        ${((Number.isFinite(scenarioMetrics.profit) ? scenarioMetrics.profit : 0) / 1000).toFixed(1)}k
                       </span>
                     </div>
                     <div className="flex justify-between items-center">
@@ -626,7 +635,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-          )}
+            );
+          })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}

@@ -355,19 +355,19 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">Contribution Margin (CM)</span>
-                      <span className="font-bold">{formatCurrency(financial.unit_economics.contribution_margin)}</span>
+                      <span className="font-bold">{formatCurrency(financial.unit_economics?.contribution_margin ?? 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CM Ratio</span>
-                      <span className="font-bold">{(financial.unit_economics.contribution_margin_ratio * 100).toFixed(1)}%</span>
+                      <span className="font-bold">{((financial.unit_economics?.contribution_margin_ratio ?? 0) * 100).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC</span>
-                      <span className="font-bold">{formatCurrency(financial.unit_economics.cac)}</span>
+                      <span className="font-bold">{formatCurrency(financial.unit_economics?.cac ?? 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC Payback</span>
-                      <span className="font-bold">{formatNumber(financial.unit_economics.cac_payback_months)} mo.</span>
+                      <span className="font-bold">{formatNumber(financial.unit_economics?.cac_payback_months ?? 0)} mo.</span>
                     </div>
                   </div>
                 </div>
@@ -379,19 +379,19 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                   <div className="space-y-3">
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">LTV</span>
-                      <span className="font-bold">{formatCurrency(financial.unit_economics.ltv)}</span>
+                      <span className="font-bold">{formatCurrency(financial.unit_economics?.ltv ?? 0)}</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">LTV:CAC</span>
-                      <span className={cn("font-bold", financial.unit_economics.ltv_cac_ratio >= 3 ? "text-emerald-600" : "text-amber-600")}>
-                        {formatNumber(financial.unit_economics.ltv_cac_ratio)}x
+                      <span className={cn("font-bold", (financial.unit_economics?.ltv_cac_ratio ?? 0) >= 3 ? "text-emerald-600" : "text-amber-600")}>
+                        {formatNumber(financial.unit_economics?.ltv_cac_ratio ?? 0)}x
                       </span>
                     </div>
                     <div className="pt-2 border-t border-border/50">
                       <p className="text-xs text-muted-foreground">
-                        {financial.unit_economics.ltv_cac_ratio >= 3 
+                        {(financial.unit_economics?.ltv_cac_ratio ?? 0) >= 3 
                           ? "Healthy ratio (>3x)" 
-                          : financial.unit_economics.ltv_cac_ratio >= 1 
+                          : (financial.unit_economics?.ltv_cac_ratio ?? 0) >= 1 
                             ? "Needs improvement (1-3x)"
                             : "Unprofitable model (<1x)"}
                       </p>
@@ -407,15 +407,15 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     <div className="grid grid-cols-3 gap-4">
                       <div>
                         <p className="text-xs text-muted-foreground">In Units</p>
-                        <p className="text-lg font-bold">{formatNumber(financial.breakeven.breakeven_units)}</p>
+                        <p className="text-lg font-bold">{formatNumber(financial.breakeven.breakeven_units ?? 0)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">In Revenue</p>
-                        <p className="text-lg font-bold">{formatCurrency(financial.breakeven.breakeven_revenue)}</p>
+                        <p className="text-lg font-bold">{formatCurrency(financial.breakeven.breakeven_revenue ?? 0)}</p>
                       </div>
                       <div>
                         <p className="text-xs text-muted-foreground">Months to BE</p>
-                        <p className="text-lg font-bold">{financial.breakeven.breakeven_months}</p>
+                        <p className="text-lg font-bold">{financial.breakeven.breakeven_months ?? '—'}</p>
                       </div>
                     </div>
                   </div>
