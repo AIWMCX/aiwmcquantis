@@ -5406,6 +5406,45 @@ export type Database = {
       }
     }
     Views: {
+      autoposter_credentials_safe: {
+        Row: {
+          account_id: string | null
+          has_access_token: boolean | null
+          has_refresh_token: boolean | null
+          id: string | null
+          is_active: boolean | null
+          last_tested: string | null
+          page_id: string | null
+          platform: string | null
+          token_expires: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          account_id?: string | null
+          has_access_token?: never
+          has_refresh_token?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_tested?: string | null
+          page_id?: string | null
+          platform?: string | null
+          token_expires?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          account_id?: string | null
+          has_access_token?: never
+          has_refresh_token?: never
+          id?: string | null
+          is_active?: boolean | null
+          last_tested?: string | null
+          page_id?: string | null
+          platform?: string | null
+          token_expires?: string | null
+          updated_at?: string | null
+        }
+        Relationships: []
+      }
       funnel_daily_30d: {
         Row: {
           day: string | null
