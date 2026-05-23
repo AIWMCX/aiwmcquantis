@@ -794,9 +794,14 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
       React.createElement(
         View,
         { style: styles.logoSection },
-        branding.logoUrl 
-          ? React.createElement(Image, { src: branding.logoUrl, style: { width: 180, height: 60, marginBottom: 10, objectFit: 'contain' } })
-          : React.createElement(Text, { style: brandedLogoText }, displayBrandName),
+        (() => {
+          const url = branding.logoUrl?.trim();
+          // Only embed logos served over http(s) — data: URLs and bad refs blow up @react-pdf
+          const isSafeLogo = !!url && /^https?:\/\//i.test(url);
+          return isSafeLogo
+            ? React.createElement(Image, { src: url!, style: { width: 180, height: 60, marginBottom: 10, objectFit: 'contain' } })
+            : React.createElement(Text, { style: brandedLogoText }, displayBrandName);
+        })(),
         React.createElement(Text, { style: styles.logoSubtext }, brandSubtitle)
       ),
       React.createElement(
