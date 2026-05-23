@@ -163,12 +163,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
   const handleExportPDF = async () => {
+    const loadingId = toast.loading('Generating PDF...');
     try {
-      toast.loading('Generating PDF...');
       await generatePdf(result);
+      toast.dismiss(loadingId);
       toast.success('PDF downloaded!');
     } catch (error) {
-      toast.error('Failed to generate PDF');
+      toast.dismiss(loadingId);
+      const msg = error instanceof Error ? error.message : 'Unknown error';
+      // Surface the actual reason instead of a generic "Failed to generate PDF"
+      toast.error('Failed to generate PDF', { description: msg.slice(0, 240) });
+      // Also log so it shows up in console / Sentry
+      // eslint-disable-next-line no-console
+      console.error('[PDF export]', error);
     }
   };
 
