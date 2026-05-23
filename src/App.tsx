@@ -15,6 +15,7 @@ import { trackReturnVisitIfApplicable } from "./lib/activationTracking";
 
 // CRITICAL: Landing page is NOT lazy loaded for instant first paint
 import Landing from "./pages/Landing";
+import Maintenance from "./pages/Maintenance";
 const AppDashboard = lazy(() => import("./pages/AppDashboard"));
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
@@ -101,7 +102,8 @@ const App = () => {
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<Landing />} />
+                <Route path="/" element={<Maintenance />} />
+                <Route path="/__landing" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/thank-you" element={
                   <ProtectedRoute>
