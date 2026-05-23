@@ -746,7 +746,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                     )}
                                     {tactics.length > 0 ? (
                                       <div className="space-y-2">
-                                        {tactics.slice(0, 3).map((tactic, ti) => (
+                                        {tactics.map((tactic, ti) => (
                                           <div key={ti} className="flex items-start gap-2 text-xs">
                                             <span className="shrink-0 w-4 h-4 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-[9px] font-bold mt-0.5">{ti + 1}</span>
                                             <div className="flex-1">
