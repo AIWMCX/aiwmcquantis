@@ -577,7 +577,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   });
 }
 
