@@ -79,8 +79,14 @@ const NumericPaybackSchema = z.number().finite().nonnegative();
 
 export const FinancialAnalysisWireSchema = z
   .object({
-    unit_economics: z.object({ cac_payback_months: NumericPaybackSchema.optional() }).passthrough().optional(),
-    returns: z.object({ payback_period_months: NumericPaybackSchema.optional() }).passthrough().optional(),
+    unit_economics: z
+      .object({ cac_payback_months: NumericPaybackSchema.optional() })
+      .passthrough()
+      .optional(),
+    returns: z
+      .object({ payback_period_months: NumericPaybackSchema.optional() })
+      .passthrough()
+      .optional(),
     payback_period_months: NumericPaybackSchema.optional(),
   })
   .passthrough();
