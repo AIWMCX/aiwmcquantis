@@ -2731,6 +2731,50 @@ serve(async (req) => {
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
     
     const authHeader = req.headers.get("Authorization");
+
+    // Parse once, before auth/rate-limit decisions, so trusted background
+    // workers can be identified without re-reading the request body later.
+    let requestBody: AnalysisRequest;
+    let rawRequestBody: Record<string, unknown> = {};
+    try {
+      const rawJson = await req.json();
+      rawRequestBody = rawJson && typeof rawJson === 'object' && !Array.isArray(rawJson)
+        ? rawJson as Record<string, unknown>
+        : {};
+      const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
+      if (!parsed.success) {
+        log.error('Request schema validation failed:', parsed.error.flatten());
+        return new Response(
+          JSON.stringify({
+            error: "Request validation failed",
+            code: "REQUEST_SCHEMA_INVALID",
+            details: parsed.error.flatten().fieldErrors,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      requestBody = parsed.data as AnalysisRequest;
+    } catch (parseError) {
+      log.error('JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
+        { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const isServiceRoleRequest = authHeader === `Bearer ${supabaseServiceKey}`;
+    const requestedWorkerRun = rawRequestBody._worker_run === true;
+    const isWorkerRun = requestedWorkerRun && isServiceRoleRequest;
+    const workerRequestId = typeof rawRequestBody._worker_request_id === 'string'
+      ? rawRequestBody._worker_request_id
+      : undefined;
+    const workerUserId = typeof rawRequestBody._worker_user_id === 'string'
+      ? rawRequestBody._worker_user_id
+      : undefined;
+
+    if (requestedWorkerRun && !isWorkerRun) {
+      log.error('[pro-worker] Rejected untrusted worker_run flag');
+    }
     
     if (authHeader) {
       // Authenticated user - check their subscription
@@ -2798,8 +2842,26 @@ serve(async (req) => {
       }
     }
     
+    // Trusted PRO worker re-entry uses service-role auth, so it is not an
+    // end-user JWT. Restore the original queued user's tier before depth
+    // coercion; never trust this path unless the service token matched above.
+    if (isWorkerRun && workerUserId && !userId) {
+      userId = workerUserId;
+      isAnonymous = false;
+      const { data: workerSubscription } = await supabaseService
+        .from('subscriptions')
+        .select('plan_id, status')
+        .eq('user_id', workerUserId)
+        .maybeSingle();
+
+      if (workerSubscription && ['active', 'trialing'].includes(workerSubscription.status)) {
+        userPlan = workerSubscription.plan_id;
+      }
+      log.info(`[pro-worker] Trusted worker context restored for user ${workerUserId}: plan=${userPlan}`);
+    }
+
     // ========== ANONYMOUS USER RATE LIMITING (Per-Device + IP) ==========
-    if (isAnonymous) {
+    if (isAnonymous && !isWorkerRun) {
       // Get device ID and fingerprint from headers
       const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
       const fingerprint = req.headers.get('X-Fingerprint') || '';
@@ -2837,16 +2899,12 @@ serve(async (req) => {
           p_ip_hash: ipHash,
           p_idea_hash: 'pre-check', // Placeholder - will be checked properly after body parse
           p_location_hash: 'pre-check',
+          p_fingerprint_hash: fingerprintHash,
           p_window_minutes: ANONYMOUS_LIMITS.windowMinutes,
           p_device_limit: ANONYMOUS_LIMITS.deviceLimit,
           p_ip_limit: ANONYMOUS_LIMITS.ipLimit,
+          p_fingerprint_limit: 2,
         };
-        
-        // Add fingerprint check if available (provides additional abuse protection)
-        if (fingerprintHash) {
-          rateLimitParams.p_fingerprint_hash = fingerprintHash;
-          rateLimitParams.p_fingerprint_limit = 2; // Max 2 analyses per fingerprint per hour
-        }
         
         const { data: rateLimitResult, error: rateLimitError } = await supabaseService
           .rpc('check_anonymous_rate_limit', rateLimitParams);
