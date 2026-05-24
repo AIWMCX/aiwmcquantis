@@ -171,7 +171,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
         <div className="space-y-2">
           <div className="relative h-1.5 w-full rounded-[3px] bg-[var(--q-bg-overlay)] overflow-hidden">
             <div
-              className="h-full rounded-[3px] transition-all duration-[1200ms] ease-out"
+              className="h-full rounded-[3px] transition-[width] duration-300 ease-out"
               style={{
                 width: `${overallProgress}%`,
                 background: 'var(--q-gradient-accent, linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover)))',
