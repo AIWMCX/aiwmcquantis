@@ -123,7 +123,6 @@
     <!-- Per-route canonical, og:url, og:title, og:description, twitter:title, twitter:description
          are set by <PageSEO> on each route. The fallbacks below are used only by social-preview
          crawlers that don't execute JS (LinkedIn, Slack, Facebook) when landing on the homepage. -->
-    <link rel="icon" type="image/png" href="https://storage.googleapis.com/gpt-engineer-file-uploads/02jw8cYqavMYVgbcUyUgCIbUR6r2/uploads/1767032494387-Снимок экрана 2025-11-28 221148.png">
 
     <!-- PWA: installable manifest (Add to Home Screen). Service worker is preview-guarded in main.tsx. -->
     <link rel="manifest" href="/manifest.json" />
@@ -170,7 +169,12 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=JetBrains+Mono:wght@400;500;600;700&display=swap"></noscript>
     <!-- JSON-LD: Organization, SoftwareApplication, WebSite, and per-route FAQPage are
          injected by <StructuredData> / <PageSEO> after hydration to avoid duplication. -->
-  </head>
+    <meta property="og:title" content="AIWMC Quantis — AI Business Idea Validator">
+  <meta name="twitter:title" content="AIWMC Quantis — AI Business Idea Validator">
+  <meta property="og:description" content="Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.">
+  <meta name="twitter:description" content="Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.">
+  <meta property="og:type" content="website">
+</head>
 
   <body>
     <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
