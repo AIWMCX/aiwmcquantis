@@ -1,140 +1,139 @@
-# Analysis Logging Framework — Implementation Plan
+# Self-Learning Validation & Improvement Framework
 
-## Goal
-Centralized, durable log of every Quantis analysis run (Free/Plus/Pro/Deep), with one canonical schema, automatic capture going forward, and a one-shot backfill of all analyses since **2026-01-18**.
+Built on top of `analysis_run_logs` (already shipped).
 
 ## Architecture
 
 ```text
-edge fn (analyze-business / analyze-plus / analyze-pro-worker / analyze-preview)
-        │
-        │ after saveAnalysis(...)
-        ▼
-_shared/log-analysis.ts
-  ├─ buildAnalysisLogCore(raw, ctx)   → AnalysisLogCore
-  └─ logAnalysisResult(payload)       → INSERT public.analysis_logs
+┌─────────────────┐     ┌──────────────────────────────┐     ┌──────────────────┐
+│ analyses INSERT │ ──► │ tg_log_analysis_run (live)   │ ──► │ analysis_run_logs│
+└─────────────────┘     └──────────────────────────────┘     └────────┬─────────┘
+                                                                       │ AFTER INSERT
+                                                                       ▼
+                                                          ┌────────────────────────────┐
+                                                          │ tg_validate_run (NEW)      │
+                                                          │  numeric consistency       │
+                                                          │  benchmark alignment       │
+                                                          │  MC ↔ PL36 coherence       │
+                                                          │  RVCE agreement (read-only)│
+                                                          └────────┬───────────────────┘
+                                                                   ▼
+                                                       ┌────────────────────────────┐
+                                                       │ analysis_self_learning     │
+                                                       │  scores + issues + status  │
+                                                       └────────────────────────────┘
 
-backfill-analysis-logs (edge fn, admin-only)
-  └─ paginated SELECT public.analyses WHERE created_at >= '2026-01-18'
-       → buildAnalysisLogCore(a, inferContext(a))
-       → upsert by analysis_id (idempotent)
+Nightly: pg_cron → self-learning-update edge fn
+   reads last 30d of analysis_self_learning
+   recomputes priors per (sector, geo, business_model)
+   writes new row into quantis_learning_config (versioned)
+   never edits the previous version (rollback-safe)
+
+Engine reads:  GET quantis_learning_config WHERE active=true ORDER BY version DESC LIMIT 1
 ```
 
-We already have `analysis_logs` (used by `_shared/analysis-event-logger.ts`) for **events** (`event_type`, `payload`). To avoid collision and keep concerns clean, the new canonical table is **`public.analysis_run_logs`**.
+## 1. Tables (one migration)
 
-## 1. Migration — `analysis_run_logs`
+**`public.analysis_self_learning`** — one row per analysis_id (UNIQUE), validation snapshot:
+- scores: `numeric_consistency`, `benchmark_alignment`, `rvce_agreement`, `mc_stability`, `pl36_coherence` (each NUMERIC 0–1)
+- `global_status` text: `ok | partial | suspect`
+- `issues` jsonb (array of `{code, severity, field, expected, actual, message}`)
+- `adjustments` jsonb (implied ranges)
+- `learning_config_version` int (which prior was used at runtime)
+- RLS: owner-read + admin-read; service-role write only.
+
+**`public.quantis_learning_config`** — versioned priors:
+- `version` bigint PK, `created_at`, `is_active` bool, `created_by` text
+- `priors` jsonb keyed by `${sector}|${geo}|${model}`:
+  ```json
+  { "saas|us|b2b": {
+      "gross_margin": {"p25": 0.62, "p50": 0.74, "p75": 0.83, "n": 41},
+      "ltv_cac":      {"p25": 1.8,  "p50": 3.1,  "p75": 5.4,  "n": 41},
+      "cac_payback_months": {...}, "net_margin": {...}
+  }}
+  ```
+- `prompt_hints` jsonb (text strings appended to engine prompt for that segment)
+- `quality_metrics` jsonb (rolling means of validation scores per segment)
+- Admin-only read; service-role write. UNIQUE partial index ensures only one `is_active=true`.
+
+## 2. Validation function `public.validate_analysis_run(p_run_id uuid)`
+
+`SECURITY DEFINER`, idempotent. Reads from `analysis_run_logs`, writes to `analysis_self_learning`.
+
+Logic:
+- **Numeric consistency** (deterministic, no LLM):
+  - `monthlyProfit ≈ monthlyRevenue × netMargin` (tol 5%)
+  - `ltvToCac ≈ ltv / cac` (tol 5%)
+  - `cacPaybackMonths > 0` and `< 60`
+  - `confidenceScore ∈ [0,100]`
+- **Benchmark alignment**:
+  - For each variable with a benchmark (gross_margin, ltv_cac, cac_payback) call `public.benchmark_lookup(...)` (already exists)
+  - Score = fraction of variables falling in `[p10, p90]` (linearly penalized outside)
+- **MC ↔ PL36 coherence**:
+  - `monte_carlo.mo12ProfitP50` within ±25% of `pl36.profit[11]` (or financial_core.monthlyProfit × 12)
+- **RVCE agreement**:
+  - `rvce.agreementScore` if present, else `null` → not penalized
+- **Global status**: `ok` if all present scores ≥ 0.8 and no `severity='critical'`; `suspect` if any < 0.5 or critical issue; else `partial`.
+
+Trigger `analyses_validate_ai` on `analysis_run_logs` AFTER INSERT calls `validate_analysis_run(NEW.id)` inside `BEGIN/EXCEPTION` — never blocks ingestion.
+
+## 3. Nightly aggregation — edge fn `self-learning-update`
+
+`supabase/functions/self-learning-update/index.ts`. Service-role; admin-callable; also wired to `pg_cron` (03:00 UTC).
+
+Steps:
+1. Read last 30 days from `analysis_self_learning` joined to `analysis_run_logs`.
+2. Group by `(sector, geo, model_type)`. For each group with n ≥ 10:
+   - Compute p25/p50/p75 for `gross_margin`, `net_margin`, `ltv_cac`, `cac_payback_months`.
+   - Aggregate top issue codes → produce `prompt_hints` (e.g. "In segment SaaS|US|B2B, LTV:CAC > 8 is rare without strong narrative — flag as outlier").
+3. Read previous active config; compute delta. If quality (mean global score) **regresses by > 5%**, mark new version `is_active=false` (rollback-safe).
+4. Insert new row into `quantis_learning_config` with `is_active = true`; set previous to `false` in same transaction.
+
+Returns `{version, segments_updated, hints_count, qualityDelta}`.
+
+## 4. Engine integration (light touch)
+
+`supabase/functions/_shared/learning-config.ts`:
+- `getActiveLearningConfig()` — cached 5min, reads single active row.
+- `getPriorsFor(sector, geo, model)` — segment match with sector-only fallback.
+- `getPromptHints(segment)` — string array.
+
+In `analyze-business`/`analyze-plus`:
+- Before the LLM call, append `getPromptHints(segment)` to the system prompt.
+- Persist `learning_config_version` into `result.learning_config_version` so the validator knows which prior was active.
+
+This is **purely additive**: if `quantis_learning_config` is empty or unreachable, engine behaves exactly as today.
+
+## 5. Cron wiring (separate insert tool call after migration)
 
 ```sql
-CREATE TABLE public.analysis_run_logs (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  analysis_id   text NOT NULL,
-  created_at    timestamptz NOT NULL DEFAULT now(),
-  user_id       uuid NULL,
-  tier          text NOT NULL,            -- FREE | PLUS | PRO
-  source        text NOT NULL,            -- web-app | landing-demo | api | internal
-  sector        text,
-  geo           text,
-  model_type    text,
-  status        text,                     -- ready | partial | failed
-  engine_version text,
-  rvce_version  text,
-  financial_core jsonb NOT NULL DEFAULT '{}'::jsonb,
-  pl36          jsonb NOT NULL DEFAULT '{}'::jsonb,
-  monte_carlo   jsonb NOT NULL DEFAULT '{}'::jsonb,
-  rvce          jsonb NOT NULL DEFAULT '{}'::jsonb,
-  benchmarks    jsonb NOT NULL DEFAULT '{}'::jsonb,
-  risk_summary  jsonb NOT NULL DEFAULT '{}'::jsonb,
-  input         jsonb NOT NULL DEFAULT '{}'::jsonb,
-  metadata      jsonb NOT NULL DEFAULT '{}'::jsonb,
-  inserted_at   timestamptz NOT NULL DEFAULT now(),
-  UNIQUE (analysis_id)
-);
-
-CREATE INDEX ON public.analysis_run_logs (created_at DESC);
-CREATE INDEX ON public.analysis_run_logs (user_id);
-CREATE INDEX ON public.analysis_run_logs (tier);
-CREATE INDEX ON public.analysis_run_logs (sector);
-
-ALTER TABLE public.analysis_run_logs ENABLE ROW LEVEL SECURITY;
-
--- Service-role only writes; owners read their rows; admin reads all.
-CREATE POLICY "Owners read own run logs"
-  ON public.analysis_run_logs FOR SELECT TO authenticated
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Admin reads all run logs"
-  ON public.analysis_run_logs FOR SELECT TO authenticated
-  USING (public.has_role(auth.uid(), 'admin'));
-```
-No INSERT/UPDATE policies → only `service_role` writes (edge functions).
-
-## 2. Shared helper — `supabase/functions/_shared/log-analysis.ts`
-
-Exports:
-- `type Tier = 'FREE' | 'PLUS' | 'PRO'`
-- `interface AnalysisLogCore` (matches user spec)
-- `buildAnalysisLogCore(raw, ctx): AnalysisLogCore` — defensive `mapFinancialCore`, `mapPl36`, `mapMonteCarlo`, `mapRvce`, `mapBenchmarks`, `mapRiskSummary` reading the same JSON paths the frontend already uses (`result.financial_analysis.*`, `result.monte_carlo.*`, `result.rvce.*`, etc.).
-- `logAnalysisResult(payload)` — service-role client, `upsert` on `analysis_id`, never throws (warn on failure — observability must not break analysis).
-
-## 3. Wire into engines
-
-Add a single call after the existing `saveAnalysis(...)` write in each:
-- `supabase/functions/analyze-business/index.ts`
-- `supabase/functions/analyze-plus/index.ts`
-- `supabase/functions/analyze-pro-worker/index.ts`
-- `supabase/functions/analyze-preview/index.ts`
-
-```ts
-try {
-  await logAnalysisResult(buildAnalysisLogCore(saved, {
-    userId, tier, source: 'web-app',
-    requestId, clientVersion, env: 'prod',
-    errorCodes: [], latencyMs: Date.now() - startedAt,
-  }));
-} catch (e) { console.warn('[log-analysis] skipped:', e); }
+SELECT cron.schedule('self-learning-update-nightly','0 3 * * *',
+  $$ SELECT net.http_post(
+       url:='https://gafxacjhkqsdzwwzhbor.supabase.co/functions/v1/self-learning-update',
+       headers:='{"apikey":"<anon>","Content-Type":"application/json"}'::jsonb,
+       body:='{}'::jsonb) $$);
 ```
 
-## 4. Backfill — `supabase/functions/backfill-analysis-run-logs`
+## 6. Verification
 
-Admin-only (verify `has_role(auth.uid(), 'admin')`). Paginated:
-```ts
-const PAGE = 200;
-let from = 0;
-while (true) {
-  const { data } = await admin.from('analyses')
-    .select('*')
-    .gte('created_at', '2026-01-18')
-    .order('created_at', { ascending: true })
-    .range(from, from + PAGE - 1);
-  if (!data?.length) break;
-  for (const a of data) {
-    const payload = buildAnalysisLogCore(a, inferContext(a));
-    await logAnalysisResult(payload);  // upsert → idempotent
-  }
-  from += PAGE;
-}
-```
-`inferContext(a)` derives `tier` from `a.tier`/subscription snapshot, `userId` from `a.user_id`, `source` from `a.source ?? 'web-app'`.
-
-Returns `{ scanned, written, skipped, errors }`. Safe to re-run.
-
-## 5. Verification
-
-- `supabase--read_query` → confirm `analysis_run_logs` row count matches `analyses` count for `created_at >= '2026-01-18'`.
-- Trigger one new analysis end-to-end → confirm a fresh row appears.
-- Add a tiny vitest for `buildAnalysisLogCore` shape (no network).
+- Backfill: call `validate_analysis_run(id)` for every existing `analysis_run_logs` row → confirm `analysis_self_learning` count = 44.
+- Score distribution sanity: `SELECT global_status, COUNT(*) FROM analysis_self_learning GROUP BY 1`.
+- Manually invoke `self-learning-update` once → confirm version row appears.
 
 ## Deliverables
-1. Migration creating `analysis_run_logs` + RLS + indexes.
-2. `_shared/log-analysis.ts` (types + builders + logger).
-3. Hook into 4 analyze edge functions.
-4. `backfill-analysis-run-logs` edge function (admin-gated, idempotent).
-5. One unit test for the builder.
 
-## Notes / Decisions
-- Table named `analysis_run_logs` (NOT `analysis_logs`) to avoid collision with the existing event-log table that powers `aggregate-quality-metrics`.
-- Upsert on `analysis_id` makes both runtime logging and backfill idempotent.
-- Logger never throws — analyses must not fail because of telemetry.
-- Reads gated by RLS (owner or admin); writes service-role only.
+1. **Migration**: tables + RLS + `validate_analysis_run` + trigger on `analysis_run_logs` + backfill.
+2. **Edge fn** `self-learning-update` (admin-callable + cron).
+3. **Shared helper** `_shared/learning-config.ts`.
+4. **Cron schedule** via insert tool.
+5. **Brief admin readout query** in the response so the user can monitor.
 
-Approve and I'll execute the migration first, then ship the code in parallel.
+## Decisions / Notes
+
+- All validation runs in **Postgres**, not edge code → sub-100ms, can't fail the analysis, no extra HTTP hops.
+- RVCE web-search re-validation is NOT re-run here (cost + latency). We reuse the score the engine already computed in `analysis_run_logs.rvce`.
+- `quantis_learning_config` is **append-only versioned**. Rollback = flip `is_active`.
+- Engine integration is non-blocking and cache-fronted — zero impact on hot path if config is empty.
+- Built strictly on top of existing infra (`analysis_run_logs`, `benchmark_lookup`, `has_role`) — no schema sprawl.
+
+Approve and I'll ship in this order: migration → edge fn → shared helper → cron → verify.
