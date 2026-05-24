@@ -998,6 +998,78 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_run_logs: {
+        Row: {
+          analysis_id: string
+          benchmarks: Json
+          created_at: string
+          engine_version: string | null
+          financial_core: Json
+          geo: string | null
+          id: string
+          input: Json
+          inserted_at: string
+          metadata: Json
+          model_type: string | null
+          monte_carlo: Json
+          pl36: Json
+          risk_summary: Json
+          rvce: Json
+          rvce_version: string | null
+          sector: string | null
+          source: string
+          status: string | null
+          tier: string
+          user_id: string | null
+        }
+        Insert: {
+          analysis_id: string
+          benchmarks?: Json
+          created_at?: string
+          engine_version?: string | null
+          financial_core?: Json
+          geo?: string | null
+          id?: string
+          input?: Json
+          inserted_at?: string
+          metadata?: Json
+          model_type?: string | null
+          monte_carlo?: Json
+          pl36?: Json
+          risk_summary?: Json
+          rvce?: Json
+          rvce_version?: string | null
+          sector?: string | null
+          source?: string
+          status?: string | null
+          tier?: string
+          user_id?: string | null
+        }
+        Update: {
+          analysis_id?: string
+          benchmarks?: Json
+          created_at?: string
+          engine_version?: string | null
+          financial_core?: Json
+          geo?: string | null
+          id?: string
+          input?: Json
+          inserted_at?: string
+          metadata?: Json
+          model_type?: string | null
+          monte_carlo?: Json
+          pl36?: Json
+          risk_summary?: Json
+          rvce?: Json
+          rvce_version?: string | null
+          sector?: string | null
+          source?: string
+          status?: string | null
+          tier?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analysis_scenario: {
         Row: {
           base_ebitda_yr5: number | null
