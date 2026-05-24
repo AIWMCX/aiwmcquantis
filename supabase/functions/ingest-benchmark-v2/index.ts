@@ -32,12 +32,11 @@ serve(async (req) => {
     } else {
       const authHeader = req.headers.get('authorization') ?? '';
       if (authHeader.startsWith('Bearer ')) {
-        const userClient = createClient(supabaseUrl, anonKey, {
-          global: { headers: { Authorization: authHeader } },
-        });
-        const { data: claimsData } = await userClient.auth.getClaims(authHeader.replace('Bearer ', ''));
-        const userId = claimsData?.claims?.sub;
-        if (userId) {
+        const token = authHeader.replace('Bearer ', '');
+        const userClient = createClient(supabaseUrl, anonKey);
+        const { data: userData, error: userErr } = await userClient.auth.getUser(token);
+        const userId = userData?.user?.id;
+        if (!userErr && userId) {
           const svc = createClient(supabaseUrl, serviceKey);
           const { data: isAdmin } = await svc.rpc('has_role', { _user_id: userId, _role: 'admin' });
           if (isAdmin === true) authorized = true;
