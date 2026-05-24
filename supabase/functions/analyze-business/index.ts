@@ -4092,7 +4092,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
     // ========== RECORD USAGE ==========
     // Record anonymous usage for rate limiting
-    if (isAnonymous) {
+    if (isAnonymous && !isWorkerRun) {
       try {
         const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
         const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
@@ -4135,7 +4135,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
     
     // Increment usage for authenticated free tier users
-    if (userId && userPlan === 'free') {
+    if (userId && userPlan === 'free' && !isWorkerRun) {
       try {
         const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
         await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
