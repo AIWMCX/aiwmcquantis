@@ -31,7 +31,7 @@ interface Props {
   idea?: string;
   location?: string;
   industry?: string;
-  result?: AnalysisResult | null;
+  result?: BusinessAnalysisResult | null;
 }
 
 const TIERS = [
@@ -49,7 +49,7 @@ function formatUsd(n: number): string {
 }
 
 /** Derive a fast MonteCarloResult on annual revenue from the existing analysis. */
-async function deriveMonteCarlo(result: AnalysisResult): Promise<MonteCarloResult> {
+async function deriveMonteCarlo(result: BusinessAnalysisResult): Promise<MonteCarloResult> {
   const baseMonthly =
     result.financial_analysis?.scenarios?.base?.revenue ??
     (result as any)?.monthly_revenue?.realistic ??
