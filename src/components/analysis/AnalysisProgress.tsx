@@ -71,6 +71,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
   const [completionPhase, setCompletionPhase] = useState<'none' | 'filling' | 'checkmarks' | 'done'>('none');
+  const internalStartRef = React.useRef<number | null>(null);
 
   const stages = useMemo(() => buildStages(location, selectedOutputs), [location, selectedOutputs]);
 
@@ -79,13 +80,20 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
       setElapsedSeconds(0);
       setShowTimeout(false);
       setCompletionPhase('none');
+      internalStartRef.current = null;
       return;
     }
-    const interval = setInterval(() => {
-      const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    if (!internalStartRef.current) {
+      internalStartRef.current = startTime ?? Date.now();
+    }
+    const tick = () => {
+      const base = startTime ?? internalStartRef.current ?? Date.now();
+      const elapsed = (Date.now() - base) / 1000;
       setElapsedSeconds(elapsed);
       if (elapsed >= 60) setShowTimeout(true);
-    }, 100);
+    };
+    tick();
+    const interval = setInterval(tick, 150);
     return () => clearInterval(interval);
   }, [isLoading, startTime]);
 
