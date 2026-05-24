@@ -149,7 +149,17 @@ We will notify you as soon as new features are ready for testing. In the meantim
   },
 };
 
+function escapeHtml(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[string]): string {
+  const safeName = escapeHtml(name).slice(0, 200);
   const downloadSection = content.downloadUrl ? `
               <!-- Download Button -->
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
