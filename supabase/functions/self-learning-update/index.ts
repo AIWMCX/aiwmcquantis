@@ -124,6 +124,20 @@ function buildPriors(rows: RunRow[]) {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
+  // Auth gate: cron secret OR service-role bearer required.
+  const cronSecret = req.headers.get('x-cron-secret');
+  const expectedCron = Deno.env.get('CRON_SECRET');
+  const authHeader = req.headers.get('Authorization') ?? '';
+  const bearer = authHeader.startsWith('Bearer ') ? authHeader.slice(7) : '';
+  const isCron = !!expectedCron && cronSecret === expectedCron;
+  const isServiceRole = !!SERVICE_ROLE && bearer === SERVICE_ROLE;
+  if (!isCron && !isServiceRole) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+    );
+  }
+
   try {
     const admin = createClient(SUPABASE_URL, SERVICE_ROLE, {
       auth: { persistSession: false, autoRefreshToken: false },
