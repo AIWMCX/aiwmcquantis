@@ -143,7 +143,7 @@ export default function ViralPosts() {
                                 ))}
                               </div>
                             ) : (
-                              <span className="text-xs text-muted-foreground/50 italic">No hashtags — narrative format</span>
+                              <span className="text-xs text-muted-foreground italic">No hashtags — narrative format</span>
                             )}
                             <span className="text-xs text-muted-foreground/60">
                               {charCount.toLocaleString()} chars
