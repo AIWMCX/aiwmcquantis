@@ -134,7 +134,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
 
   const estimatedRemaining = useMemo(() => {
     const lastStage = stages[stages.length - 1];
-    return Math.max(0, lastStage.endTime + 3 - elapsedSeconds);
+    return Math.max(0, Math.ceil(lastStage.endTime + 3 - elapsedSeconds));
   }, [elapsedSeconds, stages]);
 
   if (!isLoading) return null;
