@@ -147,6 +147,9 @@ export default function Landing() {
         {/* 1.5. Social Proof Bar */}
         <SocialProofBar />
 
+        {/* 1.6. As Featured In — directory trust marquee */}
+        <FeaturedDirectories />
+
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
 
