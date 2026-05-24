@@ -27,6 +27,7 @@ import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary
 import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
 import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
 import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
+import { ProJobProgressPanel } from '@/components/analysis/ProJobProgressPanel';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
@@ -80,9 +81,9 @@ export default function Index() {
     idea, setIdea, location, setLocation,
     financialInputs, setFinancialInputs,
     errors, clearError, result, setResult,
-    isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
+    analysisId, isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
     files, isUploading, uploadFiles, removeFile, maxFiles, allowedExtensions,
-    rateLimitError, clearRateLimitError,
+    rateLimitError, clearRateLimitError, proJobState, isProJobActive,
   } = useAnalysis();
 
   // Tracks how many times the user has clicked Retry for the current error
