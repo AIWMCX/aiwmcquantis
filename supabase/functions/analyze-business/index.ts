@@ -219,7 +219,7 @@ interface AnalysisRequest {
   financial_inputs?: OptionalFinancialInputs;
   selected_industry?: string;
   documents?: DocumentData[];
-  analysis_depth?: 'quick' | 'full' | 'deep';
+  analysis_depth?: 'quick' | 'full' | 'deep' | 'pro';
 }
 
 // ========== DATABASE BENCHMARK TYPES ==========
