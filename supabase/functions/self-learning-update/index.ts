@@ -129,29 +129,42 @@ Deno.serve(async (req) => {
       auth: { persistSession: false, autoRefreshToken: false },
     });
 
-    // 1. Pull last 30 days
+    // 1. Pull last 30 days from both tables and join in code
     const since = new Date(Date.now() - 30 * 86400e3).toISOString();
-    const { data: rows, error } = await admin
-      .from('analysis_run_logs')
-      .select('analysis_id,sector,geo,model_type,financial_core, asl:analysis_self_learning!inner(numeric_consistency,benchmark_alignment,mc_stability,rvce_agreement,global_status,issues)')
-      .gte('created_at', since)
-      .limit(10000);
+    const [{ data: runs, error: runsErr }, { data: asls, error: aslErr }] = await Promise.all([
+      admin
+        .from('analysis_run_logs')
+        .select('analysis_id,sector,geo,model_type,financial_core')
+        .gte('created_at', since)
+        .limit(10000),
+      admin
+        .from('analysis_self_learning')
+        .select('analysis_id,numeric_consistency,benchmark_alignment,mc_stability,rvce_agreement,global_status,issues')
+        .gte('evaluated_at', since)
+        .limit(10000),
+    ]);
+    if (runsErr) throw runsErr;
+    if (aslErr) throw aslErr;
 
-    if (error) throw error;
+    const aslMap = new Map<string, any>();
+    for (const a of asls || []) aslMap.set(a.analysis_id as string, a);
 
-    const flat: RunRow[] = (rows || []).map((r: any) => ({
-      analysis_id: r.analysis_id,
-      sector: r.sector,
-      geo: r.geo,
-      model_type: r.model_type,
-      financial_core: r.financial_core,
-      numeric_consistency: r.asl?.numeric_consistency ?? null,
-      benchmark_alignment: r.asl?.benchmark_alignment ?? null,
-      mc_stability: r.asl?.mc_stability ?? null,
-      rvce_agreement: r.asl?.rvce_agreement ?? null,
-      global_status: r.asl?.global_status ?? 'partial',
-      issues: r.asl?.issues ?? [],
-    }));
+    const flat: RunRow[] = (runs || []).map((r: any) => {
+      const a = aslMap.get(r.analysis_id);
+      return {
+        analysis_id: r.analysis_id,
+        sector: r.sector,
+        geo: r.geo,
+        model_type: r.model_type,
+        financial_core: r.financial_core,
+        numeric_consistency: a?.numeric_consistency ?? null,
+        benchmark_alignment: a?.benchmark_alignment ?? null,
+        mc_stability: a?.mc_stability ?? null,
+        rvce_agreement: a?.rvce_agreement ?? null,
+        global_status: a?.global_status ?? 'partial',
+        issues: a?.issues ?? [],
+      };
+    });
 
     const { priors, promptHints, qualityMetrics } = buildPriors(flat);
 
