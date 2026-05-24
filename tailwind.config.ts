@@ -217,6 +217,10 @@ export default {
 					'0%': { transform: 'scale(1)', opacity: '0.8' },
 					'50%': { transform: 'scale(1.02)', opacity: '1' },
 					'100%': { transform: 'scale(1)', opacity: '0.8' }
+				},
+				'marquee-x': {
+					'0%': { transform: 'translateX(0)' },
+					'100%': { transform: 'translateX(-50%)' }
 				}
 			},
 			animation: {
@@ -228,8 +232,10 @@ export default {
 				'glow-pulse': 'glow-pulse 2s ease-in-out infinite',
 				'metric-flash': 'metric-flash 1s ease-out',
 				'terminal-blink': 'terminal-blink 1s step-end infinite',
-				'data-pulse': 'data-pulse 3s ease-in-out infinite'
+				'data-pulse': 'data-pulse 3s ease-in-out infinite',
+				'marquee-x': 'marquee-x 40s linear infinite'
 			}
+
 		}
 	},
 	plugins: [require("tailwindcss-animate")],
