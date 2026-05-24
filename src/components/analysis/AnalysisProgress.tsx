@@ -71,6 +71,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
   const [completionPhase, setCompletionPhase] = useState<'none' | 'filling' | 'checkmarks' | 'done'>('none');
+  const internalStartRef = React.useRef<number | null>(null);
 
   const stages = useMemo(() => buildStages(location, selectedOutputs), [location, selectedOutputs]);
 
@@ -79,13 +80,20 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
       setElapsedSeconds(0);
       setShowTimeout(false);
       setCompletionPhase('none');
+      internalStartRef.current = null;
       return;
     }
-    const interval = setInterval(() => {
-      const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+    if (!internalStartRef.current) {
+      internalStartRef.current = startTime ?? Date.now();
+    }
+    const tick = () => {
+      const base = startTime ?? internalStartRef.current ?? Date.now();
+      const elapsed = (Date.now() - base) / 1000;
       setElapsedSeconds(elapsed);
       if (elapsed >= 60) setShowTimeout(true);
-    }, 100);
+    };
+    tick();
+    const interval = setInterval(tick, 150);
     return () => clearInterval(interval);
   }, [isLoading, startTime]);
 
@@ -126,7 +134,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
 
   const estimatedRemaining = useMemo(() => {
     const lastStage = stages[stages.length - 1];
-    return Math.max(0, lastStage.endTime + 3 - elapsedSeconds);
+    return Math.max(0, Math.ceil(lastStage.endTime + 3 - elapsedSeconds));
   }, [elapsedSeconds, stages]);
 
   if (!isLoading) return null;
@@ -163,7 +171,7 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
         <div className="space-y-2">
           <div className="relative h-1.5 w-full rounded-[3px] bg-[var(--q-bg-overlay)] overflow-hidden">
             <div
-              className="h-full rounded-[3px] transition-all duration-[1200ms] ease-out"
+              className="h-full rounded-[3px] transition-[width] duration-300 ease-out"
               style={{
                 width: `${overallProgress}%`,
                 background: 'var(--q-gradient-accent, linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover)))',
