@@ -139,6 +139,10 @@ export default function Index() {
     }
   }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
 
+  useEffect(() => {
+    if (analysisId) setCurrentAnalysisId(analysisId);
+  }, [analysisId]);
+
   // Auto-scroll & banner when result appears
   useEffect(() => {
     const hadResult = prevResultRef.current;
