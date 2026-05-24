@@ -221,7 +221,7 @@ function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[stri
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 8px 0; color: #1f2937; font-size: 22px; font-weight: 700;">${content.heading}</h2>
-              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 16px;">Hi ${name},</p>
+              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 16px;">Hi ${safeName},</p>
               
               <div style="color: #374151; font-size: 15px; line-height: 1.7;">
                 ${formattedBody}
