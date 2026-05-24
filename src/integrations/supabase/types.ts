@@ -1145,6 +1145,54 @@ export type Database = {
         }
         Relationships: []
       }
+      analysis_self_learning: {
+        Row: {
+          adjustments: Json
+          analysis_id: string
+          benchmark_alignment: number | null
+          evaluated_at: string
+          global_status: string
+          id: string
+          issues: Json
+          learning_config_version: number | null
+          mc_stability: number | null
+          numeric_consistency: number | null
+          pl36_coherence: number | null
+          rvce_agreement: number | null
+          user_id: string | null
+        }
+        Insert: {
+          adjustments?: Json
+          analysis_id: string
+          benchmark_alignment?: number | null
+          evaluated_at?: string
+          global_status?: string
+          id?: string
+          issues?: Json
+          learning_config_version?: number | null
+          mc_stability?: number | null
+          numeric_consistency?: number | null
+          pl36_coherence?: number | null
+          rvce_agreement?: number | null
+          user_id?: string | null
+        }
+        Update: {
+          adjustments?: Json
+          analysis_id?: string
+          benchmark_alignment?: number | null
+          evaluated_at?: string
+          global_status?: string
+          id?: string
+          issues?: Json
+          learning_config_version?: number | null
+          mc_stability?: number | null
+          numeric_consistency?: number | null
+          pl36_coherence?: number | null
+          rvce_agreement?: number | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       analysis_tam_sam_som: {
         Row: {
           arpu_implied: number | null
@@ -4100,6 +4148,42 @@ export type Database = {
         }
         Relationships: []
       }
+      quantis_learning_config: {
+        Row: {
+          created_at: string
+          created_by: string
+          is_active: boolean
+          notes: string | null
+          priors: Json
+          prompt_hints: Json
+          quality_metrics: Json
+          segments_count: number
+          version: number
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string
+          is_active?: boolean
+          notes?: string | null
+          priors?: Json
+          prompt_hints?: Json
+          quality_metrics?: Json
+          segments_count?: number
+          version?: number
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          is_active?: boolean
+          notes?: string | null
+          priors?: Json
+          prompt_hints?: Json
+          quality_metrics?: Json
+          segments_count?: number
+          version?: number
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string | null
@@ -6019,6 +6103,7 @@ export type Database = {
         Args: { subscription_user_id: string }
         Returns: boolean
       }
+      validate_analysis_run: { Args: { p_analysis_id: string }; Returns: Json }
       verify_paid_subscription: { Args: { p_user_id: string }; Returns: string }
       verify_plus_subscription: {
         Args: { p_user_id: string }
