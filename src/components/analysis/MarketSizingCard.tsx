@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { useProExtension, usePlusAnalysis } from '@/hooks/useSpecTier';
 import { runMonteCarlo, type MonteCarloResult } from '@/lib/monte-carlo';
 import type { PlusAnalysisJson } from '@/services/specTierApi';
-import type { AnalysisResult } from '@/types/analysis';
+import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 
 interface Props {
