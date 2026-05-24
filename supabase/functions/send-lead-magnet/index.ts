@@ -367,10 +367,10 @@ Deno.serve(async (req) => {
           to: ['AIWMCSRM@gmail.com'],
           subject: `New Lead: ${offer} download`,
           html: `<p><strong>New lead captured</strong></p>
-            <p>Email: ${email}</p>
-            <p>Name: ${name}</p>
-            <p>Offer: ${offer}</p>
-            <p>Lead ID: ${leadId || 'N/A'}</p>
+            <p>Email: ${escapeHtml(email)}</p>
+            <p>Name: ${escapeHtml(name).slice(0, 200)}</p>
+            <p>Offer: ${escapeHtml(offer)}</p>
+            <p>Lead ID: ${escapeHtml(leadId || 'N/A')}</p>
             <p>Time: ${new Date().toISOString()}</p>`,
         }),
       });
