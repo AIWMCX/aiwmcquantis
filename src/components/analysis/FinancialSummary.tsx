@@ -364,7 +364,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CM Ratio</span>
-                      <span className="font-bold">{((financial.unit_economics?.contribution_margin_ratio ?? 0) * 100).toFixed(1)}%</span>
+                    <span className="font-bold">{normalizePct(financial.unit_economics?.contribution_margin_ratio ?? 0).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC</span>
