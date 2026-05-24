@@ -1,19 +1,37 @@
 /**
- * MarketSizingCard — surfaces the TAM/SAM/SOM block from a PRO analysis.
- * Triggered via useProExtension() which calls /functions/v1/analyze-pro-extension.
+ * MarketSizingCard — surfaces the TAM/SAM/SOM block.
  *
- * If no PRO analysis has been run yet, renders a CTA. The hook handles the
- * 402 TierGateBlock and shows the upgrade toast.
+ * Available to PLUS and PRO users. The card auto-derives the required
+ * PLUS analysis JSON from the current analysis context (idea, location,
+ * financials) so the user only sees a single "Generate market sizing"
+ * action — no separate "run PLUS first" step.
+ *
+ * Pipeline on click:
+ *   1. Derive a Monte Carlo result from result.financial_analysis (annual revenue).
+ *   2. Call analyze-plus to mint a PLUS analysis JSON.
+ *   3. Pipe that into analyze-pro-extension to get TAM/SAM/SOM.
+ *
+ * If the user is on FREE/PLUS, analyze-pro-extension returns 402 → handled
+ * by useProExtension's toast. PLUS users get a clean upsell; PRO users get
+ * a full sizing block.
  */
-import React from 'react';
+import React, { useState } from 'react';
 import { Globe2, Loader2, Target } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { useProExtension } from '@/hooks/useSpecTier';
+import { useProExtension, usePlusAnalysis } from '@/hooks/useSpecTier';
+import { runMonteCarlo, type MonteCarloResult } from '@/lib/monte-carlo';
 import type { PlusAnalysisJson } from '@/services/specTierApi';
+import type { BusinessAnalysisResult } from '@/types/analysis';
+import { toast } from 'sonner';
 
 interface Props {
-  /** PLUS analysis JSON (output of usePlusAnalysis). Required to run PRO extension. */
+  /** Existing PLUS analysis JSON, if one was already minted this session. */
   plusAnalysis?: PlusAnalysisJson;
+  /** Current analysis context — used to auto-run PLUS when needed. */
+  idea?: string;
+  location?: string;
+  industry?: string;
+  result?: AnalysisResult | null;
 }
 
 const TIERS = [
@@ -30,13 +48,68 @@ function formatUsd(n: number): string {
   return `$${Math.round(n).toLocaleString()}`;
 }
 
-export function MarketSizingCard({ plusAnalysis }: Props) {
-  const mutation = useProExtension();
-  const sizing = mutation.data?.market_sizing;
+/** Derive a fast MonteCarloResult on annual revenue from the existing analysis. */
+async function deriveMonteCarlo(result: AnalysisResult): Promise<MonteCarloResult> {
+  const baseMonthly =
+    result.financial_analysis?.scenarios?.base?.revenue ??
+    (result as any)?.monthly_revenue?.realistic ??
+    10_000;
+  const annual = Math.max(1_000, baseMonthly * 12);
+  return runMonteCarlo({
+    iterations: 1000,
+    seed: 42,
+    params: [
+      {
+        name: 'annual_revenue',
+        baseValue: annual,
+        minValue: annual * 0.6,
+        maxValue: annual * 1.4,
+        distribution: 'triangular',
+      },
+    ],
+    outputFn: (p) => p.annual_revenue,
+  });
+}
 
-  const run = () => {
-    if (!plusAnalysis) return;
-    mutation.mutate({ plusAnalysis });
+export function MarketSizingCard({ plusAnalysis, idea, location, industry, result }: Props) {
+  const proMutation = useProExtension();
+  const plusMutation = usePlusAnalysis();
+  const [autoBusy, setAutoBusy] = useState(false);
+  const sizing = proMutation.data?.market_sizing;
+
+  const canAutoRun = Boolean(idea && location && result);
+  const isBusy = proMutation.isPending || plusMutation.isPending || autoBusy;
+
+  const run = async () => {
+    try {
+      // 1. Use existing PLUS analysis if provided.
+      if (plusAnalysis) {
+        proMutation.mutate({ plusAnalysis });
+        return;
+      }
+      // 2. Auto-derive: MonteCarlo → analyze-plus → analyze-pro-extension.
+      if (!canAutoRun || !result || !idea || !location) {
+        toast.error('Run an analysis first', {
+          description: 'Market sizing needs an idea, location, and analysis result.',
+        });
+        return;
+      }
+      setAutoBusy(true);
+      const mc = await deriveMonteCarlo(result);
+      const plus = await plusMutation.mutateAsync({
+        idea,
+        location,
+        industry,
+        stage: 'IDEA',
+        monteCarlo: mc,
+      });
+      await proMutation.mutateAsync({ plusAnalysis: plus });
+    } catch (err) {
+      // Toasts already surfaced by the underlying hooks (402, 429, etc.)
+      console.error('[MarketSizingCard] run failed:', err);
+    } finally {
+      setAutoBusy(false);
+    }
   };
 
   return (
@@ -47,25 +120,26 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
           <h3 className="text-sm font-semibold text-foreground">Market Sizing</h3>
         </div>
         <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-          PRO · TAM / SAM / SOM
+          PLUS / PRO · TAM / SAM / SOM
         </span>
       </header>
 
       {!sizing && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Generate institutional-grade TAM / SAM / SOM with derivation methodology and investor framing.
-            Requires a completed PLUS analysis as input.
+            Generate institutional-grade TAM / SAM / SOM with derivation methodology and investor framing,
+            grounded in your current analysis (idea, location, projected revenue).
           </p>
           <Button
             type="button"
             onClick={run}
-            disabled={mutation.isPending || !plusAnalysis}
+            disabled={isBusy || (!plusAnalysis && !canAutoRun)}
             className="w-full sm:w-auto"
           >
-            {mutation.isPending ? (
+            {isBusy ? (
               <>
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Sizing market…
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                {plusMutation.isPending ? 'Preparing PLUS context…' : 'Sizing market…'}
               </>
             ) : (
               <>
@@ -73,9 +147,9 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
               </>
             )}
           </Button>
-          {!plusAnalysis && (
+          {!plusAnalysis && !canAutoRun && (
             <p className="text-[11px] text-muted-foreground/80">
-              Run a PLUS analysis first to enable market sizing.
+              Run an analysis first to enable market sizing.
             </p>
           )}
         </div>

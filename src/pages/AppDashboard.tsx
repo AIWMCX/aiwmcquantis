@@ -563,7 +563,7 @@ export default function Index() {
                         {!isFree && (
                           <div className="mt-6 grid grid-cols-1 gap-4">
                             <CapacityCheckCard parentAnalysisId={currentAnalysisId ?? undefined} />
-                            <MarketSizingCard />
+                            <MarketSizingCard idea={idea} location={location} result={result} />
                           </div>
                         )}
                       </SectionErrorBoundary>
