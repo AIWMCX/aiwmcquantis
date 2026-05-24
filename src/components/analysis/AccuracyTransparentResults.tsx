@@ -588,8 +588,17 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     {[
                       { icon: '📍', driver: `${location || 'Local'} rent`, value: '×1.15', source: 'CoStar 2025' },
                       { icon: '👥', driver: 'Industry CAC', value: `$${result.financial_analysis?.unit_economics?.cac || 50}`, source: 'Quantis Benchmarks' },
-                      { icon: '📊', driver: 'Gross margin', value: `${((result.financial_analysis?.scenarios?.base?.gross_margin || 0.4) * 100).toFixed(0)}%`, source: 'Industry median' },
-                      { icon: '🔄', driver: 'Churn rate', value: `${((result.financial_analysis?.inputs?.churn_rate || 0.05) * 100).toFixed(1)}%`, source: 'SaaS benchmarks' },
+                      { icon: '📊', driver: 'Gross margin', value: (() => {
+                          const gm = result.financial_analysis?.scenarios?.base?.gross_margin ?? 0.4;
+                          // Engine sometimes returns percent (52) vs fraction (0.52). Normalize.
+                          const pct = Math.abs(gm) > 1 ? gm : gm * 100;
+                          return `${pct.toFixed(0)}%`;
+                        })(), source: 'Industry median' },
+                      { icon: '🔄', driver: 'Churn rate', value: (() => {
+                          const ch = result.financial_analysis?.inputs?.churn_rate ?? 0.05;
+                          const pct = Math.abs(ch) > 1 ? ch : ch * 100;
+                          return `${pct.toFixed(1)}%`;
+                        })(), source: 'SaaS benchmarks' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-2">
