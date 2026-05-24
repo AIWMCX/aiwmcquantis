@@ -2835,7 +2835,10 @@ serve(async (req) => {
                 resets_at: resetsAt,
                 usage: { current: currentUsage, limit: FREE_TIER_LIMIT },
               }),
-              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              // Return 200 so supabase-js places the envelope in `data` rather
+              // than throwing FunctionsHttpError. Client (analysisApi.ts) detects
+              // `data.error === 'QUOTA_EXCEEDED'` and routes to the upgrade panel.
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
         }
