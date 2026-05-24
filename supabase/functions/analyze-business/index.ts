@@ -2950,7 +2950,7 @@ serve(async (req) => {
     // ========== END ANONYMOUS RATE LIMITING ==========
     
     // ========== AUTHENTICATED USER HOURLY RATE LIMITING ==========
-    if (!isAnonymous && userId) {
+    if (!isAnonymous && userId && !isWorkerRun) {
       // Get rate limit config based on plan
       const rateLimitConfig = RATE_LIMITS[userPlan as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
       
