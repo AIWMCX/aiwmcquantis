@@ -525,6 +525,11 @@ export default function Index() {
                         />
                       </div>
                     )}
+                    {isProJobActive && (
+                      <div className="mb-4">
+                        <ProJobProgressPanel state={proJobState} expectedDurationMs={90_000} />
+                      </div>
+                    )}
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
                         <AccuracyTransparentResults 
