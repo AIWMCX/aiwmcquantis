@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "Deny authenticated access to rate_limits" ON public.rate_limits;
