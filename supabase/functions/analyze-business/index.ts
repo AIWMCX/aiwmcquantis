@@ -3006,41 +3006,7 @@ serve(async (req) => {
     }
     // ========== END RATE LIMITING ==========
 
-    // ========== REQUEST BODY PARSING & VALIDATION ==========
-    // Step 7 of benchmark-first plan: Zod at the boundary. No malformed
-    // payload from a client ever reaches the analysis engine.
-    let requestBody: AnalysisRequest;
-    try {
-      const rawJson = await req.json();
-      const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
-      if (!parsed.success) {
-        log.error('Request schema validation failed:', parsed.error.flatten());
-        return new Response(
-          JSON.stringify({
-            error: "Request validation failed",
-            code: "REQUEST_SCHEMA_INVALID",
-            details: parsed.error.flatten().fieldErrors,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      requestBody = parsed.data as AnalysisRequest;
-    } catch (parseError) {
-      log.error('JSON parse error:', parseError);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
-        { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
     const { idea, location, financial_inputs, selected_industry, documents, analysis_depth } = requestBody;
-
-    // Worker run flag — when set, the request was made by analyze-pro-worker
-    // re-entering this function. Skip the queue branch and run synchronously.
-    const _rawBody = requestBody as unknown as Record<string, unknown>;
-    const isWorkerRun = _rawBody._worker_run === true;
-    const workerRequestId = _rawBody._worker_request_id as string | undefined;
-    const workerUserId = _rawBody._worker_user_id as string | undefined;
 
     // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
     // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
