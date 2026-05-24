@@ -285,6 +285,13 @@ Deno.serve(async (req) => {
       );
     }
 
+    if (typeof name !== 'string' || name.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid name' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
     // Strict email format check before doing anything else
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 254) {
       return new Response(
