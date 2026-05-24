@@ -46,6 +46,11 @@ const normalizePercent = (value?: number): number => {
   return value <= 1 ? value * 100 : value;
 };
 
+const toFiniteNumber = (value: unknown, fallback = 0): number => {
+  const numeric = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numeric) ? numeric : fallback;
+};
+
 export function AccuracyTransparentResults({ result, analysisId, onReset }: AccuracyTransparentResultsProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [prevStep, setPrevStep] = useState(1);
@@ -556,15 +561,18 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && isFree && <LockedAnalysisPaywall section="levers" />}
-          {currentStep === 2 && !isFree && (() => {
+          {currentStep === 2 && !isFree && (
+            <SectionErrorBoundary section="Levers Lab">
+              {(() => {
             const fa: any = result.financial_analysis || {};
-            const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
-              ? scenarioMetrics.revenue
-              : (fa.mrr || fa.scenarios?.base?.revenue || 1000);
-            const safeMargin = Number.isFinite(scenarioMetrics.margin) ? scenarioMetrics.margin : 0.2;
-            const initialCac = fa.unit_economics?.cac ?? 50;
-            const initialRent = fa.monthly_expenses?.fixed_costs ?? 1000;
-            const initialTicket = fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user ?? 100;
+            const scenarioRevenue = toFiniteNumber(scenarioMetrics.revenue);
+            const safeRevenue = scenarioRevenue > 0
+              ? scenarioRevenue
+              : toFiniteNumber(fa.mrr ?? fa.scenarios?.base?.revenue, 1000);
+            const safeMargin = toFiniteNumber(scenarioMetrics.margin, 0.2);
+            const initialCac = toFiniteNumber(fa.unit_economics?.cac, 50);
+            const initialRent = toFiniteNumber(fa.monthly_expenses?.fixed_costs, 1000);
+            const initialTicket = toFiniteNumber(fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user, 100);
             return (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
               {/* LEFT: Chart + P&L */}
@@ -589,13 +597,13 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       { icon: '📍', driver: `${location || 'Local'} rent`, value: '×1.15', source: 'CoStar 2025' },
                       { icon: '👥', driver: 'Industry CAC', value: `$${result.financial_analysis?.unit_economics?.cac || 50}`, source: 'Quantis Benchmarks' },
                       { icon: '📊', driver: 'Gross margin', value: (() => {
-                          const gm = result.financial_analysis?.scenarios?.base?.gross_margin ?? 0.4;
+                          const gm = toFiniteNumber(result.financial_analysis?.scenarios?.base?.gross_margin, 0.4);
                           // Engine sometimes returns percent (52) vs fraction (0.52). Normalize.
                           const pct = Math.abs(gm) > 1 ? gm : gm * 100;
                           return `${pct.toFixed(0)}%`;
                         })(), source: 'Industry median' },
                       { icon: '🔄', driver: 'Churn rate', value: (() => {
-                          const ch = result.financial_analysis?.inputs?.churn_rate ?? 0.05;
+                          const ch = toFiniteNumber(result.financial_analysis?.inputs?.churn_rate, 0.05);
                           const pct = Math.abs(ch) > 1 ? ch : ch * 100;
                           return `${pct.toFixed(1)}%`;
                         })(), source: 'SaaS benchmarks' },
@@ -655,7 +663,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               </div>
             </div>
             );
-          })()}
+              })()}
+            </SectionErrorBoundary>
+          )}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}

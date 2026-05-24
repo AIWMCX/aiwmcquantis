@@ -36,6 +36,11 @@ function formatNumber(value: number): string {
   return new Intl.NumberFormat('en-US', { maximumFractionDigits: 1 }).format(value);
 }
 
+function normalizePct(value: number): number {
+  if (!Number.isFinite(value)) return 0;
+  return Math.abs(value) <= 1 ? value * 100 : value;
+}
+
 // Copyable metric card component
 function CopyableMetricCard({ 
   label, 
@@ -143,12 +148,12 @@ function ScenarioCard({ title, metrics, variant }: { title: string; metrics: Sce
         <div className="pt-2 border-t border-border/50">
           <div className="flex justify-between">
             <span className="text-muted-foreground">Gross Margin:</span>
-            <span className="font-medium">{formatPercent(metrics.gross_margin)}</span>
+            <span className="font-medium">{formatPercent(normalizePct(metrics.gross_margin))}</span>
           </div>
           <div className="flex justify-between">
             <span className="text-muted-foreground">Net Margin:</span>
             <span className={cn("font-medium", metrics.net_margin >= 0 ? "text-emerald-600" : "text-destructive")}>
-              {formatPercent(metrics.net_margin)}
+              {formatPercent(normalizePct(metrics.net_margin))}
             </span>
           </div>
         </div>
@@ -359,7 +364,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CM Ratio</span>
-                      <span className="font-bold">{((financial.unit_economics?.contribution_margin_ratio ?? 0) * 100).toFixed(1)}%</span>
+                    <span className="font-bold">{normalizePct(financial.unit_economics?.contribution_margin_ratio ?? 0).toFixed(1)}%</span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC</span>

@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.check_anonymous_rate_limit(text, text, text, text, integer, integer, integer);
