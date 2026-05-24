@@ -148,6 +148,39 @@ serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
+  // Auth gate: require a valid bearer token (user JWT or service role).
+  // Prevents unauthenticated abuse of the Anthropic API budget.
+  const authHeader = req.headers.get('Authorization') ?? '';
+  if (!authHeader.startsWith('Bearer ')) {
+    return new Response(
+      JSON.stringify({ error: 'Unauthorized' }),
+      { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+    );
+  }
+  const token = authHeader.slice(7);
+  if (token !== SUPABASE_SERVICE_ROLE_KEY) {
+    try {
+      const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+        },
+      });
+      if (!verifyRes.ok) {
+        return new Response(
+          JSON.stringify({ error: 'Unauthorized' }),
+          { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+        );
+      }
+    } catch {
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
+      );
+    }
+  }
+
+
   const startTime = Date.now();
 
   try {

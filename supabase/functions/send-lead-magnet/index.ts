@@ -149,7 +149,17 @@ We will notify you as soon as new features are ready for testing. In the meantim
   },
 };
 
+function escapeHtml(s: string): string {
+  return String(s ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
 function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[string]): string {
+  const safeName = escapeHtml(name).slice(0, 200);
   const downloadSection = content.downloadUrl ? `
               <!-- Download Button -->
               <table role="presentation" cellspacing="0" cellpadding="0" border="0" style="margin: 24px 0;">
@@ -211,7 +221,7 @@ function generateEmailHtml(name: string, content: typeof LEAD_MAGNET_EMAILS[stri
           <tr>
             <td style="padding: 40px;">
               <h2 style="margin: 0 0 8px 0; color: #1f2937; font-size: 22px; font-weight: 700;">${content.heading}</h2>
-              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 16px;">Hi ${name},</p>
+              <p style="margin: 0 0 20px 0; color: #6b7280; font-size: 16px;">Hi ${safeName},</p>
               
               <div style="color: #374151; font-size: 15px; line-height: 1.7;">
                 ${formattedBody}
@@ -271,6 +281,13 @@ Deno.serve(async (req) => {
     if (!email || !name || !offer) {
       return new Response(
         JSON.stringify({ error: 'Missing required fields: email, name, offer' }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    if (typeof name !== 'string' || name.length > 200) {
+      return new Response(
+        JSON.stringify({ error: 'Invalid name' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
@@ -357,10 +374,10 @@ Deno.serve(async (req) => {
           to: ['AIWMCSRM@gmail.com'],
           subject: `New Lead: ${offer} download`,
           html: `<p><strong>New lead captured</strong></p>
-            <p>Email: ${email}</p>
-            <p>Name: ${name}</p>
-            <p>Offer: ${offer}</p>
-            <p>Lead ID: ${leadId || 'N/A'}</p>
+            <p>Email: ${escapeHtml(email)}</p>
+            <p>Name: ${escapeHtml(name).slice(0, 200)}</p>
+            <p>Offer: ${escapeHtml(offer)}</p>
+            <p>Lead ID: ${escapeHtml(leadId || 'N/A')}</p>
             <p>Time: ${new Date().toISOString()}</p>`,
         }),
       });
