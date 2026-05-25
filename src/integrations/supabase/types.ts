@@ -4852,6 +4852,186 @@ export type Database = {
         }
         Relationships: []
       }
+      service_job_assemblies: {
+        Row: {
+          active: boolean
+          code: string
+          created_at: string
+          id: string
+          labor_hours_p25: number
+          labor_hours_p50: number
+          labor_hours_p75: number
+          materials: Json
+          name: string
+          notes: string | null
+          trade_id: string
+          unit: string
+        }
+        Insert: {
+          active?: boolean
+          code: string
+          created_at?: string
+          id?: string
+          labor_hours_p25: number
+          labor_hours_p50: number
+          labor_hours_p75: number
+          materials?: Json
+          name: string
+          notes?: string | null
+          trade_id: string
+          unit: string
+        }
+        Update: {
+          active?: boolean
+          code?: string
+          created_at?: string
+          id?: string
+          labor_hours_p25?: number
+          labor_hours_p50?: number
+          labor_hours_p75?: number
+          materials?: Json
+          name?: string
+          notes?: string | null
+          trade_id?: string
+          unit?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_job_assemblies_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "service_job_trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_job_outcomes: {
+        Row: {
+          actual_labor_hours: number | null
+          actual_materials_cost: number | null
+          actual_revenue: number | null
+          actual_total_cost: number | null
+          id: string
+          job_id: string
+          notes: string | null
+          recorded_at: string
+        }
+        Insert: {
+          actual_labor_hours?: number | null
+          actual_materials_cost?: number | null
+          actual_revenue?: number | null
+          actual_total_cost?: number | null
+          id?: string
+          job_id: string
+          notes?: string | null
+          recorded_at?: string
+        }
+        Update: {
+          actual_labor_hours?: number | null
+          actual_materials_cost?: number | null
+          actual_revenue?: number | null
+          actual_total_cost?: number | null
+          id?: string
+          job_id?: string
+          notes?: string | null
+          recorded_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_job_outcomes_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "service_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      service_job_trades: {
+        Row: {
+          active: boolean
+          default_margin_pct: number
+          default_overhead_pct: number
+          display_name: string
+          id: string
+        }
+        Insert: {
+          active?: boolean
+          default_margin_pct: number
+          default_overhead_pct: number
+          display_name: string
+          id: string
+        }
+        Update: {
+          active?: boolean
+          default_margin_pct?: number
+          default_overhead_pct?: number
+          display_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      service_jobs: {
+        Row: {
+          building_type: string | null
+          client_name: string | null
+          created_at: string
+          id: string
+          modifiers: Json
+          pricing_profile: Json
+          quote_result: Json | null
+          scope_items: Json
+          site_address: string | null
+          site_zip: string | null
+          status: string
+          trade_id: string
+          updated_at: string
+          user_id: string
+          year_built: number | null
+        }
+        Insert: {
+          building_type?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          modifiers?: Json
+          pricing_profile: Json
+          quote_result?: Json | null
+          scope_items?: Json
+          site_address?: string | null
+          site_zip?: string | null
+          status?: string
+          trade_id: string
+          updated_at?: string
+          user_id: string
+          year_built?: number | null
+        }
+        Update: {
+          building_type?: string | null
+          client_name?: string | null
+          created_at?: string
+          id?: string
+          modifiers?: Json
+          pricing_profile?: Json
+          quote_result?: Json | null
+          scope_items?: Json
+          site_address?: string | null
+          site_zip?: string | null
+          status?: string
+          trade_id?: string
+          updated_at?: string
+          user_id?: string
+          year_built?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "service_jobs_trade_id_fkey"
+            columns: ["trade_id"]
+            isOneToOne: false
+            referencedRelation: "service_job_trades"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       shared_reports: {
         Row: {
           analysis_id: string
