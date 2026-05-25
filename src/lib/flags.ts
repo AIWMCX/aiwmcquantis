@@ -31,6 +31,13 @@ export function isEnabled(flag: FlagKey): boolean {
     /* SSR / private mode */
   }
   const raw = readEnv(FLAG_ENV_KEYS[flag]);
-  if (!raw) return false;
-  return raw === '1' || raw.toLowerCase() === 'true';
+  if (raw) {
+    if (raw === '1' || raw.toLowerCase() === 'true') return true;
+    if (raw === '0' || raw.toLowerCase() === 'false') return false;
+  }
+  // Default-ON for service_job (Beta) so the feature is reachable from the sidebar
+  // and at /quote without extra setup. Override with VITE_FLAG_SERVICE_JOB=false
+  // or localStorage["flag:service_job"]="0" to disable.
+  if (flag === 'service_job') return true;
+  return false;
 }
