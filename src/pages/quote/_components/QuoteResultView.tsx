@@ -10,9 +10,9 @@ import { RiskFlagCard } from './RiskFlagCard';
 import { ServiceQuoteReport } from '@/components/pdf/ServiceQuoteReport';
 import {
   createJob,
-  recordOutcome as _recordOutcome,
-  updateJob,
   getOutcome,
+  logPdfGenerated,
+  updateJob,
 } from '@/services/serviceJob';
 import { useQuery } from '@tanstack/react-query';
 import type { ServiceJob } from '@/lib/service-job/types';
@@ -75,7 +75,9 @@ export function QuoteResultView({ job, onRefresh }: Props) {
   const handlePdf = async () => {
     try {
       setBusy('pdf');
+      const t0 = performance.now();
       const blob = await pdf(<ServiceQuoteReport job={job} />).toBlob();
+      const durationMs = Math.round(performance.now() - t0);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -84,6 +86,7 @@ export function QuoteResultView({ job, onRefresh }: Props) {
       a.click();
       a.remove();
       URL.revokeObjectURL(url);
+      logPdfGenerated(job.id, durationMs);
       toast.success('PDF downloaded');
     } catch (e) {
       console.error(e);
