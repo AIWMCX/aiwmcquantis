@@ -1,10 +1,10 @@
-import React from 'react';
-import { useDirectoryLogo } from '@/lib/directoryLogoCache';
+import React, { useEffect } from 'react';
+import { useDirectoryLogo, prefetchDirectoryLogos } from '@/lib/directoryLogoCache';
 
 /**
  * FeaturedDirectories — "As featured in" trust marquee.
- * Right-to-left infinite scroll with resilient logo loading,
- * localStorage cache, retry/backoff, and skeleton placeholders.
+ * Logos are prefetched on mount and have a guaranteed SVG fallback,
+ * so a real branded tile is ALWAYS visible before/while the marquee scrolls.
  */
 type Directory = {
   name: string;
@@ -24,45 +24,34 @@ const DIRECTORIES: Directory[] = [
 ];
 
 function LogoTile({ dir }: { dir: Directory }) {
-  const { src, status, onLoad, onError } = useDirectoryLogo(dir.domain);
+  const { src, status, onLoad, onError } = useDirectoryLogo(dir.name, dir.domain);
 
   return (
     <div
-      className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0 overflow-hidden"
+      className="relative flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0 overflow-hidden"
       style={{ background: 'rgba(255,255,255,0.96)' }}
     >
       {status === 'loading' && (
         <div
-          className="w-full h-full animate-pulse"
+          className="absolute inset-0 animate-pulse"
           style={{ background: 'linear-gradient(90deg, #e5e7eb, #f3f4f6, #e5e7eb)' }}
           aria-hidden="true"
         />
       )}
-
-      {status !== 'failed' && src && (
-        <img
-          src={src}
-          alt={`${dir.name} logo`}
-          width={32}
-          height={32}
-          loading="lazy"
-          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
-          style={{ display: status === 'loaded' ? 'block' : 'none' }}
-          onLoad={onLoad}
-          onError={onError}
-        />
-      )}
-
-      {status === 'failed' && (
-        <span
-          role="img"
-          aria-label={`${dir.name} initial`}
-          className="text-sm font-bold"
-          style={{ color: 'var(--q-bg-base)' }}
-        >
-          {dir.name.charAt(0)}
-        </span>
-      )}
+      <img
+        src={src}
+        alt={`${dir.name} logo`}
+        width={32}
+        height={32}
+        decoding="async"
+        loading="eager"
+        fetchPriority="low"
+        referrerPolicy="no-referrer"
+        className="relative w-7 h-7 sm:w-8 sm:h-8 object-contain"
+        style={{ opacity: status === 'loaded' ? 1 : 0, transition: 'opacity 200ms ease' }}
+        onLoad={onLoad}
+        onError={onError}
+      />
     </div>
   );
 }
@@ -102,6 +91,16 @@ function DirectoryCard({ dir }: { dir: Directory }) {
 
 export function FeaturedDirectories() {
   const items = [...DIRECTORIES, ...DIRECTORIES];
+
+  // Warm every directory logo before it scrolls into view.
+  useEffect(() => {
+    const run = () => {
+      void prefetchDirectoryLogos(DIRECTORIES);
+    };
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(run);
+    else window.setTimeout(run, 0);
+  }, []);
 
   return (
     <section
