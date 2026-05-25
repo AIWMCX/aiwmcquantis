@@ -1,8 +1,10 @@
 import React from 'react';
+import { useDirectoryLogo } from '@/lib/directoryLogoCache';
 
 /**
  * FeaturedDirectories — "As featured in" trust marquee.
- * Shows real directory logos (via Clearbit Logo API) in a seamless right-to-left scroll.
+ * Right-to-left infinite scroll with resilient logo loading,
+ * localStorage cache, retry/backoff, and skeleton placeholders.
  */
 type Directory = {
   name: string;
@@ -11,80 +13,84 @@ type Directory = {
 };
 
 const DIRECTORIES: Directory[] = [
-  { name: 'SaaSHub',          domain: 'saashub.com',       href: 'https://www.saashub.com' },
-  { name: 'TopAI.tools',      domain: 'topai.tools',       href: 'https://topai.tools' },
-  { name: 'Dang.ai',          domain: 'dang.ai',           href: 'https://dang.ai' },
-  { name: 'insidr.ai',        domain: 'insidr.ai',         href: 'https://www.insidr.ai' },
-  { name: "There's An AI",    domain: 'theresanaiforthat.com', href: 'https://theresanaiforthat.com' },
-  { name: 'Futurepedia',      domain: 'futurepedia.io',    href: 'https://www.futurepedia.io' },
-  { name: 'Product Hunt',     domain: 'producthunt.com',   href: 'https://www.producthunt.com' },
+  { name: 'SaaSHub', domain: 'saashub.com', href: 'https://www.saashub.com' },
+  { name: 'TopAI.tools', domain: 'topai.tools', href: 'https://topai.tools' },
+  { name: 'Dang.ai', domain: 'dang.ai', href: 'https://dang.ai' },
+  { name: 'insidr.ai', domain: 'insidr.ai', href: 'https://www.insidr.ai' },
+  { name: "There's An AI", domain: 'theresanaiforthat.com', href: 'https://theresanaiforthat.com' },
+  { name: 'Futurepedia', domain: 'futurepedia.io', href: 'https://www.futurepedia.io' },
+  { name: 'Product Hunt', domain: 'producthunt.com', href: 'https://www.producthunt.com' },
   { name: 'AI Tools Directory', domain: 'aitoolsdirectory.com', href: 'https://aitoolsdirectory.com' },
 ];
 
-function logoUrl(domain: string) {
-  // Clearbit Logo API — clean transparent logos, no API key required
-  return `https://logo.clearbit.com/${domain}?size=128`;
-}
+function LogoTile({ dir }: { dir: Directory }) {
+  const { src, status, onLoad, onError } = useDirectoryLogo(dir.domain);
 
-function faviconFallback(domain: string) {
-  return `https://www.google.com/s2/favicons?domain=${domain}&sz=64`;
+  return (
+    <div
+      className="flex items-center justify-center w-9 h-9 sm:w-10 sm:h-10 rounded-lg shrink-0 overflow-hidden"
+      style={{ background: 'rgba(255,255,255,0.96)' }}
+    >
+      {status === 'loading' && (
+        <div
+          className="w-full h-full animate-pulse"
+          style={{ background: 'linear-gradient(90deg, #e5e7eb, #f3f4f6, #e5e7eb)' }}
+          aria-hidden="true"
+        />
+      )}
+
+      {status !== 'failed' && src && (
+        <img
+          src={src}
+          alt={`${dir.name} logo`}
+          width={32}
+          height={32}
+          loading="lazy"
+          className="w-7 h-7 sm:w-8 sm:h-8 object-contain"
+          style={{ display: status === 'loaded' ? 'block' : 'none' }}
+          onLoad={onLoad}
+          onError={onError}
+        />
+      )}
+
+      {status === 'failed' && (
+        <span
+          role="img"
+          aria-label={`${dir.name} initial`}
+          className="text-sm font-bold"
+          style={{ color: 'var(--q-bg-base)' }}
+        >
+          {dir.name.charAt(0)}
+        </span>
+      )}
+    </div>
+  );
 }
 
 function DirectoryCard({ dir }: { dir: Directory }) {
-  const [src, setSrc] = React.useState(logoUrl(dir.domain));
-  const [failed, setFailed] = React.useState(false);
-
   return (
     <a
       href={dir.href}
       target="_blank"
       rel="noopener noreferrer"
-      className="group flex items-center gap-3 px-5 py-3 mx-3 rounded-xl border transition-all hover:scale-[1.03]"
+      className="group flex items-center gap-2.5 sm:gap-3 px-4 py-2.5 sm:px-5 sm:py-3 mx-2 sm:mx-3 rounded-xl border transition-all hover:scale-[1.03]"
       style={{
         background: 'var(--q-bg-surface)',
         borderColor: 'var(--q-border-default)',
-        minWidth: '200px',
+        minWidth: '170px',
       }}
       aria-label={`Featured on ${dir.name}`}
     >
-      <div
-        className="flex items-center justify-center w-10 h-10 rounded-lg shrink-0 overflow-hidden"
-        style={{ background: 'rgba(255,255,255,0.96)' }}
-      >
-        {!failed ? (
-          <img
-            src={src}
-            alt={`${dir.name} logo`}
-            width={32}
-            height={32}
-            loading="lazy"
-            className="w-8 h-8 object-contain"
-            onError={() => {
-              if (src !== faviconFallback(dir.domain)) {
-                setSrc(faviconFallback(dir.domain));
-              } else {
-                setFailed(true);
-              }
-            }}
-          />
-        ) : (
-          <span
-            className="text-sm font-bold"
-            style={{ color: 'var(--q-bg-base)' }}
-          >
-            {dir.name.charAt(0)}
-          </span>
-        )}
-      </div>
-      <div className="flex flex-col leading-tight">
+      <LogoTile dir={dir} />
+      <div className="flex flex-col leading-tight min-w-0">
         <span
-          className="text-[10px] uppercase tracking-[0.18em]"
+          className="text-[10px] uppercase tracking-[0.14em] sm:tracking-[0.18em]"
           style={{ color: 'var(--q-text-tertiary)' }}
         >
           Featured on
         </span>
         <span
-          className="text-sm font-semibold tracking-tight"
+          className="text-[13px] sm:text-sm font-semibold tracking-tight truncate max-w-[120px] sm:max-w-none"
           style={{ color: 'var(--q-text-primary)' }}
         >
           {dir.name}
@@ -116,17 +122,15 @@ export function FeaturedDirectories() {
 
         <div className="relative">
           <div
-            className="pointer-events-none absolute inset-y-0 left-0 w-24 z-10"
+            className="pointer-events-none absolute inset-y-0 left-0 w-16 sm:w-24 z-10"
             style={{
-              background:
-                'linear-gradient(to right, var(--q-bg-elevated), transparent)',
+              background: 'linear-gradient(to right, var(--q-bg-elevated), transparent)',
             }}
           />
           <div
-            className="pointer-events-none absolute inset-y-0 right-0 w-24 z-10"
+            className="pointer-events-none absolute inset-y-0 right-0 w-16 sm:w-24 z-10"
             style={{
-              background:
-                'linear-gradient(to left, var(--q-bg-elevated), transparent)',
+              background: 'linear-gradient(to left, var(--q-bg-elevated), transparent)',
             }}
           />
 
