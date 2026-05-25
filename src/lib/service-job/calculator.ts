@@ -36,6 +36,12 @@ import { generatePreMortemRisks } from './pre-mortem';
 export const MC_ITERATIONS_DEFAULT = 10_000;
 export const REVISIT_LABOR_HOURS = 2;
 export const MATERIAL_PRICE_SIGMA_PCT = 0.12; // sigma = 12% of unit cost mean
+/**
+ * Performance budget for `calculateQuote`. 10,000 iterations × ~10 assemblies
+ * should comfortably finish under this on commodity hardware. Exceeding it
+ * emits a `console.warn` (non-throwing) for observability.
+ */
+export const PERF_BUDGET_MS = 250;
 
 /**
  * Revisit-probability lookup. Linear interp between anchor points:
@@ -108,6 +114,7 @@ export async function calculateQuote(
   assemblies: ServiceJobAssembly[],
   options: { iterations?: number; seed?: number } = {},
 ): Promise<QuoteResult> {
+  const _perfStart = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   if (!input || !Array.isArray(input.scope_items) || input.scope_items.length === 0) {
     throw new ServiceJobCalculationError(
       'Quote requires at least one scope item.',
@@ -264,6 +271,18 @@ export async function calculateQuote(
     varianceByScopeIndex,
   });
 
+  const _perfEnd = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+  const duration_ms = _perfEnd - _perfStart;
+  // Performance budget: 10k iterations × 10-assembly job should finish under
+  // PERF_BUDGET_MS on standard hardware. Warn on regression but never throw.
+  if (duration_ms > PERF_BUDGET_MS && typeof console !== 'undefined') {
+    console.warn(
+      `[service-job] calculateQuote exceeded perf budget: ${duration_ms.toFixed(0)}ms ` +
+      `> ${PERF_BUDGET_MS}ms (iterations=${options.iterations ?? MC_ITERATIONS_DEFAULT}, ` +
+      `scope_items=${input.scope_items.length})`,
+    );
+  }
+
   return {
     baseline_cost: baselineCost,
     baseline_price: baselinePrice,
@@ -271,7 +290,9 @@ export async function calculateQuote(
     monte_carlo: monteCarlo,
     risks,
     computed_at: new Date().toISOString(),
-  };
+    /** Wall-clock duration of this calculation, in milliseconds. */
+    duration_ms,
+  } as QuoteResult & { duration_ms: number };
 }
 
 // ---------- helpers ----------

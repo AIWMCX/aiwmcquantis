@@ -20,8 +20,9 @@
  *   (PDF: client-side via @react-pdf/renderer — see ServiceQuoteReport.tsx)
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import { isEnabled } from '@/lib/flags';
-import { calculateQuote } from '@/lib/service-job/calculator';
+import { calculateQuote, MC_ITERATIONS_DEFAULT } from '@/lib/service-job/calculator';
 import type {
   JobModifiers,
   PricingProfile,
@@ -41,6 +42,30 @@ import {
   type ServiceJobOutcomeInput,
   type ServiceJobPatchInput,
 } from '@/lib/service-job/schemas';
+
+/** Structured event names. Centralized to avoid typos at call sites. */
+const EVT = {
+  CREATED: 'service_job.created',
+  QUOTE_COMPUTED: 'service_job.quote_computed',
+  PDF_GENERATED: 'service_job.pdf_generated',
+  OUTCOME_RECORDED: 'service_job.outcome_recorded',
+  ERROR: 'service_job.error',
+} as const;
+
+/** Log a structured failure for any service-job route. Never throws. */
+function logFailure(route: string, err: unknown) {
+  const errorClass = err instanceof Error ? err.constructor.name : typeof err;
+  const message = err instanceof Error ? err.message : String(err);
+  try {
+    logger.error(EVT.ERROR, err instanceof Error ? err : new Error(message), {
+      component: 'service-job',
+      action: route,
+      metadata: { route, error_class: errorClass },
+    });
+  } catch {
+    /* logger must never break the request path */
+  }
+}
 
 export class ServiceJobApiError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
@@ -124,13 +149,24 @@ export async function createJob(input: Partial<ServiceJobCreateInput>): Promise<
     modifiers: input.modifiers ?? {},
     pricing_profile: input.pricing_profile ?? DEFAULT_PRICING_PROFILE,
   });
-  const { data, error } = await supabase
-    .from('service_jobs')
-    .insert({ ...(merged as unknown as Record<string, unknown>), user_id, status: 'draft' } as never)
-    .select('*')
-    .single();
-  if (error) throw new ServiceJobApiError('Failed to create job', error);
-  return data as unknown as ServiceJob;
+  try {
+    const { data, error } = await supabase
+      .from('service_jobs')
+      .insert({ ...(merged as unknown as Record<string, unknown>), user_id, status: 'draft' } as never)
+      .select('*')
+      .single();
+    if (error) throw new ServiceJobApiError('Failed to create job', error);
+    logger.info(EVT.CREATED, {
+      component: 'service-job',
+      action: 'createJob',
+      userId: user_id,
+      metadata: { job_id: (data as { id: string }).id, trade_id: merged.trade_id },
+    });
+    return data as unknown as ServiceJob;
+  } catch (err) {
+    logFailure('createJob', err);
+    throw err;
+  }
 }
 
 export async function updateJob(
@@ -162,28 +198,49 @@ export async function deleteJob(id: string): Promise<void> {
 export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
   ensureEnabled();
   await requireUserId();
-  const job = await getJob(id);
-  const assemblies = await listAssemblies(job.trade_id);
-  const result: QuoteResult = await calculateQuote(
-    {
-      trade_id: job.trade_id,
-      scope_items: job.scope_items as ScopeItem[],
-      modifiers: (job.modifiers ?? {}) as JobModifiers,
-      pricing_profile: job.pricing_profile as PricingProfile,
-      year_built: job.year_built,
-      building_type: job.building_type,
-      site_zip: job.site_zip,
-    },
-    assemblies,
-  );
-  const { data, error } = await supabase
-    .from('service_jobs')
-    .update({ quote_result: result as unknown, status: 'quoted' } as never)
-    .eq('id', id)
-    .select('*')
-    .single();
-  if (error) throw new ServiceJobApiError('Failed to save quote', error);
-  return data as unknown as ServiceJob;
+  try {
+    const job = await getJob(id);
+    const assemblies = await listAssemblies(job.trade_id);
+    const t0 = (typeof performance !== 'undefined' ? performance.now() : Date.now());
+    const result: QuoteResult = await calculateQuote(
+      {
+        trade_id: job.trade_id,
+        scope_items: job.scope_items as ScopeItem[],
+        modifiers: (job.modifiers ?? {}) as JobModifiers,
+        pricing_profile: job.pricing_profile as PricingProfile,
+        year_built: job.year_built,
+        building_type: job.building_type,
+        site_zip: job.site_zip,
+      },
+      assemblies,
+    );
+    const duration_ms = Math.round(
+      (typeof performance !== 'undefined' ? performance.now() : Date.now()) - t0,
+    );
+    logger.info(EVT.QUOTE_COMPUTED, {
+      component: 'service-job',
+      action: 'computeAndSaveQuote',
+      metadata: {
+        job_id: id,
+        trade_id: job.trade_id,
+        duration_ms,
+        iteration_count: MC_ITERATIONS_DEFAULT,
+        scope_items: (job.scope_items ?? []).length,
+        risk_count: result.risks.length,
+      },
+    });
+    const { data, error } = await supabase
+      .from('service_jobs')
+      .update({ quote_result: result as unknown, status: 'quoted' } as never)
+      .eq('id', id)
+      .select('*')
+      .single();
+    if (error) throw new ServiceJobApiError('Failed to save quote', error);
+    return data as unknown as ServiceJob;
+  } catch (err) {
+    logFailure('computeAndSaveQuote', err);
+    throw err;
+  }
 }
 
 // ── Outcomes ──
@@ -208,12 +265,39 @@ export async function recordOutcome(
 ): Promise<ServiceJobOutcome> {
   ensureEnabled();
   await requireUserId();
-  const safe = ServiceJobOutcomeSchema.parse(outcome);
-  const { data, error } = await supabase
-    .from('service_job_outcomes')
-    .insert({ job_id: jobId, ...safe } as never)
-    .select('*')
-    .single();
-  if (error) throw new ServiceJobApiError('Failed to record outcome', error);
-  return data as unknown as ServiceJobOutcome;
+  try {
+    const safe = ServiceJobOutcomeSchema.parse(outcome);
+    const { data, error } = await supabase
+      .from('service_job_outcomes')
+      .insert({ job_id: jobId, ...safe } as never)
+      .select('*')
+      .single();
+    if (error) throw new ServiceJobApiError('Failed to record outcome', error);
+    logger.info(EVT.OUTCOME_RECORDED, {
+      component: 'service-job',
+      action: 'recordOutcome',
+      metadata: {
+        job_id: jobId,
+        has_actual_cost: safe.actual_total_cost != null,
+        has_revenue: safe.actual_revenue != null,
+      },
+    });
+    return data as unknown as ServiceJobOutcome;
+  } catch (err) {
+    logFailure('recordOutcome', err);
+    throw err;
+  }
+}
+
+/** Fire-and-forget structured event for client-side PDF generation. */
+export function logPdfGenerated(jobId: string, durationMs?: number) {
+  try {
+    logger.info(EVT.PDF_GENERATED, {
+      component: 'service-job',
+      action: 'generatePdf',
+      metadata: { job_id: jobId, duration_ms: durationMs },
+    });
+  } catch {
+    /* never break the UI */
+  }
 }
