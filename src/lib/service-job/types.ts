@@ -57,10 +57,28 @@ export interface JobModifiers {
   access_difficulty?: number;
   height_factor?: number;
   permit_required?: boolean;
+  permit_fee?: number;
   after_hours?: boolean;
+  emergency?: boolean;
+  weekend?: boolean;
   travel_miles?: number;
   [key: string]: unknown;
 }
+
+/**
+ * Input shape consumed by `calculateQuote`. Pure data — no IDs or timestamps.
+ */
+export interface ServiceJobInput {
+  trade_id: TradeId;
+  scope_items: ScopeItem[];
+  modifiers: JobModifiers;
+  pricing_profile: PricingProfile;
+  year_built?: number | null;
+  building_type?: string | null;
+  site_zip?: string | null;
+  job_type?: string;
+}
+
 
 export interface PricingProfile {
   hourly_rate_journeyman: number;
@@ -81,23 +99,37 @@ export interface PriceBand {
 
 export type RiskSeverity = 'low' | 'medium' | 'high';
 
+export type RiskCategory =
+  | 'variance'
+  | 'building_age'
+  | 'difficulty'
+  | 'after_hours'
+  | 'missing_scope'
+  | 'other';
+
 export interface RiskFlag {
   code: string;
+  category: RiskCategory;
   message: string;
   severity: RiskSeverity;
+  impact_estimate?: string;
   field?: string;
 }
+
 
 export interface MonteCarloOutput {
   iterations: number;
   cost_p10: number;
   cost_p50: number;
   cost_p90: number;
+  cost_p95: number;
   margin_p10: number;
   margin_p50: number;
   margin_p90: number;
   loss_probability: number;
+  prob_margin_below_target: number;
 }
+
 
 export interface QuoteResult {
   baseline_cost: number;
