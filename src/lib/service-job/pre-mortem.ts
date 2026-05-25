@@ -152,6 +152,49 @@ export function generatePreMortemRisks(ctx: PreMortemContext): RiskFlag[] {
     }
   }
 
+  // 6) PLUMBING-specific — Galvanized pipe risk for pre-1970 builds.
+  //    Trade-scoped, additive to BUILDING_AGE so plumbers get the specific
+  //    cue even when BUILDING_AGE is generic.
+  if (
+    String(input.trade_id) === 'plumbing' &&
+    typeof input.year_built === 'number' &&
+    input.year_built > 0 &&
+    input.year_built < 1970
+  ) {
+    flags.push({
+      code: 'GALVANIZED_PIPE_RISK',
+      category: 'building_age',
+      severity: 'medium',
+      message:
+        'Pre-1970 plumbing — assume galvanized supply lines. Threads seize, fittings crumble, scope can balloon mid-job.',
+      impact_estimate: '+$300–$1,200',
+    });
+  }
+
+  // 7) PLUMBING-specific — Permit required for water-heater or repipe work,
+  //    when the pricing profile carries no permit fee. Distinct from
+  //    MISSING_PERMIT (which is generic keyword-triggered) — this one is
+  //    scoped to the trade and explicitly checks the pricing profile.
+  if (String(input.trade_id) === 'plumbing') {
+    const hasWaterHeaterOrRepipe = input.scope_items.some((s) => {
+      const asm = findAssembly(assemblies, s.assembly_id);
+      if (!asm) return false;
+      const hay = `${asm.code} ${asm.name}`.toLowerCase();
+      return /water[\s-]?heater|wh-|repipe/.test(hay);
+    });
+    const noPermitInProfile = !(input.pricing_profile?.['permit_fee' as never]) && !m.permit_fee;
+    if (hasWaterHeaterOrRepipe && noPermitInProfile) {
+      flags.push({
+        code: 'PLUMBING_PERMIT_REQUIRED',
+        category: 'missing_scope',
+        severity: 'high',
+        message:
+          'Water-heater or repipe work — most jurisdictions require a permit and inspection. Pricing profile has no permit fee allocated.',
+        impact_estimate: '+$150–$450',
+      });
+    }
+  }
+
   // Rank by severity desc, keep top 5.
   flags.sort((a, b) => SEVERITY_RANK[b.severity] - SEVERITY_RANK[a.severity]);
   return flags.slice(0, 5);

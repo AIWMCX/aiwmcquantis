@@ -20,7 +20,7 @@ interface Props {
 
 const TRADES = [
   { id: 'electrical', name: 'Electrical', enabled: true },
-  { id: 'plumbing', name: 'Plumbing', enabled: false },
+  { id: 'plumbing', name: 'Plumbing', enabled: true },
   { id: 'hvac', name: 'HVAC', enabled: false },
 ];
 
