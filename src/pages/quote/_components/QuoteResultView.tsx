@@ -237,6 +237,23 @@ export function QuoteResultView({ job, onRefresh }: Props) {
           </CardContent>
         </Card>
       )}
+
+      {/* Beta feedback link — zero-cost signal channel */}
+      <div className="pt-2 text-center text-xs text-muted-foreground">
+        <a
+          href={`mailto:feedback@aiwmcquantis.com?subject=${encodeURIComponent(
+            `Quote Engine Feedback — ${job.id}`,
+          )}&body=${encodeURIComponent(
+            `Job ID: ${job.id}\nTrade: ${job.trade_id}\n\nWhat worked / what felt wrong:\n`,
+          )}`}
+          className="underline-offset-2 hover:underline"
+        >
+          Send beta feedback on this quote →
+        </a>
+      </div>
+    </div>
+  );
+}
     </div>
   );
 }
