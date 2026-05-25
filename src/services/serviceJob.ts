@@ -211,7 +211,7 @@ export async function recordOutcome(
   const safe = ServiceJobOutcomeSchema.parse(outcome);
   const { data, error } = await supabase
     .from('service_job_outcomes')
-    .insert({ job_id: jobId, ...safe })
+    .insert({ job_id: jobId, ...safe } as never)
     .select('*')
     .single();
   if (error) throw new ServiceJobApiError('Failed to record outcome', error);
