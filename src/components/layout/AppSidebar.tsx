@@ -38,6 +38,7 @@ import {
   Lock,
   Megaphone,
 } from 'lucide-react';
+import { isEnabled } from '@/lib/flags';
 
 interface NavItem {
   title: string;
@@ -48,6 +49,8 @@ interface NavItem {
   badge?: string;
   /** True = the item itself is a Plus-only module — show 🔒 to Free users */
   plusOnly?: boolean;
+  /** Optional feature-flag gate. Item only renders when `isEnabled(flag)` is true. */
+  flag?: 'service_job';
 }
 
 interface NavSection {
@@ -60,6 +63,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'ANALYSIS',
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
+      { title: 'Instant Quotes', url: '/quote', icon: Zap, badge: 'Beta', flag: 'service_job' },
       { title: 'History', url: '/app?tab=history', icon: Clock },
     ],
   },
@@ -160,7 +164,7 @@ export function AppSidebar() {
         <SidebarContent className="py-4">
           {NAV_SECTIONS.map((section) => {
             const visibleItems = section.items.filter(
-              (item) => !item.adminOnly || isAdmin
+              (item) => (!item.adminOnly || isAdmin) && (!item.flag || isEnabled(item.flag))
             );
             
             if (visibleItems.length === 0) return null;
