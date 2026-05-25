@@ -20,8 +20,9 @@
  *   (PDF: client-side via @react-pdf/renderer — see ServiceQuoteReport.tsx)
  */
 import { supabase } from '@/integrations/supabase/client';
+import { logger } from '@/lib/logger';
 import { isEnabled } from '@/lib/flags';
-import { calculateQuote } from '@/lib/service-job/calculator';
+import { calculateQuote, MC_ITERATIONS_DEFAULT } from '@/lib/service-job/calculator';
 import type {
   JobModifiers,
   PricingProfile,
@@ -41,6 +42,30 @@ import {
   type ServiceJobOutcomeInput,
   type ServiceJobPatchInput,
 } from '@/lib/service-job/schemas';
+
+/** Structured event names. Centralized to avoid typos at call sites. */
+const EVT = {
+  CREATED: 'service_job.created',
+  QUOTE_COMPUTED: 'service_job.quote_computed',
+  PDF_GENERATED: 'service_job.pdf_generated',
+  OUTCOME_RECORDED: 'service_job.outcome_recorded',
+  ERROR: 'service_job.error',
+} as const;
+
+/** Log a structured failure for any service-job route. Never throws. */
+function logFailure(route: string, err: unknown) {
+  const errorClass = err instanceof Error ? err.constructor.name : typeof err;
+  const message = err instanceof Error ? err.message : String(err);
+  try {
+    logger.error(EVT.ERROR, err instanceof Error ? err : new Error(message), {
+      component: 'service-job',
+      action: route,
+      metadata: { route, error_class: errorClass },
+    });
+  } catch {
+    /* logger must never break the request path */
+  }
+}
 
 export class ServiceJobApiError extends Error {
   constructor(message: string, public readonly cause?: unknown) {
