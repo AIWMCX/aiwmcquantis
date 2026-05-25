@@ -92,6 +92,16 @@ function DirectoryCard({ dir }: { dir: Directory }) {
 export function FeaturedDirectories() {
   const items = [...DIRECTORIES, ...DIRECTORIES];
 
+  // Warm every directory logo before it scrolls into view.
+  useEffect(() => {
+    const run = () => {
+      void prefetchDirectoryLogos(DIRECTORIES);
+    };
+    const w = window as Window & { requestIdleCallback?: (cb: () => void) => number };
+    if (typeof w.requestIdleCallback === 'function') w.requestIdleCallback(run);
+    else window.setTimeout(run, 0);
+  }, []);
+
   return (
     <section
       aria-label="Featured in directories"
