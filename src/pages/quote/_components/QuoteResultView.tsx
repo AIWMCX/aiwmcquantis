@@ -254,6 +254,3 @@ export function QuoteResultView({ job, onRefresh }: Props) {
     </div>
   );
 }
-    </div>
-  );
-}
