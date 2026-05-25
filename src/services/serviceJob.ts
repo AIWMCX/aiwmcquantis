@@ -126,7 +126,7 @@ export async function createJob(input: Partial<ServiceJobCreateInput>): Promise<
   });
   const { data, error } = await supabase
     .from('service_jobs')
-    .insert({ ...merged, user_id, status: 'draft' })
+    .insert({ ...(merged as unknown as Record<string, unknown>), user_id, status: 'draft' } as never)
     .select('*')
     .single();
   if (error) throw new ServiceJobApiError('Failed to create job', error);
@@ -142,7 +142,7 @@ export async function updateJob(
   const safe = ServiceJobPatchSchema.parse(patch);
   const { data, error } = await supabase
     .from('service_jobs')
-    .update(safe)
+    .update(safe as never)
     .eq('id', id)
     .select('*')
     .single();
@@ -178,7 +178,7 @@ export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
   );
   const { data, error } = await supabase
     .from('service_jobs')
-    .update({ quote_result: result, status: 'quoted' })
+    .update({ quote_result: result as unknown, status: 'quoted' } as never)
     .eq('id', id)
     .select('*')
     .single();
