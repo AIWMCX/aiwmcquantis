@@ -131,6 +131,23 @@ export interface MonteCarloOutput {
 }
 
 
+export interface QuoteCostBreakdown {
+  labor: number;
+  materials: number;
+  subs_and_fees: number;
+  overhead: number;
+  /** Implied profit at the balanced price band. */
+  profit_at_balanced: number;
+  effective_labor_hours: number;
+  /** Total multiplier on labor hours (labor_premium × site_premium). */
+  labor_multiplier: number;
+  /** emergency/after_hours/weekend additive premium, capped. */
+  labor_premium_multiplier: number;
+  /** access × height premium, clamped. */
+  site_premium_multiplier: number;
+  hourly_rate: number;
+}
+
 export interface QuoteResult {
   baseline_cost: number;
   baseline_price: number;
@@ -141,6 +158,8 @@ export interface QuoteResult {
   };
   monte_carlo: MonteCarloOutput;
   risks: RiskFlag[];
+  /** Deterministic cost composition. Optional for back-compat with old saved quotes. */
+  cost_breakdown?: QuoteCostBreakdown;
   /** ISO timestamp */
   computed_at: string;
 }

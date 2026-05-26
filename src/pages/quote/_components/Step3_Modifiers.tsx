@@ -84,14 +84,14 @@ export function Step3_Modifiers({ value, onChange }: Props) {
               Access difficulty: <span className="font-mono">{access.toFixed(2)}×</span>
             </Label>
             <Slider
-              min={0.8}
-              max={2.5}
+              min={1.0}
+              max={1.5}
               step={0.05}
               value={[access]}
               onValueChange={([v]) => set('access_difficulty', v)}
             />
             <p className="text-xs text-muted-foreground">
-              Crawlspace, basement, locked rooms, narrow halls.
+              Crawlspace, basement, locked rooms, narrow halls. Capped at 1.5×.
             </p>
           </div>
           <div className="space-y-2">
@@ -99,14 +99,14 @@ export function Step3_Modifiers({ value, onChange }: Props) {
               Height factor: <span className="font-mono">{height.toFixed(2)}×</span>
             </Label>
             <Slider
-              min={1}
-              max={2.0}
+              min={1.0}
+              max={1.5}
               step={0.05}
               value={[height]}
               onValueChange={([v]) => set('height_factor', v)}
             />
             <p className="text-xs text-muted-foreground">
-              Ladders, lifts, scaffolding. 1.0 = ground level.
+              Ladders, lifts, scaffolding. 1.0 = ground level. Capped at 1.5×.
             </p>
           </div>
           {value.permit_required && (

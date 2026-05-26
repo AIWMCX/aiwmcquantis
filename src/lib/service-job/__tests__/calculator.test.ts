@@ -147,8 +147,8 @@ describe('calculateQuote — EV charger', () => {
   });
 });
 
-describe('calculateQuote — labor-context modifiers', () => {
-  it('4. emergency + after_hours scales labor cost by ~1.875× (1.5 × 1.25)', async () => {
+describe('calculateQuote — labor-context modifiers (additive, capped)', () => {
+  it('4. emergency + after_hours scales labor cost by ~1.75× (additive: 1 + 0.5 + 0.25)', async () => {
     const scope = [{ assembly_id: 'a-panel', quantity: 1, difficulty_factor: 1 }];
     const base = await calculateQuote(makeInput(scope), ASSEMBLIES, {
       iterations: ITER,
@@ -160,16 +160,52 @@ describe('calculateQuote — labor-context modifiers', () => {
       { iterations: ITER, seed: SEED },
     );
 
-    const expectedMult = LABOR_MULTIPLIERS.emergency * LABOR_MULTIPLIERS.after_hours;
-    expect(expectedMult).toBeCloseTo(1.875, 5);
+    // Additive premium: 1 + 0.5 + 0.25 = 1.75 (was 1.875 multiplicative — fixed)
+    const expectedMult = 1.75;
 
-    // p50 cost ratio should exceed 1.0 and not exceed pure-labor multiplier
-    // (materials & permit_fee dilute the lift slightly).
     const ratio = surcharged.monte_carlo.cost_p50 / base.monte_carlo.cost_p50;
-    expect(ratio).toBeGreaterThan(1.3); // clearly lifted
-    expect(ratio).toBeLessThan(expectedMult + 0.05); // bounded above by labor mult
+    expect(ratio).toBeGreaterThan(1.25); // clearly lifted
+    expect(ratio).toBeLessThan(expectedMult + 0.05); // bounded by labor mult
     const codes = surcharged.risks.map((r) => r.code);
     expect(codes).toContain('AFTER_HOURS');
+  });
+
+  it('emergency + after_hours + weekend is capped at 2.5× (not 2.625× multiplicative)', async () => {
+    const scope = [{ assembly_id: 'a-panel', quantity: 1, difficulty_factor: 1 }];
+    const base = await calculateQuote(makeInput(scope), ASSEMBLIES, {
+      iterations: ITER,
+      seed: SEED,
+    });
+    const allOn = await calculateQuote(
+      makeInput(scope, {
+        modifiers: { emergency: true, after_hours: true, weekend: true },
+      }),
+      ASSEMBLIES,
+      { iterations: ITER, seed: SEED },
+    );
+    // Additive: 1 + 0.5 + 0.25 + 0.4 = 2.15, below cap 2.5 → mult = 2.15
+    const ratio = allOn.monte_carlo.cost_p50 / base.monte_carlo.cost_p50;
+    expect(ratio).toBeLessThan(2.2); // never compounds to old 2.625
+  });
+});
+
+describe('TOP_VARIANCE impact is in dollars, not dollars²', () => {
+  it('impact estimate never exceeds 5× the baseline cost', async () => {
+    const result = await calculateQuote(
+      makeInput([
+        { assembly_id: 'a-panel', quantity: 1, difficulty_factor: 1.2 },
+        { assembly_id: 'a-outlet', quantity: 3, difficulty_factor: 1 },
+      ]),
+      ASSEMBLIES,
+      { iterations: ITER, seed: SEED },
+    );
+    const variance = result.risks.find((r) => r.code === 'TOP_VARIANCE');
+    expect(variance).toBeDefined();
+    // Extract the dollar number from "±$1,250 (1σ)" — must be sane vs baseline.
+    const match = variance!.impact_estimate!.match(/\$([\d,]+)/);
+    expect(match).toBeTruthy();
+    const dollars = Number(match![1].replace(/,/g, ''));
+    expect(dollars).toBeLessThan(result.baseline_cost * 5);
   });
 });
 

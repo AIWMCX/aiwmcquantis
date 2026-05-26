@@ -52,37 +52,51 @@ function fmtRange(lo: number, hi: number): string {
   return `+$${round(lo)}–$${round(hi)}`;
 }
 
+function fmtDollars(v: number): string {
+  const abs = Math.max(0, v);
+  const rounded = abs >= 500 ? Math.round(abs / 50) * 50 : Math.round(abs / 10) * 10;
+  return `$${rounded.toLocaleString('en-US')}`;
+}
+
 export function generatePreMortemRisks(ctx: PreMortemContext): RiskFlag[] {
   const { input, assemblies, varianceByScopeIndex } = ctx;
   const flags: RiskFlag[] = [];
 
   // 1) Top variance contributor.
+  // varianceByScopeIndex carries SAMPLE VARIANCE of per-item labor cost (units = $²).
+  // The reported impact must be in DOLLARS — convert via sqrt() to get the
+  // standard deviation, then frame as a ±1σ swing around the item's contribution.
   if (varianceByScopeIndex.length > 0) {
     let maxIdx = 0;
     let maxVar = -Infinity;
-    let total = 0;
+    let totalVar = 0;
     for (let i = 0; i < varianceByScopeIndex.length; i++) {
-      total += varianceByScopeIndex[i];
-      if (varianceByScopeIndex[i] > maxVar) {
-        maxVar = varianceByScopeIndex[i];
+      const v = varianceByScopeIndex[i];
+      totalVar += v;
+      if (v > maxVar) {
+        maxVar = v;
         maxIdx = i;
       }
     }
-    if (maxVar > 0 && total > 0) {
-      const share = maxVar / total;
+    if (maxVar > 0 && totalVar > 0) {
+      const share = maxVar / totalVar;
       const item = input.scope_items[maxIdx];
       const asm = item ? findAssembly(assemblies, item.assembly_id) : undefined;
       const name = asm?.name ?? `Item ${maxIdx + 1}`;
+      const sigmaDollars = Math.sqrt(maxVar); // ← THE FIX: $, not $²
       const severity: RiskSeverity = share >= 0.6 ? 'high' : share >= 0.35 ? 'medium' : 'low';
+      // ±1σ band around this item's expected labor-cost contribution.
+      // Caps it to plausible dollar swings (no $45k–$136k for a $3k job).
       flags.push({
         code: 'TOP_VARIANCE',
         category: 'variance',
         severity,
         message: `${name} drives ${Math.round(share * 100)}% of cost uncertainty — tighten its scope before quoting.`,
-        impact_estimate: fmtRange(maxVar * 0.5, maxVar * 1.5),
+        impact_estimate: `±${fmtDollars(sigmaDollars)} (1σ)`,
       });
     }
   }
+
 
   // 2) Building age (< 1985): legacy wiring / galvanized plumbing surprises.
   if (typeof input.year_built === 'number' && input.year_built > 0 && input.year_built < 1985) {

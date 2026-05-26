@@ -24,6 +24,7 @@ import type {
 } from './types';
 import {
   laborContextMultiplier,
+  siteContextMultiplier,
   overheadAmount,
   priceFromCost,
   marginAt,
@@ -32,6 +33,10 @@ import {
 } from './pricing';
 import { runMC, triangular, normal, bernoulli } from './monte-carlo';
 import { generatePreMortemRisks } from './pre-mortem';
+
+/** Hard clamps on per-scope difficulty factor before any compounding. */
+export const DIFFICULTY_MIN = 0.5;
+export const DIFFICULTY_MAX = 2.0;
 
 export const MC_ITERATIONS_DEFAULT = 10_000;
 export const REVISIT_LABOR_HOURS = 2;
@@ -90,7 +95,8 @@ function resolveScope(
         'ASSEMBLY_NOT_FOUND',
       );
     }
-    const df = s.difficulty_factor > 0 ? s.difficulty_factor : 1;
+    const dfRaw = s.difficulty_factor > 0 ? s.difficulty_factor : 1;
+    const df = Math.min(DIFFICULTY_MAX, Math.max(DIFFICULTY_MIN, dfRaw));
     const qty = s.quantity > 0 ? s.quantity : 0;
     resolved.push({
       scopeIndex: i,
@@ -132,6 +138,8 @@ export async function calculateQuote(
   }
 
   const laborMult = laborContextMultiplier(input.modifiers);
+  const siteMult = siteContextMultiplier(input.modifiers);
+  const combinedLaborMult = laborMult * siteMult;
   const waste = pricing.waste_factor_default; // already decimal in spec
   const markup = pct(pricing.material_markup_pct);
   const permitFee =
@@ -147,7 +155,7 @@ export async function calculateQuote(
     );
   }
   const effectiveLaborHours = QM.toNumber(
-    QM.multiply(baselineLaborHours, laborMult),
+    QM.multiply(baselineLaborHours, combinedLaborMult),
     6,
   );
   const laborCost = QM.toNumber(
@@ -200,7 +208,7 @@ export async function calculateQuote(
       let itemHours = sampledPerUnit * r.quantity;
       const p = revisitProbability(r.difficulty);
       if (bernoulli(rand, p) === 1) itemHours += REVISIT_LABOR_HOURS;
-      const itemLaborCost = itemHours * laborMult * hourly;
+      const itemLaborCost = itemHours * combinedLaborMult * hourly;
       perItemLaborCost[k] = itemLaborCost;
       totalLaborHours += itemHours;
 
@@ -212,7 +220,7 @@ export async function calculateQuote(
       }
     }
 
-    const labor = totalLaborHours * laborMult * hourly;
+    const labor = totalLaborHours * combinedLaborMult * hourly;
     const mats = totalMaterials * markupFactor;
     const sub = labor + mats + subsAndFees;
     const realized = sub * (1 + overheadPctDec);
@@ -271,10 +279,24 @@ export async function calculateQuote(
     varianceByScopeIndex,
   });
 
+  // ----- Real cost breakdown (deterministic baseline split) -----
+  const balancedPrice = priceBands.balanced.price;
+  const profitAtBalanced = Math.max(0, round2(balancedPrice - baselineCost));
+  const cost_breakdown = {
+    labor: laborCost,
+    materials: materialsCost,
+    subs_and_fees: subsAndFees,
+    overhead,
+    profit_at_balanced: profitAtBalanced,
+    effective_labor_hours: effectiveLaborHours,
+    labor_multiplier: combinedLaborMult,
+    labor_premium_multiplier: laborMult,
+    site_premium_multiplier: siteMult,
+    hourly_rate: pricing.hourly_rate_journeyman,
+  };
+
   const _perfEnd = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const duration_ms = _perfEnd - _perfStart;
-  // Performance budget: 10k iterations × 10-assembly job should finish under
-  // PERF_BUDGET_MS on standard hardware. Warn on regression but never throw.
   if (duration_ms > PERF_BUDGET_MS && typeof console !== 'undefined') {
     console.warn(
       `[service-job] calculateQuote exceeded perf budget: ${duration_ms.toFixed(0)}ms ` +
@@ -289,6 +311,7 @@ export async function calculateQuote(
     price_bands: priceBands,
     monte_carlo: monteCarlo,
     risks,
+    cost_breakdown,
     computed_at: new Date().toISOString(),
     /** Wall-clock duration of this calculation, in milliseconds. */
     duration_ms,

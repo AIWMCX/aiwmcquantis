@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
@@ -32,6 +32,8 @@ function fmt(n: number) {
 
 export function QuoteResultView({ job, onRefresh }: Props) {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const debug = searchParams.get('debug') === '1';
   const [busy, setBusy] = useState<string | null>(null);
   const q = job.quote_result;
 
@@ -43,18 +45,25 @@ export function QuoteResultView({ job, onRefresh }: Props) {
 
   const breakdown = useMemo(() => {
     if (!q) return [];
-    // Synthesize a simple breakdown from baseline_cost + balanced price.
-    const cost = q.baseline_cost;
     const price = q.price_bands.balanced.price;
+    const cb = q.cost_breakdown;
+    // Prefer real breakdown; fall back to the old 60/30/10 heuristic for
+    // legacy quotes saved before cost_breakdown was added.
+    if (cb) {
+      const profit = cb.profit_at_balanced;
+      return [
+        { label: 'Labor', value: cb.labor, pct: cb.labor / price },
+        { label: 'Materials', value: cb.materials, pct: cb.materials / price },
+        { label: 'Overhead', value: cb.overhead + cb.subs_and_fees, pct: (cb.overhead + cb.subs_and_fees) / price },
+        { label: 'Profit', value: profit, pct: profit / price },
+      ];
+    }
+    const cost = q.baseline_cost;
     const profit = Math.max(0, price - cost);
-    // Heuristic split based on profile (good enough for visual table).
-    const labor = cost * 0.6;
-    const materials = cost * 0.3;
-    const overhead = cost * 0.1;
     return [
-      { label: 'Labor', value: labor, pct: labor / price },
-      { label: 'Materials', value: materials, pct: materials / price },
-      { label: 'Overhead', value: overhead, pct: overhead / price },
+      { label: 'Labor', value: cost * 0.6, pct: (cost * 0.6) / price },
+      { label: 'Materials', value: cost * 0.3, pct: (cost * 0.3) / price },
+      { label: 'Overhead', value: cost * 0.1, pct: (cost * 0.1) / price },
       { label: 'Profit', value: profit, pct: profit / price },
     ];
   }, [q]);
@@ -234,6 +243,33 @@ export function QuoteResultView({ job, onRefresh }: Props) {
                 </p>
               </div>
             </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Debug panel: append ?debug=1 to the URL to see full deterministic math. */}
+      {debug && q.cost_breakdown && (
+        <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
+          <CardContent className="space-y-2 p-5 font-mono text-xs">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
+              Debug — deterministic baseline
+            </h3>
+            <pre className="overflow-x-auto whitespace-pre-wrap">
+{JSON.stringify(
+  {
+    baseline_cost: q.baseline_cost,
+    baseline_price: q.baseline_price,
+    cost_breakdown: q.cost_breakdown,
+    monte_carlo: q.monte_carlo,
+    price_bands: q.price_bands,
+    modifiers: job.modifiers,
+    scope_items: job.scope_items,
+    pricing_profile: job.pricing_profile,
+  },
+  null,
+  2,
+)}
+            </pre>
           </CardContent>
         </Card>
       )}
