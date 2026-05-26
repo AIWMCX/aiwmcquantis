@@ -247,6 +247,33 @@ export function QuoteResultView({ job, onRefresh }: Props) {
         </Card>
       )}
 
+      {/* Debug panel: append ?debug=1 to the URL to see full deterministic math. */}
+      {debug && q.cost_breakdown && (
+        <Card className="border-dashed border-amber-500/50 bg-amber-500/5">
+          <CardContent className="space-y-2 p-5 font-mono text-xs">
+            <h3 className="text-sm font-semibold uppercase tracking-wide text-amber-600">
+              Debug — deterministic baseline
+            </h3>
+            <pre className="overflow-x-auto whitespace-pre-wrap">
+{JSON.stringify(
+  {
+    baseline_cost: q.baseline_cost,
+    baseline_price: q.baseline_price,
+    cost_breakdown: q.cost_breakdown,
+    monte_carlo: q.monte_carlo,
+    price_bands: q.price_bands,
+    modifiers: job.modifiers,
+    scope_items: job.scope_items,
+    pricing_profile: job.pricing_profile,
+  },
+  null,
+  2,
+)}
+            </pre>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Beta feedback link — zero-cost signal channel */}
       <div className="pt-2 text-center text-xs text-muted-foreground">
         <a
