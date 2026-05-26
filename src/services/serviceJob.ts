@@ -266,6 +266,11 @@ export async function deleteJob(id: string): Promise<void> {
 export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
   ensureEnabled();
   await requireUserId();
+
+  // Paywall: atomically check + consume QuoteGen quota BEFORE running the engine.
+  // Throws QuoteGenNotAvailableError (Free) or QuoteGenLimitExceededError (quota hit).
+  const quota = await assertAndConsumeQuoteGenQuota();
+
   try {
     const job = await getJob(id);
     const assemblies = await listAssemblies(job.trade_id);
@@ -295,6 +300,9 @@ export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
         iteration_count: MC_ITERATIONS_DEFAULT,
         scope_items: (job.scope_items ?? []).length,
         risk_count: result.risks.length,
+        plan_tier: quota.planTier,
+        usage_after: quota.used,
+        usage_limit: quota.limit,
       },
     });
     const { data, error } = await supabase
@@ -306,6 +314,8 @@ export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
     if (error) throw new ServiceJobApiError('Failed to save quote', error);
     return data as unknown as ServiceJob;
   } catch (err) {
+    // Refund the quota since the generation did not complete.
+    await refundQuoteGenQuota();
     logFailure('computeAndSaveQuote', err);
     throw err;
   }
