@@ -279,10 +279,24 @@ export async function calculateQuote(
     varianceByScopeIndex,
   });
 
+  // ----- Real cost breakdown (deterministic baseline split) -----
+  const balancedPrice = priceBands.balanced.price;
+  const profitAtBalanced = Math.max(0, round2(balancedPrice - baselineCost));
+  const cost_breakdown = {
+    labor: laborCost,
+    materials: materialsCost,
+    subs_and_fees: subsAndFees,
+    overhead,
+    profit_at_balanced: profitAtBalanced,
+    effective_labor_hours: effectiveLaborHours,
+    labor_multiplier: combinedLaborMult,
+    labor_premium_multiplier: laborMult,
+    site_premium_multiplier: siteMult,
+    hourly_rate: pricing.hourly_rate_journeyman,
+  };
+
   const _perfEnd = (typeof performance !== 'undefined' ? performance.now() : Date.now());
   const duration_ms = _perfEnd - _perfStart;
-  // Performance budget: 10k iterations × 10-assembly job should finish under
-  // PERF_BUDGET_MS on standard hardware. Warn on regression but never throw.
   if (duration_ms > PERF_BUDGET_MS && typeof console !== 'undefined') {
     console.warn(
       `[service-job] calculateQuote exceeded perf budget: ${duration_ms.toFixed(0)}ms ` +
@@ -297,6 +311,7 @@ export async function calculateQuote(
     price_bands: priceBands,
     monte_carlo: monteCarlo,
     risks,
+    cost_breakdown,
     computed_at: new Date().toISOString(),
     /** Wall-clock duration of this calculation, in milliseconds. */
     duration_ms,
