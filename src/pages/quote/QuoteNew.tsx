@@ -62,6 +62,7 @@ export default function QuoteNew() {
   const [draft, setDraft] = useState<Draft>(() => loadDraft());
   const [submitting, setSubmitting] = useState(false);
   const dirtyRef = useRef(false);
+  const { status: quoteGenStatus, loading: quotaLoading, refetch: refetchQuota } = useQuoteGenUsage();
 
   const { data: assemblies = [] } = useQuery({
     queryKey: ['service-job-assemblies', draft.step1.trade_id],
