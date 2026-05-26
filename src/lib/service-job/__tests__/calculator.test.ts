@@ -104,6 +104,35 @@ describe('calculateQuote — basic baseline math', () => {
     );
     expect(result.monte_carlo.iterations).toBe(ITER);
   });
+
+  it('margin_pct on bands is a decimal fraction (0–1), not a percentage', async () => {
+    const result = await calculateQuote(
+      makeInput([{ assembly_id: 'a-panel', quantity: 1, difficulty_factor: 1 }]),
+      ASSEMBLIES,
+      { iterations: ITER, seed: SEED },
+    );
+    for (const k of ['aggressive', 'balanced', 'defensive'] as const) {
+      const m = result.price_bands[k].margin_pct;
+      // Realistic contractor margins live in (-1, 0.95]; numbers above 1
+      // would mean the legacy bug (×100) returned, e.g., 33.71 → "3371%".
+      expect(m).toBeGreaterThan(-1);
+      expect(m).toBeLessThanOrEqual(0.95);
+    }
+  });
+
+  it('price bands are strictly monotonic: aggressive ≤ balanced ≤ defensive', async () => {
+    const result = await calculateQuote(
+      makeInput([
+        { assembly_id: 'a-panel', quantity: 1, difficulty_factor: 1.7 },
+        { assembly_id: 'a-outlet', quantity: 2, difficulty_factor: 1 },
+      ]),
+      ASSEMBLIES,
+      { iterations: ITER, seed: SEED },
+    );
+    const { aggressive, balanced, defensive } = result.price_bands;
+    expect(aggressive.price).toBeLessThanOrEqual(balanced.price);
+    expect(balanced.price).toBeLessThan(defensive.price);
+  });
 });
 
 describe('calculateQuote — building age + difficulty', () => {

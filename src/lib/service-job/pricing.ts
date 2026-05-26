@@ -106,16 +106,20 @@ export function overheadAmount(subtotal: number, overheadPct: number): number {
 }
 
 /**
- * Solve for the price band that satisfies a target probability constraint.
+ * Derive the three price bands. Semantics (matches industry convention):
  *
- *  - aggressive: at price such that P(margin < target) == 0.25
- *    Equivalently: price * (1 - target) == cost_p75, so price = cost_p75 / (1 - target)
- *  - balanced:   at price such that P(margin < target) == 0.10
- *    price = cost_p90 / (1 - target)
- *  - defensive:  at price such that P(loss) == 0.02
- *    price = cost_p98 (cost percentile directly)
+ *   aggressive = LOWEST price, thin margin, "win the bid"
+ *                cost_p50 / (1 - τ/2)
+ *   balanced   = TARGET-margin price at a p75 cost realization (recommended)
+ *                cost_p75 / (1 - τ)
+ *   defensive  = HIGHEST price, extra safety buffer
+ *                cost_p95 / (1 - min(τ * 1.5, 0.60))
  *
- * `costPercentile(p)` accepts p in [0,100] and returns the cost at that quantile.
+ * Monotonic ordering is then enforced: aggressive < balanced < defensive,
+ * with small minimum spreads so the three tiers always read distinctly.
+ *
+ * `margin_pct` on the returned band is a DECIMAL fraction (0.22 = 22%),
+ * not a percentage value. UI multiplies by 100 for display.
  */
 export function derivePriceBands(
   baselineCost: number,
@@ -124,24 +128,39 @@ export function derivePriceBands(
   winProbability: (price: number) => number,
 ): { aggressive: PriceBand; balanced: PriceBand; defensive: PriceBand } {
   const target = pct(pricing.target_margin_pct);
-  const oneMinusTarget = QM.toNumber(QM.subtract(1, target), 6);
+  const aggMarginCap = Math.max(0, target / 2);              // half of target
+  const defMarginCap = Math.min(0.6, target * 1.5);          // 1.5× target, capped 60%
 
-  const aggressivePrice =
-    oneMinusTarget > 0
-      ? QM.toNumber(QM.divide(costPercentile(75), oneMinusTarget), 2)
-      : costPercentile(75);
-  const balancedPrice =
-    oneMinusTarget > 0
-      ? QM.toNumber(QM.divide(costPercentile(90), oneMinusTarget), 2)
-      : costPercentile(90);
-  const defensivePrice = QM.toNumber(QM.from(costPercentile(98)), 2);
+  const safeDivide = (numerator: number, marginDec: number, fallback: number): number => {
+    const denom = QM.toNumber(QM.subtract(1, marginDec), 6);
+    if (denom <= 0) return fallback;
+    return QM.toNumber(QM.divide(numerator, denom), 2);
+  };
 
-  const band = (label: string, price: number): PriceBand => ({
-    label,
-    price,
-    margin_pct: QM.toNumber(QM.multiply(marginAt(price, baselineCost), 100), 2),
-    win_probability: QM.toNumber(QM.from(winProbability(price)), 4),
-  });
+  const cost50 = costPercentile(50);
+  const cost75 = costPercentile(75);
+  const cost95 = costPercentile(95);
+
+  let aggressivePrice = safeDivide(cost50, aggMarginCap, cost50);
+  let balancedPrice = safeDivide(cost75, target, cost75);
+  let defensivePrice = safeDivide(cost95, defMarginCap, cost95);
+
+  // Enforce monotonic ordering: aggressive ≤ balanced ≤ defensive,
+  // with at least a 2% / 3% spread so the tiers are visually distinct.
+  balancedPrice = Math.max(balancedPrice, aggressivePrice * 1.02);
+  defensivePrice = Math.max(defensivePrice, balancedPrice * 1.03);
+  aggressivePrice = Math.min(aggressivePrice, balancedPrice);
+
+  const band = (label: string, price: number): PriceBand => {
+    const rounded = QM.toNumber(QM.from(price), 2);
+    return {
+      label,
+      price: rounded,
+      // Decimal fraction (0.22 = 22%). Hard-clamped to [-0.99, 0.95] for sanity.
+      margin_pct: clamp(marginAt(rounded, baselineCost), -0.99, 0.95),
+      win_probability: QM.toNumber(QM.from(winProbability(rounded)), 4),
+    };
+  };
 
   return {
     aggressive: band('aggressive', aggressivePrice),
