@@ -13,9 +13,17 @@ import {
   createJob,
   listAssemblies,
   updateJob,
+  QuoteGenNotAvailableError,
+  QuoteGenLimitExceededError,
 } from '@/services/serviceJob';
 import { DEFAULT_PRICING_PROFILE } from '@/lib/service-job/schemas';
 import type { JobModifiers, PricingProfile, ScopeItem } from '@/lib/service-job/types';
+import { useQuoteGenUsage } from '@/hooks/useQuoteGenUsage';
+import {
+  QuoteGenFreeLock,
+  QuoteGenUsagePill,
+  QuoteGenExhaustedBanner,
+} from './_components/QuoteGenPaywall';
 
 const STEP_LABELS = ['Basics', 'Scope', 'Modifiers', 'Pricing'];
 const DRAFT_KEY = 'service-job:wizard-draft:v1';
