@@ -208,7 +208,7 @@ export async function calculateQuote(
       let itemHours = sampledPerUnit * r.quantity;
       const p = revisitProbability(r.difficulty);
       if (bernoulli(rand, p) === 1) itemHours += REVISIT_LABOR_HOURS;
-      const itemLaborCost = itemHours * laborMult * hourly;
+      const itemLaborCost = itemHours * combinedLaborMult * hourly;
       perItemLaborCost[k] = itemLaborCost;
       totalLaborHours += itemHours;
 
@@ -220,7 +220,7 @@ export async function calculateQuote(
       }
     }
 
-    const labor = totalLaborHours * laborMult * hourly;
+    const labor = totalLaborHours * combinedLaborMult * hourly;
     const mats = totalMaterials * markupFactor;
     const sub = labor + mats + subsAndFees;
     const realized = sub * (1 + overheadPctDec);
