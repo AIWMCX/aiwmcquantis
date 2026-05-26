@@ -52,6 +52,12 @@ function fmtRange(lo: number, hi: number): string {
   return `+$${round(lo)}–$${round(hi)}`;
 }
 
+function fmtDollars(v: number): string {
+  const abs = Math.max(0, v);
+  const rounded = abs >= 500 ? Math.round(abs / 50) * 50 : Math.round(abs / 10) * 10;
+  return `$${rounded.toLocaleString('en-US')}`;
+}
+
 export function generatePreMortemRisks(ctx: PreMortemContext): RiskFlag[] {
   const { input, assemblies, varianceByScopeIndex } = ctx;
   const flags: RiskFlag[] = [];
