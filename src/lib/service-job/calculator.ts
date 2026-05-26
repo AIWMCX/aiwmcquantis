@@ -138,6 +138,8 @@ export async function calculateQuote(
   }
 
   const laborMult = laborContextMultiplier(input.modifiers);
+  const siteMult = siteContextMultiplier(input.modifiers);
+  const combinedLaborMult = laborMult * siteMult;
   const waste = pricing.waste_factor_default; // already decimal in spec
   const markup = pct(pricing.material_markup_pct);
   const permitFee =
@@ -153,7 +155,7 @@ export async function calculateQuote(
     );
   }
   const effectiveLaborHours = QM.toNumber(
-    QM.multiply(baselineLaborHours, laborMult),
+    QM.multiply(baselineLaborHours, combinedLaborMult),
     6,
   );
   const laborCost = QM.toNumber(
