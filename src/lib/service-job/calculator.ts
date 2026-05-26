@@ -24,6 +24,7 @@ import type {
 } from './types';
 import {
   laborContextMultiplier,
+  siteContextMultiplier,
   overheadAmount,
   priceFromCost,
   marginAt,
@@ -32,6 +33,10 @@ import {
 } from './pricing';
 import { runMC, triangular, normal, bernoulli } from './monte-carlo';
 import { generatePreMortemRisks } from './pre-mortem';
+
+/** Hard clamps on per-scope difficulty factor before any compounding. */
+export const DIFFICULTY_MIN = 0.5;
+export const DIFFICULTY_MAX = 2.0;
 
 export const MC_ITERATIONS_DEFAULT = 10_000;
 export const REVISIT_LABOR_HOURS = 2;
