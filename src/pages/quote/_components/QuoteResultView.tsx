@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { pdf } from '@react-pdf/renderer';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { toast } from 'sonner';
