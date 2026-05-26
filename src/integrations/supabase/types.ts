@@ -1544,38 +1544,38 @@ export type Database = {
       }
       autoposter_credentials: {
         Row: {
-          access_token: string | null
+          access_token_secret_id: string | null
           account_id: string | null
           id: string
           is_active: boolean
           last_tested: string | null
           page_id: string | null
           platform: string
-          refresh_token: string | null
+          refresh_token_secret_id: string | null
           token_expires: string | null
           updated_at: string
         }
         Insert: {
-          access_token?: string | null
+          access_token_secret_id?: string | null
           account_id?: string | null
           id?: string
           is_active?: boolean
           last_tested?: string | null
           page_id?: string | null
           platform: string
-          refresh_token?: string | null
+          refresh_token_secret_id?: string | null
           token_expires?: string | null
           updated_at?: string
         }
         Update: {
-          access_token?: string | null
+          access_token_secret_id?: string | null
           account_id?: string | null
           id?: string
           is_active?: boolean
           last_tested?: string | null
           page_id?: string | null
           platform?: string
-          refresh_token?: string | null
+          refresh_token_secret_id?: string | null
           token_expires?: string | null
           updated_at?: string
         }
@@ -6047,6 +6047,17 @@ export type Database = {
       generate_referral_code: { Args: { p_user_id: string }; Returns: string }
       get_activation_funnel: { Args: { p_days?: number }; Returns: Json }
       get_activation_kpis: { Args: never; Returns: Json }
+      get_active_autoposter_credentials: {
+        Args: never
+        Returns: {
+          access_token: string
+          account_id: string
+          page_id: string
+          platform: string
+          refresh_token: string
+          token_expires: string
+        }[]
+      }
       get_admin_metrics: {
         Args: never
         Returns: {
@@ -6270,6 +6281,17 @@ export type Database = {
           p_is_public: boolean
         }
         Returns: Json
+      }
+      set_autoposter_credentials: {
+        Args: {
+          _access_token: string
+          _account_id?: string
+          _page_id?: string
+          _platform: string
+          _refresh_token?: string
+          _token_expires?: string
+        }
+        Returns: undefined
       }
       track_referral_click: {
         Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
