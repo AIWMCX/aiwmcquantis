@@ -6,21 +6,39 @@
  * (e.g. 22 = 22%). `pct()` normalizes to decimal fraction; values <= 1 are
  * treated as already-decimal to be forgiving.
  *
- * Labor-context multipliers (per Prompt 2, Step 3 — all configurable):
- *   emergency    1.5x   (urgent same-day callout)
- *   after_hours  1.25x  (weeknight, outside 8a–6p)
- *   weekend      1.4x   (Sat/Sun)
- * Compounded multiplicatively when more than one applies.
+ * Labor-context multipliers (additive premiums, hard-capped):
+ *   emergency    +0.50  (urgent same-day callout)
+ *   after_hours  +0.25  (weeknight, outside 8a–6p)
+ *   weekend      +0.40  (Sat/Sun)
+ *   total premium clamped to [1.0, MAX_LABOR_PREMIUM] (= 2.5×)
+ *
+ * Site-context multiplier (access × height), each clamped to [1.0, 1.5],
+ * combined clamped to MAX_SITE_PREMIUM (= 1.8×). Difficulty per scope item is
+ * additionally clamped to [0.5, 2.0] in the calculator before any multiplication.
  */
 
 import { QuantisMath as QM } from '@/lib/quantis-math';
 import type { PricingProfile, JobModifiers, PriceBand } from './types';
 
-export const LABOR_MULTIPLIERS = {
-  emergency: 1.5,
-  after_hours: 1.25,
-  weekend: 1.4,
+/** Additive labor premiums (applied as 1 + Σ premium, capped). */
+export const LABOR_PREMIUMS = {
+  emergency: 0.5,
+  after_hours: 0.25,
+  weekend: 0.4,
 } as const;
+
+/** Legacy multiplier export (kept for back-compat in any external test); these
+ *  are now reference labels only — the math uses LABOR_PREMIUMS above. */
+export const LABOR_MULTIPLIERS = {
+  emergency: 1 + LABOR_PREMIUMS.emergency,
+  after_hours: 1 + LABOR_PREMIUMS.after_hours,
+  weekend: 1 + LABOR_PREMIUMS.weekend,
+} as const;
+
+export const MAX_LABOR_PREMIUM = 2.5;
+export const MAX_SITE_PREMIUM = 1.8;
+export const SITE_CLAMP_MIN = 1.0;
+export const SITE_CLAMP_MAX = 1.5;
 
 /** Normalize a percent value: 22 -> 0.22, 0.22 -> 0.22. Clamps to [0, 0.95]. */
 export function pct(value: number): number {
@@ -29,14 +47,38 @@ export function pct(value: number): number {
   return Math.min(0.95, decimal);
 }
 
-/** Combined labor-context multiplier from modifiers. Always >= 1.0. */
-export function laborContextMultiplier(modifiers: JobModifiers): number {
-  let m = 1;
-  if (modifiers.emergency) m *= LABOR_MULTIPLIERS.emergency;
-  if (modifiers.after_hours) m *= LABOR_MULTIPLIERS.after_hours;
-  if (modifiers.weekend) m *= LABOR_MULTIPLIERS.weekend;
-  return m;
+function clamp(v: number, lo: number, hi: number): number {
+  if (!Number.isFinite(v)) return lo;
+  return Math.min(hi, Math.max(lo, v));
 }
+
+/**
+ * Combined labor-context premium multiplier from modifiers.
+ * Additive premiums, capped at MAX_LABOR_PREMIUM. Always >= 1.0.
+ *
+ * Example: emergency + after_hours + weekend
+ *   = min(1 + 0.5 + 0.25 + 0.4, 2.5) = 2.15×   (was 2.625× under multiplicative)
+ */
+export function laborContextMultiplier(modifiers: JobModifiers): number {
+  let premium = 0;
+  if (modifiers.emergency) premium += LABOR_PREMIUMS.emergency;
+  if (modifiers.after_hours) premium += LABOR_PREMIUMS.after_hours;
+  if (modifiers.weekend) premium += LABOR_PREMIUMS.weekend;
+  const total = 1 + premium;
+  return Math.min(MAX_LABOR_PREMIUM, Math.max(1, total));
+}
+
+/**
+ * Site-context multiplier from access & height sliders.
+ * Each clamped to [1.0, 1.5]; their product is capped at MAX_SITE_PREMIUM.
+ * Returns 1.0 when both are at baseline. Applied to labor hours only.
+ */
+export function siteContextMultiplier(modifiers: JobModifiers): number {
+  const access = clamp(Number(modifiers.access_difficulty ?? 1), SITE_CLAMP_MIN, SITE_CLAMP_MAX);
+  const height = clamp(Number(modifiers.height_factor ?? 1), SITE_CLAMP_MIN, SITE_CLAMP_MAX);
+  return Math.min(MAX_SITE_PREMIUM, access * height);
+}
+
 
 /**
  * baseline_price = total_cost / (1 - target_margin_pct)
