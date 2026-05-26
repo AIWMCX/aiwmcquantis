@@ -95,7 +95,8 @@ function resolveScope(
         'ASSEMBLY_NOT_FOUND',
       );
     }
-    const df = s.difficulty_factor > 0 ? s.difficulty_factor : 1;
+    const dfRaw = s.difficulty_factor > 0 ? s.difficulty_factor : 1;
+    const df = Math.min(DIFFICULTY_MAX, Math.max(DIFFICULTY_MIN, dfRaw));
     const qty = s.quantity > 0 ? s.quantity : 0;
     resolved.push({
       scopeIndex: i,
