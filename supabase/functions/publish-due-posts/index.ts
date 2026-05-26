@@ -133,7 +133,9 @@ Deno.serve(async (req) => {
   }
 
   // Pull all credentials in one shot.
-  const { data: credRows } = await supa.from('autoposter_credentials').select('*').eq('is_active', true);
+  // Tokens are encrypted at rest in Vault; fetch decrypted values through the
+  // service-role-only RPC. The plaintext columns no longer exist on the table.
+  const { data: credRows } = await supa.rpc('get_active_autoposter_credentials');
   const credsByPlatform = new Map<string, any>();
   (credRows ?? []).forEach((c: any) => credsByPlatform.set(c.platform, c));
 
