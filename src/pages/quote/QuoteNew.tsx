@@ -13,9 +13,17 @@ import {
   createJob,
   listAssemblies,
   updateJob,
+  QuoteGenNotAvailableError,
+  QuoteGenLimitExceededError,
 } from '@/services/serviceJob';
 import { DEFAULT_PRICING_PROFILE } from '@/lib/service-job/schemas';
 import type { JobModifiers, PricingProfile, ScopeItem } from '@/lib/service-job/types';
+import { useQuoteGenUsage } from '@/hooks/useQuoteGenUsage';
+import {
+  QuoteGenFreeLock,
+  QuoteGenUsagePill,
+  QuoteGenExhaustedBanner,
+} from './_components/QuoteGenPaywall';
 
 const STEP_LABELS = ['Basics', 'Scope', 'Modifiers', 'Pricing'];
 const DRAFT_KEY = 'service-job:wizard-draft:v1';
@@ -54,6 +62,7 @@ export default function QuoteNew() {
   const [draft, setDraft] = useState<Draft>(() => loadDraft());
   const [submitting, setSubmitting] = useState(false);
   const dirtyRef = useRef(false);
+  const { status: quoteGenStatus, loading: quotaLoading, refetch: refetchQuota } = useQuoteGenUsage();
 
   const { data: assemblies = [] } = useQuery({
     queryKey: ['service-job-assemblies', draft.step1.trade_id],
@@ -117,49 +126,80 @@ export default function QuoteNew() {
       } finally { setSubmitting(false); }
       return;
     }
-    // Final: compute
+    // Final: compute (server-enforced QuoteGen quota inside computeAndSaveQuote)
     setSubmitting(true);
     try {
       const id = await persist();
       await computeAndSaveQuote(id);
       try { localStorage.removeItem(DRAFT_KEY); } catch { /* */ }
       dirtyRef.current = false;
+      await refetchQuota();
       navigate(`/quote/${id}/result`);
     } catch (e) {
       console.error(e);
+      if (e instanceof QuoteGenNotAvailableError) {
+        toast.error('QuoteGen (Beta) is available on Plus and Pro. Upgrade to continue.');
+        await refetchQuota();
+        navigate('/pricing');
+        return;
+      }
+      if (e instanceof QuoteGenLimitExceededError) {
+        toast.error(e.message);
+        await refetchQuota();
+        return;
+      }
       toast.error('Could not compute quote. Please review inputs.');
     } finally { setSubmitting(false); }
   };
 
   const handleBack = step === 1 ? undefined : () => setStep((s) => s - 1);
 
+  // Free tier (or any unauth/blocked) → show locked teaser instead of the wizard.
+  if (!quotaLoading && !quoteGenStatus.isEnabled) {
+    return (
+      <div className="container max-w-3xl mx-auto px-4 sm:px-6 py-10">
+        <QuoteGenFreeLock />
+      </div>
+    );
+  }
+
   return (
-    <WizardShell
-      step={step}
-      totalSteps={4}
-      stepLabels={STEP_LABELS}
-      onBack={handleBack}
-      onNext={handleNext}
-      nextLabel={step === 4 ? 'Calculate' : 'Next'}
-      nextDisabled={nextDisabled}
-      isSubmitting={submitting}
-    >
-      {step === 1 && (
-        <Step1_TradeAndBasics value={draft.step1} onChange={(v) => setDraft((d) => ({ ...d, step1: v }))} />
+    <div>
+      <div className="container max-w-5xl mx-auto px-4 sm:px-6 pt-4 flex items-center justify-between gap-3">
+        <QuoteGenUsagePill status={quoteGenStatus} />
+      </div>
+      {quoteGenStatus.isExhausted && (
+        <div className="container max-w-5xl mx-auto px-4 sm:px-6 pt-3">
+          <QuoteGenExhaustedBanner status={quoteGenStatus} />
+        </div>
       )}
-      {step === 2 && (
-        <Step2_Scope
-          assemblies={assemblies}
-          value={draft.scope}
-          onChange={(v) => setDraft((d) => ({ ...d, scope: v }))}
-        />
-      )}
-      {step === 3 && (
-        <Step3_Modifiers value={draft.modifiers} onChange={(v) => setDraft((d) => ({ ...d, modifiers: v }))} />
-      )}
-      {step === 4 && (
-        <Step4_Pricing value={draft.pricing} onChange={(v) => setDraft((d) => ({ ...d, pricing: v }))} />
-      )}
-    </WizardShell>
+      <WizardShell
+        step={step}
+        totalSteps={4}
+        stepLabels={STEP_LABELS}
+        onBack={handleBack}
+        onNext={handleNext}
+        nextLabel={step === 4 ? 'Calculate' : 'Next'}
+        nextDisabled={nextDisabled || (step === 4 && quoteGenStatus.isExhausted)}
+        isSubmitting={submitting}
+      >
+        {step === 1 && (
+          <Step1_TradeAndBasics value={draft.step1} onChange={(v) => setDraft((d) => ({ ...d, step1: v }))} />
+        )}
+        {step === 2 && (
+          <Step2_Scope
+            assemblies={assemblies}
+            value={draft.scope}
+            onChange={(v) => setDraft((d) => ({ ...d, scope: v }))}
+          />
+        )}
+        {step === 3 && (
+          <Step3_Modifiers value={draft.modifiers} onChange={(v) => setDraft((d) => ({ ...d, modifiers: v }))} />
+        )}
+        {step === 4 && (
+          <Step4_Pricing value={draft.pricing} onChange={(v) => setDraft((d) => ({ ...d, pricing: v }))} />
+        )}
+      </WizardShell>
+    </div>
   );
 }

@@ -4184,6 +4184,36 @@ export type Database = {
         }
         Relationships: []
       }
+      quote_gen_usage: {
+        Row: {
+          created_at: string
+          id: string
+          month_key: string
+          plan_tier_snapshot: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_key: string
+          plan_tier_snapshot?: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_key?: string
+          plan_tier_snapshot?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       rate_limits: {
         Row: {
           created_at: string | null
@@ -6032,6 +6062,7 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string }
         Returns: Json
       }
+      decrement_quote_gen_usage: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
         Args: never
@@ -6119,6 +6150,7 @@ export type Database = {
           public_slug: string
         }[]
       }
+      get_quote_gen_status: { Args: never; Returns: Json }
       get_recent_users: {
         Args: { days_back?: number }
         Returns: {
@@ -6146,6 +6178,7 @@ export type Database = {
       get_unique_users_with_analysis: { Args: never; Returns: number }
       get_user_activation_score: { Args: { p_user_id: string }; Returns: Json }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_user_plan_tier: { Args: { _uid: string }; Returns: string }
       get_weekly_leaderboard: {
         Args: never
         Returns: {
@@ -6174,6 +6207,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      increment_quote_gen_usage: { Args: never; Returns: Json }
       increment_template_usage: {
         Args: { p_template_id: string }
         Returns: undefined

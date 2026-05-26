@@ -74,6 +74,74 @@ export class ServiceJobApiError extends Error {
   }
 }
 
+/** Thrown when QuoteGen is not available for the caller's plan tier (e.g. Free). */
+export class QuoteGenNotAvailableError extends Error {
+  code = 'QUOTEGEN_NOT_AVAILABLE' as const;
+  constructor(
+    public readonly planTier: 'free' | 'plus' | 'pro',
+    message = 'QuoteGen (Beta) is available on Plus and Pro plans.',
+  ) {
+    super(message);
+    this.name = 'QuoteGenNotAvailableError';
+  }
+}
+
+/** Thrown when the monthly QuoteGen quota has been exhausted. */
+export class QuoteGenLimitExceededError extends Error {
+  code = 'QUOTEGEN_LIMIT_EXCEEDED' as const;
+  constructor(
+    public readonly planTier: 'plus' | 'pro',
+    public readonly limit: number,
+    public readonly used: number,
+    message?: string,
+  ) {
+    super(
+      message ??
+        `You've used all ${limit} QuoteGen quotes for this month on ${planTier === 'pro' ? 'Pro' : 'Plus'}.`,
+    );
+    this.name = 'QuoteGenLimitExceededError';
+  }
+}
+
+interface QuoteGenIncrementResult {
+  ok: boolean;
+  reason?: 'plan_tier' | 'quota';
+  planTier: 'free' | 'plus' | 'pro';
+  limit: number;
+  used: number;
+  remaining: number;
+  monthKey: string;
+}
+
+/**
+ * Atomically check + increment the QuoteGen monthly quota for the caller.
+ * Throws QuoteGenNotAvailableError or QuoteGenLimitExceededError on denial.
+ */
+async function assertAndConsumeQuoteGenQuota(): Promise<QuoteGenIncrementResult> {
+  const { data, error } = await supabase.rpc('increment_quote_gen_usage' as never);
+  if (error) throw new ServiceJobApiError('Quota check failed', error);
+  const res = data as unknown as QuoteGenIncrementResult;
+  if (!res?.ok) {
+    if (res?.reason === 'plan_tier') {
+      throw new QuoteGenNotAvailableError(res.planTier);
+    }
+    throw new QuoteGenLimitExceededError(
+      res.planTier === 'pro' ? 'pro' : 'plus',
+      res.limit,
+      res.used,
+    );
+  }
+  return res;
+}
+
+async function refundQuoteGenQuota(): Promise<void> {
+  try {
+    await supabase.rpc('decrement_quote_gen_usage' as never);
+  } catch (e) {
+    logger.warn('QuoteGen refund failed', { metadata: { err: String(e) } });
+  }
+}
+
 function ensureEnabled() {
   if (!isEnabled('service_job')) {
     throw new ServiceJobApiError('Service Job Quoting is not enabled.');
@@ -198,6 +266,11 @@ export async function deleteJob(id: string): Promise<void> {
 export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
   ensureEnabled();
   await requireUserId();
+
+  // Paywall: atomically check + consume QuoteGen quota BEFORE running the engine.
+  // Throws QuoteGenNotAvailableError (Free) or QuoteGenLimitExceededError (quota hit).
+  const quota = await assertAndConsumeQuoteGenQuota();
+
   try {
     const job = await getJob(id);
     const assemblies = await listAssemblies(job.trade_id);
@@ -227,6 +300,9 @@ export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
         iteration_count: MC_ITERATIONS_DEFAULT,
         scope_items: (job.scope_items ?? []).length,
         risk_count: result.risks.length,
+        plan_tier: quota.planTier,
+        usage_after: quota.used,
+        usage_limit: quota.limit,
       },
     });
     const { data, error } = await supabase
@@ -238,6 +314,8 @@ export async function computeAndSaveQuote(id: string): Promise<ServiceJob> {
     if (error) throw new ServiceJobApiError('Failed to save quote', error);
     return data as unknown as ServiceJob;
   } catch (err) {
+    // Refund the quota since the generation did not complete.
+    await refundQuoteGenQuota();
     logFailure('computeAndSaveQuote', err);
     throw err;
   }
