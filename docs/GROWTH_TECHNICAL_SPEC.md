@@ -147,7 +147,7 @@ Evolve from a single landing page with blog appendages into a lean, SEO-purposef
 ### Content Tone Guidelines
 - **Do:** Use data, be specific, acknowledge limitations, speak to operators not dreamers
 - **Don't:** Hype AI, promise certainty, use startup clichés ("disrupt", "game-changer")
-- **Voice example:** "Your projections are estimates, not prophecy. But estimates built on 1,000+ industry benchmarks beat gut feelings."
+- **Voice example:** "Your projections are estimates, not prophecy. But estimates built on 95,500 industry benchmarks beat gut feelings."
 
 ---
 
@@ -167,7 +167,7 @@ Evolve from a single landing page with blog appendages into a lean, SEO-purposef
 | C (Speed) | "Financial Risk Analysis in 60 Seconds — Free" | Speed + free |
 
 **Proposed Subheading:**
-> "Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 1,000+ industry benchmarks."
+> "Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 95,500 industry benchmarks."
 
 ### 3 Bullet Benefits (Below Hero)
 
@@ -184,7 +184,7 @@ Step 1: Describe your idea
    → "Coffee shop with remote work focus in Denver"
 
 Step 2: AI stress-tests your model
-   → Revenue projections, cost analysis, risk flags from 1,000+ benchmarks
+   → Revenue projections, cost analysis, risk flags from 95,500 benchmarks
 
 Step 3: Get your report
    → Financial summary, risk assessment, and a clear action plan — in 60 seconds
@@ -197,7 +197,7 @@ Current FAQ is payment-focused. Add validation/trust questions:
 | Question | Answer Summary |
 |----------|---------------|
 | "How is this different from ChatGPT?" | Quantis uses structured financial models with real industry benchmarks, not generative text. Every number is calculated, not hallucinated. |
-| "What data do you use?" | 1,000+ industry benchmarks, 50+ city cost indices, real CAC/LTV/churn data. No synthetic data. |
+| "What data do you use?" | 95,500 industry benchmarks, 50+ city cost indices, real CAC/LTV/churn data. No synthetic data. |
 | "Can I trust the projections?" | Projections are estimates, not guarantees. We provide 3 scenarios and confidence scores so you can calibrate. |
 | "Is my idea kept private?" | Yes. We encrypt all data (AES-256-GCM). We never share or sell your ideas. |
 | "Do I need a business plan first?" | No. Just your idea and location. The AI builds the financial model from benchmarks. |
@@ -217,7 +217,7 @@ Current FAQ is payment-focused. Add validation/trust questions:
 
 Avoid fake testimonials. Use:
 - "Built by founders, for founders" badge
-- "1,000+ business models analyzed" counter (if true)
+- "95,500 industry benchmarks indexed" counter (if true)
 - "Powered by real industry benchmarks from 50+ sectors"
 - Security badges (AES-256, GDPR, SOC-2 compliant design)
 
