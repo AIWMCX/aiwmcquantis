@@ -111,8 +111,8 @@ export default function Landing() {
                     <span className="text-sm text-foreground truncate max-w-[120px]">{user.email}</span>
                   </div>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
-                      Go to App <ArrowRight className="w-4 h-4" />
+                    <Button size="sm" className="min-h-[52px] px-5 text-sm font-semibold">
+                      Go to App
                     </Button>
                   </Link>
                 </>
@@ -122,8 +122,8 @@ export default function Landing() {
                     <Button variant="ghost" size="sm" className="min-h-[48px]">Sign In</Button>
                   </Link>
                   <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
-                      Start Free Analysis →
+                    <Button size="sm" className="min-h-[52px] px-5 text-sm font-semibold">
+                      Generate free plan
                     </Button>
                   </Link>
                 </>
