@@ -17,6 +17,7 @@
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, dirname } from 'path';
 import { getRouteMeta, SITE_URL, type RouteMeta } from './seo-metadata';
+import { buildJsonLd } from './seo-jsonld';
 
 const DIST = resolve('dist');
 const SHELL_PATH = resolve(DIST, 'index.html');
