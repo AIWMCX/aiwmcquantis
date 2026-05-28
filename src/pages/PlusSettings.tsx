@@ -102,7 +102,7 @@ export default function PlusSettings() {
                   Upgrade to Plus - $17/month
                 </Button>
                 <p className="text-sm text-muted-foreground">
-                  14-day free trial included
+                  14-days free trial included
                 </p>
               </div>
             </CardContent>

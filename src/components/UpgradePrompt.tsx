@@ -71,7 +71,7 @@ export function UpgradePrompt({
                   <Zap className="w-4 h-4 text-primary" />
                   <span className="font-semibold">Plus</span>
                   <span className="px-2 py-0.5 text-xs font-medium bg-success/10 text-success rounded-full">
-                    14-day free trial
+                    14-days free trial
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">

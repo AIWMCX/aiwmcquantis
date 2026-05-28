@@ -25,7 +25,7 @@ const faqItems = [
   },
   {
     question: 'Can I try AIWMC Quantis for free?',
-    answer: 'Yes — your first analysis is free. You get a score, top 3 critical risks, and basic revenue projection. To unlock Monte Carlo simulations, P&L breakdown, full action plan, and unlimited analyses, upgrade to Plus ($17/mo) with a 14-day free trial.'
+    answer: 'Yes — your first analysis is free. You get a score, top 3 critical risks, and basic revenue projection. To unlock Monte Carlo simulations, P&L breakdown, full action plan, and unlimited analyses, upgrade to Plus ($17/mo) with a 14-days free trial.'
   },
   {
     question: 'What industries does AIWMC Quantis support?',
@@ -45,7 +45,7 @@ const faqItems = [
   },
   {
     question: 'Do you offer refunds?',
-    answer: 'Yes, we offer a 14-day money-back guarantee on all paid plans. If you are not satisfied with AIWMC Quantis within the first 14 days, contact our support team for a full refund.'
+    answer: 'Yes, we offer a 14-days money-back guarantee on all paid plans. If you are not satisfied with AIWMC Quantis within the first 14 days, contact our support team for a full refund.'
   }
 ];
 

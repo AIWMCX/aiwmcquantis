@@ -76,7 +76,7 @@ export const CORE_META: Record<string, RouteMeta> = {
   },
   '/refund-policy': {
     title: 'Refund policy — AIWMC Quantis',
-    description: 'Refund terms, eligibility, and the 14-day guarantee for AIWMC Quantis subscriptions.',
+    description: 'Refund terms, eligibility, and the 14-days guarantee for AIWMC Quantis subscriptions.',
   },
   '/changelog': {
     title: 'Changelog — AIWMC Quantis product updates',

@@ -432,7 +432,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   plus_5th_analysis: {
     trigger: 'plus_5th_analysis',
     headline: 'How do investors see this?',
-    body: 'Your Pro upgrade includes an investor-ready pitch deck data package and 5-year model. Start your 14-day trial.',
+    body: 'Your Pro upgrade includes an investor-ready pitch deck data package and 5-year model. Start your 14-days trial.',
     cta: 'Start Pro Trial — Free 14 Days',
     required_tier: 'PRO',
   },

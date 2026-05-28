@@ -206,7 +206,7 @@ export default function Index() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       setCheckoutPolling(false);
       setCheckoutActivated(true);
-      toast({ title: '🎉 Welcome to Plus!', description: 'Your 14-day free trial is active. Enjoy unlimited analyses!' });
+      toast({ title: '🎉 Welcome to Plus!', description: 'Your 14-days free trial is active. Enjoy unlimited analyses!' });
       setTimeout(() => setCheckoutActivated(false), 5000);
     }
   }, [checkoutPolling, isPlus, toast]);
