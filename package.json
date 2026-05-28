@@ -5,8 +5,9 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "bun run typecheck:financial && bun run verify:business-logic && vite build",
-    "build:dev": "vite build --mode development",
+    "build": "bun run typecheck:financial && bun run verify:business-logic && vite build && bun run prerender:seo",
+    "build:dev": "vite build --mode development && bun run prerender:seo",
+    "prerender:seo": "bunx tsx scripts/prerender-seo.ts",
     "lint": "eslint .",
     "lint:report": "eslint . --format json --output-file lint-report.json || true",
     "typecheck:financial": "node_modules/.bin/tsc -p tsconfig.financial.json --noEmit",
