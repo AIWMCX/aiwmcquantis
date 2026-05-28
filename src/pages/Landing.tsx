@@ -2,7 +2,7 @@ import React, { lazy, Suspense, useRef, useEffect } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
+import { Moon, Sun, Menu } from 'lucide-react';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { QuantisOutputs } from '@/components/landing/QuantisOutputs';
 import { MobileNav } from '@/components/layout/MobileNav';
