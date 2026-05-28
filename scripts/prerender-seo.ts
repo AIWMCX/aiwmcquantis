@@ -60,10 +60,21 @@ function applyMeta(shell: string, route: string, meta: RouteMeta): string {
     html = html.replace('</head>', `    <meta name="robots" content="${robots}">\n  </head>`);
   }
 
-  // Strip any existing canonical / per-route OG/twitter we might re-emit, then inject ours.
+  // Strip any existing canonical / per-route OG/twitter / prerender JSON-LD we might re-emit.
   html = html.replace(/<link\s+rel=["']canonical["'][^>]*>\s*/gi, '');
   html = html.replace(/<meta\s+property=["']og:(title|description|url|type)["'][^>]*>\s*/gi, '');
   html = html.replace(/<meta\s+name=["']twitter:(title|description)["'][^>]*>\s*/gi, '');
+  html = html.replace(
+    /<script\s+type=["']application\/ld\+json["']\s+data-prerender=["']1["'][\s\S]*?<\/script>\s*/gi,
+    '',
+  );
+
+  const jsonLdBlocks = buildJsonLd(route, meta.title, meta.description)
+    .map(
+      (obj) =>
+        `    <script type="application/ld+json" data-prerender="1">${JSON.stringify(obj)}</script>`,
+    )
+    .join('\n');
 
   const injected = [
     `    <link rel="canonical" href="${canonical}">`,
@@ -73,6 +84,7 @@ function applyMeta(shell: string, route: string, meta: RouteMeta): string {
     `    <meta property="og:url" content="${canonical}">`,
     `    <meta name="twitter:title" content="${title}">`,
     `    <meta name="twitter:description" content="${description}">`,
+    jsonLdBlocks,
     '',
   ].join('\n');
 
