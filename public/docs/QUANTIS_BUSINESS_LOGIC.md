@@ -57,7 +57,7 @@
 - Inner pages: `Business Idea Validator & Financial Pre-Mortem Tool | AIWMC Quantis`
 - Meta description: `Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.`
 - Twitter card title: `Quantis — 90% of Businesses Fail. Yours Doesn't Have To | Free AI Validation`
-- OG description: `Quantis runs 1,000+ financial simulations on your business model and gives you a proceed/pivot/kill verdict. Free. No signup.`
+- OG description: `Quantis runs financial simulations against 95,500 benchmarks on your business model and gives you a proceed/pivot/kill verdict. Free. No signup.`
 - Theme color: `#070D1A`
 
 ### Product Category (confirmed live terminology)
@@ -1079,7 +1079,7 @@ Hero:         "90% of businesses fail in 5 years. Most had a plan — none had v
                Quantis does it in 90 seconds with 95,500 real benchmarks. Free."
 Meta desc:    "Stress-test your business idea in 90 seconds. AI-powered financial
                pre-mortem with 95,500 real benchmarks. Free to start."
-OG desc:      "Quantis runs 1,000+ financial simulations on your business model
+OG desc:      "Quantis runs financial simulations against 95,500 benchmarks on your business model
                and gives you a proceed/pivot/kill verdict. Free. No signup."
 Twitter:      "Quantis — 90% of Businesses Fail. Yours Doesn't Have To | Free AI Validation"
 ```
