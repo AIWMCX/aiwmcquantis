@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Sparkles, Lock } from 'lucide-react';
+import { Loader2, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
@@ -103,19 +103,19 @@ export function HeroSingleInput() {
             <Sparkles className="w-3.5 h-3.5" />
             Free · No signup · 60 seconds
           </span>
-          <h2
+          <h1
             className="font-bold leading-[1.1] mb-3"
             style={{
-              fontSize: 'clamp(1.75rem, 4vw, 2.75rem)',
+              fontSize: 'clamp(1.85rem, 4.2vw, 2.85rem)',
               fontFamily: 'var(--q-font-heading, inherit)',
               color: 'var(--q-text-primary, hsl(var(--foreground)))',
               letterSpacing: '-0.025em',
             }}
           >
-            Type your business idea. Get a verdict.
-          </h2>
+            Instant business plan and financials. No spreadsheets.
+          </h1>
           <p className="text-sm md:text-base max-w-xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
-            One sentence is enough. We stress-test it against 95,500 real benchmarks and tell you, brutally, if the math holds.
+            Describe your idea in one sentence. Get a real plan, 3-year P&amp;L, and an honest verdict in 60 seconds — checked against 95,500 industry benchmarks.
           </p>
         </div>
 
@@ -149,13 +149,10 @@ export function HeroSingleInput() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Analyzing…
+                  Building your plan…
                 </>
               ) : (
-                <>
-                  Stress-test it free
-                  <ArrowRight className="w-4 h-4" />
-                </>
+                <>Generate free plan</>
               )}
             </Button>
           </div>

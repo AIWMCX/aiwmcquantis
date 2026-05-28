@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ClipboardEdit, Cpu, FileCheck, ArrowRight } from 'lucide-react';
+import { ClipboardEdit, Cpu, FileCheck } from 'lucide-react';
 
 const steps = [
   {
@@ -93,11 +93,10 @@ export function HowItWorksSection() {
           <Link to="/app">
             <Button
               size="lg"
-              className="gap-2 h-[52px] px-8 text-base font-semibold"
+              className="h-[52px] px-8 text-base font-semibold"
               style={{ background: 'var(--q-gradient-accent)', border: 'none' }}
             >
-              Run my first analysis free
-              <ArrowRight className="w-4 h-4" />
+              Generate free plan
             </Button>
           </Link>
         </div>
