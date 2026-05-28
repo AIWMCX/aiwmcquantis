@@ -16,7 +16,7 @@ interface FAQItem {
 const pricingFaqs: FAQItem[] = [
   {
     id: 'trial-free',
-    question: 'Is the 14-day trial really free?',
+    question: 'Is the 14-days trial really free?',
     answer:
       'Yes, completely free. We don\'t charge your card until day 15, and you can cancel anytime before that with one click.',
   },

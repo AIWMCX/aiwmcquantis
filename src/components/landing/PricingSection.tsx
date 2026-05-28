@@ -213,7 +213,7 @@ export function PricingSection() {
             period={plusPricing.period}
             description="Full Analysis — should you actually start this business?"
             features={PLUS_FEATURES}
-            ctaText="Start 14-Day Free Trial →"
+            ctaText="Start 14-Days Free Trial →"
             onCtaClick={() => handlePlanClick('plus')}
             isLoading={loadingPlan === 'plus'}
             disabled={loadingPlan !== null}
@@ -228,7 +228,7 @@ export function PricingSection() {
             period={proPricing.period}
             description="Investor-Ready — how do you convince investors to fund this?"
             features={PRO_FEATURES}
-            ctaText={billingPeriod === 'annual' ? 'Get Pro Annual →' : 'Start Pro — 14-Day Trial →'}
+            ctaText={billingPeriod === 'annual' ? 'Get Pro Annual →' : 'Start Pro — 14-Days Trial →'}
             onCtaClick={() => handlePlanClick('pro')}
             isLoading={loadingPlan === 'pro'}
             disabled={loadingPlan !== null}
