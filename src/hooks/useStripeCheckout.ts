@@ -21,7 +21,7 @@ const PLAN_VALUES: Record<Plan, number> = {
   pro_annual: 492,    // $41/mo × 12
 };
 
-// Payment Links - configured in Stripe Dashboard with 14-day trials
+// Payment Links - configured in Stripe Dashboard with 14-days trials
 // Plus: $17/mo or $14/mo annual. Pro: $49/mo or $41/mo annual.
 const PAYMENT_LINKS: Record<Plan, string> = {
   plus_monthly: 'https://buy.stripe.com/28EfZi2N1gte3AqeQJe7m00',

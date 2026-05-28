@@ -37,7 +37,7 @@ export const TRIGGERS: UpgradeTrigger[] = [
     delayMs: 1500,
     headline: 'Loved the report? Lock in the full pack.',
     body: 'Plus unlocks unlimited PDFs, Monte Carlo, the full P&L, and investor-ready exports — for $0.56/day.',
-    cta: 'Start 14-day free trial',
+    cta: 'Start 14-days free trial',
     condition: (e, isPlus) =>
       !isPlus && c(e, 'pdf_exported') >= 1 && c(e, 'pdf_exported') <= 1,
   },

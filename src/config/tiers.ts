@@ -143,7 +143,7 @@ export const STRIPE_PRICE_TO_TIER: Record<string, { tier: TierId; cycle: Billing
   price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
   // Plus annual
   price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
-  // Pro monthly ($41, 14-day trial)
+  // Pro monthly ($41, 14-days trial)
   price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
   // Pro annual ($492, NO trial)
   price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },

@@ -72,7 +72,7 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
           Upgrade to Plus
         </Button>
         <p className="text-xs text-muted-foreground mt-3">
-          14-day free trial included
+          14-days free trial included
         </p>
       </div>
     );
