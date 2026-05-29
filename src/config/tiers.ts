@@ -123,7 +123,7 @@ export const TIERS = {
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 60,
       monteCarloScenarios: 95_500,
-      teamSeats: 3,
+      teamSeats: 5,
       templates: 12,
     },
     features: {
