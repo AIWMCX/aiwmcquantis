@@ -98,6 +98,15 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: true,
+      // Plus value-adds
+      sampleSharingEnabled: true,
+      basicEmailDigest: true,
+      scenarioComparison: true,        // Compare up to 3 saved analyses
+      monthlyBenchmarkRefresh: true,   // Auto-rerun when benchmarks update
+      customRiskAlerts: true,          // Alert when assumption goes red
+      teamWorkspace: false,
+      priorityAiQueue: false,
+      apiWebhooks: false,
     },
     supportSla: '24h-target',
     trialEligible: { monthly: true, annual: true, days: 14 },
