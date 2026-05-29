@@ -194,12 +194,12 @@ export function HeroSingleInput() {
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
               <span className="inline-flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
-                We don't store your idea publicly.
+                Your idea stays private
               </span>
               <span>·</span>
-              <span>95,500 verified benchmarks</span>
+              <span>No credit card</span>
               <span>·</span>
-              <span>Dual-AI cross-checked</span>
+              <span>Real numbers, sourced</span>
             </div>
           )}
         </form>
