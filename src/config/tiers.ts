@@ -27,7 +27,7 @@ export const TIERS = {
     priceMonthly: 0,
     priceAnnual: 0,
     limits: {
-      analysesPerMonth: 1,
+      analysesPerMonth: 3,
       downloadsPerDay: 5,
       projectionMonths: 0,
       monteCarloScenarios: 0,
