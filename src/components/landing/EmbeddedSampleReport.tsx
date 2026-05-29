@@ -1,20 +1,46 @@
+import { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, TrendingUp, DollarSign, Clock, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
 import { EXAMPLE_ANALYSES } from '@/pages/examples/exampleData';
+import { trackSampleEvent } from '@/lib/analytics';
 
 /**
  * Real, scrollable sample report above the fold on the landing page.
  * Uses the same data the /examples/coffee-shop-denver page renders, so
  * the visitor sees the actual format of what they'll get — no leap of faith.
  *
- * This is the single highest-converting addition for a financial product:
- * proof-of-output before commitment.
+ * Funnel events emitted (see /admin/funnel "Sample Report Funnel"):
+ *   sample_view → sample_cta_click → sample_full_open → sample_pdf_download
  */
 export function EmbeddedSampleReport() {
   const data = EXAMPLE_ANALYSES['coffee-shop-denver'];
+  const sectionRef = useRef<HTMLElement | null>(null);
+  const firedView = useRef(false);
+
+  // Fire `sample_view` once when the report enters the viewport.
+  useEffect(() => {
+    if (!sectionRef.current || firedView.current) return;
+    const el = sectionRef.current;
+    const io = new IntersectionObserver(
+      entries => {
+        for (const e of entries) {
+          if (e.isIntersecting && !firedView.current) {
+            firedView.current = true;
+            trackSampleEvent('view', { example_slug: 'coffee-shop-denver' });
+            io.disconnect();
+            break;
+          }
+        }
+      },
+      { threshold: 0.25 },
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
   if (!data) return null;
 
   const sev = {
@@ -23,8 +49,14 @@ export function EmbeddedSampleReport() {
     low: 'text-success border-success/30 bg-success/5',
   } as const;
 
+  const onCtaClick = (cta: 'run_mine' | 'see_full') => {
+    trackSampleEvent('cta_click', { cta, example_slug: 'coffee-shop-denver' });
+    if (cta === 'see_full') trackSampleEvent('full_open', { example_slug: 'coffee-shop-denver' });
+  };
+
   return (
     <section
+      ref={sectionRef}
       aria-label="Sample analysis"
       className="relative w-full py-12 md:py-16 border-b border-border"
     >
@@ -134,10 +166,10 @@ export function EmbeddedSampleReport() {
                 Your report covers the same sections — based on your idea, your city, your numbers.
               </p>
               <div className="flex gap-2">
-                <Link to="/examples/coffee-shop-denver">
+                <Link to="/examples/coffee-shop-denver" onClick={() => onCtaClick('see_full')}>
                   <Button variant="outline" size="sm">See full sample</Button>
                 </Link>
-                <a href="#single-input-hero">
+                <a href="#single-input-hero" onClick={() => onCtaClick('run_mine')}>
                   <Button size="sm" className="gap-1">
                     Run mine free <ArrowRight className="w-4 h-4" />
                   </Button>
