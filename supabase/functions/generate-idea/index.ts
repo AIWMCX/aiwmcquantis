@@ -254,9 +254,15 @@ serve(async (req) => {
 
   try {
     // ========== ENTITLEMENT GATE: AI idea generation = Plus+ feature ==========
-    // (Free users use the curated examples gallery)
+    // Require an authenticated caller — no anonymous bypass of the paid tier.
     const authHeader = req.headers.get("Authorization");
-    if (authHeader?.startsWith("Bearer ")) {
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: "Unauthorized: authentication required" }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
@@ -264,15 +270,19 @@ serve(async (req) => {
         global: { headers: { Authorization: authHeader } },
       });
       const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-      if (claims?.claims?.sub) {
-        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
-        try {
-          await requireFeature(adminClient, claims.claims.sub, 'actionPlan', '/generate-idea');
-        } catch (e) {
-          if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
-          throw e;
-        }
+      if (!claims?.claims?.sub) {
+        return new Response(
+          JSON.stringify({ error: "Unauthorized: invalid token" }),
+          { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
+      try {
+        await requireFeature(adminClient, claims.claims.sub, 'actionPlan', '/generate-idea');
+      } catch (e) {
+        if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
+        throw e;
       }
     }
 
