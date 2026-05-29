@@ -144,6 +144,15 @@ export const TIERS = {
       strategicRoadmap: true,
       fiveYearModel: true,
       actionPlan: true,
+      // Pro value-adds
+      sampleSharingEnabled: true,
+      basicEmailDigest: true,
+      scenarioComparison: true,
+      monthlyBenchmarkRefresh: true,
+      customRiskAlerts: true,
+      teamWorkspace: true,        // Shared library across all 5 seats
+      priorityAiQueue: true,      // Pro runs jump the queue
+      apiWebhooks: true,          // Webhook on analysis-complete
     },
     supportSla: '24h-guaranteed',
     trialEligible: { monthly: true, annual: false, days: 14 }, // Pro Annual = NO trial
