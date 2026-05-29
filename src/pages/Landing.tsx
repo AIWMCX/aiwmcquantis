@@ -140,6 +140,9 @@ export default function Landing() {
           <HeroSingleInput />
         </div>
 
+        {/* 0.5. Real embedded sample report — proof-of-output before commitment */}
+        <EmbeddedSampleReport />
+
         {/* 1. Hero — Founder vs Reality (visual / story) */}
         <div id="mobile-hero">
           <MobileHero />
