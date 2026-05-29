@@ -393,7 +393,7 @@ function verdictWrap(body: string): string {
     <p style="color:#888;font-size:12px;line-height:1.5;margin:0;">AIWMC™ Quantis · aiwmcquantis.com<br/>You're getting this because you ran a free stress-test. Don't want these? <a href="{{unsubscribe_url}}" style="color:#888;">Unsubscribe</a>.</p>
   </div>`;
 }
-const _CONVERSION_TEMPLATES_END = true;
+
 
 serve(async (req: Request): Promise<Response> => {
   const reqId = getRequestId(req);
