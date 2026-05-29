@@ -118,6 +118,9 @@ export default function AdminDashboard() {
               <UptimeStatusCard />
             </div>
 
+            {/* Sample Report Funnel + Monthly Analyses */}
+            <SampleFunnelAndAnalysesCard />
+
             {/* Metrics Dashboard */}
             <AdminMetricsDashboard />
           </TabsContent>
