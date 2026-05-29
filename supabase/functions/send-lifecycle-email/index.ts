@@ -457,6 +457,35 @@ serve(async (req: Request): Promise<Response> => {
 
         userData.remaining_analyses = Math.max(0, 3 - (usage?.analyses_count || 0));
       }
+
+      // For conversion-sequence (verdict_step_*) — pull the user's most recent analysis
+      if (template_key.startsWith("verdict_step_")) {
+        const { data: latest } = await supabase
+          .from("analyses")
+          .select("id, result, payback_months, idea_summary, idea")
+          .eq("user_id", user_id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
+
+        if (latest) {
+          const r = (latest.result ?? {}) as Record<string, unknown>;
+          const verdict = (r.verdict ?? r.recommendation ?? "see report") as string;
+          const ltvCac = (r.ltv_cac_ratio ?? r.ltv_cac ?? null) as number | null;
+          const primaryRisk =
+            (Array.isArray(r.risks) && (r.risks as unknown[])[0]) ||
+            (Array.isArray(r.critical_path) && (r.critical_path as unknown[])[0]) ||
+            "your CAC assumption";
+
+          userData.verdict = verdict;
+          userData.ltv_cac = ltvCac !== null ? Number(ltvCac).toFixed(1) : null;
+          userData.payback_months = latest.payback_months ?? null;
+          userData.primary_risk = typeof primaryRisk === "string" ? primaryRisk : "your CAC assumption";
+          userData.report_url = `https://aiwmcquantis.com/results/${latest.id}`;
+          userData.pricing_url = "https://aiwmcquantis.com/pricing";
+          userData.methodology_url = "https://aiwmcquantis.com/methodology";
+        }
+      }
     }
 
     if (!recipientEmail) {
