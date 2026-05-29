@@ -149,10 +149,10 @@ export function HeroSingleInput() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Building your plan…
+                  Running your analysis…
                 </>
               ) : (
-                <>Generate free plan</>
+                <>Analyze my idea — free</>
               )}
             </Button>
           </div>
