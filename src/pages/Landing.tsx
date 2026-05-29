@@ -20,6 +20,7 @@ import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
+import { EmbeddedSampleReport } from '@/components/landing/EmbeddedSampleReport';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
@@ -138,6 +139,9 @@ export default function Landing() {
         <div ref={heroRef} id="single-input-hero" data-hero-form>
           <HeroSingleInput />
         </div>
+
+        {/* 0.5. Real embedded sample report — proof-of-output before commitment */}
+        <EmbeddedSampleReport />
 
         {/* 1. Hero — Founder vs Reality (visual / story) */}
         <div id="mobile-hero">

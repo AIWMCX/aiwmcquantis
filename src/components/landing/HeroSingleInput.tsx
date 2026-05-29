@@ -101,21 +101,21 @@ export function HeroSingleInput() {
             }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Free · No signup · 60 seconds
+            Free · No signup · 90 seconds
           </span>
           <h1
             className="font-bold leading-[1.1] mb-3"
             style={{
-              fontSize: 'clamp(1.85rem, 4.2vw, 2.85rem)',
+              fontSize: 'clamp(1.95rem, 4.4vw, 3rem)',
               fontFamily: 'var(--q-font-heading, inherit)',
               color: 'var(--q-text-primary, hsl(var(--foreground)))',
               letterSpacing: '-0.025em',
             }}
           >
-            Instant business plan and financials. No spreadsheets.
+            Find out if your business idea actually makes money — before you spend a dollar.
           </h1>
-          <p className="text-sm md:text-base max-w-xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
-            Describe your idea in one sentence. Get a real plan, 3-year P&amp;L, and an honest verdict in 60 seconds — checked against 95,500 industry benchmarks.
+          <p className="text-base md:text-lg max-w-2xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
+            Describe your idea in one sentence. Get the monthly profit, break-even date, the three things most likely to kill it, and an honest go / pivot / kill verdict — in 90 seconds. Free.
           </p>
         </div>
 
@@ -149,10 +149,10 @@ export function HeroSingleInput() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Building your plan…
+                  Running your analysis…
                 </>
               ) : (
-                <>Generate free plan</>
+                <>Analyze my idea — free</>
               )}
             </Button>
           </div>
@@ -194,12 +194,12 @@ export function HeroSingleInput() {
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
               <span className="inline-flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
-                We don't store your idea publicly.
+                Your idea stays private
               </span>
               <span>·</span>
-              <span>95,500 verified benchmarks</span>
+              <span>No credit card</span>
               <span>·</span>
-              <span>Dual-AI cross-checked</span>
+              <span>Real numbers, sourced</span>
             </div>
           )}
         </form>
