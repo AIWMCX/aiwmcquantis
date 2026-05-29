@@ -312,7 +312,8 @@ serve(async (req: Request): Promise<Response> => {
         Authorization: `Bearer ${RESEND_API_KEY}`,
       },
       body: JSON.stringify({
-        from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
+        from: "Bogdan from AIWMC Quantis <hello@aiwmcquantis.com>",
+        reply_to: "hello@aiwmcquantis.com",
         to: [recipientEmail],
         subject: template.subject,
         html: template.html(templateData),
