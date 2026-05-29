@@ -188,7 +188,29 @@ export type SowFunnelEvent =
   | 'analysis_complete'
   | 'pricing_view'
   | 'paid_checkout_start'
-  | 'paid_checkout_complete';
+  | 'paid_checkout_complete'
+  // Embedded sample-report funnel (landing page proof-of-output)
+  | 'sample_view'
+  | 'sample_cta_click'
+  | 'sample_full_open'
+  | 'sample_pdf_download';
+
+/**
+ * Track an interaction with the embedded sample report on the landing page.
+ * Powers the "Sample Report Funnel" admin widget.
+ */
+export function trackSampleEvent(
+  step: 'view' | 'cta_click' | 'full_open' | 'pdf_download',
+  metadata: Record<string, unknown> = {},
+): void {
+  const map: Record<typeof step, SowFunnelEvent> = {
+    view: 'sample_view',
+    cta_click: 'sample_cta_click',
+    full_open: 'sample_full_open',
+    pdf_download: 'sample_pdf_download',
+  };
+  recordFunnelEvent(map[step], { surface: 'embedded_sample_report', ...metadata });
+}
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
