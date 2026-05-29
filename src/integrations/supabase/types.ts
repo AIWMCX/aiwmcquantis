@@ -6119,6 +6119,18 @@ export type Database = {
           month_year: string
         }[]
       }
+      get_monthly_analyses_stats: {
+        Args: { p_months?: number }
+        Returns: {
+          anonymous_count: number
+          free_count: number
+          month_start: string
+          plus_count: number
+          pro_count: number
+          total_analyses: number
+          unique_users: number
+        }[]
+      }
       get_my_phone: { Args: never; Returns: string }
       get_next_invoice_number: { Args: { p_user_id: string }; Returns: string }
       get_public_teardown_by_slug: {
@@ -6163,6 +6175,7 @@ export type Database = {
         }[]
       }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
+      get_sample_report_funnel: { Args: { p_days?: number }; Returns: Json }
       get_subscription_summary: { Args: { p_user_id?: string }; Returns: Json }
       get_todays_activity: {
         Args: never
