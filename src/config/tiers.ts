@@ -27,7 +27,7 @@ export const TIERS = {
     priceMonthly: 0,
     priceAnnual: 0,
     limits: {
-      analysesPerMonth: 1,
+      analysesPerMonth: 3,
       downloadsPerDay: 5,
       projectionMonths: 0,
       monteCarloScenarios: 0,
@@ -52,6 +52,15 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: false,
+      // Tier value-add capabilities (no price change)
+      sampleSharingEnabled: true,
+      basicEmailDigest: true,
+      scenarioComparison: false,
+      monthlyBenchmarkRefresh: false,
+      customRiskAlerts: false,
+      teamWorkspace: false,
+      priorityAiQueue: false,
+      apiWebhooks: false,
     },
     supportSla: 'best-effort',
     trialEligible: false,
@@ -89,6 +98,15 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: true,
+      // Plus value-adds
+      sampleSharingEnabled: true,
+      basicEmailDigest: true,
+      scenarioComparison: true,        // Compare up to 3 saved analyses
+      monthlyBenchmarkRefresh: true,   // Auto-rerun when benchmarks update
+      customRiskAlerts: true,          // Alert when assumption goes red
+      teamWorkspace: false,
+      priorityAiQueue: false,
+      apiWebhooks: false,
     },
     supportSla: '24h-target',
     trialEligible: { monthly: true, annual: true, days: 14 },
@@ -105,7 +123,7 @@ export const TIERS = {
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 60,
       monteCarloScenarios: 95_500,
-      teamSeats: 3,
+      teamSeats: 5,
       templates: 12,
     },
     features: {
@@ -126,6 +144,15 @@ export const TIERS = {
       strategicRoadmap: true,
       fiveYearModel: true,
       actionPlan: true,
+      // Pro value-adds
+      sampleSharingEnabled: true,
+      basicEmailDigest: true,
+      scenarioComparison: true,
+      monthlyBenchmarkRefresh: true,
+      customRiskAlerts: true,
+      teamWorkspace: true,        // Shared library across all 5 seats
+      priorityAiQueue: true,      // Pro runs jump the queue
+      apiWebhooks: true,          // Webhook on analysis-complete
     },
     supportSla: '24h-guaranteed',
     trialEligible: { monthly: true, annual: false, days: 14 }, // Pro Annual = NO trial
@@ -261,5 +288,45 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
     title: 'Action Plan Generator',
     bullets: ['Prioritized next steps', 'Tied to your specific risks', 'Updated per analysis'],
     recommendedTier: 'plus',
+  },
+  sampleSharingEnabled: {
+    title: 'Share Read-Only Analysis Link',
+    bullets: ['Send a public link to your analysis', 'No login required for viewers', 'Revoke anytime'],
+    recommendedTier: 'free',
+  },
+  basicEmailDigest: {
+    title: 'Weekly Benchmark Digest',
+    bullets: ['Your idea vs latest benchmarks', 'Delivered every Monday', 'Unsubscribe anytime'],
+    recommendedTier: 'free',
+  },
+  scenarioComparison: {
+    title: 'Scenario Comparison',
+    bullets: ['Compare up to 3 saved analyses side-by-side', 'Diff revenue, margin, payback', 'Find the strongest version'],
+    recommendedTier: 'plus',
+  },
+  monthlyBenchmarkRefresh: {
+    title: 'Auto Benchmark Refresh',
+    bullets: ['Saved analyses re-run when industry data updates', 'See drift over time', 'Stay current automatically'],
+    recommendedTier: 'plus',
+  },
+  customRiskAlerts: {
+    title: 'Custom Risk Alerts',
+    bullets: ['Email alert when an assumption goes red', 'Tie to LTV:CAC, runway, margin thresholds', 'Catch problems early'],
+    recommendedTier: 'plus',
+  },
+  teamWorkspace: {
+    title: 'Team Workspace',
+    bullets: ['Shared analysis library across all 5 seats', 'Comment and collaborate', 'Role-based access'],
+    recommendedTier: 'pro',
+  },
+  priorityAiQueue: {
+    title: 'Priority AI Queue',
+    bullets: ['Pro analyses jump the queue', 'Faster turnaround at peak load', 'Dedicated capacity'],
+    recommendedTier: 'pro',
+  },
+  apiWebhooks: {
+    title: 'API Webhooks',
+    bullets: ['Webhook fires on analysis-complete', 'Integrate with your stack', 'Pairs with API access'],
+    recommendedTier: 'pro',
   },
 };

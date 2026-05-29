@@ -8,6 +8,7 @@ import { EngagementMetricsCard } from '@/components/admin/EngagementMetricsCard'
 import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
+import { SampleFunnelAndAnalysesCard } from '@/components/admin/SampleFunnelAndAnalysesCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen } from 'lucide-react';
@@ -116,6 +117,9 @@ export default function AdminDashboard() {
               <SystemHealthDashboard />
               <UptimeStatusCard />
             </div>
+
+            {/* Sample Report Funnel + Monthly Analyses */}
+            <SampleFunnelAndAnalysesCard />
 
             {/* Metrics Dashboard */}
             <AdminMetricsDashboard />
