@@ -6103,6 +6103,29 @@ export type Database = {
       }
       get_ai_learning_metrics: { Args: never; Returns: Json }
       get_analysis_case_grid: { Args: { p_case_id: string }; Returns: Json }
+      get_analysis_step_funnel: {
+        Args: { _days?: number }
+        Returns: {
+          abandon_rate: number
+          median_ms_from_prev: number
+          step_name: string
+          total_events: number
+          unique_sessions: number
+        }[]
+      }
+      get_conversion_by_source: {
+        Args: { _days?: number }
+        Returns: {
+          event_name: string
+          tier: string
+          total_events: number
+          unique_sessions: number
+          unique_users: number
+          utm_campaign: string
+          utm_medium: string
+          utm_source: string
+        }[]
+      }
       get_daily_signups: {
         Args: { days_back?: number }
         Returns: {

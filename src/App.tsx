@@ -61,6 +61,7 @@ const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
+const AdminConversionBySource = lazy(() => import("./pages/admin/ConversionBySource"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
@@ -241,6 +242,11 @@ const App = () => {
                 <Route path="/admin/autoposter" element={
                   <ProtectedRoute requireAdmin>
                     <Autoposter />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/conversion-by-source" element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminConversionBySource />
                   </ProtectedRoute>
                 } />
                 <Route path="/directory-tracker" element={
