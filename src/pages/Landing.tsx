@@ -40,7 +40,7 @@ export default function Landing() {
         description="Stress-test any business idea against 95,500 real benchmarks. See revenue, break-even and every risk flag before you spend a dollar. Free, no card required."
         canonical="https://www.aiwmcquantis.com/"
       />
-      <StructuredData type="WebSite" />
+      <StructuredData />
 
       <div className="fx-grid" aria-hidden />
       <div className="fx-grain" aria-hidden />
