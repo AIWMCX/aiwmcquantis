@@ -1,9 +1,16 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Loader2, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
+import {
+  recordFunnelEvent,
+  trackCtaClick,
+  trackAnalysisView,
+  trackAnalysisStep,
+  trackAnalysisAbandon,
+} from '@/lib/analytics';
+import { EmbeddedSampleReport } from '@/components/landing/EmbeddedSampleReport';
 
 const NARRATION = [
   { t: 0,    label: 'Reading your idea…' },
@@ -15,11 +22,17 @@ const NARRATION = [
 ];
 
 /**
- * Anonymous-first single-input flow.
- * Visitor types one line, presses Enter or clicks the CTA.
- * No auth, no second field, no document upload, no tier picker.
- * On success, we navigate to /r/:id where they see their verdict
- * with a save/share rail that converts them to an account.
+ * Anonymous-first single-input flow + embedded sample report (proof) inline.
+ * Visitor types one line, presses Enter or clicks the CTA. On success, we
+ * navigate to /r/:id where they see their verdict.
+ *
+ * Per-step funnel events emitted (see /admin/conversion-by-source):
+ *   analysis_view           — section becomes visible
+ *   analysis_step_view      — step="idea" | "location" | "submit"
+ *   analysis_step_complete  — fires when leaving a step with content
+ *   analysis_abandon        — user leaves without completing
+ *   analysis_start          — submit pressed (existing)
+ *   analysis_complete       — result returned (existing)
  */
 export function HeroSingleInput() {
   const navigate = useNavigate();
@@ -32,14 +45,62 @@ export function HeroSingleInput() {
   const [progressStep, setProgressStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
 
-  // Default the location field invisibly so the edge function validation
-  // (which requires location ≥ 2 chars) passes for the single-input flow.
-  // Visitors who care about geo precision use the full /app form.
+  // Per-step tracking refs
+  const viewedRef = useRef(false);
+  const enteredAt = useRef<number>(Date.now());
+  const stepEnteredAt = useRef<Record<string, number>>({});
+  const completedStepsRef = useRef<Set<string>>(new Set());
+  const lastStepRef = useRef<string>('idea');
+  const submittedRef = useRef(false);
+
+  // 1. analysis_view + idea step view on mount
+  useEffect(() => {
+    if (viewedRef.current) return;
+    viewedRef.current = true;
+    trackAnalysisView('hero_single_input');
+    trackAnalysisStep('view', 'idea');
+    stepEnteredAt.current['idea'] = Date.now();
+    enteredAt.current = Date.now();
+  }, []);
+
+  // 2. abandonment tracking — fire on page hide if user never submitted
+  useEffect(() => {
+    const onLeave = () => {
+      if (submittedRef.current) return;
+      const ms = Date.now() - enteredAt.current;
+      // Only count meaningful sessions (>2s) to filter bounces.
+      if (ms > 2000) {
+        trackAnalysisAbandon(lastStepRef.current, ms, {
+          had_idea: idea.trim().length > 0,
+        });
+      }
+    };
+    const onVis = () => { if (document.visibilityState === 'hidden') onLeave(); };
+    window.addEventListener('pagehide', onLeave);
+    document.addEventListener('visibilitychange', onVis);
+    return () => {
+      window.removeEventListener('pagehide', onLeave);
+      document.removeEventListener('visibilitychange', onVis);
+    };
+  }, [idea]);
+
+  // 3. mark "idea" step complete once user types ≥10 chars (after a debounce)
+  useEffect(() => {
+    if (idea.trim().length < 10 || completedStepsRef.current.has('idea')) return;
+    const t = setTimeout(() => {
+      completedStepsRef.current.add('idea');
+      const ms = Date.now() - (stepEnteredAt.current['idea'] ?? Date.now());
+      trackAnalysisStep('complete', 'idea', { ms_on_step: ms, length: idea.trim().length });
+    }, 800);
+    return () => clearTimeout(t);
+  }, [idea]);
+
+  // Default the location field invisibly so the edge function validation passes.
   useEffect(() => {
     if (!location) setLocation('Global');
   }, [location, setLocation]);
 
-  // Progress narration during the wait
+  // Progress narration
   useEffect(() => {
     if (!isLoading) {
       setProgressStep(0);
@@ -70,11 +131,12 @@ export function HeroSingleInput() {
   const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (idea.trim().length < 10) return;
+    submittedRef.current = true;
+    lastStepRef.current = 'submit';
+    trackAnalysisStep('view', 'submit');
+    trackAnalysisStep('complete', 'submit', { ms_on_step: Date.now() - enteredAt.current });
     trackCtaClick('hero_single_input_submit', 'hero');
     recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
-    // Landing demo MUST always produce a result — never surface
-    // ANALYSIS_UNAVAILABLE on first failure. Opts into deterministic
-    // fallback at the API layer.
     handleSubmit(e, 'quick', { isLandingDemo: true });
   }, [idea, handleSubmit]);
 
@@ -132,6 +194,7 @@ export function HeroSingleInput() {
               type="text"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
+              onFocus={() => { lastStepRef.current = 'idea'; }}
               placeholder="e.g. Subscription coffee shop in Austin, $8/cup, 200 customers/mo"
               maxLength={300}
               disabled={isLoading}
@@ -157,7 +220,6 @@ export function HeroSingleInput() {
             </Button>
           </div>
 
-          {/* Progress narration during the 60-90s wait — keeps the user from bouncing */}
           {isLoading && (
             <div
               className="mt-4 p-4 rounded-xl text-center"
@@ -189,7 +251,6 @@ export function HeroSingleInput() {
             </div>
           )}
 
-          {/* Trust micro-row */}
           {!isLoading && (
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
               <span className="inline-flex items-center gap-1.5">
@@ -204,6 +265,14 @@ export function HeroSingleInput() {
           )}
         </form>
       </div>
+
+      {/* Inline proof-of-output, immediately below the input so it's
+          truly above the fold for most viewports. */}
+      {!isLoading && (
+        <div className="border-t border-border bg-background/40">
+          <EmbeddedSampleReport />
+        </div>
+      )}
     </section>
   );
 }
