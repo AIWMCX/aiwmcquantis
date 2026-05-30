@@ -97,6 +97,12 @@ export default function AdminDashboard() {
                 Search Console
               </Link>
             </Button>
+            <Button variant="default" size="sm" asChild>
+              <Link to="/admin/conversion-by-source">
+                Conversion by Source
+              </Link>
+            </Button>
+
           </div>
         </div>
 
