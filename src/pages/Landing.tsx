@@ -11,6 +11,7 @@ import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { trackCtaClick, recordFunnelEvent } from '@/lib/analytics';
+import { withUtm } from '@/lib/utm';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
@@ -119,16 +120,17 @@ export default function Landing() {
                 </>
               ) : (
                 <>
-                  <Link to="/auth" className="hidden sm:block">
+                  <Link to={withUtm('/auth', { source: 'homepage', campaign: 'nav_signin' })} className="hidden sm:block">
                     <Button variant="ghost" size="sm" className="min-h-[48px]">Sign In</Button>
                   </Link>
-                  <Link to="/app">
+                  <Link to={withUtm('/app', { source: 'homepage', campaign: 'nav_generate_free' })}>
                     <Button size="sm" className="min-h-[52px] px-5 text-sm font-semibold">
                       Generate free plan
                     </Button>
                   </Link>
                 </>
               )}
+
             </div>
           </div>
         </div>
@@ -220,11 +222,12 @@ export default function Landing() {
                   See fatal assumptions, stress-test scenarios, and get a clear
                   proceed/pivot/kill verdict. Dual AI-verified, no credit card.
                 </p>
-                <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
+                <Link to={withUtm('/app', { source: 'homepage', campaign: 'bottom_cta' })} onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
                     Start Free Analysis →
                   </Button>
                 </Link>
+
               </div>
             </div>
           </div>
