@@ -97,7 +97,7 @@ export default function Landing() {
               <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
               <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
               <Link to="/risk-gallery" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Risk Gallery</Link>
-              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to={withUtm('/pricing', { source: 'homepage', campaign: 'nav_pricing' })} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
