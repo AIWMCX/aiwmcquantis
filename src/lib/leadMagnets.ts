@@ -16,8 +16,7 @@ export type LeadSource =
   | 'footer_newsletter'
   | 'resource_download'
   | 'feature_waitlist'
-  | 'blog_cta'
-  | 'post_analysis_modal';
+  | 'blog_cta';
 
 export type LeadOffer = 
   | 'free_analysis'
@@ -50,7 +49,6 @@ export const COOLDOWN_CONFIG: Record<LeadSource, { submit: number; dismiss: numb
   resource_download: { submit: 720, dismiss: 0 },    // 30 days submit, no dismiss
   feature_waitlist: { submit: 720, dismiss: 0 },     // 30 days submit, no dismiss
   blog_cta: { submit: 168, dismiss: 0 },             // 7 days submit, no dismiss
-  post_analysis_modal: { submit: 720, dismiss: 72 }, // 30 days submit, 3 days dismiss
 };
 
 // ============================================

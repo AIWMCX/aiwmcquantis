@@ -19,17 +19,17 @@ import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { HeroSingleInput } from '@/components/landing/HeroSingleInput';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
+import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 // EmbeddedSampleReport is now rendered inside HeroSingleInput (above the fold).
-// FeaturedDirectories removed — its "Featured on" row is now in InlineProofStrip.
-// OpenTheHood + FounderStory merged into BuiltByFounder.
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 // Lazy-load below-fold sections
 const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection').then(m => ({ default: m.HowItWorksSection })));
-const BuiltByFounder = lazy(() => import('@/components/landing/BuiltByFounder').then(m => ({ default: m.BuiltByFounder })));
+const OpenTheHood = lazy(() => import('@/components/landing/OpenTheHood').then(m => ({ default: m.OpenTheHood })));
+const FounderStory = lazy(() => import('@/components/landing/FounderStory').then(m => ({ default: m.FounderStory })));
 const PricingSection = lazy(() => import('@/components/landing/PricingSection').then(m => ({ default: m.PricingSection })));
 const FAQSection = lazy(() => import('@/components/landing/FAQSection').then(m => ({ default: m.FAQSection })));
 
@@ -152,19 +152,23 @@ export default function Landing() {
         {/* 1.5. Social Proof Bar */}
         <SocialProofBar />
 
+        {/* 1.6. As Featured In — directory trust marquee */}
+        <FeaturedDirectories />
+
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
 
         {/* 2.5. Progressive Engagement — low-friction example CTA */}
         <ProgressiveEngagementCTA />
 
-        {/* 3–5: Lazy loaded sections (slimmed: OpenTheHood + FounderStory merged into BuiltByFounder) */}
+        {/* 3–6: Lazy loaded sections */}
         <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '600px' }}>
           {belowFoldSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={600} />}>
               <Testimonials />
               <HowItWorksSection />
-              <BuiltByFounder />
+              <OpenTheHood />
+              <FounderStory />
             </Suspense>
           ) : (
             <SectionSkeleton height={600} />

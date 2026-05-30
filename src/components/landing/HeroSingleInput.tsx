@@ -11,16 +11,14 @@ import {
   trackAnalysisAbandon,
 } from '@/lib/analytics';
 import { EmbeddedSampleReport } from '@/components/landing/EmbeddedSampleReport';
-import { InlineProofStrip } from '@/components/landing/InlineProofStrip';
 
-// Jargon-free narration — written for a 30-year-old opening a coffee shop.
 const NARRATION = [
   { t: 0,    label: 'Reading your idea…' },
-  { t: 10,   label: 'Comparing to real businesses like yours…' },
-  { t: 25,   label: 'Checking if the numbers actually work…' },
-  { t: 42,   label: 'Testing what happens in a bad month…' },
-  { t: 58,   label: 'Double-checking the answer…' },
-  { t: 72,   label: 'Writing your verdict…' },
+  { t: 8,    label: 'Matching against 95,500 industry benchmarks…' },
+  { t: 22,   label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
+  { t: 38,   label: 'Running 12-variable Monte Carlo on cash flow…' },
+  { t: 55,   label: 'Cross-validating with second AI model…' },
+  { t: 72,   label: 'Compiling verdict…' },
 ];
 
 /**
@@ -176,10 +174,10 @@ export function HeroSingleInput() {
               letterSpacing: '-0.025em',
             }}
           >
-            See your monthly profit, break-even date, and the 3 risks most likely to kill your idea — in 90 seconds.
+            Find out if your business idea actually makes money — before you spend a dollar.
           </h1>
           <p className="text-base md:text-lg max-w-2xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
-            Type your idea below. Free. No signup. No credit card. Honest answer.
+            Describe your idea in one sentence. Get the monthly profit, break-even date, the three things most likely to kill it, and an honest go / pivot / kill verdict — in 90 seconds. Free.
           </p>
         </div>
 
@@ -197,7 +195,7 @@ export function HeroSingleInput() {
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
               onFocus={() => { lastStepRef.current = 'idea'; }}
-              placeholder="Type your idea. Free. No signup. No credit card."
+              placeholder="e.g. Subscription coffee shop in Austin, $8/cup, 200 customers/mo"
               maxLength={300}
               disabled={isLoading}
               autoFocus={false}
@@ -253,27 +251,28 @@ export function HeroSingleInput() {
             </div>
           )}
 
-          <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
-            <span className="inline-flex items-center gap-1.5">
-              <Lock className="w-3 h-3" />
-              Your idea stays private
-            </span>
-            <span>·</span>
-            <span>No credit card</span>
-            <span>·</span>
-            <span>Real numbers, sourced</span>
-          </div>
+          {!isLoading && (
+            <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
+              <span className="inline-flex items-center gap-1.5">
+                <Lock className="w-3 h-3" />
+                Your idea stays private
+              </span>
+              <span>·</span>
+              <span>No credit card</span>
+              <span>·</span>
+              <span>Real numbers, sourced</span>
+            </div>
+          )}
         </form>
-
-        {/* Real proof, first viewport: featured strip + 2 verified quotes + founder line */}
-        <InlineProofStrip />
       </div>
 
-      {/* Inline proof-of-output stays visible during loading too — so
-          users see the actual format of their result while we compute it. */}
-      <div className="border-t border-border bg-background/40">
-        <EmbeddedSampleReport />
-      </div>
+      {/* Inline proof-of-output, immediately below the input so it's
+          truly above the fold for most viewports. */}
+      {!isLoading && (
+        <div className="border-t border-border bg-background/40">
+          <EmbeddedSampleReport />
+        </div>
+      )}
     </section>
   );
 }

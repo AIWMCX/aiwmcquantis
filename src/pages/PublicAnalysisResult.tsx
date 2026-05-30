@@ -10,8 +10,6 @@ import { trackEvent } from '@/lib/analytics';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
 import { ShareRail } from '@/components/result/ShareRail';
-import { ShareCardPreview } from '@/components/result/ShareCardPreview';
-import { PostAnalysisLeadModal } from '@/components/result/PostAnalysisLeadModal';
 import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSkeleton';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
@@ -125,10 +123,6 @@ export default function PublicAnalysisResult() {
     );
   }
 
-  const shareUrl = typeof window !== 'undefined'
-    ? `${window.location.origin}/r/${id}`
-    : `https://aiwmcquantis.com/r/${id}`;
-
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
@@ -225,30 +219,11 @@ export default function PublicAnalysisResult() {
           </section>
         )}
 
-        {/* Sharing — visual preview of how the link looks on LinkedIn / X */}
-        <section className="mb-8 md:mb-10">
-          <ShareCardPreview
-            verdict={verdict}
-            idea={data.idea}
-            shareUrl={shareUrl}
-            analysisId={id}
-          />
-        </section>
-
         {/* Full report — assumption graph, scenarios, financials */}
         <Suspense fallback={<AnalysisResultsSkeleton />}>
           <AccuracyTransparentResults result={data.result} analysisId={id} />
         </Suspense>
       </main>
-
-      {/* Post-analysis email capture (anonymous only) */}
-      {id && (
-        <PostAnalysisLeadModal
-          analysisId={id}
-          verdict={verdict}
-          isAuthenticated={isAuthenticated}
-        />
-      )}
 
       <Footer />
     </div>
