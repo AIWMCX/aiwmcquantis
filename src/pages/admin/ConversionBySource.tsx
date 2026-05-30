@@ -135,6 +135,8 @@ export default function AdminConversionBySource() {
           <p className="text-sm text-muted-foreground mt-1">
             Live (refresh every 60s). Last update {lastRefresh.toLocaleTimeString()}.
             {' · '}
+            <Link to="/admin/journey-drilldown" className="underline">Journey drilldown →</Link>
+            {' · '}
             <Link to="/admin/funnel" className="underline">Canonical 8-event funnel →</Link>
           </p>
         </div>
