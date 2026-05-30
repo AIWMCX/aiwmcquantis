@@ -132,8 +132,13 @@ export default function SharedReport() {
 
   const ideaShort = (data.analysis.idea || 'Business analysis').slice(0, 80);
   const locShort = (data.analysis.location || '').slice(0, 40);
-  const seoTitle = `Analysis: ${ideaShort}${locShort ? ` — ${locShort}` : ''}`.slice(0, 60);
-  const seoDesc = `AI financial stress-test for "${ideaShort}"${locShort ? ` in ${locShort}` : ''}. Projected profit, payback, and risk flags from AIWMC Quantis.`.slice(0, 160);
+  const monthlyP = data.analysis.monthly_profit;
+  const payback = data.analysis.payback_months;
+  const verdictTone =
+    monthlyP > 0 && payback > 0 && payback <= 18 ? 'Pass' :
+    monthlyP <= 0 || payback >= 36 ? 'Fail' : 'Caution';
+  const seoTitle = `${verdictTone}: ${ideaShort}${locShort ? ` — ${locShort}` : ''}`.slice(0, 60);
+  const seoDesc = `Quantis verdict for "${ideaShort}"${locShort ? ` in ${locShort}` : ''}: monthly profit ${monthlyP >= 0 ? '$' : '-$'}${Math.abs(Math.round(monthlyP)).toLocaleString()}, payback ${payback > 0 ? `${payback} mo` : 'n/a'}. Free 90-second business stress-test.`.slice(0, 160);
 
   return (
     <div className="min-h-screen bg-background">
