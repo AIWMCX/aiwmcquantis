@@ -6133,6 +6133,26 @@ export type Database = {
           signup_date: string
         }[]
       }
+      get_journey_drilldown: {
+        Args: { _days?: number; _source: string; _tier?: string }
+        Returns: {
+          dropoff_from_prev: number
+          dropoff_from_top: number
+          median_ms_from_first: number
+          median_ms_from_prev: number
+          step_name: string
+          step_order: number
+          unique_sessions: number
+        }[]
+      }
+      get_journey_drilldown_filters: {
+        Args: { _days?: number }
+        Returns: {
+          sessions: number
+          tier: string
+          utm_source: string
+        }[]
+      }
       get_latest_audit_timestamp: { Args: never; Returns: string }
       get_lead_email: { Args: { p_lead_id: string }; Returns: string }
       get_monthly_analyses: {
