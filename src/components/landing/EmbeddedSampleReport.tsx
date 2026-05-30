@@ -3,9 +3,11 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { ArrowRight, TrendingUp, DollarSign, Clock, Target, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, TrendingUp, DollarSign, Clock, Target, AlertTriangle, CheckCircle2, Download } from 'lucide-react';
 import { EXAMPLE_ANALYSES } from '@/pages/examples/exampleData';
 import { trackSampleEvent } from '@/lib/analytics';
+import { withUtm } from '@/lib/utm';
+
 
 /**
  * Real, scrollable sample report above the fold on the landing page.
@@ -49,10 +51,25 @@ export function EmbeddedSampleReport() {
     low: 'text-success border-success/30 bg-success/5',
   } as const;
 
-  const onCtaClick = (cta: 'run_mine' | 'see_full') => {
+  const onCtaClick = (cta: 'run_mine' | 'see_full' | 'download_pdf') => {
     trackSampleEvent('cta_click', { cta, example_slug: 'coffee-shop-denver' });
     if (cta === 'see_full') trackSampleEvent('full_open', { example_slug: 'coffee-shop-denver' });
+    if (cta === 'download_pdf') trackSampleEvent('pdf_download', { example_slug: 'coffee-shop-denver' });
   };
+
+  const fullUrl = withUtm('/examples/coffee-shop-denver', {
+    source: 'homepage',
+    medium: 'internal_cta',
+    campaign: 'sample_report',
+    content: 'see_full',
+  });
+  const runMineUrl = withUtm('#single-input-hero', {
+    source: 'homepage',
+    medium: 'internal_cta',
+    campaign: 'sample_report',
+    content: 'run_mine',
+  });
+
 
   return (
     <section
@@ -165,11 +182,20 @@ export function EmbeddedSampleReport() {
               <p className="text-xs text-muted-foreground text-center sm:text-left">
                 Your report covers the same sections — based on your idea, your city, your numbers.
               </p>
-              <div className="flex gap-2">
-                <Link to="/examples/coffee-shop-denver" onClick={() => onCtaClick('see_full')}>
+              <div className="flex flex-wrap gap-2 justify-center">
+                <Link to={fullUrl} onClick={() => onCtaClick('see_full')}>
                   <Button variant="outline" size="sm">See full sample</Button>
                 </Link>
-                <a href="#single-input-hero" onClick={() => onCtaClick('run_mine')}>
+                <a
+                  href="/sample-reports/coffee-shop-denver.pdf"
+                  download
+                  onClick={() => onCtaClick('download_pdf')}
+                >
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <Download className="w-4 h-4" /> Download PDF
+                  </Button>
+                </a>
+                <a href={runMineUrl} onClick={() => onCtaClick('run_mine')}>
                   <Button size="sm" className="gap-1">
                     Run mine free <ArrowRight className="w-4 h-4" />
                   </Button>
@@ -182,3 +208,4 @@ export function EmbeddedSampleReport() {
     </section>
   );
 }
+
