@@ -62,6 +62,7 @@ const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const AdminConversionBySource = lazy(() => import("./pages/admin/ConversionBySource"));
+const AdminJourneyDrilldown = lazy(() => import("./pages/admin/JourneyDrilldown"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
@@ -247,6 +248,11 @@ const App = () => {
                 <Route path="/admin/conversion-by-source" element={
                   <ProtectedRoute requireAdmin>
                     <AdminConversionBySource />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/journey-drilldown" element={
+                  <ProtectedRoute requireAdmin>
+                    <AdminJourneyDrilldown />
                   </ProtectedRoute>
                 } />
                 <Route path="/directory-tracker" element={
