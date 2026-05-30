@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { useBotDetection } from "@/hooks/useBotDetection";
+import { useBotDetection, isBot } from "@/hooks/useBotDetection";
 import { useAuth } from "@/hooks/useAuth";
 import { StructuredData } from "@/components/seo/StructuredData";
 import { PageSEO } from "@/components/seo/PageSEO";
@@ -24,14 +24,14 @@ import "@/styles/textura.css";
  * not affect the rest of the app (admin, dashboards, auth).
  */
 export default function Landing() {
-  const { isBot } = useBotDetection();
+  useBotDetection();
   const { user } = useAuth();
 
   useEffect(() => {
-    if (!isBot) {
-      recordFunnelEvent("landing_view", { variant: "textura_v1", authed: !!user });
+    if (!isBot()) {
+      recordFunnelEvent("home_view", { variant: "textura_v1", authed: !!user });
     }
-  }, [isBot, user]);
+  }, [user]);
 
   return (
     <div className="qtx">
