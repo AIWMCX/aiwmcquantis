@@ -1,108 +1,81 @@
-## and make sure you need to not just seed the framework with updates, safely and professionally refresh everything and make sure you are not keeping something unfinished , must be professionally and geniously completely , 
 
-## What you're asking for (three things)
+# Quantis growth diagnosis + next-stage plan
 
-1. **Full event trail for the embedded sample report** (view → CTA click → full sample open → PDF download) with conversion rates between each step.
-2. **Persistent log of monthly analyses created** in AIWMC Quantis — saved, queryable, shown to admin.
-3. **Expand value inside existing tiers** (Free / Plus / Pro) — no price changes, just more capabilities so each tier feels worth its price.
+I read the live site, the funnel DB, and our SEO/UTM state. The product is not the problem. The conversion math and the distribution math are.
 
-Below is exactly what I'll build.
+## What the numbers actually say (last 14 days)
 
----
+```
+home_view             539
+  → analysis_start     76   (14% of home views)
+    → analysis_complete 16  (21% of starts — 79% abandon)
+      → free_signup_start  3   (19% of completers try to sign up)
+        → free_signup_complete 2
+          → paid_checkout_start 6 (across all users, not just these)
+            → paid conversions ~0
 
-## 1. Sample-report funnel tracking
-
-### New table: `sample_report_events`
-
-Columns: `id, event_type, session_id, user_id (nullable), variant, source, metadata (jsonb), created_at`.
-
-`event_type` enum (string):
-
-- `sample_view` — fired when `EmbeddedSampleReport` enters the viewport (IntersectionObserver, once per session)
-- `sample_cta_click` — any CTA inside the sample frame
-- `sample_full_open` — user clicks "See full report"
-- `sample_pdf_download` — PDF download triggered
-
-RLS: anon + authenticated can INSERT; only admin can SELECT.
-
-### New edge function: `log-sample-event`
-
-Anonymous-capable, validates payload with Zod, rate-limited by IP hash, writes a row.
-
-### Frontend
-
-- Add `trackSampleEvent()` helper in `src/lib/analytics.ts`.
-- Wire it into `EmbeddedSampleReport.tsx` (IntersectionObserver + CTA handlers).
-- Session ID reused from existing `anonymousTracking` so the funnel ties to signups later.
-
-### Admin funnel view
-
-- New RPC `get_sample_report_funnel(days int)` returns step counts + step-to-step conversion %.
-- New widget in `src/pages/admin/Funnel.tsx` ("Sample Report Funnel" card): view → CTA (%) → full open (%) → PDF (%).
-
----
-
-## 2. Monthly analyses tracking
-
-We already write to `analyses` and `usage_tracking` but there's no clean monthly admin view.
-
-- New RPC `get_monthly_analyses_stats(months int default 12)` returning per-month: `month, total_analyses, unique_users, free_count, plus_count, pro_count, anonymous_count`.
-- New admin card on `AdminDashboard.tsx`: "Monthly Analyses" bar chart + table, last 12 months.
-- Confirm `tg_log_analysis_run` trigger is firing (it is — `analysis_run_logs` already populated). No schema change needed for the underlying log.
-
----
-
-## 3. Tier capability expansion (no price change)
-
-Same prices, more value per tier. Concretely:
-
-**Free** (today: 1 analysis/mo, Quick only)
-
-- Raise `analysesPerMonth` 1 → **3/month**
-- Add `sampleSharingEnabled` (can share read-only link of their analysis result)
-- Add `basicEmailDigest` (weekly "your idea vs benchmarks" email)
-
-**Plus** (today: unlimited Quick + Full, 36-month, Doc Studio)
-
-- Unlock `tamSamSom` (currently Pro-only) at a **lite** level — single-source, no citations
-- Unlock `pitchDeckLite` — basic 6-slide data export (Pro keeps full deck)
-- Add `scenarioComparison` — compare up to 3 saved analyses side-by-side
-- Add `monthlyBenchmarkRefresh` — auto-rerun saved analyses when benchmark data updates
-
-**Pro** (today: everything + 60-month + white-label)
-
-- Add `teamWorkspace` — shared analysis library across the 3 seats
-- Add `priorityAiQueue` — Pro analyses jump the queue
-- Add `apiWebhooks` — webhook fires on analysis-complete (the API endpoints already exist)
-- Bump `teamSeats` 3 → **5**
-
-All changes go in `src/config/tiers.ts` (single source of truth) and the mirrored server entitlements file. New feature flags get `UPGRADE_COPY` entries. No Stripe / pricing UI changes.
-
----
-
-## Files I will create / change
-
-```text
-NEW  supabase/migrations/<ts>_sample_report_events.sql      -- table + RLS + grants + 2 RPCs
-NEW  supabase/functions/log-sample-event/index.ts           -- event ingestion
-EDIT src/components/landing/EmbeddedSampleReport.tsx        -- emit events
-EDIT src/lib/analytics.ts                                   -- trackSampleEvent helper
-EDIT src/pages/admin/Funnel.tsx                             -- funnel widget
-EDIT src/pages/AdminDashboard.tsx                           -- monthly analyses widget
-EDIT src/config/tiers.ts                                    -- new feature keys + limit bumps
-EDIT supabase/functions/_shared/entitlements.ts             -- mirror server-side
-EDIT src/components/FreeVsProMatrix.tsx                     -- surface new capabilities on pricing/landing
+sample_view           28   (5% of homepage visitors scroll to it)
+sample_full_open       2
+sample_pdf_download    2
 ```
 
-No price changes, no Stripe edits, no auth changes.
+UTM source breakdown over 30 days:
+```
+(none)         1104   ← 99% of all events
+homepage          7   ← our own internal CTAs
+chatgpt.com       1
+```
 
----
+That tells the truth nobody wants to hear:
 
-## Open question before I build
+1. **Distribution is zero.** No LinkedIn, no Product Hunt, no directory clicks are landing tagged. Either posts aren't going out, or they're going out without UTM, or nobody is clicking. Either way → no top-of-funnel.
+2. **Mid-funnel leak.** 79% of people who start an analysis never finish one. That's the single biggest controllable loss.
+3. **Signup gate is killing it.** Of the 16 who finish, only 3 even start signup. The "result → signup" hand-off is broken or asks too much.
+4. **Pricing has no trial.** 6 paid_checkout_start in 14 days, ~0 conversions. $14/mo with only a money-back guarantee is still cold-card friction.
+5. **Sample report is invisible.** 5% of visitors ever see it; 0.4% open the full version. It's below the hero and not pulling weight.
+6. **SEO**: per-route canonicals + sitemap are correct. Real issue is we have one indexable page (`/`) doing all the work. No programmatic `/for/[industry]` surface area = no long-tail entry points.
 
-For the tier expansion, the list above is my recommendation. Two quick choices:
+## The plan — 3 tracks, no new features
 
-- **A. Ship exactly the list above** (Free → 3 analyses, Plus → TAM-lite + pitch-lite + compare + auto-refresh, Pro → team workspace + priority + webhooks + 5 seats).
-- **B. Same list but keep TAM/SAM/SOM and Pitch Deck strictly Pro-only** (don't dilute Pro's headline differentiators). Plus instead gets `scenarioComparison` + `monthlyBenchmarkRefresh` + a new `customRiskAlerts` capability.
+### Track A — Stop the mid-funnel leak (highest ROI)
 
-Reply **A** or **B** (or edit the list) and I'll execute the whole plan in one pass.
+- Read `analysis_step_view` events to find the exact step where the 79% drops off (we already log `ms_on_step`).
+- Compress the analysis input flow: cut any optional field, default everything sensible, make "Analyze" reachable in ≤2 clicks from idea-paste.
+- Show partial result *before* asking for anything (already partly done — extend it: full verdict + 1 risk visible, signup gate only for the rest).
+- Add a single "save your report" inline signup on the result page (email-only magic link, no password), not a route change.
+
+### Track B — Convert finishers to paid
+
+- Add a real **$1 / 7-day Pro trial** in Stripe (we already discussed this; it's the standard fix for $14 friction with cold traffic).
+- Replace "Generate free plan" hero CTA copy with a benefit-led promise that matches the verdict ("See if your idea makes money — free verdict in 90s").
+- Move the sample report **into the hero** as a right-column preview (desktop) / below-fold accordion (mobile), with one tracked "See the full sample" link. Don't make it a separate scroll-section nobody reaches.
+- Pricing page: add the trial card as the Most Popular tier, push annual save below it.
+
+### Track C — Turn on distribution (the actual blocker)
+
+- Ship 4 programmatic SEO landing pages: `/for/restaurants`, `/for/saas`, `/for/coffee-shops`, `/for/ecommerce`. Each = hero + 3 real benchmarks from our DB + sample verdict for that industry + CTA. These are the long-tail entry points we don't have.
+- Ship a **public shareable result page** (`/r/[token]`) with OG image so every finished analysis becomes a tweetable/LinkedIn-able artifact. Right now reports die in the user's tab.
+- A LinkedIn post composer that pre-fills "I stress-tested my idea on Quantis — verdict: X" + UTM-tagged link. This is the only realistic way one founder → 5 visitors.
+- Audit our directory submissions: confirm each live link carries `?utm_source=producthunt|betalist|...`. Right now they don't, which is why we have 1104 (none) events.
+
+### Out of scope on purpose
+
+- No new tier, no new pricing, no new engine work, no rebrand.
+- No "more content" or "more posts" until UTM proves clicks convert. Posting blind is what got us here.
+
+## Suggested build order (when you switch me to build mode)
+
+1. Per-step abandon report on `/admin/journey-drilldown` already exists → I read it, identify the leak step, and cut it. (1 PR)
+2. Inline email-only signup on result page + sample report moved into hero. (1 PR)
+3. Stripe $1 / 7-day Pro trial + pricing page update. (1 PR)
+4. Public share page `/r/[token]` + OG image edge function. (1 PR)
+5. 4 `/for/[industry]` programmatic pages + sitemap entries. (1 PR)
+6. UTM audit on all directory + social links. (1 PR)
+
+Each PR is independently shippable and independently measurable in the dashboards we already built.
+
+## One honest thing
+
+The reason it feels bad isn't that the product is bad. It's that you built a Ferrari and parked it in a garage with no door. Tracks A+B fix the engine; Track C opens the door. Until C ships, no amount of A+B matters — and until A+B ship, traffic from C will leak right back out.
+
+Tell me to switch to build mode and I start with step 1 (find and cut the abandon step), since that's the one fix that pays off even before distribution turns on.

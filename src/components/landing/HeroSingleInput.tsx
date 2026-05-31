@@ -11,6 +11,11 @@ import {
   trackAnalysisAbandon,
 } from '@/lib/analytics';
 import { EmbeddedSampleReport } from '@/components/landing/EmbeddedSampleReport';
+import {
+  saveLastAnalysis,
+  updateLastAnalysisId,
+  markLastAnalysisSeen,
+} from '@/lib/analysisRecovery';
 
 const NARRATION = [
   { t: 0,    label: 'Reading your idea…' },
@@ -120,10 +125,17 @@ export function HeroSingleInput() {
     return () => clearInterval(i);
   }, [isLoading]);
 
+  // Persist analysis id to localStorage the moment we know it (server may
+  // finish before user comes back from a backgrounded tab).
+  useEffect(() => {
+    if (analysisId) updateLastAnalysisId(analysisId);
+  }, [analysisId]);
+
   // Navigate to result page once we have an id
   useEffect(() => {
     if (analysisId && result && !isLoading) {
       recordFunnelEvent('analysis_complete', { source: 'hero_single_input' });
+      markLastAnalysisSeen();
       navigate(`/r/${analysisId}`, { replace: false });
     }
   }, [analysisId, result, isLoading, navigate]);
@@ -137,6 +149,9 @@ export function HeroSingleInput() {
     trackAnalysisStep('complete', 'submit', { ms_on_step: Date.now() - enteredAt.current });
     trackCtaClick('hero_single_input_submit', 'hero');
     recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
+    // Persist immediately so abandoners can recover even if the tab dies
+    // before the analysis id comes back.
+    saveLastAnalysis({ id: null, ideaPreview: idea.trim() });
     handleSubmit(e, 'quick', { isLandingDemo: true });
   }, [idea, handleSubmit]);
 

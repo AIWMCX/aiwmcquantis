@@ -21,6 +21,7 @@ import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
+import { AnalysisRecoveryBanner } from '@/components/landing/AnalysisRecoveryBanner';
 // EmbeddedSampleReport is now rendered inside HeroSingleInput (above the fold).
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
@@ -137,6 +138,9 @@ export default function Landing() {
       </nav>
 
       <main id="main-content" role="main">
+        {/* 0a. Recover any abandoned analysis (closes the 60–90s wait leak). */}
+        <AnalysisRecoveryBanner />
+
         {/* 0. Anonymous-first single-input + inline sample report — primary conversion surface */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>
           <HeroSingleInput />
