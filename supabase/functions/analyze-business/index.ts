@@ -2696,21 +2696,21 @@ serve(async (req) => {
 
     // ========== RATE LIMITING CONFIGURATION ==========
     const RATE_LIMITS = {
-      anonymous: { requests: 1, windowMinutes: 60 },  // 1 request per hour for unauthenticated
-      free: { requests: 2, windowMinutes: 60 },       // 2 requests per hour
+      anonymous: { requests: 5, windowMinutes: 60 },  // 5 free analysis attempts per hour for unauthenticated
+      free: { requests: 5, windowMinutes: 60 },       // Free tier starts with 5 analyses
       plus: { requests: 10, windowMinutes: 60 },      // 10 requests per hour  
       pro: { requests: 30, windowMinutes: 60 },       // 30 requests per hour
     };
     
     // Anonymous abuse prevention configuration
     const ANONYMOUS_LIMITS = {
-      deviceLimit: 1,      // 1 request per device per hour
-      ipLimit: 3,          // Max 3 requests per IP per hour (prevents incognito abuse)
+      deviceLimit: 5,      // 5 free analysis attempts per device per hour
+      ipLimit: 5,          // 5 free analysis attempts per IP per hour
       windowMinutes: 60,
     };
     
     // ========== USAGE ENFORCEMENT ==========
-    const FREE_TIER_LIMIT = 1;
+    const FREE_TIER_LIMIT = 5;
     let userId: string | null = null;
     let userPlan = 'free';
     let isAnonymous = true;
