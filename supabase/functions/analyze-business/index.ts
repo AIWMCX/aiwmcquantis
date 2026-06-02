@@ -2802,32 +2802,48 @@ serve(async (req) => {
         
         log.info(`User plan: ${userPlan}`);
         
-        // If free tier, check monthly usage
+        // Atomically consume one analysis slot (race-safe via DB-level conditional UPDATE).
+        // consume_analysis_quota increments only when analyses_count < p_limit, so
+        // concurrent requests cannot race past the quota. Slot is charged upfront;
+        // failed analyses do consume a slot (prevents abuse via rapid retries).
         if (userPlan === 'free') {
-          const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-          
-          const { data: usage } = await supabaseAuth
-            .from('usage_tracking')
-            .select('analyses_count')
-            .eq('user_id', user.id)
-            .eq('month_year', monthYear)
-            .maybeSingle();
-          
-          const currentUsage = usage?.analyses_count || 0;
-          
-          if (currentUsage >= FREE_TIER_LIMIT) {
-            log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
-            // Spec §09.2 — canonical TIER_GATE / QUOTA_EXCEEDED envelope.
-            // Mirrors `evaluateGate()` so the frontend's `unwrap()` helper
-            // surfaces the same toast (with upgrade CTA) for both ad-hoc
-            // checks and tierGate-protected endpoints.
+          const { data: quotaResult, error: quotaError } = await supabaseService.rpc(
+            'consume_analysis_quota',
+            { p_user_id: user.id, p_limit: FREE_TIER_LIMIT },
+          );
+
+          if (quotaError) {
+            log.error(`Quota RPC error for user ${user.email}:`, quotaError.message);
+            // Fail closed: RPC failure treated as quota exceeded to prevent abuse.
             const now = new Date();
             const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
             return new Response(
               JSON.stringify({
                 success: false,
                 error: "QUOTA_EXCEEDED",
-                code: "USAGE_LIMIT_EXCEEDED", // legacy alias for older clients
+                code: "USAGE_LIMIT_EXCEEDED",
+                message: `Monthly analysis limit reached. Upgrade to Plus for unlimited analyses.`,
+                required_tier: "PLUS",
+                upgrade_url: "https://www.aiwmcquantis.com/pricing",
+                cta: "Upgrade to Plus",
+                resets_at: resetsAt,
+                usage: { current: 0, limit: FREE_TIER_LIMIT },
+              }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
+
+          const quota = quotaResult as { allowed: boolean; used: number; limit: number | null } | null;
+          if (!quota?.allowed) {
+            const currentUsage = quota?.used ?? FREE_TIER_LIMIT;
+            log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            const now = new Date();
+            const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
+            return new Response(
+              JSON.stringify({
+                success: false,
+                error: "QUOTA_EXCEEDED",
+                code: "USAGE_LIMIT_EXCEEDED",
                 message: `Monthly analysis limit reached (${currentUsage}/${FREE_TIER_LIMIT}). Upgrade to Plus for unlimited analyses.`,
                 required_tier: "PLUS",
                 upgrade_url: "https://www.aiwmcquantis.com/pricing",
@@ -2835,12 +2851,10 @@ serve(async (req) => {
                 resets_at: resetsAt,
                 usage: { current: currentUsage, limit: FREE_TIER_LIMIT },
               }),
-              // Return 200 so supabase-js places the envelope in `data` rather
-              // than throwing FunctionsHttpError. Client (analysisApi.ts) detects
-              // `data.error === 'QUOTA_EXCEEDED'` and routes to the upgrade panel.
               { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
+          log.info(`Quota slot consumed for ${user.email}: ${quota.used}/${FREE_TIER_LIMIT}`);
         }
       }
     }
@@ -4137,16 +4151,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
     
-    // Increment usage for authenticated free tier users
-    if (userId && userPlan === 'free' && !isWorkerRun) {
-      try {
-        const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
-        await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
-        log.info(`Usage incremented for user ${userId}`);
-      } catch (e) {
-        log.error('Failed to increment usage:', e);
-      }
-    }
+    // Usage already atomically incremented by consume_analysis_quota at gate time.
     // ========== END USAGE RECORDING ==========
 
     // Build documents_used array for frontend
