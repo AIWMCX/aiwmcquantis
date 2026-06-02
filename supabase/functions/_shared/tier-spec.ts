@@ -279,7 +279,7 @@ export function evaluateGate(args: {
       body: {
         success: false,
         error: 'QUOTA_EXCEEDED',
-        message: 'You have used your 1 free analysis this month.',
+        message: 'You have used your 5 free analyses this month.',
         required_tier: 'PLUS',
         upgrade_url: UPGRADE_URL,
         cta: 'Get unlimited analyses — Upgrade to Plus',
