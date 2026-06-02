@@ -83,9 +83,13 @@ describe('Tier matrix server↔client parity (entitlements.ts ↔ tiers.ts)', ()
         );
       });
 
-      for (const key of Object.keys(clientFeatures) as Array<keyof typeof clientFeatures>) {
-        it(`feature '${key}' matches server value`, () => {
-          expect(serverFeatures[tier][key as string]).toBe(clientFeatures[key]);
+      // Only check values for server-enforced keys — the client may have extra
+      // cosmetic-only feature flags (sampleSharingEnabled, teamWorkspace, etc.)
+      // that have no server-side gate. Comparing those against server 'undefined'
+      // would produce false failures.
+      for (const key of Object.keys(serverFeatures[tier])) {
+        it(`server-enforced feature '${key}' matches client value`, () => {
+          expect(clientFeatures[key as keyof typeof clientFeatures]).toBe(serverFeatures[tier][key]);
         });
       }
 

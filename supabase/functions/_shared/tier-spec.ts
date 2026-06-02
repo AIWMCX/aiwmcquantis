@@ -100,7 +100,11 @@ const PLUS_OUTPUT_FIELDS = [
 
 export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
   FREE: {
-    allowed_endpoints: [ENDPOINTS.ANALYSE_MAIN],
+    allowed_endpoints: [
+      ENDPOINTS.ANALYSE_MAIN,
+      ENDPOINTS.DOCUMENTS_STUDIO,
+      ENDPOINTS.DOCUMENTS_EXPORT,
+    ],
     blocked_endpoints: [
       ENDPOINTS.ANALYSE_PREMORTEM,
       ENDPOINTS.ANALYSE_PRO_EXTENSION,
