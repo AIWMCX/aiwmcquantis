@@ -2,7 +2,7 @@
  * useQuoteGenUsage — single source of truth for QuoteGen (Beta) monthly quotas.
  *
  * Quotas (server-enforced — see `increment_quote_gen_usage` RPC):
- *   FREE → 0 quotes/mo (locked)
+ *   FREE → 5 quotes/mo
  *   PLUS → 5 quotes/mo
  *   PRO  → 15 quotes/mo
  *
@@ -14,7 +14,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 
-export const QUOTEGEN_QUOTAS = { free: 0, plus: 5, pro: 15 } as const;
+export const QUOTEGEN_QUOTAS = { free: 5, plus: 5, pro: 15 } as const;
 
 export type QuoteGenPlanTier = keyof typeof QUOTEGEN_QUOTAS;
 

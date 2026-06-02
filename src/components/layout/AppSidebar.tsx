@@ -71,7 +71,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'DOCUMENTS',
     items: [
       { title: 'My Documents', url: '/docs', icon: FileText, plusOnly: true },
-      { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen, plusOnly: true },
+      { title: 'Templates', url: '/docs?view=templates', icon: FolderOpen },
     ],
   },
   {

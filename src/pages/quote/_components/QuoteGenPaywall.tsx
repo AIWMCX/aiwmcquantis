@@ -35,10 +35,10 @@ export function QuoteGenFreeLock() {
         <Lock className="w-6 h-6 text-primary" />
       </div>
       <Badge variant="secondary" className="mb-3">Beta</Badge>
-      <h2 className="text-2xl font-bold text-foreground mb-2">Unlock QuoteGen (Beta)</h2>
+      <h2 className="text-2xl font-bold text-foreground mb-2">Sign in for QuoteGen (Beta)</h2>
       <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
-        Generate priced, PDF-ready service quotes in seconds. Available on Plus
-        (5 quotes/mo) and Pro (15 quotes/mo).
+        Generate priced, PDF-ready service quotes in seconds. Free includes
+        5 quotes/mo; Pro includes 15 quotes/mo.
       </p>
       <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mb-6 text-left">
         <div className="rounded-lg border border-border bg-background p-3">

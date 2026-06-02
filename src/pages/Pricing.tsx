@@ -18,13 +18,13 @@ export default function Pricing() {
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
         title="Quantis Pricing — Free Analysis & Plus at $17/mo"
-        description="Run 1 free analysis to see your viability score and top 3 risks. Plus at $17/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export."
+          description="Run 5 free analyses to see viability scores and critical risks. Plus at $17/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export."
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'WebPage',
           name: 'AIWMC™ Quantis Pricing',
-          description: 'Simple pricing for serious founders. 1 free analysis with score and risks. Plus at $17/month unlocks the full report, Monte Carlo, and unlimited runs.',
+          description: 'Simple pricing for serious founders. 5 free analyses with score and risks. Plus at $17/month unlocks the full report, Monte Carlo, and unlimited runs.',
           url: 'https://aiwmcquantis.com/pricing',
         }}
       />
@@ -127,7 +127,7 @@ export default function Pricing() {
               Start Free, Upgrade When Ready
             </h2>
             <p className="text-muted-foreground mb-6">
-              No credit card required. Run your first analysis in 60 seconds.
+              No credit card required. Run 5 free analyses in minutes.
             </p>
             <Link to="/app">
               <Button size="lg" className="gap-2 py-6 px-8">
