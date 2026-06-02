@@ -29,13 +29,13 @@ const PRICING = {
 };
 
 const FREE_FEATURES = [
-  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
+  { text: '5 free analyses per month', highlight: true, subtext: 'Same quick-grade accuracy, capped by usage only' },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
   { text: '5 watermarked PDFs/day', highlight: false, subtext: '"Powered by Quantis" footer included' },
-  { text: 'QuoteGen (Beta) 🔒', highlight: false, subtext: 'Plus (5/mo) or Pro (15/mo) — locked on Free' },
+  { text: 'QuoteGen (Beta) — 5 quotes/mo', highlight: true, subtext: 'Generate priced, PDF-ready service quotes' },
   { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
   { text: 'Invoice & Capacity Check 🔒', highlight: false, subtext: 'Plus only — should you take this client?' },
-  { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
+  { text: '3 free Docs templates', highlight: true, subtext: 'Invoice, quarterly summary, and NDA templates' },
   { text: 'Email support — best effort', highlight: false },
 ];
 
@@ -260,7 +260,7 @@ export function PricingSection() {
 
 function FeatureComparisonTable() {
   const features = [
-    { name: 'Monthly analyses', free: '3', plus: 'Unlimited' },
+    { name: 'Monthly analyses', free: '5', plus: 'Unlimited' },
     { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
     { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
     { name: 'Marketing strategy', free: 'no', plus: 'yes' },
