@@ -37,7 +37,7 @@ export type LimitKey = 'analysesPerMonth' | 'downloadsPerDay' | 'projectionMonth
 export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
   free: {
     depthQuick: true, depthFull: false, depthPro: false,
-    preMortem: false, invoiceCapacity: false, documentStudio: false, aiDocIntelligence: false,
+    preMortem: false, invoiceCapacity: false, documentStudio: true, aiDocIntelligence: false,
     customBranding: false, whiteLabel: false, unlimitedHistory: false, watermarkFree: false,
     apiAccess: false, tamSamSom: false, pitchDeck: false, strategicRoadmap: false,
     fiveYearModel: false, actionPlan: false,

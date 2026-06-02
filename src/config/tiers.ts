@@ -40,7 +40,7 @@ export const TIERS = {
       depthPro: false,
       preMortem: false,
       invoiceCapacity: false,
-      documentStudio: false,
+      documentStudio: true, // 3 free templates: professional-invoice, quarterly-summary, nda-agreement
       aiDocIntelligence: false,
       customBranding: false,
       whiteLabel: false,
