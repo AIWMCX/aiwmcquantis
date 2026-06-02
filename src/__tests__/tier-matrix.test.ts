@@ -179,10 +179,10 @@ describe('Tier matrix — manifest invariants (regression catches)', () => {
     expect(FEATURE_MANIFEST.PRO.white_label).toBe(true);
   });
 
-  it('Only PRO has team seats', () => {
+  it('Team seat counts match the product matrix', () => {
     expect(FEATURE_MANIFEST.FREE.team_seats).toBe(0);
-    expect(FEATURE_MANIFEST.PLUS.team_seats).toBe(0);
-    expect(FEATURE_MANIFEST.PRO.team_seats).toBeGreaterThan(0);
+    expect(FEATURE_MANIFEST.PLUS.team_seats).toBe(1);
+    expect(FEATURE_MANIFEST.PRO.team_seats).toBe(5);
   });
 
   it('FREE shows watermark; PLUS/PRO do not', () => {

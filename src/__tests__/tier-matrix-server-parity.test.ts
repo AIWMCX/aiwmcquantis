@@ -64,10 +64,17 @@ describe('Tier matrix server↔client parity (entitlements.ts ↔ tiers.ts)', ()
     const clientLimits = TIERS[tier].limits;
 
     describe(`tier=${tier}`, () => {
-      it('declares the exact same feature keys on both sides', () => {
-        expect(Object.keys(serverFeatures[tier]).sort()).toEqual(
-          Object.keys(clientFeatures).sort(),
-        );
+      it('every server-enforced feature key exists in the client config', () => {
+        // The client (config/tiers.ts) may declare additional cosmetic/UX-only
+        // feature flags (e.g. sampleSharingEnabled, teamWorkspace) that have no
+        // server-side gate in entitlements.ts. We only assert that every key the
+        // server enforces is also present on the client — a superset check, not
+        // an exact equality check.
+        const serverKeys = Object.keys(serverFeatures[tier]);
+        const clientKeys = new Set(Object.keys(clientFeatures));
+        for (const key of serverKeys) {
+          expect(clientKeys.has(key), `server feature '${key}' not found in client config`).toBe(true);
+        }
       });
 
       it('declares the exact same limit keys on both sides', () => {

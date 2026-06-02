@@ -138,7 +138,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     watermark: false,
     white_label: false,
     api_access: false,
-    team_seats: 0,
+    team_seats: 1,
     allowed_output_fields: PLUS_OUTPUT_FIELDS,
   },
   PRO: {
@@ -160,7 +160,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     watermark: false,
     white_label: true, // gated again by user.white_label_enabled
     api_access: true,
-    team_seats: 3,
+    team_seats: 5,
     allowed_output_fields: '__ALL__',
   },
 };
