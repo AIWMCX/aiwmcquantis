@@ -30,11 +30,11 @@ export interface QuoteGenStatus {
 
 const DEFAULT_STATUS: QuoteGenStatus = {
   planTier: 'free',
-  limit: 5,
+  limit: 0,
   used: 0,
-  remaining: 5,
-  isEnabled: true,
-  isExhausted: false,
+  remaining: 0,
+  isEnabled: false,
+  isExhausted: true,
   monthKey: '',
 };
 

@@ -74,12 +74,12 @@ export class ServiceJobApiError extends Error {
   }
 }
 
-/** Thrown when QuoteGen is not available for the caller's plan tier (e.g. Free). */
+/** Thrown when QuoteGen is not available for the caller, usually unauthenticated access. */
 export class QuoteGenNotAvailableError extends Error {
   code = 'QUOTEGEN_NOT_AVAILABLE' as const;
   constructor(
     public readonly planTier: 'free' | 'plus' | 'pro',
-    message = 'QuoteGen (Beta) is available on Plus and Pro plans.',
+    message = 'Sign in to use your 5 free QuoteGen quotes.',
   ) {
     super(message);
     this.name = 'QuoteGenNotAvailableError';
@@ -90,14 +90,14 @@ export class QuoteGenNotAvailableError extends Error {
 export class QuoteGenLimitExceededError extends Error {
   code = 'QUOTEGEN_LIMIT_EXCEEDED' as const;
   constructor(
-    public readonly planTier: 'plus' | 'pro',
+    public readonly planTier: 'free' | 'plus' | 'pro',
     public readonly limit: number,
     public readonly used: number,
     message?: string,
   ) {
     super(
       message ??
-        `You've used all ${limit} QuoteGen quotes for this month on ${planTier === 'pro' ? 'Pro' : 'Plus'}.`,
+        `You've used all ${limit} QuoteGen quotes for this month on ${planTier === 'pro' ? 'Pro' : planTier === 'plus' ? 'Plus' : 'Free'}.`,
     );
     this.name = 'QuoteGenLimitExceededError';
   }
@@ -126,7 +126,7 @@ async function assertAndConsumeQuoteGenQuota(): Promise<QuoteGenIncrementResult>
       throw new QuoteGenNotAvailableError(res.planTier);
     }
     throw new QuoteGenLimitExceededError(
-      res.planTier === 'pro' ? 'pro' : 'plus',
+      res.planTier,
       res.limit,
       res.used,
     );
