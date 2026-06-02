@@ -27,12 +27,12 @@ export const TIERS = {
     priceMonthly: 0,
     priceAnnual: 0,
     limits: {
-      analysesPerMonth: 3,
+      analysesPerMonth: 5,
       downloadsPerDay: 5,
       projectionMonths: 0,
       monteCarloScenarios: 0,
       teamSeats: 0,
-      templates: 0, // Doc Studio fully locked for Free (per CTO §2)
+      templates: 3,
     },
     features: {
       depthQuick: true,
@@ -231,7 +231,7 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   documentStudio: {
     title: 'Document Studio',
-    bullets: ['12+ branded templates', 'Auto-populated from your analysis', 'PDF + DOCX export'],
+    bullets: ['3 free templates, 12+ on Plus', 'Auto-populated from your analysis', 'PDF + DOCX export'],
     recommendedTier: 'plus',
   },
   aiDocIntelligence: {

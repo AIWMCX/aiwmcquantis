@@ -111,7 +111,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
       ENDPOINTS.API_KEY_GENERATE,
       ENDPOINTS.AI_DOC_INTELLIGENCE,
     ],
-    monthly_analysis_limit: 1,
+    monthly_analysis_limit: 5,
     pdf_daily_limit: 5,
     history: false,
     watermark: true,
