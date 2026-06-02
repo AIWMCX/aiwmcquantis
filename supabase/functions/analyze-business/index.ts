@@ -2930,7 +2930,7 @@ serve(async (req) => {
                 reason,
                 retry_after_seconds: retryAfterSeconds,
                 reset_at: rateLimitResult.reset_at,
-                suggestion: "Sign in to get 3 free analyses per month"
+                suggestion: "Sign in to get 5 free analyses per month"
               }
             }),
             { 
