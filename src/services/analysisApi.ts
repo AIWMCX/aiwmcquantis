@@ -349,23 +349,16 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      logger.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
-      
-      // Don't retry for validation errors, invalid input, or rate limit errors
-      if (lastError.message.includes('VALIDATION') || 
-          lastError.message.includes('validation') ||
-          lastError.message.includes('RATE_LIMIT') ||
-          lastError.message.includes('TIER_GATE') ||
-          lastError.message.includes('QUOTA_EXCEEDED') ||
-          lastError.message.includes('USAGE_LIMIT') ||
-          lastError.message.includes('PAYMENT') ||
-          lastError.message.includes('Unauthorized') ||
-          lastError.message.includes('401') ||
-          lastError.message.includes('402') ||
-          lastError.message.includes('INVALID_BUSINESS_IDEA')) {
+      logger.warn(`Analysis attempt ${attempt + 1}/${MAX_RETRIES + 1} failed: ${lastError.message}`);
+
+      // Terminal classes (validation, quota gate, auth, payment, duplicate)
+      // surface immediately. Everything else — rate limit, non-2xx, Edge cold
+      // start, Anthropic 429/5xx, network — is transient → loop retries silently.
+      if (!isTransientFailure(lastError.message)) {
         throw lastError;
       }
     }
+
   }
 
   // Step 4 of the benchmark-first plan: never fabricate an analysis on the
