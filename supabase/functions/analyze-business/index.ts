@@ -4682,8 +4682,23 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.error('[response-schema] outgoing payload failed validation (returning degraded):', schemaErr);
     }
 
+    // WS3 envelope: include ok:true so WS6 client accepts the result.
+    // Also keep legacy success:true + data for backward compat with older clients.
     return new Response(
-      JSON.stringify({ success: true, data: wirePayload }),
+      JSON.stringify({
+        ok: true,
+        degraded: false,
+        success: true,
+        data: wirePayload,
+        result: wirePayload,
+        idempotencyKey,
+        quota: {
+          tier: userPlan,
+          limit: FREE_TIER_LIMIT,
+          used: quotaUsed,
+          remaining: quotaRemaining,
+        },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
