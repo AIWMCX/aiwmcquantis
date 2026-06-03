@@ -394,12 +394,15 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     return normalizeAnalysisResult(fallback);
   }
 
-  logger.error('Analysis service unavailable after retries', {
+  logger.error('Analysis service unavailable after silent retries', {
     metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
   });
+  // Friendly message — no "non-2xx", no "retry_after", no raw infra strings.
+  // The UI shows a single inline "Try again" card.
   throw new Error(
-    `ANALYSIS_UNAVAILABLE: The analysis engine is temporarily unreachable. Please try again in a moment. (${lastError?.message ?? 'unknown error'})`,
+    `ANALYSIS_UNAVAILABLE: We couldn't finish your analysis right now. Your inputs are preserved — please tap Try again in a moment.`,
   );
+
 }
 
 // Validation helpers
