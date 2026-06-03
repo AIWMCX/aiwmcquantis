@@ -292,24 +292,25 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         };
       }
 
-      // Handle rate limit response from edge function
+      // Handle rate limit response delivered as a 200 envelope (server chose
+      // not to throw). Same rule: device_limit = upgrade gate; everything else
+      // = transient → silent retry.
       if ('code' in data && (data.code === 'RATE_LIMIT_EXCEEDED' || data.code === 'ANONYMOUS_LIMIT_EXCEEDED')) {
         const details = (data as any).details || {};
-        const retryAfter = details.retry_after_seconds || 60;
-        const minutes = Math.ceil(retryAfter / 60);
-        
         const reason = details.reason;
-        let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
         if (reason === 'device_limit') {
-          message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-        } else if (reason === 'ip_limit') {
-          message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-        } else if (reason === 'duplicate_submission') {
-          message = 'This exact analysis was already performed recently. Try a different idea or location.';
+          throw new Error(
+            `TIER_GATE: You've used all 5 free analyses this month. Upgrade to Plus for unlimited analyses. | upgrade_url=/pricing`,
+          );
         }
-        
-        throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
+        if (reason === 'duplicate_submission') {
+          throw new Error(
+            'DUPLICATE_SUBMISSION: This exact analysis was already performed recently. Try a different idea or location.',
+          );
+        }
+        throw new Error('TRANSIENT_RATE_LIMIT: silently retrying');
       }
+
 
       // Spec §09.2 — quota / tier-gate envelope returned with HTTP 402.
       // We surface it as a typed error so React-Query consumers can route
