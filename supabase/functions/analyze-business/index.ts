@@ -2683,7 +2683,15 @@ serve(async (req) => {
     return new Response(null, { headers: responseHeaders });
   }
 
+  // WS2+WS4: Identity headers — used for rate limiting and quota ledger.
+  // x-idempotency-key: one UUID per "Start Free Analysis" click (client-generated).
+  // x-quantis-anon-id: persistent UUID stored in localStorage (client-generated once).
+  const idempotencyKey = req.headers.get('x-idempotency-key') || crypto.randomUUID();
+  const anonSessionId = req.headers.get('x-quantis-anon-id') || null;
+
   try {
+    const startTime = Date.now(); // WS5: latency tracking
+
     // ========== HTTP REQUEST VALIDATION ==========
     const httpValidation = validateHttpRequest(req);
     if (!httpValidation.valid) {
@@ -2864,11 +2872,16 @@ serve(async (req) => {
       const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
       const fingerprint = req.headers.get('X-Fingerprint') || '';
       
-      // Get client IP for additional tracking
-      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
-        || req.headers.get('cf-connecting-ip') 
+      // WS2: identity-keyed rate limit (not IP — NAT/shared networks must not block real users)
+      // Primary key: anon_session_id from localStorage (persistent per device).
+      // Fallback: IP is secondary abuse signal only with a very high ceiling.
+      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
+        || req.headers.get('cf-connecting-ip')
         || req.headers.get('x-real-ip')
         || 'unknown-ip';
+      const anonRateLimitKey = anonSessionId
+        ? `anon:${anonSessionId}`
+        : `ip:${clientIp}`; // fallback for clients that don't send the header yet
       
       log.info(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
       
@@ -4132,15 +4145,53 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
     
-    // Increment usage count for authenticated free tier users after successful analysis.
-    if (userId && userPlan === 'free' && !isWorkerRun) {
+    // ── WS4: Atomic quota charge (only on success, only free tier) ────────────
+    // charge_free_analysis increments only when analyses_used < 5 (race-safe).
+    // This is the ONLY place quota is decremented — never on failed/degraded requests.
+    let quotaUsed = 0;
+    let quotaRemaining = 5;
+    if (!isWorkerRun) {
       try {
-        const monthYear = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`;
-        await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
-        log.info(`Usage incremented for user ${userId}`);
+        const identityKey = userId
+          ? `user:${userId}`
+          : `anon:${anonSessionId || idempotencyKey}`;
+        const tier = userPlan === 'plus' || userPlan === 'pro' ? userPlan : 'free';
+
+        if (tier === 'free') {
+          const { data: chargeResult } = await supabaseService.rpc(
+            'charge_free_analysis',
+            { p_identity: identityKey }
+          );
+          if (chargeResult && chargeResult.length > 0) {
+            const charge = chargeResult[0] as { allowed: boolean; used: number; remaining: number };
+            quotaUsed = charge.used ?? 0;
+            quotaRemaining = charge.remaining ?? 0;
+            log.info(`Quota charged: ${quotaUsed}/5 used, ${quotaRemaining} remaining for ${identityKey}`);
+          }
+        } else {
+          // Plus/Pro: unlimited
+          quotaUsed = 0;
+          quotaRemaining = 999;
+        }
       } catch (e) {
-        log.error('Failed to increment usage:', e);
+        log.error('Failed to charge quota (non-blocking):', e);
       }
+    }
+
+    // ── WS5: Observability — log to analysis_attempts ────────────────────────
+    const analysisLatency = Date.now() - startTime;
+    try {
+      await supabaseService.from('analysis_attempts').upsert({
+        idempotency_key: idempotencyKey,
+        identity_key: userId ? `user:${userId}` : `anon:${anonSessionId || idempotencyKey}`,
+        tier: userPlan,
+        status: 'succeeded',
+        degraded: false,
+        latency_ms: analysisLatency,
+      }, { onConflict: 'idempotency_key' });
+      log.info(`[observability] event=analysis_complete ok=true degraded=false latency=${analysisLatency}ms tier=${userPlan}`);
+    } catch (e) {
+      log.error('Failed to log analysis_attempts (non-blocking):', e);
     }
     // ========== END USAGE RECORDING ==========
 
@@ -4648,15 +4699,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       const { ResponseSchema } = await import('./boundary-schemas.ts');
       ResponseSchema.parse({ success: true, data: wirePayload });
     } catch (schemaErr) {
-      log.error('[response-schema] outgoing payload failed validation:', schemaErr);
-      return new Response(
-        JSON.stringify({
-          error: "Analysis output failed integrity check. Please retry.",
-          code: "RESPONSE_SCHEMA_INVALID",
-          details: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      // WS3: schema validation failure → still 200, client retries silently
+      log.error('[response-schema] outgoing payload failed validation (returning degraded):', schemaErr);
     }
 
     return new Response(
@@ -4665,34 +4709,23 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     );
 
   } catch (error) {
+    // WS3: Outermost catch — analysis requests ALWAYS return HTTP 200.
+    // Non-2xx must never reach the browser for an analysis request.
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    const errorStack = error instanceof Error ? error.stack : '';
-    log.error("Unhandled error:", errorMessage);
-    log.error("Stack:", errorStack);
-    
-    // Provide user-friendly error messages
-    let userMessage = "Something went wrong. Please try again.";
-    let errorCode = "INTERNAL_ERROR";
-    
-    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
-      userMessage = "Request took too long. Please try with a shorter description.";
-      errorCode = "TIMEOUT_ERROR";
-    } else if (errorMessage.includes('JSON')) {
-      userMessage = "Error processing response. Please try again.";
-      errorCode = "PARSE_ERROR";
-    } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      userMessage = "Network error. Please check your connection and try again.";
-      errorCode = "NETWORK_ERROR";
-    }
-    
+    log.error("Unhandled error (returning 200 ok:false):", errorMessage);
+
+    const corsHeaders = corsHeadersFor(req);
     return new Response(
-      JSON.stringify({ 
-        error: userMessage, 
-        code: errorCode,
-        details: errorMessage,
-        timestamp: new Date().toISOString()
+      JSON.stringify({
+        ok: false,
+        degraded: true,
+        reason: 'internal',
+        success: false,
+        error: "The analysis engine hit a transient error. Your inputs are preserved — please retry.",
+        code: "INTERNAL_ERROR",
+        timestamp: new Date().toISOString(),
       }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
