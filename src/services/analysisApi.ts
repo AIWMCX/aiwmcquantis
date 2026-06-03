@@ -8,13 +8,34 @@ import type {
 import { startRequestContext } from '@/lib/correlation';
 import { QuantisMath } from '@/lib/quantis-math';
 import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
+import { getAnonymousDeviceId } from '@/lib/anonymousTracking';
 
 import { logger } from '@/lib/logger';
 import { mergeCanonicalDataSources } from '@/lib/canonical-data-sources';
 import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industry-priors';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
-const MAX_RETRIES = 2;
-const RETRY_DELAY = 1000;
+
+// Silent-retry policy (Workstream 6): never surface a raw infra error for a
+// transient failure. Three attempts with jittered backoff [1s, 2.5s, 5s].
+const MAX_RETRIES = 3;
+const RETRY_BACKOFF_MS = [1000, 2500, 5000];
+const jitter = (ms: number) => ms + Math.floor(Math.random() * 350);
+
+// Classify an error message as transient (silent-retry) vs terminal (surface).
+function isTransientFailure(msg: string): boolean {
+  const m = msg.toLowerCase();
+  // Terminal: quota / tier / validation / auth — never auto-retry these.
+  if (m.includes('tier_gate') || m.includes('quota_exceeded') || m.includes('usage_limit') ||
+      m.includes('validation') || m.includes('invalid_business_idea') ||
+      m.includes('unauthorized') || m.includes('401') || m.includes('402') ||
+      m.includes('payment') || m.includes('invalid request')) {
+    return false;
+  }
+  // Treat everything else as transient: rate limits, non-2xx, Edge cold start,
+  // Anthropic 429/5xx, network blips, "Failed to fetch", "Empty response".
+  return true;
+}
+
 
 type CompletedAnalysisResponse = AnalysisAPIResponse & {
   success: true;
