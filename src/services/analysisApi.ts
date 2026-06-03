@@ -232,25 +232,29 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
           throw new Error(`${code}: ${message}${hint}`);
         }
 
-        // Check for rate limit error in the response
+        // Rate limit (429) — silently retry, do NOT surface raw to the user.
+        // Free users must never see "Too many requests / retry_after".
+        // Only the upgrade modal (TIER_GATE/QUOTA_EXCEEDED) is a legitimate hard stop.
         if (error.message?.includes('429') || status === 429) {
           const errorData = error.context?.body || {};
-          const retryAfter = errorData.details?.retry_after_seconds || 60;
-          const minutes = Math.ceil(retryAfter / 60);
-          
-          // Provide context-aware message
           const reason = errorData.details?.reason;
-          let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+          // device_limit means the server-side quota ledger is exhausted —
+          // treat as a tier gate, not a transient throttle.
           if (reason === 'device_limit') {
-            message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-          } else if (reason === 'ip_limit') {
-            message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-          } else if (reason === 'duplicate_submission') {
-            message = 'This exact analysis was already performed recently. Try a different idea or location.';
+            throw new Error(
+              `TIER_GATE: You've used all 5 free analyses this month. Upgrade to Plus for unlimited analyses. | upgrade_url=/pricing`,
+            );
           }
-          
-          throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
+          // duplicate_submission is also terminal — same idea hit cache.
+          if (reason === 'duplicate_submission') {
+            throw new Error(
+              'DUPLICATE_SUBMISSION: This exact analysis was already performed recently. Try a different idea or location.',
+            );
+          }
+          // Everything else (ip_limit, burst, cold-start throttle) → transient.
+          throw new Error(`TRANSIENT_RATE_LIMIT: silently retrying`);
         }
+
 
         // Spec §09.2 — explicit 402 from edge transport (Quota / Tier gate)
         if (status === 402) {
