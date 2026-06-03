@@ -2729,9 +2729,11 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       log.error("Server configuration error: missing required backend credentials");
+      // WS3: return 200 so client can show friendly retry message
       return new Response(
-        JSON.stringify({ error: "Analysis service is not configured. Please retry shortly.", code: "CONFIG_ERROR" }),
-        { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ ok: false, degraded: true, reason: 'internal',
+          error: "Analysis service is starting up. Your inputs are preserved — please retry in a moment." }),
+        { status: 200, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -3335,11 +3337,12 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info('Merged inputs:', mergedFinancialInputs);
     }
 
-    if (!Deno.env.get("LOVABLE_API_KEY")) {
-      return new Response(
-        JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+    // WS3: LOVABLE_API_KEY is only needed for the Lovable Gateway fallback provider.
+    // Primary LLM is DeepSeek (DEEPSEEK_API_KEY). If Lovable Gateway is unavailable,
+    // the LLM router falls through to DeepSeek. Do NOT block analysis here.
+    const lovableGatewayAvailable = Boolean(Deno.env.get("LOVABLE_API_KEY"));
+    if (!lovableGatewayAvailable) {
+      log.info('LOVABLE_API_KEY not set — Lovable Gateway disabled. Using DeepSeek primary.');
     }
 
     // ========== DATABASE-DRIVEN INDUSTRY DETECTION ==========
