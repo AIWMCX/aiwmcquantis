@@ -3597,88 +3597,61 @@ market_json:
 
 Provide comprehensive, actionable analysis suitable for a professional investor presentation. Call submit_analysis with all sections in English.`;
 
-    // ========== AI REQUEST — TIER-AWARE ROUTING ==========
-    // FREE:      Lovable AI Gateway (Gemini Flash) → DeepSeek → deterministic
-    // PLUS/PRO:  aiCall() via LLM router (premium model chain)
-    // Deterministic financial numbers are already computed. LLMs only write prose.
+    // ========== AI REQUEST WITH FAST TIMEOUT ==========
+    const MAX_RETRIES = 2;
+    const AI_TIMEOUT_MS = 35000;
+    const RETRY_DELAY_MS = 500;
+
     let response: { ok: true; data: Record<string, unknown> } | null = null;
-    let aiProviderUsed: string = 'deterministic';
+    let lastError: string | null = null;
+    let lastStatus: number | null = null;
+    let aiProviderUsed = 'deterministic';
 
-    const isFreeTier = !isWorkerRun && (userPlan === 'free' || isAnonymous);
-
-    if (isFreeTier) {
-      // ── FREE PATH: explicit Lovable → DeepSeek → deterministic chain ──────────
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
-        const { callFreeTierModel, providerLabel } = await import('../_shared/free-model-router.ts');
-        const freeResult = await callFreeTierModel(
-          QUANTIS_MASTER_SYSTEM_PROMPT,
-          prompt,
-          6000,
-          true, // json_mode
+        log.info(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
+
+        const aiResult = await aiCall(
+          {
+            model: "google/gemini-3-flash-preview",
+            messages: [
+              { role: "system", content: QUANTIS_MASTER_SYSTEM_PROMPT },
+              { role: "user", content: prompt },
+            ],
+            response_format: { type: "json_object" },
+            max_tokens: 6000,
+            temperature: 0.2,
+          },
+          {
+            task: 'analyze-business',
+            timeoutMs: AI_TIMEOUT_MS,
+            requestId,
+            userId: userId,
+            metadata: { attempt, industry: detectedIndustry.name },
+          },
         );
-        aiProviderUsed = freeResult.providerUsed;
-        // Wrap in OpenAI envelope so extractAnalysisPayload can parse via choices[0].message.content
-        response = { ok: true, data: { choices: [{ message: { content: freeResult.text } }] } as Record<string, unknown> };
-        log.info(`[router] Free-tier AI via ${providerLabel(freeResult.providerUsed)}`);
-      } catch (e) {
-        const msg = e instanceof Error ? e.message : String(e);
-        log.warn(`[router] All free-tier providers failed → deterministic fallback. Reason: ${msg}`);
-        aiProviderUsed = 'deterministic';
-      }
-    } else {
-      // ── PLUS/PRO PATH: existing aiCall() with retry ────────────────────────────
-      const MAX_RETRIES = 2;
-      const AI_TIMEOUT_MS = 35000;
-      const RETRY_DELAY_MS = 500;
-      let lastError: string | null = null;
-      let lastStatus: number | null = null;
 
-      for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
-        try {
-          log.info(`AI request attempt ${attempt}/${MAX_RETRIES} (${AI_TIMEOUT_MS}ms timeout)`);
-
-          const aiResult = await aiCall(
-            {
-              model: "google/gemini-3-flash-preview",
-              messages: [
-                { role: "system", content: QUANTIS_MASTER_SYSTEM_PROMPT },
-                { role: "user", content: prompt },
-              ],
-              response_format: { type: "json_object" },
-              max_tokens: 6000,
-              temperature: 0.2,
-            },
-            {
-              task: 'analyze-plus',
-              timeoutMs: AI_TIMEOUT_MS,
-              requestId,
-              userId: userId,
-              metadata: { attempt, industry: detectedIndustry.name },
-            },
-          );
-
-          if (aiResult.ok) {
-            response = { ok: true, data: aiResult.data };
-            aiProviderUsed = 'claude';
-            log.info(`AI request succeeded on attempt ${attempt}`);
-            break;
-          }
-
-          lastStatus = aiResult.status;
-          lastError = `${aiResult.error}: ${aiResult.message}`;
-          log.error(`AI error on attempt ${attempt}: ${lastError}`);
-
-          if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') break;
-
-          if (attempt < MAX_RETRIES) {
-            log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
-            await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
-          }
-        } catch (fetchError) {
-          lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
-          log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
-          if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        if (aiResult.ok) {
+          response = { ok: true, data: aiResult.data };
+          aiProviderUsed = 'lovable';
+          log.info(`AI request succeeded on attempt ${attempt}`);
+          break;
         }
+
+        lastStatus = aiResult.status;
+        lastError = `${aiResult.error}: ${aiResult.message}`;
+        log.error(`AI error on attempt ${attempt}: ${lastError}`);
+
+        if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') break;
+
+        if (attempt < MAX_RETRIES) {
+          log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
+      } catch (fetchError) {
+        lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
+        log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
+        if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
       }
     }
     
@@ -3688,7 +3661,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     let usedFallback = false;
 
     if (!response) {
-      log.info(`AI unavailable (provider: ${aiProviderUsed}), generating deterministic fallback...`);
+      log.info(`AI unavailable (provider: ${aiProviderUsed}, status: ${lastStatus}), generating deterministic fallback...`);
 
       rawResult = generateDeterministicFallbackResult(
         idea_clean,
