@@ -18,11 +18,20 @@ concurrency:
 jobs:
   deploy-backend:
     name: Deploy Supabase backend
+    # Only run when CI passed, or manually triggered
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: production
+    # CRITICAL: secrets.X is ONLY valid inside ${{ }} and env:/with:/run: blocks.
+    # It CANNOT be used directly in step-level if: conditions.
+    # Solution: expose ALL secrets as job-level env vars, then test env.X in if: conditions.
+    env:
+      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+      LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -30,39 +39,34 @@ jobs:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       # ── Secrets Sync ─────────────────────────────────────────────────────────
+      # Sets all LLM provider keys in Supabase so they survive Lovable publishes.
       - name: Sync edge function secrets
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         run: |
-          # LLM provider — DeepSeek is primary, Lovable Gateway is fallback.
-          # LOVABLE_API_KEY must be non-empty so Lovable's gate check passes;
-          # the actual value only matters if Lovable Gateway is called (fallback only).
+          # Free tier: Lovable AI Gateway (Gemini) → DeepSeek → deterministic
+          # Plus tier: Claude (Anthropic) — kept for premium differentiation
           npx supabase@latest secrets set \
-            DEEPSEEK_API_KEY="${{ secrets.DEEPSEEK_API_KEY }}" \
-            LLM_PRIMARY_PROVIDER="deepseek" \
+            DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}" \
+            LOVABLE_API_KEY="${LOVABLE_API_KEY:-lv_placeholder_gemini_primary}" \
+            ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-placeholder_plus_only}" \
+            LLM_PRIMARY_PROVIDER="lovable" \
             LLM_DEEPSEEK_ENABLED="true" \
-            LLM_DEEPSEEK_TRAFFIC_PCT="100" \
-            LOVABLE_API_KEY="${{ secrets.LOVABLE_API_KEY || 'lv_placeholder_deepseek_is_primary' }}" \
-            ANTHROPIC_API_KEY="${{ secrets.ANTHROPIC_API_KEY || 'placeholder_deepseek_is_primary' }}" \
             --project-ref dmlxrvfyqsakyjomsvdj || true
-          echo "✅ Secrets synced (DEEPSEEK+LOVABLE+ANTHROPIC)" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Secrets synced" >> "$GITHUB_STEP_SUMMARY"
 
       # ── DB Migrations ────────────────────────────────────────────────────────
       - name: Apply DB migrations
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         run: |
           npx supabase@latest link --project-ref dmlxrvfyqsakyjomsvdj
           npx supabase@latest db push --include-all --yes || true
-          echo "✅ DB migrations applied to dmlxrvfyqsakyjomsvdj" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ DB migrations applied" >> "$GITHUB_STEP_SUMMARY"
 
       # ── Edge Functions ───────────────────────────────────────────────────────
+      # Free tier: Lovable AI (Gemini Flash) → DeepSeek → deterministic narrative
+      # Plus tier: Claude Sonnet (premium differentiator)
       - name: Deploy edge functions
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
-        env:
-          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         run: |
           npx supabase@latest functions deploy analyze-business \
             --project-ref dmlxrvfyqsakyjomsvdj --no-verify-jwt
@@ -70,27 +74,29 @@ jobs:
             --project-ref dmlxrvfyqsakyjomsvdj --no-verify-jwt
           npx supabase@latest functions deploy analyze-pro-extension \
             --project-ref dmlxrvfyqsakyjomsvdj --no-verify-jwt
-          echo "✅ Edge functions deployed to dmlxrvfyqsakyjomsvdj" >> "$GITHUB_STEP_SUMMARY"
+          echo "✅ Edge functions deployed" >> "$GITHUB_STEP_SUMMARY"
 
       # ── Summary ──────────────────────────────────────────────────────────────
       - name: Deployment summary
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN != '' }}
+        if: env.SUPABASE_ACCESS_TOKEN != ''
         run: |
           {
-            echo "## ✅ AIWMC Quantis Backend Deployed"
-            echo "| Component | Status |"
-            echo "|-----------|--------|"
-            echo "| Supabase project | dmlxrvfyqsakyjomsvdj (AIWMC QUANTIS) |"
-            echo "| analyze-business | FREE_TIER_LIMIT=5 · DeepSeek LLM |"
-            echo "| analyze-plus | latest |"
-            echo "| analyze-pro-extension | latest |"
-            echo "| DB migrations | applied |"
-            echo "| Auth redirect | https://aiwmcquantis.com |"
+            echo "## ✅ AIWMC Quantis — Backend Deployed"
             echo ""
-            echo "Frontend: Lovable → aiwmcquantis.com (no Vercel conflict)"
+            echo "| Component | Value |"
+            echo "|-----------|-------|"
+            echo "| Project | dmlxrvfyqsakyjomsvdj (AIWMC QUANTIS) |"
+            echo "| Free LLM | Lovable AI (Gemini Flash) → DeepSeek → deterministic |"
+            echo "| Plus LLM | Claude Sonnet (Anthropic) |"
+            echo "| analyze-business | ✅ deployed |"
+            echo "| analyze-plus | ✅ deployed |"
+            echo "| analyze-pro-extension | ✅ deployed |"
+            echo ""
+            echo "Frontend: Lovable → aiwmcquantis.com"
           } >> "$GITHUB_STEP_SUMMARY"
 
-      - name: No token — skipped
-        if: ${{ secrets.SUPABASE_ACCESS_TOKEN == '' }}
+      - name: No token — deploy skipped
+        if: env.SUPABASE_ACCESS_TOKEN == ''
         run: |
-          echo "⚠️ SUPABASE_ACCESS_TOKEN not set in GitHub → Settings → Environments → production" >> "$GITHUB_STEP_SUMMARY"
+          echo "⚠️ SUPABASE_ACCESS_TOKEN not set → Settings → Environments → production" >> "$GITHUB_STEP_SUMMARY"
+          exit 1
