@@ -19,6 +19,15 @@
  * NOT in this file. Pro Annual must be set to 0 trial days in Stripe.
  */
 
+/**
+ * FREE TIER quota — single source of truth.
+ * Read this constant everywhere (UI counters, paywall trigger, server quota ledger).
+ * Changing this value updates copy, paywall gate, and the SQL `charge_free_analysis`
+ * function together (keep SQL `v_limit` in sync — see usage_counters migration).
+ */
+export const FREE_ANALYSIS_LIMIT = 5;
+export const FREE_QUOTA_WINDOW: 'month' | 'lifetime' = 'month';
+
 export const TIERS = {
   free: {
     id: 'free',
