@@ -8,13 +8,34 @@ import type {
 import { startRequestContext } from '@/lib/correlation';
 import { QuantisMath } from '@/lib/quantis-math';
 import { trackAnalysisStarted, trackAnalysisCompleted } from '@/lib/analytics';
+import { getAnonymousDeviceId } from '@/lib/anonymousTracking';
 
 import { logger } from '@/lib/logger';
 import { mergeCanonicalDataSources } from '@/lib/canonical-data-sources';
 import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industry-priors';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
-const MAX_RETRIES = 2;
-const RETRY_DELAY = 1000;
+
+// Silent-retry policy (Workstream 6): never surface a raw infra error for a
+// transient failure. Three attempts with jittered backoff [1s, 2.5s, 5s].
+const MAX_RETRIES = 3;
+const RETRY_BACKOFF_MS = [1000, 2500, 5000];
+const jitter = (ms: number) => ms + Math.floor(Math.random() * 350);
+
+// Classify an error message as transient (silent-retry) vs terminal (surface).
+function isTransientFailure(msg: string): boolean {
+  const m = msg.toLowerCase();
+  // Terminal: quota / tier / validation / auth — never auto-retry these.
+  if (m.includes('tier_gate') || m.includes('quota_exceeded') || m.includes('usage_limit') ||
+      m.includes('validation') || m.includes('invalid_business_idea') ||
+      m.includes('unauthorized') || m.includes('401') || m.includes('402') ||
+      m.includes('payment') || m.includes('invalid request')) {
+    return false;
+  }
+  // Treat everything else as transient: rate limits, non-2xx, Edge cold start,
+  // Anthropic 429/5xx, network blips, "Failed to fetch", "Empty response".
+  return true;
+}
+
 
 type CompletedAnalysisResponse = AnalysisAPIResponse & {
   success: true;
@@ -157,23 +178,38 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     /* analytics must never break the analysis path */
   }
 
+  // One idempotency key per user click — reused across this loop's silent
+  // retries so the server never recomputes or double-charges quota.
+  const idempotencyKey =
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? crypto.randomUUID()
+      : `idem_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const anonId = getAnonymousDeviceId();
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        logger.info(`Retry attempt ${attempt}/${MAX_RETRIES}`);
-        await sleep(RETRY_DELAY * attempt);
+        const delay = jitter(RETRY_BACKOFF_MS[attempt - 1] ?? 5000);
+        logger.info(`Silent retry ${attempt}/${MAX_RETRIES} in ${delay}ms`);
+        await sleep(delay);
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
+          idempotency_key: idempotencyKey,
           ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
           ...(request.financial_inputs?.selected_industry && { selected_industry: request.financial_inputs.selected_industry }),
           ...(request.documents && request.documents.length > 0 && { documents: request.documents }),
           ...(request.analysis_depth && { analysis_depth: request.analysis_depth }),
         },
+        headers: {
+          'x-idempotency-key': idempotencyKey,
+          'x-quantis-anon-id': anonId,
+        },
       });
+
 
       if (error) {
         // Try to parse the response body for structured error messages (e.g., 400 validation errors)
@@ -196,25 +232,29 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
           throw new Error(`${code}: ${message}${hint}`);
         }
 
-        // Check for rate limit error in the response
+        // Rate limit (429) — silently retry, do NOT surface raw to the user.
+        // Free users must never see "Too many requests / retry_after".
+        // Only the upgrade modal (TIER_GATE/QUOTA_EXCEEDED) is a legitimate hard stop.
         if (error.message?.includes('429') || status === 429) {
           const errorData = error.context?.body || {};
-          const retryAfter = errorData.details?.retry_after_seconds || 60;
-          const minutes = Math.ceil(retryAfter / 60);
-          
-          // Provide context-aware message
           const reason = errorData.details?.reason;
-          let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
+          // device_limit means the server-side quota ledger is exhausted —
+          // treat as a tier gate, not a transient throttle.
           if (reason === 'device_limit') {
-            message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-          } else if (reason === 'ip_limit') {
-            message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-          } else if (reason === 'duplicate_submission') {
-            message = 'This exact analysis was already performed recently. Try a different idea or location.';
+            throw new Error(
+              `TIER_GATE: You've used all 5 free analyses this month. Upgrade to Plus for unlimited analyses. | upgrade_url=/pricing`,
+            );
           }
-          
-          throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
+          // duplicate_submission is also terminal — same idea hit cache.
+          if (reason === 'duplicate_submission') {
+            throw new Error(
+              'DUPLICATE_SUBMISSION: This exact analysis was already performed recently. Try a different idea or location.',
+            );
+          }
+          // Everything else (ip_limit, burst, cold-start throttle) → transient.
+          throw new Error(`TRANSIENT_RATE_LIMIT: silently retrying`);
         }
+
 
         // Spec §09.2 — explicit 402 from edge transport (Quota / Tier gate)
         if (status === 402) {
@@ -252,24 +292,25 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         };
       }
 
-      // Handle rate limit response from edge function
+      // Handle rate limit response delivered as a 200 envelope (server chose
+      // not to throw). Same rule: device_limit = upgrade gate; everything else
+      // = transient → silent retry.
       if ('code' in data && (data.code === 'RATE_LIMIT_EXCEEDED' || data.code === 'ANONYMOUS_LIMIT_EXCEEDED')) {
         const details = (data as any).details || {};
-        const retryAfter = details.retry_after_seconds || 60;
-        const minutes = Math.ceil(retryAfter / 60);
-        
         const reason = details.reason;
-        let message = `Too many requests. Please try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
         if (reason === 'device_limit') {
-          message = `Free analysis limit reached. Sign in for more analyses or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-        } else if (reason === 'ip_limit') {
-          message = `Too many requests from your network. Sign in to continue or try again in ${minutes} minute${minutes > 1 ? 's' : ''}.`;
-        } else if (reason === 'duplicate_submission') {
-          message = 'This exact analysis was already performed recently. Try a different idea or location.';
+          throw new Error(
+            `TIER_GATE: You've used all 5 free analyses this month. Upgrade to Plus for unlimited analyses. | upgrade_url=/pricing`,
+          );
         }
-        
-        throw new Error(`RATE_LIMIT_EXCEEDED: ${message} | retry_after=${retryAfter}`);
+        if (reason === 'duplicate_submission') {
+          throw new Error(
+            'DUPLICATE_SUBMISSION: This exact analysis was already performed recently. Try a different idea or location.',
+          );
+        }
+        throw new Error('TRANSIENT_RATE_LIMIT: silently retrying');
       }
+
 
       // Spec §09.2 — quota / tier-gate envelope returned with HTTP 402.
       // We surface it as a typed error so React-Query consumers can route
@@ -308,23 +349,16 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
 
     } catch (error) {
       lastError = error instanceof Error ? error : new Error(String(error));
-      logger.error(`Analysis attempt ${attempt + 1} failed:`, lastError.message);
-      
-      // Don't retry for validation errors, invalid input, or rate limit errors
-      if (lastError.message.includes('VALIDATION') || 
-          lastError.message.includes('validation') ||
-          lastError.message.includes('RATE_LIMIT') ||
-          lastError.message.includes('TIER_GATE') ||
-          lastError.message.includes('QUOTA_EXCEEDED') ||
-          lastError.message.includes('USAGE_LIMIT') ||
-          lastError.message.includes('PAYMENT') ||
-          lastError.message.includes('Unauthorized') ||
-          lastError.message.includes('401') ||
-          lastError.message.includes('402') ||
-          lastError.message.includes('INVALID_BUSINESS_IDEA')) {
+      logger.warn(`Analysis attempt ${attempt + 1}/${MAX_RETRIES + 1} failed: ${lastError.message}`);
+
+      // Terminal classes (validation, quota gate, auth, payment, duplicate)
+      // surface immediately. Everything else — rate limit, non-2xx, Edge cold
+      // start, Anthropic 429/5xx, network — is transient → loop retries silently.
+      if (!isTransientFailure(lastError.message)) {
         throw lastError;
       }
     }
+
   }
 
   // Step 4 of the benchmark-first plan: never fabricate an analysis on the
@@ -360,12 +394,15 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     return normalizeAnalysisResult(fallback);
   }
 
-  logger.error('Analysis service unavailable after retries', {
+  logger.error('Analysis service unavailable after silent retries', {
     metadata: { request_id: requestId, reason: lastError?.message ?? 'unknown' },
   });
+  // Friendly message — no "non-2xx", no "retry_after", no raw infra strings.
+  // The UI shows a single inline "Try again" card.
   throw new Error(
-    `ANALYSIS_UNAVAILABLE: The analysis engine is temporarily unreachable. Please try again in a moment. (${lastError?.message ?? 'unknown error'})`,
+    `ANALYSIS_UNAVAILABLE: We couldn't finish your analysis right now. Your inputs are preserved — please tap Try again in a moment.`,
   );
+
 }
 
 // Validation helpers
