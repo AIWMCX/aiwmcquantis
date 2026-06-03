@@ -2932,25 +2932,15 @@ serve(async (req) => {
           
           log.info(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
           
+          // WS3: return 200 — client handles rate_limited with silent retry
           return new Response(
-            JSON.stringify({ 
-              error: rateLimitResult.message || "Free analysis limit reached. Sign in for more.", 
+            JSON.stringify({
+              ok: false, degraded: false, reason: 'rate_limited',
+              retryAfter: retryAfterSeconds,
+              error: "Please wait a moment before trying again.",
               code: "ANONYMOUS_LIMIT_EXCEEDED",
-              details: {
-                reason,
-                retry_after_seconds: retryAfterSeconds,
-                reset_at: rateLimitResult.reset_at,
-                suggestion: "Sign in to get 5 free analyses per month"
-              }
             }),
-            { 
-              status: 429, 
-              headers: { 
-                ...corsHeaders, 
-                "Content-Type": "application/json",
-                "Retry-After": String(retryAfterSeconds),
-              } 
-            }
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         } else if (rateLimitResult) {
           log.info(`Anonymous rate limit check passed: Device remaining: ${rateLimitResult.device_remaining}, IP remaining: ${rateLimitResult.ip_remaining}`);
@@ -2985,29 +2975,15 @@ serve(async (req) => {
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
           
+          // WS3: return 200 — client silent-retries on rate_limited
           return new Response(
-            JSON.stringify({ 
-              error: "Too many requests. Please wait before trying again.", 
+            JSON.stringify({
+              ok: false, degraded: false, reason: 'rate_limited',
+              retryAfter: retryAfterSeconds,
+              error: "Please wait a moment before trying again.",
               code: "RATE_LIMIT_EXCEEDED",
-              details: {
-                limit: rateLimitResult.limit,
-                remaining: 0,
-                reset_at: rateLimitResult.reset_at,
-                retry_after_seconds: retryAfterSeconds,
-                plan: userPlan
-              }
             }),
-            { 
-              status: 429, 
-              headers: { 
-                ...corsHeaders, 
-                "Content-Type": "application/json",
-                "Retry-After": String(retryAfterSeconds),
-                "X-RateLimit-Limit": String(rateLimitResult.limit),
-                "X-RateLimit-Remaining": "0",
-                "X-RateLimit-Reset": String(Math.floor(resetAt.getTime() / 1000))
-              } 
-            }
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
           );
         } else if (rateLimitResult) {
           log.info(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
