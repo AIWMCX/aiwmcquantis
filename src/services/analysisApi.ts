@@ -178,23 +178,38 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
     /* analytics must never break the analysis path */
   }
 
+  // One idempotency key per user click — reused across this loop's silent
+  // retries so the server never recomputes or double-charges quota.
+  const idempotencyKey =
+    (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+      ? crypto.randomUUID()
+      : `idem_${Date.now()}_${Math.random().toString(36).slice(2)}`;
+  const anonId = getAnonymousDeviceId();
+
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
       if (attempt > 0) {
-        logger.info(`Retry attempt ${attempt}/${MAX_RETRIES}`);
-        await sleep(RETRY_DELAY * attempt);
+        const delay = jitter(RETRY_BACKOFF_MS[attempt - 1] ?? 5000);
+        logger.info(`Silent retry ${attempt}/${MAX_RETRIES} in ${delay}ms`);
+        await sleep(delay);
       }
 
       const { data, error } = await supabase.functions.invoke<AnalysisAPIResponse>('analyze-business', {
         body: {
           idea: request.idea.trim(),
           location: request.location.trim(),
+          idempotency_key: idempotencyKey,
           ...(request.financial_inputs && { financial_inputs: request.financial_inputs }),
           ...(request.financial_inputs?.selected_industry && { selected_industry: request.financial_inputs.selected_industry }),
           ...(request.documents && request.documents.length > 0 && { documents: request.documents }),
           ...(request.analysis_depth && { analysis_depth: request.analysis_depth }),
         },
+        headers: {
+          'x-idempotency-key': idempotencyKey,
+          'x-quantis-anon-id': anonId,
+        },
       });
+
 
       if (error) {
         // Try to parse the response body for structured error messages (e.g., 400 validation errors)
