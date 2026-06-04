@@ -1,4 +1,4 @@
-﻿-- WS4: identity-keyed usage_counters + atomic charge_free_analysis
+-- WS4: identity-keyed usage_counters + atomic charge_free_analysis
 -- WS5: analysis_attempts observability ledger + health view
 
 CREATE TABLE IF NOT EXISTS public.usage_counters (
