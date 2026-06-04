@@ -3613,7 +3613,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
         const aiResult = await aiCall(
           {
-            model: "google/gemini-3-flash-preview",
+            // Use task routing (DeepSeek primary) not hardcoded google/ model.
+            // google/gemini requires LOVABLE_API_KEY which may be a placeholder.
+            // DeepSeek works with DEEPSEEK_API_KEY which is confirmed set.
+            model: "deepseek-chat",
             messages: [
               { role: "system", content: QUANTIS_MASTER_SYSTEM_PROMPT },
               { role: "user", content: prompt },
