@@ -1,4 +1,4 @@
-﻿project_id = "dmlxrvfyqsakyjomsvdj"
+project_id = "dmlxrvfyqsakyjomsvdj"
 
 [functions.analyze-business]
 verify_jwt = false
