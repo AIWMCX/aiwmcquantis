@@ -3762,6 +3762,22 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.warn(`Narrative sanitizer failed (non-fatal): ${String(sanitizeErr)}`);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS1 — GOLDEN CHECKPOINT #1: deterministic result is now schema-valid.
+    // From this line on, the user is GUARANTEED a complete analysis even if
+    // EVERY downstream enrichment (quantis engine, MC, RVCE, validator,
+    // benchmark records, narrative LLM) throws. WS3's outer catch ships GOLDEN.
+    // ═══════════════════════════════════════════════════════════════════════
+    try {
+      GOLDEN = result as unknown as Record<string, unknown>;
+      if (usedFallback) { GOLDEN_degraded = true; GOLDEN_reason ??= 'ai_fallback'; }
+      log.info(`[GOLDEN] checkpoint #1 set (deterministic result, degraded=${GOLDEN_degraded})`);
+    } catch (gErr) {
+      log.error('[GOLDEN] checkpoint #1 assignment failed (non-fatal):', gErr);
+    }
+
+
+
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // Run the bulletproof validation and recommendation engine
