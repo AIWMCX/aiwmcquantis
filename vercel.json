@@ -3,9 +3,7 @@
   "installCommand": "npm install --legacy-peer-deps --no-audit --no-fund",
   "buildCommand": "npx vite build",
   "outputDirectory": "dist",
-  "framework": "vite",
-  "cleanUrls": true,
-  "trailingSlash": false,
+  "framework": null,
   "rewrites": [
     { "source": "/((?!.*\\.).*)", "destination": "/index.html" }
   ],
