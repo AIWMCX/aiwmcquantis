@@ -175,14 +175,18 @@ export type BillingCycle = 'monthly' | 'annual';
 
 /** Stripe price ID → tier mapping. Used by webhook + checkout. */
 export const STRIPE_PRICE_TO_TIER: Record<string, { tier: TierId; cycle: BillingCycle; isLegacy?: boolean }> = {
-  // Legacy Plus monthly ($17) — grandfathered, still treated as Plus
-  price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
-  // Plus annual
-  price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
-  // Pro monthly ($41, 14-days trial)
+  // Plus monthly ($17) — ACTIVE in live Stripe acct_1Sjknz
+  price_1SjnEiLKMhSmZURCONsiueNU: { tier: 'plus', cycle: 'monthly' },
+  // Plus annual ($168) — ACTIVE
+  price_1SvWTaLKMhSmZURClCoqty4O: { tier: 'plus', cycle: 'annual' },
+  // Pro monthly ($49) — ACTIVE
   price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
-  // Pro annual ($492, NO trial)
+  // Pro annual ($492) — ACTIVE
   price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },
+  // Legacy/alt Pro monthly ($29) — grandfathered
+  price_1SjnFCLKMhSmZURCT0pbiMNf: { tier: 'pro', cycle: 'monthly', isLegacy: true },
+  // Legacy Plus monthly (stale ID, kept for old subscriptions)
+  price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
 };
 
 /** Returns whether a (tier, cycle) combination is eligible for a free trial. */
