@@ -16,9 +16,11 @@ import { classifyIndustry, isRichPrior, type IndustryPrior } from '@/lib/industr
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 
 // Silent-retry policy (Workstream 6): never surface a raw infra error for a
-// transient failure. Three attempts with jittered backoff [1s, 2.5s, 5s].
-const MAX_RETRIES = 3;
-const RETRY_BACKOFF_MS = [1000, 2500, 5000];
+// transient failure. Retries are spread across a wide window so they outlast
+// short LLM-provider (DeepSeek) slow/error spells that cause intermittent
+// `ok:false` on heavy Deep analyses. 5 attempts over ~30s total.
+const MAX_RETRIES = 4;
+const RETRY_BACKOFF_MS = [1500, 4000, 8000, 15000];
 const jitter = (ms: number) => ms + Math.floor(Math.random() * 350);
 
 // Classify an error message as transient (silent-retry) vs terminal (surface).
