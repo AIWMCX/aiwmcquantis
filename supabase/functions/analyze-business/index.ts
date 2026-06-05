@@ -2689,7 +2689,23 @@ serve(async (req) => {
   const idempotencyKey = req.headers.get('x-idempotency-key') || crypto.randomUUID();
   const anonSessionId = req.headers.get('x-quantis-anon-id') || null;
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // WS1 — GOLDEN RESULT CHECKPOINT
+  // Once GOLDEN is set, the user is GUARANTEED to receive a schema-valid
+  // financial analysis. Every post-GOLDEN enrichment is non-blocking; the
+  // outermost catch (WS3) returns GOLDEN regardless of what later threw.
+  // ═══════════════════════════════════════════════════════════════════════
+  let GOLDEN: Record<string, unknown> | null = null;
+  let GOLDEN_degraded = false;
+  let GOLDEN_reason: string | null = null;
+  // Hoisted recovery inputs — populated as early as possible so the last-resort
+  // builder in the catch never depends on inner-scope state.
+  let recoveryIdea = '';
+  let recoveryLocation = '';
+  let recoveryFinancialInputs: OptionalFinancialInputs | undefined;
+
   try {
+
     const startTime = Date.now(); // WS5: latency tracking
 
     // ========== HTTP REQUEST VALIDATION ==========
