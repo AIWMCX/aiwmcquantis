@@ -4767,11 +4767,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
 
     // WS3 envelope: include ok:true so WS6 client accepts the result.
-    // Also keep legacy success:true + data for backward compat with older clients.
+    // `degraded` reflects whether any enrichment failed; `success:true` always
+    // holds because GOLDEN exists and `data.financial_analysis` is present.
     return new Response(
       JSON.stringify({
         ok: true,
-        degraded: false,
+        degraded: GOLDEN_degraded,
+        reason: GOLDEN_degraded ? (GOLDEN_reason ?? 'partial') : undefined,
         success: true,
         data: wirePayload,
         result: wirePayload,
@@ -4787,23 +4789,85 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     );
 
   } catch (error) {
-    // WS3: Outermost catch — analysis requests ALWAYS return HTTP 200.
-    // Non-2xx must never reach the browser for an analysis request.
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS3 — Outermost catch: GUARANTEE a complete analysis when possible.
+    // 1) GOLDEN exists → ship it (success:true, degraded:true).
+    // 2) GOLDEN missing but we have an idea/location → last-resort
+    //    deterministic build that depends on ZERO external services.
+    // 3) Only if both fail do we return a degraded error envelope (still 200).
+    // ═══════════════════════════════════════════════════════════════════════
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error (returning 200 ok:false):", errorMessage);
-
+    log.error('Handler exception (WS3 recovery active):', errorMessage);
     const corsHeaders = corsHeadersFor(req);
+
+    // 1) GOLDEN exists — ship it.
+    if (GOLDEN) {
+      log.info('[WS3] returning GOLDEN checkpoint (degraded)');
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          degraded: true,
+          reason: GOLDEN_reason ?? 'partial',
+          success: true,
+          data: GOLDEN,
+          result: GOLDEN,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // 2) Last-resort deterministic build (no DB, no network, no LLM).
+    try {
+      if (recoveryIdea) {
+        log.info('[WS3] building last-resort deterministic result');
+        const detIndustry = detectIndustry(recoveryIdea);
+        const detLocMultipliers = getEnhancedLocationMultiplier(recoveryLocation || 'United States');
+        const detSubIndustry = detectSubIndustry(recoveryIdea, detIndustry.id);
+        const detRaw = generateDeterministicFallbackResult(
+          recoveryIdea,
+          recoveryLocation || 'United States',
+          detIndustry,
+          detLocMultipliers,
+          recoveryFinancialInputs,
+        );
+        const detResult = transformResponse(
+          detRaw,
+          recoveryLocation || 'United States',
+          detIndustry,
+          detLocMultipliers,
+          detSubIndustry,
+          recoveryFinancialInputs,
+        );
+        delete (detResult as Record<string, unknown>)._calc;
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            degraded: true,
+            reason: 'last_resort',
+            success: true,
+            data: detResult,
+            result: detResult,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    } catch (lastResortErr) {
+      log.error('[WS3] last-resort build failed:', lastResortErr);
+    }
+
+    // 3) Absolute floor: degraded envelope (client retries).
     return new Response(
       JSON.stringify({
         ok: false,
         degraded: true,
         reason: 'internal',
         success: false,
-        error: "The analysis engine hit a transient error. Your inputs are preserved — please retry.",
-        code: "INTERNAL_ERROR",
+        error: 'The analysis engine hit a transient error. Your inputs are preserved — please retry.',
+        code: 'INTERNAL_ERROR',
         timestamp: new Date().toISOString(),
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
+
