@@ -2689,7 +2689,23 @@ serve(async (req) => {
   const idempotencyKey = req.headers.get('x-idempotency-key') || crypto.randomUUID();
   const anonSessionId = req.headers.get('x-quantis-anon-id') || null;
 
+  // ═══════════════════════════════════════════════════════════════════════
+  // WS1 — GOLDEN RESULT CHECKPOINT
+  // Once GOLDEN is set, the user is GUARANTEED to receive a schema-valid
+  // financial analysis. Every post-GOLDEN enrichment is non-blocking; the
+  // outermost catch (WS3) returns GOLDEN regardless of what later threw.
+  // ═══════════════════════════════════════════════════════════════════════
+  let GOLDEN: Record<string, unknown> | null = null;
+  let GOLDEN_degraded = false;
+  let GOLDEN_reason: string | null = null;
+  // Hoisted recovery inputs — populated as early as possible so the last-resort
+  // builder in the catch never depends on inner-scope state.
+  let recoveryIdea = '';
+  let recoveryLocation = '';
+  let recoveryFinancialInputs: OptionalFinancialInputs | undefined;
+
   try {
+
     const startTime = Date.now(); // WS5: latency tracking
 
     // ========== HTTP REQUEST VALIDATION ==========
@@ -2764,6 +2780,10 @@ serve(async (req) => {
         );
       }
       requestBody = parsed.data as AnalysisRequest;
+      // WS1: capture minimal recovery inputs the moment we have a valid body
+      recoveryIdea = String(requestBody.idea || '').trim() || 'business idea';
+      recoveryLocation = String(requestBody.location || '').trim() || 'United States';
+      recoveryFinancialInputs = (requestBody as any).financial_inputs as OptionalFinancialInputs | undefined;
     } catch (parseError) {
       log.error('JSON parse error:', parseError);
       return new Response(
@@ -2771,6 +2791,7 @@ serve(async (req) => {
         { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     const isServiceRoleRequest = authHeader === `Bearer ${supabaseServiceKey}`;
     const requestedWorkerRun = rawRequestBody._worker_run === true;
@@ -3741,6 +3762,22 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.warn(`Narrative sanitizer failed (non-fatal): ${String(sanitizeErr)}`);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS1 — GOLDEN CHECKPOINT #1: deterministic result is now schema-valid.
+    // From this line on, the user is GUARANTEED a complete analysis even if
+    // EVERY downstream enrichment (quantis engine, MC, RVCE, validator,
+    // benchmark records, narrative LLM) throws. WS3's outer catch ships GOLDEN.
+    // ═══════════════════════════════════════════════════════════════════════
+    try {
+      GOLDEN = result as unknown as Record<string, unknown>;
+      if (usedFallback) { GOLDEN_degraded = true; GOLDEN_reason ??= 'ai_fallback'; }
+      log.info(`[GOLDEN] checkpoint #1 set (deterministic result, degraded=${GOLDEN_degraded})`);
+    } catch (gErr) {
+      log.error('[GOLDEN] checkpoint #1 assignment failed (non-fatal):', gErr);
+    }
+
+
+
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // Run the bulletproof validation and recommendation engine
@@ -3764,9 +3801,42 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       subIndustry,
     };
     
-    // Process through Quantis 2.0 engine
-    const quantisOutput = processQuantisAnalysis(quantisInput);
-    log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    // Process through Quantis 2.0 engine (WS2: non-blocking)
+    let quantisOutput: ReturnType<typeof processQuantisAnalysis>;
+    try {
+      quantisOutput = processQuantisAnalysis(quantisInput);
+      log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    } catch (qErr) {
+      log.error('[enrich:quantis-engine] non-blocking — building stub:', qErr);
+      GOLDEN_degraded = true; GOLDEN_reason ??= 'quantis_engine';
+      quantisOutput = {
+        success: false,
+        version: '9.2-stub',
+        metrics: {
+          mrr: calc.mrr, arr: calc.mrr * 12, netProfit: calc.netProfit,
+          netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit,
+          grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses,
+          paybackMonths: calc.paybackMonths, paybackDisplay: String(calc.paybackMonths),
+          roiYear1Percent: calc.roiYear1Percent, ltvCacRatio: calc.ltvCacRatio,
+          cac: calc.cac, ltv: calc.ltv,
+        },
+        validation: {
+          isRealistic: true, isProfitable: calc.isProfitable, wasAutoCorrected: false,
+          reliabilityScore: 50, corrections: [], calculationAudit: [],
+          breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: 0,
+          industryDetected: calc.industryDetected, confidenceBreakdown: {},
+          improvementSuggestions: [], summary: 'Stub (engine throw)',
+          healthScores: { overallHealthScore: 50, overall: 'medium' },
+          warnings: [],
+        },
+        recommendations: {
+          summary: { totalRecommendations: 0 },
+          priorities: { immediate: [], shortTerm: [], longTerm: [] },
+          actionPlan: [], generatedAt: new Date().toISOString(), version: '9.2-stub',
+        },
+      } as unknown as ReturnType<typeof processQuantisAnalysis>;
+    }
+
     
     // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
@@ -4563,6 +4633,20 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       })(),
     };
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS1 — GOLDEN CHECKPOINT #2: full enriched payload is built.
+    // If anything below (validator, free-tier sanitization, schema check,
+    // response serialization) throws, the outer catch ships THIS object.
+    // ═══════════════════════════════════════════════════════════════════════
+    try {
+      GOLDEN = fullPayload as unknown as Record<string, unknown>;
+      log.info(`[GOLDEN] checkpoint #2 set (fullPayload, ${Object.keys(fullPayload).length} keys)`);
+    } catch (gErr) {
+      log.error('[GOLDEN] checkpoint #2 failed (non-fatal):', gErr);
+    }
+
+
+
     // ========== HYBRID VALIDATOR (paid tiers only) ==========
     // Deterministic rules first, LLM second-pass only on warning.
     // Skip for Free (already truncated) to save cost.
@@ -4632,6 +4716,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_detected: calc.industryDetected,
         location: location_clean,
         idea: idea_clean,
+        // CRITICAL: client `isCompletedAnalysisResponse` requires `financial_analysis`.
+        // Always include the deterministic core so free users never get rejected.
+        financial_analysis: (result as any)?.financial_analysis ?? null,
         _tier: 'free',
         _ai_provider: aiProviderUsed,
         _watermark: 'Generated by AIWMC Quantis — Upgrade to Plus for full Monte Carlo, 36-month projections, and stress testing.',
@@ -4658,6 +4745,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       };
     })() : fullPayload;
 
+    // WS1: refresh GOLDEN with the wire-shaped payload (free gets stripped,
+    // paid gets full). This is what the client will render.
+    try { GOLDEN = wirePayload as unknown as Record<string, unknown>; } catch { /* noop */ }
+
+
+
     if (isFreeOrAnon) {
       log.info(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
     }
@@ -4674,11 +4767,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
 
     // WS3 envelope: include ok:true so WS6 client accepts the result.
-    // Also keep legacy success:true + data for backward compat with older clients.
+    // `degraded` reflects whether any enrichment failed; `success:true` always
+    // holds because GOLDEN exists and `data.financial_analysis` is present.
     return new Response(
       JSON.stringify({
         ok: true,
-        degraded: false,
+        degraded: GOLDEN_degraded,
+        reason: GOLDEN_degraded ? (GOLDEN_reason ?? 'partial') : undefined,
         success: true,
         data: wirePayload,
         result: wirePayload,
@@ -4694,23 +4789,85 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     );
 
   } catch (error) {
-    // WS3: Outermost catch — analysis requests ALWAYS return HTTP 200.
-    // Non-2xx must never reach the browser for an analysis request.
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS3 — Outermost catch: GUARANTEE a complete analysis when possible.
+    // 1) GOLDEN exists → ship it (success:true, degraded:true).
+    // 2) GOLDEN missing but we have an idea/location → last-resort
+    //    deterministic build that depends on ZERO external services.
+    // 3) Only if both fail do we return a degraded error envelope (still 200).
+    // ═══════════════════════════════════════════════════════════════════════
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error("Unhandled error (returning 200 ok:false):", errorMessage);
-
+    log.error('Handler exception (WS3 recovery active):', errorMessage);
     const corsHeaders = corsHeadersFor(req);
+
+    // 1) GOLDEN exists — ship it.
+    if (GOLDEN) {
+      log.info('[WS3] returning GOLDEN checkpoint (degraded)');
+      return new Response(
+        JSON.stringify({
+          ok: true,
+          degraded: true,
+          reason: GOLDEN_reason ?? 'partial',
+          success: true,
+          data: GOLDEN,
+          result: GOLDEN,
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    // 2) Last-resort deterministic build (no DB, no network, no LLM).
+    try {
+      if (recoveryIdea) {
+        log.info('[WS3] building last-resort deterministic result');
+        const detIndustry = detectIndustry(recoveryIdea);
+        const detLocMultipliers = getEnhancedLocationMultiplier(recoveryLocation || 'United States');
+        const detSubIndustry = detectSubIndustry(recoveryIdea, detIndustry.id);
+        const detRaw = generateDeterministicFallbackResult(
+          recoveryIdea,
+          recoveryLocation || 'United States',
+          detIndustry,
+          detLocMultipliers,
+          recoveryFinancialInputs,
+        );
+        const detResult = transformResponse(
+          detRaw,
+          recoveryLocation || 'United States',
+          detIndustry,
+          detLocMultipliers,
+          detSubIndustry,
+          recoveryFinancialInputs,
+        );
+        delete (detResult as Record<string, unknown>)._calc;
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            degraded: true,
+            reason: 'last_resort',
+            success: true,
+            data: detResult,
+            result: detResult,
+          }),
+          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    } catch (lastResortErr) {
+      log.error('[WS3] last-resort build failed:', lastResortErr);
+    }
+
+    // 3) Absolute floor: degraded envelope (client retries).
     return new Response(
       JSON.stringify({
         ok: false,
         degraded: true,
         reason: 'internal',
         success: false,
-        error: "The analysis engine hit a transient error. Your inputs are preserved — please retry.",
-        code: "INTERNAL_ERROR",
+        error: 'The analysis engine hit a transient error. Your inputs are preserved — please retry.',
+        code: 'INTERNAL_ERROR',
         timestamp: new Date().toISOString(),
       }),
-      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });
+
