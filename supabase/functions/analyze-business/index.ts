@@ -3801,9 +3801,42 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       subIndustry,
     };
     
-    // Process through Quantis 2.0 engine
-    const quantisOutput = processQuantisAnalysis(quantisInput);
-    log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    // Process through Quantis 2.0 engine (WS2: non-blocking)
+    let quantisOutput: ReturnType<typeof processQuantisAnalysis>;
+    try {
+      quantisOutput = processQuantisAnalysis(quantisInput);
+      log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    } catch (qErr) {
+      log.error('[enrich:quantis-engine] non-blocking — building stub:', qErr);
+      GOLDEN_degraded = true; GOLDEN_reason ??= 'quantis_engine';
+      quantisOutput = {
+        success: false,
+        version: '9.2-stub',
+        metrics: {
+          mrr: calc.mrr, arr: calc.mrr * 12, netProfit: calc.netProfit,
+          netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit,
+          grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses,
+          paybackMonths: calc.paybackMonths, paybackDisplay: String(calc.paybackMonths),
+          roiYear1Percent: calc.roiYear1Percent, ltvCacRatio: calc.ltvCacRatio,
+          cac: calc.cac, ltv: calc.ltv,
+        },
+        validation: {
+          isRealistic: true, isProfitable: calc.isProfitable, wasAutoCorrected: false,
+          reliabilityScore: 50, corrections: [], calculationAudit: [],
+          breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: 0,
+          industryDetected: calc.industryDetected, confidenceBreakdown: {},
+          improvementSuggestions: [], summary: 'Stub (engine throw)',
+          healthScores: { overallHealthScore: 50, overall: 'medium' },
+          warnings: [],
+        },
+        recommendations: {
+          summary: { totalRecommendations: 0 },
+          priorities: { immediate: [], shortTerm: [], longTerm: [] },
+          actionPlan: [], generatedAt: new Date().toISOString(), version: '9.2-stub',
+        },
+      } as unknown as ReturnType<typeof processQuantisAnalysis>;
+    }
+
     
     // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
