@@ -2780,6 +2780,10 @@ serve(async (req) => {
         );
       }
       requestBody = parsed.data as AnalysisRequest;
+      // WS1: capture minimal recovery inputs the moment we have a valid body
+      recoveryIdea = String(requestBody.idea || '').trim() || 'business idea';
+      recoveryLocation = String(requestBody.location || '').trim() || 'United States';
+      recoveryFinancialInputs = (requestBody as any).financial_inputs as OptionalFinancialInputs | undefined;
     } catch (parseError) {
       log.error('JSON parse error:', parseError);
       return new Response(
@@ -2787,6 +2791,7 @@ serve(async (req) => {
         { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
+
 
     const isServiceRoleRequest = authHeader === `Bearer ${supabaseServiceKey}`;
     const requestedWorkerRun = rawRequestBody._worker_run === true;
