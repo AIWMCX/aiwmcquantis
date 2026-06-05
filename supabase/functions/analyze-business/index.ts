@@ -4633,6 +4633,20 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       })(),
     };
 
+    // ═══════════════════════════════════════════════════════════════════════
+    // WS1 — GOLDEN CHECKPOINT #2: full enriched payload is built.
+    // If anything below (validator, free-tier sanitization, schema check,
+    // response serialization) throws, the outer catch ships THIS object.
+    // ═══════════════════════════════════════════════════════════════════════
+    try {
+      GOLDEN = fullPayload as unknown as Record<string, unknown>;
+      log.info(`[GOLDEN] checkpoint #2 set (fullPayload, ${Object.keys(fullPayload).length} keys)`);
+    } catch (gErr) {
+      log.error('[GOLDEN] checkpoint #2 failed (non-fatal):', gErr);
+    }
+
+
+
     // ========== HYBRID VALIDATOR (paid tiers only) ==========
     // Deterministic rules first, LLM second-pass only on warning.
     // Skip for Free (already truncated) to save cost.
