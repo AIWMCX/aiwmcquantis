@@ -396,17 +396,21 @@ export default function Index() {
                         const { data, error } = await supabase.functions.invoke('generate-idea', {
                           body: { industry: 'technology' },
                         });
-                        // Entitlement gate: FunctionsHttpError exposes the JSON body via .context
                         if (error) {
-                          let locked = false;
-                          try {
-                            const body = await (error as any)?.context?.json?.();
-                            if (body?.error === 'FEATURE_LOCKED') locked = true;
-                          } catch { /* fall through */ }
-                          if (locked || /FEATURE_LOCKED|actionPlan/i.test(String(error?.message || ''))) {
+                          let errBody: any = null;
+                          try { errBody = await (error as any)?.context?.json?.(); } catch { /* ignore */ }
+                          const code = errBody?.error || '';
+                          if (code === 'QUOTA_EXCEEDED') {
                             toast({
-                              title: '✨ AI Idea Generation is a Plus feature',
-                              description: 'Upgrade to Plus to unlock — or try the Coffee Shop sample for free.',
+                              title: 'Monthly limit reached',
+                              description: errBody?.message || 'Upgrade to Plus for unlimited idea generations.',
+                            });
+                            return;
+                          }
+                          if (code === 'FEATURE_LOCKED' || /FEATURE_LOCKED|actionPlan/i.test(String(error?.message || ''))) {
+                            toast({
+                              title: '5 free ideas/month',
+                              description: 'Upgrade to Plus for unlimited AI idea generation.',
                             });
                             return;
                           }
@@ -423,6 +427,12 @@ export default function Index() {
                             monthly_costs: data.monthlyOpCosts || 8000,
                           }));
                           formRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                          if (typeof data._ideaGenRemaining === 'number' && data._ideaGenRemaining <= 2 && isFree) {
+                            toast({
+                              title: `${data._ideaGenRemaining} free idea${data._ideaGenRemaining !== 1 ? 's' : ''} left this month`,
+                              description: 'Upgrade to Plus for unlimited generations.',
+                            });
+                          }
                         }
                       } catch {
                         toast({ title: 'Could not generate idea', description: 'Please try again.', variant: 'destructive' });
@@ -430,7 +440,7 @@ export default function Index() {
                     }}
                     className="gap-1.5 text-xs h-8"
                   >
-                    <Brain className="w-3.5 h-3.5" /> Generate Random Idea
+                    <Brain className="w-3.5 h-3.5" /> Generate Random Idea {isFree && <span className="ml-1 text-[10px] opacity-60">5/mo free</span>}
                   </Button>
                 </div>
               </div>

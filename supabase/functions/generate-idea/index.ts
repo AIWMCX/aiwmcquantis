@@ -253,26 +253,60 @@ serve(async (req) => {
   }
 
   try {
-    // ========== ENTITLEMENT GATE: AI idea generation = Plus+ feature ==========
-    // (Free users use the curated examples gallery)
+    // ========== ENTITLEMENT GATE ==========
+    // Free tier: 5 idea generations per month (tracked in usage_tracking.idea_gen_count)
+    // Plus/Pro:  unlimited
     const authHeader = req.headers.get("Authorization");
     if (authHeader?.startsWith("Bearer ")) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
+      const userClient  = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-      if (claims?.claims?.sub) {
-        const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-        const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
-        try {
-          await requireFeature(adminClient, claims.claims.sub, 'actionPlan', '/generate-idea');
-        } catch (e) {
-          if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
-          throw e;
+      const { data: userResp } = await userClient.auth.getUser();
+      const userId = userResp?.user?.id;
+
+      if (userId) {
+        const { getUserTier } = await import("../_shared/entitlements.ts");
+        const { tier } = await getUserTier(adminClient, userId);
+
+        if (tier === 'free') {
+          // Check and consume monthly free quota (5/month)
+          const FREE_IDEA_LIMIT = 5;
+          const now = new Date();
+          const monthYear = `${now.getUTCFullYear()}-${String(now.getUTCMonth() + 1).padStart(2, '0')}`;
+
+          // Atomic upsert-and-increment via RPC
+          const { data: quotaData, error: quotaError } = await adminClient.rpc(
+            'consume_idea_gen_quota',
+            { p_user_id: userId, p_limit: FREE_IDEA_LIMIT, p_month_year: monthYear },
+          );
+
+          if (quotaError) {
+            // RPC doesn't exist yet (before migration) — fail open, allow the call
+            log.warn('consume_idea_gen_quota RPC not found, allowing (pre-migration):', quotaError.message);
+          } else {
+            const result = quotaData as { allowed: boolean; used: number; limit: number } | null;
+            if (result && !result.allowed) {
+              return new Response(
+                JSON.stringify({
+                  error: 'QUOTA_EXCEEDED',
+                  message: `You've used all ${FREE_IDEA_LIMIT} free idea generations this month. Upgrade to Plus for unlimited.`,
+                  used: result.used,
+                  limit: FREE_IDEA_LIMIT,
+                  feature: 'ideaGen',
+                  currentTier: 'free',
+                }),
+                { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+              );
+            }
+            // Attach remaining count to response metadata (used by client)
+            (req as any)._ideaRemaining = result ? Math.max(0, FREE_IDEA_LIMIT - result.used) : FREE_IDEA_LIMIT;
+          }
         }
+        // Plus/Pro: no quota check — unlimited
       }
     }
 
@@ -397,6 +431,10 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
     // Tag with metadata
     result._seedIndustry = seed.industry;
     result._engineVersion = "v2.0-100cases";
+
+    // Attach quota metadata for free-tier UI counter
+    const remaining = (req as any)._ideaRemaining;
+    if (typeof remaining === 'number') result._ideaGenRemaining = remaining;
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

@@ -98,10 +98,14 @@ export function useSubscription(): SubscriptionData {
       // This excludes stripe_customer_id and stripe_subscription_id
       // Note: Using base table query but only selecting safe columns
       // The RLS policy + view ensure Stripe IDs are never exposed
+      // Order by updated_at DESC so if multiple rows exist we always get the latest.
+      // Without ordering, Postgres can return any row — causing paid users to see FREE tier.
       const { data: subData, error: subError } = await supabase
         .from('subscriptions')
         .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
         .eq('user_id', user.id)
+        .order('updated_at', { ascending: false })
+        .limit(1)
         .maybeSingle();
 
       if (subError && subError.code !== 'PGRST116') {

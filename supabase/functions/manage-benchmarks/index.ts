@@ -191,13 +191,15 @@ serve(async (req) => {
       }
 
       log.info(`Successfully uploaded ${sanitizedRecords.length} benchmark records`);
-      
+
       return new Response(
-        JSON.stringify({ 
-          success: true, 
-          uploaded: sanitizedRecords.length,
-          skipped_errors: errors.length,
-          validation_errors: errors.slice(0, 10)
+        JSON.stringify({
+          success: true,
+          // Match benchmarkUploadService.ts expected shape: { inserted, updated, failed, errors }
+          inserted: sanitizedRecords.length,
+          updated: 0,
+          failed: errors.length,
+          errors: errors.slice(0, 10),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
@@ -243,9 +245,10 @@ serve(async (req) => {
         .limit(50);
 
       return new Response(
-        JSON.stringify({ 
-          total_records: count,
-          industries: industries || []
+        JSON.stringify({
+          // Match benchmarkUploadService.ts expected shape: { count, sample }
+          count: count ?? 0,
+          sample: (industries || []).map(r => ({ industry_id: r.industry_id, industry_name: r.industry_name })),
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );

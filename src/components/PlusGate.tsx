@@ -31,15 +31,23 @@ const MODULE_TO_TRIGGER: Record<PlusGateProps['module'], keyof typeof UPGRADE_TR
  * it in `src/i18n/index.ts`. No component changes required.
  */
 export function PlusGate({ module, children }: PlusGateProps) {
-  const { isPlus, loading } = useSubscription();
+  const { isPlus, loading, isTimedOut, refetch } = useSubscription();
   const { user, isAuthenticated } = useAuth();
   const { redirectToPayment, isLoading: payLoading } = usePaymentLinks();
   const navigate = useNavigate();
   const { t } = useTranslation('paywall');
 
-  // Optimistic render: if subscription is still resolving, show children to avoid
-  // a paywall flash for paying users. The subscription hook has a 5s safety timeout.
-  if (loading || isPlus) {
+  // If timed out for an authenticated user, silently retry once in the background.
+  // This prevents paying users from seeing the paywall due to a slow network request.
+  React.useEffect(() => {
+    if (isTimedOut && isAuthenticated && user) {
+      refetch();
+    }
+  }, [isTimedOut, isAuthenticated, user, refetch]);
+
+  // Optimistic render: show children while loading OR if user is Plus.
+  // Also show children optimistically when timed-out + authenticated (refetch in progress above).
+  if (loading || isPlus || (isTimedOut && isAuthenticated)) {
     return <>{children}</>;
   }
 

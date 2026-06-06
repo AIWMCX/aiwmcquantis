@@ -1,15 +1,42 @@
+/**
+ * RVCE — Rapid Validation & Competitive Evidence
+ * v0.3.0-deepseek
+ *
+ * Architecture:
+ *   1. Search  → DuckDuckGo Lite HTML scrape (no API key) + Tavily fallback if TAVILY_API_KEY set
+ *   2. Extract → DeepSeek deepseek-chat (JSON mode, temp=0.1) to pull numeric observations
+ *   3. Gate    → Tier-aware: free=20 obs, plus=40 obs, pro=60 obs; plus/pro required for RVCE
+ *
+ * Why DeepSeek: directive from product spec. No ANTHROPIC_API_KEY required.
+ */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { getUserTier } from '../_shared/entitlements.ts';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
-const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
-const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const RVCE_VERSION = 'rvce-0.2.0';
+const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
+const TAVILY_API_KEY    = Deno.env.get('TAVILY_API_KEY') ?? '';
+const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') ?? '';
+const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
+const DEEPSEEK_URL      = 'https://api.deepseek.com/v1/chat/completions';
+const RVCE_VERSION      = 'rvce-0.3.0-deepseek';
 
-const METRICS_TO_VALIDATE = [
-  'revenue_monthly', 'gross_margin_pct', 'opex_marketing_monthly',
-  'opex_rent_monthly', 'opex_payroll_monthly', 'ltv', 'cac',
-  'ltv_cac_ratio', 'cac_payback_months', 'startup_investment_total',
-];
+// Tier → max total observations collected across all metrics
+const OBS_LIMITS: Record<string, number> = {
+  free:  20,
+  plus:  40,
+  pro:   60,
+};
+
+const CORS_HEADERS = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers':
+    'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
+  'Access-Control-Max-Age': '86400',
+};
+
+// ── Query templates (unchanged from v0.2) ──────────────────────────────────
 
 const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }> = {
   revenue_monthly: {
@@ -87,18 +114,14 @@ const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }>
       '{industry} LTV to CAC ratio benchmark healthy',
       'good LTV CAC ratio {business_model} 2024',
     ],
-    fallback: [
-      'ideal LTV CAC ratio by industry',
-    ],
+    fallback: ['ideal LTV CAC ratio by industry'],
   },
   cac_payback_months: {
     primary: [
       '{industry} CAC payback period months benchmark',
       '{business_model} payback period average',
     ],
-    fallback: [
-      'average CAC payback period months startup',
-    ],
+    fallback: ['average CAC payback period months startup'],
   },
   startup_investment_total: {
     primary: [
@@ -112,211 +135,217 @@ const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }>
   },
 };
 
+const METRICS_TO_VALIDATE = Object.keys(QUERY_TEMPLATES);
+
+interface Observation {
+  value: number;
+  source: string;
+  url: string;
+  confidence: number;
+}
+
+interface SearchResult {
+  title: string;
+  snippet: string;
+  url: string;
+}
+
 interface SearchDiagnostics {
   metric: string;
   queries_sent: string[];
-  web_search_tool_fired: boolean;
-  tool_use_count: number;
-  tool_result_count: number;
-  raw_results_found: number;
+  web_search_fired: boolean;
+  results_found: number;
   parsed_observations: number;
   fallback_used: boolean;
   source_urls: string[];
   error: string | null;
 }
 
-interface Observation {
-  value: number;
-  source: string;
-  url?: string;
-  confidence: number;
+// ── Web Search ──────────────────────────────────────────────────────────────
+
+async function tavilySearch(query: string): Promise<SearchResult[]> {
+  try {
+    const resp = await fetch('https://api.tavily.com/search', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        api_key: TAVILY_API_KEY,
+        query,
+        search_depth: 'basic',
+        max_results: 5,
+        include_answer: false,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return [];
+    const data = await resp.json();
+    return (data.results || []).slice(0, 5).map((r: any) => ({
+      title: r.title || '',
+      snippet: r.content || r.snippet || '',
+      url: r.url || '',
+    }));
+  } catch {
+    return [];
+  }
 }
 
-const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-api-version',
-  'Access-Control-Max-Age': '86400',
-};
+async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
+  try {
+    const encoded = encodeURIComponent(query);
+    const resp = await fetch(`https://lite.duckduckgo.com/lite/?q=${encoded}`, {
+      headers: {
+        'User-Agent': 'Mozilla/5.0 (compatible; Quantis-RVCE/0.3)',
+        'Accept': 'text/html,application/xhtml+xml',
+      },
+      signal: AbortSignal.timeout(9000),
+    });
+    if (!resp.ok) return [];
+    const html = await resp.text();
 
-serve(async (req) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS_HEADERS });
+    const results: SearchResult[] = [];
+
+    // DDG Lite structure: result links in <a class="result-link">, snippets in .result-snippet
+    const rowRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
+    const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/;
+    const snippetRegex = /<td[^>]+class="result-snippet"[^>]*>([\s\S]*?)<\/td>/;
+
+    const rows = html.match(rowRegex) || [];
+    for (const row of rows) {
+      const linkMatch = linkRegex.exec(row);
+      const snippetMatch = snippetRegex.exec(row);
+      if (linkMatch && snippetMatch) {
+        const url = linkMatch[1];
+        const title = linkMatch[2].replace(/<[^>]+>/g, '').trim();
+        const snippet = snippetMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+        if (url && title && !url.startsWith('//duckduckgo')) {
+          results.push({ title, snippet, url });
+        }
+      }
+      if (results.length >= 5) break;
+    }
+
+    // Fallback: grab any links + text if structured parse fails
+    if (results.length === 0) {
+      const fallbackLinks = [...html.matchAll(/href="(https?:\/\/[^"]+)"[^>]*>([^<]{5,60})<\/a>/g)];
+      for (const m of fallbackLinks.slice(0, 5)) {
+        results.push({ url: m[1], title: m[2].trim(), snippet: '' });
+      }
+    }
+
+    return results;
+  } catch {
+    return [];
   }
+}
 
-  const startTime = Date.now();
+async function webSearch(query: string): Promise<SearchResult[]> {
+  if (TAVILY_API_KEY) {
+    const results = await tavilySearch(query);
+    if (results.length > 0) return results;
+  }
+  return duckDuckGoSearch(query);
+}
+
+// ── DeepSeek Observation Extraction ────────────────────────────────────────
+
+async function extractObservations(
+  metric: string,
+  searchResults: SearchResult[],
+  profile: { industry: string; city: string; business_model: string },
+): Promise<Observation[]> {
+  if (searchResults.length === 0 || !DEEPSEEK_API_KEY) return [];
+
+  const isPercentage = metric.includes('pct');
+  const isRatio      = metric.includes('ratio');
+  const isMonths     = metric.includes('months');
+  const unit = isPercentage ? '%' : isRatio ? 'x' : isMonths ? 'months' : 'USD';
+  const monthlyNote = (!isPercentage && !isRatio && !isMonths && metric.includes('monthly'))
+    ? ' Convert annual figures to monthly (÷12).' : '';
+
+  const searchText = searchResults
+    .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`)
+    .join('\n\n');
+
+  const userPrompt =
+`Extract every numeric ${metric.replace(/_/g, ' ')} benchmark from these web results.
+Context: ${profile.industry} business, ${profile.city}, model=${profile.business_model}.
+Unit: ${unit}.${monthlyNote}
+
+${searchText}
+
+Return ONLY valid JSON:
+{"observations":[{"value":12000,"source":"site name or brief description","url":"https://..."}]}
+Rules:
+- Only real numbers from the text — no fabrication
+- Max 8 observations
+- For % metrics use the raw number (62 not 0.62)
+- If nothing found: {"observations":[]}`;
 
   try {
-    const payload = await req.json();
-    const { analysis_id, business_profile, core_metrics } = payload;
-
-    if (!business_profile || !core_metrics) {
-      return jsonResponse({ error: 'Missing business_profile or core_metrics' }, 400);
-    }
-
-    const { industry, location_city, business_model } = business_profile;
-    const location_country = business_profile.location_country || 'US';
-
-    const referenceClasses = [
-      { id: `rc-${slug(industry)}-${slug(location_city)}`, description: `${location_city} ${industry}`, sample_size: 0 },
-      { id: `rc-${slug(industry)}-${slug(location_country)}`, description: `${location_country} ${industry}`, sample_size: 0 },
-      ...(business_model ? [{ id: `rc-${slug(business_model)}`, description: `${business_model} class`, sample_size: 0 }] : []),
-    ];
-
-    const metricsValidation: Record<string, any> = {};
-    const evidenceSamples: any[] = [];
-    const searchDiagnostics: SearchDiagnostics[] = [];
-
-    const metricsToProcess = METRICS_TO_VALIDATE.filter(
-      m => core_metrics[m] !== undefined && core_metrics[m] !== null && core_metrics[m] !== 0
-    );
-
-    const batches = chunk(metricsToProcess, 3);
-
-    for (const batch of batches) {
-      const results = await Promise.allSettled(
-        batch.map(metric =>
-          validateMetricWithSearch(
-            metric,
-            core_metrics[metric],
-            { industry, city: location_city, business_model, country: location_country }
-          )
-        )
-      );
-
-      results.forEach((result, i) => {
-        const metric = batch[i];
-        if (result.status === 'fulfilled') {
-          metricsValidation[metric] = result.value.validation;
-          evidenceSamples.push(...result.value.evidence);
-          searchDiagnostics.push(result.value.diagnostics);
-        } else {
-          metricsValidation[metric] = {
-            original_value: core_metrics[metric],
-            external_median: null,
-            p25: null, p75: null,
-            status: 'NO_DATA',
-            discrepancy_score: 0,
-            notes: `Search failed: ${result.reason}`,
-            observation_count: 0,
-            web_search_fired: false,
-          };
-          searchDiagnostics.push({
-            metric,
-            queries_sent: [],
-            web_search_tool_fired: false,
-            tool_use_count: 0,
-            tool_result_count: 0,
-            raw_results_found: 0,
-            parsed_observations: 0,
-            fallback_used: false,
-            source_urls: [],
-            error: String(result.reason),
-          });
-        }
-      });
-    }
-
-    const entries = Object.values(metricsValidation) as any[];
-    let confidence = 85;
-    confidence -= entries.filter((e: any) => e.status === 'OUTLIER').length * 12;
-    confidence -= entries.filter((e: any) => e.status === 'WARN').length * 5;
-    confidence -= entries.filter((e: any) => e.status === 'NO_DATA').length * 3;
-
-    const searchFiredCount = searchDiagnostics.filter(d => d.web_search_tool_fired).length;
-    const searchFiredRatio = metricsToProcess.length > 0
-      ? searchFiredCount / metricsToProcess.length
-      : 0;
-    if (searchFiredRatio >= 0.8) confidence += 5;
-    if (searchFiredRatio < 0.3) confidence -= 10;
-
-    confidence = Math.max(0, Math.min(100, confidence)) / 100;
-
-    const flags = Object.entries(metricsValidation)
-      .filter(([, v]: [string, any]) => v.status === 'OUTLIER')
-      .map(([metric, v]: [string, any]) => ({
-        severity: 'high' as const,
-        metric,
-        message: `${metric.replace(/_/g, ' ')} is ${Math.abs(v.discrepancy_score).toFixed(1)}σ ${v.discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${v.notes}`,
-        impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
-      }));
-
-    const latencyMs = Date.now() - startTime;
-
-    const searchHealth = {
-      total_metrics_searched: metricsToProcess.length,
-      web_search_fired_count: searchFiredCount,
-      web_search_fired_ratio: parseFloat(searchFiredRatio.toFixed(2)),
-      total_observations_collected: searchDiagnostics.reduce((s, d) => s + d.parsed_observations, 0),
-      total_source_urls: [...new Set(searchDiagnostics.flatMap(d => d.source_urls))].length,
-      fallback_queries_used: searchDiagnostics.filter(d => d.fallback_used).length,
-      metrics_with_zero_observations: searchDiagnostics.filter(d => d.parsed_observations === 0).length,
-    };
-
-    const validationPayload = {
-      analysis_id,
-      rvce_version: RVCE_VERSION,
-      global_confidence_score: parseFloat(confidence.toFixed(3)),
-      reference_classes: referenceClasses,
-      metrics_validation: metricsValidation,
-      flags,
-      evidence_samples: evidenceSamples.slice(0, 30),
-      latency_ms: latencyMs,
-      status: searchFiredCount > 0 ? 'COMPLETED' : (metricsToProcess.length > 0 ? 'PARTIAL' : 'UNAVAILABLE'),
-      search_health: searchHealth,
-      search_diagnostics: searchDiagnostics,
-    };
-
-    logValidation(validationPayload).catch(() => {});
-
-    return jsonResponse(validationPayload);
-
-  } catch (err) {
-    return jsonResponse({
-      analysis_id: 'unknown',
-      rvce_version: RVCE_VERSION,
-      global_confidence_score: 0,
-      reference_classes: [],
-      metrics_validation: {},
-      flags: [],
-      evidence_samples: [],
-      latency_ms: Date.now() - startTime,
-      status: 'UNAVAILABLE',
-      search_health: { total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0, total_observations_collected: 0, total_source_urls: 0, fallback_queries_used: 0, metrics_with_zero_observations: 0 },
-      search_diagnostics: [],
-      error: (err as Error).message,
+    const resp = await fetch(DEEPSEEK_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+      },
+      body: JSON.stringify({
+        model: 'deepseek-chat',
+        messages: [
+          {
+            role: 'system',
+            content: 'You are a financial benchmark extractor. Extract numeric values only from provided text. Return only valid JSON.',
+          },
+          { role: 'user', content: userPrompt },
+        ],
+        max_tokens: 600,
+        temperature: 0.1,
+        response_format: { type: 'json_object' },
+      }),
+      signal: AbortSignal.timeout(20000),
     });
-  }
-});
 
-async function validateMetricWithSearch(
+    if (!resp.ok) return [];
+
+    const data = await resp.json();
+    const content: string = data.choices?.[0]?.message?.content ?? '{}';
+    const parsed = JSON.parse(content);
+
+    return ((parsed.observations ?? []) as any[])
+      .filter((o) => typeof o.value === 'number' && isFinite(o.value) && o.value > 0)
+      .map((o) => ({
+        value: o.value as number,
+        source: (o.source as string) || 'web search',
+        url:    (o.url    as string) || '',
+        confidence: 0.78,
+      }));
+  } catch {
+    return [];
+  }
+}
+
+// ── Per-metric validation ───────────────────────────────────────────────────
+
+async function validateMetric(
   metric: string,
   originalValue: number,
-  profile: { industry: string; city: string; business_model: string; country: string }
+  profile: { industry: string; city: string; business_model: string; country: string },
 ): Promise<{ validation: any; evidence: any[]; diagnostics: SearchDiagnostics }> {
+  const fill = (tpl: string) =>
+    tpl.replace(/{industry}/g,      profile.industry)
+       .replace(/{city}/g,          profile.city)
+       .replace(/{business_model}/g, profile.business_model)
+       .replace(/{country}/g,       profile.country);
 
-  const templates = QUERY_TEMPLATES[metric] || {
-    primary: [`${profile.industry} ${metric.replace(/_/g, ' ')} benchmark`],
+  const templates = QUERY_TEMPLATES[metric] ?? {
+    primary:  [`${profile.industry} ${metric.replace(/_/g, ' ')} benchmark`],
     fallback: [`average ${metric.replace(/_/g, ' ')} small business`],
   };
 
-  const fillTemplate = (tpl: string) =>
-    tpl.replace(/{industry}/g, profile.industry)
-       .replace(/{city}/g, profile.city)
-       .replace(/{business_model}/g, profile.business_model)
-       .replace(/{country}/g, profile.country);
-
-  const primaryQueries = templates.primary.map(fillTemplate);
-  const fallbackQueries = templates.fallback.map(fillTemplate);
-
-  const diagnostics: SearchDiagnostics = {
+  const diag: SearchDiagnostics = {
     metric,
     queries_sent: [],
-    web_search_tool_fired: false,
-    tool_use_count: 0,
-    tool_result_count: 0,
-    raw_results_found: 0,
+    web_search_fired: false,
+    results_found: 0,
     parsed_observations: 0,
     fallback_used: false,
     source_urls: [],
@@ -325,37 +354,47 @@ async function validateMetricWithSearch(
 
   let observations: Observation[] = [];
 
-  try {
-    const result1 = await callClaudeWithWebSearch(metric, originalValue, primaryQueries, profile);
-    diagnostics.queries_sent.push(...primaryQueries);
-    diagnostics.web_search_tool_fired = result1.searchFired;
-    diagnostics.tool_use_count += result1.toolUseCount;
-    diagnostics.tool_result_count += result1.toolResultCount;
-    diagnostics.source_urls.push(...result1.sourceUrls);
-    observations.push(...result1.observations);
-  } catch (err) {
-    diagnostics.error = `Primary search failed: ${(err as Error).message}`;
+  // Primary queries
+  for (const q of templates.primary.map(fill)) {
+    diag.queries_sent.push(q);
+    try {
+      const results = await webSearch(q);
+      if (results.length > 0) {
+        diag.web_search_fired = true;
+        diag.results_found += results.length;
+        diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
+        const extracted = await extractObservations(metric, results, profile);
+        observations.push(...extracted);
+      }
+    } catch (e) {
+      diag.error = `Primary query "${q}" failed: ${(e as Error).message}`;
+    }
+    if (observations.length >= 4) break;
   }
 
-  if (observations.length < 3 && fallbackQueries.length > 0) {
-    diagnostics.fallback_used = true;
-    try {
-      const result2 = await callClaudeWithWebSearch(metric, originalValue, fallbackQueries, profile);
-      diagnostics.queries_sent.push(...fallbackQueries);
-      if (result2.searchFired) diagnostics.web_search_tool_fired = true;
-      diagnostics.tool_use_count += result2.toolUseCount;
-      diagnostics.tool_result_count += result2.toolResultCount;
-      diagnostics.source_urls.push(...result2.sourceUrls);
-      observations.push(...result2.observations);
-    } catch (err) {
-      diagnostics.error = (diagnostics.error || '') + ` Fallback also failed: ${(err as Error).message}`;
+  // Fallback queries if we don't have enough observations
+  if (observations.length < 3 && templates.fallback.length > 0) {
+    diag.fallback_used = true;
+    for (const q of templates.fallback.map(fill)) {
+      diag.queries_sent.push(q);
+      try {
+        const results = await webSearch(q);
+        if (results.length > 0) {
+          diag.web_search_fired = true;
+          diag.results_found += results.length;
+          diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
+          const extracted = await extractObservations(metric, results, profile);
+          observations.push(...extracted);
+        }
+      } catch { /* best-effort */ }
+      if (observations.length >= 4) break;
     }
   }
 
-  observations = deduplicateObservations(observations);
-  diagnostics.source_urls = [...new Set(diagnostics.source_urls)];
-  diagnostics.raw_results_found = observations.length;
-  diagnostics.parsed_observations = observations.length;
+  // Deduplicate & clean
+  observations = dedupe(observations);
+  diag.source_urls = [...new Set(diag.source_urls)];
+  diag.parsed_observations = observations.length;
 
   if (observations.length < 2) {
     return {
@@ -365,220 +404,267 @@ async function validateMetricWithSearch(
         p25: null, p75: null,
         status: 'NO_DATA',
         discrepancy_score: 0,
-        notes: diagnostics.web_search_tool_fired
-          ? 'Web search ran but found insufficient relevant data for this metric.'
-          : 'Web search did not activate. Insufficient data.',
+        notes: diag.web_search_fired
+          ? 'Web search ran but found insufficient numeric data for this metric.'
+          : 'No web results found. External validation unavailable.',
         observation_count: observations.length,
-        web_search_fired: diagnostics.web_search_tool_fired,
-        sources_used: diagnostics.source_urls.length,
+        web_search_fired: diag.web_search_fired,
+        sources_used: diag.source_urls.length,
       },
       evidence: [],
-      diagnostics,
+      diagnostics: diag,
     };
   }
 
   const values = observations.map(o => o.value).sort((a, b) => a - b);
-  const n = values.length;
-  const median = n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
+  const n   = values.length;
+  const med = n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
   const p25 = values[Math.max(0, Math.floor(n * 0.25))];
   const p75 = values[Math.min(n - 1, Math.floor(n * 0.75))];
   const mean = values.reduce((s, v) => s + v, 0) / n;
-  const std = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1));
-  const effectiveStd = std > 0 ? std : Math.max(1e-6, Math.abs(median) * 0.1);
-  const discrepancy = (originalValue - median) / effectiveStd;
+  const std  = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1));
+  const effStd = std > 0 ? std : Math.max(1e-6, Math.abs(med) * 0.1);
+  const discrepancy = (originalValue - med) / effStd;
 
-  let status: string;
-  if (Math.abs(discrepancy) < 1.0) status = 'OK';
-  else if (Math.abs(discrepancy) < 2.0) status = 'WARN';
-  else status = 'OUTLIER';
+  const status =
+    Math.abs(discrepancy) < 1.0 ? 'OK' :
+    Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
 
   const validation: any = {
     original_value: originalValue,
-    external_median: parseFloat(median.toFixed(2)),
+    external_median: parseFloat(med.toFixed(2)),
     p25: parseFloat(p25.toFixed(2)),
     p75: parseFloat(p75.toFixed(2)),
     status,
     discrepancy_score: parseFloat(discrepancy.toFixed(2)),
     notes: status === 'OUTLIER'
-      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median of $${median.toLocaleString()} from ${n} external sources.`
+      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median ($${med.toLocaleString()}) from ${n} sources.`
       : status === 'WARN'
-      ? `Value is at the boundary of the typical range ($${p25.toLocaleString()}–$${p75.toLocaleString()}) from ${n} external sources.`
-      : `Value aligns with external reality (median $${median.toLocaleString()}) from ${n} sources.`,
+      ? `Value sits at the boundary of the typical range ($${p25.toLocaleString()}–$${p75.toLocaleString()}) from ${n} sources.`
+      : `Value aligns with external benchmarks (median $${med.toLocaleString()}) from ${n} sources.`,
     observation_count: observations.length,
-    web_search_fired: diagnostics.web_search_tool_fired,
-    sources_used: diagnostics.source_urls.length,
+    web_search_fired: diag.web_search_fired,
+    sources_used: diag.source_urls.length,
   };
 
-  if (status === 'OUTLIER') {
-    validation.recommended_value = parseFloat(median.toFixed(2));
-  }
+  if (status === 'OUTLIER') validation.recommended_value = parseFloat(med.toFixed(2));
 
   const evidence = observations.slice(0, 5).map(o => ({
     metric,
     source: o.source,
-    url: o.url || '',
+    url: o.url,
     summary: `$${o.value.toLocaleString()} — ${o.source}`,
     value: o.value,
   }));
 
-  return { validation, evidence, diagnostics };
+  return { validation, evidence, diagnostics: diag };
 }
 
-async function callClaudeWithWebSearch(
-  metric: string,
-  _originalValue: number,
-  queries: string[],
-  profile: { industry: string; city: string; business_model: string }
-): Promise<{
-  observations: Observation[];
-  searchFired: boolean;
-  toolUseCount: number;
-  toolResultCount: number;
-  sourceUrls: string[];
-}> {
-  const metricLabel = metric.replace(/_/g, ' ');
-  const isPercentage = metric.includes('pct') || metric.includes('ratio');
-  const unit = isPercentage ? (metric.includes('ratio') ? 'x' : '%') : 'USD per month';
+// ── Helpers ─────────────────────────────────────────────────────────────────
 
-  const systemPrompt = `You are a financial benchmark researcher. You MUST use the web_search tool to find real, current data. Do NOT answer from memory or training data — every number you return MUST come from a web search result you just retrieved. If you cannot find data via web search, return an empty observations array. Never fabricate benchmarks.`;
-
-  const userPrompt = `I need you to find real market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
-
-STEP 1: Use your web_search tool to search for EACH of these queries (search for ALL of them):
-${queries.map((q, i) => `  ${i + 1}. "${q}"`).join('\n')}
-
-STEP 2: From the search results, extract every numeric value that specifically represents "${metricLabel}". The unit is ${unit}.
-
-STEP 3: Return ONLY this JSON (no markdown, no backticks, no preamble):
-{
-  "observations": [
-    {"value": 12000, "source": "Brief description of where this number came from", "url": "https://source-url-if-available"},
-    {"value": 15000, "source": "Another source", "url": ""}
-  ],
-  "search_executed": true
-}
-
-CRITICAL RULES:
-- You MUST call web_search before returning any data
-- Convert annual figures to monthly (divide by 12) for monthly metrics
-- For percentage metrics, return the number (e.g., 62 not 0.62 for 62%)
-- Only include numbers directly related to "${metricLabel}"
-- If search returns nothing relevant, return {"observations": [], "search_executed": true}
-- Include the source URL when available from search results`;
-
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
-      max_tokens: 1500,
-      system: systemPrompt,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
-
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Claude API ${response.status}: ${errText.slice(0, 200)}`);
-  }
-
-  const data = await response.json();
-  const content = data.content || [];
-
-  let searchFired = false;
-  let toolUseCount = 0;
-  let toolResultCount = 0;
-  const sourceUrls: string[] = [];
-  const textBlocks: string[] = [];
-
-  for (const block of content) {
-    if (block.type === 'tool_use' || block.type === 'server_tool_use') {
-      toolUseCount++;
-      if (block.name === 'web_search') searchFired = true;
-    }
-    if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
-      toolResultCount++;
-      const resultContent = block.content;
-      if (Array.isArray(resultContent)) {
-        for (const item of resultContent) {
-          if (item.type === 'web_search_result' && item.url) {
-            sourceUrls.push(item.url);
-          } else if (item.url) {
-            sourceUrls.push(item.url);
-          }
-        }
-      }
-      if (typeof resultContent === 'string' && resultContent.includes('http')) {
-        const urls = resultContent.match(/https?:\/\/[^\s"'<>]+/g);
-        if (urls) sourceUrls.push(...urls);
-      }
-    }
-    if (block.type === 'text') {
-      textBlocks.push(block.text);
-    }
-  }
-
-  const fullText = textBlocks.join('\n');
-  let observations: Observation[] = [];
-
-  try {
-    const cleaned = fullText.replace(/```json|```/g, '').trim();
-    const jsonMatch = cleaned.match(/\{[\s\S]*"observations"[\s\S]*\}/);
-    if (jsonMatch) {
-      const parsed = JSON.parse(jsonMatch[0]);
-      observations = (parsed.observations || [])
-        .filter((o: any) => typeof o.value === 'number' && isFinite(o.value) && o.value > 0)
-        .map((o: any) => ({
-          value: o.value,
-          source: o.source || 'web search',
-          url: o.url || '',
-          confidence: searchFired ? 0.8 : 0.3,
-        }));
-    }
-  } catch {
-    const patterns = isPercentage
-      ? /(\d+(?:\.\d+)?)\s*%/g
-      : /\$\s*([\d,]+(?:\.\d+)?)/g;
-    const matches = [...fullText.matchAll(patterns)];
-    observations = matches.slice(0, 8).map(m => ({
-      value: parseFloat((m[1] || m[0]).replace(/[$,]/g, '')),
-      source: 'extracted from search text',
-      confidence: searchFired ? 0.5 : 0.2,
-    })).filter(o => isFinite(o.value) && o.value > 0);
-  }
-
-  return { observations, searchFired, toolUseCount, toolResultCount, sourceUrls: [...new Set(sourceUrls)] };
-}
-
-function deduplicateObservations(obs: Observation[]): Observation[] {
-  const unique: Observation[] = [];
+function dedupe(obs: Observation[]): Observation[] {
+  const out: Observation[] = [];
   for (const o of obs) {
-    const isDupe = unique.some(u => Math.abs(u.value - o.value) / Math.max(u.value, 1) < 0.01);
-    if (!isDupe) unique.push(o);
+    if (!out.some(u => Math.abs(u.value - o.value) / Math.max(u.value, 1) < 0.01)) out.push(o);
   }
-  return unique;
+  return out;
 }
 
-function slug(s: string): string {
-  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
+function chunk<T>(arr: T[], n: number): T[][] {
+  const r: T[][] = [];
+  for (let i = 0; i < arr.length; i += n) r.push(arr.slice(i, i + n));
+  return r;
 }
 
-function chunk<T>(arr: T[], size: number): T[][] {
-  const result: T[][] = [];
-  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
-  return result;
-}
-
-function jsonResponse(data: any, status = 200) {
+function jsonResp(data: any, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' },
   });
+}
+
+// ── Main handler ─────────────────────────────────────────────────────────────
+
+serve(async (req) => {
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
+
+  const start = Date.now();
+
+  try {
+    // ── Tier resolution ──
+    const authHeader = req.headers.get('Authorization') ?? '';
+    let tier: 'free' | 'plus' | 'pro' = 'plus'; // default permissive if no auth
+    let userId: string | null = null;
+
+    if (authHeader.startsWith('Bearer ') && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
+      try {
+        const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+        const userClient  = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+          global: { headers: { Authorization: authHeader } },
+        });
+        const { data: claims } = await userClient.auth.getUser();
+        if (claims?.user?.id) {
+          userId = claims.user.id;
+          const { tier: resolvedTier } = await getUserTier(adminClient, userId);
+          tier = resolvedTier;
+        }
+      } catch { /* fail open — external validation is non-blocking */ }
+    }
+
+    // RVCE requires Plus or Pro
+    if (tier === 'free') {
+      return jsonResp({
+        error: 'FEATURE_LOCKED',
+        message: 'External validation (RVCE) requires a Plus or Pro subscription.',
+        feature: 'rvce',
+        currentTier: 'free',
+      }, 403);
+    }
+
+    const obsLimit = OBS_LIMITS[tier] ?? 40;
+
+    // ── Parse body ──
+    const payload = await req.json();
+    const { analysis_id, business_profile, core_metrics } = payload;
+
+    if (!business_profile || !core_metrics) {
+      return jsonResp({ error: 'Missing business_profile or core_metrics' }, 400);
+    }
+
+    if (!DEEPSEEK_API_KEY) {
+      return jsonResp({
+        error: 'CONFIG',
+        message: 'DEEPSEEK_API_KEY not configured. Please add it to Supabase edge function secrets.',
+      }, 500);
+    }
+
+    const { industry, location_city, business_model } = business_profile;
+    const location_country = business_profile.location_country || 'US';
+
+    const profile = { industry, city: location_city, business_model, country: location_country };
+
+    const referenceClasses = [
+      { id: `rc-${slug(industry)}-${slug(location_city)}`,    description: `${location_city} ${industry}`,     sample_size: 0 },
+      { id: `rc-${slug(industry)}-${slug(location_country)}`, description: `${location_country} ${industry}`,  sample_size: 0 },
+      ...(business_model ? [{ id: `rc-${slug(business_model)}`, description: `${business_model} model`, sample_size: 0 }] : []),
+    ];
+
+    const metricsToProcess = METRICS_TO_VALIDATE.filter(
+      m => core_metrics[m] !== undefined && core_metrics[m] !== null && core_metrics[m] !== 0,
+    );
+
+    const metricsValidation: Record<string, any> = {};
+    const evidenceSamples: any[] = [];
+    const searchDiagnostics: SearchDiagnostics[] = [];
+
+    // Process in batches of 3 (parallel per batch, sequential between batches)
+    for (const batch of chunk(metricsToProcess, 3)) {
+      const results = await Promise.allSettled(
+        batch.map(m => validateMetric(m, core_metrics[m], profile)),
+      );
+
+      results.forEach((res, i) => {
+        const metric = batch[i];
+        if (res.status === 'fulfilled') {
+          metricsValidation[metric] = res.value.validation;
+          evidenceSamples.push(...res.value.evidence);
+          searchDiagnostics.push(res.value.diagnostics);
+        } else {
+          metricsValidation[metric] = {
+            original_value: core_metrics[metric],
+            external_median: null, p25: null, p75: null,
+            status: 'NO_DATA', discrepancy_score: 0,
+            notes: `Validation failed: ${res.reason}`,
+            observation_count: 0, web_search_fired: false,
+          };
+          searchDiagnostics.push({
+            metric, queries_sent: [], web_search_fired: false,
+            results_found: 0, parsed_observations: 0, fallback_used: false,
+            source_urls: [], error: String(res.reason),
+          });
+        }
+      });
+    }
+
+    // ── Confidence score ──
+    const entries = Object.values(metricsValidation) as any[];
+    let confidence = 85;
+    confidence -= entries.filter(e => e.status === 'OUTLIER').length * 12;
+    confidence -= entries.filter(e => e.status === 'WARN').length * 5;
+    confidence -= entries.filter(e => e.status === 'NO_DATA').length * 3;
+
+    const searchFiredCount = searchDiagnostics.filter(d => d.web_search_fired).length;
+    const searchRatio = metricsToProcess.length > 0 ? searchFiredCount / metricsToProcess.length : 0;
+    if (searchRatio >= 0.8) confidence += 5;
+    if (searchRatio < 0.3)  confidence -= 10;
+    confidence = Math.max(0, Math.min(100, confidence)) / 100;
+
+    const flags = Object.entries(metricsValidation)
+      .filter(([, v]) => (v as any).status === 'OUTLIER')
+      .map(([metric, v]) => ({
+        severity: 'high' as const,
+        metric,
+        message: `${metric.replace(/_/g, ' ')} is ${Math.abs((v as any).discrepancy_score).toFixed(1)}σ ${(v as any).discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${(v as any).notes}`,
+        impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
+      }));
+
+    const totalObs = searchDiagnostics.reduce((s, d) => s + d.parsed_observations, 0);
+
+    const searchHealth = {
+      total_metrics_searched:     metricsToProcess.length,
+      web_search_fired_count:     searchFiredCount,
+      web_search_fired_ratio:     parseFloat(searchRatio.toFixed(2)),
+      total_observations_collected: totalObs,
+      total_source_urls:          [...new Set(searchDiagnostics.flatMap(d => d.source_urls))].length,
+      fallback_queries_used:      searchDiagnostics.filter(d => d.fallback_used).length,
+      metrics_with_zero_observations: searchDiagnostics.filter(d => d.parsed_observations === 0).length,
+      observation_limit:          obsLimit,
+      tier_used:                  tier,
+      search_provider:            TAVILY_API_KEY ? 'tavily+ddg' : 'duckduckgo',
+    };
+
+    const payload_out = {
+      analysis_id,
+      rvce_version: RVCE_VERSION,
+      global_confidence_score: parseFloat(confidence.toFixed(3)),
+      reference_classes: referenceClasses,
+      metrics_validation: metricsValidation,
+      flags,
+      evidence_samples: evidenceSamples.slice(0, obsLimit),
+      latency_ms: Date.now() - start,
+      status: searchFiredCount > 0 ? 'COMPLETED' : (metricsToProcess.length > 0 ? 'PARTIAL' : 'UNAVAILABLE'),
+      search_health: searchHealth,
+      search_diagnostics: searchDiagnostics,
+    };
+
+    logValidation(payload_out).catch(() => {});
+    return jsonResp(payload_out);
+
+  } catch (err) {
+    return jsonResp({
+      analysis_id: 'unknown',
+      rvce_version: RVCE_VERSION,
+      global_confidence_score: 0,
+      reference_classes: [],
+      metrics_validation: {},
+      flags: [],
+      evidence_samples: [],
+      latency_ms: Date.now() - start,
+      status: 'UNAVAILABLE',
+      search_health: {
+        total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0,
+        total_observations_collected: 0, total_source_urls: 0,
+        fallback_queries_used: 0, metrics_with_zero_observations: 0,
+        observation_limit: 0, tier_used: 'unknown', search_provider: 'unknown',
+      },
+      search_diagnostics: [],
+      error: (err as Error).message,
+    });
+  }
+});
+
+function slug(s: string): string {
+  return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
 async function logValidation(payload: any) {
@@ -588,24 +674,24 @@ async function logValidation(payload: any) {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'apikey': SUPABASE_SERVICE_ROLE_KEY,
-        'Authorization': `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        'Prefer': 'return=minimal',
+        apikey: SUPABASE_SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
+        Prefer: 'return=minimal',
       },
       body: JSON.stringify({
-        analysis_id: payload.analysis_id || crypto.randomUUID(),
-        rvce_version: payload.rvce_version,
+        analysis_id:     payload.analysis_id || crypto.randomUUID(),
+        rvce_version:    payload.rvce_version,
         global_confidence: payload.global_confidence_score,
-        metrics_count: Object.keys(payload.metrics_validation || {}).length,
-        outlier_count: payload.flags?.length || 0,
-        warn_count: Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'WARN').length,
-        no_data_count: Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'NO_DATA').length,
+        metrics_count:   Object.keys(payload.metrics_validation || {}).length,
+        outlier_count:   payload.flags?.length || 0,
+        warn_count:      Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'WARN').length,
+        no_data_count:   Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'NO_DATA').length,
         total_observations: Object.values(payload.metrics_validation || {}).reduce((s: number, v: any) => s + (v.observation_count || 0), 0),
         reference_classes: payload.reference_classes,
         metrics_validation: payload.metrics_validation,
-        flags: payload.flags,
+        flags:           payload.flags,
         evidence_samples: payload.evidence_samples,
-        latency_ms: payload.latency_ms,
+        latency_ms:      payload.latency_ms,
       }),
     });
   } catch { /* best-effort */ }
