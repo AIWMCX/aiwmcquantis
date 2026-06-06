@@ -401,17 +401,22 @@ export default function Index() {
                         const { data, error } = await supabase.functions.invoke('generate-idea', {
                           body: { industry: 'technology' },
                         });
-                        // Entitlement gate: FunctionsHttpError exposes the JSON body via .context
                         if (error) {
-                          let locked = false;
+                          let body: any = null;
                           try {
-                            const body = await (error as any)?.context?.json?.();
-                            if (body?.error === 'FEATURE_LOCKED') locked = true;
+                            body = await (error as any)?.context?.json?.();
                           } catch { /* fall through */ }
-                          if (locked || /FEATURE_LOCKED|actionPlan/i.test(String(error?.message || ''))) {
+                          if (body?.error === 'IDEA_QUOTA_EXCEEDED' || error?.message?.includes('402')) {
                             toast({
-                              title: '✨ AI Idea Generation is a Plus feature',
-                              description: 'Upgrade to Plus to unlock — or try the Coffee Shop sample for free.',
+                              title: 'Free random ideas used',
+                              description: body?.message ?? 'Free includes 5 random ideas per month. Upgrade for unlimited.',
+                            });
+                            return;
+                          }
+                          if (body?.code === 'AUTH_REQUIRED') {
+                            toast({
+                              title: 'Sign in for 5 free random ideas',
+                              description: 'Create a free account to use the monthly random idea allowance.',
                             });
                             return;
                           }
