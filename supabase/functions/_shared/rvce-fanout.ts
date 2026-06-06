@@ -3,8 +3,8 @@
  *
  * Per analysis: for each of 12 canonical variables, fan out N parallel
  * `deepseek-chat` calls (N = RVCE_OBS_CAP[tier]) with response_format=json_object
- * to gather independent web-style observations, then ONE Anthropic Haiku
- * calibration call aggregates the per-variable evidence into
+ * to gather independent web-style observations, then ONE DeepSeek calibration
+ * call aggregates the per-variable evidence into
  * { p25, p50, p75, status, discrepancy_pct, confidence }.
  *
  * Cached by (variable, business_type, location, tier_cap) in `rvce_cache`
@@ -21,7 +21,6 @@ import {
   type Tier,
 } from './tier.ts';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY') ?? '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 
@@ -320,12 +319,11 @@ export async function fanoutVariable(
   };
 }
 
-/** ─── Optional: single Anthropic Haiku calibration over all vars. ── */
-export async function calibrateWithHaiku(
+/** ─── Optional: single DeepSeek calibration over all vars. ── */
+export async function calibrateWithDeepSeek(
   perVariable: Record<string, VariableValidation>,
   coreMetrics: Record<string, number>,
 ): Promise<Record<string, VariableValidation>> {
-  if (!ANTHROPIC_API_KEY) return perVariable;
   // Compact summary so Haiku doesn't see raw snippets (cost guard).
   const summary = Object.fromEntries(
     Object.entries(perVariable).map(([k, v]) => [
@@ -346,27 +344,23 @@ export async function calibrateWithHaiku(
   const user = `Per-variable evidence (medians, IQR, status, discrepancy%):\n${JSON.stringify(summary)}\nCore metrics:\n${JSON.stringify(coreMetrics)}\n\nReturn STRICT JSON: {"variables": {"<name>": {"status":"OK|WARN|OUTLIER|NO_DATA","confidence":0..1,"notes":"<=160 chars"}}}. Do NOT invent new medians.`;
 
   try {
-    const r = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: 'claude-haiku-4-5-20251001',
+    const r = await callDeepseek(
+      {
+        model: 'deepseek-chat',
+        messages: [
+          { role: 'system', content: sys },
+          { role: 'user', content: user },
+        ],
+        response_format: { type: 'json_object' },
+        temperature: 0.1,
         max_tokens: 1200,
-        system: sys,
-        messages: [{ role: 'user', content: user }],
-      }),
-      signal: AbortSignal.timeout(20_000),
-    });
-    if (!r.ok) return perVariable;
-    const j = (await r.json()) as { content?: Array<{ type: string; text?: string }> };
-    const text = (j.content || []).filter((b) => b.type === 'text').map((b) => b.text ?? '').join('\n');
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) return perVariable;
-    const parsed = JSON.parse(match[0]) as {
+      },
+      20_000,
+    );
+    if (!r.ok || !r.data) return perVariable;
+    const choices = (r.data.choices as Array<{ message?: { content?: string } }> | undefined) ?? [];
+    const text = choices[0]?.message?.content ?? '';
+    const parsed = JSON.parse(text) as {
       variables?: Record<string, { status?: VariableValidation['status']; confidence?: number; notes?: string }>;
     };
     const out: Record<string, VariableValidation> = { ...perVariable };
@@ -381,6 +375,8 @@ export async function calibrateWithHaiku(
     return perVariable;
   }
 }
+
+export const calibrateWithHaiku = calibrateWithDeepSeek;
 
 function round(n: number): number {
   return Math.round(n * 100) / 100;
