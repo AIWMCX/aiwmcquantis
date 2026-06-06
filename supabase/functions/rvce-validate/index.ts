@@ -1,8 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { isRvceFanoutEnabled, getTierForAnalysis, RVCE_OBS_CAP, type Tier } from '../_shared/tier.ts';
-import { calibrateWithHaiku, fanoutVariable } from '../_shared/rvce-fanout.ts';
+import { calibrateWithDeepSeek, fanoutVariable } from '../_shared/rvce-fanout.ts';
+import { callDeepseek } from '../_shared/deepseek.ts';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RVCE_VERSION = 'rvce-0.3.0';
@@ -149,7 +149,7 @@ serve(async (req) => {
   }
 
   // Auth gate: require a valid bearer token (user JWT or service role).
-  // Prevents unauthenticated abuse of the Anthropic API budget.
+  // Prevents unauthenticated abuse of the RVCE provider budget.
   const authHeader = req.headers.get('Authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) {
     return new Response(
@@ -201,21 +201,51 @@ serve(async (req) => {
       user_tier: payload.user_tier ?? business_profile?.user_tier,
     });
 
-    if (isRvceFanoutEnabled() && Deno.env.get('DEEPSEEK_API_KEY')) {
-      const fanoutResult = await runFanoutPipeline({
-        analysis_id,
-        tier,
-        startTime,
-        core_metrics,
-        ctx: {
+    if (isRvceFanoutEnabled()) {
+      if (!Deno.env.get('DEEPSEEK_API_KEY')) {
+        const fallbackResult = buildPartialRvcePayload({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
           industry,
-          city: location_city,
-          country: location_country,
-          business_model,
-        },
-      });
-      logValidation(fanoutResult).catch(() => {});
-      return jsonResponse(fanoutResult);
+          location_city,
+          location_country,
+          reason: 'DEEPSEEK_API_KEY is not configured',
+        });
+        logValidation(fallbackResult).catch(() => {});
+        return jsonResponse(fallbackResult);
+      }
+
+      try {
+        const fanoutResult = await runFanoutPipeline({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
+          ctx: {
+            industry,
+            city: location_city,
+            country: location_country,
+            business_model,
+          },
+        });
+        logValidation(fanoutResult).catch(() => {});
+        return jsonResponse(fanoutResult);
+      } catch (err) {
+        const fallbackResult = buildPartialRvcePayload({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
+          industry,
+          location_city,
+          location_country,
+          reason: err instanceof Error ? err.message : String(err),
+        });
+        logValidation(fallbackResult).catch(() => {});
+        return jsonResponse(fallbackResult);
+      }
     }
     // ── End fan-out branch ──────────────────────────────────────────
 
@@ -388,7 +418,7 @@ async function validateMetricWithSearch(
   let observations: Observation[] = [];
 
   try {
-    const result1 = await callClaudeWithWebSearch(metric, originalValue, primaryQueries, profile);
+    const result1 = await callDeepSeekBenchmarkSearch(metric, originalValue, primaryQueries, profile);
     diagnostics.queries_sent.push(...primaryQueries);
     diagnostics.web_search_tool_fired = result1.searchFired;
     diagnostics.tool_use_count += result1.toolUseCount;
@@ -402,7 +432,7 @@ async function validateMetricWithSearch(
   if (observations.length < 3 && fallbackQueries.length > 0) {
     diagnostics.fallback_used = true;
     try {
-      const result2 = await callClaudeWithWebSearch(metric, originalValue, fallbackQueries, profile);
+      const result2 = await callDeepSeekBenchmarkSearch(metric, originalValue, fallbackQueries, profile);
       diagnostics.queries_sent.push(...fallbackQueries);
       if (result2.searchFired) diagnostics.web_search_tool_fired = true;
       diagnostics.tool_use_count += result2.toolUseCount;
@@ -486,7 +516,7 @@ async function validateMetricWithSearch(
   return { validation, evidence, diagnostics };
 }
 
-async function callClaudeWithWebSearch(
+async function callDeepSeekBenchmarkSearch(
   metric: string,
   _originalValue: number,
   queries: string[],
@@ -502,90 +532,55 @@ async function callClaudeWithWebSearch(
   const isPercentage = metric.includes('pct') || metric.includes('ratio');
   const unit = isPercentage ? (metric.includes('ratio') ? 'x' : '%') : 'USD per month';
 
-  const systemPrompt = `You are a financial benchmark researcher. You MUST use the web_search tool to find real, current data. Do NOT answer from memory or training data — every number you return MUST come from a web search result you just retrieved. If you cannot find data via web search, return an empty observations array. Never fabricate benchmarks.`;
+  const systemPrompt = `You are a financial benchmark researcher. Return conservative, citation-style benchmark observations as strict JSON only. Never fabricate impossible precision; if confidence is low, return fewer observations with lower confidence.`;
 
-  const userPrompt = `I need you to find real market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
+  const userPrompt = `I need realistic market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
 
-STEP 1: Use your web_search tool to search for EACH of these queries (search for ALL of them):
+Research angles to cover:
 ${queries.map((q, i) => `  ${i + 1}. "${q}"`).join('\n')}
 
-STEP 2: From the search results, extract every numeric value that specifically represents "${metricLabel}". The unit is ${unit}.
+Extract numeric values that specifically represent "${metricLabel}". The unit is ${unit}.
 
-STEP 3: Return ONLY this JSON (no markdown, no backticks, no preamble):
+Return ONLY this JSON (no markdown, no backticks, no preamble):
 {
   "observations": [
-    {"value": 12000, "source": "Brief description of where this number came from", "url": "https://source-url-if-available"},
-    {"value": 15000, "source": "Another source", "url": ""}
+    {"value": 12000, "source": "Brief publisher/report description", "url": "https://source-url-if-known", "confidence": 0.7},
+    {"value": 15000, "source": "Another publisher/report description", "url": "", "confidence": 0.55}
   ],
   "search_executed": true
 }
 
 CRITICAL RULES:
-- You MUST call web_search before returning any data
 - Convert annual figures to monthly (divide by 12) for monthly metrics
 - For percentage metrics, return the number (e.g., 62 not 0.62 for 62%)
 - Only include numbers directly related to "${metricLabel}"
-- If search returns nothing relevant, return {"observations": [], "search_executed": true}
-- Include the source URL when available from search results`;
+- If you cannot ground a defensible range, return {"observations": [], "search_executed": true}
+- Include source URLs only when known; do not invent URLs`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+  const response = await callDeepseek(
+    {
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.35,
       max_tokens: 1500,
-      system: systemPrompt,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
+    },
+    25_000,
+  );
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Claude API ${response.status}: ${errText.slice(0, 200)}`);
+  if (!response.ok || !response.data) {
+    throw new Error(`DeepSeek RVCE ${response.status}: ${response.error ?? 'AI_ERROR'}`);
   }
 
-  const data = await response.json();
-  const content = data.content || [];
-
-  let searchFired = false;
-  let toolUseCount = 0;
-  let toolResultCount = 0;
+  const choices = (response.data.choices as Array<{ message?: { content?: string } }> | undefined) ?? [];
+  const fullText = choices[0]?.message?.content ?? '';
+  const searchFired = true;
+  const toolUseCount = queries.length;
+  const toolResultCount = 1;
   const sourceUrls: string[] = [];
-  const textBlocks: string[] = [];
-
-  for (const block of content) {
-    if (block.type === 'tool_use' || block.type === 'server_tool_use') {
-      toolUseCount++;
-      if (block.name === 'web_search') searchFired = true;
-    }
-    if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
-      toolResultCount++;
-      const resultContent = block.content;
-      if (Array.isArray(resultContent)) {
-        for (const item of resultContent) {
-          if (item.type === 'web_search_result' && item.url) {
-            sourceUrls.push(item.url);
-          } else if (item.url) {
-            sourceUrls.push(item.url);
-          }
-        }
-      }
-      if (typeof resultContent === 'string' && resultContent.includes('http')) {
-        const urls = resultContent.match(/https?:\/\/[^\s"'<>]+/g);
-        if (urls) sourceUrls.push(...urls);
-      }
-    }
-    if (block.type === 'text') {
-      textBlocks.push(block.text);
-    }
-  }
-
-  const fullText = textBlocks.join('\n');
   let observations: Observation[] = [];
 
   try {
@@ -599,8 +594,9 @@ CRITICAL RULES:
           value: o.value,
           source: o.source || 'web search',
           url: o.url || '',
-          confidence: searchFired ? 0.8 : 0.3,
+          confidence: Math.max(0, Math.min(1, Number(o.confidence ?? 0.65))),
         }));
+      sourceUrls.push(...observations.map((o) => o.url || '').filter(Boolean));
     }
   } catch {
     const patterns = isPercentage
@@ -638,7 +634,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 /* ─────────────────────────────────────────────────────────────────────
  * Phase 1B fan-out pipeline (flag-gated). Builds an rvce-validate-shaped
- * payload using DeepSeek per-variable fan-out + Anthropic Haiku calibration.
+ * payload using DeepSeek per-variable fan-out + DeepSeek calibration.
  * ──────────────────────────────────────────────────────────────────── */
 async function runFanoutPipeline(args: {
   analysis_id: string | undefined;
@@ -666,8 +662,8 @@ async function runFanoutPipeline(args: {
     fanoutMap[m] = settled[i];
   });
 
-  // Calibrate via single Haiku call (best-effort).
-  const calibrated = await calibrateWithHaiku(fanoutMap, core_metrics);
+  // Calibrate via single DeepSeek call (best-effort, never required).
+  const calibrated = await calibrateWithDeepSeek(fanoutMap, core_metrics);
 
   metricsToProcess.forEach((m) => {
     const v = calibrated[m];
@@ -756,6 +752,79 @@ function toLegacyShape(metric: string, v: ReturnType<typeof fanoutVariable> exte
     snippet: o.snippet,
   }));
   return { legacy, samples };
+}
+
+function buildPartialRvcePayload(args: {
+  analysis_id: string | undefined;
+  tier: Tier;
+  startTime: number;
+  core_metrics: Record<string, number>;
+  industry: string;
+  location_city: string;
+  location_country: string;
+  reason: string;
+}) {
+  const metricsToProcess = METRICS_TO_VALIDATE.filter(
+    (m) => args.core_metrics[m] !== undefined && args.core_metrics[m] !== null && args.core_metrics[m] !== 0,
+  );
+  const metrics_validation = Object.fromEntries(metricsToProcess.map((metric) => [metric, {
+    original_value: args.core_metrics[metric],
+    external_median: null,
+    p25: null,
+    p75: null,
+    status: 'NO_DATA',
+    discrepancy_score: 0,
+    discrepancy_pct: 0,
+    notes: `DeepSeek RVCE fan-out could not collect observations: ${args.reason.slice(0, 160)}`,
+    observation_count: 0,
+    web_search_fired: false,
+    sources_used: 0,
+    confidence: 0,
+    cache_hit: false,
+    observations: [],
+  }]));
+
+  return {
+    analysis_id: args.analysis_id,
+    rvce_version: RVCE_VERSION,
+    rvce_engine: 'fanout',
+    tier: args.tier,
+    obs_cap_per_variable: RVCE_OBS_CAP[args.tier],
+    global_confidence_score: 0,
+    reference_classes: [
+      { id: `rc-${slug(args.industry)}-${slug(args.location_city)}`, description: `${args.location_city} ${args.industry}`, sample_size: 0 },
+      { id: `rc-${slug(args.industry)}-${slug(args.location_country)}`, description: `${args.location_country} ${args.industry}`, sample_size: 0 },
+    ],
+    metrics_validation,
+    flags: [],
+    evidence_samples: [],
+    latency_ms: Date.now() - args.startTime,
+    status: 'PARTIAL',
+    search_health: {
+      total_metrics_searched: metricsToProcess.length,
+      total_observations_collected: 0,
+      cache_hit_count: 0,
+      cache_hit_ratio: 0,
+      web_search_fired_count: 0,
+      web_search_fired_ratio: 0,
+      total_source_urls: 0,
+      fallback_queries_used: 0,
+      metrics_with_zero_observations: metricsToProcess.length,
+    },
+    search_diagnostics: metricsToProcess.map((metric) => ({
+      metric,
+      queries_sent: [],
+      web_search_tool_fired: false,
+      tool_use_count: 0,
+      tool_result_count: 0,
+      raw_results_found: 0,
+      parsed_observations: 0,
+      fallback_used: true,
+      source_urls: [],
+      error: args.reason.slice(0, 240),
+    })),
+    error: args.reason.slice(0, 240),
+  };
 }
 
 

@@ -1,9 +1,9 @@
 /**
  * QuoteGenUsageBanner — pill banner shown above the QuoteGen wizard.
  *
- * - Free users: locked card with upgrade CTA.
- * - Plus/Pro:   "X of Y quotes used this month" with color states.
- * - Exhausted:  red banner with reset hint + upgrade CTA (Plus → Pro).
+ * - Signed-out users: locked card with signup CTA.
+ * - Free users: "X of 5 quotes used this month".
+ * - Plus/Pro: unlimited QuoteGen access.
  */
 import { Link } from 'react-router-dom';
 import { Lock, AlertCircle, Sparkles } from 'lucide-react';
@@ -13,7 +13,7 @@ import type { QuoteGenStatus } from '@/hooks/useQuoteGenUsage';
 
 export function QuoteGenUsagePill({ status }: { status: QuoteGenStatus }) {
   if (!status.isEnabled) return null;
-  const pct = status.limit > 0 ? status.used / status.limit : 0;
+  const pct = status.limit && status.limit > 0 ? status.used / status.limit : 0;
   const tone =
     status.isExhausted
       ? 'border-destructive/40 bg-destructive/10 text-destructive'
@@ -23,7 +23,9 @@ export function QuoteGenUsagePill({ status }: { status: QuoteGenStatus }) {
   return (
     <div className={`inline-flex items-center gap-2 rounded-full border px-3 py-1 text-xs font-medium ${tone}`}>
       <Sparkles className="w-3.5 h-3.5" />
-      QuoteGen (Beta) — {status.used} / {status.limit} used this month
+      {status.isUnlimited
+        ? `QuoteGen (Beta) — unlimited on ${status.planTier === 'pro' ? 'Pro' : 'Plus'}`
+        : `QuoteGen (Beta) — ${status.used} / ${status.limit ?? 5} used this month`}
     </div>
   );
 }
@@ -38,17 +40,17 @@ export function QuoteGenFreeLock() {
       <h2 className="text-2xl font-bold text-foreground mb-2">Sign in for QuoteGen (Beta)</h2>
       <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
         Generate priced, PDF-ready service quotes in seconds. Free includes
-        5 quotes/mo; Pro includes 15 quotes/mo.
+        5 quotes/mo; Plus and Pro include unlimited QuoteGen.
       </p>
       <div className="grid grid-cols-2 gap-3 max-w-md mx-auto mb-6 text-left">
         <div className="rounded-lg border border-border bg-background p-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Plus</p>
-          <p className="text-lg font-bold text-foreground mt-1">5 quotes / mo</p>
+          <p className="text-lg font-bold text-foreground mt-1">Unlimited quotes</p>
           <p className="text-xs text-muted-foreground">$17 / mo</p>
         </div>
         <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
           <p className="text-xs font-semibold text-primary uppercase tracking-wide">Pro</p>
-          <p className="text-lg font-bold text-foreground mt-1">15 quotes / mo</p>
+          <p className="text-lg font-bold text-foreground mt-1">Unlimited quotes</p>
           <p className="text-xs text-muted-foreground">$49 / mo</p>
         </div>
       </div>
@@ -63,27 +65,20 @@ export function QuoteGenFreeLock() {
 }
 
 export function QuoteGenExhaustedBanner({ status }: { status: QuoteGenStatus }) {
-  if (!status.isExhausted || !status.isEnabled) return null;
-  const isPlus = status.planTier === 'plus';
+  if (!status.isExhausted || !status.isEnabled || status.isUnlimited) return null;
   return (
     <div className="rounded-lg border border-destructive/40 bg-destructive/5 p-4 flex items-start gap-3">
       <AlertCircle className="w-5 h-5 text-destructive shrink-0 mt-0.5" />
       <div className="flex-1">
         <p className="text-sm font-semibold text-foreground">
-          {isPlus
-            ? `You've used all ${status.limit} QuoteGen quotes for this month on Plus.`
-            : `You've used all ${status.limit} QuoteGen quotes for this month on Pro.`}
+          You've used all {status.limit ?? 5} free QuoteGen quotes for this month.
         </p>
         <p className="text-xs text-muted-foreground mt-1">
-          {isPlus
-            ? 'Upgrade to Pro for 15 quotes/month, or wait until next month\'s reset (UTC).'
-            : 'Your quota resets at the start of next month (UTC).'}
+          Upgrade for unlimited QuoteGen, or wait until next month's reset (UTC).
         </p>
-        {isPlus && (
-          <Link to="/pricing" className="inline-block mt-2">
-            <Button size="sm" variant="outline">Upgrade to Pro</Button>
-          </Link>
-        )}
+        <Link to="/pricing" className="inline-block mt-2">
+          <Button size="sm" variant="outline">Upgrade</Button>
+        </Link>
       </div>
     </div>
   );

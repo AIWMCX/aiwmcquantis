@@ -243,6 +243,36 @@ function getRandomSeed(industry?: string): { industry: string; concept: string; 
   return { industry: key, concept, ranges: entry };
 }
 
+function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
+  const r = seed.ranges;
+  const startingCapital = Math.round((r.capitalRange[0] * 0.65 + r.capitalRange[1] * 0.35) / 500) * 500;
+  const pricePerCustomer = Math.round((r.priceRange[0] + r.priceRange[1]) / 2);
+  const customersAtLaunch = Math.max(1, Math.round((r.customerRange[0] + r.customerRange[1]) / 2));
+  const monthlyOpCosts = Math.round((r.costRange[0] * 0.45 + r.costRange[1] * 0.55) / 100) * 100;
+  const monthlyRevenue = pricePerCustomer * customersAtLaunch;
+  const contribution = Math.max(monthlyRevenue - monthlyOpCosts, 1);
+  const estimatedBreakEven = Math.min(48, Math.max(3, Math.ceil(startingCapital / contribution)));
+  const estimatedRevM12 = Math.round(monthlyRevenue * 2.4);
+
+  return {
+    idea: `${seed.concept} for a specific underserved ${seed.industry.replace(/_/g, ' ')} customer segment`,
+    differentiator: 'Narrow customer focus, benchmark-bounded pricing, and controlled launch scope reduce early cash-burn risk.',
+    targetCustomer: `Price-sensitive but quality-focused buyers already spending in ${seed.industry.replace(/_/g, ' ')} channels`,
+    startingCapital,
+    pricePerCustomer,
+    customersAtLaunch,
+    monthlyOpCosts,
+    estimatedBreakEven,
+    estimatedRevM12,
+    grossMarginPct: seed.industry.includes('saas') || seed.industry.includes('technology') ? 78 : 58,
+    riskNote: 'The main risk is demand overestimation before repeat-purchase behavior is proven.',
+    mitigationStrategy: 'Launch with a paid pilot cohort, cap fixed costs, and validate repeat purchase before scaling spend.',
+    _seedIndustry: seed.industry,
+    _engineVersion: 'v2.1-deterministic-fallback',
+    degraded: true,
+  };
+}
+
 serve(async (req) => {
   const reqId = getRequestId(req);
   const log = createLogger('generate-idea', reqId);
@@ -252,38 +282,50 @@ serve(async (req) => {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let quotaReserved = false;
+  let quotaClient: ReturnType<typeof createClient> | null = null;
+
   try {
-    // ========== ENTITLEMENT GATE: AI idea generation = Plus+ feature ==========
-    // Require an authenticated caller — no anonymous bypass of the paid tier.
+    // ========== QUOTA GATE: Free gets 5/mo; Plus/Pro are unlimited ==========
+    // Require auth because usage is attached to a user account, not device storage.
     const authHeader = req.headers.get("Authorization");
     if (!authHeader?.startsWith("Bearer ")) {
       return new Response(
-        JSON.stringify({ error: "Unauthorized: authentication required" }),
+        JSON.stringify({ error: "Sign in to use your 5 free random ideas.", code: "AUTH_REQUIRED" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
     {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
-      const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
       const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY")!;
-      const userClient = createClient(supabaseUrl, supabaseAnonKey, {
+      quotaClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: claims } = await userClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-      if (!claims?.claims?.sub) {
+      const { data: authData, error: authError } = await quotaClient.auth.getUser();
+      if (authError || !authData.user) {
         return new Response(
           JSON.stringify({ error: "Unauthorized: invalid token" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
-      const adminClient = createClient(supabaseUrl, supabaseServiceKey);
-      const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
-      try {
-        await requireFeature(adminClient, claims.claims.sub, 'actionPlan', '/generate-idea');
-      } catch (e) {
-        if (e instanceof EntitlementError) return e.toResponse(corsHeaders);
-        throw e;
+
+      const { data: quota, error: quotaError } = await quotaClient.rpc('increment_idea_generation_usage');
+      if (quotaError) throw quotaError;
+      const q = quota as { ok?: boolean; reason?: string; limit?: number; used?: number; remaining?: number; planTier?: string } | null;
+      if (!q?.ok) {
+        return new Response(
+          JSON.stringify({
+            error: 'IDEA_QUOTA_EXCEEDED',
+            message: `You've used all ${q?.limit ?? 5} free random ideas this month.`,
+            planTier: q?.planTier ?? 'free',
+            used: q?.used ?? q?.limit ?? 5,
+            limit: q?.limit ?? 5,
+            remaining: 0,
+          }),
+          { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
       }
+      quotaReserved = true;
     }
 
     const { industry } = await req.json();
@@ -371,21 +413,27 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
 
     if (!aiResult.ok) {
       log.error("AI gateway error:", aiResult.status, aiResult.error);
-      const userMsg =
-        aiResult.status === 429 ? "Rate limit exceeded. Try again shortly." :
-        aiResult.status === 402 ? "Credits exhausted. Please add funds in Settings > Workspace > Usage." :
-        aiResult.message;
-      return new Response(
-        JSON.stringify({ error: userMsg, code: aiResult.error }),
-        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
     const toolCall = choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    if (!toolCall) {
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const result = JSON.parse(toolCall.function.arguments);
+    let result: any;
+    try {
+      result = JSON.parse(toolCall.function.arguments);
+    } catch {
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ── POST-GENERATION VALIDATION ──
     // Sanity-check the AI's numbers against seed ranges and internal consistency
@@ -412,6 +460,9 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (quotaReserved && quotaClient) {
+      await quotaClient.rpc('decrement_idea_generation_usage').catch(() => null);
+    }
     log.error("generate-idea error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),

@@ -236,8 +236,7 @@ export default function RvceTestPanel() {
         <h1 className="text-2xl font-bold">RVCE Test Panel</h1>
         <p className="text-sm text-muted-foreground">
           Run {TEST_SCENARIOS.length} test scenarios against the live <code>rvce-validate</code> Edge
-          Function. Each test calls Claude Haiku 4.5 with{' '}
-          <code>web_search_20250305</code> to validate metrics.
+          Function. Each test uses DeepSeek fan-out to validate metrics.
         </p>
       </header>
 

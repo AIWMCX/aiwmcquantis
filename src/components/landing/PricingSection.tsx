@@ -42,7 +42,7 @@ const FREE_FEATURES = [
 const PLUS_FEATURES = [
   { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
   { text: 'Full report — Monte Carlo, 36-mo P&L, action plan', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
-  { text: 'QuoteGen (Beta) — 5 quotes/mo', highlight: true, subtext: 'Generate priced, PDF-ready service quotes' },
+  { text: 'QuoteGen (Beta) — unlimited', highlight: true, subtext: 'Generate priced, PDF-ready service quotes' },
   { text: 'Pre-Mortem Stress Test ✓', highlight: true, subtext: 'Stress-test churn shocks, cost spikes, customer concentration' },
   { text: 'Invoice & Capacity Check ✓', highlight: true, subtext: 'Decide whether to accept new clients without breaking cash flow' },
   { text: 'Document Studio ✓', highlight: false, subtext: '12+ branded templates auto-populated from your analysis' },
@@ -54,7 +54,7 @@ const PLUS_FEATURES = [
 
 const PRO_FEATURES = [
   { text: 'Everything in Plus, plus:', highlight: true },
-  { text: 'QuoteGen (Beta) — 15 quotes/mo', highlight: true, subtext: '3× the Plus quota — for high-volume estimators' },
+  { text: 'QuoteGen (Beta) — unlimited', highlight: true, subtext: 'High-volume quoting for estimators and operators' },
   { text: '5-Year Financial Model', highlight: true, subtext: 'Beyond the 36-month Plus horizon' },
   { text: 'TAM / SAM / SOM Calculator', highlight: true, subtext: 'With cited sources for investors' },
   { text: 'Pitch Deck Data Package', highlight: false, subtext: 'Exportable to slides — investor-ready' },

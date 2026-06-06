@@ -138,9 +138,8 @@ export default function QuoteNew() {
     } catch (e) {
       console.error(e);
       if (e instanceof QuoteGenNotAvailableError) {
-        toast.error('QuoteGen (Beta) is available on Plus and Pro. Upgrade to continue.');
+        toast.error('Sign in to use your 5 free QuoteGen quotes.');
         await refetchQuota();
-        navigate('/pricing');
         return;
       }
       if (e instanceof QuoteGenLimitExceededError) {

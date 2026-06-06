@@ -40,10 +40,9 @@ export const RVCE_FANOUT_CONCURRENCY = 8;
 /** TTL for rvce_cache rows (ms). Mirrors DB default of 24h. */
 export const RVCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
-/** Feature flag — only when true does rvce-validate use the fan-out path. */
+/** RVCE always uses the DeepSeek fan-out path in production. */
 export function isRvceFanoutEnabled(): boolean {
-  const v = (Deno.env.get('RVCE_FANOUT_ENABLED') ?? 'false').toLowerCase();
-  return v === 'true' || v === '1' || v === 'yes';
+  return true;
 }
 
 /**

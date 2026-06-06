@@ -84,7 +84,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   }, [result.metadata, location]);
 
   // ── RVCE (Layer 8) — Reality Validation & Calibration Engine ──
-  // Cross-checks our metrics against external benchmarks via Claude Haiku + web search.
+  // Cross-checks our metrics against external benchmarks via DeepSeek fan-out.
   // Fail-safe: never blocks the analysis. Runs once per analysis_id.
   const rvcePayload = useMemo(() => {
     const fa: any = result.financial_analysis;

@@ -35,11 +35,9 @@ describe('RVCE fan-out invariants', () => {
     expect(Number(m![1])).toBeLessThanOrEqual(12);
   });
 
-  it('feature flag gate is present and defaults to false', () => {
+  it('fan-out is always enabled in production', () => {
     expect(tierSrc).toMatch(/isRvceFanoutEnabled/);
-    expect(tierSrc).toMatch(/RVCE_FANOUT_ENABLED/);
-    // default branch returns 'false' string
-    expect(tierSrc).toMatch(/['"]false['"]/);
+    expect(tierSrc).toMatch(/return true/);
   });
 
   it('cache key is deterministic per (variable, biz, location, cap)', () => {
@@ -52,9 +50,9 @@ describe('RVCE fan-out invariants', () => {
     expect(fanoutSrc).toMatch(/observations\.slice\(0, cap\)/);
   });
 
-  it('Haiku calibrator is opt-in via ANTHROPIC_API_KEY', () => {
-    expect(fanoutSrc).toMatch(/calibrateWithHaiku/);
-    expect(fanoutSrc).toMatch(/if \(!ANTHROPIC_API_KEY\) return perVariable/);
+  it('calibration uses DeepSeek, not Anthropic', () => {
+    expect(fanoutSrc).toMatch(/calibrateWithDeepSeek/);
+    expect(fanoutSrc).not.toMatch(/ANTHROPIC_API_KEY/);
   });
 
   it('discrepancy thresholds: OK<25, WARN<60, OUTLIER>=60', () => {

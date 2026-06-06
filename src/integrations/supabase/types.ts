@@ -3529,6 +3529,36 @@ export type Database = {
         }
         Relationships: []
       }
+      idea_generation_usage: {
+        Row: {
+          created_at: string
+          id: string
+          month_key: string
+          plan_tier_snapshot: string
+          updated_at: string
+          usage_count: number
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          month_key: string
+          plan_tier_snapshot?: string
+          updated_at?: string
+          usage_count?: number
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          month_key?: string
+          plan_tier_snapshot?: string
+          updated_at?: string
+          usage_count?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null
@@ -6062,6 +6092,7 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string }
         Returns: Json
       }
+      decrement_idea_generation_usage: { Args: never; Returns: undefined }
       decrement_quote_gen_usage: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
@@ -6133,6 +6164,7 @@ export type Database = {
           signup_date: string
         }[]
       }
+      get_idea_generation_status: { Args: never; Returns: Json }
       get_journey_drilldown: {
         Args: { _days?: number; _source: string; _tier?: string }
         Returns: {
@@ -6263,6 +6295,7 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
+      increment_idea_generation_usage: { Args: never; Returns: Json }
       increment_quote_gen_usage: { Args: never; Returns: Json }
       increment_template_usage: {
         Args: { p_template_id: string }
