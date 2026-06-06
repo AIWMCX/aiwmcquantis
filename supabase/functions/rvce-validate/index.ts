@@ -201,7 +201,22 @@ serve(async (req) => {
       user_tier: payload.user_tier ?? business_profile?.user_tier,
     });
 
-    if (isRvceFanoutEnabled() && Deno.env.get('DEEPSEEK_API_KEY')) {
+    if (isRvceFanoutEnabled()) {
+      if (!Deno.env.get('DEEPSEEK_API_KEY')) {
+        const fallbackResult = buildPartialRvcePayload({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
+          industry,
+          location_city,
+          location_country,
+          reason: 'DEEPSEEK_API_KEY is not configured',
+        });
+        logValidation(fallbackResult).catch(() => {});
+        return jsonResponse(fallbackResult);
+      }
+
       try {
         const fanoutResult = await runFanoutPipeline({
           analysis_id,
