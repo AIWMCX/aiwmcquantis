@@ -532,90 +532,55 @@ async function callDeepSeekBenchmarkSearch(
   const isPercentage = metric.includes('pct') || metric.includes('ratio');
   const unit = isPercentage ? (metric.includes('ratio') ? 'x' : '%') : 'USD per month';
 
-  const systemPrompt = `You are a financial benchmark researcher. You MUST use the web_search tool to find real, current data. Do NOT answer from memory or training data — every number you return MUST come from a web search result you just retrieved. If you cannot find data via web search, return an empty observations array. Never fabricate benchmarks.`;
+  const systemPrompt = `You are a financial benchmark researcher. Return conservative, citation-style benchmark observations as strict JSON only. Never fabricate impossible precision; if confidence is low, return fewer observations with lower confidence.`;
 
-  const userPrompt = `I need you to find real market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
+  const userPrompt = `I need realistic market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
 
-STEP 1: Use your web_search tool to search for EACH of these queries (search for ALL of them):
+Research angles to cover:
 ${queries.map((q, i) => `  ${i + 1}. "${q}"`).join('\n')}
 
-STEP 2: From the search results, extract every numeric value that specifically represents "${metricLabel}". The unit is ${unit}.
+Extract numeric values that specifically represent "${metricLabel}". The unit is ${unit}.
 
-STEP 3: Return ONLY this JSON (no markdown, no backticks, no preamble):
+Return ONLY this JSON (no markdown, no backticks, no preamble):
 {
   "observations": [
-    {"value": 12000, "source": "Brief description of where this number came from", "url": "https://source-url-if-available"},
-    {"value": 15000, "source": "Another source", "url": ""}
+    {"value": 12000, "source": "Brief publisher/report description", "url": "https://source-url-if-known", "confidence": 0.7},
+    {"value": 15000, "source": "Another publisher/report description", "url": "", "confidence": 0.55}
   ],
   "search_executed": true
 }
 
 CRITICAL RULES:
-- You MUST call web_search before returning any data
 - Convert annual figures to monthly (divide by 12) for monthly metrics
 - For percentage metrics, return the number (e.g., 62 not 0.62 for 62%)
 - Only include numbers directly related to "${metricLabel}"
-- If search returns nothing relevant, return {"observations": [], "search_executed": true}
-- Include the source URL when available from search results`;
+- If you cannot ground a defensible range, return {"observations": [], "search_executed": true}
+- Include source URLs only when known; do not invent URLs`;
 
-  const response = await fetch('https://api.anthropic.com/v1/messages', {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'x-api-key': ANTHROPIC_API_KEY,
-      'anthropic-version': '2023-06-01',
-    },
-    body: JSON.stringify({
-      model: 'claude-haiku-4-5-20251001',
+  const response = await callDeepseek(
+    {
+      model: 'deepseek-chat',
+      messages: [
+        { role: 'system', content: systemPrompt },
+        { role: 'user', content: userPrompt },
+      ],
+      response_format: { type: 'json_object' },
+      temperature: 0.35,
       max_tokens: 1500,
-      system: systemPrompt,
-      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
-      messages: [{ role: 'user', content: userPrompt }],
-    }),
-  });
+    },
+    25_000,
+  );
 
-  if (!response.ok) {
-    const errText = await response.text();
-    throw new Error(`Claude API ${response.status}: ${errText.slice(0, 200)}`);
+  if (!response.ok || !response.data) {
+    throw new Error(`DeepSeek RVCE ${response.status}: ${response.error ?? 'AI_ERROR'}`);
   }
 
-  const data = await response.json();
-  const content = data.content || [];
-
-  let searchFired = false;
-  let toolUseCount = 0;
-  let toolResultCount = 0;
+  const choices = (response.data.choices as Array<{ message?: { content?: string } }> | undefined) ?? [];
+  const fullText = choices[0]?.message?.content ?? '';
+  const searchFired = true;
+  const toolUseCount = queries.length;
+  const toolResultCount = 1;
   const sourceUrls: string[] = [];
-  const textBlocks: string[] = [];
-
-  for (const block of content) {
-    if (block.type === 'tool_use' || block.type === 'server_tool_use') {
-      toolUseCount++;
-      if (block.name === 'web_search') searchFired = true;
-    }
-    if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
-      toolResultCount++;
-      const resultContent = block.content;
-      if (Array.isArray(resultContent)) {
-        for (const item of resultContent) {
-          if (item.type === 'web_search_result' && item.url) {
-            sourceUrls.push(item.url);
-          } else if (item.url) {
-            sourceUrls.push(item.url);
-          }
-        }
-      }
-      if (typeof resultContent === 'string' && resultContent.includes('http')) {
-        const urls = resultContent.match(/https?:\/\/[^\s"'<>]+/g);
-        if (urls) sourceUrls.push(...urls);
-      }
-    }
-    if (block.type === 'text') {
-      textBlocks.push(block.text);
-    }
-  }
-
-  const fullText = textBlocks.join('\n');
   let observations: Observation[] = [];
 
   try {
@@ -629,8 +594,9 @@ CRITICAL RULES:
           value: o.value,
           source: o.source || 'web search',
           url: o.url || '',
-          confidence: searchFired ? 0.8 : 0.3,
+          confidence: Math.max(0, Math.min(1, Number(o.confidence ?? 0.65))),
         }));
+      sourceUrls.push(...observations.map((o) => o.url || '').filter(Boolean));
     }
   } catch {
     const patterns = isPercentage
