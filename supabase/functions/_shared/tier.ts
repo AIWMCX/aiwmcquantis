@@ -42,7 +42,7 @@ export const RVCE_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 
 /** Feature flag — only when true does rvce-validate use the fan-out path. */
 export function isRvceFanoutEnabled(): boolean {
-  const v = (Deno.env.get('RVCE_FANOUT_ENABLED') ?? 'false').toLowerCase();
+  const v = (Deno.env.get('RVCE_FANOUT_ENABLED') ?? 'true').toLowerCase();
   return v === 'true' || v === '1' || v === 'yes';
 }
 
