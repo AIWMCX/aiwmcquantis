@@ -324,7 +324,7 @@ export async function calibrateWithDeepSeek(
   perVariable: Record<string, VariableValidation>,
   coreMetrics: Record<string, number>,
 ): Promise<Record<string, VariableValidation>> {
-  // Compact summary so Haiku doesn't see raw snippets (cost guard).
+  // Compact summary so calibration never sees raw snippets (cost guard).
   const summary = Object.fromEntries(
     Object.entries(perVariable).map(([k, v]) => [
       k,
