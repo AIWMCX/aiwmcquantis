@@ -1,8 +1,8 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { isRvceFanoutEnabled, getTierForAnalysis, RVCE_OBS_CAP, type Tier } from '../_shared/tier.ts';
 import { calibrateWithDeepSeek, fanoutVariable } from '../_shared/rvce-fanout.ts';
+import { callDeepseek } from '../_shared/deepseek.ts';
 
-const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
 const RVCE_VERSION = 'rvce-0.3.0';
@@ -418,7 +418,7 @@ async function validateMetricWithSearch(
   let observations: Observation[] = [];
 
   try {
-    const result1 = await callClaudeWithWebSearch(metric, originalValue, primaryQueries, profile);
+    const result1 = await callDeepSeekBenchmarkSearch(metric, originalValue, primaryQueries, profile);
     diagnostics.queries_sent.push(...primaryQueries);
     diagnostics.web_search_tool_fired = result1.searchFired;
     diagnostics.tool_use_count += result1.toolUseCount;
@@ -432,7 +432,7 @@ async function validateMetricWithSearch(
   if (observations.length < 3 && fallbackQueries.length > 0) {
     diagnostics.fallback_used = true;
     try {
-      const result2 = await callClaudeWithWebSearch(metric, originalValue, fallbackQueries, profile);
+      const result2 = await callDeepSeekBenchmarkSearch(metric, originalValue, fallbackQueries, profile);
       diagnostics.queries_sent.push(...fallbackQueries);
       if (result2.searchFired) diagnostics.web_search_tool_fired = true;
       diagnostics.tool_use_count += result2.toolUseCount;
@@ -516,7 +516,7 @@ async function validateMetricWithSearch(
   return { validation, evidence, diagnostics };
 }
 
-async function callClaudeWithWebSearch(
+async function callDeepSeekBenchmarkSearch(
   metric: string,
   _originalValue: number,
   queries: string[],
