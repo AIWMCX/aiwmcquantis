@@ -149,7 +149,7 @@ serve(async (req) => {
   }
 
   // Auth gate: require a valid bearer token (user JWT or service role).
-  // Prevents unauthenticated abuse of the Anthropic API budget.
+  // Prevents unauthenticated abuse of the RVCE provider budget.
   const authHeader = req.headers.get('Authorization') ?? '';
   if (!authHeader.startsWith('Bearer ')) {
     return new Response(
@@ -653,7 +653,7 @@ function chunk<T>(arr: T[], size: number): T[][] {
 
 /* ─────────────────────────────────────────────────────────────────────
  * Phase 1B fan-out pipeline (flag-gated). Builds an rvce-validate-shaped
- * payload using DeepSeek per-variable fan-out + Anthropic Haiku calibration.
+ * payload using DeepSeek per-variable fan-out + DeepSeek calibration.
  * ──────────────────────────────────────────────────────────────────── */
 async function runFanoutPipeline(args: {
   analysis_id: string | undefined;
