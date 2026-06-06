@@ -301,8 +301,8 @@ serve(async (req) => {
       quotaClient = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      const { data: claims } = await quotaClient.auth.getClaims(authHeader.replace("Bearer ", ""));
-      if (!claims?.claims?.sub) {
+      const { data: authData, error: authError } = await quotaClient.auth.getUser();
+      if (authError || !authData.user) {
         return new Response(
           JSON.stringify({ error: "Unauthorized: invalid token" }),
           { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
