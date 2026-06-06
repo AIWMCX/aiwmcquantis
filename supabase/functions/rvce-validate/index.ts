@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { isRvceFanoutEnabled, getTierForAnalysis, RVCE_OBS_CAP, type Tier } from '../_shared/tier.ts';
-import { calibrateWithHaiku, fanoutVariable } from '../_shared/rvce-fanout.ts';
+import { calibrateWithDeepSeek, fanoutVariable } from '../_shared/rvce-fanout.ts';
 
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
@@ -202,20 +202,35 @@ serve(async (req) => {
     });
 
     if (isRvceFanoutEnabled() && Deno.env.get('DEEPSEEK_API_KEY')) {
-      const fanoutResult = await runFanoutPipeline({
-        analysis_id,
-        tier,
-        startTime,
-        core_metrics,
-        ctx: {
+      try {
+        const fanoutResult = await runFanoutPipeline({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
+          ctx: {
+            industry,
+            city: location_city,
+            country: location_country,
+            business_model,
+          },
+        });
+        logValidation(fanoutResult).catch(() => {});
+        return jsonResponse(fanoutResult);
+      } catch (err) {
+        const fallbackResult = buildPartialRvcePayload({
+          analysis_id,
+          tier,
+          startTime,
+          core_metrics,
           industry,
-          city: location_city,
-          country: location_country,
-          business_model,
-        },
-      });
-      logValidation(fanoutResult).catch(() => {});
-      return jsonResponse(fanoutResult);
+          location_city,
+          location_country,
+          reason: err instanceof Error ? err.message : String(err),
+        });
+        logValidation(fallbackResult).catch(() => {});
+        return jsonResponse(fallbackResult);
+      }
     }
     // ── End fan-out branch ──────────────────────────────────────────
 
