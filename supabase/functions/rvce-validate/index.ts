@@ -681,8 +681,8 @@ async function runFanoutPipeline(args: {
     fanoutMap[m] = settled[i];
   });
 
-  // Calibrate via single Haiku call (best-effort).
-  const calibrated = await calibrateWithHaiku(fanoutMap, core_metrics);
+  // Calibrate via single DeepSeek call (best-effort, never required).
+  const calibrated = await calibrateWithDeepSeek(fanoutMap, core_metrics);
 
   metricsToProcess.forEach((m) => {
     const v = calibrated[m];
@@ -771,6 +771,79 @@ function toLegacyShape(metric: string, v: ReturnType<typeof fanoutVariable> exte
     snippet: o.snippet,
   }));
   return { legacy, samples };
+}
+
+function buildPartialRvcePayload(args: {
+  analysis_id: string | undefined;
+  tier: Tier;
+  startTime: number;
+  core_metrics: Record<string, number>;
+  industry: string;
+  location_city: string;
+  location_country: string;
+  reason: string;
+}) {
+  const metricsToProcess = METRICS_TO_VALIDATE.filter(
+    (m) => args.core_metrics[m] !== undefined && args.core_metrics[m] !== null && args.core_metrics[m] !== 0,
+  );
+  const metrics_validation = Object.fromEntries(metricsToProcess.map((metric) => [metric, {
+    original_value: args.core_metrics[metric],
+    external_median: null,
+    p25: null,
+    p75: null,
+    status: 'NO_DATA',
+    discrepancy_score: 0,
+    discrepancy_pct: 0,
+    notes: `DeepSeek RVCE fan-out could not collect observations: ${args.reason.slice(0, 160)}`,
+    observation_count: 0,
+    web_search_fired: false,
+    sources_used: 0,
+    confidence: 0,
+    cache_hit: false,
+    observations: [],
+  }]));
+
+  return {
+    analysis_id: args.analysis_id,
+    rvce_version: RVCE_VERSION,
+    rvce_engine: 'fanout',
+    tier: args.tier,
+    obs_cap_per_variable: RVCE_OBS_CAP[args.tier],
+    global_confidence_score: 0,
+    reference_classes: [
+      { id: `rc-${slug(args.industry)}-${slug(args.location_city)}`, description: `${args.location_city} ${args.industry}`, sample_size: 0 },
+      { id: `rc-${slug(args.industry)}-${slug(args.location_country)}`, description: `${args.location_country} ${args.industry}`, sample_size: 0 },
+    ],
+    metrics_validation,
+    flags: [],
+    evidence_samples: [],
+    latency_ms: Date.now() - args.startTime,
+    status: 'PARTIAL',
+    search_health: {
+      total_metrics_searched: metricsToProcess.length,
+      total_observations_collected: 0,
+      cache_hit_count: 0,
+      cache_hit_ratio: 0,
+      web_search_fired_count: 0,
+      web_search_fired_ratio: 0,
+      total_source_urls: 0,
+      fallback_queries_used: 0,
+      metrics_with_zero_observations: metricsToProcess.length,
+    },
+    search_diagnostics: metricsToProcess.map((metric) => ({
+      metric,
+      queries_sent: [],
+      web_search_tool_fired: false,
+      tool_use_count: 0,
+      tool_result_count: 0,
+      raw_results_found: 0,
+      parsed_observations: 0,
+      fallback_used: true,
+      source_urls: [],
+      error: args.reason.slice(0, 240),
+    })),
+    error: args.reason.slice(0, 240),
+  };
 }
 
 
