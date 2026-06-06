@@ -1557,30 +1557,19 @@ export function usePdfExport() {
 
   const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig) => {
     setIsGenerating(true);
-
+    
     try {
-      // Validate result object has minimum required data.
-      // We deliberately accept partial financial data and let
-      // `prepareSafeResult` fill safe defaults — only a wholly missing
-      // result or missing `metadata` is unrecoverable.
+      // Validate result object has minimum required data
       if (!result) {
         throw new Error('VALIDATION_ERROR: No analysis result provided');
       }
-
+      
       if (!result.metadata) {
         throw new Error('VALIDATION_ERROR: Analysis result missing metadata');
       }
 
       if (!result.financial_analysis) {
-        // Soft path: log + synthesize a minimal financial_analysis so the
-        // PDF still renders with a clear "Data incomplete" notice instead
-        // of crashing the user out with VALIDATION_ERROR. Hard error is
-        // only correct if there is no result at all.
-        logger.warn('PDF export: financial_analysis missing — using safe-stub defaults');
-        result = {
-          ...result,
-          financial_analysis: {} as BusinessAnalysisResult['financial_analysis'],
-        };
+        throw new Error('VALIDATION_ERROR: Analysis result missing financial data');
       }
 
       // Use custom branding, or fetched branding, or default

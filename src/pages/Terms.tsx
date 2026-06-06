@@ -86,7 +86,7 @@ export default function Terms() {
 
             <h3 className="text-xl font-medium text-foreground">4.2 Plus Plan ($17/month)</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
-              <li>14-days free trial</li>
+              <li>14-day free trial</li>
               <li>Unlimited analyses</li>
               <li>Advanced financial modeling</li>
               <li>Complete business plans</li>
@@ -102,7 +102,7 @@ export default function Terms() {
 
             <h3 className="text-xl font-medium text-foreground">4.4 Refunds</h3>
             <p className="text-muted-foreground leading-relaxed">
-              We offer a 14-days free trial for paid plans. After the trial period, refunds are provided at our 
+              We offer a 14-day free trial for paid plans. After the trial period, refunds are provided at our 
               discretion on a case-by-case basis.
             </p>
           </section>

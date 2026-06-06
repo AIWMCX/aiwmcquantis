@@ -28,7 +28,7 @@ export function AnalysisCounterTooltip({ remainingAnalyses, isFree }: AnalysisCo
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
-            {remainingAnalyses} of 5 remaining
+            {remainingAnalyses} of 3 remaining
             <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
           </span>
         </TooltipTrigger>

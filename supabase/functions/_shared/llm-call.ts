@@ -1,16 +1,27 @@
 /**
- * AIWMC Quantis — Universal LLM call helper.
+ * AIWMC Quantis — Universal Lovable AI Gateway helper.
  *
- * `aiCall()` is now multi-provider. Public signature is unchanged; callers
- * pass a Lovable/OpenAI-shaped body and `opts.task`. The router picks the
- * actual provider+model (DeepSeek primary by default; Anthropic/Lovable
- * Gateway as fallbacks). On primary failure the router's fallback is tried
- * once before bubbling the error to the caller.
+ * Two entry points:
  *
- * Telemetry (`public.ai_calls`) records the *actual* provider/model used,
- * fallback usage, latency, tokens and an estimated cost.
+ * 1) `aiCall(body, opts)` — generic pass-through wrapper. Each caller controls
+ *    the gateway request body (model, messages, tools, response_format,
+ *    multimodal content). The helper:
+ *      - Auto-prepends UNIVERSAL_RULES to the FIRST system message
+ *        (unless opts.injectUniversalRules === false).
+ *      - Honors a per-call timeout (default 30s).
+ *      - Maps 429/402/5xx to typed `LlmCallError` shapes.
+ *      - Best-effort writes one row to `public.ai_calls` per call (telemetry).
+ *      - Returns the parsed gateway JSON response unchanged on success, so
+ *        existing tool-call / content-extraction code in each function keeps
+ *        working without any further refactor.
  *
- * `callTierLlm()` is unchanged externally — it composes via `aiCall()`.
+ * 2) `callTierLlm(args)` — opinionated helper for tier-bound JSON callers
+ *    (FREE/PLUS/PRO main analysis flow). Builds the system prompt + budget
+ *    from `prompts.ts` + `tier-spec.ts`, retries on schema-parse failure, and
+ *    strips the response to the tier's allowed_output_fields.
+ *
+ * Both helpers share the same telemetry path so EVERY LLM call shows up in
+ * `public.ai_calls`.
  */
 
 import {
@@ -23,18 +34,9 @@ import {
   type PromptModule,
   UNIVERSAL_RULES,
 } from './prompts.ts';
-import {
-  resolveRoute,
-  recordSuccess,
-  recordFailure,
-  estimateCost,
-  type Provider,
-  type RouteDecision,
-} from './llm-router.ts';
-import { callDeepseek } from './deepseek.ts';
-import { callClaude, type ClaudeModel } from './anthropic.ts';
 
 const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const DEFAULT_MODEL = 'google/gemini-2.5-flash';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -50,6 +52,7 @@ export type GatewayMessageContentPart =
 export interface GatewayMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
   content: string | GatewayMessageContentPart[];
+  // tool-call related fields preserved verbatim
   [k: string]: unknown;
 }
 
@@ -66,13 +69,20 @@ export interface GatewayRequestBody {
 }
 
 export interface AiCallOptions {
+  /** Function name for telemetry (e.g. 'analyze-business'). */
   task: string;
+  /** Optional analysis_id / user_id for telemetry attribution. */
   analysisId?: string | null;
   userId?: string | null;
+  /** Optional request id to correlate logs. */
   requestId?: string | null;
+  /** Per-call timeout. Defaults to 30s. */
   timeoutMs?: number;
+  /** Inject UNIVERSAL_RULES at the top of the first system message. Default true. */
   injectUniversalRules?: boolean;
+  /** Skip telemetry write (use for cron-only / non-billed dev calls). */
   skipTelemetry?: boolean;
+  /** Optional metadata blob attached to the ai_calls row. */
   metadata?: Record<string, unknown>;
 }
 
@@ -86,6 +96,7 @@ export type AiCallError =
 export interface AiCallSuccess {
   ok: true;
   status: 200;
+  /** Raw gateway response JSON: { choices: [...], usage: {...}, ... } */
   data: Record<string, unknown>;
   latencyMs: number;
   inputTokens: number;
@@ -94,8 +105,10 @@ export interface AiCallSuccess {
 
 export type AiCallResult = AiCallSuccess | AiCallError;
 
-// ── aiCall — router-aware ─────────────────────────────────────────────
-
+/**
+ * Generic Lovable AI gateway call. Pass through any request body shape;
+ * helper adds UNIVERSAL_RULES, error mapping, timeout and telemetry.
+ */
 export async function aiCall(
   body: GatewayRequestBody,
   opts: AiCallOptions,
@@ -104,7 +117,18 @@ export async function aiCall(
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const inject = opts.injectUniversalRules !== false;
 
-  // Inject UNIVERSAL_RULES into first system message
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+  if (!lovableKey) {
+    return {
+      ok: false,
+      status: 500,
+      error: 'CONFIG',
+      message: 'LOVABLE_API_KEY missing.',
+      latencyMs: 0,
+    };
+  }
+
+  // Inject UNIVERSAL_RULES into the FIRST system message (or prepend a new one).
   const finalMessages: GatewayMessage[] = [...body.messages];
   if (inject && finalMessages.length > 0) {
     const firstSystemIdx = finalMessages.findIndex((m) => m.role === 'system');
@@ -114,6 +138,7 @@ export async function aiCall(
         typeof original.content === 'string'
           ? original.content
           : original.content.map((p) => (p.type === 'text' ? p.text : '')).join('\n');
+      // Skip injection if rules already prepended (e.g. via buildSystemPrompt).
       if (!originalText.startsWith('=== QUANTIS UNIVERSAL RULES')) {
         finalMessages[firstSystemIdx] = {
           ...original,
@@ -125,114 +150,13 @@ export async function aiCall(
     }
   }
 
-  const baseBody: GatewayRequestBody = { ...body, messages: finalMessages };
-  const route = resolveRoute(opts.task, body.model);
+  const requestBody: GatewayRequestBody = {
+    model: body.model ?? DEFAULT_MODEL,
+    ...body,
+    messages: finalMessages,
+  };
 
-  // Try primary
-  const primaryResult = await dispatch(route.provider, route.model, baseBody, timeoutMs);
-
-  if (primaryResult.ok) {
-    recordSuccess(route.provider);
-    return finalize({
-      result: primaryResult,
-      route,
-      providerUsed: route.provider,
-      modelUsed: route.model,
-      fallbackUsed: false,
-      start,
-      opts,
-    });
-  }
-
-  // Hard errors — don't retry on credits exhausted (cost protection)
-  if (primaryResult.status === 402) {
-    recordFailure(route.provider);
-    return finalize({
-      result: primaryResult,
-      route,
-      providerUsed: route.provider,
-      modelUsed: route.model,
-      fallbackUsed: false,
-      start,
-      opts,
-    });
-  }
-
-  recordFailure(route.provider);
-
-  // Try fallback if defined
-  if (route.fallback) {
-    const fb = route.fallback;
-    const fbResult = await dispatch(fb.provider, fb.model, baseBody, timeoutMs);
-    if (fbResult.ok) {
-      recordSuccess(fb.provider);
-      return finalize({
-        result: fbResult,
-        route,
-        providerUsed: fb.provider,
-        modelUsed: fb.model,
-        fallbackUsed: true,
-        start,
-        opts,
-        primaryError: primaryResult,
-      });
-    }
-    recordFailure(fb.provider);
-    return finalize({
-      result: fbResult,
-      route,
-      providerUsed: fb.provider,
-      modelUsed: fb.model,
-      fallbackUsed: true,
-      start,
-      opts,
-      primaryError: primaryResult,
-    });
-  }
-
-  return finalize({
-    result: primaryResult,
-    route,
-    providerUsed: route.provider,
-    modelUsed: route.model,
-    fallbackUsed: false,
-    start,
-    opts,
-  });
-}
-
-// ── Dispatcher ────────────────────────────────────────────────────────
-
-interface DispatchResult {
-  ok: boolean;
-  status: number;
-  data?: Record<string, unknown>;
-  error?: string;
-  detail?: string;
-}
-
-async function dispatch(
-  provider: Provider,
-  model: string,
-  body: GatewayRequestBody,
-  timeoutMs: number,
-): Promise<DispatchResult> {
-  if (provider === 'deepseek') {
-    return callDeepseek({ ...body, model }, timeoutMs);
-  }
-  if (provider === 'anthropic') {
-    return callAnthropicShim(model, body, timeoutMs);
-  }
-  return callLovableGateway(model, body, timeoutMs);
-}
-
-async function callLovableGateway(
-  model: string,
-  body: GatewayRequestBody,
-  timeoutMs: number,
-): Promise<DispatchResult> {
-  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableKey) return { ok: false, status: 500, error: 'CONFIG' };
+  let model = requestBody.model ?? DEFAULT_MODEL;
 
   let resp: Response;
   try {
@@ -242,196 +166,140 @@ async function callLovableGateway(
         Authorization: `Bearer ${lovableKey}`,
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({ ...body, model }),
+      body: JSON.stringify(requestBody),
       signal: AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
+    const latencyMs = Date.now() - start;
     const message = err instanceof Error ? err.message : 'fetch failed';
     const isAbort = /abort|timeout|deadline/i.test(message);
-    return { ok: false, status: isAbort ? 504 : 502, error: isAbort ? 'AI_TIMEOUT' : 'AI_ERROR', detail: message };
-  }
-
-  if (resp.status === 429) {
-    await resp.text().catch(() => '');
-    return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED' };
-  }
-  if (resp.status === 402) {
-    await resp.text().catch(() => '');
-    return { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED' };
-  }
-  if (!resp.ok) {
-    const detail = await resp.text().catch(() => '');
-    return { ok: false, status: 502, error: 'AI_ERROR', detail: detail.slice(0, 400) };
-  }
-  const data = (await resp.json().catch(() => null)) as Record<string, unknown> | null;
-  if (!data) return { ok: false, status: 502, error: 'AI_NO_BODY' };
-  return { ok: true, status: 200, data };
-}
-
-/**
- * Anthropic shim — converts OpenAI-shaped body → Claude Messages call,
- * and returns a Lovable/OpenAI-shaped response.
- *
- * Limitations (Phase 0a):
- *  - If body has `tools` or multimodal image_url content, returns 502
- *    so the router tries fallback. Anthropic tool-use shape is different
- *    and not worth shimming for tool-bound callers.
- */
-async function callAnthropicShim(
-  model: string,
-  body: GatewayRequestBody,
-  timeoutMs: number,
-): Promise<DispatchResult> {
-  if (body.tools || body.tool_choice) {
-    return { ok: false, status: 502, error: 'AI_ERROR', detail: 'anthropic_shim_no_tools' };
-  }
-
-  // Concatenate all system messages, the rest become user/assistant turns.
-  const systemParts: string[] = [];
-  const userParts: string[] = [];
-  for (const m of body.messages) {
-    const text =
-      typeof m.content === 'string'
-        ? m.content
-        : m.content
-            .map((p) => (p.type === 'text' ? p.text : ''))
-            .filter(Boolean)
-            .join('\n');
-    if (m.role === 'system') systemParts.push(text);
-    else if (m.role === 'assistant') userParts.push(`[assistant]\n${text}`);
-    else userParts.push(text);
-  }
-
-  const claudeModel = (model as ClaudeModel) || 'claude-sonnet-4-5';
-  const start = Date.now();
-  const _ = timeoutMs; // callClaude has its own internal timing; honored by Deno fetch defaults
-
-  const result = await callClaude({
-    model: claudeModel,
-    system: systemParts.join('\n\n') || 'You are a helpful assistant.',
-    user: userParts.join('\n\n'),
-    maxTokens: body.max_tokens ?? 1024,
-    temperature: body.temperature ?? 0.2,
-    json: body.response_format?.type === 'json_object',
-  });
-
-  if (!result.ok) {
-    return { ok: false, status: 502, error: 'AI_ERROR', detail: result.error ?? 'anthropic_failed' };
-  }
-
-  // Re-shape to Lovable/OpenAI response so downstream parsers work.
-  const data: Record<string, unknown> = {
-    model: result.model,
-    choices: [{ message: { role: 'assistant', content: result.text } }],
-    usage: {
-      prompt_tokens: result.inputTokens,
-      completion_tokens: result.outputTokens,
-    },
-    _latencyMs: Date.now() - start,
-  };
-  return { ok: true, status: 200, data };
-}
-
-// ── Finalize: error mapping, telemetry, return shape ─────────────────
-
-interface FinalizeArgs {
-  result: DispatchResult;
-  route: RouteDecision;
-  providerUsed: Provider;
-  modelUsed: string;
-  fallbackUsed: boolean;
-  start: number;
-  opts: AiCallOptions;
-  primaryError?: DispatchResult;
-}
-
-function finalize(args: FinalizeArgs): AiCallResult {
-  const latencyMs = Date.now() - args.start;
-  const r = args.result;
-
-  // Map error → AiCallError
-  if (!r.ok) {
-    const meta = {
-      ...(args.opts.metadata ?? {}),
-      route_reason: args.route.reason,
-      provider: args.providerUsed,
-      model: args.modelUsed,
-      fallback_used: args.fallbackUsed,
-      primary_error: args.primaryError?.error,
-    };
     void recordAiCall({
       ok: false,
-      task: args.opts.task,
-      provider: args.providerUsed,
-      model: args.modelUsed,
+      task: opts.task,
+      model,
       latencyMs,
       inputTokens: 0,
       outputTokens: 0,
-      analysisId: args.opts.analysisId ?? null,
-      userId: args.opts.userId ?? null,
-      requestId: args.opts.requestId ?? null,
-      error: r.error ?? `STATUS_${r.status}`,
-      metadata: meta,
-      skip: args.opts.skipTelemetry,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: isAbort ? 'AI_TIMEOUT' : `AI_FETCH:${message.slice(0, 200)}`,
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
     });
-
-    if (r.status === 402) {
-      return { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace credits exhausted.', latencyMs };
+    if (isAbort) {
+      return { ok: false, status: 504, error: 'AI_TIMEOUT', message: `AI gateway timed out after ${timeoutMs}ms.`, latencyMs };
     }
-    if (r.status === 429) {
-      return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry shortly.', latencyMs };
-    }
-    if (r.status === 504) {
-      return { ok: false, status: 504, error: 'AI_TIMEOUT', message: `AI gateway timed out.`, latencyMs };
-    }
-    if (r.status === 500 && r.error === 'CONFIG') {
-      return { ok: false, status: 500, error: 'CONFIG', message: 'LLM provider not configured.', latencyMs };
-    }
-    return {
-      ok: false,
-      status: 502,
-      error: 'AI_ERROR',
-      message: `AI provider error (${args.providerUsed}).`,
-      detail: r.detail,
-      latencyMs,
-    };
+    return { ok: false, status: 502, error: 'AI_ERROR', message: 'AI gateway unreachable.', detail: message, latencyMs };
   }
 
-  // Success
-  const data = r.data ?? {};
+  const latencyMs = Date.now() - start;
+
+  if (resp.status === 429) {
+    await resp.text().catch(() => '');
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: 'RATE_LIMIT_EXCEEDED',
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
+    });
+    return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry shortly.', latencyMs };
+  }
+  if (resp.status === 402) {
+    await resp.text().catch(() => '');
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: 'AI_CREDITS_EXHAUSTED',
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
+    });
+    return { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace credits exhausted.', latencyMs };
+  }
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: `AI_${resp.status}:${detail.slice(0, 200)}`,
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
+    });
+    return { ok: false, status: 502, error: 'AI_ERROR', message: `AI gateway error ${resp.status}.`, detail, latencyMs };
+  }
+
+  const data = (await resp.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!data) {
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: 'AI_NO_BODY',
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
+    });
+    return { ok: false, status: 502, error: 'AI_ERROR', message: 'AI gateway returned no body.', latencyMs };
+  }
+
   const usage = (data.usage ?? {}) as { prompt_tokens?: number; completion_tokens?: number };
   const inputTokens = usage.prompt_tokens ?? 0;
   const outputTokens = usage.completion_tokens ?? 0;
+  // Some gateways echo the actual model used.
+  const echoedModel = (data.model as string | undefined) ?? model;
+  model = echoedModel;
 
   void recordAiCall({
     ok: true,
-    task: args.opts.task,
-    provider: args.providerUsed,
-    model: args.modelUsed,
+    task: opts.task,
+    model,
     latencyMs,
     inputTokens,
     outputTokens,
-    analysisId: args.opts.analysisId ?? null,
-    userId: args.opts.userId ?? null,
-    requestId: args.opts.requestId ?? null,
-    metadata: {
-      ...(args.opts.metadata ?? {}),
-      route_reason: args.route.reason,
-      fallback_used: args.fallbackUsed,
-      primary_error: args.primaryError?.error,
-    },
-    skip: args.opts.skipTelemetry,
+    analysisId: opts.analysisId ?? null,
+    userId: opts.userId ?? null,
+    requestId: opts.requestId ?? null,
+    metadata: opts.metadata,
+    skip: opts.skipTelemetry,
   });
 
   return { ok: true, status: 200, data, latencyMs, inputTokens, outputTokens };
 }
 
-// ── Telemetry ─────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// Telemetry — best-effort INSERT into public.ai_calls
+// ─────────────────────────────────────────────────────────────────────────────
 
 interface RecordArgs {
   ok: boolean;
   task: string;
-  provider: Provider;
   model: string;
   latencyMs: number;
   inputTokens: number;
@@ -448,14 +316,13 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
   if (args.skip) return;
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
   try {
-    const cost = args.ok ? estimateCost(args.model, args.inputTokens, args.outputTokens) : 0;
     const row = {
       task: args.task,
-      provider: args.provider,
+      provider: 'lovable_gateway',
       model: args.model,
       input_tokens: args.inputTokens,
       output_tokens: args.outputTokens,
-      cost_usd: cost,
+      cost_usd: 0,
       latency_ms: Math.round(args.latencyMs),
       ok: args.ok,
       error: args.error ?? null,
@@ -475,7 +342,7 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
       body: JSON.stringify(row),
     });
   } catch {
-    /* telemetry must never throw */
+    // Telemetry must never block or throw.
   }
 }
 
@@ -525,8 +392,7 @@ export async function callTierLlm(args: LlmCallArgs): Promise<LlmCallResult> {
   for (let attempt = 1; attempt <= maxAttempts; attempt++) {
     const result = await aiCall(
       {
-        // model passthrough — router will resolve based on task if no prefix
-        ...(model ? { model } : {}),
+        model: model ?? DEFAULT_MODEL,
         messages: [
           { role: 'system', content: system },
           { role: 'user', content: userMessage },
@@ -539,6 +405,7 @@ export async function callTierLlm(args: LlmCallArgs): Promise<LlmCallResult> {
       {
         task: args.task ?? `tier:${tier}:${module}`,
         timeoutMs: budget.timeout_ms,
+        // System prompt already starts with UNIVERSAL_RULES via buildSystemPrompt.
         injectUniversalRules: false,
         analysisId: args.analysisId ?? null,
         userId: args.userId ?? null,

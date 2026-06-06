@@ -479,14 +479,6 @@ export interface AnalysisRequest {
   financial_inputs?: OptionalFinancialInputs;
   documents?: DocumentData[];
   analysis_depth?: 'quick' | 'full' | 'deep' | 'pro';
-  /**
-   * Landing-demo opt-in. When true, `generateAnalysis` falls back to the
-   * deterministic engine on engine error / timeout instead of throwing
-   * `ANALYSIS_UNAVAILABLE`. The synthesized result is tagged with
-   * `metadata.demo_fallback = true` so the UI can surface a “demo scenario”
-   * note. Always-on for the homepage hero CTA.
-   */
-  allow_demo_fallback?: boolean;
 }
 
 // 10 Key Outputs that every analysis must show

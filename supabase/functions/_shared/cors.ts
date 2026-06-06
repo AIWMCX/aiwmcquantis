@@ -32,7 +32,7 @@ const ALLOWED_PATTERNS: RegExp[] = [
 
 const BASE_HEADERS: Record<string, string> = {
   'Access-Control-Allow-Headers':
-    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-admin-key, x-request-id, x-device-id, x-fingerprint, x-retry-count, x-idempotency-key, x-quantis-anon-id',
+    'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version, x-admin-key, x-request-id, x-device-id, x-fingerprint, x-retry-count',
   'Access-Control-Allow-Methods': 'GET, POST, PUT, PATCH, DELETE, OPTIONS',
   'Access-Control-Max-Age': '600',
   'Vary': 'Origin',

@@ -998,78 +998,6 @@ export type Database = {
         }
         Relationships: []
       }
-      analysis_run_logs: {
-        Row: {
-          analysis_id: string
-          benchmarks: Json
-          created_at: string
-          engine_version: string | null
-          financial_core: Json
-          geo: string | null
-          id: string
-          input: Json
-          inserted_at: string
-          metadata: Json
-          model_type: string | null
-          monte_carlo: Json
-          pl36: Json
-          risk_summary: Json
-          rvce: Json
-          rvce_version: string | null
-          sector: string | null
-          source: string
-          status: string | null
-          tier: string
-          user_id: string | null
-        }
-        Insert: {
-          analysis_id: string
-          benchmarks?: Json
-          created_at?: string
-          engine_version?: string | null
-          financial_core?: Json
-          geo?: string | null
-          id?: string
-          input?: Json
-          inserted_at?: string
-          metadata?: Json
-          model_type?: string | null
-          monte_carlo?: Json
-          pl36?: Json
-          risk_summary?: Json
-          rvce?: Json
-          rvce_version?: string | null
-          sector?: string | null
-          source?: string
-          status?: string | null
-          tier?: string
-          user_id?: string | null
-        }
-        Update: {
-          analysis_id?: string
-          benchmarks?: Json
-          created_at?: string
-          engine_version?: string | null
-          financial_core?: Json
-          geo?: string | null
-          id?: string
-          input?: Json
-          inserted_at?: string
-          metadata?: Json
-          model_type?: string | null
-          monte_carlo?: Json
-          pl36?: Json
-          risk_summary?: Json
-          rvce?: Json
-          rvce_version?: string | null
-          sector?: string | null
-          source?: string
-          status?: string | null
-          tier?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
       analysis_scenario: {
         Row: {
           base_ebitda_yr5: number | null
@@ -1142,54 +1070,6 @@ export type Database = {
           source?: string
           upside_downside?: number | null
           wacc?: number | null
-        }
-        Relationships: []
-      }
-      analysis_self_learning: {
-        Row: {
-          adjustments: Json
-          analysis_id: string
-          benchmark_alignment: number | null
-          evaluated_at: string
-          global_status: string
-          id: string
-          issues: Json
-          learning_config_version: number | null
-          mc_stability: number | null
-          numeric_consistency: number | null
-          pl36_coherence: number | null
-          rvce_agreement: number | null
-          user_id: string | null
-        }
-        Insert: {
-          adjustments?: Json
-          analysis_id: string
-          benchmark_alignment?: number | null
-          evaluated_at?: string
-          global_status?: string
-          id?: string
-          issues?: Json
-          learning_config_version?: number | null
-          mc_stability?: number | null
-          numeric_consistency?: number | null
-          pl36_coherence?: number | null
-          rvce_agreement?: number | null
-          user_id?: string | null
-        }
-        Update: {
-          adjustments?: Json
-          analysis_id?: string
-          benchmark_alignment?: number | null
-          evaluated_at?: string
-          global_status?: string
-          id?: string
-          issues?: Json
-          learning_config_version?: number | null
-          mc_stability?: number | null
-          numeric_consistency?: number | null
-          pl36_coherence?: number | null
-          rvce_agreement?: number | null
-          user_id?: string | null
         }
         Relationships: []
       }
@@ -1544,38 +1424,38 @@ export type Database = {
       }
       autoposter_credentials: {
         Row: {
-          access_token_secret_id: string | null
+          access_token: string | null
           account_id: string | null
           id: string
           is_active: boolean
           last_tested: string | null
           page_id: string | null
           platform: string
-          refresh_token_secret_id: string | null
+          refresh_token: string | null
           token_expires: string | null
           updated_at: string
         }
         Insert: {
-          access_token_secret_id?: string | null
+          access_token?: string | null
           account_id?: string | null
           id?: string
           is_active?: boolean
           last_tested?: string | null
           page_id?: string | null
           platform: string
-          refresh_token_secret_id?: string | null
+          refresh_token?: string | null
           token_expires?: string | null
           updated_at?: string
         }
         Update: {
-          access_token_secret_id?: string | null
+          access_token?: string | null
           account_id?: string | null
           id?: string
           is_active?: boolean
           last_tested?: string | null
           page_id?: string | null
           platform?: string
-          refresh_token_secret_id?: string | null
+          refresh_token?: string | null
           token_expires?: string | null
           updated_at?: string
         }
@@ -3529,36 +3409,6 @@ export type Database = {
         }
         Relationships: []
       }
-      idea_generation_usage: {
-        Row: {
-          created_at: string
-          id: string
-          month_key: string
-          plan_tier_snapshot: string
-          updated_at: string
-          usage_count: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          month_key: string
-          plan_tier_snapshot?: string
-          updated_at?: string
-          usage_count?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          month_key?: string
-          plan_tier_snapshot?: string
-          updated_at?: string
-          usage_count?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       industry_benchmarks: {
         Row: {
           additional_metrics: Json | null
@@ -4178,72 +4028,6 @@ export type Database = {
         }
         Relationships: []
       }
-      quantis_learning_config: {
-        Row: {
-          created_at: string
-          created_by: string
-          is_active: boolean
-          notes: string | null
-          priors: Json
-          prompt_hints: Json
-          quality_metrics: Json
-          segments_count: number
-          version: number
-        }
-        Insert: {
-          created_at?: string
-          created_by?: string
-          is_active?: boolean
-          notes?: string | null
-          priors?: Json
-          prompt_hints?: Json
-          quality_metrics?: Json
-          segments_count?: number
-          version?: number
-        }
-        Update: {
-          created_at?: string
-          created_by?: string
-          is_active?: boolean
-          notes?: string | null
-          priors?: Json
-          prompt_hints?: Json
-          quality_metrics?: Json
-          segments_count?: number
-          version?: number
-        }
-        Relationships: []
-      }
-      quote_gen_usage: {
-        Row: {
-          created_at: string
-          id: string
-          month_key: string
-          plan_tier_snapshot: string
-          updated_at: string
-          usage_count: number
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          id?: string
-          month_key: string
-          plan_tier_snapshot?: string
-          updated_at?: string
-          usage_count?: number
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          id?: string
-          month_key?: string
-          plan_tier_snapshot?: string
-          updated_at?: string
-          usage_count?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
       rate_limits: {
         Row: {
           created_at: string | null
@@ -4551,45 +4335,6 @@ export type Database = {
           risk_name?: string
           time_to_materialize?: string | null
           warning_signs?: string[] | null
-        }
-        Relationships: []
-      }
-      rvce_cache: {
-        Row: {
-          business_type: string | null
-          cache_key: string
-          created_at: string
-          evidence: Json
-          expires_at: string
-          id: string
-          location: string | null
-          observation_count: number
-          tier_cap: number
-          variable: string
-        }
-        Insert: {
-          business_type?: string | null
-          cache_key: string
-          created_at?: string
-          evidence: Json
-          expires_at?: string
-          id?: string
-          location?: string | null
-          observation_count?: number
-          tier_cap: number
-          variable: string
-        }
-        Update: {
-          business_type?: string | null
-          cache_key?: string
-          created_at?: string
-          evidence?: Json
-          expires_at?: string
-          id?: string
-          location?: string | null
-          observation_count?: number
-          tier_cap?: number
-          variable?: string
         }
         Relationships: []
       }
@@ -4912,186 +4657,6 @@ export type Database = {
         }
         Relationships: []
       }
-      service_job_assemblies: {
-        Row: {
-          active: boolean
-          code: string
-          created_at: string
-          id: string
-          labor_hours_p25: number
-          labor_hours_p50: number
-          labor_hours_p75: number
-          materials: Json
-          name: string
-          notes: string | null
-          trade_id: string
-          unit: string
-        }
-        Insert: {
-          active?: boolean
-          code: string
-          created_at?: string
-          id?: string
-          labor_hours_p25: number
-          labor_hours_p50: number
-          labor_hours_p75: number
-          materials?: Json
-          name: string
-          notes?: string | null
-          trade_id: string
-          unit: string
-        }
-        Update: {
-          active?: boolean
-          code?: string
-          created_at?: string
-          id?: string
-          labor_hours_p25?: number
-          labor_hours_p50?: number
-          labor_hours_p75?: number
-          materials?: Json
-          name?: string
-          notes?: string | null
-          trade_id?: string
-          unit?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_job_assemblies_trade_id_fkey"
-            columns: ["trade_id"]
-            isOneToOne: false
-            referencedRelation: "service_job_trades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      service_job_outcomes: {
-        Row: {
-          actual_labor_hours: number | null
-          actual_materials_cost: number | null
-          actual_revenue: number | null
-          actual_total_cost: number | null
-          id: string
-          job_id: string
-          notes: string | null
-          recorded_at: string
-        }
-        Insert: {
-          actual_labor_hours?: number | null
-          actual_materials_cost?: number | null
-          actual_revenue?: number | null
-          actual_total_cost?: number | null
-          id?: string
-          job_id: string
-          notes?: string | null
-          recorded_at?: string
-        }
-        Update: {
-          actual_labor_hours?: number | null
-          actual_materials_cost?: number | null
-          actual_revenue?: number | null
-          actual_total_cost?: number | null
-          id?: string
-          job_id?: string
-          notes?: string | null
-          recorded_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_job_outcomes_job_id_fkey"
-            columns: ["job_id"]
-            isOneToOne: false
-            referencedRelation: "service_jobs"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      service_job_trades: {
-        Row: {
-          active: boolean
-          default_margin_pct: number
-          default_overhead_pct: number
-          display_name: string
-          id: string
-        }
-        Insert: {
-          active?: boolean
-          default_margin_pct: number
-          default_overhead_pct: number
-          display_name: string
-          id: string
-        }
-        Update: {
-          active?: boolean
-          default_margin_pct?: number
-          default_overhead_pct?: number
-          display_name?: string
-          id?: string
-        }
-        Relationships: []
-      }
-      service_jobs: {
-        Row: {
-          building_type: string | null
-          client_name: string | null
-          created_at: string
-          id: string
-          modifiers: Json
-          pricing_profile: Json
-          quote_result: Json | null
-          scope_items: Json
-          site_address: string | null
-          site_zip: string | null
-          status: string
-          trade_id: string
-          updated_at: string
-          user_id: string
-          year_built: number | null
-        }
-        Insert: {
-          building_type?: string | null
-          client_name?: string | null
-          created_at?: string
-          id?: string
-          modifiers?: Json
-          pricing_profile: Json
-          quote_result?: Json | null
-          scope_items?: Json
-          site_address?: string | null
-          site_zip?: string | null
-          status?: string
-          trade_id: string
-          updated_at?: string
-          user_id: string
-          year_built?: number | null
-        }
-        Update: {
-          building_type?: string | null
-          client_name?: string | null
-          created_at?: string
-          id?: string
-          modifiers?: Json
-          pricing_profile?: Json
-          quote_result?: Json | null
-          scope_items?: Json
-          site_address?: string | null
-          site_zip?: string | null
-          status?: string
-          trade_id?: string
-          updated_at?: string
-          user_id?: string
-          year_built?: number | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "service_jobs_trade_id_fkey"
-            columns: ["trade_id"]
-            isOneToOne: false
-            referencedRelation: "service_job_trades"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       shared_reports: {
         Row: {
           analysis_id: string
@@ -5310,6 +4875,7 @@ export type Database = {
           invited_by: string
           role: string
           team_id: string
+          token: string | null
           token_hash: string | null
         }
         Insert: {
@@ -5321,6 +4887,7 @@ export type Database = {
           invited_by: string
           role?: string
           team_id: string
+          token?: string | null
           token_hash?: string | null
         }
         Update: {
@@ -5332,6 +4899,7 @@ export type Database = {
           invited_by?: string
           role?: string
           team_id?: string
+          token?: string | null
           token_hash?: string | null
         }
         Relationships: [
@@ -6043,20 +5611,33 @@ export type Database = {
         }
         Returns: string
       }
-      check_anonymous_rate_limit: {
-        Args: {
-          p_device_id: string
-          p_device_limit?: number
-          p_fingerprint_hash?: string
-          p_fingerprint_limit?: number
-          p_idea_hash: string
-          p_ip_hash: string
-          p_ip_limit?: number
-          p_location_hash: string
-          p_window_minutes?: number
-        }
-        Returns: Json
-      }
+      check_anonymous_rate_limit:
+        | {
+            Args: {
+              p_device_id: string
+              p_device_limit?: number
+              p_fingerprint_hash?: string
+              p_fingerprint_limit?: number
+              p_idea_hash: string
+              p_ip_hash: string
+              p_ip_limit?: number
+              p_location_hash: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
+        | {
+            Args: {
+              p_device_id: string
+              p_device_limit?: number
+              p_idea_hash: string
+              p_ip_hash: string
+              p_ip_limit?: number
+              p_location_hash: string
+              p_window_minutes?: number
+            }
+            Returns: Json
+          }
       check_pii_access_rate: { Args: { p_user_id?: string }; Returns: boolean }
       check_rate_limit: {
         Args: {
@@ -6092,8 +5673,6 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string }
         Returns: Json
       }
-      decrement_idea_generation_usage: { Args: never; Returns: undefined }
-      decrement_quote_gen_usage: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
         Args: never
@@ -6109,17 +5688,6 @@ export type Database = {
       generate_referral_code: { Args: { p_user_id: string }; Returns: string }
       get_activation_funnel: { Args: { p_days?: number }; Returns: Json }
       get_activation_kpis: { Args: never; Returns: Json }
-      get_active_autoposter_credentials: {
-        Args: never
-        Returns: {
-          access_token: string
-          account_id: string
-          page_id: string
-          platform: string
-          refresh_token: string
-          token_expires: string
-        }[]
-      }
       get_admin_metrics: {
         Args: never
         Returns: {
@@ -6134,55 +5702,11 @@ export type Database = {
       }
       get_ai_learning_metrics: { Args: never; Returns: Json }
       get_analysis_case_grid: { Args: { p_case_id: string }; Returns: Json }
-      get_analysis_step_funnel: {
-        Args: { _days?: number }
-        Returns: {
-          abandon_rate: number
-          median_ms_from_prev: number
-          step_name: string
-          total_events: number
-          unique_sessions: number
-        }[]
-      }
-      get_conversion_by_source: {
-        Args: { _days?: number }
-        Returns: {
-          event_name: string
-          tier: string
-          total_events: number
-          unique_sessions: number
-          unique_users: number
-          utm_campaign: string
-          utm_medium: string
-          utm_source: string
-        }[]
-      }
       get_daily_signups: {
         Args: { days_back?: number }
         Returns: {
           signup_count: number
           signup_date: string
-        }[]
-      }
-      get_idea_generation_status: { Args: never; Returns: Json }
-      get_journey_drilldown: {
-        Args: { _days?: number; _source: string; _tier?: string }
-        Returns: {
-          dropoff_from_prev: number
-          dropoff_from_top: number
-          median_ms_from_first: number
-          median_ms_from_prev: number
-          step_name: string
-          step_order: number
-          unique_sessions: number
-        }[]
-      }
-      get_journey_drilldown_filters: {
-        Args: { _days?: number }
-        Returns: {
-          sessions: number
-          tier: string
-          utm_source: string
         }[]
       }
       get_latest_audit_timestamp: { Args: never; Returns: string }
@@ -6192,18 +5716,6 @@ export type Database = {
         Returns: {
           analysis_count: number
           month_year: string
-        }[]
-      }
-      get_monthly_analyses_stats: {
-        Args: { p_months?: number }
-        Returns: {
-          anonymous_count: number
-          free_count: number
-          month_start: string
-          plus_count: number
-          pro_count: number
-          total_analyses: number
-          unique_users: number
         }[]
       }
       get_my_phone: { Args: never; Returns: string }
@@ -6237,7 +5749,6 @@ export type Database = {
           public_slug: string
         }[]
       }
-      get_quote_gen_status: { Args: never; Returns: Json }
       get_recent_users: {
         Args: { days_back?: number }
         Returns: {
@@ -6250,7 +5761,6 @@ export type Database = {
         }[]
       }
       get_referral_stats: { Args: { p_user_id: string }; Returns: Json }
-      get_sample_report_funnel: { Args: { p_days?: number }; Returns: Json }
       get_subscription_summary: { Args: { p_user_id?: string }; Returns: Json }
       get_todays_activity: {
         Args: never
@@ -6266,7 +5776,6 @@ export type Database = {
       get_unique_users_with_analysis: { Args: never; Returns: number }
       get_user_activation_score: { Args: { p_user_id: string }; Returns: Json }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
-      get_user_plan_tier: { Args: { _uid: string }; Returns: string }
       get_weekly_leaderboard: {
         Args: never
         Returns: {
@@ -6295,8 +5804,6 @@ export type Database = {
         Args: { p_user_id: string }
         Returns: undefined
       }
-      increment_idea_generation_usage: { Args: never; Returns: Json }
-      increment_quote_gen_usage: { Args: never; Returns: Json }
       increment_template_usage: {
         Args: { p_template_id: string }
         Returns: undefined
@@ -6405,17 +5912,6 @@ export type Database = {
         }
         Returns: Json
       }
-      set_autoposter_credentials: {
-        Args: {
-          _access_token: string
-          _account_id?: string
-          _page_id?: string
-          _platform: string
-          _refresh_token?: string
-          _token_expires?: string
-        }
-        Returns: undefined
-      }
       track_referral_click: {
         Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
         Returns: string
@@ -6428,7 +5924,6 @@ export type Database = {
         Args: { subscription_user_id: string }
         Returns: boolean
       }
-      validate_analysis_run: { Args: { p_analysis_id: string }; Returns: Json }
       verify_paid_subscription: { Args: { p_user_id: string }; Returns: string }
       verify_plus_subscription: {
         Args: { p_user_id: string }

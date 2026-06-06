@@ -184,79 +184,11 @@ export type SowFunnelEvent =
   | 'home_view'
   | 'free_signup_start'
   | 'free_signup_complete'
-  | 'analysis_view'
   | 'analysis_start'
-  | 'analysis_step_view'
-  | 'analysis_step_complete'
-  | 'analysis_abandon'
   | 'analysis_complete'
   | 'pricing_view'
   | 'paid_checkout_start'
-  | 'paid_checkout_complete'
-  // Embedded sample-report funnel (landing page proof-of-output)
-  | 'sample_view'
-  | 'sample_cta_click'
-  | 'sample_full_open'
-  | 'sample_pdf_download';
-
-/**
- * Track an interaction with the embedded sample report on the landing page.
- * Powers the "Sample Report Funnel" admin widget.
- */
-export function trackSampleEvent(
-  step: 'view' | 'cta_click' | 'full_open' | 'pdf_download',
-  metadata: Record<string, unknown> = {},
-): void {
-  const map: Record<typeof step, SowFunnelEvent> = {
-    view: 'sample_view',
-    cta_click: 'sample_cta_click',
-    full_open: 'sample_full_open',
-    pdf_download: 'sample_pdf_download',
-  };
-  recordFunnelEvent(map[step], { surface: 'embedded_sample_report', ...metadata });
-}
-
-/**
- * Track a per-step event inside the analysis flow.
- *   phase: 'view' fires when a step becomes visible,
- *          'complete' fires when the user moves past it.
- *   step:  stable string id ('idea', 'location', 'financials', 'submit', …)
- *   ms_on_step: optional time spent on the step before completing
- */
-export function trackAnalysisStep(
-  phase: 'view' | 'complete',
-  step: string,
-  metadata: Record<string, unknown> = {},
-): void {
-  recordFunnelEvent(
-    phase === 'view' ? 'analysis_step_view' : 'analysis_step_complete',
-    { step, ...metadata },
-  );
-}
-
-/**
- * Fire once when the user lands on the analysis flow (any depth).
- */
-export function trackAnalysisView(source: string, metadata: Record<string, unknown> = {}): void {
-  recordFunnelEvent('analysis_view', { source, ...metadata });
-}
-
-/**
- * Fire when the user leaves the analysis flow without completing it.
- * Callers should pass the last step reached and elapsed ms.
- */
-export function trackAnalysisAbandon(
-  lastStep: string,
-  msElapsed: number,
-  metadata: Record<string, unknown> = {},
-): void {
-  recordFunnelEvent('analysis_abandon', {
-    last_step: lastStep,
-    ms_elapsed: msElapsed,
-    ...metadata,
-  });
-}
-
+  | 'paid_checkout_complete';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 

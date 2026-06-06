@@ -72,15 +72,15 @@ export default function RefundPolicyPage() {
 
             <Block title="Trials and refunds">
               <p>
-                If you start with a 14-days trial, you can cancel any time during the trial without being
-                charged at all. The 14-days refund window starts on the date you're first <em>charged</em>,
+                If you start with a 14-day trial, you can cancel any time during the trial without being
+                charged at all. The 14-day refund window starts on the date you're first <em>charged</em>,
                 not the date you signed up.
               </p>
             </Block>
 
             <Block title="Pro Annual ($492/yr)">
               <p>
-                Pro Annual does not include a free trial — you're charged immediately. The 14-days refund
+                Pro Annual does not include a free trial — you're charged immediately. The 14-day refund
                 window applies from the charge date, so you have two full weeks to evaluate the product and
                 request a full refund if it doesn't meet expectations.
               </p>
@@ -96,7 +96,7 @@ export default function RefundPolicyPage() {
 
             <Block title="What's not refundable">
               <ul className="space-y-2 list-disc list-inside">
-                <li>Renewals after the initial 14-days window. (You can still cancel any time to stop future charges.)</li>
+                <li>Renewals after the initial 14-day window. (You can still cancel any time to stop future charges.)</li>
                 <li>Add-on team seats that have been actively used by invited members.</li>
                 <li>API usage charges (Pro tier) for requests already processed and billed.</li>
               </ul>
@@ -106,7 +106,7 @@ export default function RefundPolicyPage() {
               <p>
                 Email us first — we resolve nearly every refund request the same day. Initiating a chargeback
                 without contacting us first may result in your account being suspended pending review, but
-                won't prevent you from getting your money back if the request is within the 14-days window.
+                won't prevent you from getting your money back if the request is within the 14-day window.
               </p>
             </Block>
           </section>

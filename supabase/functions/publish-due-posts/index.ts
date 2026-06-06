@@ -98,16 +98,6 @@ async function logAudit(post_platform_id: string, action: string, status: string
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
-
-  // Cron-secret guard: fail-closed
-  const cronSecret = req.headers.get('x-cron-secret');
-  const expected = Deno.env.get('CRON_SECRET');
-  if (!expected || expected.length < 10 || cronSecret !== expected) {
-    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-      status: 401,
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
-  }
   const t0 = Date.now();
 
   // Pull due rows. Limit batch size for safety.
@@ -133,9 +123,7 @@ Deno.serve(async (req) => {
   }
 
   // Pull all credentials in one shot.
-  // Tokens are encrypted at rest in Vault; fetch decrypted values through the
-  // service-role-only RPC. The plaintext columns no longer exist on the table.
-  const { data: credRows } = await supa.rpc('get_active_autoposter_credentials');
+  const { data: credRows } = await supa.from('autoposter_credentials').select('*').eq('is_active', true);
   const credsByPlatform = new Map<string, any>();
   (credRows ?? []).forEach((c: any) => credsByPlatform.set(c.platform, c));
 

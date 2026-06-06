@@ -242,61 +242,6 @@ serve(async (req: Request): Promise<Response> => {
       }
     }
 
-    // ===== SEQUENCE 6: Conversion Sequence — Fear → Purchase (7 emails over 14 days) =====
-    // Triggered on the user's FIRST analysis. Cadence (hours after first analysis):
-    //   step 1 = 0h (verdict), 2 = 24h, 3 = 72h, 4 = 120h, 5 = 168h, 6 = 240h, 7 = 336h
-    // Skip rules:
-    //   • Skip if user upgraded to a paid plan (plan_id != 'free')
-    //   • Skip step 6 + 7 entirely if verdict is "Kill" and user never re-opened report
-    //   • Each step respects 48h global cooldown + per-step dedup via email_sequence_log
-    {
-      const SCHEDULE_HOURS: Record<number, number> = { 1: 0, 2: 24, 3: 72, 4: 120, 5: 168, 6: 240, 7: 336 };
-      const now = Date.now();
-
-      // Pull any first-analysis events within the last 16 days (window for the full sequence)
-      const { data: candidateAnalyses } = await supabase
-        .from("analyses")
-        .select("user_id, created_at, result")
-        .gt("created_at", new Date(now - 16 * 24 * 60 * 60 * 1000).toISOString())
-        .order("created_at", { ascending: true });
-
-      if (candidateAnalyses) {
-        const firstByUser = new Map<string, { ts: number; verdict: string }>();
-        for (const a of candidateAnalyses) {
-          if (!firstByUser.has(a.user_id)) {
-            const r = (a.result ?? {}) as Record<string, unknown>;
-            const verdict = String(r.verdict ?? r.recommendation ?? "");
-            firstByUser.set(a.user_id, { ts: new Date(a.created_at).getTime(), verdict });
-          }
-        }
-
-        for (const [userId, { ts: firstTs, verdict }] of firstByUser) {
-          // Skip if upgraded
-          const { data: sub } = await supabase
-            .from("subscriptions")
-            .select("plan_id")
-            .eq("user_id", userId)
-            .maybeSingle();
-          if (sub?.plan_id && sub.plan_id !== "free") continue;
-
-          const ageHours = (now - firstTs) / (60 * 60 * 1000);
-          const isKill = /kill/i.test(verdict);
-
-          // Walk steps from 1..7; send the most recent step that is due and not yet sent
-          for (let step = 7; step >= 1; step--) {
-            if (isKill && (step === 6 || step === 7)) continue;
-            const dueAtHours = SCHEDULE_HOURS[step];
-            if (ageHours < dueAtHours) continue;
-            if (await alreadySent(userId, "verdict", step)) continue;
-            if (await isOnCooldown(userId)) break;
-
-            await sendEmail(userId, `verdict_step_${step}`);
-            break; // at most one conversion-sequence email per cron tick per user
-          }
-        }
-      }
-    }
-
     log.info(`Lifecycle email check complete: ${emailsSent} emails sent, ${errors.length} errors`);
 
     return new Response(

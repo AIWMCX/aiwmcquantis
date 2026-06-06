@@ -27,7 +27,6 @@ import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary
 import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
 import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
 import { MarketSizingCard } from '@/components/analysis/MarketSizingCard';
-import { ProJobProgressPanel } from '@/components/analysis/ProJobProgressPanel';
 import { AnalysisCounterTooltip } from '@/components/AnalysisCounterTooltip';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { ContextualUpgradeBanner } from '@/components/engagement/ContextualUpgradeBanner';
@@ -81,9 +80,9 @@ export default function Index() {
     idea, setIdea, location, setLocation,
     financialInputs, setFinancialInputs,
     errors, clearError, result, setResult,
-    analysisId, isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
+    isLoading, isError, error, retry, handleSubmit, reset, isFormValid,
     files, isUploading, uploadFiles, removeFile, maxFiles, allowedExtensions,
-    rateLimitError, clearRateLimitError, proJobState, isProJobActive,
+    rateLimitError, clearRateLimitError,
   } = useAnalysis();
 
   // Tracks how many times the user has clicked Retry for the current error
@@ -138,10 +137,6 @@ export default function Index() {
       incrementAnalysisCount();
     }
   }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
-
-  useEffect(() => {
-    if (analysisId) setCurrentAnalysisId(analysisId);
-  }, [analysisId]);
 
   // Auto-scroll & banner when result appears
   useEffect(() => {
@@ -206,7 +201,7 @@ export default function Index() {
       if (pollingRef.current) clearInterval(pollingRef.current);
       setCheckoutPolling(false);
       setCheckoutActivated(true);
-      toast({ title: '🎉 Welcome to Plus!', description: 'Your 14-days free trial is active. Enjoy unlimited analyses!' });
+      toast({ title: '🎉 Welcome to Plus!', description: 'Your 14-day free trial is active. Enjoy unlimited analyses!' });
       setTimeout(() => setCheckoutActivated(false), 5000);
     }
   }, [checkoutPolling, isPlus, toast]);
@@ -401,22 +396,17 @@ export default function Index() {
                         const { data, error } = await supabase.functions.invoke('generate-idea', {
                           body: { industry: 'technology' },
                         });
+                        // Entitlement gate: FunctionsHttpError exposes the JSON body via .context
                         if (error) {
-                          let body: any = null;
+                          let locked = false;
                           try {
-                            body = await (error as any)?.context?.json?.();
+                            const body = await (error as any)?.context?.json?.();
+                            if (body?.error === 'FEATURE_LOCKED') locked = true;
                           } catch { /* fall through */ }
-                          if (body?.error === 'IDEA_QUOTA_EXCEEDED' || error?.message?.includes('402')) {
+                          if (locked || /FEATURE_LOCKED|actionPlan/i.test(String(error?.message || ''))) {
                             toast({
-                              title: 'Free random ideas used',
-                              description: body?.message ?? 'Free includes 5 random ideas per month. Upgrade for unlimited.',
-                            });
-                            return;
-                          }
-                          if (body?.code === 'AUTH_REQUIRED') {
-                            toast({
-                              title: 'Sign in for 5 free random ideas',
-                              description: 'Create a free account to use the monthly random idea allowance.',
+                              title: '✨ AI Idea Generation is a Plus feature',
+                              description: 'Upgrade to Plus to unlock — or try the Coffee Shop sample for free.',
                             });
                             return;
                           }
@@ -530,11 +520,6 @@ export default function Index() {
                         />
                       </div>
                     )}
-                    {isProJobActive && (
-                      <div className="mb-4">
-                        <ProJobProgressPanel state={proJobState} expectedDurationMs={90_000} />
-                      </div>
-                    )}
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
                         <AccuracyTransparentResults 
@@ -560,7 +545,7 @@ export default function Index() {
                         )}
                         <PostAnalysisEmailCapture
                           ideaTitle={idea}
-                          monthlyProfit={result?.financial_analysis?.scenarios?.base?.net_profit
+                          monthlyProfit={result?.financial_analysis?.scenarios?.base?.net_profit 
                             ? `$${Math.round(result.financial_analysis.scenarios.base.net_profit).toLocaleString()}`
                             : undefined}
                           onDismiss={() => {}}
@@ -568,7 +553,7 @@ export default function Index() {
                         {!isFree && (
                           <div className="mt-6 grid grid-cols-1 gap-4">
                             <CapacityCheckCard parentAnalysisId={currentAnalysisId ?? undefined} />
-                            <MarketSizingCard idea={idea} location={location} result={result} />
+                            <MarketSizingCard />
                           </div>
                         )}
                       </SectionErrorBoundary>

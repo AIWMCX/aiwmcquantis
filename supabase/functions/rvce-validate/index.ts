@@ -1,17 +1,14 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { isRvceFanoutEnabled, getTierForAnalysis, RVCE_OBS_CAP, type Tier } from '../_shared/tier.ts';
-import { calibrateWithDeepSeek, fanoutVariable } from '../_shared/rvce-fanout.ts';
-import { callDeepseek } from '../_shared/deepseek.ts';
 
+const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') || '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const RVCE_VERSION = 'rvce-0.3.0';
+const RVCE_VERSION = 'rvce-0.2.0';
 
 const METRICS_TO_VALIDATE = [
   'revenue_monthly', 'gross_margin_pct', 'opex_marketing_monthly',
   'opex_rent_monthly', 'opex_payroll_monthly', 'ltv', 'cac',
   'ltv_cac_ratio', 'cac_payback_months', 'startup_investment_total',
-  'churn_rate_monthly', 'arpu_monthly',
 ];
 
 const QUERY_TEMPLATES: Record<string, { primary: string[]; fallback: string[] }> = {
@@ -148,39 +145,6 @@ serve(async (req) => {
     return new Response(null, { headers: CORS_HEADERS });
   }
 
-  // Auth gate: require a valid bearer token (user JWT or service role).
-  // Prevents unauthenticated abuse of the RVCE provider budget.
-  const authHeader = req.headers.get('Authorization') ?? '';
-  if (!authHeader.startsWith('Bearer ')) {
-    return new Response(
-      JSON.stringify({ error: 'Unauthorized' }),
-      { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
-    );
-  }
-  const token = authHeader.slice(7);
-  if (token !== SUPABASE_SERVICE_ROLE_KEY) {
-    try {
-      const verifyRes = await fetch(`${SUPABASE_URL}/auth/v1/user`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          apikey: Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-        },
-      });
-      if (!verifyRes.ok) {
-        return new Response(
-          JSON.stringify({ error: 'Unauthorized' }),
-          { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
-        );
-      }
-    } catch {
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...CORS_HEADERS, 'Content-Type': 'application/json' } },
-      );
-    }
-  }
-
-
   const startTime = Date.now();
 
   try {
@@ -193,62 +157,6 @@ serve(async (req) => {
 
     const { industry, location_city, business_model } = business_profile;
     const location_country = business_profile.location_country || 'US';
-
-    // ── Phase 1B: tier-aware DeepSeek fan-out path (flag-gated) ─────
-    const tier: Tier = getTierForAnalysis({
-      tier_at_creation: payload.tier_at_creation ?? business_profile?.tier_at_creation,
-      plan_id: payload.plan_id ?? business_profile?.plan_id,
-      user_tier: payload.user_tier ?? business_profile?.user_tier,
-    });
-
-    if (isRvceFanoutEnabled()) {
-      if (!Deno.env.get('DEEPSEEK_API_KEY')) {
-        const fallbackResult = buildPartialRvcePayload({
-          analysis_id,
-          tier,
-          startTime,
-          core_metrics,
-          industry,
-          location_city,
-          location_country,
-          reason: 'DEEPSEEK_API_KEY is not configured',
-        });
-        logValidation(fallbackResult).catch(() => {});
-        return jsonResponse(fallbackResult);
-      }
-
-      try {
-        const fanoutResult = await runFanoutPipeline({
-          analysis_id,
-          tier,
-          startTime,
-          core_metrics,
-          ctx: {
-            industry,
-            city: location_city,
-            country: location_country,
-            business_model,
-          },
-        });
-        logValidation(fanoutResult).catch(() => {});
-        return jsonResponse(fanoutResult);
-      } catch (err) {
-        const fallbackResult = buildPartialRvcePayload({
-          analysis_id,
-          tier,
-          startTime,
-          core_metrics,
-          industry,
-          location_city,
-          location_country,
-          reason: err instanceof Error ? err.message : String(err),
-        });
-        logValidation(fallbackResult).catch(() => {});
-        return jsonResponse(fallbackResult);
-      }
-    }
-    // ── End fan-out branch ──────────────────────────────────────────
-
 
     const referenceClasses = [
       { id: `rc-${slug(industry)}-${slug(location_city)}`, description: `${location_city} ${industry}`, sample_size: 0 },
@@ -418,7 +326,7 @@ async function validateMetricWithSearch(
   let observations: Observation[] = [];
 
   try {
-    const result1 = await callDeepSeekBenchmarkSearch(metric, originalValue, primaryQueries, profile);
+    const result1 = await callClaudeWithWebSearch(metric, originalValue, primaryQueries, profile);
     diagnostics.queries_sent.push(...primaryQueries);
     diagnostics.web_search_tool_fired = result1.searchFired;
     diagnostics.tool_use_count += result1.toolUseCount;
@@ -432,7 +340,7 @@ async function validateMetricWithSearch(
   if (observations.length < 3 && fallbackQueries.length > 0) {
     diagnostics.fallback_used = true;
     try {
-      const result2 = await callDeepSeekBenchmarkSearch(metric, originalValue, fallbackQueries, profile);
+      const result2 = await callClaudeWithWebSearch(metric, originalValue, fallbackQueries, profile);
       diagnostics.queries_sent.push(...fallbackQueries);
       if (result2.searchFired) diagnostics.web_search_tool_fired = true;
       diagnostics.tool_use_count += result2.toolUseCount;
@@ -516,7 +424,7 @@ async function validateMetricWithSearch(
   return { validation, evidence, diagnostics };
 }
 
-async function callDeepSeekBenchmarkSearch(
+async function callClaudeWithWebSearch(
   metric: string,
   _originalValue: number,
   queries: string[],
@@ -532,55 +440,90 @@ async function callDeepSeekBenchmarkSearch(
   const isPercentage = metric.includes('pct') || metric.includes('ratio');
   const unit = isPercentage ? (metric.includes('ratio') ? 'x' : '%') : 'USD per month';
 
-  const systemPrompt = `You are a financial benchmark researcher. Return conservative, citation-style benchmark observations as strict JSON only. Never fabricate impossible precision; if confidence is low, return fewer observations with lower confidence.`;
+  const systemPrompt = `You are a financial benchmark researcher. You MUST use the web_search tool to find real, current data. Do NOT answer from memory or training data — every number you return MUST come from a web search result you just retrieved. If you cannot find data via web search, return an empty observations array. Never fabricate benchmarks.`;
 
-  const userPrompt = `I need realistic market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
+  const userPrompt = `I need you to find real market benchmark data for "${metricLabel}" for a ${profile.industry} business in ${profile.city} (${profile.business_model}).
 
-Research angles to cover:
+STEP 1: Use your web_search tool to search for EACH of these queries (search for ALL of them):
 ${queries.map((q, i) => `  ${i + 1}. "${q}"`).join('\n')}
 
-Extract numeric values that specifically represent "${metricLabel}". The unit is ${unit}.
+STEP 2: From the search results, extract every numeric value that specifically represents "${metricLabel}". The unit is ${unit}.
 
-Return ONLY this JSON (no markdown, no backticks, no preamble):
+STEP 3: Return ONLY this JSON (no markdown, no backticks, no preamble):
 {
   "observations": [
-    {"value": 12000, "source": "Brief publisher/report description", "url": "https://source-url-if-known", "confidence": 0.7},
-    {"value": 15000, "source": "Another publisher/report description", "url": "", "confidence": 0.55}
+    {"value": 12000, "source": "Brief description of where this number came from", "url": "https://source-url-if-available"},
+    {"value": 15000, "source": "Another source", "url": ""}
   ],
   "search_executed": true
 }
 
 CRITICAL RULES:
+- You MUST call web_search before returning any data
 - Convert annual figures to monthly (divide by 12) for monthly metrics
 - For percentage metrics, return the number (e.g., 62 not 0.62 for 62%)
 - Only include numbers directly related to "${metricLabel}"
-- If you cannot ground a defensible range, return {"observations": [], "search_executed": true}
-- Include source URLs only when known; do not invent URLs`;
+- If search returns nothing relevant, return {"observations": [], "search_executed": true}
+- Include the source URL when available from search results`;
 
-  const response = await callDeepseek(
-    {
-      model: 'deepseek-chat',
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userPrompt },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.35,
-      max_tokens: 1500,
+  const response = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': ANTHROPIC_API_KEY,
+      'anthropic-version': '2023-06-01',
     },
-    25_000,
-  );
+    body: JSON.stringify({
+      model: 'claude-haiku-4-5-20251001',
+      max_tokens: 1500,
+      system: systemPrompt,
+      tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+      messages: [{ role: 'user', content: userPrompt }],
+    }),
+  });
 
-  if (!response.ok || !response.data) {
-    throw new Error(`DeepSeek RVCE ${response.status}: ${response.error ?? 'AI_ERROR'}`);
+  if (!response.ok) {
+    const errText = await response.text();
+    throw new Error(`Claude API ${response.status}: ${errText.slice(0, 200)}`);
   }
 
-  const choices = (response.data.choices as Array<{ message?: { content?: string } }> | undefined) ?? [];
-  const fullText = choices[0]?.message?.content ?? '';
-  const searchFired = true;
-  const toolUseCount = queries.length;
-  const toolResultCount = 1;
+  const data = await response.json();
+  const content = data.content || [];
+
+  let searchFired = false;
+  let toolUseCount = 0;
+  let toolResultCount = 0;
   const sourceUrls: string[] = [];
+  const textBlocks: string[] = [];
+
+  for (const block of content) {
+    if (block.type === 'tool_use' || block.type === 'server_tool_use') {
+      toolUseCount++;
+      if (block.name === 'web_search') searchFired = true;
+    }
+    if (block.type === 'tool_result' || block.type === 'web_search_tool_result') {
+      toolResultCount++;
+      const resultContent = block.content;
+      if (Array.isArray(resultContent)) {
+        for (const item of resultContent) {
+          if (item.type === 'web_search_result' && item.url) {
+            sourceUrls.push(item.url);
+          } else if (item.url) {
+            sourceUrls.push(item.url);
+          }
+        }
+      }
+      if (typeof resultContent === 'string' && resultContent.includes('http')) {
+        const urls = resultContent.match(/https?:\/\/[^\s"'<>]+/g);
+        if (urls) sourceUrls.push(...urls);
+      }
+    }
+    if (block.type === 'text') {
+      textBlocks.push(block.text);
+    }
+  }
+
+  const fullText = textBlocks.join('\n');
   let observations: Observation[] = [];
 
   try {
@@ -594,9 +537,8 @@ CRITICAL RULES:
           value: o.value,
           source: o.source || 'web search',
           url: o.url || '',
-          confidence: Math.max(0, Math.min(1, Number(o.confidence ?? 0.65))),
+          confidence: searchFired ? 0.8 : 0.3,
         }));
-      sourceUrls.push(...observations.map((o) => o.url || '').filter(Boolean));
     }
   } catch {
     const patterns = isPercentage
@@ -631,202 +573,6 @@ function chunk<T>(arr: T[], size: number): T[][] {
   for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size));
   return result;
 }
-
-/* ─────────────────────────────────────────────────────────────────────
- * Phase 1B fan-out pipeline (flag-gated). Builds an rvce-validate-shaped
- * payload using DeepSeek per-variable fan-out + DeepSeek calibration.
- * ──────────────────────────────────────────────────────────────────── */
-async function runFanoutPipeline(args: {
-  analysis_id: string | undefined;
-  tier: Tier;
-  startTime: number;
-  core_metrics: Record<string, number>;
-  ctx: { industry: string; city: string; country: string; business_model: string };
-}) {
-  const { analysis_id, tier, startTime, core_metrics, ctx } = args;
-
-  const metricsToProcess = METRICS_TO_VALIDATE.filter(
-    (m) => core_metrics[m] !== undefined && core_metrics[m] !== null && core_metrics[m] !== 0,
-  );
-
-  // Fan out across ALL variables in parallel — internal pLimit caps inflight calls.
-  const settled = await Promise.all(
-    metricsToProcess.map((m) => fanoutVariable(m, core_metrics[m], ctx, tier)),
-  );
-
-  let perVariable: Record<string, ReturnType<typeof toLegacyShape>['legacy']> = {};
-  const evidenceSamples: any[] = [];
-  const fanoutMap: Record<string, (typeof settled)[number]> = {};
-
-  metricsToProcess.forEach((m, i) => {
-    fanoutMap[m] = settled[i];
-  });
-
-  // Calibrate via single DeepSeek call (best-effort, never required).
-  const calibrated = await calibrateWithDeepSeek(fanoutMap, core_metrics);
-
-  metricsToProcess.forEach((m) => {
-    const v = calibrated[m];
-    const { legacy, samples } = toLegacyShape(m, v);
-    perVariable[m] = legacy;
-    evidenceSamples.push(...samples);
-  });
-
-  const entries = Object.values(perVariable);
-  let confidence = 90;
-  confidence -= entries.filter((e) => e.status === 'OUTLIER').length * 12;
-  confidence -= entries.filter((e) => e.status === 'WARN').length * 5;
-  confidence -= entries.filter((e) => e.status === 'NO_DATA').length * 4;
-  confidence = Math.max(0, Math.min(100, confidence)) / 100;
-
-  const flags = Object.entries(perVariable)
-    .filter(([, v]) => v.status === 'OUTLIER')
-    .map(([metric, v]) => ({
-      severity: 'high' as const,
-      metric,
-      message: `${metric.replace(/_/g, ' ')} is ${Math.abs(v.discrepancy_pct).toFixed(0)}% off the fan-out median (${v.observation_count} obs). ${v.notes}`,
-      impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
-    }));
-
-  const totalObs = entries.reduce((s, e) => s + e.observation_count, 0);
-  const cacheHits = entries.filter((e) => (e as any).cache_hit).length;
-  const expectedCap = RVCE_OBS_CAP[tier];
-
-  return {
-    analysis_id,
-    rvce_version: RVCE_VERSION,
-    rvce_engine: 'fanout',
-    tier,
-    obs_cap_per_variable: expectedCap,
-    global_confidence_score: parseFloat(confidence.toFixed(3)),
-    reference_classes: [
-      { id: `rc-${slug(ctx.industry)}-${slug(ctx.city)}`, description: `${ctx.city} ${ctx.industry}`, sample_size: totalObs },
-      { id: `rc-${slug(ctx.industry)}-${slug(ctx.country)}`, description: `${ctx.country} ${ctx.industry}`, sample_size: totalObs },
-    ],
-    metrics_validation: perVariable,
-    flags,
-    evidence_samples: evidenceSamples.slice(0, 60),
-    latency_ms: Date.now() - startTime,
-    status: totalObs > 0 ? 'COMPLETED' : 'PARTIAL',
-    search_health: {
-      total_metrics_searched: metricsToProcess.length,
-      total_observations_collected: totalObs,
-      cache_hit_count: cacheHits,
-      cache_hit_ratio: parseFloat((metricsToProcess.length ? cacheHits / metricsToProcess.length : 0).toFixed(2)),
-      web_search_fired_count: metricsToProcess.length - cacheHits,
-      web_search_fired_ratio: parseFloat((metricsToProcess.length ? (metricsToProcess.length - cacheHits) / metricsToProcess.length : 0).toFixed(2)),
-      total_source_urls: new Set(evidenceSamples.flatMap((e: any) => (e.url ? [e.url] : []))).size,
-      fallback_queries_used: 0,
-      metrics_with_zero_observations: entries.filter((e) => e.observation_count === 0).length,
-    },
-    search_diagnostics: [],
-  };
-}
-
-function toLegacyShape(metric: string, v: ReturnType<typeof fanoutVariable> extends Promise<infer R> ? R : never) {
-  const legacy = {
-    original_value: v.original_value,
-    external_median: v.external_median,
-    p25: v.p25,
-    p75: v.p75,
-    status: v.status,
-    discrepancy_score: v.discrepancy_pct, // legacy field name kept for UI compat
-    discrepancy_pct: v.discrepancy_pct,
-    notes: v.notes,
-    observation_count: v.observation_count,
-    web_search_fired: !v.cache_hit,
-    sources_used: new Set(v.observations.map((o) => o.url || o.source)).size,
-    confidence: v.confidence,
-    cache_hit: v.cache_hit,
-    observations: v.observations, // full evidence for the modal
-    ...(v.status === 'OUTLIER' && v.external_median != null
-      ? { recommended_value: v.external_median }
-      : {}),
-  };
-  const samples = v.observations.slice(0, 5).map((o) => ({
-    metric,
-    source: o.source,
-    url: o.url || '',
-    summary: `${o.metric_estimate} ${o.units} — ${o.source}`,
-    value: o.metric_estimate,
-    snippet: o.snippet,
-  }));
-  return { legacy, samples };
-}
-
-function buildPartialRvcePayload(args: {
-  analysis_id: string | undefined;
-  tier: Tier;
-  startTime: number;
-  core_metrics: Record<string, number>;
-  industry: string;
-  location_city: string;
-  location_country: string;
-  reason: string;
-}) {
-  const metricsToProcess = METRICS_TO_VALIDATE.filter(
-    (m) => args.core_metrics[m] !== undefined && args.core_metrics[m] !== null && args.core_metrics[m] !== 0,
-  );
-  const metrics_validation = Object.fromEntries(metricsToProcess.map((metric) => [metric, {
-    original_value: args.core_metrics[metric],
-    external_median: null,
-    p25: null,
-    p75: null,
-    status: 'NO_DATA',
-    discrepancy_score: 0,
-    discrepancy_pct: 0,
-    notes: `DeepSeek RVCE fan-out could not collect observations: ${args.reason.slice(0, 160)}`,
-    observation_count: 0,
-    web_search_fired: false,
-    sources_used: 0,
-    confidence: 0,
-    cache_hit: false,
-    observations: [],
-  }]));
-
-  return {
-    analysis_id: args.analysis_id,
-    rvce_version: RVCE_VERSION,
-    rvce_engine: 'fanout',
-    tier: args.tier,
-    obs_cap_per_variable: RVCE_OBS_CAP[args.tier],
-    global_confidence_score: 0,
-    reference_classes: [
-      { id: `rc-${slug(args.industry)}-${slug(args.location_city)}`, description: `${args.location_city} ${args.industry}`, sample_size: 0 },
-      { id: `rc-${slug(args.industry)}-${slug(args.location_country)}`, description: `${args.location_country} ${args.industry}`, sample_size: 0 },
-    ],
-    metrics_validation,
-    flags: [],
-    evidence_samples: [],
-    latency_ms: Date.now() - args.startTime,
-    status: 'PARTIAL',
-    search_health: {
-      total_metrics_searched: metricsToProcess.length,
-      total_observations_collected: 0,
-      cache_hit_count: 0,
-      cache_hit_ratio: 0,
-      web_search_fired_count: 0,
-      web_search_fired_ratio: 0,
-      total_source_urls: 0,
-      fallback_queries_used: 0,
-      metrics_with_zero_observations: metricsToProcess.length,
-    },
-    search_diagnostics: metricsToProcess.map((metric) => ({
-      metric,
-      queries_sent: [],
-      web_search_tool_fired: false,
-      tool_use_count: 0,
-      tool_result_count: 0,
-      raw_results_found: 0,
-      parsed_observations: 0,
-      fallback_used: true,
-      source_urls: [],
-      error: args.reason.slice(0, 240),
-    })),
-    error: args.reason.slice(0, 240),
-  };
-}
-
 
 function jsonResponse(data: any, status = 200) {
   return new Response(JSON.stringify(data), {

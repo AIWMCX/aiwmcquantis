@@ -61,13 +61,7 @@ const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
-const AdminConversionBySource = lazy(() => import("./pages/admin/ConversionBySource"));
-const AdminJourneyDrilldown = lazy(() => import("./pages/admin/JourneyDrilldown"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
-const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
-const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
-const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
-const QuoteResult = lazy(() => import("./pages/quote/QuoteResult"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -108,8 +102,8 @@ const App = () => {
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}
-                <Route path="/" element={<Landing />} />
-                <Route path="/maintenance" element={<Maintenance />} />
+                <Route path="/" element={<Maintenance />} />
+                <Route path="/__landing" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/thank-you" element={
                   <ProtectedRoute>
@@ -245,27 +239,12 @@ const App = () => {
                     <Autoposter />
                   </ProtectedRoute>
                 } />
-                <Route path="/admin/conversion-by-source" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminConversionBySource />
-                  </ProtectedRoute>
-                } />
-                <Route path="/admin/journey-drilldown" element={
-                  <ProtectedRoute requireAdmin>
-                    <AdminJourneyDrilldown />
-                  </ProtectedRoute>
-                } />
                 <Route path="/directory-tracker" element={
                   <ProtectedRoute requireAdmin>
                     <DirectoryTracker />
                   </ProtectedRoute>
                 } />
                 
-                <Route path="/quote" element={<ProtectedRoute><QuoteIndex /></ProtectedRoute>} />
-                <Route path="/quote/new" element={<ProtectedRoute><QuoteNew /></ProtectedRoute>} />
-                <Route path="/quote/:id" element={<ProtectedRoute><QuoteEdit /></ProtectedRoute>} />
-                <Route path="/quote/:id/result" element={<ProtectedRoute><QuoteResult /></ProtectedRoute>} />
-
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>

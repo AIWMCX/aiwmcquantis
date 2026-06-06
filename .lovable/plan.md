@@ -1,81 +1,155 @@
+# Benchmark-First Analysis Pipeline — Hardening Plan
 
-# Quantis growth diagnosis + next-stage plan
+## Problem (confirmed from code + DB)
 
-I read the live site, the funnel DB, and our SEO/UTM state. The product is not the problem. The conversion math and the distribution math are.
+- `benchmark_master_*` tables hold **97,500 rows** and `benchmark_lookup` RPC + V2 engine (`benchmark-engine-v2.ts`) exist and work.
+- `analyze-business/index.ts` calls `getBenchmarkSummary(...)` at L3267, but when the **AI narrator fails** the whole result switches to `usedFallback=true` (L3576+) and the deterministic path **drops the V2 benchmark percentiles from the output JSON**. The PDF then prints "Estimated — Engine fallback (no direct row)" with no P25/P50/P75.
+- When the edge function itself errors, `src/services/analysisApi.ts → emergencyFallbackAnalysis` runs **client-side with zero DB access**, producing the "0.1 vs 999 month CAC payback" contradictions reported in the PDFs.
+- There is no single canonical metric object — `cac_payback_months` is recomputed in narrator, in fallback, and in `analysisContract`, which is how two different values land in the same report.
 
-## What the numbers actually say (last 14 days)
+## Goal
 
+Every analysis (success path **and** fallback path) carries a `benchmarks{}` block populated from the real `benchmark_master_*` tables, with one canonical value per metric and explicit `match_type` per row. No silent client-side fallback.
+
+---
+
+## Step 1 — Decouple "narrator failed" from "benchmarks failed"
+
+File: `supabase/functions/analyze-business/index.ts`
+
+- Compute `v2BenchmarkSummary` **before** the narrator call (already is). Persist it in a `benchmarkRecords` map keyed by metric.
+- When `usedFallback=true` (narrator failed), keep using `v2BenchmarkSummary` to populate the response's `benchmarks` block instead of stripping it.
+- Always include in the response:
+  ```ts
+  meta: {
+    engine_mode: usedFallback ? "deterministic" : "full",
+    benchmark_mode: v2BenchmarkSummary ? "live" : "unavailable",
+    benchmark_match_summary: { direct: N, similar: M, none: K }
+  }
+  ```
+- Stop labeling deterministic+live-benchmarks output as "Fallback used because: Failed to send a request to the Edge Function." That message is wrong — the function did run.
+
+## Step 2 — Build a canonical `BenchmarkRecord` per metric
+
+New module: `supabase/functions/analyze-business/benchmark-records.ts`
+
+```ts
+type MatchType = 'direct' | 'similar' | 'none';
+interface BenchmarkRecord {
+  metric: string;            // 'gross_margin' | 'cac_payback_months' | …
+  unit: 'percent'|'months'|'usd'|'ratio';
+  value: number | null;      // engine-computed value
+  p25: number | null; median: number | null; p75: number | null;
+  sample_size: number; source: string | null; dataset_date: string | null;
+  match_type: MatchType; match_level: string | null;
+}
 ```
-home_view             539
-  → analysis_start     76   (14% of home views)
-    → analysis_complete 16  (21% of starts — 79% abandon)
-      → free_signup_start  3   (19% of completers try to sign up)
-        → free_signup_complete 2
-          → paid_checkout_start 6 (across all users, not just these)
-            → paid conversions ~0
 
-sample_view           28   (5% of homepage visitors scroll to it)
-sample_full_open       2
-sample_pdf_download    2
+`buildBenchmarkRecords(summary, computed)` returns one record per metric in a fixed list:
+`gross_margin, operating_margin, net_margin, cac, ltv, ltv_cac_ratio, cac_payback_months, churn_monthly, retention_12m, arpu, revenue_growth_yoy, rent_pct_rev, payroll_pct_rev, marketing_pct_rev, survival_years`.
+
+The `benchmarks` block in the response is this array. PDF/UI reads only from here — no parallel inference.
+
+## Step 3 — Single source of truth for derived metrics
+
+New module: `supabase/functions/_shared/canonical-metrics.ts` (mirrored client-side at `src/lib/canonical-metrics.ts`).
+
+- One function `computeCanonicalMetrics(inputs)` returns `{ mrr, arr, gross_margin, net_margin, cac, ltv, ltv_cac, cac_payback_months, project_payback_years }`.
+- Hard invariants (enforced inside the function):
+  - If `net_profit ≤ 0` → `cac_payback_months = null`, `ltv_cac = min(rawLtvCac, 3)`, `notes.push('CAC payback not meaningful — negative unit economics')`.
+  - If `gross_margin ≤ 0` → `ltv = null`, `cac_payback_months = null`.
+  - Never emit sentinel values like `0.1` or `999`.
+- Narrator, fallback path, response builder, and PDF all consume this **one** object. Delete duplicate math in `analysisApi.emergencyFallbackAnalysis` and `narrator-prompt.ts`.
+
+## Step 4 — Kill the silent client-side emergency fallback
+
+File: `src/services/analysisApi.ts`
+
+- Replace `emergencyFallbackAnalysis` with a hard error surfaced to the UI: `ANALYSIS_UNAVAILABLE` with a retry CTA. Reasoning: a client-side fabricated report with no DB access is exactly what produced the contradictions the reviewer flagged.
+- Keep one retry with backoff (already there). After retries, throw — do not fabricate.
+- Add a feature flag `VITE_ALLOW_CLIENT_FALLBACK=false` (default) so we can ship safely; setting `true` falls back to a **server proxy** that still calls `benchmark_lookup` via the anon client and never invents percentiles.
+
+## Step 5 — Server-side narrator failure path that still uses benchmarks
+
+In `analyze-business/index.ts` when narrator fails:
+
+1. Use `computeCanonicalMetrics`.
+2. Use `v2BenchmarkSummary` to fill `benchmarks[]`.
+3. Generate scenarios deterministically from canonical metrics × (0.75 / 1.0 / 1.2) revenue, recomputing P&L — never apply different multipliers to derived ratios.
+4. Set `confidence_score = clamp(40, 60, base)`, `engine_mode = 'deterministic'`, `benchmark_mode = 'live'`.
+5. `analysis_limitations` lists exactly: narrator unreachable, which metrics had `match_type='none'`, and which inputs were missing.
+
+## Step 6 — Public benchmark API contract (already in DB, expose properly)
+
+The `benchmark_lookup(metric, sector, business_model, country, city_tier, stage, size)` RPC already exists and returns the right shape. We will:
+
+- Expose a thin Edge Function `POST /benchmarks/query` for external testing and CI — accepts `{ context, metrics[] }`, fans out to `benchmark_lookup` per metric in parallel, returns `{ matches: BenchmarkRecord[] }`.
+- This is the contract the spec the user pasted describes; `match_type` derives from RPC `match_level` (`exact`/`no_size`/`no_city` → `direct`, `sector_model`/`sector_only` → `similar`, missing → `none`).
+
+## Step 7 — Output schema contract enforced by Zod
+
+File: `supabase/functions/analyze-business/schemas.ts` — add:
+
+```ts
+const BenchmarkRecordSchema = z.object({ metric: z.string(), unit: z.enum(['percent','months','usd','ratio']),
+  value: z.number().nullable(), p25: z.number().nullable(), median: z.number().nullable(), p75: z.number().nullable(),
+  sample_size: z.number(), source: z.string().nullable(), dataset_date: z.string().nullable(),
+  match_type: z.enum(['direct','similar','none']), match_level: z.string().nullable() });
+const ResponseSchema = z.object({
+  meta: z.object({ engine_mode: z.enum(['full','deterministic']),
+                   benchmark_mode: z.enum(['live','unavailable']),
+                   confidence_score: z.number().min(0).max(100) }),
+  benchmarks: z.array(BenchmarkRecordSchema),
+  financial_analysis: …, scenarios: …, analysis_limitations: z.array(z.string())
+});
 ```
 
-UTM source breakdown over 30 days:
-```
-(none)         1104   ← 99% of all events
-homepage          7   ← our own internal CTAs
-chatgpt.com       1
-```
+Response is `ResponseSchema.parse(...)` — invalid shape returns 500 instead of leaking inconsistent JSON to the PDF.
 
-That tells the truth nobody wants to hear:
+## Step 8 — PDF and UI read only `benchmarks[]`
 
-1. **Distribution is zero.** No LinkedIn, no Product Hunt, no directory clicks are landing tagged. Either posts aren't going out, or they're going out without UTM, or nobody is clicking. Either way → no top-of-funnel.
-2. **Mid-funnel leak.** 79% of people who start an analysis never finish one. That's the single biggest controllable loss.
-3. **Signup gate is killing it.** Of the 16 who finish, only 3 even start signup. The "result → signup" hand-off is broken or asks too much.
-4. **Pricing has no trial.** 6 paid_checkout_start in 14 days, ~0 conversions. $14/mo with only a money-back guarantee is still cold-card friction.
-5. **Sample report is invisible.** 5% of visitors ever see it; 0.4% open the full version. It's below the hero and not pulling weight.
-6. **SEO**: per-route canonicals + sitemap are correct. Real issue is we have one indexable page (`/`) doing all the work. No programmatic `/for/[industry]` surface area = no long-tail entry points.
+Files: `src/components/analysis/AccuracyTransparentResults.tsx`, PDF templates.
 
-## The plan — 3 tracks, no new features
+- Remove every place that re-derives a percentile string locally.
+- Render `match_type='none'` rows as **"Not benchmarked — insufficient comparable data"** (no fake numbers, no "verified" badge).
+- The "95,500 datapoints verified" badge only renders if `meta.benchmark_mode === 'live' && benchmark_match_summary.direct + similar > 0`.
 
-### Track A — Stop the mid-funnel leak (highest ROI)
+## Step 9 — Integration tests (CI gate)
 
-- Read `analysis_step_view` events to find the exact step where the 79% drops off (we already log `ms_on_step`).
-- Compress the analysis input flow: cut any optional field, default everything sensible, make "Analyze" reachable in ≤2 clicks from idea-paste.
-- Show partial result *before* asking for anything (already partly done — extend it: full verdict + 1 risk visible, signup gate only for the rest).
-- Add a single "save your report" inline signup on the result page (email-only magic link, no password), not a route change.
+New file: `src/__tests__/benchmark-pipeline-e2e.test.ts` + `supabase/functions/analyze-business/__tests__/benchmark-records_test.ts`.
 
-### Track B — Convert finishers to paid
+Tests required to pass before merge:
 
-- Add a real **$1 / 7-day Pro trial** in Stripe (we already discussed this; it's the standard fix for $14 friction with cold traffic).
-- Replace "Generate free plan" hero CTA copy with a benefit-led promise that matches the verdict ("See if your idea makes money — free verdict in 90s").
-- Move the sample report **into the hero** as a right-column preview (desktop) / below-fold accordion (mobile), with one tracked "See the full sample" link. Don't make it a separate scroll-section nobody reaches.
-- Pricing page: add the trial card as the Most Popular tier, push annual save below it.
+1. **Direct match**: seed sector=B2B SaaS row; analysis returns `benchmarks[gross_margin].match_type === 'direct'` and median equals seeded value.
+2. **Similar match**: seed only sector-level row; sub-sector mismatch returns `match_type === 'similar'`.
+3. **No match**: unknown sector → `match_type === 'none'`, `median === null`, no fabricated number.
+4. **Narrator down**: mock LLM 500; assert `engine_mode === 'deterministic'`, `benchmark_mode === 'live'`, benchmarks block still populated, no client fallback.
+5. **Edge function down**: mock invoke error; UI surfaces `ANALYSIS_UNAVAILABLE` — never returns a fabricated `BusinessAnalysisResult`.
+6. **Coherence invariant**: negative net profit → `cac_payback_months === null` everywhere in response; never `0.1` and never `999`.
+7. **Schema**: `ResponseSchema.parse(realResponse)` succeeds on 10 golden cases.
 
-### Track C — Turn on distribution (the actual blocker)
+CI: wire into existing `vitest` and `supabase test_edge_functions` jobs.
 
-- Ship 4 programmatic SEO landing pages: `/for/restaurants`, `/for/saas`, `/for/coffee-shops`, `/for/ecommerce`. Each = hero + 3 real benchmarks from our DB + sample verdict for that industry + CTA. These are the long-tail entry points we don't have.
-- Ship a **public shareable result page** (`/r/[token]`) with OG image so every finished analysis becomes a tweetable/LinkedIn-able artifact. Right now reports die in the user's tab.
-- A LinkedIn post composer that pre-fills "I stress-tested my idea on Quantis — verdict: X" + UTM-tagged link. This is the only realistic way one founder → 5 visitors.
-- Audit our directory submissions: confirm each live link carries `?utm_source=producthunt|betalist|...`. Right now they don't, which is why we have 1104 (none) events.
+## Step 10 — Observability
 
-### Out of scope on purpose
+- Log `benchmark_match_summary` to `analyses.metadata` jsonb so admin dashboard can plot `% direct / % similar / % none` per industry.
+- Add tile to `QuantisHealth.tsx`: "Benchmark coverage (7d): X% direct, Y% similar, Z% none".
 
-- No new tier, no new pricing, no new engine work, no rebrand.
-- No "more content" or "more posts" until UTM proves clicks convert. Posting blind is what got us here.
+---
 
-## Suggested build order (when you switch me to build mode)
+## Out of scope (this plan)
 
-1. Per-step abandon report on `/admin/journey-drilldown` already exists → I read it, identify the leak step, and cut it. (1 PR)
-2. Inline email-only signup on result page + sample report moved into hero. (1 PR)
-3. Stripe $1 / 7-day Pro trial + pricing page update. (1 PR)
-4. Public share page `/r/[token]` + OG image edge function. (1 PR)
-5. 4 `/for/[industry]` programmatic pages + sitemap entries. (1 PR)
-6. UTM audit on all directory + social links. (1 PR)
+- Rebuilding the benchmark dataset itself (rows are already in DB).
+- AI consensus gate (Month 1 Week 2 — separate plan).
+- Streaming SSE results (Month 1 Week 4).
+- Pricing / landing / SEO work.
 
-Each PR is independently shippable and independently measurable in the dashboards we already built.
+## Files touched
 
-## One honest thing
+Create: `supabase/functions/analyze-business/benchmark-records.ts`, `supabase/functions/_shared/canonical-metrics.ts`, `src/lib/canonical-metrics.ts`, `supabase/functions/benchmarks-query/index.ts`, `src/__tests__/benchmark-pipeline-e2e.test.ts`, `supabase/functions/analyze-business/__tests__/benchmark-records_test.ts`.
 
-The reason it feels bad isn't that the product is bad. It's that you built a Ferrari and parked it in a garage with no door. Tracks A+B fix the engine; Track C opens the door. Until C ships, no amount of A+B matters — and until A+B ship, traffic from C will leak right back out.
+Edit: `supabase/functions/analyze-business/index.ts` (response builder + fallback branch), `supabase/functions/analyze-business/schemas.ts` (Zod response schema), `supabase/functions/analyze-business/narrator-prompt.ts` (use canonical metrics), `src/services/analysisApi.ts` (remove emergency fallback fabrication), `src/components/analysis/AccuracyTransparentResults.tsx` (read benchmarks[] only), PDF templates, `src/pages/admin/QuantisHealth.tsx` (coverage tile).
 
-Tell me to switch to build mode and I start with step 1 (find and cut the abandon step), since that's the one fix that pays off even before distribution turns on.
+## Acceptance
+
+After ship, a new analysis must show in the PDF for at least 8 of the 15 metrics: a real `P25 / Median / P75` row with source + sample size, `match_type` chip = direct or similar, **and the same `cac_payback_months` value in every section.** Narrator outages no longer downgrade the benchmark block.

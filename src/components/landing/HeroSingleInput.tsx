@@ -1,21 +1,9 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, Sparkles, Lock } from 'lucide-react';
+import { Loader2, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
-import {
-  recordFunnelEvent,
-  trackCtaClick,
-  trackAnalysisView,
-  trackAnalysisStep,
-  trackAnalysisAbandon,
-} from '@/lib/analytics';
-import { EmbeddedSampleReport } from '@/components/landing/EmbeddedSampleReport';
-import {
-  saveLastAnalysis,
-  updateLastAnalysisId,
-  markLastAnalysisSeen,
-} from '@/lib/analysisRecovery';
+import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 
 const NARRATION = [
   { t: 0,    label: 'Reading your idea…' },
@@ -27,17 +15,11 @@ const NARRATION = [
 ];
 
 /**
- * Anonymous-first single-input flow + embedded sample report (proof) inline.
- * Visitor types one line, presses Enter or clicks the CTA. On success, we
- * navigate to /r/:id where they see their verdict.
- *
- * Per-step funnel events emitted (see /admin/conversion-by-source):
- *   analysis_view           — section becomes visible
- *   analysis_step_view      — step="idea" | "location" | "submit"
- *   analysis_step_complete  — fires when leaving a step with content
- *   analysis_abandon        — user leaves without completing
- *   analysis_start          — submit pressed (existing)
- *   analysis_complete       — result returned (existing)
+ * Anonymous-first single-input flow.
+ * Visitor types one line, presses Enter or clicks the CTA.
+ * No auth, no second field, no document upload, no tier picker.
+ * On success, we navigate to /r/:id where they see their verdict
+ * with a save/share rail that converts them to an account.
  */
 export function HeroSingleInput() {
   const navigate = useNavigate();
@@ -50,62 +32,14 @@ export function HeroSingleInput() {
   const [progressStep, setProgressStep] = useState(0);
   const [elapsed, setElapsed] = useState(0);
 
-  // Per-step tracking refs
-  const viewedRef = useRef(false);
-  const enteredAt = useRef<number>(Date.now());
-  const stepEnteredAt = useRef<Record<string, number>>({});
-  const completedStepsRef = useRef<Set<string>>(new Set());
-  const lastStepRef = useRef<string>('idea');
-  const submittedRef = useRef(false);
-
-  // 1. analysis_view + idea step view on mount
-  useEffect(() => {
-    if (viewedRef.current) return;
-    viewedRef.current = true;
-    trackAnalysisView('hero_single_input');
-    trackAnalysisStep('view', 'idea');
-    stepEnteredAt.current['idea'] = Date.now();
-    enteredAt.current = Date.now();
-  }, []);
-
-  // 2. abandonment tracking — fire on page hide if user never submitted
-  useEffect(() => {
-    const onLeave = () => {
-      if (submittedRef.current) return;
-      const ms = Date.now() - enteredAt.current;
-      // Only count meaningful sessions (>2s) to filter bounces.
-      if (ms > 2000) {
-        trackAnalysisAbandon(lastStepRef.current, ms, {
-          had_idea: idea.trim().length > 0,
-        });
-      }
-    };
-    const onVis = () => { if (document.visibilityState === 'hidden') onLeave(); };
-    window.addEventListener('pagehide', onLeave);
-    document.addEventListener('visibilitychange', onVis);
-    return () => {
-      window.removeEventListener('pagehide', onLeave);
-      document.removeEventListener('visibilitychange', onVis);
-    };
-  }, [idea]);
-
-  // 3. mark "idea" step complete once user types ≥10 chars (after a debounce)
-  useEffect(() => {
-    if (idea.trim().length < 10 || completedStepsRef.current.has('idea')) return;
-    const t = setTimeout(() => {
-      completedStepsRef.current.add('idea');
-      const ms = Date.now() - (stepEnteredAt.current['idea'] ?? Date.now());
-      trackAnalysisStep('complete', 'idea', { ms_on_step: ms, length: idea.trim().length });
-    }, 800);
-    return () => clearTimeout(t);
-  }, [idea]);
-
-  // Default the location field invisibly so the edge function validation passes.
+  // Default the location field invisibly so the edge function validation
+  // (which requires location ≥ 2 chars) passes for the single-input flow.
+  // Visitors who care about geo precision use the full /app form.
   useEffect(() => {
     if (!location) setLocation('Global');
   }, [location, setLocation]);
 
-  // Progress narration
+  // Progress narration during the wait
   useEffect(() => {
     if (!isLoading) {
       setProgressStep(0);
@@ -125,17 +59,10 @@ export function HeroSingleInput() {
     return () => clearInterval(i);
   }, [isLoading]);
 
-  // Persist analysis id to localStorage the moment we know it (server may
-  // finish before user comes back from a backgrounded tab).
-  useEffect(() => {
-    if (analysisId) updateLastAnalysisId(analysisId);
-  }, [analysisId]);
-
   // Navigate to result page once we have an id
   useEffect(() => {
     if (analysisId && result && !isLoading) {
       recordFunnelEvent('analysis_complete', { source: 'hero_single_input' });
-      markLastAnalysisSeen();
       navigate(`/r/${analysisId}`, { replace: false });
     }
   }, [analysisId, result, isLoading, navigate]);
@@ -143,16 +70,9 @@ export function HeroSingleInput() {
   const onSubmit = useCallback((e: React.FormEvent) => {
     e.preventDefault();
     if (idea.trim().length < 10) return;
-    submittedRef.current = true;
-    lastStepRef.current = 'submit';
-    trackAnalysisStep('view', 'submit');
-    trackAnalysisStep('complete', 'submit', { ms_on_step: Date.now() - enteredAt.current });
     trackCtaClick('hero_single_input_submit', 'hero');
     recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
-    // Persist immediately so abandoners can recover even if the tab dies
-    // before the analysis id comes back.
-    saveLastAnalysis({ id: null, ideaPreview: idea.trim() });
-    handleSubmit(e, 'quick', { isLandingDemo: true });
+    handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
 
   const valid = idea.trim().length >= 10;
@@ -178,21 +98,21 @@ export function HeroSingleInput() {
             }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Free · No signup · 90 seconds
+            Free · No signup · 60 seconds
           </span>
-          <h1
+          <h2
             className="font-bold leading-[1.1] mb-3"
             style={{
-              fontSize: 'clamp(1.95rem, 4.4vw, 3rem)',
+              fontSize: 'clamp(1.75rem, 4vw, 2.75rem)',
               fontFamily: 'var(--q-font-heading, inherit)',
               color: 'var(--q-text-primary, hsl(var(--foreground)))',
               letterSpacing: '-0.025em',
             }}
           >
-            Find out if your business idea actually makes money — before you spend a dollar.
-          </h1>
-          <p className="text-base md:text-lg max-w-2xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
-            Describe your idea in one sentence. Get the monthly profit, break-even date, the three things most likely to kill it, and an honest go / pivot / kill verdict — in 90 seconds. Free.
+            Type your business idea. Get a verdict.
+          </h2>
+          <p className="text-sm md:text-base max-w-xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
+            One sentence is enough. We stress-test it against 95,500 real benchmarks and tell you, brutally, if the math holds.
           </p>
         </div>
 
@@ -209,7 +129,6 @@ export function HeroSingleInput() {
               type="text"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
-              onFocus={() => { lastStepRef.current = 'idea'; }}
               placeholder="e.g. Subscription coffee shop in Austin, $8/cup, 200 customers/mo"
               maxLength={300}
               disabled={isLoading}
@@ -227,14 +146,18 @@ export function HeroSingleInput() {
               {isLoading ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  Running your analysis…
+                  Analyzing…
                 </>
               ) : (
-                <>Analyze my idea — free</>
+                <>
+                  Stress-test it free
+                  <ArrowRight className="w-4 h-4" />
+                </>
               )}
             </Button>
           </div>
 
+          {/* Progress narration during the 60-90s wait — keeps the user from bouncing */}
           {isLoading && (
             <div
               className="mt-4 p-4 rounded-xl text-center"
@@ -266,28 +189,21 @@ export function HeroSingleInput() {
             </div>
           )}
 
+          {/* Trust micro-row */}
           {!isLoading && (
             <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2 mt-4 text-xs" style={{ color: 'var(--q-text-tertiary, hsl(var(--muted-foreground)))' }}>
               <span className="inline-flex items-center gap-1.5">
                 <Lock className="w-3 h-3" />
-                Your idea stays private
+                We don't store your idea publicly.
               </span>
               <span>·</span>
-              <span>No credit card</span>
+              <span>95,500 verified benchmarks</span>
               <span>·</span>
-              <span>Real numbers, sourced</span>
+              <span>Dual-AI cross-checked</span>
             </div>
           )}
         </form>
       </div>
-
-      {/* Inline proof-of-output, immediately below the input so it's
-          truly above the fold for most viewports. */}
-      {!isLoading && (
-        <div className="border-t border-border bg-background/40">
-          <EmbeddedSampleReport />
-        </div>
-      )}
     </section>
   );
 }

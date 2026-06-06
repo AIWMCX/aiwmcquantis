@@ -145,9 +145,6 @@ serve(async (req) => {
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error';
     console.error('[analyze-pro-extension] fatal', message);
-    // WS3: always HTTP 200 for analysis requests
-    return json({ ok: false, degraded: true, reason: 'internal', success: false,
-      error: 'The analysis engine hit a transient error. Your inputs are preserved — please retry.',
-      code: 'INTERNAL', request_id: requestId }, 200);
+    return json({ success: false, error: 'INTERNAL', message, request_id: requestId }, 500);
   }
 });

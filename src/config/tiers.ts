@@ -19,15 +19,6 @@
  * NOT in this file. Pro Annual must be set to 0 trial days in Stripe.
  */
 
-/**
- * FREE TIER quota — single source of truth.
- * Read this constant everywhere (UI counters, paywall trigger, server quota ledger).
- * Changing this value updates copy, paywall gate, and the SQL `charge_free_analysis`
- * function together (keep SQL `v_limit` in sync — see usage_counters migration).
- */
-export const FREE_ANALYSIS_LIMIT = 5;
-export const FREE_QUOTA_WINDOW: 'month' | 'lifetime' = 'month';
-
 export const TIERS = {
   free: {
     id: 'free',
@@ -36,12 +27,12 @@ export const TIERS = {
     priceMonthly: 0,
     priceAnnual: 0,
     limits: {
-      analysesPerMonth: 5,
+      analysesPerMonth: 1,
       downloadsPerDay: 5,
       projectionMonths: 0,
       monteCarloScenarios: 0,
       teamSeats: 0,
-      templates: 3,
+      templates: 0, // Doc Studio fully locked for Free (per CTO §2)
     },
     features: {
       depthQuick: true,
@@ -49,7 +40,7 @@ export const TIERS = {
       depthPro: false,
       preMortem: false,
       invoiceCapacity: false,
-      documentStudio: true, // 3 free templates: professional-invoice, quarterly-summary, nda-agreement
+      documentStudio: false,
       aiDocIntelligence: false,
       customBranding: false,
       whiteLabel: false,
@@ -61,15 +52,6 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: false,
-      // Tier value-add capabilities (no price change)
-      sampleSharingEnabled: true,
-      basicEmailDigest: true,
-      scenarioComparison: false,
-      monthlyBenchmarkRefresh: false,
-      customRiskAlerts: false,
-      teamWorkspace: false,
-      priorityAiQueue: false,
-      apiWebhooks: false,
     },
     supportSla: 'best-effort',
     trialEligible: false,
@@ -107,15 +89,6 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: true,
-      // Plus value-adds
-      sampleSharingEnabled: true,
-      basicEmailDigest: true,
-      scenarioComparison: true,        // Compare up to 3 saved analyses
-      monthlyBenchmarkRefresh: true,   // Auto-rerun when benchmarks update
-      customRiskAlerts: true,          // Alert when assumption goes red
-      teamWorkspace: false,
-      priorityAiQueue: false,
-      apiWebhooks: false,
     },
     supportSla: '24h-target',
     trialEligible: { monthly: true, annual: true, days: 14 },
@@ -132,7 +105,7 @@ export const TIERS = {
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 60,
       monteCarloScenarios: 95_500,
-      teamSeats: 5,
+      teamSeats: 3,
       templates: 12,
     },
     features: {
@@ -153,15 +126,6 @@ export const TIERS = {
       strategicRoadmap: true,
       fiveYearModel: true,
       actionPlan: true,
-      // Pro value-adds
-      sampleSharingEnabled: true,
-      basicEmailDigest: true,
-      scenarioComparison: true,
-      monthlyBenchmarkRefresh: true,
-      customRiskAlerts: true,
-      teamWorkspace: true,        // Shared library across all 5 seats
-      priorityAiQueue: true,      // Pro runs jump the queue
-      apiWebhooks: true,          // Webhook on analysis-complete
     },
     supportSla: '24h-guaranteed',
     trialEligible: { monthly: true, annual: false, days: 14 }, // Pro Annual = NO trial
@@ -175,18 +139,14 @@ export type BillingCycle = 'monthly' | 'annual';
 
 /** Stripe price ID → tier mapping. Used by webhook + checkout. */
 export const STRIPE_PRICE_TO_TIER: Record<string, { tier: TierId; cycle: BillingCycle; isLegacy?: boolean }> = {
-  // Plus monthly ($17) — ACTIVE in live Stripe acct_1Sjknz
-  price_1SjnEiLKMhSmZURCONsiueNU: { tier: 'plus', cycle: 'monthly' },
-  // Plus annual ($168) — ACTIVE
-  price_1SvWTaLKMhSmZURClCoqty4O: { tier: 'plus', cycle: 'annual' },
-  // Pro monthly ($49) — ACTIVE
-  price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
-  // Pro annual ($492) — ACTIVE
-  price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },
-  // Legacy/alt Pro monthly ($29) — grandfathered
-  price_1SjnFCLKMhSmZURCT0pbiMNf: { tier: 'pro', cycle: 'monthly', isLegacy: true },
-  // Legacy Plus monthly (stale ID, kept for old subscriptions)
+  // Legacy Plus monthly ($17) — grandfathered, still treated as Plus
   price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
+  // Plus annual
+  price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
+  // Pro monthly ($41, 14-day trial)
+  price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
+  // Pro annual ($492, NO trial)
+  price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },
 };
 
 /** Returns whether a (tier, cycle) combination is eligible for a free trial. */
@@ -244,7 +204,7 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   documentStudio: {
     title: 'Document Studio',
-    bullets: ['3 free templates, 12+ on Plus', 'Auto-populated from your analysis', 'PDF + DOCX export'],
+    bullets: ['12+ branded templates', 'Auto-populated from your analysis', 'PDF + DOCX export'],
     recommendedTier: 'plus',
   },
   aiDocIntelligence: {
@@ -301,45 +261,5 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
     title: 'Action Plan Generator',
     bullets: ['Prioritized next steps', 'Tied to your specific risks', 'Updated per analysis'],
     recommendedTier: 'plus',
-  },
-  sampleSharingEnabled: {
-    title: 'Share Read-Only Analysis Link',
-    bullets: ['Send a public link to your analysis', 'No login required for viewers', 'Revoke anytime'],
-    recommendedTier: 'free',
-  },
-  basicEmailDigest: {
-    title: 'Weekly Benchmark Digest',
-    bullets: ['Your idea vs latest benchmarks', 'Delivered every Monday', 'Unsubscribe anytime'],
-    recommendedTier: 'free',
-  },
-  scenarioComparison: {
-    title: 'Scenario Comparison',
-    bullets: ['Compare up to 3 saved analyses side-by-side', 'Diff revenue, margin, payback', 'Find the strongest version'],
-    recommendedTier: 'plus',
-  },
-  monthlyBenchmarkRefresh: {
-    title: 'Auto Benchmark Refresh',
-    bullets: ['Saved analyses re-run when industry data updates', 'See drift over time', 'Stay current automatically'],
-    recommendedTier: 'plus',
-  },
-  customRiskAlerts: {
-    title: 'Custom Risk Alerts',
-    bullets: ['Email alert when an assumption goes red', 'Tie to LTV:CAC, runway, margin thresholds', 'Catch problems early'],
-    recommendedTier: 'plus',
-  },
-  teamWorkspace: {
-    title: 'Team Workspace',
-    bullets: ['Shared analysis library across all 5 seats', 'Comment and collaborate', 'Role-based access'],
-    recommendedTier: 'pro',
-  },
-  priorityAiQueue: {
-    title: 'Priority AI Queue',
-    bullets: ['Pro analyses jump the queue', 'Faster turnaround at peak load', 'Dedicated capacity'],
-    recommendedTier: 'pro',
-  },
-  apiWebhooks: {
-    title: 'API Webhooks',
-    bullets: ['Webhook fires on analysis-complete', 'Integrate with your stack', 'Pairs with API access'],
-    recommendedTier: 'pro',
   },
 };

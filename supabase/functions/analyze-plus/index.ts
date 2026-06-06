@@ -238,10 +238,7 @@ serve(async (req) => {
       severity: 'error',
       payload: { code: 'INTERNAL', message: message.slice(0, 500) },
     });
-    // WS3: always HTTP 200 — client retries silently on ok:false
-    return json({ ok: false, degraded: true, reason: 'internal', success: false,
-      error: 'The analysis engine hit a transient error. Your inputs are preserved — please retry.',
-      code: 'INTERNAL', request_id: requestId }, 200);
+    return json({ success: false, error: 'INTERNAL', message, request_id: requestId }, 500);
   }
 });
 

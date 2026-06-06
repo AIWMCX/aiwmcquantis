@@ -29,20 +29,18 @@ const PRICING = {
 };
 
 const FREE_FEATURES = [
-  { text: '5 free analyses per month', highlight: true, subtext: 'Same quick-grade accuracy, capped by usage only' },
+  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
   { text: '5 watermarked PDFs/day', highlight: false, subtext: '"Powered by Quantis" footer included' },
-  { text: 'QuoteGen (Beta) — 5 quotes/mo', highlight: true, subtext: 'Generate priced, PDF-ready service quotes' },
   { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
   { text: 'Invoice & Capacity Check 🔒', highlight: false, subtext: 'Plus only — should you take this client?' },
-  { text: '3 free Docs templates', highlight: true, subtext: 'Invoice, quarterly summary, and NDA templates' },
+  { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
   { text: 'Email support — best effort', highlight: false },
 ];
 
 const PLUS_FEATURES = [
   { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
   { text: 'Full report — Monte Carlo, 36-mo P&L, action plan', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
-  { text: 'QuoteGen (Beta) — unlimited', highlight: true, subtext: 'Generate priced, PDF-ready service quotes' },
   { text: 'Pre-Mortem Stress Test ✓', highlight: true, subtext: 'Stress-test churn shocks, cost spikes, customer concentration' },
   { text: 'Invoice & Capacity Check ✓', highlight: true, subtext: 'Decide whether to accept new clients without breaking cash flow' },
   { text: 'Document Studio ✓', highlight: false, subtext: '12+ branded templates auto-populated from your analysis' },
@@ -54,7 +52,6 @@ const PLUS_FEATURES = [
 
 const PRO_FEATURES = [
   { text: 'Everything in Plus, plus:', highlight: true },
-  { text: 'QuoteGen (Beta) — unlimited', highlight: true, subtext: 'High-volume quoting for estimators and operators' },
   { text: '5-Year Financial Model', highlight: true, subtext: 'Beyond the 36-month Plus horizon' },
   { text: 'TAM / SAM / SOM Calculator', highlight: true, subtext: 'With cited sources for investors' },
   { text: 'Pitch Deck Data Package', highlight: false, subtext: 'Exportable to slides — investor-ready' },
@@ -213,7 +210,7 @@ export function PricingSection() {
             period={plusPricing.period}
             description="Full Analysis — should you actually start this business?"
             features={PLUS_FEATURES}
-            ctaText="Start 14-Days Free Trial →"
+            ctaText="Start 14-Day Free Trial →"
             onCtaClick={() => handlePlanClick('plus')}
             isLoading={loadingPlan === 'plus'}
             disabled={loadingPlan !== null}
@@ -228,7 +225,7 @@ export function PricingSection() {
             period={proPricing.period}
             description="Investor-Ready — how do you convince investors to fund this?"
             features={PRO_FEATURES}
-            ctaText={billingPeriod === 'annual' ? 'Get Pro Annual →' : 'Start Pro — 14-Days Trial →'}
+            ctaText={billingPeriod === 'annual' ? 'Get Pro Annual →' : 'Start Pro — 14-Day Trial →'}
             onCtaClick={() => handlePlanClick('pro')}
             isLoading={loadingPlan === 'pro'}
             disabled={loadingPlan !== null}
@@ -260,7 +257,7 @@ export function PricingSection() {
 
 function FeatureComparisonTable() {
   const features = [
-    { name: 'Monthly analyses', free: '5', plus: 'Unlimited' },
+    { name: 'Monthly analyses', free: '3', plus: 'Unlimited' },
     { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
     { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
     { name: 'Marketing strategy', free: 'no', plus: 'yes' },

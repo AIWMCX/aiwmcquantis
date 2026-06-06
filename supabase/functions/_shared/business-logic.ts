@@ -132,7 +132,7 @@ export const TIERS = {
     id: "free",
     priceMonthly: 0,
     priceAnnual: 0,
-    analysesPerMonth: 5,
+    analysesPerMonth: 1,
     pdfExport: false,
     monteCarloP10P90: false,
     fullPnl: false,

@@ -35,7 +35,7 @@ const CHANGELOG: ChangeEntry[] = [
     changes: [
       'Public Status page with real-time database/auth health checks (auto-refresh every 60s).',
       'Security posture page documenting encryption, RLS, anomaly detection, and 7-layer AI safety.',
-      'Plain-English 14-days refund policy with explicit Pro Annual handling.',
+      'Plain-English 14-day refund policy with explicit Pro Annual handling.',
       'Per-route SEO meta tags via react-helmet-async — Googlebot now sees proper title/description/OpenGraph on every page.',
     ],
   },
@@ -46,9 +46,9 @@ const CHANGELOG: ChangeEntry[] = [
     type: 'feature',
     changes: [
       'New Plus pricing: $14/mo (down from $17), $168/yr (saves $24).',
-      'New Pro tier: $41/mo with 14-days trial, $492/yr immediate charge (saves $96).',
+      'New Pro tier: $41/mo with 14-day trial, $492/yr immediate charge (saves $96).',
       'Existing Plus subscribers grandfathered at $17 — no auto-reprice.',
-      'Trial reminder email at day 11 of any 14-days trial.',
+      'Trial reminder email at day 11 of any 14-day trial.',
     ],
   },
   {

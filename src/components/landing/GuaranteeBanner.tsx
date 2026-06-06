@@ -7,7 +7,7 @@ export function GuaranteeBanner() {
       <ShieldCheck className="w-6 h-6 text-success flex-shrink-0" />
       <div className="text-center sm:text-left">
         <p className="text-sm font-semibold text-foreground">
-          14-Days Money-Back Guarantee
+          14-Day Money-Back Guarantee
         </p>
         <p className="text-xs text-muted-foreground">
           Not satisfied? Get a full refund, no questions asked.

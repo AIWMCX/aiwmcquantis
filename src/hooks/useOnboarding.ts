@@ -96,16 +96,13 @@
      trackEvent('onboarding_reset');
    }, []);
  
-  // Computed flags
-  // Note: QuickStartWizard's own Step 0 is a welcome screen, so we don't
-  // gate it behind a separate WelcomeModal (which isn't mounted anywhere).
-  // First-time signed-in users on /app see the wizard immediately.
-  const shouldShowWelcome = !state.hasSeenWelcome;
-  const shouldShowQuickStart = !state.hasCompletedQuickStart;
-  const shouldShowFirstAnalysisCelebration = 
-    state.analysisCount === 1 && !state.hasSeenFirstAnalysisCelebration;
-  const shouldShowUpgradePrompt = 
-    state.analysisCount >= 2 && !state.hasSeenUpgradePrompt;
+   // Computed flags
+   const shouldShowWelcome = !state.hasSeenWelcome;
+   const shouldShowQuickStart = state.hasSeenWelcome && !state.hasCompletedQuickStart;
+   const shouldShowFirstAnalysisCelebration = 
+     state.analysisCount === 1 && !state.hasSeenFirstAnalysisCelebration;
+   const shouldShowUpgradePrompt = 
+     state.analysisCount >= 2 && !state.hasSeenUpgradePrompt;
  
    return {
      state,

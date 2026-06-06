@@ -2,7 +2,7 @@ import React, { lazy, Suspense, useRef, useEffect } from 'react';
 import { useBotDetection } from '@/hooks/useBotDetection';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Moon, Sun, Menu } from 'lucide-react';
+import { ArrowRight, Moon, Sun, Menu } from 'lucide-react';
 import { MobileHero } from '@/components/landing/MobileHero';
 import { QuantisOutputs } from '@/components/landing/QuantisOutputs';
 import { MobileNav } from '@/components/layout/MobileNav';
@@ -11,7 +11,6 @@ import { useAuth } from '@/hooks/useAuth';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { trackCtaClick, recordFunnelEvent } from '@/lib/analytics';
-import { withUtm } from '@/lib/utm';
 import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
@@ -19,10 +18,7 @@ import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { HeroSingleInput } from '@/components/landing/HeroSingleInput';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
-import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
-import { AnalysisRecoveryBanner } from '@/components/landing/AnalysisRecoveryBanner';
-// EmbeddedSampleReport is now rendered inside HeroSingleInput (above the fold).
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
@@ -98,7 +94,7 @@ export default function Landing() {
               <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
               <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
               <Link to="/risk-gallery" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Risk Gallery</Link>
-              <Link to={withUtm('/pricing', { source: 'homepage', campaign: 'nav_pricing' })} className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
+              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
             </div>
             <div className="flex items-center gap-2 sm:gap-3">
               <button 
@@ -114,39 +110,33 @@ export default function Landing() {
                     <span className="text-sm text-foreground truncate max-w-[120px]">{user.email}</span>
                   </div>
                   <Link to="/app">
-                    <Button size="sm" className="min-h-[52px] px-5 text-sm font-semibold">
-                      Go to App
+                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
+                      Go to App <ArrowRight className="w-4 h-4" />
                     </Button>
                   </Link>
                 </>
               ) : (
                 <>
-                  <Link to={withUtm('/auth', { source: 'homepage', campaign: 'nav_signin' })} className="hidden sm:block">
+                  <Link to="/auth" className="hidden sm:block">
                     <Button variant="ghost" size="sm" className="min-h-[48px]">Sign In</Button>
                   </Link>
-                  <Link to={withUtm('/app', { source: 'homepage', campaign: 'nav_generate_free' })}>
-                    <Button size="sm" className="min-h-[52px] px-5 text-sm font-semibold">
-                      Generate free plan
+                  <Link to="/app">
+                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
+                      Start Free Analysis →
                     </Button>
                   </Link>
                 </>
               )}
-
             </div>
           </div>
         </div>
       </nav>
 
       <main id="main-content" role="main">
-        {/* 0a. Recover any abandoned analysis (closes the 60–90s wait leak). */}
-        <AnalysisRecoveryBanner />
-
-        {/* 0. Anonymous-first single-input + inline sample report — primary conversion surface */}
+        {/* 0. Anonymous-first single-input — primary conversion surface */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>
           <HeroSingleInput />
         </div>
-
-
 
         {/* 1. Hero — Founder vs Reality (visual / story) */}
         <div id="mobile-hero">
@@ -155,9 +145,6 @@ export default function Landing() {
 
         {/* 1.5. Social Proof Bar */}
         <SocialProofBar />
-
-        {/* 1.6. As Featured In — directory trust marquee */}
-        <FeaturedDirectories />
 
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
@@ -226,12 +213,11 @@ export default function Landing() {
                   See fatal assumptions, stress-test scenarios, and get a clear
                   proceed/pivot/kill verdict. Dual AI-verified, no credit card.
                 </p>
-                <Link to={withUtm('/app', { source: 'homepage', campaign: 'bottom_cta' })} onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
+                <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
                     Start Free Analysis →
                   </Button>
                 </Link>
-
               </div>
             </div>
           </div>

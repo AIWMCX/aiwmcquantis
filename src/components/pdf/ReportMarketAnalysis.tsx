@@ -2,7 +2,6 @@ import React from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { pdfStyles } from './pdfStyles';
 import { ReportHeader, ReportFooter } from './ReportPageElements';
-import { computeMarketSizing, formatUsd } from '@/lib/market-sizing';
 
 interface ReportMarketAnalysisProps {
   result: BusinessAnalysisResult;
@@ -10,11 +9,6 @@ interface ReportMarketAnalysisProps {
 
 export function ReportMarketAnalysis({ result }: ReportMarketAnalysisProps) {
   const market = result.market_analysis;
-  // Always render computed values so the PDF never ships an empty TAM/SAM/SOM.
-  const sizing = computeMarketSizing(result, { idea: result.metadata?.idea });
-  const tamLabel = market?.market_size?.tam || formatUsd(sizing.tam.value_usd);
-  const samLabel = market?.market_size?.sam || formatUsd(sizing.sam.value_usd);
-  const somLabel = market?.market_size?.som || formatUsd(sizing.som.value_usd);
 
   return (
     <div style={pdfStyles.page}>
@@ -26,27 +20,24 @@ export function ReportMarketAnalysis({ result }: ReportMarketAnalysisProps) {
         <div style={pdfStyles.marketSizeItem}>
           <div style={pdfStyles.marketSizeCircle}>
             <div style={pdfStyles.marketSizeLabel}>TAM</div>
-            <div style={pdfStyles.marketSizeValue}>{tamLabel}</div>
+            <div style={pdfStyles.marketSizeValue}>{market.market_size.tam}</div>
             <div style={pdfStyles.marketSizeDesc}>Total Addressable Market</div>
           </div>
         </div>
         <div style={pdfStyles.marketSizeItem}>
           <div style={{ ...pdfStyles.marketSizeCircle, borderColor: '#3b82f6' }}>
             <div style={pdfStyles.marketSizeLabel}>SAM</div>
-            <div style={pdfStyles.marketSizeValue}>{samLabel}</div>
+            <div style={pdfStyles.marketSizeValue}>{market.market_size.sam}</div>
             <div style={pdfStyles.marketSizeDesc}>Serviceable Addressable Market</div>
           </div>
         </div>
         <div style={pdfStyles.marketSizeItem}>
           <div style={{ ...pdfStyles.marketSizeCircle, borderColor: '#22c55e' }}>
             <div style={pdfStyles.marketSizeLabel}>SOM</div>
-            <div style={pdfStyles.marketSizeValue}>{somLabel}</div>
+            <div style={pdfStyles.marketSizeValue}>{market.market_size.som}</div>
             <div style={pdfStyles.marketSizeDesc}>Serviceable Obtainable Market</div>
           </div>
         </div>
-      </div>
-      <div style={{ ...pdfStyles.paragraph, fontSize: 9, color: '#475569', marginTop: 4 }}>
-        {sizing.tam.investor_framing} {sizing.sam.investor_framing} {sizing.som.investor_framing}
       </div>
 
       {/* Market Trends */}

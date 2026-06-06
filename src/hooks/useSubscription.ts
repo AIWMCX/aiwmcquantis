@@ -56,7 +56,7 @@ interface SubscriptionData {
   openPortal: () => Promise<void>;
 }
 
-const FREE_TIER_LIMIT = 5;
+const FREE_TIER_LIMIT = 1;
 const MAX_LOADING_TIMEOUT = 5000; // 5 seconds max wait
 const MAX_RETRIES = 2;
 

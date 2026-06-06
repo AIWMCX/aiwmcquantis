@@ -112,12 +112,12 @@ describe('Tier matrix — FREE quota gate on /api/analyse/main', () => {
     expect(r.blocked).toBe(false);
   });
 
-  it('FREE at quota (5 used): BLOCKED with QUOTA_EXCEEDED + resets_at', () => {
+  it('FREE at quota (1 used): BLOCKED with QUOTA_EXCEEDED + resets_at', () => {
     const resets = '2026-05-01T00:00:00.000Z';
     const r = evaluateGate({
       tier: 'FREE',
       endpoint: ENDPOINTS.ANALYSE_MAIN,
-      monthlyAnalysesUsed: 5,
+      monthlyAnalysesUsed: 1,
       resetsAt: resets,
     });
     expect(r.blocked).toBe(true);
@@ -127,15 +127,6 @@ describe('Tier matrix — FREE quota gate on /api/analyse/main', () => {
       expect(r.body.required_tier).toBe('PLUS');
       expect(r.body.resets_at).toBe(resets);
     }
-  });
-
-  it('FREE under quota (4 used): ALLOWED', () => {
-    const r = evaluateGate({
-      tier: 'FREE',
-      endpoint: ENDPOINTS.ANALYSE_MAIN,
-      monthlyAnalysesUsed: 4,
-    });
-    expect(r.blocked).toBe(false);
   });
 
   it('PLUS at high usage: NEVER quota-blocked (unlimited)', () => {
@@ -158,8 +149,8 @@ describe('Tier matrix — FREE quota gate on /api/analyse/main', () => {
 });
 
 describe('Tier matrix — manifest invariants (regression catches)', () => {
-  it('FREE: monthly_analysis_limit === 5', () => {
-    expect(FEATURE_MANIFEST.FREE.monthly_analysis_limit).toBe(5);
+  it('FREE: monthly_analysis_limit === 1', () => {
+    expect(FEATURE_MANIFEST.FREE.monthly_analysis_limit).toBe(1);
   });
 
   it('PLUS + PRO: monthly_analysis_limit === Infinity', () => {
@@ -179,10 +170,10 @@ describe('Tier matrix — manifest invariants (regression catches)', () => {
     expect(FEATURE_MANIFEST.PRO.white_label).toBe(true);
   });
 
-  it('Team seat counts match the product matrix', () => {
+  it('Only PRO has team seats', () => {
     expect(FEATURE_MANIFEST.FREE.team_seats).toBe(0);
-    expect(FEATURE_MANIFEST.PLUS.team_seats).toBe(1);
-    expect(FEATURE_MANIFEST.PRO.team_seats).toBe(5);
+    expect(FEATURE_MANIFEST.PLUS.team_seats).toBe(0);
+    expect(FEATURE_MANIFEST.PRO.team_seats).toBeGreaterThan(0);
   });
 
   it('FREE shows watermark; PLUS/PRO do not', () => {

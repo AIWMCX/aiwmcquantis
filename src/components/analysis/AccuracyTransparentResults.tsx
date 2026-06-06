@@ -27,7 +27,6 @@ import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsB
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
-import { ForensicDetailPanels } from './ForensicDetailPanels';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
@@ -46,18 +45,12 @@ const normalizePercent = (value?: number): number => {
   return value <= 1 ? value * 100 : value;
 };
 
-const toFiniteNumber = (value: unknown, fallback = 0): number => {
-  const numeric = typeof value === 'number' ? value : Number(value);
-  return Number.isFinite(numeric) ? numeric : fallback;
-};
-
 export function AccuracyTransparentResults({ result, analysisId, onReset }: AccuracyTransparentResultsProps) {
   const [currentStep, setCurrentStep] = useState(1);
   const [prevStep, setPrevStep] = useState(1);
   const { generatePdf, isGenerating } = usePdfExport();
   const { shareReport, isSharing, shareUrl } = useShareReport();
-  const { isFree, tier } = useSubscription();
-  const rvceObsCap = tier === 'PRO' ? 100 : tier === 'PLUS' ? 40 : 20;
+  const { isFree } = useSubscription();
 
   const [selectedScenario, setSelectedScenario] = useState<ScenarioType>('base');
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
@@ -84,7 +77,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   }, [result.metadata, location]);
 
   // ── RVCE (Layer 8) — Reality Validation & Calibration Engine ──
-  // Cross-checks our metrics against external benchmarks via DeepSeek fan-out.
+  // Cross-checks our metrics against external benchmarks via Claude Haiku + web search.
   // Fail-safe: never blocks the analysis. Runs once per analysis_id.
   const rvcePayload = useMemo(() => {
     const fa: any = result.financial_analysis;
@@ -561,18 +554,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           {/* STEP 2 — LEVERS LAB (Plus only) */}
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {currentStep === 2 && isFree && <LockedAnalysisPaywall section="levers" />}
-          {currentStep === 2 && !isFree && (
-            <SectionErrorBoundary section="Levers Lab">
-              {(() => {
+          {currentStep === 2 && !isFree && (() => {
             const fa: any = result.financial_analysis || {};
-            const scenarioRevenue = toFiniteNumber(scenarioMetrics.revenue);
-            const safeRevenue = scenarioRevenue > 0
-              ? scenarioRevenue
-              : toFiniteNumber(fa.mrr ?? fa.scenarios?.base?.revenue, 1000);
-            const safeMargin = toFiniteNumber(scenarioMetrics.margin, 0.2);
-            const initialCac = toFiniteNumber(fa.unit_economics?.cac, 50);
-            const initialRent = toFiniteNumber(fa.monthly_expenses?.fixed_costs, 1000);
-            const initialTicket = toFiniteNumber(fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user, 100);
+            const safeRevenue = Number.isFinite(scenarioMetrics.revenue) && scenarioMetrics.revenue > 0
+              ? scenarioMetrics.revenue
+              : (fa.mrr || fa.scenarios?.base?.revenue || 1000);
+            const safeMargin = Number.isFinite(scenarioMetrics.margin) ? scenarioMetrics.margin : 0.2;
+            const initialCac = fa.unit_economics?.cac ?? 50;
+            const initialRent = fa.monthly_expenses?.fixed_costs ?? 1000;
+            const initialTicket = fa.inputs?.price_per_unit ?? fa.unit_economics?.avg_revenue_per_user ?? 100;
             return (
             <div className="grid lg:grid-cols-[55%_45%] gap-5">
               {/* LEFT: Chart + P&L */}
@@ -596,17 +586,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     {[
                       { icon: '📍', driver: `${location || 'Local'} rent`, value: '×1.15', source: 'CoStar 2025' },
                       { icon: '👥', driver: 'Industry CAC', value: `$${result.financial_analysis?.unit_economics?.cac || 50}`, source: 'Quantis Benchmarks' },
-                      { icon: '📊', driver: 'Gross margin', value: (() => {
-                          const gm = toFiniteNumber(result.financial_analysis?.scenarios?.base?.gross_margin, 0.4);
-                          // Engine sometimes returns percent (52) vs fraction (0.52). Normalize.
-                          const pct = Math.abs(gm) > 1 ? gm : gm * 100;
-                          return `${pct.toFixed(0)}%`;
-                        })(), source: 'Industry median' },
-                      { icon: '🔄', driver: 'Churn rate', value: (() => {
-                          const ch = toFiniteNumber(result.financial_analysis?.inputs?.churn_rate, 0.05);
-                          const pct = Math.abs(ch) > 1 ? ch : ch * 100;
-                          return `${pct.toFixed(1)}%`;
-                        })(), source: 'SaaS benchmarks' },
+                      { icon: '📊', driver: 'Gross margin', value: `${((result.financial_analysis?.scenarios?.base?.gross_margin || 0.4) * 100).toFixed(0)}%`, source: 'Industry median' },
+                      { icon: '🔄', driver: 'Churn rate', value: `${((result.financial_analysis?.inputs?.churn_rate || 0.05) * 100).toFixed(1)}%`, source: 'SaaS benchmarks' },
                     ].map((item, i) => (
                       <div key={i} className="flex items-center justify-between text-sm py-2 px-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer">
                         <div className="flex items-center gap-2">
@@ -663,9 +644,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               </div>
             </div>
             );
-              })()}
-            </SectionErrorBoundary>
-          )}
+          })()}
 
           {/* ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ */}
           {/* STEP 3 — RED FLAGS & ACTION PLAN (Plus only) */}
@@ -682,19 +661,9 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
               )}
               {rvceValidation && !rvceLoading && (
                 <SectionErrorBoundary section="external validation">
-                  <div className="flex items-center justify-end -mb-2">
-                    <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-muted text-muted-foreground uppercase tracking-wider">
-                      {tier} tier · up to {rvceObsCap} obs / variable
-                    </span>
-                  </div>
                   <RvceValidationSection validation={rvceValidation} />
                 </SectionErrorBoundary>
               )}
-
-              {/* Forensic engine outputs (5 previously hidden datasets) */}
-              <SectionErrorBoundary section="forensic detail">
-                <ForensicDetailPanels result={result} />
-              </SectionErrorBoundary>
 
               <div className="grid lg:grid-cols-2 gap-5">
 
@@ -765,7 +734,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                                     )}
                                     {tactics.length > 0 ? (
                                       <div className="space-y-2">
-                                        {tactics.map((tactic, ti) => (
+                                        {tactics.slice(0, 3).map((tactic, ti) => (
                                           <div key={ti} className="flex items-start gap-2 text-xs">
                                             <span className="shrink-0 w-4 h-4 rounded-full bg-[var(--q-accent-primary)] text-white flex items-center justify-center text-[9px] font-bold mt-0.5">{ti + 1}</span>
                                             <div className="flex-1">
@@ -819,7 +788,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       const priorityInsights = insights
                         .filter(i => i.priority === 'critical' || i.priority === 'high')
                         .slice(0, 4);
-                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 6);
+                      const itemsToShow = priorityInsights.length > 0 ? priorityInsights : insights.slice(0, 3);
                       
                       if (itemsToShow.length === 0) {
                         return actionItems.map((action, idx) => (

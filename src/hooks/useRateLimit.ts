@@ -12,8 +12,8 @@ import { logger } from '@/lib/logger';
  }
  
 const TIER_LIMITS = {
-  anonymous: 5,
-  free: 5,
+  anonymous: 3,
+  free: 10,
   plus: Infinity,
 };
  
@@ -21,8 +21,8 @@ const TIER_LIMITS = {
    const { user, isLoading: authLoading } = useAuth();
    const [info, setInfo] = useState<RateLimitInfo>({
      allowed: true,
-      remaining: 5,
-      limit: 5,
+     remaining: 3,
+     limit: 3,
      resetAt: null,
      tier: 'anonymous',
    });

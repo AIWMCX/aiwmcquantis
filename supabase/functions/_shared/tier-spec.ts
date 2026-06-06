@@ -100,20 +100,18 @@ const PLUS_OUTPUT_FIELDS = [
 
 export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
   FREE: {
-    allowed_endpoints: [
-      ENDPOINTS.ANALYSE_MAIN,
-      ENDPOINTS.DOCUMENTS_STUDIO,
-      ENDPOINTS.DOCUMENTS_EXPORT,
-    ],
+    allowed_endpoints: [ENDPOINTS.ANALYSE_MAIN],
     blocked_endpoints: [
       ENDPOINTS.ANALYSE_PREMORTEM,
       ENDPOINTS.ANALYSE_PRO_EXTENSION,
       ENDPOINTS.TOOLS_CAPACITY_CHECK,
+      ENDPOINTS.DOCUMENTS_STUDIO,
+      ENDPOINTS.DOCUMENTS_EXPORT,
       ENDPOINTS.TEAM_INVITE,
       ENDPOINTS.API_KEY_GENERATE,
       ENDPOINTS.AI_DOC_INTELLIGENCE,
     ],
-    monthly_analysis_limit: 5,
+    monthly_analysis_limit: 1,
     pdf_daily_limit: 5,
     history: false,
     watermark: true,
@@ -283,7 +281,7 @@ export function evaluateGate(args: {
       body: {
         success: false,
         error: 'QUOTA_EXCEEDED',
-        message: 'You have used your 5 free analyses this month.',
+        message: 'You have used your 1 free analysis this month.',
         required_tier: 'PLUS',
         upgrade_url: UPGRADE_URL,
         cta: 'Get unlimited analyses — Upgrade to Plus',

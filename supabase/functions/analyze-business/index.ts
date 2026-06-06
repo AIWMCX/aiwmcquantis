@@ -219,7 +219,7 @@ interface AnalysisRequest {
   financial_inputs?: OptionalFinancialInputs;
   selected_industry?: string;
   documents?: DocumentData[];
-  analysis_depth?: 'quick' | 'full' | 'deep' | 'pro';
+  analysis_depth?: 'quick' | 'full' | 'deep';
 }
 
 // ========== DATABASE BENCHMARK TYPES ==========
@@ -2683,31 +2683,7 @@ serve(async (req) => {
     return new Response(null, { headers: responseHeaders });
   }
 
-  // WS2+WS4: Identity headers — used for rate limiting and quota ledger.
-  // x-idempotency-key: one UUID per "Start Free Analysis" click (client-generated).
-  // x-quantis-anon-id: persistent UUID stored in localStorage (client-generated once).
-  const idempotencyKey = req.headers.get('x-idempotency-key') || crypto.randomUUID();
-  const anonSessionId = req.headers.get('x-quantis-anon-id') || null;
-
-  // ═══════════════════════════════════════════════════════════════════════
-  // WS1 — GOLDEN RESULT CHECKPOINT
-  // Once GOLDEN is set, the user is GUARANTEED to receive a schema-valid
-  // financial analysis. Every post-GOLDEN enrichment is non-blocking; the
-  // outermost catch (WS3) returns GOLDEN regardless of what later threw.
-  // ═══════════════════════════════════════════════════════════════════════
-  let GOLDEN: Record<string, unknown> | null = null;
-  let GOLDEN_degraded = false;
-  let GOLDEN_reason: string | null = null;
-  // Hoisted recovery inputs — populated as early as possible so the last-resort
-  // builder in the catch never depends on inner-scope state.
-  let recoveryIdea = '';
-  let recoveryLocation = '';
-  let recoveryFinancialInputs: OptionalFinancialInputs | undefined;
-
   try {
-
-    const startTime = Date.now(); // WS5: latency tracking
-
     // ========== HTTP REQUEST VALIDATION ==========
     const httpValidation = validateHttpRequest(req);
     if (!httpValidation.valid) {
@@ -2720,21 +2696,21 @@ serve(async (req) => {
 
     // ========== RATE LIMITING CONFIGURATION ==========
     const RATE_LIMITS = {
-      anonymous: { requests: 5, windowMinutes: 60 },  // 5 free analysis attempts per hour for unauthenticated
-      free: { requests: 5, windowMinutes: 60 },       // Free tier starts with 5 analyses
+      anonymous: { requests: 1, windowMinutes: 60 },  // 1 request per hour for unauthenticated
+      free: { requests: 2, windowMinutes: 60 },       // 2 requests per hour
       plus: { requests: 10, windowMinutes: 60 },      // 10 requests per hour  
       pro: { requests: 30, windowMinutes: 60 },       // 30 requests per hour
     };
     
     // Anonymous abuse prevention configuration
     const ANONYMOUS_LIMITS = {
-      deviceLimit: 5,      // 5 free analysis attempts per device per hour
-      ipLimit: 5,          // 5 free analysis attempts per IP per hour
+      deviceLimit: 1,      // 1 request per device per hour
+      ipLimit: 3,          // Max 3 requests per IP per hour (prevents incognito abuse)
       windowMinutes: 60,
     };
     
     // ========== USAGE ENFORCEMENT ==========
-    const FREE_TIER_LIMIT = 5;
+    const FREE_TIER_LIMIT = 1;
     let userId: string | null = null;
     let userPlan = 'free';
     let isAnonymous = true;
@@ -2745,11 +2721,9 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
     if (!supabaseUrl || !supabaseAnonKey || !supabaseServiceKey) {
       log.error("Server configuration error: missing required backend credentials");
-      // WS3: return 200 so client can show friendly retry message
       return new Response(
-        JSON.stringify({ ok: false, degraded: true, reason: 'internal',
-          error: "Analysis service is starting up. Your inputs are preserved — please retry in a moment." }),
-        { status: 200, headers: { ...responseHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ error: "Analysis service is not configured. Please retry shortly.", code: "CONFIG_ERROR" }),
+        { status: 500, headers: { ...responseHeaders, "Content-Type": "application/json" } }
       );
     }
     
@@ -2757,55 +2731,6 @@ serve(async (req) => {
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
     
     const authHeader = req.headers.get("Authorization");
-
-    // Parse once, before auth/rate-limit decisions, so trusted background
-    // workers can be identified without re-reading the request body later.
-    let requestBody: AnalysisRequest;
-    let rawRequestBody: Record<string, unknown> = {};
-    try {
-      const rawJson = await req.json();
-      rawRequestBody = rawJson && typeof rawJson === 'object' && !Array.isArray(rawJson)
-        ? rawJson as Record<string, unknown>
-        : {};
-      const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
-      if (!parsed.success) {
-        log.error('Request schema validation failed:', parsed.error.flatten());
-        return new Response(
-          JSON.stringify({
-            error: "Request validation failed",
-            code: "REQUEST_SCHEMA_INVALID",
-            details: parsed.error.flatten().fieldErrors,
-          }),
-          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-        );
-      }
-      requestBody = parsed.data as AnalysisRequest;
-      // WS1: capture minimal recovery inputs the moment we have a valid body
-      recoveryIdea = String(requestBody.idea || '').trim() || 'business idea';
-      recoveryLocation = String(requestBody.location || '').trim() || 'United States';
-      recoveryFinancialInputs = (requestBody as any).financial_inputs as OptionalFinancialInputs | undefined;
-    } catch (parseError) {
-      log.error('JSON parse error:', parseError);
-      return new Response(
-        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
-        { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
-      );
-    }
-
-
-    const isServiceRoleRequest = authHeader === `Bearer ${supabaseServiceKey}`;
-    const requestedWorkerRun = rawRequestBody._worker_run === true;
-    const isWorkerRun = requestedWorkerRun && isServiceRoleRequest;
-    const workerRequestId = typeof rawRequestBody._worker_request_id === 'string'
-      ? rawRequestBody._worker_request_id
-      : undefined;
-    const workerUserId = typeof rawRequestBody._worker_user_id === 'string'
-      ? rawRequestBody._worker_user_id
-      : undefined;
-
-    if (requestedWorkerRun && !isWorkerRun) {
-      log.error('[pro-worker] Rejected untrusted worker_run flag');
-    }
     
     if (authHeader) {
       // Authenticated user - check their subscription
@@ -2833,29 +2758,32 @@ serve(async (req) => {
         
         log.info(`User plan: ${userPlan}`);
         
-        // Check monthly usage for free tier users.
-        // Uses increment_usage RPC (existing in all DB versions) to record usage after analysis.
+        // If free tier, check monthly usage
         if (userPlan === 'free') {
-          const monthYear = `${new Date().getUTCFullYear()}-${String(new Date().getUTCMonth() + 1).padStart(2, '0')}`;
-
-          const { data: usage } = await supabaseService
+          const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+          
+          const { data: usage } = await supabaseAuth
             .from('usage_tracking')
             .select('analyses_count')
             .eq('user_id', user.id)
             .eq('month_year', monthYear)
             .maybeSingle();
-
-          const currentUsage = usage?.analyses_count ?? 0;
-
+          
+          const currentUsage = usage?.analyses_count || 0;
+          
           if (currentUsage >= FREE_TIER_LIMIT) {
             log.info(`User ${user.email} exceeded free tier limit: ${currentUsage}/${FREE_TIER_LIMIT}`);
+            // Spec §09.2 — canonical TIER_GATE / QUOTA_EXCEEDED envelope.
+            // Mirrors `evaluateGate()` so the frontend's `unwrap()` helper
+            // surfaces the same toast (with upgrade CTA) for both ad-hoc
+            // checks and tierGate-protected endpoints.
             const now = new Date();
             const resetsAt = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1)).toISOString();
             return new Response(
               JSON.stringify({
                 success: false,
                 error: "QUOTA_EXCEEDED",
-                code: "USAGE_LIMIT_EXCEEDED",
+                code: "USAGE_LIMIT_EXCEEDED", // legacy alias for older clients
                 message: `Monthly analysis limit reached (${currentUsage}/${FREE_TIER_LIMIT}). Upgrade to Plus for unlimited analyses.`,
                 required_tier: "PLUS",
                 upgrade_url: "https://www.aiwmcquantis.com/pricing",
@@ -2863,48 +2791,24 @@ serve(async (req) => {
                 resets_at: resetsAt,
                 usage: { current: currentUsage, limit: FREE_TIER_LIMIT },
               }),
-              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+              { status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" } }
             );
           }
-          log.info(`Free tier usage: ${currentUsage}/${FREE_TIER_LIMIT} for ${user.email}`);
         }
       }
     }
     
-    // Trusted PRO worker re-entry uses service-role auth, so it is not an
-    // end-user JWT. Restore the original queued user's tier before depth
-    // coercion; never trust this path unless the service token matched above.
-    if (isWorkerRun && workerUserId && !userId) {
-      userId = workerUserId;
-      isAnonymous = false;
-      const { data: workerSubscription } = await supabaseService
-        .from('subscriptions')
-        .select('plan_id, status')
-        .eq('user_id', workerUserId)
-        .maybeSingle();
-
-      if (workerSubscription && ['active', 'trialing'].includes(workerSubscription.status)) {
-        userPlan = workerSubscription.plan_id;
-      }
-      log.info(`[pro-worker] Trusted worker context restored for user ${workerUserId}: plan=${userPlan}`);
-    }
-
     // ========== ANONYMOUS USER RATE LIMITING (Per-Device + IP) ==========
-    if (isAnonymous && !isWorkerRun) {
+    if (isAnonymous) {
       // Get device ID and fingerprint from headers
       const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
       const fingerprint = req.headers.get('X-Fingerprint') || '';
       
-      // WS2: identity-keyed rate limit (not IP — NAT/shared networks must not block real users)
-      // Primary key: anon_session_id from localStorage (persistent per device).
-      // Fallback: IP is secondary abuse signal only with a very high ceiling.
-      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
-        || req.headers.get('cf-connecting-ip')
+      // Get client IP for additional tracking
+      const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
+        || req.headers.get('cf-connecting-ip') 
         || req.headers.get('x-real-ip')
         || 'unknown-ip';
-      const anonRateLimitKey = anonSessionId
-        ? `anon:${anonSessionId}`
-        : `ip:${clientIp}`; // fallback for clients that don't send the header yet
       
       log.info(`Anonymous request - Device: ${deviceId.substring(0, 8)}..., IP: ${clientIp.substring(0, 15)}..., Fingerprint: ${fingerprint.substring(0, 8)}...`);
       
@@ -2933,12 +2837,16 @@ serve(async (req) => {
           p_ip_hash: ipHash,
           p_idea_hash: 'pre-check', // Placeholder - will be checked properly after body parse
           p_location_hash: 'pre-check',
-          p_fingerprint_hash: fingerprintHash,
           p_window_minutes: ANONYMOUS_LIMITS.windowMinutes,
           p_device_limit: ANONYMOUS_LIMITS.deviceLimit,
           p_ip_limit: ANONYMOUS_LIMITS.ipLimit,
-          p_fingerprint_limit: 2,
         };
+        
+        // Add fingerprint check if available (provides additional abuse protection)
+        if (fingerprintHash) {
+          rateLimitParams.p_fingerprint_hash = fingerprintHash;
+          rateLimitParams.p_fingerprint_limit = 2; // Max 2 analyses per fingerprint per hour
+        }
         
         const { data: rateLimitResult, error: rateLimitError } = await supabaseService
           .rpc('check_anonymous_rate_limit', rateLimitParams);
@@ -2953,15 +2861,25 @@ serve(async (req) => {
           
           log.info(`Anonymous rate limit exceeded - Reason: ${reason}, Device: ${deviceId.substring(0, 8)}`);
           
-          // WS3: return 200 — client handles rate_limited with silent retry
           return new Response(
-            JSON.stringify({
-              ok: false, degraded: false, reason: 'rate_limited',
-              retryAfter: retryAfterSeconds,
-              error: "Please wait a moment before trying again.",
+            JSON.stringify({ 
+              error: rateLimitResult.message || "Free analysis limit reached. Sign in for more.", 
               code: "ANONYMOUS_LIMIT_EXCEEDED",
+              details: {
+                reason,
+                retry_after_seconds: retryAfterSeconds,
+                reset_at: rateLimitResult.reset_at,
+                suggestion: "Sign in to get 3 free analyses per month"
+              }
             }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                "Content-Type": "application/json",
+                "Retry-After": String(retryAfterSeconds),
+              } 
+            }
           );
         } else if (rateLimitResult) {
           log.info(`Anonymous rate limit check passed: Device remaining: ${rateLimitResult.device_remaining}, IP remaining: ${rateLimitResult.ip_remaining}`);
@@ -2974,7 +2892,7 @@ serve(async (req) => {
     // ========== END ANONYMOUS RATE LIMITING ==========
     
     // ========== AUTHENTICATED USER HOURLY RATE LIMITING ==========
-    if (!isAnonymous && userId && !isWorkerRun) {
+    if (!isAnonymous && userId) {
       // Get rate limit config based on plan
       const rateLimitConfig = RATE_LIMITS[userPlan as keyof typeof RATE_LIMITS] || RATE_LIMITS.free;
       
@@ -2996,15 +2914,29 @@ serve(async (req) => {
           const resetAt = new Date(rateLimitResult.reset_at);
           const retryAfterSeconds = Math.max(1, Math.ceil((resetAt.getTime() - Date.now()) / 1000));
           
-          // WS3: return 200 — client silent-retries on rate_limited
           return new Response(
-            JSON.stringify({
-              ok: false, degraded: false, reason: 'rate_limited',
-              retryAfter: retryAfterSeconds,
-              error: "Please wait a moment before trying again.",
+            JSON.stringify({ 
+              error: "Too many requests. Please wait before trying again.", 
               code: "RATE_LIMIT_EXCEEDED",
+              details: {
+                limit: rateLimitResult.limit,
+                remaining: 0,
+                reset_at: rateLimitResult.reset_at,
+                retry_after_seconds: retryAfterSeconds,
+                plan: userPlan
+              }
             }),
-            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            { 
+              status: 429, 
+              headers: { 
+                ...corsHeaders, 
+                "Content-Type": "application/json",
+                "Retry-After": String(retryAfterSeconds),
+                "X-RateLimit-Limit": String(rateLimitResult.limit),
+                "X-RateLimit-Remaining": "0",
+                "X-RateLimit-Reset": String(Math.floor(resetAt.getTime() / 1000))
+              } 
+            }
           );
         } else if (rateLimitResult) {
           log.info(`Rate limit check passed: ${rateLimitResult.current_count}/${rateLimitResult.limit} (${rateLimitResult.remaining} remaining)`);
@@ -3016,7 +2948,41 @@ serve(async (req) => {
     }
     // ========== END RATE LIMITING ==========
 
+    // ========== REQUEST BODY PARSING & VALIDATION ==========
+    // Step 7 of benchmark-first plan: Zod at the boundary. No malformed
+    // payload from a client ever reaches the analysis engine.
+    let requestBody: AnalysisRequest;
+    try {
+      const rawJson = await req.json();
+      const parsed = (await import('./boundary-schemas.ts')).RequestSchema.safeParse(rawJson);
+      if (!parsed.success) {
+        log.error('Request schema validation failed:', parsed.error.flatten());
+        return new Response(
+          JSON.stringify({
+            error: "Request validation failed",
+            code: "REQUEST_SCHEMA_INVALID",
+            details: parsed.error.flatten().fieldErrors,
+          }),
+          { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+      requestBody = parsed.data as AnalysisRequest;
+    } catch (parseError) {
+      log.error('JSON parse error:', parseError);
+      return new Response(
+        JSON.stringify({ error: "Invalid JSON in request body", code: "PARSE_ERROR" }),
+        { status: 400, headers: { ...responseHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     const { idea, location, financial_inputs, selected_industry, documents, analysis_depth } = requestBody;
+
+    // Worker run flag — when set, the request was made by analyze-pro-worker
+    // re-entering this function. Skip the queue branch and run synchronously.
+    const _rawBody = requestBody as unknown as Record<string, unknown>;
+    const isWorkerRun = _rawBody._worker_run === true;
+    const workerRequestId = _rawBody._worker_request_id as string | undefined;
+    const workerUserId = _rawBody._worker_user_id as string | undefined;
 
     // ========== TIER-BASED DEPTH COERCION (compute leakage prevention) ==========
     // Free users CANNOT request 'full' or 'pro' depth — silently coerce to 'quick'.
@@ -3334,12 +3300,11 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info('Merged inputs:', mergedFinancialInputs);
     }
 
-    // WS3: LOVABLE_API_KEY is only needed for the Lovable Gateway fallback provider.
-    // Primary LLM is DeepSeek (DEEPSEEK_API_KEY). If Lovable Gateway is unavailable,
-    // the LLM router falls through to DeepSeek. Do NOT block analysis here.
-    const lovableGatewayAvailable = Boolean(Deno.env.get("LOVABLE_API_KEY"));
-    if (!lovableGatewayAvailable) {
-      log.info('LOVABLE_API_KEY not set — Lovable Gateway disabled. Using DeepSeek primary.');
+    if (!Deno.env.get("LOVABLE_API_KEY")) {
+      return new Response(
+        JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
     // ========== DATABASE-DRIVEN INDUSTRY DETECTION ==========
@@ -3619,14 +3584,15 @@ market_json:
 Provide comprehensive, actionable analysis suitable for a professional investor presentation. Call submit_analysis with all sections in English.`;
 
     // ========== AI REQUEST WITH FAST TIMEOUT ==========
+    // CRITICAL: Use short timeout (25s) with minimal retries (2) to prevent client disconnection
+    // Total worst-case: 25s + 500ms + 25s = ~50s which fits within edge function limits
     const MAX_RETRIES = 2;
-    const AI_TIMEOUT_MS = 35000;
-    const RETRY_DELAY_MS = 500;
-
+    const AI_TIMEOUT_MS = 35000; // 35 seconds - enough for structured narrator JSON without client disconnects
+    const RETRY_DELAY_MS = 500; // Short delay between retries
+    
     let response: { ok: true; data: Record<string, unknown> } | null = null;
     let lastError: string | null = null;
     let lastStatus: number | null = null;
-    let aiProviderUsed = 'deterministic';
 
     for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
       try {
@@ -3634,12 +3600,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
         const aiResult = await aiCall(
           {
-            // Use task routing (DeepSeek primary) not hardcoded google/ model.
-            // google/gemini requires LOVABLE_API_KEY which may be a placeholder.
-            // DeepSeek works with DEEPSEEK_API_KEY which is confirmed set.
-            model: "deepseek-chat",
+            model: "google/gemini-3-flash-preview",
             messages: [
-              { role: "system", content: QUANTIS_MASTER_SYSTEM_PROMPT },
+              {
+                role: "system",
+                content: QUANTIS_MASTER_SYSTEM_PROMPT,
+              },
               { role: "user", content: prompt },
             ],
             response_format: { type: "json_object" },
@@ -3649,7 +3615,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           {
             task: 'analyze-business',
             timeoutMs: AI_TIMEOUT_MS,
-            requestId,
+        requestId,
             userId: userId,
             metadata: { attempt, industry: detectedIndustry.name },
           },
@@ -3657,7 +3623,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
         if (aiResult.ok) {
           response = { ok: true, data: aiResult.data };
-          aiProviderUsed = 'lovable';
           log.info(`AI request succeeded on attempt ${attempt}`);
           break;
         }
@@ -3666,7 +3631,10 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         lastError = `${aiResult.error}: ${aiResult.message}`;
         log.error(`AI error on attempt ${attempt}: ${lastError}`);
 
-        if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') break;
+        // Don't retry on rate limit / credits / config
+        if (aiResult.status === 429 || aiResult.status === 402 || aiResult.error === 'CONFIG') {
+          break;
+        }
 
         if (attempt < MAX_RETRIES) {
           log.info(`Retrying in ${RETRY_DELAY_MS}ms...`);
@@ -3675,7 +3643,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       } catch (fetchError) {
         lastError = fetchError instanceof Error ? fetchError.message : 'Unknown fetch error';
         log.error(`Fetch error on attempt ${attempt}: ${lastError}`);
-        if (attempt < MAX_RETRIES) await new Promise(r => setTimeout(r, RETRY_DELAY_MS));
+        if (attempt < MAX_RETRIES) {
+          await new Promise(resolve => setTimeout(resolve, RETRY_DELAY_MS));
+        }
       }
     }
     
@@ -3683,9 +3653,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // If AI fails, generate complete analysis using deterministic engine
     let rawResult: any;
     let usedFallback = false;
-
+    
     if (!response) {
-      log.info(`AI unavailable (provider: ${aiProviderUsed}, status: ${lastStatus}), generating deterministic fallback...`);
+      log.info(`All ${MAX_RETRIES} AI attempts failed. Last status=${lastStatus} error=${lastError}`);
+      log.info("Generating deterministic fallback analysis...");
+
+      if (lastStatus === 429) {
+        log.warn("AI service rate-limited; using deterministic fallback instead of failing the analysis");
+      }
 
       rawResult = generateDeterministicFallbackResult(
         idea_clean,
@@ -3762,22 +3737,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.warn(`Narrative sanitizer failed (non-fatal): ${String(sanitizeErr)}`);
     }
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // WS1 — GOLDEN CHECKPOINT #1: deterministic result is now schema-valid.
-    // From this line on, the user is GUARANTEED a complete analysis even if
-    // EVERY downstream enrichment (quantis engine, MC, RVCE, validator,
-    // benchmark records, narrative LLM) throws. WS3's outer catch ships GOLDEN.
-    // ═══════════════════════════════════════════════════════════════════════
-    try {
-      GOLDEN = result as unknown as Record<string, unknown>;
-      if (usedFallback) { GOLDEN_degraded = true; GOLDEN_reason ??= 'ai_fallback'; }
-      log.info(`[GOLDEN] checkpoint #1 set (deterministic result, degraded=${GOLDEN_degraded})`);
-    } catch (gErr) {
-      log.error('[GOLDEN] checkpoint #1 assignment failed (non-fatal):', gErr);
-    }
-
-
-
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // Run the bulletproof validation and recommendation engine
@@ -3801,42 +3760,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       subIndustry,
     };
     
-    // Process through Quantis 2.0 engine (WS2: non-blocking)
-    let quantisOutput: ReturnType<typeof processQuantisAnalysis>;
-    try {
-      quantisOutput = processQuantisAnalysis(quantisInput);
-      log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
-    } catch (qErr) {
-      log.error('[enrich:quantis-engine] non-blocking — building stub:', qErr);
-      GOLDEN_degraded = true; GOLDEN_reason ??= 'quantis_engine';
-      quantisOutput = {
-        success: false,
-        version: '9.2-stub',
-        metrics: {
-          mrr: calc.mrr, arr: calc.mrr * 12, netProfit: calc.netProfit,
-          netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit,
-          grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses,
-          paybackMonths: calc.paybackMonths, paybackDisplay: String(calc.paybackMonths),
-          roiYear1Percent: calc.roiYear1Percent, ltvCacRatio: calc.ltvCacRatio,
-          cac: calc.cac, ltv: calc.ltv,
-        },
-        validation: {
-          isRealistic: true, isProfitable: calc.isProfitable, wasAutoCorrected: false,
-          reliabilityScore: 50, corrections: [], calculationAudit: [],
-          breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: 0,
-          industryDetected: calc.industryDetected, confidenceBreakdown: {},
-          improvementSuggestions: [], summary: 'Stub (engine throw)',
-          healthScores: { overallHealthScore: 50, overall: 'medium' },
-          warnings: [],
-        },
-        recommendations: {
-          summary: { totalRecommendations: 0 },
-          priorities: { immediate: [], shortTerm: [], longTerm: [] },
-          actionPlan: [], generatedAt: new Date().toISOString(), version: '9.2-stub',
-        },
-      } as unknown as ReturnType<typeof processQuantisAnalysis>;
-    }
-
+    // Process through Quantis 2.0 engine
+    const quantisOutput = processQuantisAnalysis(quantisInput);
+    log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
     
     // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
@@ -4142,7 +4068,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
     // ========== RECORD USAGE ==========
     // Record anonymous usage for rate limiting
-    if (isAnonymous && !isWorkerRun) {
+    if (isAnonymous) {
       try {
         const deviceId = req.headers.get('X-Device-Id') || 'unknown-device';
         const clientIp = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() 
@@ -4184,53 +4110,15 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       }
     }
     
-    // ── WS4: Atomic quota charge (only on success, only free tier) ────────────
-    // charge_free_analysis increments only when analyses_used < 5 (race-safe).
-    // This is the ONLY place quota is decremented — never on failed/degraded requests.
-    let quotaUsed = 0;
-    let quotaRemaining = 5;
-    if (!isWorkerRun) {
+    // Increment usage for authenticated free tier users
+    if (userId && userPlan === 'free') {
       try {
-        const identityKey = userId
-          ? `user:${userId}`
-          : `anon:${anonSessionId || idempotencyKey}`;
-        const tier = userPlan === 'plus' || userPlan === 'pro' ? userPlan : 'free';
-
-        if (tier === 'free') {
-          const { data: chargeResult } = await supabaseService.rpc(
-            'charge_free_analysis',
-            { p_identity: identityKey }
-          );
-          if (chargeResult && chargeResult.length > 0) {
-            const charge = chargeResult[0] as { allowed: boolean; used: number; remaining: number };
-            quotaUsed = charge.used ?? 0;
-            quotaRemaining = charge.remaining ?? 0;
-            log.info(`Quota charged: ${quotaUsed}/5 used, ${quotaRemaining} remaining for ${identityKey}`);
-          }
-        } else {
-          // Plus/Pro: unlimited
-          quotaUsed = 0;
-          quotaRemaining = 999;
-        }
+        const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
+        await supabaseService.rpc('increment_usage', { p_user_id: userId, p_month_year: monthYear });
+        log.info(`Usage incremented for user ${userId}`);
       } catch (e) {
-        log.error('Failed to charge quota (non-blocking):', e);
+        log.error('Failed to increment usage:', e);
       }
-    }
-
-    // ── WS5: Observability — log to analysis_attempts ────────────────────────
-    const analysisLatency = Date.now() - startTime;
-    try {
-      await supabaseService.from('analysis_attempts').upsert({
-        idempotency_key: idempotencyKey,
-        identity_key: userId ? `user:${userId}` : `anon:${anonSessionId || idempotencyKey}`,
-        tier: userPlan,
-        status: 'succeeded',
-        degraded: false,
-        latency_ms: analysisLatency,
-      }, { onConflict: 'idempotency_key' });
-      log.info(`[observability] event=analysis_complete ok=true degraded=false latency=${analysisLatency}ms tier=${userPlan}`);
-    } catch (e) {
-      log.error('Failed to log analysis_attempts (non-blocking):', e);
     }
     // ========== END USAGE RECORDING ==========
 
@@ -4633,20 +4521,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       })(),
     };
 
-    // ═══════════════════════════════════════════════════════════════════════
-    // WS1 — GOLDEN CHECKPOINT #2: full enriched payload is built.
-    // If anything below (validator, free-tier sanitization, schema check,
-    // response serialization) throws, the outer catch ships THIS object.
-    // ═══════════════════════════════════════════════════════════════════════
-    try {
-      GOLDEN = fullPayload as unknown as Record<string, unknown>;
-      log.info(`[GOLDEN] checkpoint #2 set (fullPayload, ${Object.keys(fullPayload).length} keys)`);
-    } catch (gErr) {
-      log.error('[GOLDEN] checkpoint #2 failed (non-fatal):', gErr);
-    }
-
-
-
     // ========== HYBRID VALIDATOR (paid tiers only) ==========
     // Deterministic rules first, LLM second-pass only on warning.
     // Skip for Free (already truncated) to save cost.
@@ -4716,11 +4590,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_detected: calc.industryDetected,
         location: location_clean,
         idea: idea_clean,
-        // CRITICAL: client `isCompletedAnalysisResponse` requires `financial_analysis`.
-        // Always include the deterministic core so free users never get rejected.
-        financial_analysis: (result as any)?.financial_analysis ?? null,
         _tier: 'free',
-        _ai_provider: aiProviderUsed,
         _watermark: 'Generated by AIWMC Quantis — Upgrade to Plus for full Monte Carlo, 36-month projections, and stress testing.',
         _upgrade_cta: {
           message: 'Unlock the full report',
@@ -4745,12 +4615,6 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       };
     })() : fullPayload;
 
-    // WS1: refresh GOLDEN with the wire-shaped payload (free gets stripped,
-    // paid gets full). This is what the client will render.
-    try { GOLDEN = wirePayload as unknown as Record<string, unknown>; } catch { /* noop */ }
-
-
-
     if (isFreeOrAnon) {
       log.info(`[tier-gate] Sanitized response: stripped ${Object.keys(fullPayload).length} keys → ${Object.keys(wirePayload).length} (Free tier)`);
     }
@@ -4762,112 +4626,51 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       const { ResponseSchema } = await import('./boundary-schemas.ts');
       ResponseSchema.parse({ success: true, data: wirePayload });
     } catch (schemaErr) {
-      // WS3: schema validation failure → still 200, client retries silently
-      log.error('[response-schema] outgoing payload failed validation (returning degraded):', schemaErr);
+      log.error('[response-schema] outgoing payload failed validation:', schemaErr);
+      return new Response(
+        JSON.stringify({
+          error: "Analysis output failed integrity check. Please retry.",
+          code: "RESPONSE_SCHEMA_INVALID",
+          details: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
+        }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // WS3 envelope: include ok:true so WS6 client accepts the result.
-    // `degraded` reflects whether any enrichment failed; `success:true` always
-    // holds because GOLDEN exists and `data.financial_analysis` is present.
     return new Response(
-      JSON.stringify({
-        ok: true,
-        degraded: GOLDEN_degraded,
-        reason: GOLDEN_degraded ? (GOLDEN_reason ?? 'partial') : undefined,
-        success: true,
-        data: wirePayload,
-        result: wirePayload,
-        idempotencyKey,
-        quota: {
-          tier: userPlan,
-          limit: FREE_TIER_LIMIT,
-          used: quotaUsed,
-          remaining: quotaRemaining,
-        },
-      }),
+      JSON.stringify({ success: true, data: wirePayload }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
 
   } catch (error) {
-    // ═══════════════════════════════════════════════════════════════════════
-    // WS3 — Outermost catch: GUARANTEE a complete analysis when possible.
-    // 1) GOLDEN exists → ship it (success:true, degraded:true).
-    // 2) GOLDEN missing but we have an idea/location → last-resort
-    //    deterministic build that depends on ZERO external services.
-    // 3) Only if both fail do we return a degraded error envelope (still 200).
-    // ═══════════════════════════════════════════════════════════════════════
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    log.error('Handler exception (WS3 recovery active):', errorMessage);
-    const corsHeaders = corsHeadersFor(req);
-
-    // 1) GOLDEN exists — ship it.
-    if (GOLDEN) {
-      log.info('[WS3] returning GOLDEN checkpoint (degraded)');
-      return new Response(
-        JSON.stringify({
-          ok: true,
-          degraded: true,
-          reason: GOLDEN_reason ?? 'partial',
-          success: true,
-          data: GOLDEN,
-          result: GOLDEN,
-        }),
-        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-      );
+    const errorStack = error instanceof Error ? error.stack : '';
+    log.error("Unhandled error:", errorMessage);
+    log.error("Stack:", errorStack);
+    
+    // Provide user-friendly error messages
+    let userMessage = "Something went wrong. Please try again.";
+    let errorCode = "INTERNAL_ERROR";
+    
+    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
+      userMessage = "Request took too long. Please try with a shorter description.";
+      errorCode = "TIMEOUT_ERROR";
+    } else if (errorMessage.includes('JSON')) {
+      userMessage = "Error processing response. Please try again.";
+      errorCode = "PARSE_ERROR";
+    } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
+      userMessage = "Network error. Please check your connection and try again.";
+      errorCode = "NETWORK_ERROR";
     }
-
-    // 2) Last-resort deterministic build (no DB, no network, no LLM).
-    try {
-      if (recoveryIdea) {
-        log.info('[WS3] building last-resort deterministic result');
-        const detIndustry = detectIndustry(recoveryIdea);
-        const detLocMultipliers = getEnhancedLocationMultiplier(recoveryLocation || 'United States');
-        const detSubIndustry = detectSubIndustry(recoveryIdea, detIndustry.id);
-        const detRaw = generateDeterministicFallbackResult(
-          recoveryIdea,
-          recoveryLocation || 'United States',
-          detIndustry,
-          detLocMultipliers,
-          recoveryFinancialInputs,
-        );
-        const detResult = transformResponse(
-          detRaw,
-          recoveryLocation || 'United States',
-          detIndustry,
-          detLocMultipliers,
-          detSubIndustry,
-          recoveryFinancialInputs,
-        );
-        delete (detResult as Record<string, unknown>)._calc;
-        return new Response(
-          JSON.stringify({
-            ok: true,
-            degraded: true,
-            reason: 'last_resort',
-            success: true,
-            data: detResult,
-            result: detResult,
-          }),
-          { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
-        );
-      }
-    } catch (lastResortErr) {
-      log.error('[WS3] last-resort build failed:', lastResortErr);
-    }
-
-    // 3) Absolute floor: degraded envelope (client retries).
+    
     return new Response(
-      JSON.stringify({
-        ok: false,
-        degraded: true,
-        reason: 'internal',
-        success: false,
-        error: 'The analysis engine hit a transient error. Your inputs are preserved — please retry.',
-        code: 'INTERNAL_ERROR',
-        timestamp: new Date().toISOString(),
+      JSON.stringify({ 
+        error: userMessage, 
+        code: errorCode,
+        details: errorMessage,
+        timestamp: new Date().toISOString()
       }),
-      { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
-

@@ -1,4 +1,4 @@
-project_id = "dmlxrvfyqsakyjomsvdj"
+project_id = "gafxacjhkqsdzwwzhbor"
 
 [functions.analyze-business]
 verify_jwt = false
@@ -110,4 +110,3 @@ verify_jwt = false
 
 [functions.rvce-validate]
 verify_jwt = false
-

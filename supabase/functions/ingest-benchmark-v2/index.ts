@@ -21,35 +21,6 @@ serve(async (req) => {
   try {
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const serviceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const anonKey = Deno.env.get('SUPABASE_ANON_KEY')!;
-
-    // --- AuthZ: admin-only (JWT) OR x-admin-key fallback ---
-    const adminKey = Deno.env.get('ADMIN_UPLOAD_KEY');
-    const providedAdminKey = req.headers.get('x-admin-key');
-    let authorized = false;
-    if (adminKey && providedAdminKey && providedAdminKey === adminKey) {
-      authorized = true;
-    } else {
-      const authHeader = req.headers.get('authorization') ?? '';
-      if (authHeader.startsWith('Bearer ')) {
-        const token = authHeader.replace('Bearer ', '');
-        const userClient = createClient(supabaseUrl, anonKey);
-        const { data: userData, error: userErr } = await userClient.auth.getUser(token);
-        const userId = userData?.user?.id;
-        if (!userErr && userId) {
-          const svc = createClient(supabaseUrl, serviceKey);
-          const { data: isAdmin } = await svc.rpc('has_role', { _user_id: userId, _role: 'admin' });
-          if (isAdmin === true) authorized = true;
-        }
-      }
-    }
-    if (!authorized) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
-        status: 401,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
-    }
-
     const supabase = createClient(supabaseUrl, serviceKey);
 
     const { sheet, rows, batch_index, total_batches } = await req.json();

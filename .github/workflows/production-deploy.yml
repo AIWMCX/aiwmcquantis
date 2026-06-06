@@ -1,10 +1,8 @@
-name: Production Deploy — Supabase Backend
+name: Production Deploy
 
-# Owns the BACKEND only (Supabase migrations + edge functions).
-# The FRONTEND is deployed by Vercel's native GitHub integration on every
-# push to main (using vercel.json). Do NOT add a frontend deploy job here —
-# two systems deploying the frontend caused domain/alias conflicts.
-
+# Auto deploy to production after CI passes on main.
+# Uses the "production" GitHub Environment (configure required reviewers there
+# if you want a manual approval gate). No-op when hosting secrets are absent.
 on:
   workflow_run:
     workflows: ['CI']
@@ -17,70 +15,101 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  deploy-backend:
-    name: Deploy Supabase backend (dmlxrvfyqsakyjomsvdj)
+  deploy-production:
+    name: Deploy to production
+    # Only when the triggering CI run actually succeeded.
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     environment:
       name: production
-    env:
-      SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
-      DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
-      LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
-      ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-      STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
-      STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
-
+      url: ${{ steps.deploy.outputs.url }}
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
-      # If the deploy token is not configured, exit success (nothing to do)
-      # so this workflow never shows a red X for a missing optional secret.
-      - name: Check deploy token
-        id: gate
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Build (production)
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: bun run build
+
+      - name: Detect deploy provider
+        id: provider
         run: |
-          if [ -z "${SUPABASE_ACCESS_TOKEN}" ]; then
-            echo "has_token=false" >> "$GITHUB_OUTPUT"
-            echo "⚠️ SUPABASE_ACCESS_TOKEN not set — skipping backend deploy (not a failure)." >> "$GITHUB_STEP_SUMMARY"
+          if [ -n "${{ secrets.VERCEL_TOKEN }}" ]; then
+            echo "provider=vercel" >> "$GITHUB_OUTPUT"
+          elif [ -n "${{ secrets.NETLIFY_AUTH_TOKEN }}" ]; then
+            echo "provider=netlify" >> "$GITHUB_OUTPUT"
           else
-            echo "has_token=true" >> "$GITHUB_OUTPUT"
+            echo "provider=none" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Sync edge function secrets
-        if: steps.gate.outputs.has_token == 'true'
+      - name: Deploy to Vercel (production)
+        id: deploy
+        if: steps.provider.outputs.provider == 'vercel'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
         run: |
-          npx supabase@latest secrets set \
-            DEEPSEEK_API_KEY="${DEEPSEEK_API_KEY}" \
-            LOVABLE_API_KEY="${LOVABLE_API_KEY:-lv_placeholder}" \
-            ANTHROPIC_API_KEY="${ANTHROPIC_API_KEY:-placeholder}" \
-            STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY}" \
-            STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET}" \
-            LLM_PRIMARY_PROVIDER="deepseek" \
-            LLM_DEEPSEEK_ENABLED="true" \
-            --project-ref dmlxrvfyqsakyjomsvdj || true
-          echo "✅ Secrets synced" >> "$GITHUB_STEP_SUMMARY"
+          bunx vercel@latest pull --yes --environment=production --token "$VERCEL_TOKEN"
+          bunx vercel@latest build --prod --token "$VERCEL_TOKEN"
+          URL=$(bunx vercel@latest deploy --prebuilt --prod --token "$VERCEL_TOKEN")
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Apply DB migrations
-        if: steps.gate.outputs.has_token == 'true'
+      - name: Deploy to Netlify (production)
+        id: deploy-netlify
+        if: steps.provider.outputs.provider == 'netlify'
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
         run: |
-          npx supabase@latest link --project-ref dmlxrvfyqsakyjomsvdj || true
-          npx supabase@latest db push --include-all --yes || true
-          echo "✅ DB migrations applied" >> "$GITHUB_STEP_SUMMARY"
+          bunx netlify-cli@latest deploy --prod --dir=dist --site "$NETLIFY_SITE_ID" --auth "$NETLIFY_AUTH_TOKEN" --json | tee netlify.json
+          URL=$(jq -r '.deploy_url' netlify.json)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+          echo "Production deploy: $URL" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Deploy edge functions
-        if: steps.gate.outputs.has_token == 'true'
+      - name: Post-deploy smoke test
+        if: steps.provider.outputs.provider != 'none'
+        env:
+          SMOKE_URL: ${{ steps.deploy.outputs.url || steps.deploy-netlify.outputs.url || secrets.PRODUCTION_SMOKE_URL || 'https://aiwmcquantis.com' }}
         run: |
-          for fn in analyze-business analyze-plus analyze-pro-extension create-checkout-session stripe-webhook; do
-            npx supabase@latest functions deploy "$fn" \
-              --project-ref dmlxrvfyqsakyjomsvdj --no-verify-jwt || echo "::warning::deploy $fn failed (non-blocking)"
+          echo "Smoke testing: $SMOKE_URL"
+          for i in 1 2 3 4 5; do
+            CODE=$(curl -sS -o /dev/null -w "%{http_code}" -L "$SMOKE_URL" || echo "000")
+            echo "Attempt $i → HTTP $CODE"
+            if [ "$CODE" = "200" ]; then
+              echo "::notice title=Smoke OK::$SMOKE_URL returned 200"
+              exit 0
+            fi
+            sleep 5
           done
-          echo "✅ Edge functions deployed to dmlxrvfyqsakyjomsvdj" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Smoke failed::$SMOKE_URL did not return 200 after 5 attempts (last: $CODE)"
+          exit 1
 
-      - name: Summary
-        if: always()
+      - name: No provider configured
+        if: steps.provider.outputs.provider == 'none'
         run: |
-          echo "## Backend deploy complete" >> "$GITHUB_STEP_SUMMARY"
-          echo "Frontend is deployed by Vercel's native GitHub integration." >> "$GITHUB_STEP_SUMMARY"
+          {
+            echo "## Production deploy skipped"
+            echo ""
+            echo "No hosting secrets configured in the **production** environment."
+            echo "AIWMC Quantis is currently deployed via Lovable Publish; this workflow"
+            echo "becomes active when Vercel/Netlify secrets are added under"
+            echo "Settings → Environments → production."
+          } >> "$GITHUB_STEP_SUMMARY"

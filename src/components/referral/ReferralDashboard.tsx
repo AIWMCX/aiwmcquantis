@@ -221,10 +221,8 @@ export const ReferralDashboard = React.memo(function ReferralDashboard({
               title="Check out AIWMC Quantis"
               description="Get AI-powered business analysis in 2 minutes. I use it for financial projections and market insights."
               size="sm"
-              utmCampaign="referral"
             />
           </div>
-
         </CardContent>
       </Card>
 

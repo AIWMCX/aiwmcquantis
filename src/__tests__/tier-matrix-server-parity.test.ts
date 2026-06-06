@@ -64,17 +64,10 @@ describe('Tier matrix server↔client parity (entitlements.ts ↔ tiers.ts)', ()
     const clientLimits = TIERS[tier].limits;
 
     describe(`tier=${tier}`, () => {
-      it('every server-enforced feature key exists in the client config', () => {
-        // The client (config/tiers.ts) may declare additional cosmetic/UX-only
-        // feature flags (e.g. sampleSharingEnabled, teamWorkspace) that have no
-        // server-side gate in entitlements.ts. We only assert that every key the
-        // server enforces is also present on the client — a superset check, not
-        // an exact equality check.
-        const serverKeys = Object.keys(serverFeatures[tier]);
-        const clientKeys = new Set(Object.keys(clientFeatures));
-        for (const key of serverKeys) {
-          expect(clientKeys.has(key), `server feature '${key}' not found in client config`).toBe(true);
-        }
+      it('declares the exact same feature keys on both sides', () => {
+        expect(Object.keys(serverFeatures[tier]).sort()).toEqual(
+          Object.keys(clientFeatures).sort(),
+        );
       });
 
       it('declares the exact same limit keys on both sides', () => {
@@ -83,13 +76,9 @@ describe('Tier matrix server↔client parity (entitlements.ts ↔ tiers.ts)', ()
         );
       });
 
-      // Only check values for server-enforced keys — the client may have extra
-      // cosmetic-only feature flags (sampleSharingEnabled, teamWorkspace, etc.)
-      // that have no server-side gate. Comparing those against server 'undefined'
-      // would produce false failures.
-      for (const key of Object.keys(serverFeatures[tier])) {
-        it(`server-enforced feature '${key}' matches client value`, () => {
-          expect(clientFeatures[key as keyof typeof clientFeatures]).toBe(serverFeatures[tier][key]);
+      for (const key of Object.keys(clientFeatures) as Array<keyof typeof clientFeatures>) {
+        it(`feature '${key}' matches server value`, () => {
+          expect(serverFeatures[tier][key as string]).toBe(clientFeatures[key]);
         });
       }
 

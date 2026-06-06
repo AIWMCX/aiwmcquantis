@@ -2,11 +2,6 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 
-// Hard-coded sole authorized admin email. Defense-in-depth alongside the
-// `protect_admin_role` DB trigger which restricts the 'admin' role to this
-// email. Both checks must pass for admin UI to render.
-const AUTHORIZED_ADMIN_EMAIL = 'beltovbogdan@gmail.com';
-
 export function useAdmin() {
   const { user, isLoading: authLoading } = useAuth();
   const [isAdmin, setIsAdmin] = useState(false);
@@ -15,8 +10,8 @@ export function useAdmin() {
   useEffect(() => {
     const checkAdminRole = async () => {
       if (authLoading) return;
-
-      if (!user || user.email?.toLowerCase() !== AUTHORIZED_ADMIN_EMAIL) {
+      
+      if (!user) {
         setIsAdmin(false);
         setIsLoading(false);
         return;

@@ -28,7 +28,7 @@ export function LockedFeaturePreview({ onUpgrade }: LockedFeaturePreviewProps) {
           <Zap className="w-3.5 h-3.5" />
           Upgrade to Plus
         </Button>
-        <span className="text-[10px] text-muted-foreground mt-2">14-days free trial included</span>
+        <span className="text-[10px] text-muted-foreground mt-2">14-day free trial included</span>
       </div>
 
       {/* Ghosted content underneath */}

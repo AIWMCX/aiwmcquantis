@@ -23,17 +23,20 @@ serve(async (req: Request): Promise<Response> => {
   }
 
   try {
-    // Verify cron secret for scheduled calls. Fail closed if CRON_SECRET
-    // is not configured — never accept the public anon key as authentication.
+    // Verify cron secret for scheduled calls
     const cronSecret = Deno.env.get("CRON_SECRET");
     const providedSecret = req.headers.get("x-cron-secret");
+    
+    // Allow service role calls or valid cron secret
     const authHeader = req.headers.get("authorization") || "";
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") || "";
+    const anonKey = Deno.env.get("SUPABASE_ANON_KEY") || "";
     const isServiceRole = serviceKey.length > 10 && authHeader.includes(serviceKey);
-    const isCronSecret = !!cronSecret && cronSecret.length > 5 && providedSecret === cronSecret;
-
-    if (!isServiceRole && !isCronSecret) {
-      log.warn('check-churn-signals unauthorized call', { hasCronSecret: !!cronSecret });
+    const isCronSecret = cronSecret && cronSecret.length > 5 && providedSecret === cronSecret;
+    // Allow anon key only when no CRON_SECRET is set (pg_cron backward compat)
+    const isAnonWithNoCronSecret = anonKey.length > 10 && authHeader.includes(anonKey) && (!cronSecret || cronSecret.length === 0);
+    
+    if (!isServiceRole && !isCronSecret && !isAnonWithNoCronSecret) {
       return new Response("Unauthorized", { status: 401, headers: corsHeaders });
     }
 

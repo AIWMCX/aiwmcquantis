@@ -33,25 +33,18 @@ jobs:
         run: bun install --frozen-lockfile
 
       # ── Lint ────────────────────────────────────────────────────────────────
-      # continue-on-error: true — Lovable generates components with conditional
-      # hooks (rules-of-hooks violations) that we cannot refactor without
-      # breaking the generated UI. Lint errors are saved to lint-output.txt
-      # artifact for visibility but do not block the pipeline.
-      # TypeCheck, hash verification, and tests are the hard gates.
       - name: Lint (eslint)
         id: lint
         run: |
-          bun run lint 2>&1 | tee lint-output.txt || true
+          set -o pipefail
+          bun run lint 2>&1 | tee lint-output.txt
           bun run lint:report || true
-          ERRORS=$(grep -c " error " lint-output.txt 2>/dev/null || echo "0")
-          echo "ESLint: $ERRORS errors (non-blocking — see lint-output.txt artifact)"
-        continue-on-error: true
+        continue-on-error: false
 
-      - name: Lint summary
-        if: always()
+      - name: Lint failure hint
+        if: failure() && steps.lint.outcome == 'failure'
         run: |
-          ERRORS=$(grep -c " error " lint-output.txt 2>/dev/null || echo "0")
-          echo "| Lint errors | $ERRORS (non-blocking) |" >> "$GITHUB_STEP_SUMMARY"
+          echo "::error title=Lint failed::ESLint reported errors. See lint-output.txt artifact for full output, or run 'bun run lint' locally."
 
       # ── Format (Prettier, scoped) ───────────────────────────────────────────
       - name: Format check (Prettier)

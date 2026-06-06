@@ -100,20 +100,18 @@ const PLUS_OUTPUT_FIELDS = [
 
 export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
   FREE: {
-    allowed_endpoints: [
-      ENDPOINTS.ANALYSE_MAIN,
-      ENDPOINTS.DOCUMENTS_STUDIO,
-      ENDPOINTS.DOCUMENTS_EXPORT,
-    ],
+    allowed_endpoints: [ENDPOINTS.ANALYSE_MAIN],
     blocked_endpoints: [
       ENDPOINTS.ANALYSE_PREMORTEM,
       ENDPOINTS.ANALYSE_PRO_EXTENSION,
       ENDPOINTS.TOOLS_CAPACITY_CHECK,
+      ENDPOINTS.DOCUMENTS_STUDIO,
+      ENDPOINTS.DOCUMENTS_EXPORT,
       ENDPOINTS.TEAM_INVITE,
       ENDPOINTS.API_KEY_GENERATE,
       ENDPOINTS.AI_DOC_INTELLIGENCE,
     ],
-    monthly_analysis_limit: 5,
+    monthly_analysis_limit: 1,
     pdf_daily_limit: 5,
     history: false,
     watermark: true,
@@ -142,7 +140,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     watermark: false,
     white_label: false,
     api_access: false,
-    team_seats: 1,
+    team_seats: 0,
     allowed_output_fields: PLUS_OUTPUT_FIELDS,
   },
   PRO: {
@@ -164,7 +162,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     watermark: false,
     white_label: true, // gated again by user.white_label_enabled
     api_access: true,
-    team_seats: 5,
+    team_seats: 3,
     allowed_output_fields: '__ALL__',
   },
 };
@@ -283,7 +281,7 @@ export function evaluateGate(args: {
       body: {
         success: false,
         error: 'QUOTA_EXCEEDED',
-        message: 'You have used your 5 free analyses this month.',
+        message: 'You have used your 1 free analysis this month.',
         required_tier: 'PLUS',
         upgrade_url: UPGRADE_URL,
         cta: 'Get unlimited analyses — Upgrade to Plus',
@@ -434,7 +432,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   plus_5th_analysis: {
     trigger: 'plus_5th_analysis',
     headline: 'How do investors see this?',
-    body: 'Your Pro upgrade includes an investor-ready pitch deck data package and 5-year model. Start your 14-days trial.',
+    body: 'Your Pro upgrade includes an investor-ready pitch deck data package and 5-year model. Start your 14-day trial.',
     cta: 'Start Pro Trial — Free 14 Days',
     required_tier: 'PRO',
   },
