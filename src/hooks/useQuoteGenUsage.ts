@@ -3,8 +3,8 @@
  *
  * Quotas (server-enforced — see `increment_quote_gen_usage` RPC):
  *   FREE → 5 quotes/mo
- *   PLUS → 5 quotes/mo
- *   PRO  → 15 quotes/mo
+ *   PLUS → unlimited
+ *   PRO  → unlimited
  *
  * The server (`get_quote_gen_status` RPC) is the only authority. This hook
  * mirrors the server response into React state for UI.
@@ -14,17 +14,18 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { logger } from '@/lib/logger';
 
-export const QUOTEGEN_QUOTAS = { free: 5, plus: 5, pro: 15 } as const;
+export const QUOTEGEN_QUOTAS = { free: 5, plus: Infinity, pro: Infinity } as const;
 
 export type QuoteGenPlanTier = keyof typeof QUOTEGEN_QUOTAS;
 
 export interface QuoteGenStatus {
   planTier: QuoteGenPlanTier;
-  limit: number;
+  limit: number | null;
   used: number;
-  remaining: number;
+  remaining: number | null;
   isEnabled: boolean;
   isExhausted: boolean;
+  isUnlimited: boolean;
   monthKey: string;
 }
 
@@ -35,6 +36,7 @@ const DEFAULT_STATUS: QuoteGenStatus = {
   remaining: 0,
   isEnabled: false,
   isExhausted: true,
+  isUnlimited: false,
   monthKey: '',
 };
 
@@ -54,7 +56,7 @@ export function useQuoteGenUsage() {
     try {
       const { data, error: rpcError } = await supabase.rpc('get_quote_gen_status' as never);
       if (rpcError) throw rpcError;
-      const parsed = (data ?? DEFAULT_STATUS) as QuoteGenStatus;
+      const parsed = { ...DEFAULT_STATUS, ...((data ?? {}) as Partial<QuoteGenStatus>) };
       setStatus(parsed);
       setError(null);
     } catch (e) {
