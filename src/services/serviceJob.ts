@@ -107,9 +107,10 @@ interface QuoteGenIncrementResult {
   ok: boolean;
   reason?: 'plan_tier' | 'quota';
   planTier: 'free' | 'plus' | 'pro';
-  limit: number;
+  limit: number | null;
   used: number;
-  remaining: number;
+  remaining: number | null;
+  isUnlimited?: boolean;
   monthKey: string;
 }
 
@@ -127,7 +128,7 @@ async function assertAndConsumeQuoteGenQuota(): Promise<QuoteGenIncrementResult>
     }
     throw new QuoteGenLimitExceededError(
       res.planTier,
-      res.limit,
+      res.limit ?? 5,
       res.used,
     );
   }
