@@ -413,21 +413,27 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
 
     if (!aiResult.ok) {
       log.error("AI gateway error:", aiResult.status, aiResult.error);
-      const userMsg =
-        aiResult.status === 429 ? "Rate limit exceeded. Try again shortly." :
-        aiResult.status === 402 ? "Credits exhausted. Please add funds in Settings > Workspace > Usage." :
-        aiResult.message;
-      return new Response(
-        JSON.stringify({ error: userMsg, code: aiResult.error }),
-        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
     const toolCall = choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    if (!toolCall) {
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const result = JSON.parse(toolCall.function.arguments);
+    let result: any;
+    try {
+      result = JSON.parse(toolCall.function.arguments);
+    } catch {
+      return new Response(JSON.stringify(buildDeterministicIdea(seed)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ── POST-GENERATION VALIDATION ──
     // Sanity-check the AI's numbers against seed ranges and internal consistency
@@ -454,6 +460,9 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
       headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   } catch (e) {
+    if (quotaReserved && quotaClient) {
+      await quotaClient.rpc('decrement_idea_generation_usage').catch(() => null);
+    }
     log.error("generate-idea error:", e);
     return new Response(
       JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }),
