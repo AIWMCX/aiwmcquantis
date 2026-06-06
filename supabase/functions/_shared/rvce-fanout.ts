@@ -8,8 +8,9 @@
  * { p25, p50, p75, status, discrepancy_pct, confidence }.
  *
  * Cached by (variable, business_type, location, tier_cap) in `rvce_cache`
- * for 24h. Activated only when isRvceFanoutEnabled() returns true; otherwise
- * the legacy Anthropic web-search path in rvce-validate/index.ts is used.
+ * for 24h. This is the production RVCE path; legacy Anthropic web search is
+ * retained in rvce-validate only as dead-end fallback code and should not run
+ * while DeepSeek is configured.
  */
 import { callDeepseek } from './deepseek.ts';
 import { logAiCall } from './ai-logger.ts';
@@ -375,8 +376,6 @@ export async function calibrateWithDeepSeek(
     return perVariable;
   }
 }
-
-export const calibrateWithHaiku = calibrateWithDeepSeek;
 
 function round(n: number): number {
   return Math.round(n * 100) / 100;
