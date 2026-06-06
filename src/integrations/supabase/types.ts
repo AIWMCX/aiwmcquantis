@@ -6092,6 +6092,7 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string }
         Returns: Json
       }
+      decrement_idea_generation_usage: { Args: never; Returns: undefined }
       decrement_quote_gen_usage: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
       detect_orphaned_users: {
