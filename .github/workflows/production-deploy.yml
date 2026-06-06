@@ -87,7 +87,7 @@ jobs:
       - name: Post-deploy smoke test
         if: steps.provider.outputs.provider != 'none'
         env:
-          SMOKE_URL: ${{ steps.deploy.outputs.url || steps.deploy-netlify.outputs.url || secrets.PRODUCTION_SMOKE_URL || 'https://aiwmcquantis.com' }}
+          SMOKE_URL: ${{ secrets.PRODUCTION_SMOKE_URL || 'https://aiwmcquantis.com' }}
         run: |
           echo "Smoke testing: $SMOKE_URL"
           for i in 1 2 3 4 5; do
