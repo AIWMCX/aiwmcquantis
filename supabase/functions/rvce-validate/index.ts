@@ -253,7 +253,8 @@ async function extractObservations(
   searchResults: SearchResult[],
   profile: { industry: string; city: string; business_model: string },
 ): Promise<Observation[]> {
-  if (searchResults.length === 0 || !DEEPSEEK_API_KEY) return [];
+  if (searchResults.length === 0) return [];
+  if (!DEEPSEEK_API_KEY) return extractNumericFallback(metric, searchResults);
 
   const isPercentage = metric.includes('pct');
   const isRatio      = metric.includes('ratio');
@@ -304,7 +305,7 @@ Rules:
       signal: AbortSignal.timeout(20000),
     });
 
-    if (!resp.ok) return [];
+    if (!resp.ok) return extractNumericFallback(metric, searchResults);
 
     const data = await resp.json();
     const content: string = data.choices?.[0]?.message?.content ?? '{}';
@@ -319,8 +320,36 @@ Rules:
         confidence: 0.78,
       }));
   } catch {
-    return [];
+    return extractNumericFallback(metric, searchResults);
   }
+}
+
+function extractNumericFallback(metric: string, searchResults: SearchResult[]): Observation[] {
+  const observations: Observation[] = [];
+  const isPercentage = metric.includes('pct') || metric.includes('margin') || metric.includes('rate');
+  const numberRegex = /(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(\s?%|\s?percent|\s?x|\s?months?)?/gi;
+
+  for (const result of searchResults) {
+    const text = `${result.title} ${result.snippet}`;
+    const matches = [...text.matchAll(numberRegex)].slice(0, 4);
+    for (const match of matches) {
+      const raw = match[1]?.replace(/,/g, '');
+      const suffix = (match[2] || '').toLowerCase();
+      const value = Number(raw);
+      if (!Number.isFinite(value) || value <= 0) continue;
+      if (isPercentage && value > 100) continue;
+      if (!isPercentage && suffix.includes('%')) continue;
+      observations.push({
+        value,
+        source: result.title || 'web search numeric extraction',
+        url: result.url || '',
+        confidence: 0.52,
+      });
+      if (observations.length >= 4) return observations;
+    }
+  }
+
+  return observations;
 }
 
 // ── Per-metric validation ───────────────────────────────────────────────────
