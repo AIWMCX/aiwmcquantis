@@ -237,10 +237,49 @@ const ALL_INDUSTRIES = Object.keys(BUSINESS_SEEDS);
 
 function getRandomSeed(industry?: string): { industry: string; concept: string; ranges: typeof BUSINESS_SEEDS[string] } {
   // If industry matches a key, use it; otherwise pick random
-  const key = industry && BUSINESS_SEEDS[industry] ? industry : ALL_INDUSTRIES[Math.floor(Math.random() * ALL_INDUSTRIES.length)];
+  const normalized = String(industry || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const aliases: Record<string, string> = {
+    technology: 'saas', tech: 'saas', ai: 'saas', software: 'saas', software_as_a_service: 'saas',
+    agency: 'digital_agency', marketing_agency: 'digital_agency', digital_marketing: 'digital_agency',
+    cafe: 'coffee_shop', café: 'coffee_shop', coffee: 'coffee_shop', restaurant_bar: 'restaurant',
+    ecommerce_store: 'ecommerce', e_commerce: 'ecommerce', online_store: 'ecommerce',
+  };
+  const requested = aliases[normalized] || normalized;
+  const key = requested && BUSINESS_SEEDS[requested] ? requested : ALL_INDUSTRIES[Math.floor(Math.random() * ALL_INDUSTRIES.length)];
   const entry = BUSINESS_SEEDS[key];
   const concept = entry.concepts[Math.floor(Math.random() * entry.concepts.length)];
   return { industry: key, concept, ranges: entry };
+}
+
+function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
+  const r = seed.ranges;
+  const startingCapital = Math.round((r.capitalRange[0] + r.capitalRange[1]) / 2);
+  const pricePerCustomer = Math.round(((r.priceRange[0] + r.priceRange[1]) / 2) * 100) / 100;
+  const customersAtLaunch = Math.round((r.customerRange[0] + r.customerRange[1]) / 2);
+  const monthlyOpCosts = Math.round((r.costRange[0] + r.costRange[1]) / 2);
+  const monthlyRevenue = Math.max(1, Math.round(pricePerCustomer * customersAtLaunch));
+  const monthlyContribution = monthlyRevenue - monthlyOpCosts;
+  const estimatedBreakEven = monthlyContribution > 0 ? Math.ceil(startingCapital / monthlyContribution) : 36;
+  const estimatedRevM12 = Math.round(monthlyRevenue * 1.8);
+
+  return {
+    idea: `${seed.concept} for a tightly defined local customer segment`,
+    differentiator: `Launches with a focused ${seed.industry.replace(/_/g, ' ')} niche and benchmark-constrained unit economics rather than generic demand assumptions.`,
+    targetCustomer: 'Budget-conscious early adopters with a visible recurring pain point and clear willingness to pay',
+    startingCapital,
+    pricePerCustomer,
+    customersAtLaunch,
+    monthlyOpCosts,
+    estimatedBreakEven,
+    estimatedRevM12,
+    grossMarginPct: seed.industry.includes('saas') || seed.industry.includes('tech') ? 78 : seed.industry.includes('food') || seed.industry.includes('restaurant') ? 64 : 58,
+    riskNote: 'Demand may be slower than the launch model assumes if the initial segment is too broad.',
+    mitigationStrategy: 'Pre-sell to 10-25 target customers, cap fixed costs for the first 90 days, and validate repeat purchase behavior before expanding.',
+    _seedIndustry: seed.industry,
+    _engineVersion: 'v2.0-100cases-deterministic-fallback',
+    _degraded: true,
+    _ideaGenRemaining: undefined as number | undefined,
+  };
 }
 
 serve(async (req) => {
@@ -257,6 +296,13 @@ serve(async (req) => {
     // Free tier: 5 idea generations per month (tracked in usage_tracking.idea_gen_count)
     // Plus/Pro:  unlimited
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: 'AUTH_REQUIRED', message: 'Sign in to use your 5 free random ideas.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     if (authHeader?.startsWith("Bearer ")) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -267,6 +313,13 @@ serve(async (req) => {
       });
       const { data: userResp } = await userClient.auth.getUser();
       const userId = userResp?.user?.id;
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'AUTH_REQUIRED', message: 'Sign in to use your 5 free random ideas.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
 
       if (userId) {
         const { getUserTier } = await import("../_shared/entitlements.ts");
@@ -345,7 +398,9 @@ DIFFERENTIATION RULES:
 
 Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousands).`;
 
-    const aiResult = await aiCall(
+    let aiResult;
+    try {
+      aiResult = await aiCall(
       {
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -391,18 +446,25 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
         tool_choice: { type: "function", function: { name: "suggest_idea" } },
       },
       { task: 'generate-idea', metadata: { industry: industry || seed.industry } },
-    );
+      );
+    } catch (aiError) {
+      log.warn('AI gateway exception, returning deterministic idea:', aiError instanceof Error ? aiError.message : String(aiError));
+      const fallback = buildDeterministicIdea(seed);
+      const remaining = (req as any)._ideaRemaining;
+      if (typeof remaining === 'number') fallback._ideaGenRemaining = remaining;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!aiResult.ok) {
-      log.error("AI gateway error:", aiResult.status, aiResult.error);
-      const userMsg =
-        aiResult.status === 429 ? "Rate limit exceeded. Try again shortly." :
-        aiResult.status === 402 ? "Credits exhausted. Please add funds in Settings > Workspace > Usage." :
-        aiResult.message;
-      return new Response(
-        JSON.stringify({ error: userMsg, code: aiResult.error }),
-        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      log.warn("AI gateway unavailable, returning deterministic idea:", aiResult.status, aiResult.error);
+      const fallback = buildDeterministicIdea(seed);
+      const remaining = (req as any)._ideaRemaining;
+      if (typeof remaining === 'number') fallback._ideaGenRemaining = remaining;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;

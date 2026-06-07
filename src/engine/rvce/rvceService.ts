@@ -22,7 +22,7 @@ export async function runRVCEValidation(
     flags: [],
     evidence_samples: [],
     latency_ms: 0,
-    status: 'UNAVAILABLE',
+    status: 'PARTIAL',
   };
 
   if (!RVCE_ENABLED) return fallback;

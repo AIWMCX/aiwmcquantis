@@ -6092,6 +6092,10 @@ export type Database = {
         Args: { p_limit: number; p_user_id: string }
         Returns: Json
       }
+      consume_idea_gen_quota: {
+        Args: { p_limit: number; p_month_year: string; p_user_id: string }
+        Returns: Json
+      }
       decrement_idea_generation_usage: { Args: never; Returns: undefined }
       decrement_quote_gen_usage: { Args: never; Returns: undefined }
       decrypt_pii: { Args: { encrypted_data: string }; Returns: string }
