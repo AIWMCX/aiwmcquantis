@@ -278,6 +278,7 @@ function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
     _seedIndustry: seed.industry,
     _engineVersion: 'v2.0-100cases-deterministic-fallback',
     _degraded: true,
+    _ideaGenRemaining: undefined as number | undefined,
   };
 }
 
