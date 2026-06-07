@@ -100,21 +100,23 @@ export function useSubscription(): SubscriptionData {
       // The RLS policy + view ensure Stripe IDs are never exposed
       // Order by updated_at DESC so if multiple rows exist we always get the latest.
       // Without ordering, Postgres can return any row — causing paid users to see FREE tier.
-      const { data: subData, error: subError } = await supabase
+      const { data: subRows, error: subError } = await supabase
         .from('subscriptions')
         .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
         .eq('user_id', user.id)
         .in('status', ['active', 'trialing'])
-        .order('plan_id', { ascending: false })
         .order('updated_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
+        .limit(5);
 
       if (subError && subError.code !== 'PGRST116') {
         logger.error('Error fetching subscription:', subError);
       }
       
       if (isMounted.current) {
+        const rank = (planId?: string | null) => planId === 'pro' || planId === 'enterprise' ? 3 : planId === 'plus' ? 2 : 1;
+        const subData = (subRows ?? [])
+          .slice()
+          .sort((a, b) => rank(b.plan_id) - rank(a.plan_id))[0] ?? null;
         // Type assertion to match our safe Subscription interface (without Stripe IDs)
         setSubscription(subData as Subscription | null);
       }
