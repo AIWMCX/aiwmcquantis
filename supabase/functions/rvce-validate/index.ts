@@ -153,6 +153,10 @@ interface SearchResult {
 interface SearchDiagnostics {
   metric: string;
   queries_sent: string[];
+  web_search_tool_fired: boolean;
+  tool_use_count: number;
+  tool_result_count: number;
+  raw_results_found: number;
   web_search_fired: boolean;
   results_found: number;
   parsed_observations: number;
