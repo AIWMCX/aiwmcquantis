@@ -617,7 +617,8 @@ serve(async (req) => {
           };
           searchDiagnostics.push({
             metric, queries_sent: [], web_search_fired: false,
-            results_found: 0, parsed_observations: 0, fallback_used: false,
+            web_search_tool_fired: false, tool_use_count: 0, tool_result_count: 0,
+            raw_results_found: 0, results_found: 0, parsed_observations: 0, fallback_used: false,
             source_urls: [], error: String(res.reason),
           });
         }
