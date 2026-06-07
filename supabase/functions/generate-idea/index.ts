@@ -237,7 +237,15 @@ const ALL_INDUSTRIES = Object.keys(BUSINESS_SEEDS);
 
 function getRandomSeed(industry?: string): { industry: string; concept: string; ranges: typeof BUSINESS_SEEDS[string] } {
   // If industry matches a key, use it; otherwise pick random
-  const key = industry && BUSINESS_SEEDS[industry] ? industry : ALL_INDUSTRIES[Math.floor(Math.random() * ALL_INDUSTRIES.length)];
+  const normalized = String(industry || '').toLowerCase().trim().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const aliases: Record<string, string> = {
+    technology: 'saas', tech: 'saas', ai: 'saas', software: 'saas', software_as_a_service: 'saas',
+    agency: 'digital_agency', marketing_agency: 'digital_agency', digital_marketing: 'digital_agency',
+    cafe: 'coffee_shop', café: 'coffee_shop', coffee: 'coffee_shop', restaurant_bar: 'restaurant',
+    ecommerce_store: 'ecommerce', e_commerce: 'ecommerce', online_store: 'ecommerce',
+  };
+  const requested = aliases[normalized] || normalized;
+  const key = requested && BUSINESS_SEEDS[requested] ? requested : ALL_INDUSTRIES[Math.floor(Math.random() * ALL_INDUSTRIES.length)];
   const entry = BUSINESS_SEEDS[key];
   const concept = entry.concepts[Math.floor(Math.random() * entry.concepts.length)];
   return { industry: key, concept, ranges: entry };
