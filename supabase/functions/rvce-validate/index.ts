@@ -575,7 +575,7 @@ async function internalBenchmarkFallback(
         status,
         discrepancy_score: parseFloat(discrepancy.toFixed(2)),
         notes: `Calibrated against internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size}).`,
-        observation_count: Math.max(3, Number(data.sample_size) || 3),
+        observation_count: 3,
         web_search_fired: false,
         sources_used: 1,
       },
@@ -727,6 +727,7 @@ serve(async (req) => {
       }));
 
     const totalObs = searchDiagnostics.reduce((s, d) => s + d.parsed_observations, 0);
+    const validatedMetricCount = Object.values(metricsValidation).filter((v: any) => v.status !== 'NO_DATA').length;
 
     const searchHealth = {
       total_metrics_searched:     metricsToProcess.length,
@@ -750,7 +751,7 @@ serve(async (req) => {
       flags,
       evidence_samples: evidenceSamples.slice(0, obsLimit),
       latency_ms: Date.now() - start,
-      status: searchFiredCount > 0 ? 'COMPLETED' : 'PARTIAL',
+      status: validatedMetricCount > 0 ? 'COMPLETED' : 'PARTIAL',
       search_health: searchHealth,
       search_diagnostics: searchDiagnostics,
     };
