@@ -243,6 +243,36 @@ function getRandomSeed(industry?: string): { industry: string; concept: string; 
   return { industry: key, concept, ranges: entry };
 }
 
+function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
+  const r = seed.ranges;
+  const startingCapital = Math.round((r.capitalRange[0] + r.capitalRange[1]) / 2);
+  const pricePerCustomer = Math.round(((r.priceRange[0] + r.priceRange[1]) / 2) * 100) / 100;
+  const customersAtLaunch = Math.round((r.customerRange[0] + r.customerRange[1]) / 2);
+  const monthlyOpCosts = Math.round((r.costRange[0] + r.costRange[1]) / 2);
+  const monthlyRevenue = Math.max(1, Math.round(pricePerCustomer * customersAtLaunch));
+  const monthlyContribution = monthlyRevenue - monthlyOpCosts;
+  const estimatedBreakEven = monthlyContribution > 0 ? Math.ceil(startingCapital / monthlyContribution) : 36;
+  const estimatedRevM12 = Math.round(monthlyRevenue * 1.8);
+
+  return {
+    idea: `${seed.concept} for a tightly defined local customer segment`,
+    differentiator: `Launches with a focused ${seed.industry.replace(/_/g, ' ')} niche and benchmark-constrained unit economics rather than generic demand assumptions.`,
+    targetCustomer: 'Budget-conscious early adopters with a visible recurring pain point and clear willingness to pay',
+    startingCapital,
+    pricePerCustomer,
+    customersAtLaunch,
+    monthlyOpCosts,
+    estimatedBreakEven,
+    estimatedRevM12,
+    grossMarginPct: seed.industry.includes('saas') || seed.industry.includes('tech') ? 78 : seed.industry.includes('food') || seed.industry.includes('restaurant') ? 64 : 58,
+    riskNote: 'Demand may be slower than the launch model assumes if the initial segment is too broad.',
+    mitigationStrategy: 'Pre-sell to 10-25 target customers, cap fixed costs for the first 90 days, and validate repeat purchase behavior before expanding.',
+    _seedIndustry: seed.industry,
+    _engineVersion: 'v2.0-100cases-deterministic-fallback',
+    _degraded: true,
+  };
+}
+
 serve(async (req) => {
   const reqId = getRequestId(req);
   const log = createLogger('generate-idea', reqId);
