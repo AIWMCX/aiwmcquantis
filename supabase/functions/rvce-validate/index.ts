@@ -522,6 +522,76 @@ function dedupe(obs: Observation[]): Observation[] {
   return out;
 }
 
+function mapToBenchmarkMetric(metric: string): string | null {
+  const map: Record<string, string> = {
+    gross_margin_pct: 'gross_margin',
+    cac: 'cac',
+    ltv: 'ltv',
+    ltv_cac_ratio: 'ltv_cac_ratio',
+  };
+  return map[metric] ?? null;
+}
+
+async function internalBenchmarkFallback(
+  metric: string,
+  originalValue: number,
+  profile: { industry: string; city: string; business_model: string; country: string },
+  adminClient?: any,
+): Promise<{ validation: any; evidence: any[] } | null> {
+  const benchmarkMetric = mapToBenchmarkMetric(metric);
+  if (!benchmarkMetric || !adminClient) return null;
+
+  try {
+    const { data, error } = await adminClient.rpc('benchmark_lookup', {
+      p_metric: benchmarkMetric,
+      p_sector: profile.industry,
+      p_business_model: profile.business_model,
+      p_country: profile.country,
+      p_city_tier: null,
+      p_stage: 'pre-revenue',
+      p_size: null,
+    });
+    if (error || !data?.matched) return null;
+
+    const p25 = Number(data.p25);
+    const p50 = Number(data.p50);
+    const p75 = Number(data.p75);
+    if (![p25, p50, p75].every(Number.isFinite)) return null;
+
+    const unitScale = metric.includes('pct') && p50 <= 1 ? 100 : 1;
+    const scaledP25 = p25 * unitScale;
+    const scaledP50 = p50 * unitScale;
+    const scaledP75 = p75 * unitScale;
+    const band = Math.max(1e-6, Math.abs(scaledP75 - scaledP25) / 1.35 || Math.abs(scaledP50) * 0.1);
+    const discrepancy = (originalValue - scaledP50) / band;
+    const status = Math.abs(discrepancy) < 1.0 ? 'OK' : Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
+
+    return {
+      validation: {
+        original_value: originalValue,
+        external_median: parseFloat(scaledP50.toFixed(2)),
+        p25: parseFloat(scaledP25.toFixed(2)),
+        p75: parseFloat(scaledP75.toFixed(2)),
+        status,
+        discrepancy_score: parseFloat(discrepancy.toFixed(2)),
+        notes: `Calibrated against internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size}).`,
+        observation_count: Math.max(3, Number(data.sample_size) || 3),
+        web_search_fired: false,
+        sources_used: 1,
+      },
+      evidence: [{
+        metric,
+        source: data.source || 'AIWMC Quantis Benchmark Master',
+        url: '',
+        summary: `P50 ${scaledP50.toLocaleString()} from ${data.normalized_sector} benchmark master`,
+        value: scaledP50,
+      }],
+    };
+  } catch {
+    return null;
+  }
+}
+
 function chunk<T>(arr: T[], n: number): T[][] {
   const r: T[][] = [];
   for (let i = 0; i < arr.length; i += n) r.push(arr.slice(i, i + n));
