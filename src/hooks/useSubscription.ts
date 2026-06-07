@@ -104,6 +104,8 @@ export function useSubscription(): SubscriptionData {
         .from('subscriptions')
         .select('id, user_id, plan_id, status, current_period_start, current_period_end, trial_ends_at')
         .eq('user_id', user.id)
+        .in('status', ['active', 'trialing'])
+        .order('plan_id', { ascending: false })
         .order('updated_at', { ascending: false })
         .limit(1)
         .maybeSingle();
