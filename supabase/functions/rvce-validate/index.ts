@@ -373,6 +373,10 @@ async function validateMetric(
   const diag: SearchDiagnostics = {
     metric,
     queries_sent: [],
+    web_search_tool_fired: false,
+    tool_use_count: 0,
+    tool_result_count: 0,
+    raw_results_found: 0,
     web_search_fired: false,
     results_found: 0,
     parsed_observations: 0,
@@ -390,6 +394,10 @@ async function validateMetric(
       const results = await webSearch(q);
       if (results.length > 0) {
         diag.web_search_fired = true;
+        (diag as any).web_search_tool_fired = true;
+        (diag as any).tool_use_count += 1;
+        (diag as any).tool_result_count += results.length;
+        (diag as any).raw_results_found += results.length;
         diag.results_found += results.length;
         diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
         const extracted = await extractObservations(metric, results, profile);
@@ -410,6 +418,10 @@ async function validateMetric(
         const results = await webSearch(q);
         if (results.length > 0) {
           diag.web_search_fired = true;
+          (diag as any).web_search_tool_fired = true;
+          (diag as any).tool_use_count += 1;
+          (diag as any).tool_result_count += results.length;
+          (diag as any).raw_results_found += results.length;
           diag.results_found += results.length;
           diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
           const extracted = await extractObservations(metric, results, profile);
