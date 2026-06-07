@@ -383,7 +383,9 @@ DIFFERENTIATION RULES:
 
 Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousands).`;
 
-    const aiResult = await aiCall(
+    let aiResult;
+    try {
+      aiResult = await aiCall(
       {
         model: "google/gemini-3-flash-preview",
         messages: [
@@ -429,18 +431,25 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
         tool_choice: { type: "function", function: { name: "suggest_idea" } },
       },
       { task: 'generate-idea', metadata: { industry: industry || seed.industry } },
-    );
+      );
+    } catch (aiError) {
+      log.warn('AI gateway exception, returning deterministic idea:', aiError instanceof Error ? aiError.message : String(aiError));
+      const fallback = buildDeterministicIdea(seed);
+      const remaining = (req as any)._ideaRemaining;
+      if (typeof remaining === 'number') fallback._ideaGenRemaining = remaining;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     if (!aiResult.ok) {
-      log.error("AI gateway error:", aiResult.status, aiResult.error);
-      const userMsg =
-        aiResult.status === 429 ? "Rate limit exceeded. Try again shortly." :
-        aiResult.status === 402 ? "Credits exhausted. Please add funds in Settings > Workspace > Usage." :
-        aiResult.message;
-      return new Response(
-        JSON.stringify({ error: userMsg, code: aiResult.error }),
-        { status: aiResult.status, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      log.warn("AI gateway unavailable, returning deterministic idea:", aiResult.status, aiResult.error);
+      const fallback = buildDeterministicIdea(seed);
+      const remaining = (req as any)._ideaRemaining;
+      if (typeof remaining === 'number') fallback._ideaGenRemaining = remaining;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
