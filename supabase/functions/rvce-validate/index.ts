@@ -617,10 +617,12 @@ serve(async (req) => {
     const authHeader = req.headers.get('Authorization') ?? '';
     let tier: 'free' | 'plus' | 'pro' = 'plus'; // default permissive if no auth
     let userId: string | null = null;
+    let adminClient: any = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+      : null;
 
     if (authHeader.startsWith('Bearer ') && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
-        const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
         const userClient  = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           global: { headers: { Authorization: authHeader } },
         });
@@ -675,7 +677,7 @@ serve(async (req) => {
     // Process in batches of 3 (parallel per batch, sequential between batches)
     for (const batch of chunk(metricsToProcess, 3)) {
       const results = await Promise.allSettled(
-        batch.map(m => validateMetric(m, core_metrics[m], profile)),
+        batch.map(m => validateMetric(m, core_metrics[m], profile, adminClient)),
       );
 
       results.forEach((res, i) => {
