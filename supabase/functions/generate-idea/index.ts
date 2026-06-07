@@ -296,6 +296,13 @@ serve(async (req) => {
     // Free tier: 5 idea generations per month (tracked in usage_tracking.idea_gen_count)
     // Plus/Pro:  unlimited
     const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(
+        JSON.stringify({ error: 'AUTH_REQUIRED', message: 'Sign in to use your 5 free random ideas.' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
     if (authHeader?.startsWith("Bearer ")) {
       const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
       const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
@@ -306,6 +313,13 @@ serve(async (req) => {
       });
       const { data: userResp } = await userClient.auth.getUser();
       const userId = userResp?.user?.id;
+
+      if (!userId) {
+        return new Response(
+          JSON.stringify({ error: 'AUTH_REQUIRED', message: 'Sign in to use your 5 free random ideas.' }),
+          { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
 
       if (userId) {
         const { getUserTier } = await import("../_shared/entitlements.ts");
