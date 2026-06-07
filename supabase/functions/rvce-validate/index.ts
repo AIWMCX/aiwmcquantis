@@ -560,13 +560,6 @@ serve(async (req) => {
       return jsonResp({ error: 'Missing business_profile or core_metrics' }, 400);
     }
 
-    if (!DEEPSEEK_API_KEY) {
-      return jsonResp({
-        error: 'CONFIG',
-        message: 'DEEPSEEK_API_KEY not configured. Please add it to Supabase edge function secrets.',
-      }, 500);
-    }
-
     const { industry, location_city, business_model } = business_profile;
     const location_country = business_profile.location_country || 'US';
 
@@ -661,7 +654,7 @@ serve(async (req) => {
       flags,
       evidence_samples: evidenceSamples.slice(0, obsLimit),
       latency_ms: Date.now() - start,
-      status: searchFiredCount > 0 ? 'COMPLETED' : (metricsToProcess.length > 0 ? 'PARTIAL' : 'UNAVAILABLE'),
+      status: searchFiredCount > 0 ? 'COMPLETED' : 'PARTIAL',
       search_health: searchHealth,
       search_diagnostics: searchDiagnostics,
     };
@@ -679,7 +672,7 @@ serve(async (req) => {
       flags: [],
       evidence_samples: [],
       latency_ms: Date.now() - start,
-      status: 'UNAVAILABLE',
+      status: 'PARTIAL',
       search_health: {
         total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0,
         total_observations_collected: 0, total_source_urls: 0,
