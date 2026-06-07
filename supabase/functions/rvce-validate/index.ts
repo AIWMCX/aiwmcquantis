@@ -362,6 +362,7 @@ async function validateMetric(
   metric: string,
   originalValue: number,
   profile: { industry: string; city: string; business_model: string; country: string },
+  adminClient?: any,
 ): Promise<{ validation: any; evidence: any[]; diagnostics: SearchDiagnostics }> {
   const fill = (tpl: string) =>
     tpl.replace(/{industry}/g,      profile.industry)
@@ -442,6 +443,12 @@ async function validateMetric(
   diag.parsed_observations = observations.length;
 
   if (observations.length < 2) {
+    const benchmarkFallback = await internalBenchmarkFallback(metric, originalValue, profile, adminClient);
+    if (benchmarkFallback) {
+      diag.parsed_observations = benchmarkFallback.validation.observation_count;
+      return { ...benchmarkFallback, diagnostics: diag };
+    }
+
     return {
       validation: {
         original_value: originalValue,
