@@ -119,19 +119,11 @@ describe('Mobile Signup Form', () => {
       expect(progressIndicator).toHaveClass('md:hidden');
     });
 
-    it('renders Google button with primary styling', () => {
+    it('Google button is not rendered when GOOGLE_OAUTH_ENABLED is false', () => {
+      // GoogleLoginButton returns null when GOOGLE_OAUTH_ENABLED = false (configured in the component).
+      // Showing a non-functional OAuth button is worse than showing none — it breaks conversion.
       renderWithRouter(<SignupForm />);
-      
-      const googleButton = screen.getByRole('button', { name: /continue with google/i });
-      expect(googleButton).toBeInTheDocument();
-      // Verify it has elevated styling (h-14, shadow-md)
-      expect(googleButton).toHaveClass('h-14');
-    });
-
-    it('shows recommended badge for Google signup', () => {
-      renderWithRouter(<SignupForm />);
-      
-      expect(screen.getByText(/1-click signup — recommended/)).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /continue with google/i })).not.toBeInTheDocument();
     });
 
     it('shows trust signals', () => {
