@@ -471,6 +471,7 @@ export default function Index() {
                   onUploadFiles={uploadFiles}
                   onRemoveFile={removeFile}
                   isAuthenticated={isAuthenticated}
+                  isPlus={isPlus || isPro}
                 />
               </SectionErrorBoundary>
             </div>

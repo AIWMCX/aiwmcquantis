@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
-import { BarChart3, FileText, AlertTriangle, Shield, TrendingUp, Target, Globe, FileCheck } from 'lucide-react';
+import { toast } from 'sonner';
+import { BarChart3, FileText, AlertTriangle, Shield, TrendingUp, Target, Globe, FileCheck, Lock } from 'lucide-react';
 import { AnalysisProgress } from './AnalysisProgress';
 import { IndustryStep } from './steps/IndustryStep';
 import { FinancialsStep } from './steps/FinancialsStep';
@@ -9,9 +10,9 @@ import type { UploadedFile } from '@/hooks/useFileUpload';
 
 /* ─── OUTPUT TYPES ─── */
 const OUTPUT_TYPES = [
-  { id: 'bi', label: 'BI Report', defaultOn: true },
-  { id: 'premortem', label: 'Pre-Mortem Analysis', defaultOn: false },
-  { id: 'invoice', label: 'Invoice Capacity Check', defaultOn: false },
+  { id: 'bi',        label: 'BI Report',               plusOnly: false },
+  { id: 'premortem', label: 'Pre-Mortem Analysis',      plusOnly: true  },
+  { id: 'invoice',   label: 'Invoice Capacity Check',   plusOnly: true  },
 ] as const;
 
 const DELIVERABLES: Record<string, { icon: React.ElementType; text: string }[]> = {
@@ -53,12 +54,14 @@ interface CompactAnalysisFormProps {
   onUploadFiles?: (files: FileList | File[]) => void;
   onRemoveFile?: (fileId: string) => void;
   isAuthenticated?: boolean;
+  /** When true, all output-type toggles are available; otherwise Plus-only ones are locked. */
+  isPlus?: boolean;
 }
 
 export function CompactAnalysisForm({
   idea, location, financialInputs, errors, isLoading, isFormValid,
   onIdeaChange, onLocationChange, onFinancialInputsChange, onClearError, onSubmit,
-  isAuthenticated,
+  isAuthenticated, isPlus = false,
 }: CompactAnalysisFormProps) {
   const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(financialInputs.selected_industry);
   const [depth, setDepth] = useState('full');
@@ -67,17 +70,30 @@ export function CompactAnalysisForm({
   const [showAdvanced, setShowAdvanced] = useState(!isFirstTimeAnon);
 
   const toggleOutput = useCallback((id: string) => {
+    const opt = OUTPUT_TYPES.find(o => o.id === id);
+    // Gate Plus-only features for Free/anonymous users — show upgrade nudge.
+    if (opt?.plusOnly && !isPlus) {
+      toast.error(`${opt.label} is a Plus feature`, {
+        description: 'Upgrade to Plus ($17/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.',
+        duration: 8000,
+        action: {
+          label: 'Upgrade to Plus →',
+          onClick: () => { window.location.href = '/pricing'; },
+        },
+      });
+      return;
+    }
     setSelectedOutputs(prev => {
       const next = new Set(prev);
       if (next.has(id)) {
-        if (id === 'bi') return next; // can't deselect BI
+        if (id === 'bi') return next; // BI Report can't be deselected — it's the base
         next.delete(id);
       } else {
         next.add(id);
       }
       return next;
     });
-  }, []);
+  }, [isPlus]);
 
   const handleIndustrySelect = useCallback((id: string) => {
     setSelectedIndustry(id);
@@ -216,19 +232,36 @@ export function CompactAnalysisForm({
           <span className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>What do you want?</span>
           {OUTPUT_TYPES.map(opt => {
             const active = selectedOutputs.has(opt.id);
+            const locked = opt.plusOnly && !isPlus;
             return (
               <button
                 key={opt.id}
                 type="button"
                 onClick={() => toggleOutput(opt.id)}
-                className="text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all duration-150 cursor-pointer"
+                title={locked ? `${opt.label} — Plus only` : undefined}
+                className="inline-flex items-center gap-1.5 text-[12px] font-semibold px-3 py-1.5 rounded-full transition-all duration-150"
                 style={{
-                  background: active ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
-                  border: `1.5px solid ${active ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
-                  color: active ? 'var(--q-accent-primary)' : 'var(--q-text-tertiary)',
+                  cursor: locked ? 'pointer' : 'pointer',
+                  background: locked
+                    ? 'var(--q-bg-input)'
+                    : active ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                  border: `1.5px solid ${locked ? 'var(--q-border-subtle)' : active ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
+                  color: locked
+                    ? 'var(--q-text-disabled)'
+                    : active ? 'var(--q-accent-primary)' : 'var(--q-text-tertiary)',
+                  opacity: locked ? 0.7 : 1,
                 }}
               >
-                {active ? '✓ ' : ''}{opt.label}
+                {locked
+                  ? <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--q-text-disabled)' }} />
+                  : active ? <span>✓</span> : null}
+                {opt.label}
+                {locked && (
+                  <span className="text-[10px] font-bold px-1 py-0.5 rounded-full ml-0.5"
+                    style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}>
+                    Plus
+                  </span>
+                )}
               </button>
             );
           })}

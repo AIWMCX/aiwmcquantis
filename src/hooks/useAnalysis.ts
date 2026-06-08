@@ -173,6 +173,9 @@ export function useAnalysis() {
       const isRateLimit = msg.includes('RATE_LIMIT_EXCEEDED') || msg.includes('429') || msg.includes('RATE_LIMIT');
       const isInvalidIdea = msg.includes('INVALID_BUSINESS_IDEA');
       const isQuota = msg.includes('402') || msg.includes('PAYMENT') || msg.includes('USAGE_LIMIT');
+      // TIER_GATE: explicit 402 from edge function — quota exhausted or feature locked.
+      // Extract the human-readable message and upgrade URL embedded by analysisApi.ts.
+      const isTierGate = msg.includes('TIER_GATE') || (msg.includes('QUOTA_EXCEEDED') && msg.includes('upgrade_url='));
       const isNetwork = /network|fetch|Failed to fetch|ECONN|NetworkError/i.test(msg);
       const isTimeout = /timeout|abort|ETIMEDOUT/i.test(msg);
       const isServer = /\b5\d{2}\b|server|INTERNAL/i.test(msg);
@@ -185,7 +188,25 @@ export function useAnalysis() {
       // Specific message — falls back to raw error if nothing matches.
       let title: string;
       let description: string | undefined;
-      if (isRateLimit) {
+      // Upgrade URL embedded in TIER_GATE messages: "… | upgrade_url=/pricing"
+      let upgradeHref: string | undefined;
+
+      if (isTierGate) {
+        // Strip the "TIER_GATE: " prefix and "| upgrade_url=…" suffix for display.
+        const urlMatch = msg.match(/upgrade_url=([^\s|]+)/);
+        upgradeHref = urlMatch?.[1] || '/pricing';
+        const cleanMsg = msg
+          .replace(/^TIER_GATE:\s*/i, '')
+          .replace(/\s*\|\s*upgrade_url=\S+/i, '')
+          .trim();
+        const isQuotaMsg = /quota|limit.*reached|used.*free/i.test(cleanMsg);
+        title = isQuotaMsg
+          ? "You've used all your free analyses this month"
+          : cleanMsg || 'This feature requires a higher plan';
+        description = isQuotaMsg
+          ? 'Upgrade to Plus for unlimited analyses — Monte Carlo, 36-month P&L, and full action plan included.'
+          : 'Upgrade to Plus to unlock this feature.';
+      } else if (isRateLimit) {
         setRateLimitError(msg);
         title = msg.replace('RATE_LIMIT_EXCEEDED: ', '');
         description = 'Please wait a bit, or sign in / upgrade to Plus for higher limits.';
@@ -210,9 +231,14 @@ export function useAnalysis() {
       // third user-initiated attempt with a fresh request.
       const isTransient = isNetwork || isTimeout || isServer || isAi;
       toast.error(title, {
-        duration: isInvalidIdea ? 8000 : isTransient ? 10000 : 5000,
+        duration: isTierGate ? 12000 : isInvalidIdea ? 8000 : isTransient ? 10000 : 5000,
         description,
-        action: isTransient
+        action: isTierGate
+          ? {
+              label: 'Upgrade to Plus →',
+              onClick: () => { window.location.href = upgradeHref || '/pricing'; },
+            }
+          : isTransient
           ? {
               label: 'Try again',
               onClick: () => mutation.mutate(variables),
