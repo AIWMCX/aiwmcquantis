@@ -96,6 +96,10 @@ jobs:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
+          STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
+          STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
+          STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
+          STRIPE_PRO_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_PRO_ANNUAL_PRICE_ID }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
@@ -110,6 +114,21 @@ jobs:
           else
             echo "::warning title=Missing secret::DEEPSEEK_API_KEY not in GitHub secrets — RVCE and analysis functions will fail"
           fi
+          # STRIPE secrets: required by stripe-webhook, create-checkout-session, create-portal-session
+          if [ -n "$STRIPE_SECRET_KEY" ]; then
+            npx supabase secrets set STRIPE_SECRET_KEY="$STRIPE_SECRET_KEY" --project-ref "$PROJECT_REF"
+            echo "✓ STRIPE_SECRET_KEY synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=Missing secret::STRIPE_SECRET_KEY not set — payments will fail"
+          fi
+          if [ -n "$STRIPE_WEBHOOK_SECRET" ]; then
+            npx supabase secrets set STRIPE_WEBHOOK_SECRET="$STRIPE_WEBHOOK_SECRET" --project-ref "$PROJECT_REF"
+            echo "✓ STRIPE_WEBHOOK_SECRET synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::error title=Missing secret::STRIPE_WEBHOOK_SECRET not set — webhook signature verification will FAIL and subscriptions will not activate"
+          fi
+          [ -n "$STRIPE_PRO_MONTHLY_PRICE_ID" ] && npx supabase secrets set STRIPE_PRO_MONTHLY_PRICE_ID="$STRIPE_PRO_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"
+          [ -n "$STRIPE_PRO_ANNUAL_PRICE_ID" ]  && npx supabase secrets set STRIPE_PRO_ANNUAL_PRICE_ID="$STRIPE_PRO_ANNUAL_PRICE_ID"   --project-ref "$PROJECT_REF"
 
       - name: Deploy edge functions
         env:
@@ -123,6 +142,9 @@ jobs:
           fi
           npm install -g supabase@2.20.5 2>/dev/null || true
           FUNCTIONS=(
+            stripe-webhook
+            create-checkout-session
+            create-portal-session
             rvce-validate
             generate-idea
             manage-benchmarks
