@@ -29,7 +29,7 @@ const PRICING = {
 };
 
 const FREE_FEATURES = [
-  { text: '1 analysis per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
+  { text: '5 analyses per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
   { text: '5 watermarked PDFs/day', highlight: false, subtext: '"Powered by Quantis" footer included' },
   { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
