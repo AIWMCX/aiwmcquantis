@@ -1,7 +1,0 @@
-import{c as u,bv as g,a as b}from"./index-C7JpK5Nd.js";import{r as n,K as p,j as i,k as v,E as m}from"./ui-vendor-Ci_jhfUT.js";/**
- * @license lucide-react v0.462.0 - ISC
- *
- * This source code is licensed under the ISC license.
- * See the LICENSE file in the root directory of this source tree.
- */const k=u("Minus",[["path",{d:"M5 12h14",key:"1ays0h"}]]);var x="Toggle",d=n.forwardRef((e,t)=>{const{pressed:a,defaultPressed:s=!1,onPressedChange:o,...c}=e,[r=!1,f]=p({prop:a,onChange:o,defaultProp:s});return i.jsx(v.button,{type:"button","aria-pressed":r,"data-state":r?"on":"off","data-disabled":e.disabled?"":void 0,...c,ref:t,onClick:m(e.onClick,()=>{e.disabled||f(!r)})})});d.displayName=x;var l=d;const h=g("inline-flex items-center justify-center rounded-md text-sm font-medium ring-offset-background transition-colors hover:bg-muted hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 data-[state=on]:bg-accent data-[state=on]:text-accent-foreground",{variants:{variant:{default:"bg-transparent",outline:"border border-input bg-transparent hover:bg-accent hover:text-accent-foreground"},size:{default:"h-10 px-3",sm:"h-9 px-2.5",lg:"h-11 px-5"}},defaultVariants:{variant:"default",size:"default"}}),y=n.forwardRef(({className:e,variant:t,size:a,...s},o)=>i.jsx(l,{ref:o,className:b(h({variant:t,size:a,className:e})),...s}));y.displayName=l.displayName;export{k as M,d as T,y as a,h as t};
-//# sourceMappingURL=toggle-Dx48a3qs.js.map

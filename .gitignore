@@ -1,3 +1,9 @@
+# Vercel build artifacts — never commit; diverged artifacts mask real source state
+.vercel/
+
+# Supabase CLI temp files — auto-generated, not source
+supabase/.temp/
+
 # Logs
 logs
 *.log

@@ -67,6 +67,16 @@ jobs:
         run: |
           echo "::error title=TypeScript failed::Financial-surface typecheck failed. Run 'bun run typecheck:financial' locally."
 
+      # ── Supabase project-ref guard ─────────────────────────────────────────
+      - name: Verify Supabase project refs (no stale gafx… ref in source)
+        id: ref-guard
+        run: npx tsx scripts/verify-env-refs.ts
+
+      - name: Ref-guard failure hint
+        if: failure() && steps.ref-guard.outcome == 'failure'
+        run: |
+          echo "::error title=Stale Supabase ref::Found gafxacjhkqsdzwwzhbor (old Lovable project) outside allowed paths. Replace with dmlxrvfyqsakyjomsvdj before building."
+
       # ── Business-logic hash verification ────────────────────────────────────
       - name: Verify business-logic spec hash
         id: verify
@@ -137,6 +147,7 @@ jobs:
             echo "| Lint | ${{ steps.lint.outcome }} |"
             echo "| Format (prettier) | ${{ steps.format.outcome }} |"
             echo "| Typecheck (financial) | ${{ steps.typecheck.outcome }} |"
+            echo "| Supabase ref guard | ${{ steps.ref-guard.outcome }} |"
             echo "| Business-logic hash | ${{ steps.verify.outcome }} |"
             echo "| Tests | ${{ steps.tests.outcome }} |"
             echo "| Audit | ${{ steps.audit.outcome }} |"
