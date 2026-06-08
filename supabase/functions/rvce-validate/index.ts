@@ -10,7 +10,7 @@
  * Why DeepSeek: directive from product spec. No ANTHROPIC_API_KEY required.
  */
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { getUserTier } from '../_shared/entitlements.ts';
 
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';

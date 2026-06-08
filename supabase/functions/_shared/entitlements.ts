@@ -59,7 +59,7 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
 };
 
 export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
-  free: { analysesPerMonth: 1, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
+  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
   plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 95_500, teamSeats: 1, templates: 12 },
   pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 95_500, teamSeats: 3, templates: 12 },
 };

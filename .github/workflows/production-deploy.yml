@@ -101,7 +101,7 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@latest 2>/dev/null || true
+          npm install -g supabase@2.20.5 2>/dev/null || true
           # Push runtime secrets that edge functions read at invocation time.
           # DEEPSEEK_API_KEY: used by rvce-validate, generate-idea, analyze-* (DeepSeek LLM calls)
           if [ -n "$DEEPSEEK_API_KEY" ]; then
@@ -121,7 +121,7 @@ jobs:
             echo "SUPABASE_ACCESS_TOKEN not set — skipping edge function deploy" >> "$GITHUB_STEP_SUMMARY"
             exit 0
           fi
-          npm install -g supabase@latest 2>/dev/null || true
+          npm install -g supabase@2.20.5 2>/dev/null || true
           FUNCTIONS=(
             rvce-validate
             generate-idea
