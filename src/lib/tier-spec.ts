@@ -121,7 +121,7 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
       ENDPOINTS.API_KEY_GENERATE,
       ENDPOINTS.AI_DOC_INTELLIGENCE,
     ],
-    monthly_analysis_limit: 1,
+    monthly_analysis_limit: 5,
     pdf_daily_limit: 5,
     history: false,
     watermark: true,
@@ -291,7 +291,7 @@ export function evaluateGate(args: {
       body: {
         success: false,
         error: 'QUOTA_EXCEEDED',
-        message: 'You have used your 1 free analysis this month.',
+        message: 'You have used your 5 free analyses this month.',
         required_tier: 'PLUS',
         upgrade_url: UPGRADE_URL,
         cta: 'Get unlimited analyses — Upgrade to Plus',

@@ -12,8 +12,8 @@ import { logger } from '@/lib/logger';
  }
  
 const TIER_LIMITS = {
-  anonymous: 3,
-  free: 10,
+  anonymous: 1,  // unauthenticated: 1 preview
+  free: 5,       // free account: 5 analyses/month (matches tier-spec.ts monthly_analysis_limit)
   plus: Infinity,
 };
  
@@ -21,8 +21,8 @@ const TIER_LIMITS = {
    const { user, isLoading: authLoading } = useAuth();
    const [info, setInfo] = useState<RateLimitInfo>({
      allowed: true,
-     remaining: 3,
-     limit: 3,
+     remaining: 5,
+     limit: 5,
      resetAt: null,
      tier: 'anonymous',
    });

@@ -257,7 +257,7 @@ export function PricingSection() {
 
 function FeatureComparisonTable() {
   const features = [
-    { name: 'Monthly analyses', free: '3', plus: 'Unlimited' },
+    { name: 'Monthly analyses', free: '5', plus: 'Unlimited' },
     { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
     { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
     { name: 'Marketing strategy', free: 'no', plus: 'yes' },

@@ -9,6 +9,7 @@ import { HelpCircle } from 'lucide-react';
 
 interface AnalysisCounterTooltipProps {
   remainingAnalyses: number;
+  totalLimit?: number;
   isFree: boolean;
 }
 
@@ -16,7 +17,7 @@ interface AnalysisCounterTooltipProps {
  * Shows remaining analyses with a tooltip defining what "analysis" means.
  * Reduces ambiguity per audit point #4.
  */
-export function AnalysisCounterTooltip({ remainingAnalyses, isFree }: AnalysisCounterTooltipProps) {
+export function AnalysisCounterTooltip({ remainingAnalyses, totalLimit = 5, isFree }: AnalysisCounterTooltipProps) {
   if (!isFree) {
     return (
       <span className="text-xs text-muted-foreground">Unlimited analyses</span>
@@ -28,7 +29,7 @@ export function AnalysisCounterTooltip({ remainingAnalyses, isFree }: AnalysisCo
       <Tooltip>
         <TooltipTrigger asChild>
           <span className="inline-flex items-center gap-1 text-xs text-muted-foreground cursor-help">
-            {remainingAnalyses} of 3 remaining
+            {remainingAnalyses} of {totalLimit} remaining
             <HelpCircle className="w-3 h-3 text-muted-foreground/50" />
           </span>
         </TooltipTrigger>
