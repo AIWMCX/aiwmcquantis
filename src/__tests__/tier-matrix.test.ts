@@ -112,12 +112,12 @@ describe('Tier matrix — FREE quota gate on /api/analyse/main', () => {
     expect(r.blocked).toBe(false);
   });
 
-  it('FREE at quota (1 used): BLOCKED with QUOTA_EXCEEDED + resets_at', () => {
+  it('FREE at quota (5 used): BLOCKED with QUOTA_EXCEEDED + resets_at', () => {
     const resets = '2026-05-01T00:00:00.000Z';
     const r = evaluateGate({
       tier: 'FREE',
       endpoint: ENDPOINTS.ANALYSE_MAIN,
-      monthlyAnalysesUsed: 1,
+      monthlyAnalysesUsed: 5,
       resetsAt: resets,
     });
     expect(r.blocked).toBe(true);
@@ -149,8 +149,8 @@ describe('Tier matrix — FREE quota gate on /api/analyse/main', () => {
 });
 
 describe('Tier matrix — manifest invariants (regression catches)', () => {
-  it('FREE: monthly_analysis_limit === 1', () => {
-    expect(FEATURE_MANIFEST.FREE.monthly_analysis_limit).toBe(1);
+  it('FREE: monthly_analysis_limit === 5', () => {
+    expect(FEATURE_MANIFEST.FREE.monthly_analysis_limit).toBe(5);
   });
 
   it('PLUS + PRO: monthly_analysis_limit === Infinity', () => {

@@ -209,17 +209,10 @@ export function useAnalysis() {
           ? 'Upgrade to Plus for unlimited analyses — Monte Carlo, 36-month P&L, and full action plan included.'
           : 'Upgrade to Plus to unlock this feature.';
       } else if (isRateLimit) {
+        // RateLimitBanner (inline, persistent, with countdown) handles this display.
+        // Do NOT also fire a sonner toast — that would be double notification.
         setRateLimitError(msg);
-        // Extract retry_after seconds for a precise "try again in N minutes" message.
-        const retryMatch = msg.match(/retry_after=(\d+)/);
-        const retrySeconds = retryMatch ? parseInt(retryMatch[1], 10) : 60;
-        const retryMinutes = Math.ceil(retrySeconds / 60);
-        const baseMsg = cleanMsg(msg.replace(/^RATE_LIMIT_EXCEEDED:\s*/i, ''));
-        title = baseMsg || `Too many requests — please wait ${retryMinutes} minute${retryMinutes !== 1 ? 's' : ''} and try again.`;
-        // Context-aware description — don't tell a signed-in user to "sign in"
-        description = isAuthenticated
-          ? 'Upgrade to Plus for higher request limits and unlimited analyses.'
-          : 'Sign in for higher limits, or upgrade to Plus for unlimited analyses.';
+        return; // RateLimitBanner is the sole UI for rate-limit errors
       } else if (isInvalidIdea) {
         title = msg.replace('INVALID_BUSINESS_IDEA: ', '');
       } else if (isQuota) {
