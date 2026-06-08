@@ -14,12 +14,13 @@ const OLD_REF   = 'gafxacjhkqsdzwwzhbor';
 const PROD_REF  = 'dmlxrvfyqsakyjomsvdj';
 const ROOT      = decodeURIComponent(new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')).replace(/[/\\]$/, '');
 
-// Files/dirs we explicitly allow to contain the old ref (migration history, docs)
+// Files/dirs we explicitly allow to contain the old ref (migration history, docs, guard tests)
 const ALLOWED_PATHS: string[] = [
   'supabase/migrations/',
   'docs/',
   '.env.md',
-  'scripts/verify-env-refs.ts',  // this file
+  'scripts/verify-env-refs.ts',          // this file — defines OLD_REF constant
+  'src/__tests__/edge-runtime-guards.test.ts',  // guard test — asserts the ref is gone elsewhere
 ];
 
 const SCAN_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.toml', '.html', '.env', '.yml', '.yaml']);
