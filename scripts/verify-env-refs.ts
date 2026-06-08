@@ -12,7 +12,7 @@ import { join, extname } from 'path';
 
 const OLD_REF   = 'gafxacjhkqsdzwwzhbor';
 const PROD_REF  = 'dmlxrvfyqsakyjomsvdj';
-const ROOT      = new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1');
+const ROOT      = decodeURIComponent(new URL('..', import.meta.url).pathname.replace(/^\/([A-Z]:)/, '$1')).replace(/[/\\]$/, '');
 
 // Files/dirs we explicitly allow to contain the old ref (migration history, docs)
 const ALLOWED_PATHS: string[] = [

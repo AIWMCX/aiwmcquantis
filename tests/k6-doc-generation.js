@@ -3,7 +3,7 @@
  *
  * Usage:
  *   k6 run tests/k6-doc-generation.js \
- *     --env SUPABASE_URL=https://gafxacjhkqsdzwwzhbor.supabase.co \
+ *     --env SUPABASE_URL=https://dmlxrvfyqsakyjomsvdj.supabase.co \
  *     --env SUPABASE_ANON_KEY=<anon_key> \
  *     --env AUTH_TOKEN=<user_jwt>
  */
@@ -77,7 +77,7 @@ export const options = {
 };
 
 // ─── Helpers ──────────────────────────────────────
-const BASE_URL = __ENV.SUPABASE_URL || 'https://gafxacjhkqsdzwwzhbor.supabase.co';
+const BASE_URL = __ENV.SUPABASE_URL || 'https://dmlxrvfyqsakyjomsvdj.supabase.co';
 const ANON_KEY = __ENV.SUPABASE_ANON_KEY || '';
 const AUTH_TOKEN = __ENV.AUTH_TOKEN || '';
 
