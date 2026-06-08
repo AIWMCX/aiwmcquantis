@@ -35,8 +35,13 @@ import {
   UNIVERSAL_RULES,
 } from './prompts.ts';
 
-const LOVABLE_AI_URL = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+// Primary AI backend: DeepSeek (self-hosted key, always available).
+// Legacy fallback: Lovable AI gateway (only if LOVABLE_API_KEY is set — kept
+// for compatibility but the gateway is no longer the primary path after the
+// Supabase project migration away from Lovable).
+const DEEPSEEK_AI_URL   = 'https://api.deepseek.com/v1/chat/completions';
+const LOVABLE_AI_URL    = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const DEFAULT_MODEL     = 'deepseek-chat';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -117,15 +122,30 @@ export async function aiCall(
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const inject = opts.injectUniversalRules !== false;
 
-  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-  if (!lovableKey) {
+  // Resolve AI backend: DeepSeek primary, Lovable gateway optional fallback.
+  const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
+  const lovableKey  = Deno.env.get('LOVABLE_API_KEY');
+  const aiUrl  = deepseekKey ? DEEPSEEK_AI_URL : LOVABLE_AI_URL;
+  const apiKey = deepseekKey ?? lovableKey;
+  if (!apiKey) {
     return {
       ok: false,
       status: 500,
       error: 'CONFIG',
-      message: 'LOVABLE_API_KEY missing.',
+      message: 'No AI key configured. Set DEEPSEEK_API_KEY in Supabase secrets.',
       latencyMs: 0,
     };
+  }
+
+  // Map Lovable-gateway model names to DeepSeek equivalents when using DeepSeek.
+  function resolveModel(requested: string | undefined): string {
+    const m = requested ?? DEFAULT_MODEL;
+    if (!deepseekKey) return m; // Lovable gateway: pass through as-is
+    // Gemini/OpenAI model names are not valid on DeepSeek — normalise to deepseek-chat.
+    if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-')) {
+      return 'deepseek-chat';
+    }
+    return m;
   }
 
   // Inject UNIVERSAL_RULES into the FIRST system message (or prepend a new one).
@@ -151,19 +171,21 @@ export async function aiCall(
   }
 
   const requestBody: GatewayRequestBody = {
-    model: body.model ?? DEFAULT_MODEL,
+    model: resolveModel(body.model),
     ...body,
     messages: finalMessages,
   };
+  // Ensure resolved model is in the final body (spread above may have overwritten it).
+  requestBody.model = resolveModel(body.model);
 
   let model = requestBody.model ?? DEFAULT_MODEL;
 
   let resp: Response;
   try {
-    resp = await fetch(LOVABLE_AI_URL, {
+    resp = await fetch(aiUrl, {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${lovableKey}`,
+        Authorization: `Bearer ${apiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify(requestBody),
