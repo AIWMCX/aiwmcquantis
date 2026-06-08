@@ -1,3 +1,10 @@
+# Local environment files — NEVER commit; Supabase/Lovable reverts these to stale values.
+# CI reads VITE_* vars from GitHub Secrets (production environment), not from .env.
+# For local dev: copy .env.example and fill in your values.
+.env
+.env.local
+.env.*.local
+
 # Vercel build artifacts — never commit; diverged artifacts mask real source state
 .vercel/
 

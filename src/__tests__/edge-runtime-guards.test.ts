@@ -74,16 +74,20 @@ describe('Supabase project ref — canonical is dmlxrvfyqsakyjomsvdj', () => {
     expect(toml).toContain(`project_id = "${PROD_REF}"`);
   });
 
-  it('.env VITE_SUPABASE_URL points to the production project', () => {
+  it('.env VITE_SUPABASE_URL points to the production project (skipped on CI where .env is gitignored)', () => {
     const env = readFile('.env');
+    // .env is gitignored — on CI it won't exist and readFile returns ''.
+    // The authoritative check for CI is config.toml (above) + GitHub Secrets.
+    if (!env) return; // skip if file absent (CI environment)
     const match = env.match(/VITE_SUPABASE_URL\s*=\s*"?([^"\n]+)"?/);
     const url = match?.[1] ?? '';
     expect(url).toContain(PROD_REF);
     expect(url).not.toContain(OLD_REF);
   });
 
-  it('.env VITE_SUPABASE_PROJECT_ID is the production project ref', () => {
+  it('.env VITE_SUPABASE_PROJECT_ID is the production project ref (skipped on CI where .env is gitignored)', () => {
     const env = readFile('.env');
+    if (!env) return; // skip if file absent (CI environment)
     const match = env.match(/VITE_SUPABASE_PROJECT_ID\s*=\s*"?([^"\n]+)"?/);
     const ref = match?.[1]?.trim() ?? '';
     expect(ref).toBe(PROD_REF);
