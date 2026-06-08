@@ -13,10 +13,21 @@ interface RateLimitBannerProps {
  * Prominent banner displayed when rate limit is hit.
  * Gives users a clear next step (wait, sign in, or upgrade).
  */
+/** Strip all machine-readable key=value annotations embedded by analysisApi.ts */
+function stripAnnotations(msg: string): string {
+  return msg
+    .replace(/^RATE_LIMIT_EXCEEDED:\s*/i, '')
+    .replace(/\s*\|\s*(retry_after|upgrade_url|reset_at|reason)=\S*/gi, '')
+    .trim();
+}
+
 export function RateLimitBanner({ message, isAuthenticated, onDismiss }: RateLimitBannerProps) {
-  // Try to extract retry time from message (e.g., "try again in 1 minute")
-  const match = message.match(/(\d+)\s*minute/i);
-  const initialSeconds = match ? parseInt(match[1], 10) * 60 : 60;
+  // Prefer the machine-readable retry_after=N seconds; fall back to "N minute" parse.
+  const retryMatch = message.match(/retry_after=(\d+)/i);
+  const minuteMatch = message.match(/(\d+)\s*minute/i);
+  const initialSeconds = retryMatch
+    ? parseInt(retryMatch[1], 10)
+    : minuteMatch ? parseInt(minuteMatch[1], 10) * 60 : 60;
   const [secondsLeft, setSecondsLeft] = useState(initialSeconds);
 
   useEffect(() => {
@@ -43,7 +54,10 @@ export function RateLimitBanner({ message, isAuthenticated, onDismiss }: RateLim
             Too Many Requests
           </p>
           <p className="text-xs text-muted-foreground mt-1.5 leading-relaxed">
-            {message.replace(/^RATE_LIMIT_EXCEEDED:\s*/i, '')}
+            {stripAnnotations(message)}
+            {isAuthenticated
+              ? ' Upgrade to Plus for higher limits.'
+              : ' Sign in or upgrade to Plus for higher limits.'}
           </p>
 
           <div className="flex items-center gap-2 mt-3 flex-wrap">

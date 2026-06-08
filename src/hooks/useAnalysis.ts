@@ -216,7 +216,10 @@ export function useAnalysis() {
         const retryMinutes = Math.ceil(retrySeconds / 60);
         const baseMsg = cleanMsg(msg.replace(/^RATE_LIMIT_EXCEEDED:\s*/i, ''));
         title = baseMsg || `Too many requests — please wait ${retryMinutes} minute${retryMinutes !== 1 ? 's' : ''} and try again.`;
-        description = 'Sign in or upgrade to Plus for higher request limits.';
+        // Context-aware description — don't tell a signed-in user to "sign in"
+        description = isAuthenticated
+          ? 'Upgrade to Plus for higher request limits and unlimited analyses.'
+          : 'Sign in for higher limits, or upgrade to Plus for unlimited analyses.';
       } else if (isInvalidIdea) {
         title = msg.replace('INVALID_BUSINESS_IDEA: ', '');
       } else if (isQuota) {
