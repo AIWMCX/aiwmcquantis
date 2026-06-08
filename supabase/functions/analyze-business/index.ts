@@ -2697,9 +2697,9 @@ serve(async (req) => {
     // ========== RATE LIMITING CONFIGURATION ==========
     const RATE_LIMITS = {
       anonymous: { requests: 1, windowMinutes: 60 },  // 1 request per hour for unauthenticated
-      free: { requests: 2, windowMinutes: 60 },       // 2 requests per hour
-      plus: { requests: 10, windowMinutes: 60 },      // 10 requests per hour  
-      pro: { requests: 30, windowMinutes: 60 },       // 30 requests per hour
+      free:      { requests: 5, windowMinutes: 60 },  // 5 requests per hour — matches monthly quota ceiling; prevents abuse without blocking legitimate use
+      plus:      { requests: 20, windowMinutes: 60 }, // 20 requests per hour
+      pro:       { requests: 60, windowMinutes: 60 }, // 60 requests per hour
     };
     
     // Anonymous abuse prevention configuration
