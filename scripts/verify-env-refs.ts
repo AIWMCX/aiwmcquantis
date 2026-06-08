@@ -22,6 +22,8 @@ const ALLOWED_PATHS: string[] = [
   'scripts/verify-env-refs.ts',          // this file — defines OLD_REF constant
   'src/__tests__/edge-runtime-guards.test.ts',  // guard test — asserts the ref is gone elsewhere
   '.github/',                             // CI workflow files reference OLD_REF in error messages
+  'lint-report.json',                     // ESLint JSON report embeds source of scanned files
+  'lint-output.txt',                      // lint stdout capture
 ];
 
 const SCAN_EXTS = new Set(['.ts', '.tsx', '.js', '.jsx', '.json', '.toml', '.html', '.env', '.yml', '.yaml']);

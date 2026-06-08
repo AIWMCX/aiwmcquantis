@@ -32,6 +32,18 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      # ── Supabase project-ref guard (MUST run before lint generates lint-report.json) ──
+      # lint:report embeds full file source in JSON — that JSON would then contain OLD_REF
+      # from scripts/verify-env-refs.ts itself, causing a false positive. Run guard first.
+      - name: Verify Supabase project refs (no stale gafx… ref in source)
+        id: ref-guard
+        run: npx tsx scripts/verify-env-refs.ts
+
+      - name: Ref-guard failure hint
+        if: failure() && steps.ref-guard.outcome == 'failure'
+        run: |
+          echo "::error title=Stale Supabase ref::Found gafxacjhkqsdzwwzhbor (old Lovable project) outside allowed paths. Replace with dmlxrvfyqsakyjomsvdj before building."
+
       # ── Lint ────────────────────────────────────────────────────────────────
       - name: Lint (eslint)
         id: lint
@@ -66,16 +78,6 @@ jobs:
         if: failure() && steps.typecheck.outcome == 'failure'
         run: |
           echo "::error title=TypeScript failed::Financial-surface typecheck failed. Run 'bun run typecheck:financial' locally."
-
-      # ── Supabase project-ref guard ─────────────────────────────────────────
-      - name: Verify Supabase project refs (no stale gafx… ref in source)
-        id: ref-guard
-        run: npx tsx scripts/verify-env-refs.ts
-
-      - name: Ref-guard failure hint
-        if: failure() && steps.ref-guard.outcome == 'failure'
-        run: |
-          echo "::error title=Stale Supabase ref::Found gafxacjhkqsdzwwzhbor (old Lovable project) outside allowed paths. Replace with dmlxrvfyqsakyjomsvdj before building."
 
       # ── Business-logic hash verification ────────────────────────────────────
       - name: Verify business-logic spec hash
