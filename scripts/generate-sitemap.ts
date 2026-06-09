@@ -8,10 +8,24 @@
  * Also rewrites public/prerender-urls.txt so the prerender pipeline
  * never drifts from the sitemap.
  */
-import { writeFileSync } from 'fs';
+import { writeFileSync, readFileSync } from 'fs';
 import { resolve } from 'path';
-import { EXAMPLE_LIST } from '../src/pages/examples/exampleData';
-import { BLOG_ARTICLES } from '../src/pages/Blog';
+
+// Extract slugs via regex to avoid importing TSX files that pull in image assets.
+function extractSlugs(filePath: string, sliceStart = 0, sliceEnd?: number): string[] {
+  const src = readFileSync(resolve(filePath), 'utf8');
+  const all = Array.from(src.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)).map((m) => m[1]);
+  return Array.from(new Set(all)).slice(sliceStart, sliceEnd);
+}
+
+// exampleData.ts: every `slug:` occurrence is an example slug.
+const EXAMPLE_SLUGS = extractSlugs('src/pages/examples/exampleData.ts');
+// Blog.tsx: first 11 `slug:` entries belong to BLOG_ARTICLES (rest are example refs in JSX).
+const BLOG_SLUGS = (() => {
+  const src = readFileSync(resolve('src/pages/Blog.tsx'), 'utf8');
+  const articlesBlock = src.split('BLOG_ARTICLES')[1]?.split('];')[0] ?? '';
+  return Array.from(articlesBlock.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)).map((m) => m[1]);
+})();
 
 const BASE_URL = 'https://aiwmcquantis.com';
 const today = new Date().toISOString().slice(0, 10);
