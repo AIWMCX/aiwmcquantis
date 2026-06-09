@@ -84,7 +84,7 @@ export const TIERS = {
       unlimitedHistory: true,
       watermarkFree: true,
       apiAccess: false,
-      tamSamSom: false,
+      tamSamSom: true,
       pitchDeck: false,
       strategicRoadmap: false,
       fiveYearModel: false,
@@ -138,7 +138,10 @@ export type LimitKey = keyof typeof TIERS.pro.limits;
 export type BillingCycle = 'monthly' | 'annual';
 
 /** Stripe price ID → tier mapping. Used by webhook + checkout. */
-export const STRIPE_PRICE_TO_TIER: Record<string, { tier: TierId; cycle: BillingCycle; isLegacy?: boolean }> = {
+export const STRIPE_PRICE_TO_TIER: Record<
+  string,
+  { tier: TierId; cycle: BillingCycle; isLegacy?: boolean }
+> = {
   // Legacy Plus monthly ($17) — grandfathered, still treated as Plus
   price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
   // Plus annual
@@ -172,7 +175,9 @@ export function getTrialDays(tier: TierId, cycle: BillingCycle): number {
  * Resolve a tier from a subscription record.
  * FAIL CLOSED: unknown / inactive → 'free'.
  */
-export function resolveTier(sub: { tier?: string | null; status?: string | null } | null | undefined): TierId {
+export function resolveTier(
+  sub: { tier?: string | null; status?: string | null } | null | undefined
+): TierId {
   if (!sub) return 'free';
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
   if (sub.tier === 'plus' || sub.tier === 'pro') return sub.tier;
@@ -180,16 +185,27 @@ export function resolveTier(sub: { tier?: string | null; status?: string | null 
 }
 
 /** Per-feature upgrade modal copy. Used by <UpgradeModal>. */
-export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]; recommendedTier: TierId }> = {
+export const UPGRADE_COPY: Record<
+  FeatureKey,
+  { title: string; bullets: string[]; recommendedTier: TierId }
+> = {
   depthQuick: { title: 'Quick Analysis', bullets: [], recommendedTier: 'free' },
   depthFull: {
     title: 'Full Report Mode',
-    bullets: ['95,500-scenario Monte Carlo', '36-month P&L with variance bands', 'Prioritized action plan'],
+    bullets: [
+      '95,500-scenario Monte Carlo',
+      '36-month P&L with variance bands',
+      'Prioritized action plan',
+    ],
     recommendedTier: 'plus',
   },
   depthPro: {
     title: 'Investor-Grade Analysis',
-    bullets: ['60-month (5-year) financial model', 'TAM / SAM / SOM with cited sources', 'Pitch deck data package'],
+    bullets: [
+      '60-month (5-year) financial model',
+      'TAM / SAM / SOM with cited sources',
+      'Pitch deck data package',
+    ],
     recommendedTier: 'pro',
   },
   preMortem: {
@@ -199,7 +215,11 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   invoiceCapacity: {
     title: 'Invoice & Capacity Check',
-    bullets: ['"Should you accept this client?" analysis', 'Cash-flow impact modeling', 'Workload sustainability check'],
+    bullets: [
+      '"Should you accept this client?" analysis',
+      'Cash-flow impact modeling',
+      'Workload sustainability check',
+    ],
     recommendedTier: 'plus',
   },
   documentStudio: {
@@ -209,7 +229,11 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   aiDocIntelligence: {
     title: 'AI Document Intelligence',
-    bullets: ['Extract data from PDF / Excel uploads', 'Auto-fill financial inputs', 'Bank statement parsing'],
+    bullets: [
+      'Extract data from PDF / Excel uploads',
+      'Auto-fill financial inputs',
+      'Bank statement parsing',
+    ],
     recommendedTier: 'plus',
   },
   customBranding: {
@@ -219,7 +243,11 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   whiteLabel: {
     title: 'White-Label PDF',
-    bullets: ['Completely removes Quantis branding', 'Investor-ready output', 'Your firm, your report'],
+    bullets: [
+      'Completely removes Quantis branding',
+      'Investor-ready output',
+      'Your firm, your report',
+    ],
     recommendedTier: 'pro',
   },
   unlimitedHistory: {
@@ -229,22 +257,38 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   watermarkFree: {
     title: 'Watermark-Free Exports',
-    bullets: ['Remove "Powered by AIWMC Quantis" footer', 'Unlimited daily downloads', 'Professional appearance'],
+    bullets: [
+      'Remove "Powered by AIWMC Quantis" footer',
+      'Unlimited daily downloads',
+      'Professional appearance',
+    ],
     recommendedTier: 'plus',
   },
   apiAccess: {
     title: 'API Access',
-    bullets: ['REST endpoints for all features', 'Programmatic analysis runs', 'Rolling out Q2 2026'],
+    bullets: [
+      'REST endpoints for all features',
+      'Programmatic analysis runs',
+      'Rolling out Q2 2026',
+    ],
     recommendedTier: 'pro',
   },
   tamSamSom: {
     title: 'TAM / SAM / SOM Calculator',
-    bullets: ['Total / Serviceable / Obtainable market', 'Cited sources from research corpus', 'Investor-ready market sizing'],
-    recommendedTier: 'pro',
+    bullets: [
+      'Total / Serviceable / Obtainable market',
+      'Cited sources from research corpus',
+      'Investor-ready market sizing',
+    ],
+    recommendedTier: 'plus',
   },
   pitchDeck: {
     title: 'Pitch Deck Data Package',
-    bullets: ['All slide-ready financial figures', 'Exportable to PowerPoint / Keynote', 'Investor-formatted charts'],
+    bullets: [
+      'All slide-ready financial figures',
+      'Exportable to PowerPoint / Keynote',
+      'Investor-formatted charts',
+    ],
     recommendedTier: 'pro',
   },
   strategicRoadmap: {
@@ -254,7 +298,11 @@ export const UPGRADE_COPY: Record<FeatureKey, { title: string; bullets: string[]
   },
   fiveYearModel: {
     title: '5-Year Financial Model',
-    bullets: ['60-month projection horizon', 'Long-term variance bands', 'Beyond Plus\'s 36-month cap'],
+    bullets: [
+      '60-month projection horizon',
+      'Long-term variance bands',
+      "Beyond Plus's 36-month cap",
+    ],
     recommendedTier: 'pro',
   },
   actionPlan: {

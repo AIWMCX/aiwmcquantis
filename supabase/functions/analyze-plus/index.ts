@@ -28,7 +28,7 @@ import { validateAndSanitizeInput } from '../_shared/ai-safety-guardrails.ts';
 import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
-const DEFAULT_MODEL = 'google/gemini-2.5-pro';
+const DEFAULT_MODEL = 'deepseek-chat'; // llm-call.ts auto-routes to DeepSeek API
 
 interface PlusRequestBody {
   idea: string;

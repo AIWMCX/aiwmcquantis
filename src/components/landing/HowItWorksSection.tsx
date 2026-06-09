@@ -15,7 +15,7 @@ const steps = [
     icon: Cpu,
     title: 'Quantis simulates 1,000 futures',
     body: 'Dual-AI checks, risk stress-tests, and pre-mortem engine run in the background.',
-    badges: ['GPT-4o mini', 'Gemini'],
+    badges: ['DeepSeek AI', 'Quantis Engine'],
   },
   {
     num: '03',
@@ -27,10 +27,17 @@ const steps = [
 
 export function HowItWorksSection() {
   return (
-    <section id="how-it-works" className="py-20 md:py-28" style={{ background: 'var(--q-bg-base)' }}>
+    <section
+      id="how-it-works"
+      className="py-20 md:py-28"
+      style={{ background: 'var(--q-bg-base)' }}
+    >
       <div className="container max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-16">
-          <p className="text-sm font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--q-accent-primary)' }}>
+          <p
+            className="text-sm font-semibold tracking-wider uppercase mb-3"
+            style={{ color: 'var(--q-accent-primary)' }}
+          >
             How It Works
           </p>
           <h2
@@ -46,11 +53,22 @@ export function HowItWorksSection() {
 
         <div className="relative grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Dashed connector (desktop) */}
-          <svg className="hidden md:block absolute top-16 left-0 w-full h-1 pointer-events-none" style={{ zIndex: 0 }}>
-            <line x1="33%" y1="0" x2="66%" y2="0" stroke="var(--q-border-default)" strokeWidth="2" strokeDasharray="8 6" />
+          <svg
+            className="hidden md:block absolute top-16 left-0 w-full h-1 pointer-events-none"
+            style={{ zIndex: 0 }}
+          >
+            <line
+              x1="33%"
+              y1="0"
+              x2="66%"
+              y2="0"
+              stroke="var(--q-border-default)"
+              strokeWidth="2"
+              strokeDasharray="8 6"
+            />
           </svg>
 
-          {steps.map(s => (
+          {steps.map((s) => (
             <div
               key={s.num}
               className="relative z-10 p-6 rounded-2xl transition-all duration-300 hover:-translate-y-1"
@@ -61,23 +79,34 @@ export function HowItWorksSection() {
               }}
             >
               <div className="flex items-center gap-3 mb-4">
-                <span className="text-2xl font-bold" style={{ color: 'var(--q-accent-primary)', fontFamily: 'var(--q-font-heading)' }}>
+                <span
+                  className="text-2xl font-bold"
+                  style={{ color: 'var(--q-accent-primary)', fontFamily: 'var(--q-font-heading)' }}
+                >
                   {s.num}
                 </span>
                 <div className="p-2 rounded-xl" style={{ background: 'var(--q-accent-glow)' }}>
                   <s.icon className="w-5 h-5" style={{ color: 'var(--q-accent-primary)' }} />
                 </div>
               </div>
-              <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--q-text-primary)' }}>{s.title}</h3>
-              <p className="text-sm leading-relaxed" style={{ color: 'var(--q-text-secondary)' }}>{s.body}</p>
+              <h3 className="text-lg font-semibold mb-2" style={{ color: 'var(--q-text-primary)' }}>
+                {s.title}
+              </h3>
+              <p className="text-sm leading-relaxed" style={{ color: 'var(--q-text-secondary)' }}>
+                {s.body}
+              </p>
 
               {s.badges && (
                 <div className="flex gap-2 mt-4">
-                  {s.badges.map(b => (
+                  {s.badges.map((b) => (
                     <span
                       key={b}
                       className="inline-flex items-center px-2.5 py-1 text-xs font-medium rounded-full"
-                      style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}
+                      style={{
+                        background: 'var(--q-status-ai-bg)',
+                        color: 'var(--q-status-ai)',
+                        border: '1px solid var(--q-status-ai-border)',
+                      }}
                     >
                       {b}
                     </span>

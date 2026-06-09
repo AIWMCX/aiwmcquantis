@@ -17,7 +17,12 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
   const roi = financial.returns?.roi_year_1 ?? financial.roi_year_1 ?? 0;
 
   const getVerdict = () => {
-    if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths > 0 && paybackMonths <= 18) {
+    if (
+      result.confidence_score >= 75 &&
+      monthlyProfit > 0 &&
+      paybackMonths > 0 &&
+      paybackMonths <= 18
+    ) {
       return { text: 'VIABLE', color: '#22c55e' };
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
       return { text: 'NEEDS REFINEMENT', color: '#f59e0b' };
@@ -33,11 +38,13 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
       <ReportHeader title="Executive Summary" idea={result.metadata.idea} pageNumber={2} />
 
       {/* Verdict Banner */}
-      <div style={{
-        ...pdfStyles.verdictBanner,
-        borderColor: verdict.color,
-        backgroundColor: `${verdict.color}15`,
-      }}>
+      <div
+        style={{
+          ...pdfStyles.verdictBanner,
+          borderColor: verdict.color,
+          backgroundColor: `${verdict.color}15`,
+        }}
+      >
         <div style={pdfStyles.verdictLabel}>Investment Verdict</div>
         <div style={{ ...pdfStyles.verdictText, color: verdict.color }}>{verdict.text}</div>
       </div>
@@ -53,16 +60,16 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
         </div>
         <div style={pdfStyles.metricCard}>
           <div style={pdfStyles.metricCardLabel}>Monthly Revenue (MRR)</div>
-          <div style={pdfStyles.metricCardValue}>
-            {formatCurrency(monthlyRevenue)}
-          </div>
+          <div style={pdfStyles.metricCardValue}>{formatCurrency(monthlyRevenue)}</div>
         </div>
         <div style={pdfStyles.metricCard}>
           <div style={pdfStyles.metricCardLabel}>Monthly Net Profit</div>
-          <div style={{
-            ...pdfStyles.metricCardValue,
-            color: monthlyProfit >= 0 ? '#22c55e' : '#ef4444'
-          }}>
+          <div
+            style={{
+              ...pdfStyles.metricCardValue,
+              color: monthlyProfit >= 0 ? '#22c55e' : '#ef4444',
+            }}
+          >
             {formatCurrency(monthlyProfit)}
           </div>
         </div>
@@ -78,10 +85,12 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
       <div style={pdfStyles.metricsRow}>
         <div style={pdfStyles.metricInline}>
           <span style={pdfStyles.metricInlineLabel}>Year 1 ROI:</span>
-          <span style={{
-            ...pdfStyles.metricInlineValue,
-            color: roi >= 0 ? '#22c55e' : '#ef4444'
-          }}>
+          <span
+            style={{
+              ...pdfStyles.metricInlineValue,
+              color: roi >= 0 ? '#22c55e' : '#ef4444',
+            }}
+          >
             {formatNumber(roi)}%
           </span>
         </div>
@@ -92,21 +101,58 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
         {financial.unit_economics && (
           <div style={pdfStyles.metricInline}>
             <span style={pdfStyles.metricInlineLabel}>LTV:CAC Ratio:</span>
-            <span style={{
-              ...pdfStyles.metricInlineValue,
-              color: financial.unit_economics.ltv_cac_ratio >= 3 ? '#22c55e' : '#f59e0b'
-            }}>
+            <span
+              style={{
+                ...pdfStyles.metricInlineValue,
+                color: financial.unit_economics.ltv_cac_ratio >= 3 ? '#22c55e' : '#f59e0b',
+              }}
+            >
               {formatNumber(financial.unit_economics.ltv_cac_ratio)}x
             </span>
           </div>
         )}
       </div>
 
+      {/* AI Analyst Pull-Quote */}
+      {result.business_plan.executive_summary && (
+        <div
+          style={{
+            borderLeft: `4px solid ${verdict.color}`,
+            backgroundColor: `${verdict.color}10`,
+            padding: '12px 16px',
+            marginBottom: 16,
+            borderRadius: '0 6px 6px 0',
+          }}
+        >
+          <div
+            style={{
+              fontSize: 9,
+              fontWeight: 700,
+              color: verdict.color,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              marginBottom: 6,
+            }}
+          >
+            AI Analyst Assessment
+          </div>
+          <div style={{ fontSize: 11, color: '#cbd5e1', fontStyle: 'italic', lineHeight: 1.55 }}>
+            "{result.business_plan.executive_summary.split('.').slice(0, 2).join('.')}."
+          </div>
+          <div style={{ fontSize: 9, color: '#64748b', marginTop: 6 }}>
+            — AIWMC Quantis AI ·{' '}
+            {new Date(result.metadata.generated_at).toLocaleDateString('en-US', {
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+            })}
+          </div>
+        </div>
+      )}
+
       {/* Executive Summary Text */}
       <div style={pdfStyles.sectionTitle}>Business Overview</div>
-      <div style={pdfStyles.paragraph}>
-        {result.business_plan.executive_summary}
-      </div>
+      <div style={pdfStyles.paragraph}>{result.business_plan.executive_summary}</div>
 
       {/* Quick Assessment */}
       <div style={pdfStyles.sectionTitle}>Quick Assessment</div>

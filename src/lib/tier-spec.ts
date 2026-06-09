@@ -134,16 +134,13 @@ export const FEATURE_MANIFEST: Record<Tier, FeatureManifest> = {
     allowed_endpoints: [
       ENDPOINTS.ANALYSE_MAIN,
       ENDPOINTS.ANALYSE_PREMORTEM,
+      ENDPOINTS.ANALYSE_PRO_EXTENSION,
       ENDPOINTS.TOOLS_CAPACITY_CHECK,
       ENDPOINTS.DOCUMENTS_STUDIO,
       ENDPOINTS.DOCUMENTS_EXPORT,
       ENDPOINTS.AI_DOC_INTELLIGENCE,
     ],
-    blocked_endpoints: [
-      ENDPOINTS.ANALYSE_PRO_EXTENSION,
-      ENDPOINTS.TEAM_INVITE,
-      ENDPOINTS.API_KEY_GENERATE,
-    ],
+    blocked_endpoints: [ENDPOINTS.TEAM_INVITE, ENDPOINTS.API_KEY_GENERATE],
     monthly_analysis_limit: Number.POSITIVE_INFINITY,
     pdf_daily_limit: Number.POSITIVE_INFINITY,
     history: true,
@@ -260,8 +257,7 @@ export function evaluateGate(args: {
 
   // Layer 1a: endpoint gate
   if (manifest.blocked_endpoints.includes(endpoint)) {
-    const requiredTier: 'PLUS' | 'PRO' =
-      tier === 'FREE' ? 'PLUS' : 'PRO';
+    const requiredTier: 'PLUS' | 'PRO' = tier === 'FREE' ? 'PLUS' : 'PRO';
     return {
       blocked: true,
       status: 402,
@@ -271,10 +267,7 @@ export function evaluateGate(args: {
         message: 'This feature requires a higher plan.',
         required_tier: requiredTier,
         upgrade_url: UPGRADE_URL,
-        cta:
-          requiredTier === 'PLUS'
-            ? 'Unlock with Plus — $17/mo'
-            : 'Unlock with Pro — $49/mo',
+        cta: requiredTier === 'PLUS' ? 'Unlock with Plus — $17/mo' : 'Unlock with Pro — $49/mo',
       },
     };
   }
@@ -306,7 +299,7 @@ export function evaluateGate(args: {
 /** Layer 3 — output field stripper. */
 export function stripToTierFields<T extends Record<string, unknown>>(
   output: T,
-  tier: Tier,
+  tier: Tier
 ): Partial<T> {
   const manifest = FEATURE_MANIFEST[tier];
   if (manifest.allowed_output_fields === '__ALL__') return output;
@@ -350,7 +343,7 @@ export const FEATURE_TIER_REQUIREMENT: Record<FeatureKey, Tier> = {
   ai_doc_intelligence: 'PLUS',
   history: 'PLUS',
   five_year_model: 'PRO',
-  tam_sam_som: 'PRO',
+  tam_sam_som: 'PLUS',
   pitch_deck_data: 'PRO',
   strategic_roadmap: 'PRO',
   white_label: 'PRO',

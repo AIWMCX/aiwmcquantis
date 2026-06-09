@@ -24,24 +24,81 @@ interface AnalysisProgressProps {
   selectedOutputs?: { biReport: boolean; preMortem: boolean; invoiceCapacity: boolean };
 }
 
-function buildStages(location?: string, selectedOutputs?: { biReport: boolean; preMortem: boolean; invoiceCapacity: boolean }): AnalysisStage[] {
+function buildStages(
+  location?: string,
+  selectedOutputs?: { biReport: boolean; preMortem: boolean; invoiceCapacity: boolean }
+): AnalysisStage[] {
   const geoLabel = location ? `Applying ${location} geo calibration` : 'Applying geo calibration';
   const stages: AnalysisStage[] = [
-    { id: 'benchmarks', label: 'Loading industry benchmarks...', completedLabel: 'Industry benchmarks loaded', startTime: 0, endTime: 3 },
-    { id: 'geo', label: `${geoLabel}...`, completedLabel: `${geoLabel} ✓`, startTime: 3, endTime: 6 },
-    { id: 'gpt', label: 'GPT-4o mini analysis in progress...', completedLabel: 'GPT-4o mini analysis complete', startTime: 6, endTime: 14 },
-    { id: 'gemini', label: 'Gemini cross-validation in progress...', completedLabel: 'Gemini cross-validation complete', startTime: 14, endTime: 22 },
-    { id: 'consensus', label: 'Running consensus scoring...', completedLabel: 'Consensus scoring complete', startTime: 22, endTime: 28 },
-    { id: 'reconciliation', label: 'Running reconciliation check...', completedLabel: 'Reconciliation check passed', startTime: 28, endTime: 34 },
-    { id: 'stressmap', label: 'Generating Stress Map...', completedLabel: 'Stress Map generated', startTime: 34, endTime: 42 },
+    {
+      id: 'benchmarks',
+      label: 'Loading industry benchmarks...',
+      completedLabel: 'Industry benchmarks loaded',
+      startTime: 0,
+      endTime: 3,
+    },
+    {
+      id: 'geo',
+      label: `${geoLabel}...`,
+      completedLabel: `${geoLabel} ✓`,
+      startTime: 3,
+      endTime: 6,
+    },
+    {
+      id: 'gpt',
+      label: 'DeepSeek primary analysis in progress...',
+      completedLabel: 'DeepSeek primary analysis complete',
+      startTime: 6,
+      endTime: 14,
+    },
+    {
+      id: 'gemini',
+      label: 'AI cross-validation in progress...',
+      completedLabel: 'AI cross-validation complete',
+      startTime: 14,
+      endTime: 22,
+    },
+    {
+      id: 'consensus',
+      label: 'Running consensus scoring...',
+      completedLabel: 'Consensus scoring complete',
+      startTime: 22,
+      endTime: 28,
+    },
+    {
+      id: 'reconciliation',
+      label: 'Running reconciliation check...',
+      completedLabel: 'Reconciliation check passed',
+      startTime: 28,
+      endTime: 34,
+    },
+    {
+      id: 'stressmap',
+      label: 'Generating Stress Map...',
+      completedLabel: 'Stress Map generated',
+      startTime: 34,
+      endTime: 42,
+    },
   ];
 
   if (selectedOutputs?.preMortem) {
-    stages.push({ id: 'premortem', label: 'Running pre-mortem failure scenarios...', completedLabel: 'Pre-mortem scenarios generated', startTime: 42, endTime: 50 });
+    stages.push({
+      id: 'premortem',
+      label: 'Running pre-mortem failure scenarios...',
+      completedLabel: 'Pre-mortem scenarios generated',
+      startTime: 42,
+      endTime: 50,
+    });
   }
   if (selectedOutputs?.invoiceCapacity) {
     const start = selectedOutputs?.preMortem ? 50 : 42;
-    stages.push({ id: 'invoice', label: 'Checking invoice capacity and credit risk...', completedLabel: 'Invoice capacity check complete', startTime: start, endTime: start + 8 });
+    stages.push({
+      id: 'invoice',
+      label: 'Checking invoice capacity and credit risk...',
+      completedLabel: 'Invoice capacity check complete',
+      startTime: start,
+      endTime: start + 8,
+    });
   }
 
   return stages;
@@ -60,7 +117,9 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
 }: AnalysisProgressProps) {
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
   const [showTimeout, setShowTimeout] = useState(false);
-  const [completionPhase, setCompletionPhase] = useState<'none' | 'filling' | 'checkmarks' | 'done'>('none');
+  const [completionPhase, setCompletionPhase] = useState<
+    'none' | 'filling' | 'checkmarks' | 'done'
+  >('none');
 
   const stages = useMemo(() => buildStages(location, selectedOutputs), [location, selectedOutputs]);
 
@@ -86,14 +145,27 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
     const t1 = setTimeout(() => setCompletionPhase('checkmarks'), 200);
     const t2 = setTimeout(() => setCompletionPhase('done'), 200 + stages.length * 80 + 500);
     const t3 = setTimeout(() => onComplete?.(), 200 + stages.length * 80 + 1000);
-    return () => { clearTimeout(t1); clearTimeout(t2); clearTimeout(t3); };
+    return () => {
+      clearTimeout(t1);
+      clearTimeout(t2);
+      clearTimeout(t3);
+    };
   }, [isComplete, completionPhase, stages.length, onComplete]);
 
   const { overallProgress, completedStages, currentStageId } = useMemo(() => {
     if (isComplete || completionPhase !== 'none') {
-      return { overallProgress: 100, completedStages: stages.map(s => s.id), currentStageId: null as string | null };
+      return {
+        overallProgress: 100,
+        completedStages: stages.map((s) => s.id),
+        currentStageId: null as string | null,
+      };
     }
-    if (!isLoading) return { overallProgress: 0, completedStages: [] as string[], currentStageId: null as string | null };
+    if (!isLoading)
+      return {
+        overallProgress: 0,
+        completedStages: [] as string[],
+        currentStageId: null as string | null,
+      };
     const completed: string[] = [];
     let currentId: string | null = null;
     for (const stage of stages) {
@@ -124,7 +196,13 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   const subtitle = [businessType, location].filter(Boolean).join(' · ');
 
   return (
-    <div className="fixed inset-0 z-[1000] flex items-center justify-center" style={{ background: 'var(--q-gradient-hero, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%))' }}>
+    <div
+      className="fixed inset-0 z-[1000] flex items-center justify-center"
+      style={{
+        background:
+          'var(--q-gradient-hero, linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%))',
+      }}
+    >
       <div className="absolute inset-0 q-grid-pattern opacity-40" />
 
       <div className="relative w-full max-w-[480px] mx-4 rounded-[var(--q-radius-xl)] border border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] shadow-[var(--q-shadow-elevated)] p-10 space-y-6">
@@ -134,11 +212,17 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
             <Zap className="w-6 h-6 text-[var(--q-accent-primary)]" />
           </div>
           <div>
-            <h2 className="text-xl font-bold text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-heading, Sora, sans-serif)' }}>
+            <h2
+              className="text-xl font-bold text-[var(--q-text-primary)]"
+              style={{ fontFamily: 'var(--q-font-heading, Sora, sans-serif)' }}
+            >
               {completionPhase === 'done' ? 'Complete!' : 'Analyzing your business'}
             </h2>
             {subtitle && (
-              <p className="mt-1 text-sm text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-body)' }}>
+              <p
+                className="mt-1 text-sm text-[var(--q-text-secondary)]"
+                style={{ fontFamily: 'var(--q-font-body)' }}
+              >
                 {subtitle}
               </p>
             )}
@@ -152,7 +236,8 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
               className="h-full rounded-[3px] transition-all duration-700 ease-out"
               style={{
                 width: `${overallProgress}%`,
-                background: 'var(--q-gradient-accent, linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover)))',
+                background:
+                  'var(--q-gradient-accent, linear-gradient(90deg, var(--q-accent-primary), var(--q-accent-hover)))',
               }}
             />
           </div>
@@ -167,10 +252,18 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
             const isCompleted = completedStages.includes(stage.id);
             const isCurrent = currentStageId === stage.id && !isCompleted;
             // Staggered checkmark delay during completion
-            const staggerDelay = completionPhase === 'checkmarks' || completionPhase === 'done'
-              ? `${idx * 80}ms` : '0ms';
+            const staggerDelay =
+              completionPhase === 'checkmarks' || completionPhase === 'done'
+                ? `${idx * 80}ms`
+                : '0ms';
             return (
-              <div key={stage.id} className={cn('flex items-center gap-2.5 py-1 text-sm transition-all duration-300', !isCompleted && !isCurrent && 'opacity-40')}>
+              <div
+                key={stage.id}
+                className={cn(
+                  'flex items-center gap-2.5 py-1 text-sm transition-all duration-300',
+                  !isCompleted && !isCurrent && 'opacity-40'
+                )}
+              >
                 {isCompleted ? (
                   <CheckCircle2
                     className="w-4 h-4 text-[var(--q-status-green)] shrink-0 animate-scale-in"
@@ -181,11 +274,15 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
                 ) : (
                   <span className="w-4 h-4 rounded-full border border-[var(--q-border-default)] shrink-0 text-[var(--q-text-tertiary)]" />
                 )}
-                <span className={cn(
-                  isCompleted ? 'text-[var(--q-text-secondary)] line-through decoration-[var(--q-status-green)]/30' :
-                  isCurrent ? 'text-[var(--q-text-primary)] font-medium' :
-                  'text-[var(--q-text-tertiary)]'
-                )}>
+                <span
+                  className={cn(
+                    isCompleted
+                      ? 'text-[var(--q-text-secondary)] line-through decoration-[var(--q-status-green)]/30'
+                      : isCurrent
+                        ? 'text-[var(--q-text-primary)] font-medium'
+                        : 'text-[var(--q-text-tertiary)]'
+                  )}
+                >
                   {isCompleted ? stage.completedLabel : stage.label}
                 </span>
               </div>
@@ -206,11 +303,23 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
             <div className="flex items-start gap-2.5">
               <AlertCircle className="w-4 h-4 text-[var(--q-status-yellow)] shrink-0 mt-0.5" />
               <div className="flex-1 space-y-2">
-                <p className="text-sm font-medium text-[var(--q-text-primary)]">Taking longer than usual</p>
-                <p className="text-xs text-[var(--q-text-tertiary)]">Complex analyses may take up to 90 seconds.</p>
+                <p className="text-sm font-medium text-[var(--q-text-primary)]">
+                  Taking longer than usual
+                </p>
+                <p className="text-xs text-[var(--q-text-tertiary)]">
+                  Complex analyses may take up to 90 seconds.
+                </p>
                 <div className="flex gap-2">
-                  {onRetry && <Button size="sm" variant="outline" onClick={onRetry} className="text-xs h-7">Try Again</Button>}
-                  {onCancel && <Button size="sm" variant="ghost" onClick={onCancel} className="text-xs h-7">Cancel</Button>}
+                  {onRetry && (
+                    <Button size="sm" variant="outline" onClick={onRetry} className="text-xs h-7">
+                      Try Again
+                    </Button>
+                  )}
+                  {onCancel && (
+                    <Button size="sm" variant="ghost" onClick={onCancel} className="text-xs h-7">
+                      Cancel
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>

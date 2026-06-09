@@ -1,6 +1,16 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
-import { BarChart3, FileText, AlertTriangle, Shield, TrendingUp, Target, Globe, FileCheck, Lock } from 'lucide-react';
+import {
+  BarChart3,
+  FileText,
+  AlertTriangle,
+  Shield,
+  TrendingUp,
+  Target,
+  Globe,
+  FileCheck,
+  Lock,
+} from 'lucide-react';
 import { AnalysisProgress } from './AnalysisProgress';
 import { IndustryStep } from './steps/IndustryStep';
 import { FinancialsStep } from './steps/FinancialsStep';
@@ -10,9 +20,9 @@ import type { UploadedFile } from '@/hooks/useFileUpload';
 
 /* ─── OUTPUT TYPES ─── */
 const OUTPUT_TYPES = [
-  { id: 'bi',        label: 'BI Report',               plusOnly: false },
-  { id: 'premortem', label: 'Pre-Mortem Analysis',      plusOnly: true  },
-  { id: 'invoice',   label: 'Invoice Capacity Check',   plusOnly: true  },
+  { id: 'bi', label: 'BI Report', plusOnly: false },
+  { id: 'premortem', label: 'Pre-Mortem Analysis', plusOnly: true },
+  { id: 'invoice', label: 'Invoice Capacity Check', plusOnly: true },
 ] as const;
 
 const DELIVERABLES: Record<string, { icon: React.ElementType; text: string }[]> = {
@@ -59,50 +69,74 @@ interface CompactAnalysisFormProps {
 }
 
 export function CompactAnalysisForm({
-  idea, location, financialInputs, errors, isLoading, isFormValid,
-  onIdeaChange, onLocationChange, onFinancialInputsChange, onClearError, onSubmit,
-  isAuthenticated, isPlus = false,
+  idea,
+  location,
+  financialInputs,
+  errors,
+  isLoading,
+  isFormValid,
+  onIdeaChange,
+  onLocationChange,
+  onFinancialInputsChange,
+  onClearError,
+  onSubmit,
+  isAuthenticated,
+  isPlus = false,
 }: CompactAnalysisFormProps) {
-  const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(financialInputs.selected_industry);
+  const [selectedIndustry, setSelectedIndustry] = useState<string | undefined>(
+    financialInputs.selected_industry
+  );
   const [depth, setDepth] = useState('full');
   const [selectedOutputs, setSelectedOutputs] = useState<Set<string>>(new Set(['bi']));
   const isFirstTimeAnon = !isAuthenticated && !localStorage.getItem('has_run_analysis');
   const [showAdvanced, setShowAdvanced] = useState(!isFirstTimeAnon);
 
-  const toggleOutput = useCallback((id: string) => {
-    const opt = OUTPUT_TYPES.find(o => o.id === id);
-    // Gate Plus-only features for Free/anonymous users — show upgrade nudge.
-    if (opt?.plusOnly && !isPlus) {
-      toast.error(`${opt.label} is a Plus feature`, {
-        description: 'Upgrade to Plus ($17/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.',
-        duration: 8000,
-        action: {
-          label: 'Upgrade to Plus →',
-          onClick: () => { window.location.href = '/pricing'; },
-        },
-      });
-      return;
-    }
-    setSelectedOutputs(prev => {
-      const next = new Set(prev);
-      if (next.has(id)) {
-        if (id === 'bi') return next; // BI Report can't be deselected — it's the base
-        next.delete(id);
-      } else {
-        next.add(id);
+  const toggleOutput = useCallback(
+    (id: string) => {
+      const opt = OUTPUT_TYPES.find((o) => o.id === id);
+      // Gate Plus-only features for Free/anonymous users — show upgrade nudge.
+      if (opt?.plusOnly && !isPlus) {
+        toast.error(`${opt.label} is a Plus feature`, {
+          description:
+            'Upgrade to Plus ($17/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.',
+          duration: 8000,
+          action: {
+            label: 'Upgrade to Plus →',
+            onClick: () => {
+              window.location.href = '/pricing';
+            },
+          },
+        });
+        return;
       }
-      return next;
-    });
-  }, [isPlus]);
+      setSelectedOutputs((prev) => {
+        const next = new Set(prev);
+        if (next.has(id)) {
+          if (id === 'bi') return next; // BI Report can't be deselected — it's the base
+          next.delete(id);
+        } else {
+          next.add(id);
+        }
+        return next;
+      });
+    },
+    [isPlus]
+  );
 
-  const handleIndustrySelect = useCallback((id: string) => {
-    setSelectedIndustry(id);
-    onFinancialInputsChange({ ...financialInputs, selected_industry: id });
-  }, [financialInputs, onFinancialInputsChange]);
+  const handleIndustrySelect = useCallback(
+    (id: string) => {
+      setSelectedIndustry(id);
+      onFinancialInputsChange({ ...financialInputs, selected_industry: id });
+    },
+    [financialInputs, onFinancialInputsChange]
+  );
 
-  const updateField = useCallback((field: keyof OptionalFinancialInputs, value: number | undefined) => {
-    onFinancialInputsChange({ ...financialInputs, [field]: value });
-  }, [financialInputs, onFinancialInputsChange]);
+  const updateField = useCallback(
+    (field: keyof OptionalFinancialInputs, value: number | undefined) => {
+      onFinancialInputsChange({ ...financialInputs, [field]: value });
+    },
+    [financialInputs, onFinancialInputsChange]
+  );
 
   /* ─── Derived state ─── */
   const confidence = useMemo(() => {
@@ -116,8 +150,8 @@ export function CompactAnalysisForm({
       financialInputs.monthly_costs,
     ];
     s += reqFields.filter(Boolean).length * (55 / 6);
-    if (idea.trim().length >= 10) s += (55 / 6);
-    if (location.trim().length >= 2) s += (55 / 6) - 10;
+    if (idea.trim().length >= 10) s += 55 / 6;
+    if (location.trim().length >= 2) s += 55 / 6 - 10;
     if (financialInputs.cac) s += 10;
     if (financialInputs.churn_rate) s += 7;
     return Math.min(97, Math.round(Math.max(0, s)));
@@ -137,7 +171,7 @@ export function CompactAnalysisForm({
   /* ─── Active deliverables ─── */
   const activeDeliverables = useMemo(() => {
     const items: { icon: React.ElementType; text: string }[] = [];
-    selectedOutputs.forEach(id => {
+    selectedOutputs.forEach((id) => {
       if (DELIVERABLES[id]) items.push(...DELIVERABLES[id]);
     });
     return items;
@@ -145,17 +179,38 @@ export function CompactAnalysisForm({
 
   return (
     <form onSubmit={(e) => onSubmit(e, depth)} className="space-y-4">
-      {isLoading && <AnalysisProgress isLoading={isLoading} businessType={selectedIndustry} location={location} />}
+      {isLoading && (
+        <AnalysisProgress
+          isLoading={isLoading}
+          businessType={selectedIndustry}
+          location={location}
+        />
+      )}
 
       {/* Breadcrumb bar */}
       <div className="flex flex-wrap items-center justify-between gap-2 px-1">
         <div className="flex items-center gap-2">
-          <div className="w-[3px] h-5 rounded-full" style={{ background: 'var(--q-accent-primary)' }} />
-          <span className="text-[12px] font-bold" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-tertiary)' }}>AIWMC Quantis</span>
-          <span className="text-[12px]" style={{ color: 'var(--q-text-disabled)' }}>▸</span>
-          <span className="text-[12px] font-medium" style={{ color: 'var(--q-text-secondary)' }}>New Analysis</span>
+          <div
+            className="w-[3px] h-5 rounded-full"
+            style={{ background: 'var(--q-accent-primary)' }}
+          />
+          <span
+            className="text-[12px] font-bold"
+            style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-tertiary)' }}
+          >
+            AIWMC Quantis
+          </span>
+          <span className="text-[12px]" style={{ color: 'var(--q-text-disabled)' }}>
+            ▸
+          </span>
+          <span className="text-[12px] font-medium" style={{ color: 'var(--q-text-secondary)' }}>
+            New Analysis
+          </span>
         </div>
-        <span className="text-[10px] font-medium" style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--q-text-disabled)' }}>
+        <span
+          className="text-[10px] font-medium"
+          style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--q-text-disabled)' }}
+        >
           Model v2.0 · Mar 2026
         </span>
       </div>
@@ -163,11 +218,20 @@ export function CompactAnalysisForm({
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <span className="inline-block text-[11px] font-bold tracking-[0.06em] px-2.5 py-[3px] rounded-full mb-2"
-            style={{ background: 'var(--q-status-ai-bg)', border: '1px solid var(--q-status-ai-border)', color: 'var(--q-status-ai)' }}>
-            ⚡ DUAL-AI · GPT-4o mini + GEMINI
+          <span
+            className="inline-block text-[11px] font-bold tracking-[0.06em] px-2.5 py-[3px] rounded-full mb-2"
+            style={{
+              background: 'var(--q-status-ai-bg)',
+              border: '1px solid var(--q-status-ai-border)',
+              color: 'var(--q-status-ai)',
+            }}
+          >
+            ⚡ QUANTIS AI · DeepSeek Powered
           </span>
-          <h1 className="text-[28px] sm:text-[34px] font-bold leading-tight" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
+          <h1
+            className="text-[28px] sm:text-[34px] font-bold leading-tight"
+            style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}
+          >
             Stress-test your business idea
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
@@ -177,7 +241,9 @@ export function CompactAnalysisForm({
       </div>
 
       {/* 3-column grid */}
-      <div className={`grid grid-cols-1 ${showAdvanced ? 'md:grid-cols-2 lg:grid-cols-[1fr_1.6fr_260px]' : 'md:grid-cols-[1fr_260px]'} gap-4`}>
+      <div
+        className={`grid grid-cols-1 ${showAdvanced ? 'md:grid-cols-2 lg:grid-cols-[1fr_1.6fr_260px]' : 'md:grid-cols-[1fr_260px]'} gap-4`}
+      >
         <IndustryStep
           selectedIndustry={selectedIndustry}
           onIndustrySelect={handleIndustrySelect}
@@ -219,7 +285,11 @@ export function CompactAnalysisForm({
           type="button"
           onClick={() => setShowAdvanced(true)}
           className="flex items-center gap-2 mx-auto text-[13px] font-medium px-4 py-2 rounded-lg transition-all hover:opacity-80"
-          style={{ color: 'var(--q-accent-primary)', background: 'var(--q-accent-glow)', border: '1px solid var(--q-border-subtle)' }}
+          style={{
+            color: 'var(--q-accent-primary)',
+            background: 'var(--q-accent-glow)',
+            border: '1px solid var(--q-border-subtle)',
+          }}
         >
           <TrendingUp className="w-3.5 h-3.5" />
           Want more precision? Add your financial numbers ↓
@@ -229,8 +299,13 @@ export function CompactAnalysisForm({
       {/* Multi-Output Selector */}
       {showAdvanced && (
         <div className="flex flex-wrap items-center gap-2 px-1">
-          <span className="text-[12px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>What do you want?</span>
-          {OUTPUT_TYPES.map(opt => {
+          <span
+            className="text-[12px] font-semibold uppercase tracking-[0.06em]"
+            style={{ color: 'var(--q-text-disabled)' }}
+          >
+            What do you want?
+          </span>
+          {OUTPUT_TYPES.map((opt) => {
             const active = selectedOutputs.has(opt.id);
             const locked = opt.plusOnly && !isPlus;
             return (
@@ -244,21 +319,36 @@ export function CompactAnalysisForm({
                   cursor: locked ? 'pointer' : 'pointer',
                   background: locked
                     ? 'var(--q-bg-input)'
-                    : active ? 'var(--q-accent-glow)' : 'var(--q-bg-input)',
+                    : active
+                      ? 'var(--q-accent-glow)'
+                      : 'var(--q-bg-input)',
                   border: `1.5px solid ${locked ? 'var(--q-border-subtle)' : active ? 'var(--q-accent-primary)' : 'var(--q-border-subtle)'}`,
                   color: locked
                     ? 'var(--q-text-disabled)'
-                    : active ? 'var(--q-accent-primary)' : 'var(--q-text-tertiary)',
+                    : active
+                      ? 'var(--q-accent-primary)'
+                      : 'var(--q-text-tertiary)',
                   opacity: locked ? 0.7 : 1,
                 }}
               >
-                {locked
-                  ? <Lock className="w-3 h-3 flex-shrink-0" style={{ color: 'var(--q-text-disabled)' }} />
-                  : active ? <span>✓</span> : null}
+                {locked ? (
+                  <Lock
+                    className="w-3 h-3 flex-shrink-0"
+                    style={{ color: 'var(--q-text-disabled)' }}
+                  />
+                ) : active ? (
+                  <span>✓</span>
+                ) : null}
                 {opt.label}
                 {locked && (
-                  <span className="text-[10px] font-bold px-1 py-0.5 rounded-full ml-0.5"
-                    style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}>
+                  <span
+                    className="text-[10px] font-bold px-1 py-0.5 rounded-full ml-0.5"
+                    style={{
+                      background: 'var(--q-status-ai-bg)',
+                      color: 'var(--q-status-ai)',
+                      border: '1px solid var(--q-status-ai-border)',
+                    }}
+                  >
                     Plus
                   </span>
                 )}
@@ -274,12 +364,22 @@ export function CompactAnalysisForm({
       )}
 
       {/* "What you'll get" strip */}
-      <div className="flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 rounded-xl px-4 sm:px-5 py-3" style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}>
-        <span className="text-[12px] font-semibold uppercase tracking-[0.06em] w-full sm:w-auto" style={{ color: 'var(--q-text-disabled)' }}>You'll receive:</span>
+      <div
+        className="flex flex-wrap items-center gap-x-4 sm:gap-x-5 gap-y-2 rounded-xl px-4 sm:px-5 py-3"
+        style={{ background: 'var(--q-bg-surface)', border: '1px solid var(--q-border-subtle)' }}
+      >
+        <span
+          className="text-[12px] font-semibold uppercase tracking-[0.06em] w-full sm:w-auto"
+          style={{ color: 'var(--q-text-disabled)' }}
+        >
+          You'll receive:
+        </span>
         {activeDeliverables.map(({ icon: Icon, text }) => (
           <span key={text} className="flex items-center gap-1.5 group relative">
             <Icon className="w-3.5 h-3.5" style={{ color: 'var(--q-accent-primary)' }} />
-            <span className="text-[13px] font-medium" style={{ color: 'var(--q-text-secondary)' }}>{text}</span>
+            <span className="text-[13px] font-medium" style={{ color: 'var(--q-text-secondary)' }}>
+              {text}
+            </span>
           </span>
         ))}
       </div>

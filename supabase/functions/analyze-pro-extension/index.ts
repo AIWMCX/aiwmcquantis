@@ -27,7 +27,7 @@ import {
   mergeCanonicalDataSources,
 } from '../_shared/canonical-data-sources.ts';
 
-const DEFAULT_MODEL = 'google/gemini-2.5-pro';
+const DEFAULT_MODEL = 'deepseek-chat'; // llm-call.ts auto-routes to DeepSeek API
 
 interface ProRequestBody {
   plus_analysis: Record<string, unknown>;

@@ -15,7 +15,7 @@ import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
-const DEFAULT_MODEL = 'google/gemini-2.5-flash';
+const DEFAULT_MODEL = 'deepseek-chat'; // llm-call.ts auto-routes to DeepSeek API
 
 interface CapacityRequestBody {
   current_monthly_revenue_usd: number;

@@ -17,9 +17,24 @@ interface Props {
 }
 
 const TIERS = [
-  { key: 'tam', label: 'TAM', subtitle: 'Total Addressable', accent: 'from-sky-500/20 to-sky-500/5' },
-  { key: 'sam', label: 'SAM', subtitle: 'Serviceable Addressable', accent: 'from-violet-500/20 to-violet-500/5' },
-  { key: 'som', label: 'SOM', subtitle: 'Serviceable Obtainable', accent: 'from-emerald-500/20 to-emerald-500/5' },
+  {
+    key: 'tam',
+    label: 'TAM',
+    subtitle: 'Total Addressable',
+    accent: 'from-sky-500/20 to-sky-500/5',
+  },
+  {
+    key: 'sam',
+    label: 'SAM',
+    subtitle: 'Serviceable Addressable',
+    accent: 'from-violet-500/20 to-violet-500/5',
+  },
+  {
+    key: 'som',
+    label: 'SOM',
+    subtitle: 'Serviceable Obtainable',
+    accent: 'from-emerald-500/20 to-emerald-500/5',
+  },
 ] as const;
 
 function formatUsd(n: number): string {
@@ -47,15 +62,15 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
           <h3 className="text-sm font-semibold text-foreground">Market Sizing</h3>
         </div>
         <span className="text-[10px] font-mono uppercase tracking-wide text-muted-foreground">
-          PRO · TAM / SAM / SOM
+          PLUS+ · TAM / SAM / SOM
         </span>
       </header>
 
       {!sizing && (
         <div className="space-y-3">
           <p className="text-xs text-muted-foreground leading-relaxed">
-            Generate institutional-grade TAM / SAM / SOM with derivation methodology and investor framing.
-            Requires a completed PLUS analysis as input.
+            Generate institutional-grade TAM / SAM / SOM with derivation methodology and investor
+            framing. Requires a completed PLUS analysis as input.
           </p>
           <Button
             type="button"
@@ -85,9 +100,12 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {TIERS.map((tier) => {
             const block = sizing[tier.key];
-            const pct = tier.key === 'sam' ? (block as { tam_pct?: number }).tam_pct
-              : tier.key === 'som' ? (block as { sam_pct?: number }).sam_pct
-              : undefined;
+            const pct =
+              tier.key === 'sam'
+                ? (block as { tam_pct?: number }).tam_pct
+                : tier.key === 'som'
+                  ? (block as { sam_pct?: number }).sam_pct
+                  : undefined;
             return (
               <article
                 key={tier.key}

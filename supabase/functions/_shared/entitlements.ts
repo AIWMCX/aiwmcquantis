@@ -46,7 +46,7 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
     depthQuick: true, depthFull: true, depthPro: false,
     preMortem: true, invoiceCapacity: true, documentStudio: true, aiDocIntelligence: true,
     customBranding: true, whiteLabel: false, unlimitedHistory: true, watermarkFree: true,
-    apiAccess: false, tamSamSom: false, pitchDeck: false, strategicRoadmap: false,
+    apiAccess: false, tamSamSom: true, pitchDeck: false, strategicRoadmap: false,
     fiveYearModel: false, actionPlan: true,
   },
   pro: {

@@ -29,23 +29,72 @@ const PRICING = {
 };
 
 const FREE_FEATURES = [
-  { text: '5 analyses per month', highlight: false, subtext: 'Score + 3 critical risks + base revenue only' },
+  {
+    text: '5 analyses per month',
+    highlight: false,
+    subtext: 'Score + 3 critical risks + base revenue only',
+  },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
-  { text: '5 watermarked PDFs/day', highlight: false, subtext: '"Powered by Quantis" footer included' },
-  { text: 'Pre-Mortem Stress Test 🔒', highlight: false, subtext: 'Plus only — stress-test existing businesses' },
-  { text: 'Invoice & Capacity Check 🔒', highlight: false, subtext: 'Plus only — should you take this client?' },
+  {
+    text: '5 watermarked PDFs/day',
+    highlight: false,
+    subtext: '"Powered by Quantis" footer included',
+  },
+  {
+    text: 'Pre-Mortem Stress Test 🔒',
+    highlight: false,
+    subtext: 'Plus only — stress-test existing businesses',
+  },
+  {
+    text: 'Invoice & Capacity Check 🔒',
+    highlight: false,
+    subtext: 'Plus only — should you take this client?',
+  },
   { text: 'Document Studio 🔒', highlight: false, subtext: 'Plus only — investor-ready exports' },
   { text: 'Email support — best effort', highlight: false },
 ];
 
 const PLUS_FEATURES = [
-  { text: 'Unlimited analyses', highlight: true, subtext: 'Replaces 3-5 hours of senior CFO analysis' },
-  { text: 'Full report — Monte Carlo, 36-mo P&L, action plan', highlight: true, subtext: '95,500 scenario stress-tests per analysis' },
-  { text: 'Pre-Mortem Stress Test ✓', highlight: true, subtext: 'Stress-test churn shocks, cost spikes, customer concentration' },
-  { text: 'Invoice & Capacity Check ✓', highlight: true, subtext: 'Decide whether to accept new clients without breaking cash flow' },
-  { text: 'Document Studio ✓', highlight: false, subtext: '12+ branded templates auto-populated from your analysis' },
-  { text: 'Custom branding & PDF export', highlight: false, subtext: 'White-label reports with your logo' },
-  { text: 'AI Document Intelligence', highlight: false, subtext: 'Extract data from any PDF or Excel' },
+  {
+    text: 'Unlimited analyses',
+    highlight: true,
+    subtext: 'Replaces 3-5 hours of senior CFO analysis',
+  },
+  {
+    text: 'Full report — Monte Carlo, 36-mo P&L, action plan',
+    highlight: true,
+    subtext: '95,500 scenario stress-tests per analysis',
+  },
+  {
+    text: 'Pre-Mortem Stress Test ✓',
+    highlight: true,
+    subtext: 'Stress-test churn shocks, cost spikes, customer concentration',
+  },
+  {
+    text: 'Invoice & Capacity Check ✓',
+    highlight: true,
+    subtext: 'Decide whether to accept new clients without breaking cash flow',
+  },
+  {
+    text: 'Document Studio ✓',
+    highlight: false,
+    subtext: '12+ branded templates auto-populated from your analysis',
+  },
+  {
+    text: 'TAM / SAM / SOM Calculator ✓',
+    highlight: true,
+    subtext: 'Market sizing with cited sources for investors',
+  },
+  {
+    text: 'Custom branding & PDF export',
+    highlight: false,
+    subtext: 'White-label reports with your logo',
+  },
+  {
+    text: 'AI Document Intelligence',
+    highlight: false,
+    subtext: 'Extract data from any PDF or Excel',
+  },
   { text: 'Unlimited downloads + history', highlight: false },
   { text: 'Priority support', highlight: false },
 ];
@@ -53,9 +102,16 @@ const PLUS_FEATURES = [
 const PRO_FEATURES = [
   { text: 'Everything in Plus, plus:', highlight: true },
   { text: '5-Year Financial Model', highlight: true, subtext: 'Beyond the 36-month Plus horizon' },
-  { text: 'TAM / SAM / SOM Calculator', highlight: true, subtext: 'With cited sources for investors' },
-  { text: 'Pitch Deck Data Package', highlight: false, subtext: 'Exportable to slides — investor-ready' },
-  { text: 'Strategic Roadmap', highlight: false, subtext: 'Week-by-week launch plan with milestones' },
+  {
+    text: 'Pitch Deck Data Package',
+    highlight: false,
+    subtext: 'Exportable to slides — investor-ready',
+  },
+  {
+    text: 'Strategic Roadmap',
+    highlight: false,
+    subtext: 'Week-by-week launch plan with milestones',
+  },
   { text: 'White-Label PDF', highlight: false, subtext: 'Remove Quantis branding entirely' },
   { text: 'Team Access — 3 seats', highlight: false },
   { text: 'API Access', highlight: false, subtext: 'Embed Quantis analyses in your own tools' },
@@ -66,7 +122,7 @@ export function PricingSection() {
   const navigate = useNavigate();
   const { user } = useAuth();
   const { redirectToPayment } = usePaymentLinks();
-  
+
   // Get experiment variant FIRST so we can use it for initial state
   const pricingVariant = useExperiment('pricing_display');
   // Wave 2: yearly is the default (cheaper per-month + higher LTV).
@@ -77,7 +133,7 @@ export function PricingSection() {
   // Initialize billing period to annual by default
   const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>('annual');
   const [loadingPlan, setLoadingPlan] = useState<string | null>(null);
-  
+
   // Ref to always have the current billing period (eliminates stale state on quick clicks)
   const billingPeriodRef = useRef<BillingPeriod>(billingPeriod);
 
@@ -88,7 +144,7 @@ export function PricingSection() {
 
   // Track pricing section viewed (now includes billingPeriod in deps)
   useEffect(() => {
-    trackEvent('pricing_section_viewed', { 
+    trackEvent('pricing_section_viewed', {
       variant: pricingVariant,
       billing_period: billingPeriod,
     });
@@ -99,8 +155,8 @@ export function PricingSection() {
       const from = billingPeriodRef.current;
       setBillingPeriod(value);
       billingPeriodRef.current = value; // Update ref immediately
-      trackEvent('pricing_toggle_clicked', { 
-        from, 
+      trackEvent('pricing_toggle_clicked', {
+        from,
         to: value,
         variant: pricingVariant,
       });
@@ -110,14 +166,18 @@ export function PricingSection() {
   const handlePlanClick = (planName: 'free' | 'plus' | 'pro') => {
     // Use ref for guaranteed current value (fixes race condition)
     const currentBilling = billingPeriodRef.current;
-    
+
     trackEvent('pricing_cta_clicked', {
       plan: planName,
       variant: pricingVariant,
       billing_period: currentBilling,
     });
-    
-    trackExperimentConversion('pricing_display', 'cta_click', planName === 'plus' ? 1 : planName === 'pro' ? 2 : 0);
+
+    trackExperimentConversion(
+      'pricing_display',
+      'cta_click',
+      planName === 'plus' ? 1 : planName === 'pro' ? 2 : 0
+    );
 
     if (planName === 'free') {
       navigate('/app');
@@ -127,8 +187,12 @@ export function PricingSection() {
     // Build the correct Stripe Payment Link key for the chosen plan + billing period
     const planKey =
       planName === 'pro'
-        ? (currentBilling === 'annual' ? 'pro_annual' : 'pro_monthly')
-        : (currentBilling === 'annual' ? 'plus_annual' : 'plus_monthly');
+        ? currentBilling === 'annual'
+          ? 'pro_annual'
+          : 'pro_monthly'
+        : currentBilling === 'annual'
+          ? 'plus_annual'
+          : 'plus_monthly';
 
     setLoadingPlan(planName);
     if (user) {
@@ -166,20 +230,20 @@ export function PricingSection() {
         {/* Billing Period Toggle */}
         <div className="flex justify-center mb-8">
           <div className="bg-muted p-1 rounded-lg">
-            <ToggleGroup 
-              type="single" 
-              value={billingPeriod} 
+            <ToggleGroup
+              type="single"
+              value={billingPeriod}
               onValueChange={handleBillingToggle}
               className="gap-0"
             >
-              <ToggleGroupItem 
-                value="monthly" 
+              <ToggleGroupItem
+                value="monthly"
                 className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all"
               >
                 Monthly
               </ToggleGroupItem>
-              <ToggleGroupItem 
-                value="annual" 
+              <ToggleGroupItem
+                value="annual"
                 className="px-6 py-2 rounded-md data-[state=on]:bg-background data-[state=on]:shadow-sm transition-all relative"
               >
                 Annual
@@ -237,16 +301,16 @@ export function PricingSection() {
 
         {/* Legacy grandfather note */}
         <p className="text-xs text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
-          Existing Plus customers on the original $17/mo plan keep that price for the lifetime of their subscription. New monthly signups today are billed at $17/mo with the option to switch to annual ($14/mo) anytime.
+          Existing Plus customers on the original $17/mo plan keep that price for the lifetime of
+          their subscription. New monthly signups today are billed at $17/mo with the option to
+          switch to annual ($14/mo) anytime.
         </p>
 
         {/* Money-Back Guarantee */}
         <GuaranteeBanner />
 
         {/* Feature Comparison Table (for comparison_table variant) */}
-        {pricingVariant === 'comparison_table' && (
-          <FeatureComparisonTable />
-        )}
+        {pricingVariant === 'comparison_table' && <FeatureComparisonTable />}
 
         {/* Pricing FAQ */}
         <PricingFAQ />
@@ -269,16 +333,16 @@ function FeatureComparisonTable() {
 
   return (
     <div className="mt-12 max-w-2xl mx-auto">
-      <h3 className="text-xl font-semibold text-center text-foreground mb-6">
-        Feature Comparison
-      </h3>
+      <h3 className="text-xl font-semibold text-center text-foreground mb-6">Feature Comparison</h3>
       <div className="rounded-xl border border-border overflow-hidden bg-card">
         <table className="w-full">
           <thead>
             <tr className="border-b border-border bg-muted/50">
               <th className="text-left p-4 text-sm font-medium text-muted-foreground">Feature</th>
               <th className="text-center p-4 text-sm font-medium text-muted-foreground">Free</th>
-              <th className="text-center p-4 text-sm font-medium text-foreground bg-primary/5">Plus</th>
+              <th className="text-center p-4 text-sm font-medium text-foreground bg-primary/5">
+                Plus
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -286,10 +350,18 @@ function FeatureComparisonTable() {
               <tr key={feature.name} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
                 <td className="p-4 text-sm text-foreground">{feature.name}</td>
                 <td className="p-4 text-sm text-center text-muted-foreground">
-                  {feature.free === 'no' ? <Minus className="w-4 h-4 mx-auto text-muted-foreground/50" /> : feature.free}
+                  {feature.free === 'no' ? (
+                    <Minus className="w-4 h-4 mx-auto text-muted-foreground/50" />
+                  ) : (
+                    feature.free
+                  )}
                 </td>
                 <td className="p-4 text-sm text-center text-foreground font-medium bg-primary/5">
-                  {feature.plus === 'yes' ? <CheckCircle2 className="w-4 h-4 mx-auto text-success" /> : feature.plus}
+                  {feature.plus === 'yes' ? (
+                    <CheckCircle2 className="w-4 h-4 mx-auto text-success" />
+                  ) : (
+                    feature.plus
+                  )}
                 </td>
               </tr>
             ))}

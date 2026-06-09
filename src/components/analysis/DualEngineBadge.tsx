@@ -1,5 +1,14 @@
 import React, { useState } from 'react';
-import { ShieldCheck, CheckCircle2, Info, AlertTriangle, XCircle, ChevronDown, ChevronUp, Zap } from 'lucide-react';
+import {
+  ShieldCheck,
+  CheckCircle2,
+  Info,
+  AlertTriangle,
+  XCircle,
+  ChevronDown,
+  ChevronUp,
+  Zap,
+} from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { ConfidenceTier } from '@/services/confidence-scorer';
 
@@ -37,18 +46,21 @@ type CombinedProps = DualEngineBadgeProps | LegacyDualEngineBadgeProps;
 
 // ── Tier config ──
 
-const TIER_CONFIG: Record<ConfidenceTier, {
-  icon: React.ElementType;
-  label: string;
-  emoji: string;
-  bgClass: string;
-  borderClass: string;
-  textClass: string;
-  glowClass: string;
-}> = {
+const TIER_CONFIG: Record<
+  ConfidenceTier,
+  {
+    icon: React.ElementType;
+    label: string;
+    emoji: string;
+    bgClass: string;
+    borderClass: string;
+    textClass: string;
+    glowClass: string;
+  }
+> = {
   verified: {
     icon: ShieldCheck,
-    label: 'GPT + Gemini Verified',
+    label: 'DeepSeek AI Verified',
     emoji: '',
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',
@@ -57,7 +69,7 @@ const TIER_CONFIG: Record<ConfidenceTier, {
   },
   confident: {
     icon: CheckCircle2,
-    label: 'Dual Engine Checked',
+    label: 'AI Cross-Validated',
     emoji: '',
     bgClass: 'bg-blue-500/10',
     borderClass: 'border-blue-500/30',
@@ -164,7 +176,7 @@ function DualEngineBadgeInner({
         config.bgClass,
         config.borderClass,
         config.glowClass,
-        className,
+        className
       )}
     >
       {/* Main badge row */}
@@ -175,7 +187,7 @@ function DualEngineBadgeInner({
           SIZE_CLASSES[size],
           config.textClass,
           isExpandable && 'cursor-pointer hover:opacity-80',
-          !isExpandable && 'cursor-default',
+          !isExpandable && 'cursor-default'
         )}
         type="button"
         aria-expanded={isExpandable ? expanded : undefined}
@@ -183,34 +195,37 @@ function DualEngineBadgeInner({
         <Icon className={cn(ICON_SIZES[size])} />
         <span>{config.label}</span>
         {size !== 'sm' && (
-          <span className="text-muted-foreground font-normal ml-1">
-            {overallConfidence}%
-          </span>
+          <span className="text-muted-foreground font-normal ml-1">{overallConfidence}%</span>
         )}
-        {isExpandable && (
-          expanded
-            ? <ChevronUp className={cn(ICON_SIZES[size], 'ml-0.5 text-muted-foreground')} />
-            : <ChevronDown className={cn(ICON_SIZES[size], 'ml-0.5 text-muted-foreground')} />
-        )}
+        {isExpandable &&
+          (expanded ? (
+            <ChevronUp className={cn(ICON_SIZES[size], 'ml-0.5 text-muted-foreground')} />
+          ) : (
+            <ChevronDown className={cn(ICON_SIZES[size], 'ml-0.5 text-muted-foreground')} />
+          ))}
       </button>
 
       {/* Expanded details */}
       {expanded && (
-        <div className={cn(
-          'border-t px-3 py-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200',
-          config.borderClass,
-        )}>
+        <div
+          className={cn(
+            'border-t px-3 py-2 space-y-1.5 animate-in fade-in slide-in-from-top-1 duration-200',
+            config.borderClass
+          )}
+        >
           {/* Per-model breakdown */}
           <div className="flex items-center gap-4 text-xs">
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-blue-500" />
-              <span className="text-muted-foreground">GPT-4o mini:</span>
+              <span className="text-muted-foreground">DeepSeek Primary:</span>
               <span className="font-semibold text-foreground tabular-nums">{gptConfidence}%</span>
             </div>
             <div className="flex items-center gap-1.5">
               <span className="w-2 h-2 rounded-full bg-amber-500" />
-              <span className="text-muted-foreground">Gemini:</span>
-              <span className="font-semibold text-foreground tabular-nums">{geminiConfidence}%</span>
+              <span className="text-muted-foreground">AI Validation:</span>
+              <span className="font-semibold text-foreground tabular-nums">
+                {geminiConfidence}%
+              </span>
             </div>
           </div>
 
