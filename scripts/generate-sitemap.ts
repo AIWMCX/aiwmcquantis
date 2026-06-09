@@ -52,14 +52,14 @@ const staticEntries: Entry[] = [
   { path: '/terms', changefreq: 'yearly', priority: '0.3' },
 ];
 
-const blogEntries: Entry[] = BLOG_ARTICLES.map((a) => ({
-  path: `/blog/${a.slug}`,
+const blogEntries: Entry[] = BLOG_SLUGS.map((slug) => ({
+  path: `/blog/${slug}`,
   changefreq: 'monthly',
   priority: '0.7',
 }));
 
-const exampleEntries: Entry[] = EXAMPLE_LIST.map((e) => ({
-  path: `/examples/${e.slug}`,
+const exampleEntries: Entry[] = EXAMPLE_SLUGS.map((slug) => ({
+  path: `/examples/${slug}`,
   changefreq: 'monthly',
   priority: '0.7',
 }));
