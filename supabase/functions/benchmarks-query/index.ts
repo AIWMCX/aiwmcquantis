@@ -1,5 +1,5 @@
 // Thin wrapper around the `benchmark_lookup` RPC. Lets CI and external
-// callers test that the 95,500-row dataset actually returns real P25/P50/P75
+// callers test that the 97,500-row dataset actually returns real P25/P50/P75
 // values, independent of the analyze-business orchestration.
 //
 // POST /benchmarks/query

@@ -1,10 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useRef, useMemo, Suspense, lazy } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
-import { AccuracyTransparentResults } from '@/components/analysis/AccuracyTransparentResults';
+// Lazy: pulls @react-pdf/renderer (~1.5 MB). Keep off the dashboard entry bundle.
+const AccuracyTransparentResults = lazy(() =>
+  import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
+    default: m.AccuracyTransparentResults,
+  }))
+);
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { AnalysisTopBar } from '@/components/analysis/AnalysisTopBar';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
@@ -533,11 +538,13 @@ export default function Index() {
                     )}
                     {result ? (
                       <SectionErrorBoundary section="your results" onBack={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); }}>
-                        <AccuracyTransparentResults 
-                          result={result} 
-                          analysisId={currentAnalysisId || undefined}
-                          onReset={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); setShowNextSteps(false); }} 
-                        />
+                        <Suspense fallback={<div className="space-y-3 p-6"><Skeleton className="h-8 w-1/3" /><Skeleton className="h-64 w-full" /></div>}>
+                          <AccuracyTransparentResults 
+                            result={result} 
+                            analysisId={currentAnalysisId || undefined}
+                            onReset={() => { reset(); setCurrentAnalysisId(null); setHasPrefill(false); setShowNextSteps(false); }} 
+                          />
+                        </Suspense>
                         {showNextSteps && (
                           <NextStepsBar
                             onShare={() => {
