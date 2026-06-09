@@ -18,8 +18,17 @@ function extractSlugs(filePath: string, sliceStart = 0, sliceEnd?: number): stri
   return Array.from(new Set(all)).slice(sliceStart, sliceEnd);
 }
 
-// exampleData.ts: every `slug:` occurrence is an example slug.
-const EXAMPLE_SLUGS = extractSlugs('src/pages/examples/exampleData.ts');
+// exampleData.ts + exampleDataExpanded.ts: slugs are object keys.
+function extractObjectKeySlugs(filePath: string): string[] {
+  const src = readFileSync(resolve(filePath), 'utf8');
+  return Array.from(src.matchAll(/^\s*['"]([a-z0-9][a-z0-9-]+)['"]\s*:\s*\{/gm)).map((m) => m[1]);
+}
+const EXAMPLE_SLUGS = Array.from(
+  new Set([
+    ...extractObjectKeySlugs('src/pages/examples/exampleData.ts'),
+    ...extractObjectKeySlugs('src/pages/examples/exampleDataExpanded.ts'),
+  ])
+);
 // Blog.tsx: first 11 `slug:` entries belong to BLOG_ARTICLES (rest are example refs in JSX).
 const BLOG_SLUGS = (() => {
   const src = readFileSync(resolve('src/pages/Blog.tsx'), 'utf8');
