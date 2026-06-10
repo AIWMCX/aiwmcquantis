@@ -129,6 +129,8 @@ Return ONLY a JSON: {"quality_score": 0.85, "notes": "brief reason"}`;
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
             body: JSON.stringify({
               model: 'deepseek-v4-flash',
+              // V4 defaults to thinking mode — disable so content carries the JSON.
+              thinking: { type: 'disabled' },
               messages: [{ role: 'user', content: prompt }],
               max_tokens: 100,
               temperature: 0.1,

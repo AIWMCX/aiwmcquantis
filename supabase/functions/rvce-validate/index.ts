@@ -296,6 +296,9 @@ Rules:
       },
       body: JSON.stringify({
         model: 'deepseek-v4-flash',
+        // V4 defaults to thinking mode (empty content + reasoning_content),
+        // which breaks the JSON extraction below — disable explicitly.
+        thinking: { type: 'disabled' },
         messages: [
           {
             role: 'system',

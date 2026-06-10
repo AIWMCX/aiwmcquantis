@@ -196,6 +196,15 @@ export async function aiCall(
   // Ensure resolved model is in the final body (spread above may have overwritten it).
   requestBody.model = resolveModel(body.model);
 
+  // DeepSeek V4 models default to THINKING mode: they emit reasoning_content
+  // and leave message.content empty until reasoning finishes, which silently
+  // breaks every caller that reads content / parses JSON (root cause of the
+  // "AI narrator unavailable" production incident on 2026-06-10). Disable
+  // thinking unless the caller explicitly opted in.
+  if (deepseekKey && String(requestBody.model).startsWith('deepseek-v4') && requestBody.thinking === undefined) {
+    requestBody.thinking = { type: 'disabled' };
+  }
+
   let model = requestBody.model ?? DEFAULT_MODEL;
 
   let resp: Response;

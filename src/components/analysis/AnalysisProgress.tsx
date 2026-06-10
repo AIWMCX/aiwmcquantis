@@ -120,6 +120,10 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   const [completionPhase, setCompletionPhase] = useState<
     'none' | 'filling' | 'checkmarks' | 'done'
   >('none');
+  // Callers don't always pass startTime — without this fallback elapsed stays
+  // 0 forever and the overlay sits at "0% · ~45s remaining" for the whole run.
+  const [mountTime] = useState(() => Date.now());
+  const effectiveStart = startTime ?? mountTime;
 
   const stages = useMemo(() => buildStages(location, selectedOutputs), [location, selectedOutputs]);
 
@@ -131,12 +135,12 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
       return;
     }
     const interval = setInterval(() => {
-      const elapsed = startTime ? Math.floor((Date.now() - startTime) / 1000) : 0;
+      const elapsed = Math.floor((Date.now() - effectiveStart) / 1000);
       setElapsedSeconds(elapsed);
       if (elapsed >= 60) setShowTimeout(true);
     }, 100);
     return () => clearInterval(interval);
-  }, [isLoading, startTime]);
+  }, [isLoading, effectiveStart]);
 
   // Completion animation sequence
   useEffect(() => {
