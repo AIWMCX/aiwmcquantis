@@ -103,7 +103,14 @@ jobs:
             exit 0
           fi
           npm install -g supabase@2.20.5 2>/dev/null || true
-          npx supabase link --project-ref "$PROJECT_REF"
+          # link prompts for the DB password when run interactively — in CI it must
+          # be passed via -p or the command exits non-zero and kills the whole job
+          # (which then skips deploy-edge-functions via `needs`). Root cause of the
+          # red Production Deploy runs #162-#174.
+          npx supabase link --project-ref "$PROJECT_REF" -p "$SUPABASE_DB_PASSWORD" || {
+            echo "::warning title=Link failed::supabase link failed — skipping migrations (edge functions still deploy)"
+            exit 0
+          }
           # Push all pending migrations (idempotent — skips already-applied ones)
           npx supabase db push --password "$SUPABASE_DB_PASSWORD" --include-all 2>&1 || {
             echo "::warning title=Migration warn::db push exited non-zero — check output above"
@@ -113,7 +120,9 @@ jobs:
   deploy-edge-functions:
     name: Deploy Supabase Edge Functions
     needs: [run-migrations]
-    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    # always(): edge functions must deploy even if migrations job failed —
+    # a migration hiccup must never freeze function code in production.
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
     runs-on: ubuntu-latest
     timeout-minutes: 10
     environment:
@@ -222,7 +231,7 @@ jobs:
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do
             echo "Deploying $fn …"
-            if npx supabase functions deploy "$fn" --project-ref "$PROJECT_REF" 2>&1; then
+            if npx supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --use-api 2>&1; then
               echo "✓ $fn deployed"
             else
               echo "✗ $fn FAILED"

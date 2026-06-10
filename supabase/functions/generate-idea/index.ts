@@ -469,9 +469,31 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
 
     const choices = aiResult.data.choices as Array<{ message?: { tool_calls?: Array<{ function: { arguments: string } }> } }> | undefined;
     const toolCall = choices?.[0]?.message?.tool_calls?.[0];
-    if (!toolCall) throw new Error("No tool call in response");
+    if (!toolCall) {
+      // Model answered without the tool call (e.g. Anthropic fallback path
+      // doesn't carry tool definitions) — ship the deterministic idea rather
+      // than throwing a raw 500 at the user.
+      log.warn('No tool call in AI response, returning deterministic idea');
+      const fallback = buildDeterministicIdea(seed);
+      const remainingNoTool = (req as any)._ideaRemaining;
+      if (typeof remainingNoTool === 'number') fallback._ideaGenRemaining = remainingNoTool;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
-    const result = JSON.parse(toolCall.function.arguments);
+    let result: Record<string, any>;
+    try {
+      result = JSON.parse(toolCall.function.arguments);
+    } catch {
+      log.warn('Tool call arguments were not valid JSON, returning deterministic idea');
+      const fallback = buildDeterministicIdea(seed);
+      const remainingBadJson = (req as any)._ideaRemaining;
+      if (typeof remainingBadJson === 'number') fallback._ideaGenRemaining = remainingBadJson;
+      return new Response(JSON.stringify(fallback), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     // ── POST-GENERATION VALIDATION ──
     // Sanity-check the AI's numbers against seed ranges and internal consistency
