@@ -5573,6 +5573,33 @@ export type Database = {
           },
         ]
       }
+      usage_counters: {
+        Row: {
+          analyses_used: number
+          id: string
+          identity_key: string
+          period_start: string
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          analyses_used?: number
+          id?: string
+          identity_key: string
+          period_start?: string
+          tier?: string
+          updated_at?: string
+        }
+        Update: {
+          analyses_used?: number
+          id?: string
+          identity_key?: string
+          period_start?: string
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       usage_tracking: {
         Row: {
           analyses_count: number
@@ -6042,6 +6069,14 @@ export type Database = {
           p_source: string
         }
         Returns: string
+      }
+      charge_free_analysis: {
+        Args: { p_dry_run?: boolean; p_identity: string }
+        Returns: {
+          allowed: boolean
+          remaining: number
+          used: number
+        }[]
       }
       check_anonymous_rate_limit: {
         Args: {
