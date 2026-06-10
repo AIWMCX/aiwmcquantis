@@ -40,6 +40,25 @@ const METRIC_LABELS: Record<string, string> = {
   marketing_pct_rev: 'Marketing % Revenue',
 };
 
+/** Percent-style metrics arrive as fractions (0.56 = 56%). */
+const PERCENT_METRICS = new Set([
+  'gross_margin', 'operating_margin', 'churn_monthly',
+  'rent_pct_rev', 'payroll_pct_rev', 'marketing_pct_rev',
+]);
+
+/**
+ * Engine sentinel/garbage guard: a 999-month payback sentinel or a
+ * -62,794% operating margin must never render as a real number.
+ */
+function isDisplayable(metric: string, v: number | undefined): v is number {
+  if (v == null || !Number.isFinite(v)) return false;
+  if (metric === 'cac_payback' && (v >= 999 || v <= 0)) return false;
+  if (metric === 'survival_years' && (v <= 0 || v > 100)) return false;
+  if (PERCENT_METRICS.has(metric) && Math.abs(v) > 5) return false; // |500%|+
+  if (metric === 'ltv_cac_ratio' && (v <= 0 || v > 100)) return false;
+  return true;
+}
+
 export function BenchmarkCitations({ metrics, context, className }: BenchmarkCitationsProps) {
   const [rows, setRows] = useState<Array<CitedMetric & { b: BenchmarkResult }> | null>(null);
 
@@ -89,7 +108,7 @@ export function BenchmarkCitations({ metrics, context, className }: BenchmarkCit
                   return (
                     <tr key={r.metric} className="border-b border-[var(--q-border-subtle)]">
                       <td className="py-1.5 pr-3">{label}</td>
-                      <td className="py-1.5 pr-3 text-right font-mono">{r.userValue != null ? fmt(r.userValue) : '—'}</td>
+                      <td className="py-1.5 pr-3 text-right font-mono">{isDisplayable(r.metric, r.userValue) ? fmt(r.userValue) : '—'}</td>
                       <td className="py-1.5 pr-3 text-right text-[var(--q-status-yellow)]" colSpan={2}>
                         Estimated · No direct benchmark
                       </td>
