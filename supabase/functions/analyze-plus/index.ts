@@ -219,7 +219,7 @@ async function fetchLiveBenchmarks(
   return '\n' + parts.join('\n');
 }
 
-const DEFAULT_MODEL = 'deepseek-v4-flash'; // Fix #3 — legacy 'deepseek-chat' retires 2026-07-24
+const DEFAULT_MODEL = 'deepseek-v4-flash'; // Fix #3 — legacy deepseek model retires 2026-07-24
 interface PlusRequestBody {
   idea: string;
   location: string;

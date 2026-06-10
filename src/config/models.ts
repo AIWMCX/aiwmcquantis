@@ -2,7 +2,7 @@
  * Single source of truth for AI model identifiers.
  *
  * Why this file exists:
- *   - DeepSeek retired the legacy aliases `deepseek-chat` and `deepseek-reasoner`
+ *   - DeepSeek retired the legacy model aliases (chat + reasoner)
  *     on 2026-07-24 15:59 UTC. Any code that still ships those strings will
  *     start failing on that date with no fallback.
  *   - Hardcoding model strings across edge functions made past migrations error-

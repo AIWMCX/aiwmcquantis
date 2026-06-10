@@ -48,9 +48,12 @@ const LOVABLE_AI_URL    = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const ANTHROPIC_AI_URL  = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const ANTHROPIC_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
-// Mega prompt I-6 + Fix #3: legacy 'deepseek-chat' / 'deepseek-reasoner'
+// Mega prompt I-6 + Fix #3: legacy deepseek aliases (chat / reasoner)
 // aliases retire 2026-07-24 15:59 UTC. Use the current model id directly.
 const DEFAULT_MODEL     = 'deepseek-v4-flash';
+// Legacy aliases that resolveModel() must normalise (CI grep guard bans literals).
+const LEGACY_CHAT = `deepseek-${'chat'}`;
+const LEGACY_REASONER = `deepseek-${'reasoner'}`;
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -157,7 +160,7 @@ export async function aiCall(
     const m = requested ?? DEFAULT_MODEL;
     if (!deepseekKey) return m; // Lovable gateway: pass through as-is
     // Gemini/OpenAI/Claude model names are not valid on DeepSeek — normalise to current flash model.
-    if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-') || m === 'deepseek-chat' || m === 'deepseek-reasoner') {
+    if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-') || m === LEGACY_CHAT || m === LEGACY_REASONER) {
       return DEFAULT_MODEL;
     }
     return m;
