@@ -3,7 +3,7 @@
  * Mirrors the public.data_provenance table so the UI and PDF always
  * surface the real ingested datasets, even on emergency fallback.
  *
- * Aggregate footprint: 97,500+ benchmark datapoints (live in DB) +
+ * Aggregate footprint: 95,500+ benchmark datapoints (live in DB) +
  * 690,074 underlying records across financial filings, SME surveys,
  * and SMB benchmark studies.
  */
@@ -63,7 +63,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     name: 'AIWMC Quantis Benchmark Library',
     license: 'Proprietary derived',
     dataset_type: 'Industry benchmark',
-    records: 97_500,
+    records: 95_500,
     period: 'Continuously refreshed',
     usage: 'P25/Median/P75 ranges per industry × geography × metric used in every metric badge.',
   },

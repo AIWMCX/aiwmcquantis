@@ -45,7 +45,7 @@ function extractRecord(
   const literal = match[1]
     .replace(/;$/, '')
     .replace(/\bInfinity\b/g, 'Number.POSITIVE_INFINITY')
-    .replace(/(\d)_(\d)/g, '$1$2'); // 97_500 → 97500
+    .replace(/(\d)_(\d)/g, '$1$2'); // 95_500 → 95500
 
   // eslint-disable-next-line @typescript-eslint/no-implied-eval, no-new-func
   const evaluated = new Function(`return (${literal});`)();

@@ -17,7 +17,7 @@ interface SimpleMetricCardProps {
   explanation?: string;
   /** Plain-language hint always visible below metric */
   hint?: string;
-  /** Metric key for the 97,500-row Benchmark Master library */
+  /** Metric key for the 95,500-row Benchmark Master library */
   benchmarkMetric?: BenchmarkMetric;
   /** Sector/geo context for benchmark lookup */
   benchmarkContext?: BenchmarkContext;

@@ -67,7 +67,7 @@ export const TIERS = {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 36,
-      monteCarloScenarios: 97_500,
+      monteCarloScenarios: 95_500,
       teamSeats: 1,
       templates: 12,
     },
@@ -104,7 +104,7 @@ export const TIERS = {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 60,
-      monteCarloScenarios: 97_500,
+      monteCarloScenarios: 95_500,
       teamSeats: 3,
       templates: 12,
     },
@@ -193,7 +193,7 @@ export const UPGRADE_COPY: Record<
   depthFull: {
     title: 'Full Report Mode',
     bullets: [
-      '97,500-scenario Monte Carlo',
+      '95,500-scenario Monte Carlo',
       '36-month P&L with variance bands',
       'Prioritized action plan',
     ],

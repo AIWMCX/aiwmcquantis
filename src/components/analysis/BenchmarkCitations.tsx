@@ -1,7 +1,7 @@
 /**
  * BenchmarkCitations — single panel that lists every benchmark cited
  * in the analysis with P25/P50/P75 range, source, sample size, and date.
- * Backed by the AIWMC Quantis 97,500-row Benchmark Master library.
+ * Backed by the AIWMC Quantis 95,500-row Benchmark Master library.
  */
 import React, { useEffect, useState } from 'react';
 import { Database, Loader2 } from 'lucide-react';
@@ -60,7 +60,7 @@ export function BenchmarkCitations({ metrics, context, className }: BenchmarkCit
           <h3 id="bench-citations-h" className="font-semibold text-sm">Benchmark Citations</h3>
         </div>
         <span className="text-[10px] font-mono text-muted-foreground">
-          AIWMC Master · n=97,500
+          AIWMC Master · n=95,500
         </span>
       </header>
 
@@ -116,7 +116,7 @@ export function BenchmarkCitations({ metrics, context, className }: BenchmarkCit
         </div>
       )}
       <p className="mt-2 text-[10px] text-muted-foreground">
-        Every numeric metric in this report is matched against the 97,500-row AIWMC Quantis
+        Every numeric metric in this report is matched against the 95,500-row AIWMC Quantis
         Benchmark Master library. When no direct match exists, we mark the value as
         "Estimated" and flag the wider uncertainty band.
       </p>

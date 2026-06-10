@@ -24,7 +24,7 @@ interface RouteMeta {
 const ROUTE_META: Record<string, RouteMeta> = {
   '/': {
     title: 'AIWMC Quantis — AI Business Idea Validator',
-    description: 'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 real benchmarks. Free to start.',
+    description: 'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.',
   },
   '/how-it-works': {
     title: 'How Quantis Works — 3 Steps to Financial Clarity',
@@ -52,7 +52,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/research': {
     title: 'Research — Data Behind Quantis',
-    description: 'Research and primary sources powering Quantis: 97,500 industry benchmarks, location indices, and validation studies.',
+    description: 'Research and primary sources powering Quantis: 95,500 industry benchmarks, location indices, and validation studies.',
   },
   '/blog': {
     title: 'Blog — Founder Lessons & Validation Tactics',
@@ -121,7 +121,7 @@ export function RouteSEO({ path, titleOverride, descriptionOverride, noIndex }: 
   const description =
     descriptionOverride ??
     meta?.description ??
-    'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 real benchmarks.';
+    'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks.';
   const shouldNoIndex = noIndex ?? meta?.noIndex ?? false;
 
   return <PageMeta title={title} description={description} path={resolvedPath} noIndex={shouldNoIndex} />;

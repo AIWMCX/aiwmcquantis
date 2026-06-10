@@ -119,7 +119,7 @@ export default function Leaderboard() {
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
         title="Quantis Leaderboard — Top-scoring validated business ideas"
-        description="Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against 97,500 real benchmarks."
+        description="Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against 95,500 real benchmarks."
         canonical="/leaderboard"
       />
       {/* Nav */}

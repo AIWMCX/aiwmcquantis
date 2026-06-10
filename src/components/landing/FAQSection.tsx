@@ -9,7 +9,7 @@ import { StructuredData } from '@/components/seo/StructuredData';
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: 'AIWMC Quantis is an AI-powered business validation and risk stress-testing platform. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 97,500 industry benchmarks — in under 60 seconds.'
+    answer: 'AIWMC Quantis is an AI-powered business validation and risk stress-testing platform. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 95,500 industry benchmarks — in under 60 seconds.'
   },
   {
     question: 'How is this different from ChatGPT?',
@@ -17,11 +17,11 @@ const faqItems = [
   },
   {
     question: 'What data do you use?',
-    answer: '97,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data. The engine uses the same financial frameworks that VCs and accelerators rely on.'
+    answer: '95,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data. The engine uses the same financial frameworks that VCs and accelerators rely on.'
   },
   {
     question: 'How accurate are the financial projections?',
-    answer: 'Our projections are based on 97,500 industry benchmarks and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.'
+    answer: 'Our projections are based on 95,500 industry benchmarks and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.'
   },
   {
     question: 'Can I try AIWMC Quantis for free?',

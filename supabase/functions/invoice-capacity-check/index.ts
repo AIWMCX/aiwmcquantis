@@ -16,7 +16,7 @@ import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
-/** Fetch sector-specific invoice benchmarks from the 97,500-row dataset. */
+/** Fetch sector-specific invoice benchmarks from the 95,500-row dataset. */
 async function getInvoiceBenchmarkContext(sector?: string): Promise<string> {
   const url = Deno.env.get('SUPABASE_URL');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');

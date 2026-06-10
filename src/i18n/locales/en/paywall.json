@@ -7,7 +7,7 @@
     "members_only": "Plus members only",
     "this_module_answers": "This module answers",
     "trust_strip": {
-      "benchmarks": "✓ 97,500 benchmarks",
+      "benchmarks": "✓ 95,500 benchmarks",
       "monte_carlo": "✓ Monte Carlo simulations",
       "pdf_export": "✓ PDF export",
       "unlimited": "✓ Unlimited analyses"

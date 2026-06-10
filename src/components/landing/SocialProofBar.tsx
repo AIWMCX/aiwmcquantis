@@ -39,7 +39,7 @@ export function SocialProofBar() {
     },
     {
       icon: Users,
-      value: '97,500',
+      value: '95,500',
       label: 'Benchmark data points',
     },
   ];

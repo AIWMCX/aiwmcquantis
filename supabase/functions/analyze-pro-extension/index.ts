@@ -95,7 +95,7 @@ async function buildBenchmarkContext(plusAnalysis: Record<string, unknown>): Pro
     if (!core && !ue) return '';
 
     const parts = [
-      `LIVE_BENCHMARK_CONTEXT (AIWMC Quantis Master v2, 97,500 data points):`,
+      `LIVE_BENCHMARK_CONTEXT (AIWMC Quantis Master v2, 95,500 data points):`,
       `Sector: ${sector_level1}${sector_level2 ? ' > ' + sector_level2 : ''} | Model: ${business_model} | Geo: ${country} ${city_tier}`,
     ];
     if (core)

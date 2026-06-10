@@ -58,7 +58,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     name: 'AIWMC Quantis Benchmark Library',
     license: 'Proprietary derived',
     dataset_type: 'Industry benchmark',
-    records: 97_500,
+    records: 95_500,
     period: 'Continuously refreshed',
     usage: 'P25/Median/P75 ranges per industry × geography × metric used in every metric badge.',
   },

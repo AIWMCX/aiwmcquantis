@@ -61,7 +61,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const businessType = result.metadata?.idea || (result.metadata as any)?.business_type || undefined;
   const location = result.metadata?.location || undefined;
 
-  // Benchmark context — feeds the 97,500-row Benchmark Master library
+  // Benchmark context — feeds the 95,500-row Benchmark Master library
   const benchmarkContext = useMemo(() => {
     const meta: any = result.metadata || {};
     const sector = meta.industry_detected || meta.selected_industry || meta.sector || undefined;
@@ -480,7 +480,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Benchmark Engine</span>
-                      <span className="font-mono text-foreground">V2 (97,500 pts)</span>
+                      <span className="font-mono text-foreground">V2 (95,500 pts)</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Geo Calibration</span>
@@ -495,7 +495,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <div className="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
                     <div>
-                      <p className="text-[11px] font-semibold text-foreground">Verified by 97,500 Benchmarks</p>
+                      <p className="text-[11px] font-semibold text-foreground">Verified by 95,500 Benchmarks</p>
                       <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
                     </div>
                   </div>
@@ -510,7 +510,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 </div>
               </div>
             </div>
-            {/* Benchmark Citations — every numeric metric tied to the 97,500-row library */}
+            {/* Benchmark Citations — every numeric metric tied to the 95,500-row library */}
             <section className="q-card p-5 mt-5">
               <BenchmarkCitations
                 context={benchmarkContext}

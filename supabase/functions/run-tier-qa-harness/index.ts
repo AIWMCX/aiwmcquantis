@@ -51,8 +51,8 @@ const EXPECTED_FEATURES = {
 
 const EXPECTED_LIMITS = {
   free: { analysesPerMonth: 1, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
-  plus: { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 36, monteCarloScenarios: 97_500, teamSeats: 1, templates: 12 },
-  pro:  { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 60, monteCarloScenarios: 97_500, teamSeats: 3, templates: 12 },
+  plus: { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 36, monteCarloScenarios: 95_500, teamSeats: 1, templates: 12 },
+  pro:  { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 60, monteCarloScenarios: 95_500, teamSeats: 3, templates: 12 },
 } as const;
 
 const EXPECTED_PRICES = {

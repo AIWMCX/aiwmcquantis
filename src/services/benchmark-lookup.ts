@@ -1,6 +1,6 @@
 /**
  * Benchmark Lookup Service
- * Fetches P25/P50/P75 from the 97,500-row Benchmark Master library
+ * Fetches P25/P50/P75 from the 95,500-row Benchmark Master library
  * via the `benchmark_lookup` RPC. Falls back to "Estimated · No direct
  * benchmark" when no row matches.
  */
