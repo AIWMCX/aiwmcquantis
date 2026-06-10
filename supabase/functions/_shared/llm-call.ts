@@ -41,7 +41,9 @@ import {
 // Supabase project migration away from Lovable).
 const DEEPSEEK_AI_URL   = 'https://api.deepseek.com/v1/chat/completions';
 const LOVABLE_AI_URL    = 'https://ai.gateway.lovable.dev/v1/chat/completions';
-const DEFAULT_MODEL     = 'deepseek-chat';
+// Mega prompt I-6 + Fix #3: legacy 'deepseek-chat' / 'deepseek-reasoner'
+// aliases retire 2026-07-24 15:59 UTC. Use the current model id.
+const DEFAULT_MODEL     = 'deepseek-v4-flash';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
 const SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
@@ -141,9 +143,9 @@ export async function aiCall(
   function resolveModel(requested: string | undefined): string {
     const m = requested ?? DEFAULT_MODEL;
     if (!deepseekKey) return m; // Lovable gateway: pass through as-is
-    // Gemini/OpenAI model names are not valid on DeepSeek — normalise to deepseek-chat.
+    // Gemini/OpenAI/Claude model names are not valid on DeepSeek — normalise to current flash model.
     if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-')) {
-      return 'deepseek-chat';
+      return DEFAULT_MODEL;
     }
     return m;
   }

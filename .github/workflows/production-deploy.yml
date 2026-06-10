@@ -226,3 +226,30 @@ jobs:
             exit 1
           fi
           echo "All edge functions deployed successfully" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Post-deploy smoke test (Fix #1) ──────────────────────────────────────
+      # Confirm analyze-business is actually live. A 2xx/4xx response proves the
+      # function reachable; only a 5xx or curl error means the deploy didn't land.
+      - name: Post-deploy smoke test (analyze-business)
+        env:
+          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$PROJECT_REF" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning title=Smoke test skipped::PROJECT_REF or anon key missing"
+            exit 0
+          fi
+          URL="https://$PROJECT_REF.supabase.co/functions/v1/analyze-business"
+          CODE=$(curl -sS -o /dev/null -w "%{http_code}" \
+            -X POST \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY" \
+            -H "Content-Type: application/json" \
+            -d '{"ping":true}' "$URL" || echo "000")
+          echo "analyze-business smoke → HTTP $CODE"
+          # 2xx/4xx = function reachable. 5xx or 000 = deploy didn't land.
+          if [ "$CODE" -ge 500 ] 2>/dev/null || [ "$CODE" = "000" ]; then
+            echo "::error title=Edge function unreachable::analyze-business returned $CODE — deploy may not have landed."
+            exit 1
+          fi
+          echo "✓ analyze-business reachable (HTTP $CODE)" >> "$GITHUB_STEP_SUMMARY"
