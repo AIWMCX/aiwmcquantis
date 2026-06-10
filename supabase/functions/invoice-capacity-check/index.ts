@@ -52,7 +52,6 @@ async function getInvoiceBenchmarkContext(sector?: string): Promise<string> {
 }
 
 const DEFAULT_MODEL = 'deepseek-v4-flash'; // Fix #3 — legacy 'deepseek-chat' retires 2026-07-24
-
 interface CapacityRequestBody {
   current_monthly_revenue_usd: number;
   current_monthly_costs_usd: number;

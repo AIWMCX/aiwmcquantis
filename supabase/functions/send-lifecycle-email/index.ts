@@ -177,7 +177,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           What you'll lose at ${data.period_end_human || 'period end'}:
         </p>
         <ul style="color: #4a4a4a; font-size: 15px; line-height: 1.8;">
-          <li>95,500-scenario Monte Carlo simulation</li>
+          <li>97,500-scenario Monte Carlo simulation</li>
           <li>36-month P&L projections with variance bands</li>
           <li>Pre-Mortem Stress Test + Invoice & Capacity Check</li>
           <li>Document Studio (12 branded templates)</li>

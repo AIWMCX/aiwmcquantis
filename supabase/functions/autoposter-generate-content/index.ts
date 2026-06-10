@@ -24,7 +24,7 @@ Never: hashtag spam, emoji spam, generic praise.
 
 Facts to weave in only where relevant:
 - 90-second business analysis
-- 95,500 real benchmarks (SBA, IBISWorld, Census, BLS)
+- 97,500 real benchmarks (SBA, IBISWorld, Census, BLS)
 - 1,000 Monte Carlo simulations with P10/P50/P90 scenarios
 - Free tier: 3 analyses/month, no card
 - Plus: $17/month

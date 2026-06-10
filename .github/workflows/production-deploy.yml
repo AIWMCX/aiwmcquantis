@@ -129,6 +129,7 @@ jobs:
           PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
           STRIPE_SECRET_KEY: ${{ secrets.STRIPE_SECRET_KEY }}
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
@@ -165,6 +166,13 @@ jobs:
           [ -n "$STRIPE_PRO_ANNUAL_PRICE_ID" ]  && npx supabase secrets set STRIPE_PRO_ANNUAL_PRICE_ID="$STRIPE_PRO_ANNUAL_PRICE_ID"   --project-ref "$PROJECT_REF"
           # LOVABLE_API_KEY: optional legacy gateway (DeepSeek is primary since Lovable migration)
           [ -n "$LOVABLE_API_KEY" ] && npx supabase secrets set LOVABLE_API_KEY="$LOVABLE_API_KEY" --project-ref "$PROJECT_REF"
+          # ANTHROPIC_API_KEY: hard fallback for aiCall() when DeepSeek/Lovable fail (RVCE excluded — DeepSeek-only by policy)
+          if [ -n "$ANTHROPIC_API_KEY" ]; then
+            npx supabase secrets set ANTHROPIC_API_KEY="$ANTHROPIC_API_KEY" --project-ref "$PROJECT_REF"
+            echo "✓ ANTHROPIC_API_KEY synced to Supabase (Claude fallback enabled)" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=Missing secret::ANTHROPIC_API_KEY not set — no Claude fallback if DeepSeek fails" >> "$GITHUB_STEP_SUMMARY"
+          fi
           # TAVILY_API_KEY: optional search enhancement for RVCE
           [ -n "$TAVILY_API_KEY"  ] && npx supabase secrets set TAVILY_API_KEY="$TAVILY_API_KEY"   --project-ref "$PROJECT_REF"
 

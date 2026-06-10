@@ -7,7 +7,7 @@
  *   1. tierGate(ENDPOINTS.ANALYSE_MAIN) — enforce PLUS+ subscription.
  *   2. Validate + sanitize inputs (reuse analyze-business safety guardrails).
  *   3. Receive pre-computed MONTE_CARLO_DATA from the client (browser engine,
- *      src/lib/monte-carlo.ts). Spec calls for 95,500 scenarios; the client
+ *      src/lib/monte-carlo.ts). Spec calls for 97,500 scenarios; the client
  *      decides the actual count and the LLM only references what it sees.
  *   4. Build PLUS system prompt via buildSystemPrompt('PLUS', 'main').
  *   5. Lovable AI Gateway call (google/gemini-2.5-pro by default).
@@ -220,7 +220,6 @@ async function fetchLiveBenchmarks(
 }
 
 const DEFAULT_MODEL = 'deepseek-v4-flash'; // Fix #3 — legacy 'deepseek-chat' retires 2026-07-24
-
 interface PlusRequestBody {
   idea: string;
   location: string;

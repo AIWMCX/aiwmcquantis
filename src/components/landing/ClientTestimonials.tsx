@@ -26,7 +26,7 @@ const verifiableFeatures: Feature[] = [
     icon: TrendingUp,
     title: 'Industry Benchmarks',
     description: 'Analysis powered by real industry data across multiple sectors and regions.',
-    metric: '95,500 benchmarks',
+    metric: '97,500 benchmarks',
   },
   {
     icon: Zap,

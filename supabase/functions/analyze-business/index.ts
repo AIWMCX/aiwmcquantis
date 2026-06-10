@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 // Embedded benchmarks are now seeded via database migration - no import needed
 
-// ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
+// ========== BENCHMARK ENGINE V2 (97,500-row dataset) ==========
 import { 
   getBenchmarkSummary, 
   buildQueryFromInput, 
@@ -3332,7 +3332,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
-    // ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
+    // ========== BENCHMARK ENGINE V2 (97,500-row dataset) ==========
     let v2BenchmarkSummary: BenchmarkSummaryForCase | null = null;
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
@@ -3343,7 +3343,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     }
 
     // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
-    // When the V2 95,500-row benchmark dataset returns data, overlay its percentile-based values onto
+    // When the V2 97,500-row benchmark dataset returns data, overlay its percentile-based values onto
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
     if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
@@ -3450,7 +3450,7 @@ ${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
 ${v2BenchmarkSummary ? `
-## V2 BENCHMARK DATA (95,500-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
+## V2 BENCHMARK DATA (97,500-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
 ${v2BenchmarkSummary.core ? `### Core Benchmarks
 - Gross Margin: p25=${(v2BenchmarkSummary.core.gm_margin_p25*100).toFixed(1)}% | p50=${(v2BenchmarkSummary.core.gm_margin_p50*100).toFixed(1)}% | p75=${(v2BenchmarkSummary.core.gm_margin_p75*100).toFixed(1)}%
 - Op Margin p50: ${((v2BenchmarkSummary.core.op_margin_p50||0)*100).toFixed(1)}% | EBITDA p50: ${((v2BenchmarkSummary.core.ebitda_margin_p50||0)*100).toFixed(1)}%
@@ -4497,7 +4497,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmark_v2_active: benchmarkMode === 'live',
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
-        benchmark_v2_datapoints: 95500,
+        benchmark_v2_datapoints: 97500,
         benchmark_v2_calibration: v2BenchmarkSummary?.calibration || null,
         benchmark_confidence_adjusted: typeof benchmarkConfidence === 'number' && v2BenchmarkSummary?.calibration
           ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))
@@ -4596,7 +4596,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           message: 'Unlock the full report',
           features_locked: [
             '36-month P&L projections with variance bands',
-            '95,500-scenario Monte Carlo simulation',
+            '97,500-scenario Monte Carlo simulation',
             'Pre-Mortem stress testing',
             'Invoice & capacity check',
             'Document Studio (12+ branded templates)',

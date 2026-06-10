@@ -19,7 +19,7 @@ const STEPS = [
   step: 2,
   icon: Calculator,
   title: 'AI Runs Financial Stress Tests',
-  description: 'Our deterministic engine calculates 12 financial variables using 95,500 industry benchmarks, adjusted for your specific city.',
+  description: 'Our deterministic engine calculates 12 financial variables using 97,500 industry benchmarks, adjusted for your specific city.',
   example: 'Revenue projections, cost structure, unit economics, break-even analysis',
   color: 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
 },
@@ -47,7 +47,7 @@ const FAQ_ITEMS = [
 },
 {
   q: 'What data do you use for projections?',
-  a: '95,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.'
+  a: '97,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data.'
 },
 {
   q: 'Can I trust the projections?',
@@ -68,7 +68,7 @@ export default function HowItWorks() {
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
         title="How Quantis Works — AI Financial Stress-Testing"
-        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 95,500 benchmarks, get your risk report — in 90 seconds."
+        description="3 steps: describe your idea, AI stress-tests 12 financial variables against 97,500 benchmarks, get your risk report — in 90 seconds."
         canonical="/how-it-works"
         jsonLd={{
           '@context': 'https://schema.org',
@@ -130,7 +130,7 @@ export default function HowItWorks() {
             How AIWMC™ Quantis Validates Your Business Model
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 95,500 industry benchmarks, in under 60 seconds., in under 60 seconds.
+            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 97,500 industry benchmarks, in under 60 seconds., in under 60 seconds.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8 text-base">

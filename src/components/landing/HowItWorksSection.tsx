@@ -8,7 +8,7 @@ const steps = [
     num: '01',
     icon: ClipboardEdit,
     title: 'Tell us what you know',
-    body: 'Industry, city, a few numbers. We fill in the gaps from 95,500+ benchmarks.',
+    body: 'Industry, city, a few numbers. We fill in the gaps from 97,500+ benchmarks.',
   },
   {
     num: '02',

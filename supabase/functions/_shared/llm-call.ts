@@ -39,10 +39,17 @@ import {
 // Legacy fallback: Lovable AI gateway (only if LOVABLE_API_KEY is set — kept
 // for compatibility but the gateway is no longer the primary path after the
 // Supabase project migration away from Lovable).
+// Hard fallback: Anthropic Claude — used ONLY when DeepSeek (and Lovable, if
+// configured) fail with a retryable error (429/502/504/fetch failure).
+// Callers that must NEVER touch Anthropic (e.g. RVCE) bypass this module
+// entirely and call DeepSeek directly — see rvce-validate/index.ts.
 const DEEPSEEK_AI_URL   = 'https://api.deepseek.com/v1/chat/completions';
 const LOVABLE_AI_URL    = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const ANTHROPIC_AI_URL  = 'https://api.anthropic.com/v1/messages';
+const ANTHROPIC_VERSION = '2023-06-01';
+const ANTHROPIC_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
 // Mega prompt I-6 + Fix #3: legacy 'deepseek-chat' / 'deepseek-reasoner'
-// aliases retire 2026-07-24 15:59 UTC. Use the current model id.
+// aliases retire 2026-07-24 15:59 UTC. Use the current model id directly.
 const DEFAULT_MODEL     = 'deepseek-v4-flash';
 const DEFAULT_TIMEOUT_MS = 30_000;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL') ?? '';
@@ -91,6 +98,12 @@ export interface AiCallOptions {
   skipTelemetry?: boolean;
   /** Optional metadata blob attached to the ai_calls row. */
   metadata?: Record<string, unknown>;
+  /**
+   * Set true to forbid falling back to Anthropic on DeepSeek failure.
+   * MUST be true for any RVCE-related call (RVCE is DeepSeek-only by policy).
+   * Default false — all other callers get the Anthropic safety net.
+   */
+  disableAnthropicFallback?: boolean;
 }
 
 export type AiCallError =
@@ -144,7 +157,7 @@ export async function aiCall(
     const m = requested ?? DEFAULT_MODEL;
     if (!deepseekKey) return m; // Lovable gateway: pass through as-is
     // Gemini/OpenAI/Claude model names are not valid on DeepSeek — normalise to current flash model.
-    if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-')) {
+    if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-') || m === 'deepseek-chat' || m === 'deepseek-reasoner') {
       return DEFAULT_MODEL;
     }
     return m;
@@ -211,6 +224,8 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
+    const fallback = await tryAnthropicFallback(requestBody, opts);
+    if (fallback) return fallback;
     if (isAbort) {
       return { ok: false, status: 504, error: 'AI_TIMEOUT', message: `AI gateway timed out after ${timeoutMs}ms.`, latencyMs };
     }
@@ -235,6 +250,8 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
+    const fallback = await tryAnthropicFallback(requestBody, opts);
+    if (fallback) return fallback;
     return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry shortly.', latencyMs };
   }
   if (resp.status === 402) {
@@ -253,6 +270,10 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
+    {
+      const fallback = await tryAnthropicFallback(requestBody, opts);
+      if (fallback) return fallback;
+    }
     return { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace credits exhausted.', latencyMs };
   }
   if (!resp.ok) {
@@ -271,6 +292,10 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
+    if (resp.status >= 500) {
+      const fallback = await tryAnthropicFallback(requestBody, opts);
+      if (fallback) return fallback;
+    }
     return { ok: false, status: 502, error: 'AI_ERROR', message: `AI gateway error ${resp.status}.`, detail, latencyMs };
   }
 
@@ -368,6 +393,117 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
   } catch {
     // Telemetry must never block or throw.
   }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Anthropic Claude — hard fallback when DeepSeek/Lovable are unavailable
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Retries the request against Anthropic's Messages API. Returns null (never
+ * throws) if ANTHROPIC_API_KEY is unset, fallback is disabled for this call,
+ * or the Anthropic call itself fails — in all those cases the caller returns
+ * the original DeepSeek error untouched.
+ */
+async function tryAnthropicFallback(
+  requestBody: GatewayRequestBody,
+  opts: AiCallOptions,
+): Promise<AiCallResult | null> {
+  if (opts.disableAnthropicFallback) return null;
+  const apiKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (!apiKey) return null;
+
+  const start = Date.now();
+
+  // Anthropic requires the system prompt outside the messages array.
+  const systemParts: string[] = [];
+  const messages: Array<{ role: 'user' | 'assistant'; content: string }> = [];
+  for (const m of requestBody.messages) {
+    const text = typeof m.content === 'string'
+      ? m.content
+      : m.content.map((p) => (p.type === 'text' ? p.text : '')).join('\n');
+    if (m.role === 'system') {
+      systemParts.push(text);
+    } else if (m.role === 'user' || m.role === 'assistant') {
+      messages.push({ role: m.role, content: text });
+    }
+  }
+  if (messages.length === 0 || messages[0].role !== 'user') {
+    messages.unshift({ role: 'user', content: '(continue)' });
+  }
+
+  let system = systemParts.join('\n\n');
+  if (requestBody.response_format?.type === 'json_object') {
+    system += '\n\nRespond with ONLY a single valid JSON object. No markdown, no commentary, no code fences.';
+  }
+
+  let resp: Response;
+  try {
+    resp = await fetch(ANTHROPIC_AI_URL, {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': ANTHROPIC_VERSION,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: ANTHROPIC_FALLBACK_MODEL,
+        max_tokens: requestBody.max_tokens ?? 4096,
+        system,
+        messages,
+        temperature: requestBody.temperature,
+        top_p: requestBody.top_p,
+      }),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+    });
+  } catch {
+    return null;
+  }
+
+  const latencyMs = Date.now() - start;
+  if (!resp.ok) {
+    await resp.text().catch(() => '');
+    return null;
+  }
+
+  const data = (await resp.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!data) return null;
+
+  const content = (data.content as Array<{ type: string; text?: string }> | undefined) ?? [];
+  const text = content.filter((c) => c.type === 'text').map((c) => c.text ?? '').join('');
+  if (!text) return null;
+
+  const usage = (data.usage ?? {}) as { input_tokens?: number; output_tokens?: number };
+  const inputTokens = usage.input_tokens ?? 0;
+  const outputTokens = usage.output_tokens ?? 0;
+  const echoedModel = `anthropic:${(data.model as string | undefined) ?? ANTHROPIC_FALLBACK_MODEL}`;
+
+  void recordAiCall({
+    ok: true,
+    task: opts.task,
+    model: echoedModel,
+    latencyMs,
+    inputTokens,
+    outputTokens,
+    analysisId: opts.analysisId ?? null,
+    userId: opts.userId ?? null,
+    requestId: opts.requestId ?? null,
+    metadata: { ...(opts.metadata ?? {}), fallback: 'anthropic' },
+    skip: opts.skipTelemetry,
+  });
+
+  return {
+    ok: true,
+    status: 200,
+    data: {
+      choices: [{ message: { role: 'assistant', content: text } }],
+      usage: { prompt_tokens: inputTokens, completion_tokens: outputTokens },
+      model: echoedModel,
+    },
+    latencyMs,
+    inputTokens,
+    outputTokens,
+  };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

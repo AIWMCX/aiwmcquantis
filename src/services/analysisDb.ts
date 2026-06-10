@@ -27,7 +27,7 @@ export async function saveAnalysis(
       location,
       result: result as unknown as Record<string, unknown>,
       confidence_score: result.confidence_score,
-      startup_investment: result.financial_analysis.startup_investment.total,
+      startup_investment: result.financial_analysis?.startup_investment?.total ?? 0,
       monthly_profit: getMonthlyProfit(result.financial_analysis),
       payback_months: getPaybackMonths(result.financial_analysis),
       depth,
@@ -58,34 +58,45 @@ export async function saveAnonymousAnalysis(
 ): Promise<{ id: string } | null> {
   const sessionId = getAnonymousDeviceId();
 
-  const { data, error } = await supabase
-    .from('analyses')
-    .insert({
-      user_id: null,
-      anonymous_session_id: sessionId,
-      idea,
-      location,
-      result: result as unknown as Record<string, unknown>,
-      confidence_score: result.confidence_score,
-      startup_investment: result.financial_analysis.startup_investment.total,
-      monthly_profit: getMonthlyProfit(result.financial_analysis),
-      payback_months: getPaybackMonths(result.financial_analysis),
-      depth,
-    } as any)
-    .select('id')
-    .single();
+  // Wrap the entire insert (including object construction) so that any
+  // malformed `result` shape — e.g. a degraded/deterministic-fallback
+  // analysis missing financial_analysis — falls back to a local-only id
+  // instead of throwing and silently breaking the post-analysis redirect.
+  try {
+    const { data, error } = await supabase
+      .from('analyses')
+      .insert({
+        user_id: null,
+        anonymous_session_id: sessionId,
+        idea,
+        location,
+        result: result as unknown as Record<string, unknown>,
+        confidence_score: result.confidence_score,
+        startup_investment: result.financial_analysis?.startup_investment?.total ?? 0,
+        monthly_profit: getMonthlyProfit(result.financial_analysis),
+        payback_months: getPaybackMonths(result.financial_analysis),
+        depth,
+      } as any)
+      .select('id')
+      .single();
 
-  if (error || !data) {
-    // DB write failed — fall back to a synthetic id and cache locally so the
-    // result page still works for the visitor.
-    logger.warn('Anonymous analysis DB save failed, using local-only id:', error?.message);
+    if (error || !data) {
+      // DB write failed — fall back to a synthetic id and cache locally so the
+      // result page still works for the visitor.
+      logger.warn('Anonymous analysis DB save failed, using local-only id:', error?.message);
+      const localId = crypto.randomUUID();
+      cacheAnalysisLocally(localId, { idea, location, result });
+      return { id: localId };
+    }
+
+    cacheAnalysisLocally(data.id, { idea, location, result });
+    return { id: data.id };
+  } catch (err) {
+    logger.warn('Anonymous analysis save threw, using local-only id:', err instanceof Error ? err.message : err);
     const localId = crypto.randomUUID();
     cacheAnalysisLocally(localId, { idea, location, result });
     return { id: localId };
   }
-
-  cacheAnalysisLocally(data.id, { idea, location, result });
-  return { id: data.id };
 }
 
 interface CachedAnalysis {

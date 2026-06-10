@@ -720,8 +720,8 @@ export const QUANTIS_CONTENT_PLAN: ContentPlanEntry[] = [
       "instagram"
     ],
     "post_type": "Before/After",
-    "hook": "Before Quantis: 1 spreadsheet. After Quantis: 3 scenarios, 1,000 simulations, 95,500 benchmarks.",
-    "content_brief": "Simple before/after comparison. Make the contrast visceral. The spreadsheet is one person's guess. Quantis is 95,500 data points. One decision with wrong numbers costs more than a year of Plus.",
+    "hook": "Before Quantis: 1 spreadsheet. After Quantis: 3 scenarios, 1,000 simulations, 97,500 benchmarks.",
+    "content_brief": "Simple before/after comparison. Make the contrast visceral. The spreadsheet is one person's guess. Quantis is 97,500 data points. One decision with wrong numbers costs more than a year of Plus.",
     "visual_type": "Split screen before/after",
     "cta": "Switch to real data → link",
     "hashtags": [

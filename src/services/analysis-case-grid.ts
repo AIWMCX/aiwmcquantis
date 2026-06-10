@@ -3,7 +3,7 @@
  * across all 11 analysis dimensions (P&L, unit econ, Monte Carlo, TAM/SAM/SOM,
  * break-even, scenarios, cash flow, DCF, DSCR, burn/runway, pre-mortem).
  *
- * Source: AIWMC Quantis 2026 Complete Analysis Dataset (95,500 datapoints).
+ * Source: AIWMC Quantis 2026 Complete Analysis Dataset (97,500 datapoints).
  */
 import { supabase } from '@/integrations/supabase/client';
 

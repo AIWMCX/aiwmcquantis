@@ -76,7 +76,7 @@ export function BenchmarkBadge({
           </TooltipTrigger>
           <TooltipContent side="top" className="max-w-[280px] text-xs leading-relaxed p-3">
             <p className="font-semibold mb-1">Estimated metric</p>
-            <p>No directly matching row in the AIWMC Quantis Benchmark Master (95,500 rows). This value is computed by the engine using sector defaults and may carry wider uncertainty.</p>
+            <p>No directly matching row in the AIWMC Quantis Benchmark Master (97,500 rows). This value is computed by the engine using sector defaults and may carry wider uncertainty.</p>
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>

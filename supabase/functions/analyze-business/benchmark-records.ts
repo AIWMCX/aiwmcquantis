@@ -2,7 +2,7 @@
  * BENCHMARK RECORDS — canonical per-metric output block.
  *
  * Single source of truth for what the PDF / UI render under "Benchmarks".
- * Maps the V2 BenchmarkSummaryForCase (95,500-row dataset) + the engine-
+ * Maps the V2 BenchmarkSummaryForCase (97,500-row dataset) + the engine-
  * computed canonical metrics into one record per metric, with an explicit
  * `match_type` (direct | similar | none). No invented percentiles.
  */
@@ -96,7 +96,7 @@ function makeRecord(
 /**
  * Build the canonical benchmarks[] block.
  * `computed` carries engine-computed canonical values; `summary` carries
- * the percentile data from the 95,500-row dataset.
+ * the percentile data from the 97,500-row dataset.
  */
 export function buildBenchmarkRecords(
   summary: BenchmarkSummaryForCase | null,
@@ -105,7 +105,7 @@ export function buildBenchmarkRecords(
   const core = summary?.core ?? null;
   const ue = summary?.unit_econ ?? null;
   const risk = summary?.risk ?? null;
-  const SRC = 'AIWMC Quantis Benchmark Master (95,500 rows)';
+  const SRC = 'AIWMC Quantis Benchmark Master (97,500 rows)';
 
   const records: BenchmarkRecord[] = [
     // ── Profitability ──
