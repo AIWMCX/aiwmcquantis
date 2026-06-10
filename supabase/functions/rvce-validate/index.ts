@@ -4,7 +4,7 @@
  *
  * Architecture:
  *   1. Search  → DuckDuckGo Lite HTML scrape (no API key) + Tavily fallback if TAVILY_API_KEY set
- *   2. Extract → DeepSeek deepseek-chat (JSON mode, temp=0.1) to pull numeric observations
+ *   2. Extract → DeepSeek deepseek-v4-flash (JSON mode, temp=0.1) to pull numeric observations
  *   3. Gate    → Tier-aware: free=20 obs, plus=40 obs, pro=60 obs; plus/pro required for RVCE
  *
  * Why DeepSeek: directive from product spec. No ANTHROPIC_API_KEY required.
@@ -294,7 +294,7 @@ Rules:
         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-chat',
+        model: 'deepseek-v4-flash',
         messages: [
           {
             role: 'system',

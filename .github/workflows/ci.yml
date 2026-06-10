@@ -44,6 +44,20 @@ jobs:
         run: |
           echo "::error title=Stale Supabase ref::Found gafxacjhkqsdzwwzhbor (old Lovable project) outside allowed paths. Replace with dmlxrvfyqsakyjomsvdj before building."
 
+      # ── DeepSeek deprecated-model guard (Fix #3) ─────────────────────────────
+      # Legacy aliases retire 2026-07-24 15:59 UTC. Fail the build before they
+      # silently break in production.
+      - name: Check for deprecated DeepSeek model strings
+        id: deepseek-guard
+        run: |
+          if grep -rnE "deepseek-chat|deepseek-reasoner" src/ supabase/ \
+               --exclude-dir=node_modules \
+               --include='*.ts' --include='*.tsx' --include='*.js'; then
+            echo "::error title=Deprecated model string::Replace with 'deepseek-v4-flash' (see src/config/models.ts)."
+            exit 1
+          fi
+          echo "✓ No legacy DeepSeek model strings present."
+
       # ── Lint ────────────────────────────────────────────────────────────────
       - name: Lint (eslint)
         id: lint

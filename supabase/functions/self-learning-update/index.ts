@@ -128,7 +128,7 @@ Return ONLY a JSON: {"quality_score": 0.85, "notes": "brief reason"}`;
             method: 'POST',
             headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
             body: JSON.stringify({
-              model: 'deepseek-chat',
+              model: 'deepseek-v4-flash',
               messages: [{ role: 'user', content: prompt }],
               max_tokens: 100,
               temperature: 0.1,
