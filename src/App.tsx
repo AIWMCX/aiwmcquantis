@@ -61,6 +61,10 @@ const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
+const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
+const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
+const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
+const QuoteResult = lazy(() => import("./pages/quote/QuoteResult"));
 import { PlusGate } from "./components/PlusGate";
 
 // Optimized QueryClient configuration for production
@@ -243,7 +247,12 @@ const App = () => {
                     <DirectoryTracker />
                   </ProtectedRoute>
                 } />
-                
+
+                <Route path="/quote" element={<ProtectedRoute><QuoteIndex /></ProtectedRoute>} />
+                <Route path="/quote/new" element={<ProtectedRoute><QuoteNew /></ProtectedRoute>} />
+                <Route path="/quote/:id" element={<ProtectedRoute><QuoteEdit /></ProtectedRoute>} />
+                <Route path="/quote/:id/result" element={<ProtectedRoute><QuoteResult /></ProtectedRoute>} />
+
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
