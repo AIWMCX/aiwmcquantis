@@ -12,6 +12,49 @@ import {
 import { logger } from '@/lib/logger';
 const STORAGE_KEY = 'business_analysis_history';
 
+/** Postgres unique_violation — the idempotency index rejected a duplicate. */
+const PG_UNIQUE_VIOLATION = '23505';
+
+/**
+ * Deterministic idempotency key for an analysis save.
+ *
+ * The same completed analysis can be persisted more than once — React Query's
+ * onSuccess, the Pro-job settle handler, a StrictMode double-invoke, or a
+ * localStorage migration that overlaps a live save. Each of those carries the
+ * SAME result object, so a content-derived key collides and the unique index
+ * `analyses_idempotency_key_uidx` rejects the second write. A genuinely new
+ * run produces different numbers (and computed_at), so it gets a fresh key and
+ * is correctly saved as a separate history entry.
+ *
+ * djb2 over the salient fields — cheap, stable, and short enough for the
+ * text column. Includes the owner scope so two users can run identical ideas.
+ */
+function computeIdempotencyKey(
+  scope: string,
+  idea: string,
+  location: string,
+  result: BusinessAnalysisResult,
+): string {
+  const fingerprint = [
+    scope,
+    idea.trim().toLowerCase(),
+    location.trim().toLowerCase(),
+    result.confidence_score ?? '',
+    getMonthlyProfit(result.financial_analysis) ?? '',
+    getPaybackMonths(result.financial_analysis) ?? '',
+    result.financial_analysis?.startup_investment?.total ?? '',
+    // distinguishes re-runs of the same inputs that produced different math
+    (result as unknown as { computed_at?: string; generated_at?: string }).computed_at ??
+      (result as unknown as { generated_at?: string }).generated_at ??
+      '',
+  ].join('|');
+  let h = 5381;
+  for (let i = 0; i < fingerprint.length; i++) {
+    h = ((h << 5) + h + fingerprint.charCodeAt(i)) | 0;
+  }
+  return `a_${scope}_${(h >>> 0).toString(36)}`;
+}
+
 export async function saveAnalysis(
   userId: string,
   idea: string,
@@ -19,6 +62,8 @@ export async function saveAnalysis(
   result: BusinessAnalysisResult,
   depth: 'quick' | 'full' | 'pro' = 'full'
 ): Promise<{ id: string } | null> {
+  const idempotencyKey = computeIdempotencyKey(userId, idea, location, result);
+
   const { data, error } = await supabase
     .from('analyses')
     .insert({
@@ -31,11 +76,27 @@ export async function saveAnalysis(
       monthly_profit: getMonthlyProfit(result.financial_analysis),
       payback_months: getPaybackMonths(result.financial_analysis),
       depth,
+      idempotency_key: idempotencyKey,
     } as any)
     .select('id')
     .single();
 
   if (error) {
+    // Duplicate save of the same completion — return the row that won the race
+    // so the caller still gets a valid id (idempotent, not an error).
+    if (error.code === PG_UNIQUE_VIOLATION) {
+      const { data: existing } = await supabase
+        .from('analyses')
+        .select('id')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (existing) {
+        logger.info('saveAnalysis deduped via idempotency_key', {
+          metadata: { idempotency_key: idempotencyKey },
+        });
+        return { id: existing.id };
+      }
+    }
     logger.error('Failed to save analysis:', error);
     return null;
   }
@@ -57,6 +118,7 @@ export async function saveAnonymousAnalysis(
   depth: 'quick' | 'full' | 'pro' = 'full',
 ): Promise<{ id: string } | null> {
   const sessionId = getAnonymousDeviceId();
+  const idempotencyKey = computeIdempotencyKey(sessionId, idea, location, result);
 
   // Wrap the entire insert (including object construction) so that any
   // malformed `result` shape — e.g. a degraded/deterministic-fallback
@@ -76,9 +138,23 @@ export async function saveAnonymousAnalysis(
         monthly_profit: getMonthlyProfit(result.financial_analysis),
         payback_months: getPaybackMonths(result.financial_analysis),
         depth,
+        idempotency_key: idempotencyKey,
       } as any)
       .select('id')
       .single();
+
+    // Duplicate anonymous save — recover the row that won the race.
+    if (error?.code === PG_UNIQUE_VIOLATION) {
+      const { data: existing } = await supabase
+        .from('analyses')
+        .select('id')
+        .eq('idempotency_key', idempotencyKey)
+        .maybeSingle();
+      if (existing) {
+        cacheAnalysisLocally(existing.id, { idea, location, result });
+        return { id: existing.id };
+      }
+    }
 
     if (error || !data) {
       // DB write failed — fall back to a synthetic id and cache locally so the
@@ -259,9 +335,12 @@ export async function migrateLocalStorageToDb(userId: string): Promise<number> {
           monthly_profit: getMonthlyProfit(entry.result.financial_analysis),
           payback_months: getPaybackMonths(entry.result.financial_analysis),
           created_at: entry.created_at,
+          idempotency_key: computeIdempotencyKey(userId, entry.idea, entry.location, entry.result),
         } as any);
 
-      if (!error) migrated++;
+      // A unique-violation means this localStorage entry was already migrated
+      // (or saved live) — count it as migrated so it still clears local state.
+      if (!error || error.code === PG_UNIQUE_VIOLATION) migrated++;
     }
 
     if (migrated > 0) {
