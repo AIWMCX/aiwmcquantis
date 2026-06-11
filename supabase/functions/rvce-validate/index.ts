@@ -196,12 +196,20 @@ async function tavilySearch(query: string): Promise<SearchResult[]> {
 
 async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
   try {
-    const encoded = encodeURIComponent(query);
-    const resp = await fetch(`https://lite.duckduckgo.com/lite/?q=${encoded}`, {
+    // Use the POST form on html.duckduckgo.com — more permissive for non-browser clients
+    // than lite.duckduckgo.com (which 200s but returns an empty results page when it
+    // detects a non-standard User-Agent like ours).
+    const form = new URLSearchParams({ q: query, kl: 'us-en' });
+    const resp = await fetch('https://html.duckduckgo.com/html/', {
+      method: 'POST',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Quantis-RVCE/0.3)',
-        'Accept': 'text/html,application/xhtml+xml',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
+      body: form.toString(),
       signal: AbortSignal.timeout(9000),
     });
     if (!resp.ok) return [];
