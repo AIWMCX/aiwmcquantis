@@ -217,10 +217,13 @@ async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
 
     const results: SearchResult[] = [];
 
-    // DDG Lite uses SINGLE-quoted class attributes: class='result-link', class='result-snippet'.
-    // Accept either quote style and unwrap DDG's tracking redirect (//duckduckgo.com/l/?uddg=ENCODED).
-    const linkRegex    = /<a[^>]+class=['"]result-link['"][^>]+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi;
-    const snippetRegex = /<td[^>]+class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/gi;
+    // Accept both layouts:
+    //   • html.duckduckgo.com → class="result__a" / class="result__snippet"
+    //   • lite.duckduckgo.com → class='result-link' / class='result-snippet'
+    const linkRegex =
+      /<a[^>]+class=['"](?:result__a|result-link)['"][^>]+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi;
+    const snippetRegex =
+      /<(?:a|td)[^>]+class=['"](?:result__snippet|result-snippet)['"][^>]*>([\s\S]*?)<\/(?:a|td)>/gi;
 
     const links    = [...html.matchAll(linkRegex)];
     const snippets = [...html.matchAll(snippetRegex)];
@@ -237,21 +240,21 @@ async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
     };
 
     for (let i = 0; i < links.length && results.length < 5; i++) {
-      const rawUrl = links[i][1];
-      const url    = unwrap(rawUrl);
-      const title  = links[i][2].replace(/<[^>]+>/g, '').trim();
+      const url   = unwrap(links[i][1]);
+      const title = links[i][2].replace(/<[^>]+>/g, '').trim();
       const snippet = snippets[i]
         ? snippets[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
         : '';
-      if (url && title && /^https?:\/\//.test(url)) {
+      if (url && title && /^https?:\/\//.test(url) && !/duckduckgo\.com/.test(url)) {
         results.push({ title, snippet, url });
       }
     }
 
-    // Fallback: grab any external links if structured parse failed entirely
+    // Last-ditch fallback: any external link with visible anchor text
     if (results.length === 0) {
       const fallbackLinks = [...html.matchAll(/href=['"](https?:\/\/[^'"]+)['"][^>]*>([^<]{5,80})<\/a>/g)];
       for (const m of fallbackLinks.slice(0, 5)) {
+        if (/duckduckgo\.com/.test(m[1])) continue;
         results.push({ url: m[1], title: m[2].trim(), snippet: '' });
       }
     }
