@@ -52,6 +52,29 @@ export interface BenchmarkResult {
   reason?: string;
 }
 
+/**
+ * Normalize the sector name from analyze-business (e.g. "SaaS / Software")
+ * to the sector_level1 used in benchmark_master tables (e.g. "SaaS").
+ */
+const SECTOR_MAP: Record<string, string> = {
+  'SaaS / Software': 'SaaS',
+  'E-commerce / Retail': 'Retail',
+  'Consulting / Professional Services': 'Services',
+  'Fitness / Wellness': 'Beauty & Wellness',
+  'Education / Online Courses': 'Education',
+  'Healthcare / Medical': 'Healthcare',
+  'Fintech / Financial Services': 'Fintech',
+  'Media / Content / Entertainment': 'Media',
+  'Real Estate / Property': 'Real Estate',
+  'Logistics / Delivery': 'Logistics',
+  'General Business': 'Services',
+};
+
+function normalizeSector(s: string | null | undefined): string | null {
+  if (!s) return null;
+  return SECTOR_MAP[s] ?? s;
+}
+
 const cache = new Map<string, Promise<BenchmarkResult>>();
 
 function ckey(m: BenchmarkMetric, c: BenchmarkContext): string {
@@ -69,7 +92,7 @@ export async function lookupBenchmark(
   const promise = (async (): Promise<BenchmarkResult> => {
     const { data, error } = await supabase.rpc('benchmark_lookup', {
       p_metric: metric,
-      p_sector: ctx.sector ?? null,
+      p_sector: normalizeSector(ctx.sector),
       p_business_model: ctx.businessModel ?? null,
       p_country: ctx.country ?? null,
       p_city_tier: ctx.cityTier ?? null,
