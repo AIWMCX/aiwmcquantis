@@ -241,17 +241,25 @@ export interface ConfidenceBreakdown {
 // ========== ANTI-INJECTION SECURITY ==========
 
 const DANGEROUS_PATTERNS = [
-  /ignore\s+(previous|above|all)\s+instructions?/i,
-  /disregard\s+(previous|above|all)\s+instructions?/i,
-  /you\s+are\s+now\s+a/i,
-  /pretend\s+to\s+be/i,
+  // "ignore all previous instructions" / "ignore prior instructions" / "ignore instructions"
+  /ignore\s+(?:all\s+|above\s+)?(?:previous\s+|prior\s+|above\s+)?instructions?/i,
+  /disregard\s+(?:all\s+|above\s+|prior\s+|previous\s+)?(?:context|instructions?)/i,
+  // "you are now DAN" / "you are now in debug mode" / "you are now a hacker"
+  /you\s+are\s+now\b/i,
+  // "pretend to be" / "pretend you are"
+  /pretend\s+(?:to\s+be|you\s+are)/i,
   /act\s+as\s+if/i,
   /system\s*:\s*/i,
+  /\[system\]/i,
   /\[\[.*?\]\]/,
   /\{\{.*?\}\}/,
   /<script/i,
   /javascript:/i,
   /on\w+\s*=/i,
+  // System-prompt extraction phrasing
+  /what\s+(?:is|are)\s+your\s+(?:instructions|system\s*prompt|initial\s+prompt)/i,
+  /repeat\s+(?:them|your\s+(?:instructions|prompt))\s*(?:verbatim)?/i,
+  /print\s+your\s+(?:full\s+)?(?:prompt|instructions|system\s*prompt)/i,
 ];
 
 const INSTRUCTION_PATTERNS = [

@@ -15,6 +15,7 @@ vi.mock('@/lib/analytics', () => ({
   trackMobileSignupCompleted: vi.fn(),
   trackSimplifiedFormConversion: vi.fn(),
   trackPasswordValidationPassed: vi.fn(),
+  recordFunnelEvent: vi.fn(),
 }));
 
 // Mock dependencies
@@ -128,8 +129,8 @@ describe('Mobile Signup Form', () => {
 
     it('shows trust signals', () => {
       renderWithRouter(<SignupForm />);
-      
-      expect(screen.getByText(/Secure • Join 1,000\+ companies/)).toBeInTheDocument();
+
+      expect(screen.getByText(/Secure • Trusted by founders worldwide/)).toBeInTheDocument();
     });
   });
 
@@ -204,13 +205,11 @@ describe('Mobile Signup Form', () => {
   describe('Touch-Friendly Interactions', () => {
     it('input fields have proper styling for touch', () => {
       renderWithRouter(<SignupForm />);
-      
-      const nameInput = screen.getByPlaceholderText(/your full name/i);
+
       const emailInput = screen.getByPlaceholderText(/your@email.com/i);
       const passwordInput = screen.getByPlaceholderText(/minimum 8 characters/i);
-      
+
       // All inputs should be present and accessible
-      expect(nameInput).toBeInTheDocument();
       expect(emailInput).toBeInTheDocument();
       expect(passwordInput).toBeInTheDocument();
     });
@@ -237,13 +236,14 @@ describe('Mobile Signup Form', () => {
   describe('Form Submission Flow', () => {
     it('displays inline errors for empty required fields on submit', async () => {
       renderWithRouter(<SignupForm />);
-      
+
       const submitButton = screen.getByRole('button', { name: /create free account/i });
       await userEvent.click(submitButton);
-      
+
       // Should show validation errors
       await waitFor(() => {
-        expect(screen.getByText(/name must be at least 2 characters/i)).toBeInTheDocument();
+        expect(screen.getByText(/please enter a valid email/i)).toBeInTheDocument();
+        expect(screen.getByText(/password must be at least 8 characters/i)).toBeInTheDocument();
       });
     });
 
@@ -265,45 +265,41 @@ describe('Mobile Signup Form', () => {
   describe('Conversion Analytics', () => {
     it('tracks signup_started on first field focus', async () => {
       renderWithRouter(<SignupForm />);
-      
-      const nameInput = screen.getByPlaceholderText(/your full name/i);
-      await userEvent.click(nameInput);
-      
+
+      const emailInput = screen.getByPlaceholderText(/your@email.com/i);
+      await userEvent.click(emailInput);
+
       expect(mockTrackEvent).toHaveBeenCalledWith('signup_started', expect.objectContaining({ source: 'form' }));
     });
 
     it('tracks field focus events', async () => {
       renderWithRouter(<SignupForm />);
-      
-      const nameInput = screen.getByPlaceholderText(/your full name/i);
-      await userEvent.click(nameInput);
-      
-      expect(mockTrackEvent).toHaveBeenCalledWith('signup_field_focus', { field: 'fullName' });
+
+      const emailInput = screen.getByPlaceholderText(/your@email.com/i);
+      await userEvent.click(emailInput);
+
+      expect(mockTrackEvent).toHaveBeenCalledWith('signup_field_focus', { field: 'email' });
     });
 
     it('tracks signup_field_focus for email field', async () => {
       renderWithRouter(<SignupForm />);
-      
-      // First touch a field to mark as touched
-      const nameInput = screen.getByPlaceholderText(/your full name/i);
-      await userEvent.click(nameInput);
-      
+
       const emailInput = screen.getByPlaceholderText(/your@email.com/i);
       await userEvent.click(emailInput);
-      
+
       expect(mockTrackEvent).toHaveBeenCalledWith('signup_field_focus', { field: 'email' });
     });
 
     it('tracks signup_field_focus for password field', async () => {
       renderWithRouter(<SignupForm />);
-      
+
       // First touch a field to mark as touched
-      const nameInput = screen.getByPlaceholderText(/your full name/i);
-      await userEvent.click(nameInput);
-      
+      const emailInput = screen.getByPlaceholderText(/your@email.com/i);
+      await userEvent.click(emailInput);
+
       const passwordInput = screen.getByPlaceholderText(/minimum 8 characters/i);
       await userEvent.click(passwordInput);
-      
+
       expect(mockTrackEvent).toHaveBeenCalledWith('signup_field_focus', { field: 'password' });
     });
   });
