@@ -12,7 +12,7 @@
  * STRIPE PRICE MAPPING (live mode):
  * - Plus monthly: price_1TKemwLKMhSmZURCw1AwGYX2 (legacy $17 → grandfathered)
  * - Plus annual:  price_1TKenYLKMhSmZURCEqUTfJDM
- * - Pro monthly:  price_1TNnKkLKMhSmZURCWyQTblmg ($41, 14d trial)
+ * - Pro monthly:  price_1TNnKkLKMhSmZURCWyQTblmg ($49, 14d trial)
  * - Pro annual:   price_1TNnUbLKMhSmZURC3DetuKsA  ($492, NO trial)
  *
  * Trial duration is configured on each Stripe Payment Link in the Dashboard,
@@ -98,8 +98,8 @@ export const TIERS = {
     label: 'Pro',
     positioning: 'Investor-Ready — how do you convince investors to fund this?',
     priceMonthly: 49,
-    priceAnnual: 469,
-    priceAnnualMonthlyEquivalent: 39.08,
+    priceAnnual: 492,
+    priceAnnualMonthlyEquivalent: 41,
     limits: {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
@@ -146,7 +146,7 @@ export const STRIPE_PRICE_TO_TIER: Record<
   price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
   // Plus annual
   price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
-  // Pro monthly ($41, 14-day trial)
+  // Pro monthly ($49, 14-day trial)
   price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
   // Pro annual ($492, NO trial)
   price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },
