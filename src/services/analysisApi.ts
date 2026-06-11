@@ -179,14 +179,20 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         // Try to parse the response body for structured error messages (e.g., 400 validation errors)
         const status = error.context?.status;
         if (status === 400) {
-          // Parse the body to get the user-friendly error message from the edge function
+          // Parse the body to get the user-friendly error message from the edge function.
+          // error.context is a fetch Response — its .body is a ReadableStream, so the
+          // old object-passthrough produced {} and users saw a useless "Invalid request".
           let body: any = {};
           try {
-            const rawBody = error.context?.body;
-            if (typeof rawBody === 'string') {
-              body = JSON.parse(rawBody);
-            } else if (rawBody && typeof rawBody === 'object') {
-              body = rawBody;
+            if (error.context && typeof error.context.json === 'function') {
+              body = await error.context.json();
+            } else {
+              const rawBody = error.context?.body;
+              if (typeof rawBody === 'string') {
+                body = JSON.parse(rawBody);
+              } else if (rawBody && typeof rawBody === 'object' && !(rawBody instanceof ReadableStream)) {
+                body = rawBody;
+              }
             }
           } catch {}
           

@@ -146,7 +146,10 @@ function validateInputSafety(input: string, fieldName: string): { valid: boolean
   const dangerousPatterns = [
     /<script/i,
     /javascript:/i,
-    /on\w+\s*=/i,
+    // \b prevents false positives on ordinary words ending in "...on" followed
+    // by "=" (e.g. "monetization =") — only real handler names like onclick=
+    // start a word with "on".
+    /\bon\w+\s*=/i,
     /data:\s*text\/html/i,
     /&#x/i,
     /&#\d+;/i,
