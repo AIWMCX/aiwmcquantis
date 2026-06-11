@@ -176,13 +176,22 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.service_job_outcomes TO authentic
 
 -- ============================================================
 -- quote_gen_usage — monthly QuoteGen quota ledger (Free = 5/mo)
+--
+-- IMPORTANT: production already had this table (created by an earlier
+-- migration) with column `usage_count` (NOT `used`) and an extra
+-- `plan_tier_snapshot` column. All RPCs below MUST reference
+-- `usage_count`. A column named `used` does not exist — referencing it
+-- caused every QuoteGen RPC to throw 42703, which the frontend treated
+-- as "not enabled" and showed the paywall to PAYING users.
 -- ============================================================
 CREATE TABLE IF NOT EXISTS public.quote_gen_usage (
-  id            uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-  user_id       uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
-  month_key     text NOT NULL, -- 'YYYY-MM'
-  used          int NOT NULL DEFAULT 0,
-  updated_at    timestamptz NOT NULL DEFAULT now(),
+  id                  uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id             uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  month_key           text NOT NULL, -- 'YYYY-MM'
+  plan_tier_snapshot  text,
+  usage_count         int NOT NULL DEFAULT 0 CHECK (usage_count >= 0),
+  created_at          timestamptz NOT NULL DEFAULT now(),
+  updated_at          timestamptz NOT NULL DEFAULT now(),
   UNIQUE (user_id, month_key)
 );
 
@@ -251,7 +260,7 @@ BEGIN
   v_tier := public._quote_gen_plan_tier(v_user);
   v_limit := CASE v_tier WHEN 'free' THEN 5 ELSE NULL END;
 
-  SELECT used INTO v_used
+  SELECT usage_count INTO v_used
     FROM public.quote_gen_usage
    WHERE user_id = v_user AND month_key = v_month;
   v_used := COALESCE(v_used, 0);
@@ -298,25 +307,25 @@ BEGIN
 
   IF v_limit IS NULL THEN
     -- Unlimited plans: track usage for analytics but never block.
-    INSERT INTO public.quote_gen_usage (user_id, month_key, used)
-      VALUES (v_user, v_month, 1)
+    INSERT INTO public.quote_gen_usage (user_id, month_key, usage_count, plan_tier_snapshot)
+      VALUES (v_user, v_month, 1, v_tier)
       ON CONFLICT (user_id, month_key) DO UPDATE
-        SET used = quote_gen_usage.used + 1, updated_at = now();
+        SET usage_count = quote_gen_usage.usage_count + 1, plan_tier_snapshot = v_tier, updated_at = now();
     RETURN jsonb_build_object('ok', true, 'planTier', v_tier, 'limit', NULL,
       'used', NULL, 'remaining', NULL, 'isUnlimited', true, 'monthKey', v_month);
   END IF;
 
-  INSERT INTO public.quote_gen_usage (user_id, month_key, used)
-    VALUES (v_user, v_month, 0)
+  INSERT INTO public.quote_gen_usage (user_id, month_key, usage_count, plan_tier_snapshot)
+    VALUES (v_user, v_month, 0, v_tier)
     ON CONFLICT (user_id, month_key) DO NOTHING;
 
   UPDATE public.quote_gen_usage
-     SET used = used + 1, updated_at = now()
-   WHERE user_id = v_user AND month_key = v_month AND used < v_limit
-  RETURNING used INTO v_used;
+     SET usage_count = usage_count + 1, plan_tier_snapshot = v_tier, updated_at = now()
+   WHERE user_id = v_user AND month_key = v_month AND usage_count < v_limit
+  RETURNING usage_count INTO v_used;
 
   IF v_used IS NULL THEN
-    SELECT used INTO v_used FROM public.quote_gen_usage
+    SELECT usage_count INTO v_used FROM public.quote_gen_usage
      WHERE user_id = v_user AND month_key = v_month;
     RETURN jsonb_build_object('ok', false, 'reason', 'quota', 'planTier', v_tier,
       'limit', v_limit, 'used', v_used, 'remaining', 0, 'monthKey', v_month);
@@ -346,10 +355,15 @@ DECLARE
 BEGIN
   IF v_user IS NULL THEN RETURN; END IF;
   UPDATE public.quote_gen_usage
-     SET used = GREATEST(used - 1, 0), updated_at = now()
+     SET usage_count = GREATEST(usage_count - 1, 0), updated_at = now()
    WHERE user_id = v_user AND month_key = v_month;
 END
 $$;
 
 REVOKE ALL ON FUNCTION public.decrement_quote_gen_usage() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.decrement_quote_gen_usage() TO authenticated;
+
+-- Force PostgREST to pick up the new tables/functions immediately.
+-- Without this, freshly created RPCs 404 from the REST API until the
+-- schema cache naturally refreshes.
+NOTIFY pgrst, 'reload schema';
