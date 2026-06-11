@@ -55,8 +55,7 @@ function loadDraft(): Draft {
 }
 
 export default function QuoteNew() {
-  if (!isEnabled('service_job')) return <Navigate to="/app" replace />;
-
+  const enabled = isEnabled('service_job');
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
   const [draft, setDraft] = useState<Draft>(() => loadDraft());
@@ -67,6 +66,7 @@ export default function QuoteNew() {
   const { data: assemblies = [] } = useQuery({
     queryKey: ['service-job-assemblies', draft.step1.trade_id],
     queryFn: () => listAssemblies(draft.step1.trade_id),
+    enabled,
   });
 
   // Debounced localStorage save
@@ -86,6 +86,8 @@ export default function QuoteNew() {
     window.addEventListener('beforeunload', handler);
     return () => window.removeEventListener('beforeunload', handler);
   }, []);
+
+  if (!enabled) return <Navigate to="/app" replace />;
 
   const nextDisabled = (() => {
     if (step === 1) return !draft.step1.trade_id;

@@ -7,13 +7,15 @@ import { getJob } from '@/services/serviceJob';
 import { QuoteResultView } from './_components/QuoteResultView';
 
 export default function QuoteResult() {
-  if (!isEnabled('service_job')) return <Navigate to="/app" replace />;
+  const enabled = isEnabled('service_job');
   const { id } = useParams<{ id: string }>();
   const { data: job, isLoading, refetch } = useQuery({
     queryKey: ['service-job', id],
     queryFn: () => getJob(id!),
-    enabled: !!id,
+    enabled: enabled && !!id,
   });
+
+  if (!enabled) return <Navigate to="/app" replace />;
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6">

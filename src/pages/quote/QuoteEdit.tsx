@@ -20,7 +20,7 @@ import type { JobModifiers, PricingProfile, ScopeItem } from '@/lib/service-job/
 const STEP_LABELS = ['Basics', 'Scope', 'Modifiers', 'Pricing'];
 
 export default function QuoteEdit() {
-  if (!isEnabled('service_job')) return <Navigate to="/app" replace />;
+  const enabled = isEnabled('service_job');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const [step, setStep] = useState(1);
@@ -29,7 +29,7 @@ export default function QuoteEdit() {
   const { data: job, isLoading, refetch } = useQuery({
     queryKey: ['service-job', id],
     queryFn: () => getJob(id!),
-    enabled: !!id,
+    enabled: enabled && !!id,
   });
   const { data: assemblies = [] } = useQuery({
     queryKey: ['service-job-assemblies', job?.trade_id],
@@ -56,6 +56,8 @@ export default function QuoteEdit() {
     setModifiers((job.modifiers ?? {}) as JobModifiers);
     setPricing(job.pricing_profile as PricingProfile);
   }, [job]);
+
+  if (!enabled) return <Navigate to="/app" replace />;
 
   if (isLoading || !job || !step1 || !pricing) {
     return <div className="flex justify-center py-20"><Loader2 className="h-6 w-6 animate-spin" /></div>;

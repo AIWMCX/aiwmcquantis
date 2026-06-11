@@ -8,12 +8,14 @@ import { listJobs } from '@/services/serviceJob';
 import { QuoteListItem } from './_components/QuoteListItem';
 
 export default function QuoteIndex() {
-  if (!isEnabled('service_job')) return <Navigate to="/app" replace />;
-
+  const enabled = isEnabled('service_job');
   const { data: jobs, isLoading, error } = useQuery({
     queryKey: ['service-jobs'],
     queryFn: () => listJobs(),
+    enabled,
   });
+
+  if (!enabled) return <Navigate to="/app" replace />;
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-6">
