@@ -196,12 +196,20 @@ async function tavilySearch(query: string): Promise<SearchResult[]> {
 
 async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
   try {
-    const encoded = encodeURIComponent(query);
-    const resp = await fetch(`https://lite.duckduckgo.com/lite/?q=${encoded}`, {
+    // Use the POST form on html.duckduckgo.com — more permissive for non-browser clients
+    // than lite.duckduckgo.com (which 200s but returns an empty results page when it
+    // detects a non-standard User-Agent like ours).
+    const form = new URLSearchParams({ q: query, kl: 'us-en' });
+    const resp = await fetch('https://html.duckduckgo.com/html/', {
+      method: 'POST',
       headers: {
-        'User-Agent': 'Mozilla/5.0 (compatible; Quantis-RVCE/0.3)',
-        'Accept': 'text/html,application/xhtml+xml',
+        'User-Agent':
+          'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Content-Type': 'application/x-www-form-urlencoded',
       },
+      body: form.toString(),
       signal: AbortSignal.timeout(9000),
     });
     if (!resp.ok) return [];
@@ -209,30 +217,44 @@ async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
 
     const results: SearchResult[] = [];
 
-    // DDG Lite structure: result links in <a class="result-link">, snippets in .result-snippet
-    const rowRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
-    const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/;
-    const snippetRegex = /<td[^>]+class="result-snippet"[^>]*>([\s\S]*?)<\/td>/;
+    // Accept both layouts:
+    //   • html.duckduckgo.com → class="result__a" / class="result__snippet"
+    //   • lite.duckduckgo.com → class='result-link' / class='result-snippet'
+    const linkRegex =
+      /<a[^>]+class=['"](?:result__a|result-link)['"][^>]+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi;
+    const snippetRegex =
+      /<(?:a|td)[^>]+class=['"](?:result__snippet|result-snippet)['"][^>]*>([\s\S]*?)<\/(?:a|td)>/gi;
 
-    const rows = html.match(rowRegex) || [];
-    for (const row of rows) {
-      const linkMatch = linkRegex.exec(row);
-      const snippetMatch = snippetRegex.exec(row);
-      if (linkMatch && snippetMatch) {
-        const url = linkMatch[1];
-        const title = linkMatch[2].replace(/<[^>]+>/g, '').trim();
-        const snippet = snippetMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (url && title && !url.startsWith('//duckduckgo')) {
-          results.push({ title, snippet, url });
-        }
+    const links    = [...html.matchAll(linkRegex)];
+    const snippets = [...html.matchAll(snippetRegex)];
+
+    const unwrap = (href: string): string => {
+      try {
+        const abs = href.startsWith('//') ? `https:${href}` : href;
+        const u = new URL(abs);
+        const uddg = u.searchParams.get('uddg');
+        return uddg ? decodeURIComponent(uddg) : abs;
+      } catch {
+        return href;
       }
-      if (results.length >= 5) break;
+    };
+
+    for (let i = 0; i < links.length && results.length < 5; i++) {
+      const url   = unwrap(links[i][1]);
+      const title = links[i][2].replace(/<[^>]+>/g, '').trim();
+      const snippet = snippets[i]
+        ? snippets[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        : '';
+      if (url && title && /^https?:\/\//.test(url) && !/duckduckgo\.com/.test(url)) {
+        results.push({ title, snippet, url });
+      }
     }
 
-    // Fallback: grab any links + text if structured parse fails
+    // Last-ditch fallback: any external link with visible anchor text
     if (results.length === 0) {
-      const fallbackLinks = [...html.matchAll(/href="(https?:\/\/[^"]+)"[^>]*>([^<]{5,60})<\/a>/g)];
+      const fallbackLinks = [...html.matchAll(/href=['"](https?:\/\/[^'"]+)['"][^>]*>([^<]{5,80})<\/a>/g)];
       for (const m of fallbackLinks.slice(0, 5)) {
+        if (/duckduckgo\.com/.test(m[1])) continue;
         results.push({ url: m[1], title: m[2].trim(), snippet: '' });
       }
     }
