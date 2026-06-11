@@ -27,9 +27,27 @@ Deno.serve(async (req: Request) => {
   );
 
   try {
+    // ---------- 0. Auth: require valid JWT; derive userId from it ----------
+    const authHeader = req.headers.get("authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return errorResponse("QE-PDF-401", "Unauthorized", 401, corsHeaders);
+    }
+    const anonClient = createClient(
+      Deno.env.get("SUPABASE_URL")!,
+      Deno.env.get("SUPABASE_ANON_KEY")!,
+      { global: { headers: { Authorization: authHeader } } },
+    );
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsErr } = await anonClient.auth.getClaims(token);
+    if (claimsErr || !claimsData?.claims?.sub) {
+      return errorResponse("QE-PDF-401", "Unauthorized", 401, corsHeaders);
+    }
+    const authedUserId = claimsData.claims.sub as string;
+
     // ---------- 1. Parse & validate ----------
     const body = await req.json();
-    const { htmlContent, userId, cacheKey, templateId, jobId } = body;
+    const { htmlContent, cacheKey, templateId, jobId } = body;
+    const userId = authedUserId; // never trust body-supplied userId
 
     if (!htmlContent || typeof htmlContent !== "string") {
       return errorResponse("QE-PDF-001", "htmlContent is required and must be a string", 400, corsHeaders);
@@ -37,15 +55,25 @@ Deno.serve(async (req: Request) => {
     if (new TextEncoder().encode(htmlContent).length > MAX_HTML_BYTES) {
       return errorResponse("QE-PDF-002", "htmlContent exceeds 500 KB limit", 400, corsHeaders);
     }
-    if (!userId || !UUID_RE.test(userId)) {
-      return errorResponse("QE-PDF-003", "userId must be a valid UUID", 400, corsHeaders);
-    }
     if (!cacheKey || !CACHE_KEY_RE.test(cacheKey)) {
       return errorResponse("QE-PDF-004", "cacheKey must be a 64-char hex string", 400, corsHeaders);
     }
     if (!templateId || typeof templateId !== "string") {
       return errorResponse("QE-PDF-005", "templateId is required", 400, corsHeaders);
     }
+
+    // If a jobId is supplied, ensure it belongs to the authed user.
+    if (jobId) {
+      const { data: job } = await supabase
+        .from("doc_generation_jobs")
+        .select("user_id")
+        .eq("job_id", jobId)
+        .maybeSingle();
+      if (job && job.user_id && job.user_id !== authedUserId) {
+        return errorResponse("QE-PDF-403", "Forbidden", 403, corsHeaders);
+      }
+    }
+
 
     // ---------- 1b. White-label gate (Spec §11.1) ----------
     // Trigger `enforce_white_label_pro` already ensures only PRO users can flip
