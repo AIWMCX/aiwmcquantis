@@ -209,29 +209,40 @@ async function duckDuckGoSearch(query: string): Promise<SearchResult[]> {
 
     const results: SearchResult[] = [];
 
-    // DDG Lite structure: result links in <a class="result-link">, snippets in .result-snippet
-    const rowRegex = /<tr[^>]*>[\s\S]*?<\/tr>/g;
-    const linkRegex = /<a[^>]+href="([^"]+)"[^>]*>([\s\S]*?)<\/a>/;
-    const snippetRegex = /<td[^>]+class="result-snippet"[^>]*>([\s\S]*?)<\/td>/;
+    // DDG Lite uses SINGLE-quoted class attributes: class='result-link', class='result-snippet'.
+    // Accept either quote style and unwrap DDG's tracking redirect (//duckduckgo.com/l/?uddg=ENCODED).
+    const linkRegex    = /<a[^>]+class=['"]result-link['"][^>]+href=['"]([^'"]+)['"][^>]*>([\s\S]*?)<\/a>/gi;
+    const snippetRegex = /<td[^>]+class=['"]result-snippet['"][^>]*>([\s\S]*?)<\/td>/gi;
 
-    const rows = html.match(rowRegex) || [];
-    for (const row of rows) {
-      const linkMatch = linkRegex.exec(row);
-      const snippetMatch = snippetRegex.exec(row);
-      if (linkMatch && snippetMatch) {
-        const url = linkMatch[1];
-        const title = linkMatch[2].replace(/<[^>]+>/g, '').trim();
-        const snippet = snippetMatch[1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
-        if (url && title && !url.startsWith('//duckduckgo')) {
-          results.push({ title, snippet, url });
-        }
+    const links    = [...html.matchAll(linkRegex)];
+    const snippets = [...html.matchAll(snippetRegex)];
+
+    const unwrap = (href: string): string => {
+      try {
+        const abs = href.startsWith('//') ? `https:${href}` : href;
+        const u = new URL(abs);
+        const uddg = u.searchParams.get('uddg');
+        return uddg ? decodeURIComponent(uddg) : abs;
+      } catch {
+        return href;
       }
-      if (results.length >= 5) break;
+    };
+
+    for (let i = 0; i < links.length && results.length < 5; i++) {
+      const rawUrl = links[i][1];
+      const url    = unwrap(rawUrl);
+      const title  = links[i][2].replace(/<[^>]+>/g, '').trim();
+      const snippet = snippets[i]
+        ? snippets[i][1].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()
+        : '';
+      if (url && title && /^https?:\/\//.test(url)) {
+        results.push({ title, snippet, url });
+      }
     }
 
-    // Fallback: grab any links + text if structured parse fails
+    // Fallback: grab any external links if structured parse failed entirely
     if (results.length === 0) {
-      const fallbackLinks = [...html.matchAll(/href="(https?:\/\/[^"]+)"[^>]*>([^<]{5,60})<\/a>/g)];
+      const fallbackLinks = [...html.matchAll(/href=['"](https?:\/\/[^'"]+)['"][^>]*>([^<]{5,80})<\/a>/g)];
       for (const m of fallbackLinks.slice(0, 5)) {
         results.push({ url: m[1], title: m[2].trim(), snippet: '' });
       }
