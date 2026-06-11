@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { pdf } from '@react-pdf/renderer';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -7,7 +6,6 @@ import { toast } from 'sonner';
 import { Download, Copy, Edit, Send, Loader2 } from 'lucide-react';
 import { PriceBandCard } from './PriceBandCard';
 import { RiskFlagCard } from './RiskFlagCard';
-import { ServiceQuoteReport } from '@/components/pdf/ServiceQuoteReport';
 import {
   createJob,
   getOutcome,
@@ -85,6 +83,12 @@ export function QuoteResultView({ job, onRefresh }: Props) {
     try {
       setBusy('pdf');
       const t0 = performance.now();
+      // Load the ~1.5MB @react-pdf/renderer chunk only when the user
+      // actually exports — keeps it off the result page's critical path.
+      const [{ pdf }, { ServiceQuoteReport }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/components/pdf/ServiceQuoteReport'),
+      ]);
       const blob = await pdf(<ServiceQuoteReport job={job} />).toBlob();
       const durationMs = Math.round(performance.now() - t0);
       const url = URL.createObjectURL(blob);

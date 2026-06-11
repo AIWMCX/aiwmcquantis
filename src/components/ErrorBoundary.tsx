@@ -21,13 +21,54 @@ class ErrorBoundary extends Component<Props, State> {
     errorInfo: null,
   };
 
+  public componentDidMount() {
+    // Clear the reload guard only after the app has stayed healthy for a
+    // while. Clearing immediately on mount would re-arm the guard during a
+    // real outage and cause an infinite reload loop; the delay means a
+    // genuine chunk failure (which surfaces within seconds of mount) keeps
+    // the guard, while a healthy session frees it for the next deploy.
+    setTimeout(() => {
+      if (!this.state.hasError) {
+        try { sessionStorage.removeItem('chunk-reload-attempted'); } catch { /* noop */ }
+      }
+    }, 30_000);
+  }
+
   public static getDerivedStateFromError(error: Error): State {
     return { hasError: true, error, errorInfo: null };
   }
 
+  /**
+   * Stale-chunk detection: after every deploy the previous bundle's hashed
+   * chunk files are gone, so any open tab that lazy-loads a route gets a
+   * dynamic-import failure. That is not an app bug — the fix is a reload,
+   * which fetches the new index.html and the new chunk hashes.
+   */
+  private static isStaleChunkError(error: Error): boolean {
+    return /Failed to fetch dynamically imported module|Importing a module script failed|ChunkLoadError|error loading dynamically imported module/i.test(
+      `${error?.name ?? ''} ${error?.message ?? ''}`,
+    );
+  }
+
   public componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     this.setState({ errorInfo });
-    
+
+    // Auto-recover from post-deploy stale chunks: reload once per session.
+    // The sessionStorage guard prevents an infinite reload loop if the
+    // failure is a real network outage rather than a deploy.
+    if (ErrorBoundary.isStaleChunkError(error)) {
+      const KEY = 'chunk-reload-attempted';
+      try {
+        if (!sessionStorage.getItem(KEY)) {
+          sessionStorage.setItem(KEY, String(Date.now()));
+          window.location.reload();
+          return;
+        }
+      } catch {
+        /* sessionStorage unavailable — fall through to the error screen */
+      }
+    }
+
     // Report to Sentry in production
     if (import.meta.env.PROD) {
       Sentry.captureException(error, {
