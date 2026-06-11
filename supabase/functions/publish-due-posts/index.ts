@@ -98,6 +98,18 @@ async function logAudit(post_platform_id: string, action: string, status: string
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
+
+  // Cron-only endpoint: require x-cron-secret header
+  const cronSecret = req.headers.get('x-cron-secret');
+  const expectedSecret = Deno.env.get('CRON_SECRET');
+  if (!expectedSecret || !cronSecret || cronSecret !== expectedSecret) {
+    return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    });
+  }
+
+
   const t0 = Date.now();
 
   // Pull due rows. Limit batch size for safety.
