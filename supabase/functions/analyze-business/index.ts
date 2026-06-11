@@ -347,7 +347,10 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     ltv_cac_max: 8,
     net_margin_min: 15,
     net_margin_max: 40,
-    keywords: ['saas', 'software', 'app', 'platform', 'subscription', 'api', 'cloud', 'service', 'automation', 'digital product', 'web app', 'mobile app', 'tool', 'dashboard', 'neural', 'ai ', 'artificial intelligence', 'machine learning', 'deep learning', 'ml ', 'data analytics', 'analytics platform', 'intelligence', 'operation system', 'operating system', 'b2b software', 'enterprise software', 'devops', 'infrastructure', 'crm', 'erp', 'workflow', 'productivity', 'management system', 'management platform', 'system for']
+    // NOTE: deliberately excludes cross-industry words like 'subscription',
+    // 'service', and 'membership' — a "pilates studio with subscription
+    // memberships" is not SaaS. Keep this list software-specific.
+    keywords: ['saas', 'software', 'app', 'platform', 'api', 'cloud', 'automation', 'digital product', 'web app', 'mobile app', 'dashboard', 'neural', 'ai ', 'artificial intelligence', 'machine learning', 'deep learning', 'ml ', 'data analytics', 'analytics platform', 'operation system', 'operating system', 'b2b software', 'enterprise software', 'devops', 'infrastructure', 'crm', 'erp', 'workflow', 'productivity', 'management system', 'management platform', 'system for']
   },
   {
     id: 'ecommerce',
@@ -431,7 +434,7 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
     ltv_cac_max: 6,
     net_margin_min: 15,
     net_margin_max: 35,
-    keywords: ['gym', 'fitness', 'yoga', 'pilates', 'wellness', 'health', 'workout', 'training', 'sport', 'crossfit', 'personal trainer', 'spa', 'massage']
+    keywords: ['gym', 'fitness', 'yoga', 'pilates', 'wellness', 'health', 'workout', 'training', 'sport', 'crossfit', 'personal trainer', 'spa', 'massage', 'fitness studio', 'dance studio', 'bootcamp', 'martial arts', 'boxing']
   },
   {
     id: 'education',
@@ -2219,7 +2222,12 @@ function transformResponse(
     : (typeof raw.sources === 'string' && raw.sources.trim().length > 0)
       ? raw.sources.split(',').map((s: string) => s.trim()).filter(Boolean)
       : ["Public sources", "Industry data"];
-  const limits = raw.limitations ? raw.limitations.split(',').map((s: string) => s.trim()) : ["Estimates based on industry benchmarks"];
+  // limitations may arrive as an array (JSON-mode narrator) or a comma string.
+  const limits = Array.isArray(raw.limitations)
+    ? raw.limitations.map((s: unknown) => String(s).trim()).filter(Boolean)
+    : (typeof raw.limitations === 'string' && raw.limitations.trim().length > 0)
+      ? raw.limitations.split(',').map((s: string) => s.trim()).filter(Boolean)
+      : ["Estimates based on industry benchmarks"];
 
   // CRITICAL FIX: PRIORITIZE USER-PROVIDED VALUES over AI-generated values
   // This ensures user inputs like monthly_revenue=$15,000 are used, not AI's $150,000
@@ -3586,11 +3594,15 @@ market_json:
 
 Provide comprehensive, actionable analysis suitable for a professional investor presentation. Call submit_analysis with all sections in English.`;
 
-    // ========== AI REQUEST WITH FAST TIMEOUT ==========
-    // CRITICAL: Use short timeout (25s) with minimal retries (2) to prevent client disconnection
-    // Total worst-case: 25s + 500ms + 25s = ~50s which fits within edge function limits
-    const MAX_RETRIES = 2;
-    const AI_TIMEOUT_MS = 35000; // 35 seconds - enough for structured narrator JSON without client disconnects
+    // ========== AI REQUEST TIMEOUT BUDGET ==========
+    // The narrator asks for up to 6000 output tokens; DeepSeek v4-flash streams
+    // ~80 tok/s, so long answers legitimately need ~60-75s. The previous 35s
+    // budget killed most full narrations mid-generation (2 timeouts → silent
+    // deterministic fallback). One attempt with a 60s budget; aiCall's built-in
+    // Anthropic fallback acts as the retry on timeout/5xx, so an extra loop
+    // iteration would only double the worst-case wall clock.
+    const MAX_RETRIES = 1;
+    const AI_TIMEOUT_MS = 60000;
     const RETRY_DELAY_MS = 500; // Short delay between retries
     
     let response: { ok: true; data: Record<string, unknown> } | null = null;
