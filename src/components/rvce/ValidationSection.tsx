@@ -24,10 +24,15 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
 
   const metrics = Object.entries(validation.metrics_validation);
   if (metrics.length === 0) {
+    // Empty metrics with PARTIAL status means the rvce-validate call failed or
+    // timed out (the client fallback) — not that the metrics were ineligible.
+    const failedCall = validation.status === 'PARTIAL' && validation.latency_ms === 0;
     return (
       <section className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground flex items-center gap-2">
         <HelpCircle className="h-4 w-4" />
-        No metrics were eligible for external validation.
+        {failedCall
+          ? 'External validation could not be reached for this analysis — it will run automatically on your next analysis.'
+          : 'No metrics were eligible for external validation.'}
       </section>
     );
   }
