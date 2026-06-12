@@ -101,9 +101,25 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
     );
   }
 
-  // Inject canonical + og:url immediately after the (now per-route) <title>.
-  const canonicalTag = `\n    <link rel="canonical" href="${url}" />\n    <meta property="og:url" content="${url}" />`;
-  html = html.replace(/(<\/title>)/, `$1${canonicalTag}`);
+  // Inject canonical + og:url + a per-route WebPage JSON-LD block immediately
+  // after the (now per-route) <title>. The JSON-LD gives crawlers an explicit,
+  // unique structured-data entity per URL — strengthens rich-result eligibility
+  // beyond the <meta> tags alone. Indexable routes only.
+  const jsonLd = meta.noIndex
+    ? ''
+    : `\n    <script type="application/ld+json">${JSON.stringify({
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: meta.title,
+        description: meta.description,
+        url,
+        isPartOf: { '@type': 'WebSite', name: 'AIWMC Quantis', url: BASE_URL },
+        publisher: { '@type': 'Organization', name: 'AIWMC LLC', url: BASE_URL },
+      })}</script>`;
+  const headInject = `\n    <link rel="canonical" href="${url}" />\n    <meta property="og:url" content="${url}" />${jsonLd}`;
+  // Function replacement: titles/descriptions contain '$' (e.g. "$17/mo"), and a
+  // string replacement would interpret '$1' as a backreference and corrupt them.
+  html = html.replace('</title>', () => `</title>${headInject}`);
 
   return html;
 }
