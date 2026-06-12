@@ -1,155 +1,77 @@
-# Benchmark-First Analysis Pipeline — Hardening Plan
+# Plan — Quantis Deep-Dive Audit (docs-only, zero prod risk)
 
-## Problem (confirmed from code + DB)
+## Deliverable
 
-- `benchmark_master_*` tables hold **97,500 rows** and `benchmark_lookup` RPC + V2 engine (`benchmark-engine-v2.ts`) exist and work.
-- `analyze-business/index.ts` calls `getBenchmarkSummary(...)` at L3267, but when the **AI narrator fails** the whole result switches to `usedFallback=true` (L3576+) and the deterministic path **drops the V2 benchmark percentiles from the output JSON**. The PDF then prints "Estimated — Engine fallback (no direct row)" with no P25/P50/P75.
-- When the edge function itself errors, `src/services/analysisApi.ts → emergencyFallbackAnalysis` runs **client-side with zero DB access**, producing the "0.1 vs 999 month CAC payback" contradictions reported in the PDFs.
-- There is no single canonical metric object — `cac_payback_months` is recomputed in narrator, in fallback, and in `analysisContract`, which is how two different values land in the same report.
+One file: `docs/QUANTIS_DEEP_DIVE_2026-06-12.md`, structured exactly per Part 10 of your master prompt:
 
-## Goal
+1. Executive Verdict (≤ 1 page, 5 findings + yes/no on end-to-end success)
+2. Health Scorecard (8 dimensions × 0–10 + evidence anchor)
+3. Live Test Logs (raw results from every probe I run)
+4. Findings Register (sorted Severity → Impact)
+5. Transformation Map (T-specs → Wave 0/1/2/3)
+6. 10–30x Ledger (your §0.3 table with measured "current" column)
+7. Could-Not-Verify (honest blocker list)
+8. Next 24 Hours (one command/change)
 
-Every analysis (success path **and** fallback path) carries a `benchmarks{}` block populated from the real `benchmark_master_*` tables, with one canonical value per metric and explicit `match_type` per row. No silent client-side fallback.
+A companion `docs/QUANTIS_IMPROVEMENTS_MASTER.md` (consolidated improvements backlog) will be merged from the existing `docs/QUANTIS_IMPROVEMENTS_DATASET.md` + this audit's findings, keyed by invariant (I-1…I-10) and lever.
 
----
+**No code, schema, edge function, migration, secret, or config change in this pass.** Pure audit.
 
-## Step 1 — Decouple "narrator failed" from "benchmarks failed"
+## What I will actually do (forensic, evidence-backed)
 
-File: `supabase/functions/analyze-business/index.ts`
+### Read-only codebase forensics (no edits)
+- Model call graph: `rg` every `anthropic|deepseek|gemini|openai|gateway|MODELS\.` in `src/` + `supabase/functions/` → table per call (model, layer, tier, timeout, retry, max_tokens, prompt path).
+- Confirm `grep -rn "deepseek-chat\|deepseek-reasoner"` returns zero (I-6, CI guard verification).
+- Envelope audit: read `supabase/functions/quantis-analyze` (or current analysis function) line-by-line, map to the 12-step contract, list every non-2xx escape path.
+- Rate-limiter keying: `rg` for `quantis-analyze|functions.invoke|EDGE_FUNCTION_URL` in `src/` event handlers — flag any `useEffect`/`onChange`/debounce path.
+- Bundle leak scan: `rg -n "sk_live_|upstash|ANTHROPIC|DEEPSEEK" dist/ src/` and confirm secrets aren't `VITE_`-prefixed (I-5).
+- Frontend error-state grep: `rg -n "non-2xx|retry_after|Edge Function" src/` — any hit on user-facing path = CRITICAL.
+- Design-token drift: `rg -n "#[0-9a-fA-F]{6}" src/ --include="*.tsx" --include="*.ts"` minus token files.
+- Benchmark-count drift: `rg -n "95,?500|97,?500|1,?000\+" src/` — confirm one constant only (I-7).
+- Price drift: `rg -n "\$17|\$14|\$39|\$149" src/` — flag mismatches with `TIERS`.
+- Stripe webhook: read handler, check `event.id` idempotency, event coverage, billing_cycle population.
+- RLS verification: `supabase--read_query` to enumerate tables + policies; flag any public table without policy.
 
-- Compute `v2BenchmarkSummary` **before** the narrator call (already is). Persist it in a `benchmarkRecords` map keyed by metric.
-- When `usedFallback=true` (narrator failed), keep using `v2BenchmarkSummary` to populate the response's `benchmarks` block instead of stripping it.
-- Always include in the response:
-  ```ts
-  meta: {
-    engine_mode: usedFallback ? "deterministic" : "full",
-    benchmark_mode: v2BenchmarkSummary ? "live" : "unavailable",
-    benchmark_match_summary: { direct: N, similar: M, none: K }
-  }
-  ```
-- Stop labeling deterministic+live-benchmarks output as "Fallback used because: Failed to send a request to the Edge Function." That message is wrong — the function did run.
+### Live probes (read-only)
+- `supabase--curl_edge_functions` against `quantis-analyze` (or current name) for the 5 canonical free analyses (coffee Austin · dental-SaaS Denver · fitness Miami · pet-food London · consulting Toronto) — capture raw envelope, latency, degraded flag, ai_layers_attempted/succeeded.
+- Quota race: 2 concurrent identical idempotency keys → inspect `usage_counters` row deltas via `psql`.
+- 7-analysis quota walk (1–5 succeed, 6–7 quota_exhausted).
+- RVCE 6-test suite via `/dev/rvce-test` endpoint or direct `rvce-validate` curl → report `web_search_fired_ratio`, z-score outlier behavior, `rvce_validation_log` payload reality.
+- Plus-paywall leak hunt: anonymous/free-token calls to PDF export, location comparison, Document Studio, adversarial pass edge functions → record HTTP status + body.
+- Stripe checkout truth-test: **stop short of real Stripe call** — instead read the `create-checkout-session` function + `TIERS` constant and trace the price ID flow. I will NOT trigger a real test-mode checkout in this pass (it touches Stripe state); flagged for Wave 1 with your explicit approval.
+- Web Vitals: `browser--performance_profile` on `/`, `/pricing`, `/app`.
+- Public indexation: `websearch` `site:aiwmcquantis.com` to confirm "1 page indexed" reality.
 
-## Step 2 — Build a canonical `BenchmarkRecord` per metric
+### Could-Not-Verify items (declared upfront)
+- Vercel deploy timestamps (no Vercel API access from sandbox)
+- GSC indexation counts (no GSC access)
+- PostHog/Sentry baselines (not connected)
+- Real Stripe test checkout (deliberately deferred — has side effects)
+- Production traffic distributions / per-user analysis counts beyond what `psql` SELECT can reveal
+Each will be listed in section 7 with the exact access needed.
 
-New module: `supabase/functions/analyze-business/benchmark-records.ts`
+## Structure inside the deliverable
 
-```ts
-type MatchType = 'direct' | 'similar' | 'none';
-interface BenchmarkRecord {
-  metric: string;            // 'gross_margin' | 'cac_payback_months' | …
-  unit: 'percent'|'months'|'usd'|'ratio';
-  value: number | null;      // engine-computed value
-  p25: number | null; median: number | null; p75: number | null;
-  sample_size: number; source: string | null; dataset_date: string | null;
-  match_type: MatchType; match_level: string | null;
-}
-```
+Every finding row:
+`ID · Dimension · Severity · Business Impact · Confidence · Evidence (file:line or curl trace) · Root Cause · Fix · Effort`
 
-`buildBenchmarkRecords(summary, computed)` returns one record per metric in a fixed list:
-`gross_margin, operating_margin, net_margin, cac, ltv, ltv_cac_ratio, cac_payback_months, churn_monthly, retention_12m, arpu, revenue_growth_yoy, rent_pct_rev, payroll_pct_rev, marketing_pct_rev, survival_years`.
+Every T-spec row:
+`ID · Lever(s) from §0.3 · Target state · Success criterion · Effort · Dependencies · Wave`
 
-The `benchmarks` block in the response is this array. PDF/UI reads only from here — no parallel inference.
+Invariant-violation findings are tagged `BLOCKS-Ix` and auto-promoted to CRITICAL.
 
-## Step 3 — Single source of truth for derived metrics
+## What I will NOT do in this pass
 
-New module: `supabase/functions/_shared/canonical-metrics.ts` (mirrored client-side at `src/lib/canonical-metrics.ts`).
+- No file edits except creating the two docs above
+- No migrations, no edge function deploys, no secret changes
+- No Stripe test-mode purchases
+- No marking SEO/security findings "fixed"
+- No memory updates until you approve the audit
 
-- One function `computeCanonicalMetrics(inputs)` returns `{ mrr, arr, gross_margin, net_margin, cac, ltv, ltv_cac, cac_payback_months, project_payback_years }`.
-- Hard invariants (enforced inside the function):
-  - If `net_profit ≤ 0` → `cac_payback_months = null`, `ltv_cac = min(rawLtvCac, 3)`, `notes.push('CAC payback not meaningful — negative unit economics')`.
-  - If `gross_margin ≤ 0` → `ltv = null`, `cac_payback_months = null`.
-  - Never emit sentinel values like `0.1` or `999`.
-- Narrator, fallback path, response builder, and PDF all consume this **one** object. Delete duplicate math in `analysisApi.emergencyFallbackAnalysis` and `narrator-prompt.ts`.
+## After you approve the audit
 
-## Step 4 — Kill the silent client-side emergency fallback
+You pick which Wave 0 / Wave 1 items to execute — each becomes its own scoped build-mode session with its own preview verification. That's how we keep prod safe.
 
-File: `src/services/analysisApi.ts`
+## Time
 
-- Replace `emergencyFallbackAnalysis` with a hard error surfaced to the UI: `ANALYSIS_UNAVAILABLE` with a retry CTA. Reasoning: a client-side fabricated report with no DB access is exactly what produced the contradictions the reviewer flagged.
-- Keep one retry with backoff (already there). After retries, throw — do not fabricate.
-- Add a feature flag `VITE_ALLOW_CLIENT_FALLBACK=false` (default) so we can ship safely; setting `true` falls back to a **server proxy** that still calls `benchmark_lookup` via the anon client and never invents percentiles.
-
-## Step 5 — Server-side narrator failure path that still uses benchmarks
-
-In `analyze-business/index.ts` when narrator fails:
-
-1. Use `computeCanonicalMetrics`.
-2. Use `v2BenchmarkSummary` to fill `benchmarks[]`.
-3. Generate scenarios deterministically from canonical metrics × (0.75 / 1.0 / 1.2) revenue, recomputing P&L — never apply different multipliers to derived ratios.
-4. Set `confidence_score = clamp(40, 60, base)`, `engine_mode = 'deterministic'`, `benchmark_mode = 'live'`.
-5. `analysis_limitations` lists exactly: narrator unreachable, which metrics had `match_type='none'`, and which inputs were missing.
-
-## Step 6 — Public benchmark API contract (already in DB, expose properly)
-
-The `benchmark_lookup(metric, sector, business_model, country, city_tier, stage, size)` RPC already exists and returns the right shape. We will:
-
-- Expose a thin Edge Function `POST /benchmarks/query` for external testing and CI — accepts `{ context, metrics[] }`, fans out to `benchmark_lookup` per metric in parallel, returns `{ matches: BenchmarkRecord[] }`.
-- This is the contract the spec the user pasted describes; `match_type` derives from RPC `match_level` (`exact`/`no_size`/`no_city` → `direct`, `sector_model`/`sector_only` → `similar`, missing → `none`).
-
-## Step 7 — Output schema contract enforced by Zod
-
-File: `supabase/functions/analyze-business/schemas.ts` — add:
-
-```ts
-const BenchmarkRecordSchema = z.object({ metric: z.string(), unit: z.enum(['percent','months','usd','ratio']),
-  value: z.number().nullable(), p25: z.number().nullable(), median: z.number().nullable(), p75: z.number().nullable(),
-  sample_size: z.number(), source: z.string().nullable(), dataset_date: z.string().nullable(),
-  match_type: z.enum(['direct','similar','none']), match_level: z.string().nullable() });
-const ResponseSchema = z.object({
-  meta: z.object({ engine_mode: z.enum(['full','deterministic']),
-                   benchmark_mode: z.enum(['live','unavailable']),
-                   confidence_score: z.number().min(0).max(100) }),
-  benchmarks: z.array(BenchmarkRecordSchema),
-  financial_analysis: …, scenarios: …, analysis_limitations: z.array(z.string())
-});
-```
-
-Response is `ResponseSchema.parse(...)` — invalid shape returns 500 instead of leaking inconsistent JSON to the PDF.
-
-## Step 8 — PDF and UI read only `benchmarks[]`
-
-Files: `src/components/analysis/AccuracyTransparentResults.tsx`, PDF templates.
-
-- Remove every place that re-derives a percentile string locally.
-- Render `match_type='none'` rows as **"Not benchmarked — insufficient comparable data"** (no fake numbers, no "verified" badge).
-- The "95,500 datapoints verified" badge only renders if `meta.benchmark_mode === 'live' && benchmark_match_summary.direct + similar > 0`.
-
-## Step 9 — Integration tests (CI gate)
-
-New file: `src/__tests__/benchmark-pipeline-e2e.test.ts` + `supabase/functions/analyze-business/__tests__/benchmark-records_test.ts`.
-
-Tests required to pass before merge:
-
-1. **Direct match**: seed sector=B2B SaaS row; analysis returns `benchmarks[gross_margin].match_type === 'direct'` and median equals seeded value.
-2. **Similar match**: seed only sector-level row; sub-sector mismatch returns `match_type === 'similar'`.
-3. **No match**: unknown sector → `match_type === 'none'`, `median === null`, no fabricated number.
-4. **Narrator down**: mock LLM 500; assert `engine_mode === 'deterministic'`, `benchmark_mode === 'live'`, benchmarks block still populated, no client fallback.
-5. **Edge function down**: mock invoke error; UI surfaces `ANALYSIS_UNAVAILABLE` — never returns a fabricated `BusinessAnalysisResult`.
-6. **Coherence invariant**: negative net profit → `cac_payback_months === null` everywhere in response; never `0.1` and never `999`.
-7. **Schema**: `ResponseSchema.parse(realResponse)` succeeds on 10 golden cases.
-
-CI: wire into existing `vitest` and `supabase test_edge_functions` jobs.
-
-## Step 10 — Observability
-
-- Log `benchmark_match_summary` to `analyses.metadata` jsonb so admin dashboard can plot `% direct / % similar / % none` per industry.
-- Add tile to `QuantisHealth.tsx`: "Benchmark coverage (7d): X% direct, Y% similar, Z% none".
-
----
-
-## Out of scope (this plan)
-
-- Rebuilding the benchmark dataset itself (rows are already in DB).
-- AI consensus gate (Month 1 Week 2 — separate plan).
-- Streaming SSE results (Month 1 Week 4).
-- Pricing / landing / SEO work.
-
-## Files touched
-
-Create: `supabase/functions/analyze-business/benchmark-records.ts`, `supabase/functions/_shared/canonical-metrics.ts`, `src/lib/canonical-metrics.ts`, `supabase/functions/benchmarks-query/index.ts`, `src/__tests__/benchmark-pipeline-e2e.test.ts`, `supabase/functions/analyze-business/__tests__/benchmark-records_test.ts`.
-
-Edit: `supabase/functions/analyze-business/index.ts` (response builder + fallback branch), `supabase/functions/analyze-business/schemas.ts` (Zod response schema), `supabase/functions/analyze-business/narrator-prompt.ts` (use canonical metrics), `src/services/analysisApi.ts` (remove emergency fallback fabrication), `src/components/analysis/AccuracyTransparentResults.tsx` (read benchmarks[] only), PDF templates, `src/pages/admin/QuantisHealth.tsx` (coverage tile).
-
-## Acceptance
-
-After ship, a new analysis must show in the PDF for at least 8 of the 15 metrics: a real `P25 / Median / P75` row with source + sample size, `match_type` chip = direct or similar, **and the same `cac_payback_months` value in every section.** Narrator outages no longer downgrade the benchmark block.
+~20–30 min of read-only tool calls, then the doc write. One deliverable, one file, ready to diff against on the next re-run.
