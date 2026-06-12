@@ -113,9 +113,10 @@ Anchor against the $1,500–$25,000 consultant; annual toggle default (save $36)
 
 ### TRACK C — ACQUISITION / SEO (from §programmatic-SEO + comparison-page priorities, remapped)
 
-**C-1 · Prerendering (turn 79 resolving URLs into 79 ranking pages)** — *Origin: CWV/SEO sections; F-06 in audit* — ⬜ **THE top growth item** · 1–2d
-Build-time prerender of all public routes with per-route title/meta/JSON-LD. Routes resolve since 6/11 but all serve one SPA shell.
-*Metric:* GSC indexed pages >50 within 14 days. *Rollout:* vite prerender step writes static HTML into `dist/`; SPA hydrates on top; zero runtime change; verify with curl per route before+after deploy.
+**C-1 · Prerendering (turn 79 resolving URLs into 79 ranking pages)** — *Origin: CWV/SEO sections; F-06 in audit* — ✅ SHIPPED 6/12 commits `da93c08`+`c495e53`
+Build-time per-route head stamping: `scripts/prerender-seo.ts` (postbuild step) writes `dist/<route>/index.html` for every URL in `prerender-urls.txt`, rewriting title/description/canonical/og/twitter/robots + a per-route WebPage JSON-LD, sourced from the same `RouteSEO.tsx` ROUTE_META registry (no drift). noindex on auth/transactional routes. Zero runtime change; SPA hydrates identically. Verified locally: 79 unique heads, homepage shell byte-identical, $17/mo intact.
+*Metric (now measurable):* GSC indexed pages >50 within 14 days — submit sitemap + request re-index after live verification.
+*Next:* C-2 programmatic sector×city pages reuse this exact pipeline.
 
 **C-2 · Programmatic sector×city pages** — *Origin: "500+ long-tail pages" remapped from BI connectors to validator sectors* — ⬜ HIGH · 3–5d after C-1
 First 200 pages (top 10 sectors × 20 cities) generated at build time **from the real engine's output** ("Coffee shop in Denver: startup cost, margins, payback — modeled example"), honestly labeled, unique JSON-LD.
