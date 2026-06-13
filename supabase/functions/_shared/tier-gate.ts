@@ -104,23 +104,31 @@ export async function incrementMonthlyUsage(userId: string): Promise<void> {
   const admin = createClient(SUPABASE_URL, SERVICE_KEY);
   const monthYear = currentMonthYear();
 
-  // Upsert + increment via RPC if available; otherwise read-modify-write.
-  const { data: existing } = await admin
-    .from('usage_tracking')
-    .select('id, analyses_count')
-    .eq('user_id', userId)
-    .eq('month_year', monthYear)
-    .maybeSingle();
+  // Try atomic RPC first (race-safe), fall back to read-modify-write.
+  const { error: rpcError } = await admin.rpc('consume_analysis_quota', {
+    p_user_id: userId,
+    p_limit: 999999,
+  });
 
-  if (existing) {
-    await admin
+  if (rpcError) {
+    // RPC unavailable — fall back to upsert-then-update.
+    const { data: existing } = await admin
       .from('usage_tracking')
-      .update({ analyses_count: (existing.analyses_count ?? 0) + 1 })
-      .eq('id', existing.id);
-  } else {
-    await admin
-      .from('usage_tracking')
-      .insert({ user_id: userId, month_year: monthYear, analyses_count: 1 });
+      .select('id, analyses_count')
+      .eq('user_id', userId)
+      .eq('month_year', monthYear)
+      .maybeSingle();
+
+    if (existing) {
+      await admin
+        .from('usage_tracking')
+        .update({ analyses_count: (existing.analyses_count ?? 0) + 1 })
+        .eq('id', existing.id);
+    } else {
+      await admin
+        .from('usage_tracking')
+        .insert({ user_id: userId, month_year: monthYear, analyses_count: 1 });
+    }
   }
 }
 

@@ -223,13 +223,22 @@ jobs:
             generate-document-content
             export-document
             pdf-generator
+            parse-document
+            queue-export
             # ── Intelligence / scenarios ──────────────────────────────────
             ai-consensus
             analyze-preview
+            # ── API / team ────────────────────────────────────────────────
+            create-api-key
+            team-invite
+            # ── Lifecycle emails ──────────────────────────────────────────
+            send-welcome-email
+            send-lifecycle-email
             # ── Platform / infra ──────────────────────────────────────────
             health-check
             warm-functions
             manage-benchmarks
+            manage-knowledge-base
             self-learning-update
             process-subscription-downgrades
           )
