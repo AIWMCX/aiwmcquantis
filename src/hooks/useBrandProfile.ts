@@ -33,13 +33,12 @@ export function useBrandProfile() {
     queryKey: ['brand-profile', user?.id],
     queryFn: async () => {
       if (!user) return null;
-      const { data, error } = await supabase
-        .from('user_brand_profiles')
-        .select('*')
-        .eq('user_id', user.id)
-        .maybeSingle();
+      // PII (email/phone/tax_id) is encrypted at rest; the RPC returns
+      // the caller's row with those fields decrypted via SECURITY DEFINER.
+      const { data, error } = await (supabase as any).rpc('get_user_brand_profile');
       if (error) throw error;
-      return data as BrandProfile | null;
+      const row = Array.isArray(data) ? data[0] : data;
+      return (row ?? null) as BrandProfile | null;
     },
     enabled: !!user,
   });
@@ -47,15 +46,9 @@ export function useBrandProfile() {
   const upsertProfile = useMutation({
     mutationFn: async (updates: Partial<Omit<BrandProfile, 'id' | 'user_id'>>) => {
       if (!user) throw new Error('Not authenticated');
-      const { data, error } = await supabase
-        .from('user_brand_profiles')
-        .upsert({
-          user_id: user.id,
-          ...updates,
-          updated_at: new Date().toISOString(),
-        }, { onConflict: 'user_id' })
-        .select()
-        .single();
+      const { data, error } = await (supabase as any).rpc('upsert_user_brand_profile', {
+        p: updates,
+      });
       if (error) throw error;
       return data;
     },
