@@ -70,8 +70,8 @@ Statuses: ✅ DONE · 🔵 IN-FLIGHT · ⬜ PLANNED · 🧊 ICEBOX (kept for lat
 | W0-3 | Tier parity fix (free=5 client/server) + prompt-injection hardening (31/31) | ✅ commit `44e9f2b` |
 | W0-4 | Idempotent analysis persistence (history loss fixed) | ✅ commit `7c27746` |
 | W0-5 | TAVILY_API_KEY → RVCE web search live | ⬜ BLOCKED — key confirmed ABSENT from GitHub (repo+Production env) AND Supabase; pipeline itself green (CI #214). Needs key value from CEO, then set both places. RVCE live-verified on duckduckgo fallback 6/12. |
-| W0-6 | **CRITICAL** fix `rvce-validate` unauth paid-compute leak (`index.ts:644` default `tier='plus'`→`'free'`) | ⬜ Wave-0 — live-proven 200 no-auth (see `QUANTIS_DEEP_DIVE_2026-06-12.md` F-DD-01) |
-| W0-7 | Fix `parse-document` 500 (`getClaims`→`getUser`, `index.ts:128`) — Plus doc-intelligence dead in prod | ⬜ Wave-0 — F-DD-02 |
+| W0-6 | **CRITICAL** fix `rvce-validate` unauth paid-compute leak (`index.ts:644` default `tier='plus'`→`'free'`) | ✅ commit `9118135` — fail-closed to `'free'` |
+| W0-7 | Fix `parse-document` 500 (`getClaims`→`getUser`, `index.ts:128`) — Plus doc-intelligence dead in prod | ✅ commit `9118135` — uses `getUser()` now |
 | W0-8 | Classifier misclass (dental-SaaS→"Dental Clinic"); two-stage classify w/ confidence | ⬜ W1 — F-DD-03 (lever: accuracy credibility) |
 | W0-9 | Model-string drift: `models.ts` constant not imported by edge fns + CI guard absent | ⬜ W1 — F-DD-06 (I-6 adjacent) |
 
