@@ -641,7 +641,7 @@ serve(async (req) => {
   try {
     // ── Tier resolution ──
     const authHeader = req.headers.get('Authorization') ?? '';
-    let tier: 'free' | 'plus' | 'pro' = 'plus'; // default permissive if no auth
+    let tier: 'free' | 'plus' | 'pro' = 'free';
     let userId: string | null = null;
     let adminClient: any = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
       ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)

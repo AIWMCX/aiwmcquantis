@@ -123,17 +123,15 @@ serve(async (req) => {
     const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
       global: { headers: { Authorization: authHeader } },
     });
-    const token = authHeader.replace("Bearer ", "");
-    // deno-lint-ignore no-explicit-any
-    const { data: claimsData, error: claimsError } = await (supabaseAuth.auth as any).getClaims(token);
-    if (claimsError || !claimsData?.claims) {
+    const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
+    if (userError || !user) {
       return new Response(
         JSON.stringify({ error: "Invalid authentication token", code: "INVALID_AUTH" }),
         { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    const userId = claimsData.claims.sub;
+    const userId = user.id;
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
 
     const { requireFeature, EntitlementError } = await import("../_shared/entitlements.ts");
