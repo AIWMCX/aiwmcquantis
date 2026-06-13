@@ -326,10 +326,20 @@ export function useAnalysis() {
 
     if (!validate()) return;
 
-    // Only include financial inputs that have values
+    // Only include financial inputs that have values. Numeric fields must be
+    // finite positive numbers; `selected_industry` is a string and must be
+    // preserved (a `v > 0` test silently dropped it → industry benchmarks were
+    // never sent to the backend — see BUG-035). Churn is clamped to [0,100] so
+    // a typo never trips the server boundary schema.
     const cleanedFinancialInputs = Object.fromEntries(
-      Object.entries(financialInputs).filter(([_, v]) => v !== undefined && v !== null && v > 0)
+      Object.entries(financialInputs).filter(([k, v]) => {
+        if (k === 'selected_industry') return typeof v === 'string' && v.length > 0;
+        return typeof v === 'number' && Number.isFinite(v) && v > 0;
+      })
     ) as OptionalFinancialInputs;
+    if (typeof cleanedFinancialInputs.churn_rate === 'number') {
+      cleanedFinancialInputs.churn_rate = Math.max(0, Math.min(100, cleanedFinancialInputs.churn_rate));
+    }
 
     const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
 

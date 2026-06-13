@@ -13,16 +13,38 @@ import { z } from 'npm:zod@3.23.8';
 
 // ── Request ──────────────────────────────────────────────────────────
 
+/**
+ * Coerce-and-clamp number: accepts number OR numeric string, drops
+ * empty/null/NaN/Infinity to `undefined`. A trust boundary with a known-good
+ * internal consumer should interpret what it safely can rather than 400 the
+ * user's primary flow over a client serialization quirk (e.g. an input that
+ * sent "100" instead of 100). Hard rejection is reserved for fields we cannot
+ * interpret (missing idea/location). See BUG-034 in MEGA_MASTER_PROMPT.
+ */
+const coercedNonnegative = z.preprocess((v) => {
+  if (v === '' || v === null || v === undefined) return undefined;
+  const n = typeof v === 'string' ? Number(v) : v;
+  return typeof n === 'number' && Number.isFinite(n) && n >= 0 ? n : undefined;
+}, z.number().nonnegative().optional());
+
+/** Same as above, but clamps to [0, 100] for percentage fields. */
+const coercedPercent = z.preprocess((v) => {
+  if (v === '' || v === null || v === undefined) return undefined;
+  const n = typeof v === 'string' ? Number(v) : v;
+  if (typeof n !== 'number' || !Number.isFinite(n)) return undefined;
+  return Math.max(0, Math.min(100, n));
+}, z.number().min(0).max(100).optional());
+
 export const FinancialInputsSchema = z
   .object({
-    monthly_revenue: z.number().nonnegative().optional(),
-    monthly_costs: z.number().nonnegative().optional(),
-    startup_investment: z.number().nonnegative().optional(),
-    expected_customers: z.number().nonnegative().optional(),
-    average_price: z.number().nonnegative().optional(),
-    churn_rate: z.number().min(0).max(100).optional(),
-    cac: z.number().nonnegative().optional(),
-    selected_industry: z.string().max(100).optional(),
+    monthly_revenue: coercedNonnegative,
+    monthly_costs: coercedNonnegative,
+    startup_investment: coercedNonnegative,
+    expected_customers: coercedNonnegative,
+    average_price: coercedNonnegative,
+    churn_rate: coercedPercent,
+    cac: coercedNonnegative,
+    selected_industry: z.coerce.string().max(100).optional(),
   })
   .passthrough();
 
@@ -31,9 +53,13 @@ export const RequestSchema = z
     idea: z.string().min(1).max(5000),
     location: z.string().min(1).max(200),
     financial_inputs: FinancialInputsSchema.optional(),
-    selected_industry: z.string().max(100).optional(),
+    selected_industry: z.coerce.string().max(100).optional(),
     documents: z.array(z.unknown()).max(10).optional(),
-    analysis_depth: z.enum(['quick', 'full', 'pro', 'deep']).optional(),
+    // Unknown depth → coerce to 'full' rather than reject the request.
+    analysis_depth: z.preprocess(
+      (v) => (['quick', 'full', 'pro', 'deep'].includes(v as string) ? v : undefined),
+      z.enum(['quick', 'full', 'pro', 'deep']).optional(),
+    ),
   })
   .passthrough();
 
