@@ -159,7 +159,7 @@ function getTicketBenchmark(industryType: string): IndustryBenchmark | undefined
 export async function requestDocGeneration(
   req: DocGenerationRequest
 ): Promise<DocGenerationResponse> {
-  // Parallel fetch: report, brand profile, template
+  // Parallel fetch: report, brand profile (via SECURITY DEFINER RPC — PII encrypted at rest), template
   const [reportResult, brandResult, templateResult] = await Promise.all([
     supabase
       .from('analyses')
@@ -167,11 +167,7 @@ export async function requestDocGeneration(
       .eq('id', req.analysisId)
       .eq('user_id', req.userId)
       .single(),
-    supabase
-      .from('user_brand_profiles' as any)
-      .select('*')
-      .eq('user_id', req.userId)
-      .maybeSingle(),
+    (supabase as any).rpc('get_user_brand_profile'),
     supabase
       .from('doc_templates')
       .select('*')
@@ -188,9 +184,11 @@ export async function requestDocGeneration(
   }
 
   const report = reportResult.data.result as unknown as QuantisReport;
-  const brandProfile = (brandResult?.data as unknown as UserBrandProfile) ?? null;
+  const brandRow = Array.isArray(brandResult?.data) ? brandResult.data[0] : brandResult?.data;
+  const brandProfile = (brandRow as unknown as UserBrandProfile) ?? null;
   const template = templateResult.data as unknown as DocTemplate;
   const templateVersion = (template as any).version ? Number((template as any).version) : 1;
+
 
   // Generate cache key
   const cacheKey = await generateCacheKey(

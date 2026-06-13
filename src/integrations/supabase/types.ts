@@ -5641,17 +5641,17 @@ export type Database = {
           city: string | null
           company_name: string | null
           created_at: string | null
-          email: string | null
+          email_encrypted: string | null
           font_preference: string | null
           id: string
           invoice_counter: number | null
           invoice_prefix: string | null
           logo_url: string | null
-          phone: string | null
+          phone_encrypted: string | null
           primary_color: string | null
           secondary_color: string | null
           state: string | null
-          tax_id: string | null
+          tax_id_encrypted: string | null
           updated_at: string | null
           user_id: string
           website: string | null
@@ -5664,17 +5664,17 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           created_at?: string | null
-          email?: string | null
+          email_encrypted?: string | null
           font_preference?: string | null
           id?: string
           invoice_counter?: number | null
           invoice_prefix?: string | null
           logo_url?: string | null
-          phone?: string | null
+          phone_encrypted?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           state?: string | null
-          tax_id?: string | null
+          tax_id_encrypted?: string | null
           updated_at?: string | null
           user_id: string
           website?: string | null
@@ -5687,17 +5687,17 @@ export type Database = {
           city?: string | null
           company_name?: string | null
           created_at?: string | null
-          email?: string | null
+          email_encrypted?: string | null
           font_preference?: string | null
           id?: string
           invoice_counter?: number | null
           invoice_prefix?: string | null
           logo_url?: string | null
-          phone?: string | null
+          phone_encrypted?: string | null
           primary_color?: string | null
           secondary_color?: string | null
           state?: string | null
-          tax_id?: string | null
+          tax_id_encrypted?: string | null
           updated_at?: string | null
           user_id?: string
           website?: string | null
@@ -6304,6 +6304,32 @@ export type Database = {
       }
       get_unique_users_with_analysis: { Args: never; Returns: number }
       get_user_activation_score: { Args: { p_user_id: string }; Returns: Json }
+      get_user_brand_profile: {
+        Args: never
+        Returns: {
+          accent_color: string
+          address_line1: string
+          address_line2: string
+          city: string
+          company_name: string
+          created_at: string
+          email: string
+          font_preference: string
+          id: string
+          invoice_counter: number
+          invoice_prefix: string
+          logo_url: string
+          phone: string
+          primary_color: string
+          secondary_color: string
+          state: string
+          tax_id: string
+          updated_at: string
+          user_id: string
+          website: string
+          zip: string
+        }[]
+      }
       get_user_engagement_stats: { Args: { p_user_id: string }; Returns: Json }
       get_user_plan_tier: { Args: { _uid: string }; Returns: string }
       get_weekly_leaderboard: {
@@ -6459,6 +6485,7 @@ export type Database = {
         Args: { p_code: string; p_ip_hash?: string; p_user_agent?: string }
         Returns: string
       }
+      upsert_user_brand_profile: { Args: { p: Json }; Returns: string }
       user_in_shared_pro_team: {
         Args: { _owner: string; _viewer: string }
         Returns: boolean
