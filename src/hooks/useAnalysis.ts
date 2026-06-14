@@ -198,6 +198,11 @@ export function useAnalysis() {
       const isNetwork = /network|fetch|Failed to fetch|ECONN|NetworkError/i.test(msg);
       const isTimeout = /timeout|abort|ETIMEDOUT/i.test(msg);
       const isServer = /\b5\d{2}\b|server|INTERNAL/i.test(msg);
+      // Schema/validation rejection at the request or response boundary. Since
+      // BUG-034 the backend coerces inputs, so this is now rare — but it must
+      // NEVER surface as a raw "REQUEST_SCHEMA_INVALID" code to the user.
+      const isSchema =
+        /REQUEST_SCHEMA_INVALID|RESPONSE_SCHEMA_INVALID|SCHEMA_INVALID|VALIDATION/i.test(msg);
       // NOTE: we deliberately no longer treat "AI provider returned…" as a
       // first-class category here — Pro depth used to surface as that error
       // because the queued response was mis-parsed. With the new
@@ -244,14 +249,23 @@ export function useAnalysis() {
         title = 'Our analysis engine is having a hiccup. Please try again.';
       } else if (isAi) {
         title = 'AI provider returned an unexpected response. Retry usually fixes this.';
+      } else if (isSchema) {
+        title = 'We had trouble reading one of your inputs. Double-check your numbers and retry.';
+        description =
+          'Make sure financial fields contain plain numbers (e.g. 100, not "100 USD") and churn is between 0 and 100.';
       } else {
-        title = msg || 'Something went wrong while running your analysis.';
+        // Final fallback: NEVER show a raw SCREAMING_CODE prefix to the user.
+        // Strip any leading "CODE: " and embedded metadata; if nothing readable
+        // remains, use a friendly generic message.
+        const stripped = cleanMsg(msg.replace(/^[A-Z][A-Z0-9_]{2,}\s*[:|]\s*/, '')).trim();
+        const looksLikeCode = /^[A-Z0-9_ ]+$/.test(stripped) || stripped.length < 3;
+        title = looksLikeCode ? 'Something went wrong while running your analysis.' : stripped;
       }
 
       // Transient failures get an actionable Try-again button. The underlying
       // generateAnalysis() already retries twice silently — this surfaces a
       // third user-initiated attempt with a fresh request.
-      const isTransient = isNetwork || isTimeout || isServer || isAi;
+      const isTransient = isNetwork || isTimeout || isServer || isAi || isSchema;
       toast.error(title, {
         duration: isTierGate ? 12000 : isInvalidIdea ? 8000 : isTransient ? 10000 : 5000,
         description,
