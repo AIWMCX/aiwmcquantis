@@ -28,7 +28,8 @@ const EMPTY_FINANCIAL_INPUTS: OptionalFinancialInputs = {};
 export function useAnalysis() {
   const [idea, setIdea] = useState('');
   const [location, setLocation] = useState('');
-  const [financialInputs, setFinancialInputs] = useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
+  const [financialInputs, setFinancialInputs] =
+    useState<OptionalFinancialInputs>(EMPTY_FINANCIAL_INPUTS);
 
   // Debounced activation tracking for idea/location entry — fires once user pauses typing.
   // Internal dedupe (30s window in trackActivationEvent) prevents spam on remounts.
@@ -65,23 +66,23 @@ export function useAnalysis() {
 
   const { addEntry } = useAnalysisHistory();
   const { user, isAuthenticated } = useAuth();
-  
+
   // File upload functionality
   const fileUpload = useFileUpload(user?.id);
 
   const validate = useCallback((): boolean => {
     const newErrors: FormErrors = {};
-    
+
     const ideaValidation = validateIdea(idea);
     if (!ideaValidation.valid) {
       newErrors.idea = ideaValidation.error;
     }
-    
+
     const locationValidation = validateLocation(location);
     if (!locationValidation.valid) {
       newErrors.location = locationValidation.error;
     }
-    
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [idea, location]);
@@ -103,18 +104,28 @@ export function useAnalysis() {
       const requestedDepth = lastRequestRef.current?.analysis_depth;
       const depthFromResult = (data as any)?.depth_used;
       const finalDepth: 'quick' | 'full' | 'pro' =
-        (depthFromResult === 'pro' || depthFromResult === 'full' || depthFromResult === 'quick')
+        depthFromResult === 'pro' || depthFromResult === 'full' || depthFromResult === 'quick'
           ? depthFromResult
-          : (requestedDepth === 'deep' || requestedDepth === 'pro')
+          : requestedDepth === 'deep' || requestedDepth === 'pro'
             ? 'pro'
-            : (requestedDepth as 'quick' | 'full' | undefined) ?? 'full';
+            : ((requestedDepth as 'quick' | 'full' | undefined) ?? 'full');
 
       let savedId: string | null = null;
       if (isAuthenticated && user) {
-        const saved = await saveAnalysis(user.id, trimmedIdea, trimmedLocation, safeData, finalDepth);
+        const saved = await saveAnalysis(
+          user.id,
+          trimmedIdea,
+          trimmedLocation,
+          safeData,
+          finalDepth
+        );
         if (saved) {
           savedId = saved.id;
-          cacheAnalysisLocally(saved.id, { idea: trimmedIdea, location: trimmedLocation, result: safeData });
+          cacheAnalysisLocally(saved.id, {
+            idea: trimmedIdea,
+            location: trimmedLocation,
+            result: safeData,
+          });
           addEntry({
             id: saved.id,
             idea: trimmedIdea,
@@ -124,7 +135,12 @@ export function useAnalysis() {
           });
         }
       } else {
-        const saved = await saveAnonymousAnalysis(trimmedIdea, trimmedLocation, safeData, finalDepth);
+        const saved = await saveAnonymousAnalysis(
+          trimmedIdea,
+          trimmedLocation,
+          safeData,
+          finalDepth
+        );
         if (saved) {
           savedId = saved.id;
           addEntry({
@@ -138,7 +154,7 @@ export function useAnalysis() {
       }
       setAnalysisId(savedId);
     },
-    [idea, location, isAuthenticated, user, addEntry],
+    [idea, location, isAuthenticated, user, addEntry]
   );
 
   const mutation = useMutation({
@@ -170,12 +186,15 @@ export function useAnalysis() {
       logger.error('Analysis error:', error);
 
       const msg = error.message || '';
-      const isRateLimit = msg.includes('RATE_LIMIT_EXCEEDED') || msg.includes('429') || msg.includes('RATE_LIMIT');
+      const isRateLimit =
+        msg.includes('RATE_LIMIT_EXCEEDED') || msg.includes('429') || msg.includes('RATE_LIMIT');
       const isInvalidIdea = msg.includes('INVALID_BUSINESS_IDEA');
       const isQuota = msg.includes('402') || msg.includes('PAYMENT') || msg.includes('USAGE_LIMIT');
       // TIER_GATE: explicit 402 from edge function — quota exhausted or feature locked.
       // Extract the human-readable message and upgrade URL embedded by analysisApi.ts.
-      const isTierGate = msg.includes('TIER_GATE') || (msg.includes('QUOTA_EXCEEDED') && msg.includes('upgrade_url='));
+      const isTierGate =
+        msg.includes('TIER_GATE') ||
+        (msg.includes('QUOTA_EXCEEDED') && msg.includes('upgrade_url='));
       const isNetwork = /network|fetch|Failed to fetch|ECONN|NetworkError/i.test(msg);
       const isTimeout = /timeout|abort|ETIMEDOUT/i.test(msg);
       const isServer = /\b5\d{2}\b|server|INTERNAL/i.test(msg);
@@ -239,14 +258,16 @@ export function useAnalysis() {
         action: isTierGate
           ? {
               label: 'Upgrade to Plus →',
-              onClick: () => { window.location.href = upgradeHref || '/pricing'; },
+              onClick: () => {
+                window.location.href = upgradeHref || '/pricing';
+              },
             }
           : isTransient
-          ? {
-              label: 'Try again',
-              onClick: () => mutation.mutate(variables),
-            }
-          : undefined,
+            ? {
+                label: 'Try again',
+                onClick: () => mutation.mutate(variables),
+              }
+            : undefined,
       });
     },
   });
@@ -276,15 +297,15 @@ export function useAnalysis() {
         if (last && !fallbackFiredRef.current) {
           fallbackFiredRef.current = true;
           toast.info('Pro hit a worker error — switching to Full depth', {
-            description: 'We are rerunning the same inputs with Full depth now so you still get a complete analysis result.',
+            description:
+              'We are rerunning the same inputs with Full depth now so you still get a complete analysis result.',
             duration: 8000,
           });
           mutation.mutate({ ...last, analysis_depth: 'full' });
         } else {
           toast.error('Pro Audit failed', {
             description:
-              s.errorMessage ||
-              'The deep analysis hit an error. Try again or run a Full analysis.',
+              s.errorMessage || 'The deep analysis hit an error. Try again or run a Full analysis.',
             duration: 10000,
           });
         }
@@ -311,7 +332,7 @@ export function useAnalysis() {
         }
       }
     },
-    [persistCompletedResult, mutation],
+    [persistCompletedResult, mutation]
   );
 
   const proJobState = useProAnalysisJob({
@@ -321,63 +342,69 @@ export function useAnalysis() {
     onSettled: handleJobSettled,
   });
 
-  const handleSubmit = useCallback((e?: React.FormEvent, depth?: string) => {
-    e?.preventDefault();
+  const handleSubmit = useCallback(
+    (e?: React.FormEvent, depth?: string) => {
+      e?.preventDefault();
 
-    if (!validate()) return;
+      if (!validate()) return;
 
-    // Only include financial inputs that have values. Numeric fields must be
-    // finite positive numbers; `selected_industry` is a string and must be
-    // preserved (a `v > 0` test silently dropped it → industry benchmarks were
-    // never sent to the backend — see BUG-035). Churn is clamped to [0,100] so
-    // a typo never trips the server boundary schema.
-    const cleanedFinancialInputs = Object.fromEntries(
-      Object.entries(financialInputs).filter(([k, v]) => {
-        if (k === 'selected_industry') return typeof v === 'string' && v.length > 0;
-        return typeof v === 'number' && Number.isFinite(v) && v > 0;
-      })
-    ) as OptionalFinancialInputs;
-    if (typeof cleanedFinancialInputs.churn_rate === 'number') {
-      cleanedFinancialInputs.churn_rate = Math.max(0, Math.min(100, cleanedFinancialInputs.churn_rate));
-    }
+      // Only include financial inputs that have values. Numeric fields must be
+      // finite positive numbers; `selected_industry` is a string and must be
+      // preserved (a `v > 0` test silently dropped it → industry benchmarks were
+      // never sent to the backend — see BUG-035). Churn is clamped to [0,100] so
+      // a typo never trips the server boundary schema.
+      const cleanedFinancialInputs = Object.fromEntries(
+        Object.entries(financialInputs).filter(([k, v]) => {
+          if (k === 'selected_industry') return typeof v === 'string' && v.length > 0;
+          return typeof v === 'number' && Number.isFinite(v) && v > 0;
+        })
+      ) as OptionalFinancialInputs;
+      if (typeof cleanedFinancialInputs.churn_rate === 'number') {
+        cleanedFinancialInputs.churn_rate = Math.max(
+          0,
+          Math.min(100, cleanedFinancialInputs.churn_rate)
+        );
+      }
 
-    const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
+      const hasFinancialInputs = Object.keys(cleanedFinancialInputs).length > 0;
 
-    // Get ready files with parsed content AND extracted financials
-    const readyFiles = fileUpload.getReadyFiles();
-    const documents = readyFiles.map(f => ({
-      name: f.name,
-      type: f.type,
-      parsedContent: f.parsedContent || '',
-      extractedFinancials: f.extractedFinancials || undefined,
-    }));
+      // Get ready files with parsed content AND extracted financials
+      const readyFiles = fileUpload.getReadyFiles();
+      const documents = readyFiles.map((f) => ({
+        name: f.name,
+        type: f.type,
+        parsedContent: f.parsedContent || '',
+        extractedFinancials: f.extractedFinancials || undefined,
+      }));
 
-    const request: AnalysisRequest = {
-      idea: idea.trim(),
-      location: location.trim(),
-      ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
-      ...(documents.length > 0 && { documents }),
-      ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
-    };
+      const request: AnalysisRequest = {
+        idea: idea.trim(),
+        location: location.trim(),
+        ...(hasFinancialInputs && { financial_inputs: cleanedFinancialInputs }),
+        ...(documents.length > 0 && { documents }),
+        ...(depth && { analysis_depth: depth as 'quick' | 'full' | 'deep' }),
+      };
 
-    // Snapshot for potential auto-fallback to Full on Pro timeout.
-    lastRequestRef.current = request;
-    fallbackFiredRef.current = false;
-    // Cancel any in-flight Pro poll from a previous submission.
-    setProJobId(null);
+      // Snapshot for potential auto-fallback to Full on Pro timeout.
+      lastRequestRef.current = request;
+      fallbackFiredRef.current = false;
+      // Cancel any in-flight Pro poll from a previous submission.
+      setProJobId(null);
 
-    mutation.mutate(request);
-  }, [idea, location, financialInputs, validate, mutation, fileUpload]);
-  
+      mutation.mutate(request);
+    },
+    [idea, location, financialInputs, validate, mutation, fileUpload]
+  );
+
   // Auto-fill form when documents are parsed with financial data
   const handleAutoFillFromDocuments = useCallback(() => {
     const suggestions = fileUpload.getSuggestedInputs();
     if (Object.keys(suggestions).length > 0) {
-      setFinancialInputs(prev => ({ ...prev, ...suggestions }));
+      setFinancialInputs((prev) => ({ ...prev, ...suggestions }));
       toast.success('Form auto-filled with document data!');
     }
   }, [fileUpload]);
-  
+
   // Watch for new document extractions and offer auto-fill.
   // Use a ref-tracked signature so we only toast when the *set* of extracted
   // financial keys actually changes (prevents re-render toast spam — ISSUE-008).
@@ -404,7 +431,7 @@ export function useAnalysis() {
   }, [fileUpload, handleAutoFillFromDocuments]);
 
   const clearError = useCallback((field: keyof FormErrors) => {
-    setErrors(prev => {
+    setErrors((prev) => {
       const next = { ...prev };
       delete next[field];
       return next;
@@ -433,11 +460,11 @@ export function useAnalysis() {
   // the user's perspective, even though the underlying mutation already
   // resolved with {queued: true}. Surface that as a single isLoading flag so
   // existing form components keep working unchanged.
-  const isProJobActive =
-    proJobState.phase === 'queued' || proJobState.phase === 'running';
+  const isProJobActive = proJobState.phase === 'queued' || proJobState.phase === 'running';
   const isLoading = mutation.isPending || isProJobActive;
 
-  const isFormValid = idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
+  const isFormValid =
+    idea.trim().length >= 10 && location.trim().length >= 2 && !fileUpload.isUploading;
 
   return {
     // Form state
@@ -449,7 +476,7 @@ export function useAnalysis() {
     setFinancialInputs,
     errors,
     clearError,
-    
+
     // Analysis state
     result,
     setResult,
@@ -469,13 +496,13 @@ export function useAnalysis() {
     proJobState,
     proRequestId,
     isProJobActive,
-    
+
     // Actions
     handleSubmit,
     reset,
     isFormValid,
     handleAutoFillFromDocuments,
-    
+
     // File upload
     files: fileUpload.files,
     isUploading: fileUpload.isUploading,

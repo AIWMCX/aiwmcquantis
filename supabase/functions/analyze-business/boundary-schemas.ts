@@ -58,7 +58,7 @@ export const RequestSchema = z
     // Unknown depth → coerce to 'full' rather than reject the request.
     analysis_depth: z.preprocess(
       (v) => (['quick', 'full', 'pro', 'deep'].includes(v as string) ? v : undefined),
-      z.enum(['quick', 'full', 'pro', 'deep']).optional(),
+      z.enum(['quick', 'full', 'pro', 'deep']).optional()
     ),
   })
   .passthrough();

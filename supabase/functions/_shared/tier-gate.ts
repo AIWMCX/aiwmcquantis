@@ -24,9 +24,7 @@ interface ResolveTierResult {
 }
 
 /** Pull the JWT-authenticated user, plan_id, and current monthly usage. */
-export async function resolveCallerTier(
-  req: Request,
-): Promise<ResolveTierResult> {
+export async function resolveCallerTier(req: Request): Promise<ResolveTierResult> {
   const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
   const ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
   const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -69,7 +67,7 @@ export async function resolveCallerTier(
 /** Run the gate; returns the TierGateResult and the resolved userId. */
 export async function tierGate(
   req: Request,
-  endpoint: EndpointId | string,
+  endpoint: EndpointId | string
 ): Promise<TierGateResult & { userId: string | null }> {
   const { userId, tier, monthlyAnalysesUsed } = await resolveCallerTier(req);
   if (!userId) {
