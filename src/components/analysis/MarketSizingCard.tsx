@@ -12,8 +12,12 @@ import { useProExtension } from '@/hooks/useSpecTier';
 import type { PlusAnalysisJson } from '@/services/specTierApi';
 
 interface Props {
-  /** PLUS analysis JSON (output of usePlusAnalysis). Required to run PRO extension. */
-  plusAnalysis?: PlusAnalysisJson;
+  /**
+   * PLUS analysis input. Either a full PlusAnalysisJson (spec-tier path) or the
+   * minimal adapter object built from a dashboard analysis via
+   * businessResultToPlusInput(). analyze-pro-extension accepts both.
+   */
+  plusAnalysis?: PlusAnalysisJson | Record<string, unknown>;
 }
 
 const TIERS = [

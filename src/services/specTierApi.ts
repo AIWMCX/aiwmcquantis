@@ -29,7 +29,7 @@ export type SpecApiResponse<T> = SpecApiSuccess<T> | SpecApiError;
 
 async function invoke<T>(
   fn: 'analyze-plus' | 'analyze-pro-extension' | 'invoice-capacity-check',
-  body: Record<string, unknown>,
+  body: Record<string, unknown>
 ): Promise<SpecApiResponse<T>> {
   const { data, error } = await supabase.functions.invoke<SpecApiResponse<T>>(fn, { body });
   if (error) {
@@ -99,6 +99,59 @@ export interface PlusAnalysisJson {
     payback_period_months: number;
   };
   upgrade_nudge?: { headline: string; body: string; cta: string };
+}
+
+/**
+ * Adapt a completed dashboard analysis (analyze-business → BusinessAnalysisResult)
+ * into the minimal `plus_analysis` payload that analyze-pro-extension requires.
+ *
+ * The dashboard runs analyze-business, NOT analyze-plus, so its result is a
+ * different shape. analyze-pro-extension hard-requires `tier: 'PLUS'|'PRO'`
+ * (else 400) and reads sector/geo from `benchmarks.*` / `industry_detected` for
+ * the benchmark cascade; it then stringifies the whole object for the LLM. This
+ * adapter guarantees those fields so Market Sizing (TAM/SAM/SOM) works for any
+ * Plus/Pro user who has run an analysis — not just the separate spec-tier path.
+ */
+export function businessResultToPlusInput(
+  result:
+    | {
+        metadata?: {
+          idea?: string;
+          location?: string;
+          industry_detected?: string;
+          analysis_id?: string;
+          generated_at?: string;
+        };
+        confidence_score?: number;
+        financial_analysis?: unknown;
+        market_analysis?: unknown;
+      }
+    | null
+    | undefined,
+  idea: string,
+  location: string,
+  analysisId?: string | null
+): Record<string, unknown> | undefined {
+  if (!result) return undefined;
+  const md = result.metadata ?? {};
+  const industry = md.industry_detected || 'Services';
+  return {
+    tier: 'PLUS',
+    analysis_id: analysisId || md.analysis_id || `local-${Date.now()}`,
+    generated_at: md.generated_at || new Date().toISOString(),
+    idea_summary: idea || md.idea || '',
+    location: location || md.location || '',
+    industry_detected: industry,
+    benchmarks: {
+      // analyze-pro-extension reads these for the benchmark cascade.
+      sector_level1: industry,
+      country: 'US',
+      geo_region: 'US',
+    },
+    viability_score: result.confidence_score ?? null,
+    financial_analysis: result.financial_analysis ?? null,
+    market_analysis: result.market_analysis ?? null,
+  };
 }
 
 export function analyzePlus(args: {
