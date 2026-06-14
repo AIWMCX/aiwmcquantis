@@ -44,6 +44,19 @@ jobs:
         run: |
           echo "::error title=Stale Supabase ref::Found gafxacjhkqsdzwwzhbor (old Lovable project) outside allowed paths. Replace with dmlxrvfyqsakyjomsvdj before building."
 
+      # ── Deploy-coverage guard (makes BUG-037/038 + undeployed-worker impossible) ──
+      # Every supabase/functions/* dir must be in the production-deploy.yml
+      # FUNCTIONS array OR in supabase/functions/.deploy-ignore, AND no deployed
+      # function may invoke an undeployed one. See scripts/verify-deploy-coverage.ts.
+      - name: Verify edge-function deploy coverage
+        id: deploy-coverage
+        run: npx tsx scripts/verify-deploy-coverage.ts
+
+      - name: Deploy-coverage failure hint
+        if: failure() && steps.deploy-coverage.outcome == 'failure'
+        run: |
+          echo "::error title=Deploy coverage::An edge function is neither deployed nor ignored, or a deployed function invokes an undeployed worker. Run 'npx tsx scripts/verify-deploy-coverage.ts' locally."
+
       # ── DeepSeek deprecated-model guard (Fix #3) ─────────────────────────────
       # Legacy aliases retire 2026-07-24 15:59 UTC. Fail the build before they
       # silently break in production.

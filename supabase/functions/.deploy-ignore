@@ -1,0 +1,46 @@
+# Edge functions intentionally NOT in the production-deploy.yml FUNCTIONS array.
+# One function name per line. Lines starting with # are comments.
+#
+# This file is the allowlist for scripts/verify-deploy-coverage.ts. Every
+# directory under supabase/functions/ must be EITHER in the deploy list OR
+# listed here with a reason — otherwise CI fails. This makes "fix shipped but
+# never deployed" (BUG-037/038) and "deployed fn invokes an undeployed worker"
+# (analyze-pro-worker) structurally impossible. See invariant I-9.
+#
+# When you add a function: deploy it (add to production-deploy.yml) or ignore it
+# here with a reason. Never leave it in limbo.
+
+# ── Cron / scheduled (triggered by Supabase scheduler or external cron, not the app) ──
+aggregate-quality-metrics
+check-churn-signals
+check-lifecycle-emails
+publish-due-posts
+send-weekly-insights
+doc-queue-worker
+
+# ── Admin / one-shot data tooling (run manually, not user-facing) ──
+ingest-benchmark-data
+ingest-benchmark-v2
+ingest-data-sources
+seed-benchmarks
+score-import
+replay-webhook-events
+
+# ── Monitoring / infra ──
+alert-webhook
+bot-detection
+
+# ── Marketing / lifecycle (not core revenue path) ──
+autoposter-generate-content
+send-lead-magnet
+template-optimizer
+newsletter-unsubscribe
+
+# ── Async workers / public API surface (review before relying on in prod) ──
+process-doc-job
+api-analyze
+api-analyze-main
+
+# ── Dev / QA harnesses (never deploy to prod) ──
+run-accuracy-harness
+run-tier-qa-harness
