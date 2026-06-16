@@ -5,8 +5,13 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
+import { maybeHealthResponse } from '../_shared/health.ts';
+
+const FUNCTION_NAME = 'stripe-webhook';
+const FUNCTION_VERSION = '1.0.0';
 
 const log = createLogger('stripe-webhook', 'module');
+
 
 // Security headers for all responses
 const securityHeaders = {
@@ -65,10 +70,14 @@ log.info("Timestamp:", new Date().toISOString());
 
 serve(async (req) => {
   const corsHeaders = corsHeadersFor(req);
+  // Deploy-fidelity probe — first so it never depends on Stripe init.
+  const health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (health) return health;
   const requestId = crypto.randomUUID().slice(0, 8);
   log.info(`[${requestId}] === Stripe Webhook Request ===`);
   log.info(`[${requestId}] Method: ${req.method}`);
   log.info(`[${requestId}] Timestamp: ${new Date().toISOString()}`);
+  
   
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
