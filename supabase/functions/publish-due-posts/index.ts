@@ -11,6 +11,11 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'publish-due-posts';
+const FUNCTION_VERSION = '1.0.0';
+
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 
@@ -97,6 +102,8 @@ async function logAudit(post_platform_id: string, action: string, status: string
 }
 
 Deno.serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   // Cron-only endpoint: require x-cron-secret header

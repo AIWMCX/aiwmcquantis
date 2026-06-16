@@ -6,6 +6,11 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'generate-idea';
+const FUNCTION_VERSION = '1.0.0';
+
 /* ─── 100 BUSINESS CASE SEEDS ───
    Each seed provides a specific, financially-calculable concept with realistic
    ranges the AI must respect. Grouped by sector for variety. */
@@ -283,6 +288,8 @@ function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('generate-idea', reqId);
 

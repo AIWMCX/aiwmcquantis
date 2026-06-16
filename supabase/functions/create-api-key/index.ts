@@ -11,6 +11,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeadersFor } from '../_shared/cors.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'create-api-key';
+const FUNCTION_VERSION = '1.0.0';
+
 interface Body {
   name?: string;
 }
@@ -44,6 +49,8 @@ function generateKey(): { plaintext: string; prefix: string } {
 }
 
 Deno.serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
   if (req.method !== 'POST') return jsonResponse(405, { error: 'METHOD_NOT_ALLOWED' }, corsHeaders);

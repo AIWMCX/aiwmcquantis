@@ -5,6 +5,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'manage-knowledge-base';
+const FUNCTION_VERSION = '1.0.0';
+
 // Valid tables in the knowledge base
 const VALID_TABLES = [
   'industry_benchmarks',
@@ -18,6 +23,8 @@ const VALID_TABLES = [
 type ValidTable = typeof VALID_TABLES[number];
 
 serve(async (req: Request): Promise<Response> => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('manage-knowledge-base', reqId);
 

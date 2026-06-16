@@ -23,6 +23,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeadersFor } from '../_shared/cors.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'api-analyze-main';
+const FUNCTION_VERSION = '1.0.0';
+
 const DAILY_CAP = 100;
 
 async function sha256Hex(input: string): Promise<string> {
@@ -33,6 +38,8 @@ async function sha256Hex(input: string): Promise<string> {
 }
 
 Deno.serve(async (req: Request) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response(null, { status: 204, headers: corsHeaders });
 

@@ -25,6 +25,11 @@ import {
   mergeCanonicalDataSources,
 } from '../_shared/canonical-data-sources.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'ai-narrator';
+const FUNCTION_VERSION = '1.0.0';
+
 // ========== SHARED MASTER PROMPT DIRECTIVES ==========
 // Kept in sync with narrator-prompt.ts MASTER_PROMPT_DIRECTIVES
 
@@ -280,6 +285,8 @@ function generateFallbackContent(input: NarratorInput): NarratorOutput['content'
 // ========== MAIN HANDLER ==========
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('ai-narrator', reqId);
 

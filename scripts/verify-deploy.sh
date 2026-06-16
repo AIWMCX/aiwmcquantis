@@ -69,18 +69,29 @@ for fn in "${FN_LIST[@]}"; do
   resp="$(curl -sS -m 10 -H "apikey: ${ANON_KEY}" \
     "${BASE_URL}/${fn}?health=1" 2>/dev/null || echo '{}')"
   live_version="$(printf '%s' "$resp" | grep -oE '"version":"[^"]+"' | head -1 | sed -E 's/.*"version":"([^"]+)".*/\1/')"
+  live_deployed_at="$(printf '%s' "$resp" | grep -oE '"deployed_at":"[^"]+"' | head -1 | sed -E 's/.*"deployed_at":"([^"]+)".*/\1/')"
+  live_commit_sha="$(printf '%s' "$resp" | grep -oE '"commit_sha":"[^"]*"' | head -1 | sed -E 's/.*"commit_sha":"([^"]*)".*/\1/')"
 
   if [[ -z "$live_version" ]]; then
     printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "-" "NO_HEALTH_ENDPOINT"
     fail=1; continue
   fi
 
+  # deployed_at must be an ISO-8601 timestamp (basic shape check)
+  if ! [[ "$live_deployed_at" =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}T ]]; then
+    printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "$live_version" "BAD_DEPLOYED_AT"
+    fail=1; continue
+  fi
+
   if [[ "$src_version" == "$live_version" ]]; then
-    printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "$live_version" "OK"
+    sha_tag="${live_commit_sha:0:7}"
+    [[ -z "$sha_tag" ]] && sha_tag="(no-sha)"
+    printf '%-35s %-15s %-15s %s %s\n' "$fn" "$src_version" "$live_version" "OK" "$sha_tag"
   else
     printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "$live_version" "STALE"
     fail=1
   fi
+
 done
 
 echo

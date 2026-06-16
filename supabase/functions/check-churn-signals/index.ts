@@ -5,6 +5,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'check-churn-signals';
+const FUNCTION_VERSION = '1.0.0';
+
 interface ChurnCheckResult {
   users_checked: number;
   churn_risks_updated: number;
@@ -13,6 +18,8 @@ interface ChurnCheckResult {
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('check-churn-signals', reqId);
 

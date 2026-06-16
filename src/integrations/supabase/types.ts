@@ -4106,6 +4106,42 @@ export type Database = {
           },
         ]
       }
+      plan_entitlements: {
+        Row: {
+          features: Json
+          label: string
+          limits: Json
+          monthly_analyses: number
+          price_annual: number
+          price_monthly: number
+          stripe_price_ids: Json
+          tier: string
+          updated_at: string
+        }
+        Insert: {
+          features?: Json
+          label: string
+          limits?: Json
+          monthly_analyses?: number
+          price_annual?: number
+          price_monthly?: number
+          stripe_price_ids?: Json
+          tier: string
+          updated_at?: string
+        }
+        Update: {
+          features?: Json
+          label?: string
+          limits?: Json
+          monthly_analyses?: number
+          price_annual?: number
+          price_monthly?: number
+          stripe_price_ids?: Json
+          tier?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string | null

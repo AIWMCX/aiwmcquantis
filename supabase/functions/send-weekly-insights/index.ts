@@ -5,6 +5,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'send-weekly-insights';
+const FUNCTION_VERSION = '1.0.0';
+
 // Weekly content templates - curated, industry-specific insights
 const WEEKLY_CONTENT = [
   {
@@ -190,6 +195,8 @@ function generateEmailHtml(content: typeof WEEKLY_CONTENT[0], weekNumber: number
 }
 
 serve(async (req: Request): Promise<Response> => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('send-weekly-insights', reqId);
 

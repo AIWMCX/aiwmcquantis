@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'bot-detection';
+const FUNCTION_VERSION = '1.0.0';
+
 /**
  * Bot Detection Edge Function
  * 
@@ -90,6 +95,8 @@ setInterval(() => {
 }, RATE_WINDOW_MS);
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });

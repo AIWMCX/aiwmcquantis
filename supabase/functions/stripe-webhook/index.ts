@@ -159,44 +159,63 @@ serve(async (req) => {
     log.info(`[${requestId}] Event type: ${event.type}`);
     log.info(`[${requestId}] Event ID: ${event.id}`);
 
-    // ATOMIC EVENT LOGGING - Log BEFORE processing starts (critical for audit trail)
-    // This ensures we have a record even if processing crashes
-    let webhookEventLogged = false;
+    // ATOMIC EVENT LOGGING + IDEMPOTENCY GUARD
+    // ------------------------------------------
+    // `stripe_webhook_events.event_id` is UNIQUE. INSERT … ON CONFLICT DO NOTHING
+    // tells us atomically whether this is the FIRST time we have ever seen this
+    // event.id. If it is a replay, return 200 immediately — no re-provisioning,
+    // no double-charge of entitlements, no second `provision_pro_features` call.
+    // This is what makes the webhook safe under Stripe's at-least-once delivery
+    // semantics (Scenario #16: duplicate event.id replayed 3× must provision
+    // exactly once).
+    let isReplay = false;
     try {
-      await withRetry(
-        async () => {
-          const { error } = await supabase
-            .from("stripe_webhook_events")
-            .insert({
-              event_id: event.id,
-              event_type: event.type,
-              customer_id: (event.data.object as any)?.customer || null,
-              status: "received", // Mark as received, not processing yet
-              payload: event.data.object as any,
-            });
-          if (error) throw error;
-        },
-        "Log webhook event (atomic)",
-        requestId
-      );
-      webhookEventLogged = true;
-      log.info(`[${requestId}] ✓ Webhook event logged atomically BEFORE processing`);
+      const { data: insertedRows, error: insertErr } = await supabase
+        .from("stripe_webhook_events")
+        .upsert(
+          {
+            event_id: event.id,
+            event_type: event.type,
+            customer_id: (event.data.object as any)?.customer || null,
+            status: "received",
+            payload: event.data.object as any,
+          },
+          { onConflict: "event_id", ignoreDuplicates: true }
+        )
+        .select("id");
+      // ignoreDuplicates returns [] on conflict, [{id}] on first insert
+      isReplay = !insertedRows || insertedRows.length === 0;
+      if (insertErr) throw insertErr;
+      log.info(`[${requestId}] event_id=${event.id} isReplay=${isReplay}`);
     } catch (logErr) {
-      log.error(`[${requestId}] ⚠️ CRITICAL: Failed to log webhook event - continuing anyway:`, logErr);
-      // Continue processing even if logging fails, but log prominently
+      log.error(`[${requestId}] ⚠️ event log insert failed:`, logErr);
+      // Fail-safe: if we cannot prove first-vs-replay, treat as replay (do
+      // nothing) rather than risk double-provisioning. The original event will
+      // be retried by Stripe.
+      return new Response(
+        JSON.stringify({ received: true, error: "log_unavailable" }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
 
-    // Update status to processing
-    if (webhookEventLogged) {
-      try {
-        await supabase
-          .from("stripe_webhook_events")
-          .update({ status: "processing" })
-          .eq("event_id", event.id);
-      } catch (e) {
-        log.warn(`[${requestId}] Could not update status to processing`);
-      }
+    if (isReplay) {
+      log.info(`[${requestId}] DUPLICATE event.id ${event.id} — idempotent no-op`);
+      return new Response(
+        JSON.stringify({ received: true, replay: true, event_id: event.id }),
+        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
     }
+
+    // Update status to processing (first-time path only)
+    try {
+      await supabase
+        .from("stripe_webhook_events")
+        .update({ status: "processing" })
+        .eq("event_id", event.id);
+    } catch (e) {
+      log.warn(`[${requestId}] Could not update status to processing`);
+    }
+
 
     // Helper function to find user by email (with retry)
     async function findUserByEmail(email: string): Promise<string | null> {

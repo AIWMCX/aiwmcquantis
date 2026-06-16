@@ -5,6 +5,11 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'parse-document';
+const FUNCTION_VERSION = '1.0.0';
+
 // Module-scope logger for helpers outside the request handler.
 const log = createLogger('parse-document', 'module');
 
@@ -78,6 +83,8 @@ interface ExtractedFinancials {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('parse-document', reqId);
 

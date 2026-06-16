@@ -5,6 +5,11 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'template-optimizer';
+const FUNCTION_VERSION = '1.0.0';
+
 const SIGNAL_WEIGHTS: Record<string, number> = {
   downloaded: 1,
   shared_link: 2,
@@ -17,6 +22,8 @@ const SIGNAL_WEIGHTS: Record<string, number> = {
 };
 
 Deno.serve(async (req: Request) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('template-optimizer', reqId);
 
