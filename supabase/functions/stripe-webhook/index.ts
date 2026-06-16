@@ -863,8 +863,7 @@ serve(async (req) => {
     // Mark the in-flight event as failed so the next Stripe retry knows to
     // reprocess instead of seeing a stale 'received' row and skipping.
     try {
-      // @ts-ignore — event may be in scope from outer try
-      const evId = (typeof event !== 'undefined' && (event as any)?.id) ? (event as any).id : null;
+      const evId = inFlightEventId;
       if (evId) {
         await supabase.from("stripe_webhook_events")
           .update({ status: "failed", error_message: String((error as Error)?.message ?? error).slice(0, 1000) })
