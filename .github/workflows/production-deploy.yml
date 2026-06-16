@@ -270,6 +270,9 @@ jobs:
             manage-knowledge-base
             self-learning-update
             process-subscription-downgrades
+            # ── Entitlements / admin observability (June stabilization) ───
+            entitlements-snapshot
+            admin-health-sweep
           )
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do
