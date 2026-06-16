@@ -65,12 +65,15 @@ for fn in "${FN_LIST[@]}"; do
     fail=1; continue
   fi
 
-  # Hit live endpoint
-  resp="$(curl -sS -m 10 -H "apikey: ${ANON_KEY}" \
+  # Hit live endpoint (tolerate non-2xx / non-JSON; never abort the loop).
+  # Send both apikey and Bearer so JWT-gated functions still reach the handler.
+  resp="$(curl -sS -m 10 \
+    -H "apikey: ${ANON_KEY}" \
+    -H "Authorization: Bearer ${ANON_KEY}" \
     "${BASE_URL}/${fn}?health=1" 2>/dev/null || echo '{}')"
-  live_version="$(printf '%s' "$resp" | grep -oE '"version":"[^"]+"' | head -1 | sed -E 's/.*"version":"([^"]+)".*/\1/')"
-  live_deployed_at="$(printf '%s' "$resp" | grep -oE '"deployed_at":"[^"]+"' | head -1 | sed -E 's/.*"deployed_at":"([^"]+)".*/\1/')"
-  live_commit_sha="$(printf '%s' "$resp" | grep -oE '"commit_sha":"[^"]*"' | head -1 | sed -E 's/.*"commit_sha":"([^"]*)".*/\1/')"
+  live_version="$(printf '%s' "$resp" | grep -oE '"version":"[^"]+"' 2>/dev/null | head -1 | sed -E 's/.*"version":"([^"]+)".*/\1/' || true)"
+  live_deployed_at="$(printf '%s' "$resp" | grep -oE '"deployed_at":"[^"]+"' 2>/dev/null | head -1 | sed -E 's/.*"deployed_at":"([^"]+)".*/\1/' || true)"
+  live_commit_sha="$(printf '%s' "$resp" | grep -oE '"commit_sha":"[^"]*"' 2>/dev/null | head -1 | sed -E 's/.*"commit_sha":"([^"]*)".*/\1/' || true)"
 
   if [[ -z "$live_version" ]]; then
     printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "-" "NO_HEALTH_ENDPOINT"
