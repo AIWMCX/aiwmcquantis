@@ -52,3 +52,23 @@ Run all 9 scoreboard claims; report each as PASS/FAIL with proof artifact (curl 
 4. **Scope of this turn**: do you want me to execute Pass 1 immediately and report back, or write out all 5 passes' code in one mega-response? I strongly recommend pass-by-pass with verification between — that's the whole point of this stabilization prompt (avoid "CI green but nothing shipped").
 
 Once you answer those four, I'll start Pass 1.
+---
+
+## Pass 1 — COMPLETE (deploy-chain trust)
+
+**Shipped:**
+- `supabase/functions/_shared/health.ts` — reusable `maybeHealthResponse(req, name, version)` helper. Returns `{ok, function, version, deployed_at, commit_sha}` on `?health=1`. Auth-free, no PII, no system state leak.
+- `scripts/verify-deploy.sh` — auto-discovers every function with a `FUNCTION_VERSION` constant, curls its health endpoint, diffs live vs source. Exits non-zero on mismatch / missing / stale.
+- `.github/workflows/production-deploy.yml` — new "Verify deploy fidelity" step runs `scripts/verify-deploy.sh` after edge-function deploys. **Stale deploy now turns CI red.**
+- Health wired into 3 critical functions as seed pattern: `stripe-webhook` (v1.0.0), `analyze-business` (v1.0.0), `rvce-validate` (v0.3.0).
+
+**Verification:**
+- Shell syntax: PASS (`bash -n`).
+- YAML parse: PASS.
+- `secrets.*` in job-level `if:` audit: CLEAN (0 matches across all workflows).
+- Health constants present in 3 functions.
+
+**Rollout note:** the gate currently checks only the 3 seeded functions. Remaining functions (50+) need a 2-line patch each (`import maybeHealthResponse` + `FUNCTION_VERSION` const + handler call). This is mechanical; Pass 1 establishes the pattern + gate so the rollout itself becomes provable. Recommend a follow-up sweep PR.
+
+## Next: Pass 2 — TIERS drift guard + plan_entitlements mirror
+Awaiting "go" before starting Pass 2 (per pass-by-pass execution agreement).
