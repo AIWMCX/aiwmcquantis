@@ -16,6 +16,11 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { corsHeadersFor } from '../_shared/cors.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'ingest-data-sources';
+const FUNCTION_VERSION = '1.0.0';
+
 interface BenchmarkRow {
   sector_level1: string;
   sector_level2: string;
@@ -274,6 +279,8 @@ async function ingestSecXbrl(supabase: any, provenanceId: string) {
 
 // ---------------- Main handler ----------------
 Deno.serve(async (req: Request) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response(null, { headers: corsHeaders });
 

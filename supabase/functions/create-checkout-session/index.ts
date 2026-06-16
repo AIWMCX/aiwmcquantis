@@ -5,6 +5,11 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'create-checkout-session';
+const FUNCTION_VERSION = '1.0.0';
+
 // Security headers for all responses
 const securityHeaders = {
   "X-Content-Type-Options": "nosniff",
@@ -34,6 +39,8 @@ function getCorsHeaders(origin: string | null): Record<string, string> {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('create-checkout-session', reqId);
 

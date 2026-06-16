@@ -6,10 +6,17 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'replay-webhook-events';
+const FUNCTION_VERSION = '1.0.0';
+
 const log = createLogger('replay-webhook-events', 'module');
 log.info("=== Replay Webhook Events Function Started ===");
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   const requestId = crypto.randomUUID().slice(0, 8);
   log.info(`[${requestId}] Replay request received`);

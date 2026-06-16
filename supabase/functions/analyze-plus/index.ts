@@ -28,6 +28,11 @@ import { validateAndSanitizeInput } from '../_shared/ai-safety-guardrails.ts';
 import { logAnalysisEvent } from '../_shared/analysis-event-logger.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'analyze-plus';
+const FUNCTION_VERSION = '1.0.0';
+
 // ── Live Benchmark Fetcher (pulls from benchmark_master_* tables) ────────────
 
 async function fetchLiveBenchmarks(
@@ -230,6 +235,8 @@ interface PlusRequestBody {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const cors = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 

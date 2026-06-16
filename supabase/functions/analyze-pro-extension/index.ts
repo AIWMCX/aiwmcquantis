@@ -28,6 +28,11 @@ import {
   mergeCanonicalDataSources,
 } from '../_shared/canonical-data-sources.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'analyze-pro-extension';
+const FUNCTION_VERSION = '1.0.0';
+
 // ── Live Benchmark Injector ────────────────────────────────────────────────────
 // Pulls all 5 benchmark tables for the detected sector/geo combination.
 // Used to ground TAM/SAM/SOM and 5-year projections in real data.
@@ -136,6 +141,8 @@ interface ProRequestBody {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const cors = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 

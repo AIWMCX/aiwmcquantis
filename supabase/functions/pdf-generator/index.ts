@@ -1,6 +1,11 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'pdf-generator';
+const FUNCTION_VERSION = '1.0.0';
+
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 const CACHE_KEY_RE = /^[0-9a-f]{64}$/i;
 const MAX_HTML_BYTES = 500 * 1024; // 500 KB
@@ -14,6 +19,8 @@ function errorResponse(code: string, message: string, status = 400, corsHeaders:
 }
 
 Deno.serve(async (req: Request) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });

@@ -1,6 +1,11 @@
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'autoposter-generate-content';
+const FUNCTION_VERSION = '1.0.0';
+
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY')!;
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY')!;
@@ -41,6 +46,8 @@ Under 200 words before hashtags. Carousel captions end with "Swipe →". Brutal 
 };
 
 Deno.serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   if (req.method === 'OPTIONS') return new Response('ok', { headers: corsHeaders });
 
   try {

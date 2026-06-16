@@ -11,6 +11,11 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeadersFor } from '../_shared/cors.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'benchmarks-query';
+const FUNCTION_VERSION = '1.0.0';
+
 type MatchType = 'direct' | 'similar' | 'none';
 
 interface RpcRow {
@@ -54,6 +59,8 @@ function unitFor(metric: string): 'percent' | 'months' | 'usd' | 'ratio' {
 }
 
 Deno.serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
 
   if (req.method === 'OPTIONS') {

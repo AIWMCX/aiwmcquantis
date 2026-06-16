@@ -16,6 +16,11 @@ import { buildSystemPrompt } from '../_shared/prompts.ts';
 import { ENDPOINTS } from '../_shared/tier-spec.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'invoice-capacity-check';
+const FUNCTION_VERSION = '1.0.0';
+
 /** Fetch sector-specific invoice benchmarks from the 95,500-row dataset. */
 async function getInvoiceBenchmarkContext(sector?: string): Promise<string> {
   const url = Deno.env.get('SUPABASE_URL');
@@ -77,6 +82,8 @@ const REQUIRED_FIELDS: (keyof CapacityRequestBody)[] = [
 ];
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const cors = corsHeadersFor(req);
   if (req.method === 'OPTIONS') return new Response('ok', { headers: cors });
 

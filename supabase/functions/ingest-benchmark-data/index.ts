@@ -1,7 +1,14 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'ingest-benchmark-data';
+const FUNCTION_VERSION = '1.0.0';
+
 Deno.serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === "OPTIONS") {
     return new Response(null, { status: 204, headers: corsHeaders });

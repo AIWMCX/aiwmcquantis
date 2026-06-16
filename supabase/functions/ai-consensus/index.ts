@@ -5,6 +5,11 @@ import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { aiCall } from '../_shared/llm-call.ts';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'ai-consensus';
+const FUNCTION_VERSION = '1.0.0';
+
 const MODEL_GPT = "openai/gpt-5-mini";
 const MODEL_GEMINI = "google/gemini-3-flash-preview";
 const MODEL_TIMEOUT_MS = 25_000;
@@ -180,6 +185,8 @@ function weightedMerge(
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('ai-consensus', reqId);
 

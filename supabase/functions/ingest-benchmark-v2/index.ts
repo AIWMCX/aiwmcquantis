@@ -2,6 +2,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'ingest-benchmark-v2';
+const FUNCTION_VERSION = '1.0.0';
+
 const PK_COLS = ['sector_level1', 'sector_level2', 'business_model', 'geo_region', 'country', 'city_tier', 'company_stage', 'size_bucket'];
 
 const TABLE_MAP: Record<string, string> = {
@@ -13,6 +18,8 @@ const TABLE_MAP: Record<string, string> = {
 };
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });

@@ -12,6 +12,11 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'self-learning-update';
+const FUNCTION_VERSION = '1.0.0';
+
 const SUPABASE_URL           = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const DEEPSEEK_API_KEY       = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -31,6 +36,8 @@ const TRACKED_METRICS = [
 ];
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
 
   // Cron-only endpoint: require x-cron-secret header

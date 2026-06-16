@@ -13,6 +13,11 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 
 import { corsHeadersFor } from '../_shared/cors.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'health-check';
+const FUNCTION_VERSION = '1.0.0';
+
 interface HealthCheckResult {
   status: 'healthy' | 'degraded' | 'unhealthy';
   timestamp: string;
@@ -42,6 +47,8 @@ interface ComponentHealth {
 }
 
 serve(async (req) => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const corsHeaders = corsHeadersFor(req);
   // Handle CORS preflight
   if (req.method === "OPTIONS") {
