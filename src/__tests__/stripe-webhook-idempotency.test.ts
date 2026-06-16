@@ -49,12 +49,13 @@ function makeFakeSupabase() {
         },
       };
     },
-    rpc(name: string, args: Record<string, unknown>) {
+  rpc(name: string, args: Record<string, unknown>) {
       if (name === 'provision_pro_features') {
         provisionCalls.push({
           user_id: String(args.p_user_id),
-          event_id: String(args.event_id ?? 'unknown'),
+          event_id: String((args as any).event_id ?? 'unknown'),
         });
+      }
       }
       return Promise.resolve({ data: null, error: null });
     },
@@ -97,7 +98,9 @@ async function handleEvent(
 
 describe('Stripe webhook idempotency (scenario #16)', () => {
   let supabase: ReturnType<typeof makeFakeSupabase>;
-  let provisionFn: ReturnType<typeof vi.fn>;
+  let provisionFn: (sb: any, ev: any) => Promise<void>;
+  let provisionMock: ReturnType<typeof vi.fn>;
+
 
   const proEvent = {
     id: 'evt_test_idempotent_001',
