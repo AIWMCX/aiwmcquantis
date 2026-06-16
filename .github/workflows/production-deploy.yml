@@ -313,3 +313,20 @@ jobs:
             exit 1
           fi
           echo "✓ analyze-business reachable (HTTP $CODE)" >> "$GITHUB_STEP_SUMMARY"
+
+      # ── Deploy-fidelity gate ─────────────────────────────────────────────────
+      # Curl every function's ?health=1 endpoint and assert live FUNCTION_VERSION
+      # matches the constant in source. This is what makes "CI green" actually
+      # mean "the new code is live", not "the deploy command exited 0".
+      # See scripts/verify-deploy.sh.
+      - name: Verify deploy fidelity (live version == source version)
+        env:
+          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "$PROJECT_REF" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
+            echo "::warning title=Deploy-fidelity gate skipped::PROJECT_REF or anon key missing"
+            exit 0
+          fi
+          bash scripts/verify-deploy.sh
+

@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
+import { maybeHealthResponse } from '../_shared/health.ts';
+
+const FUNCTION_NAME = 'analyze-business';
+const FUNCTION_VERSION = '1.0.0';
 // Embedded benchmarks are now seeded via database migration - no import needed
+
 
 // ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
 import { 
@@ -2684,11 +2689,15 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 }
 
 serve(async (req) => {
+  // Deploy-fidelity probe — first so health is auth-free and cheap.
+  const healthResp = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (healthResp) return healthResp;
   // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
   const corsHeaders = corsHeadersFor(req);
   // Correlation ID — read from `x-request-id` (set by the UI) or generate.
   const requestId = getRequestId(req);
   const responseHeaders = { ...corsHeaders, ...requestIdHeader(requestId) };
+
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: responseHeaders });
