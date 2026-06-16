@@ -40,6 +40,7 @@ const UseCases = lazy(() => import("./pages/UseCases"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const RiskGallery = lazy(() => import("./pages/RiskGallery"));
 const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
+const EdgeHealth = lazy(() => import("./pages/admin/EdgeHealth"));
 const InvoiceManager = lazy(() => import("./pages/InvoiceManager"));
 const BrandProfileSettings = lazy(() => import("./pages/settings/BrandProfile"));
 const ApiKeysSettings = lazy(() => import("./pages/settings/ApiKeys"));
@@ -205,6 +206,11 @@ const App = () => {
                 <Route path="/admin/health" element={
                   <ProtectedRoute requireAdmin>
                     <QuantisHealth />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/edge-health" element={
+                  <ProtectedRoute requireAdmin>
+                    <EdgeHealth />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/formulas" element={
