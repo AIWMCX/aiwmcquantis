@@ -5,6 +5,11 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { assertEmailSendAllowed } from '../_shared/email-guard.ts';
+
+import { maybeHealthResponse } from '../_shared/health.ts';
+const FUNCTION_NAME = 'send-welcome-email';
+const FUNCTION_VERSION = '1.0.0';
+
 // Resend API client - using fetch directly to avoid npm dependency issues
 const RESEND_API_KEY = Deno.env.get("RESEND_API_KEY");
 
@@ -233,6 +238,8 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
 };
 
 const handler = async (req: Request): Promise<Response> => {
+  const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (__health) return __health;
   const reqId = getRequestId(req);
   const log = createLogger('send-welcome-email', reqId);
   const corsHeaders = corsHeadersFor(req);
