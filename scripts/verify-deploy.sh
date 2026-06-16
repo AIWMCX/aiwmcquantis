@@ -65,8 +65,11 @@ for fn in "${FN_LIST[@]}"; do
     fail=1; continue
   fi
 
-  # Hit live endpoint (tolerate non-2xx / non-JSON; never abort the loop)
-  resp="$(curl -sS -m 10 -H "apikey: ${ANON_KEY}" \
+  # Hit live endpoint (tolerate non-2xx / non-JSON; never abort the loop).
+  # Send both apikey and Bearer so JWT-gated functions still reach the handler.
+  resp="$(curl -sS -m 10 \
+    -H "apikey: ${ANON_KEY}" \
+    -H "Authorization: Bearer ${ANON_KEY}" \
     "${BASE_URL}/${fn}?health=1" 2>/dev/null || echo '{}')"
   live_version="$(printf '%s' "$resp" | grep -oE '"version":"[^"]+"' 2>/dev/null | head -1 | sed -E 's/.*"version":"([^"]+)".*/\1/' || true)"
   live_deployed_at="$(printf '%s' "$resp" | grep -oE '"deployed_at":"[^"]+"' 2>/dev/null | head -1 | sed -E 's/.*"deployed_at":"([^"]+)".*/\1/' || true)"
