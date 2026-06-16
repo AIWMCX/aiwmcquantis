@@ -30,10 +30,16 @@ const entitlementsSrc = readFileSync(
 
 function findMigration(): string {
   const dir = join(ROOT, 'supabase/migrations');
-  const file = readdirSync(dir)
-    .filter((f) => /plan_entitlements/i.test(f))
-    .sort()
-    .pop();
+  const files = readdirSync(dir);
+  // Prefer name match; fall back to content match (the canonical migration
+  // contains "plan_entitlements — server-side mirror").
+  let file = files.filter((f) => /plan_entitlements/i.test(f)).sort().pop();
+  if (!file) {
+    file = files
+      .filter((f) => f.endsWith('.sql'))
+      .find((f) => readFileSync(join(dir, f), 'utf8').includes("'plan_entitlements'") ||
+                   readFileSync(join(dir, f), 'utf8').includes('plan_entitlements'));
+  }
   if (!file) throw new Error('plan_entitlements migration not found');
   return readFileSync(join(dir, file), 'utf8');
 }
