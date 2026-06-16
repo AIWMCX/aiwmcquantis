@@ -36,7 +36,7 @@ function makeFakeSupabase() {
           const existed = rows.has(payload.event_id);
           if (!existed) rows.set(payload.event_id, payload);
           return {
-            select() {
+            select(_cols?: string) {
               return Promise.resolve({
                 data: existed && opts.ignoreDuplicates ? [] : [{ id: 'row-' + payload.event_id }],
                 error: null,
