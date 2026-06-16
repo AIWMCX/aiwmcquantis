@@ -1,77 +1,54 @@
-# Plan — Quantis Deep-Dive Audit (docs-only, zero prod risk)
+## Quantis Production Stabilization — Execution Plan
 
-## Deliverable
+This is a large, multi-day hardening effort spanning 5 workstreams. Before I start writing code, I want to confirm scope, sequencing, and a few real-world facts I can't safely guess. Once you confirm, I'll execute workstream-by-workstream with green CI gates between each.
 
-One file: `docs/QUANTIS_DEEP_DIVE_2026-06-12.md`, structured exactly per Part 10 of your master prompt:
+### What I found in the codebase (so we don't redo work)
 
-1. Executive Verdict (≤ 1 page, 5 findings + yes/no on end-to-end success)
-2. Health Scorecard (8 dimensions × 0–10 + evidence anchor)
-3. Live Test Logs (raw results from every probe I run)
-4. Findings Register (sorted Severity → Impact)
-5. Transformation Map (T-specs → Wave 0/1/2/3)
-6. 10–30x Ledger (your §0.3 table with measured "current" column)
-7. Could-Not-Verify (honest blocker list)
-8. Next 24 Hours (one command/change)
+- `src/config/tiers.ts` already exists as a single source of truth with Free / Plus ($17) / Pro ($49) and real Stripe price IDs wired (`price_1TNnKk…` Pro monthly, `price_1TKemw…` Plus monthly grandfathered, annual variants). It is **richer** than the prompt's stripped TIERS sample — it includes Pro Annual, trial flags, limits, templates, white-label/api gating. Replacing it with the prompt's reduced shape would be a regression.
+- `supabase/functions/stripe-webhook/`, `_shared/entitlements.ts`, `charge_free_analysis` RPC, `entitlement_denials` table, and `health-check` function already exist.
+- 672-test CI suite is live; `.github/workflows/production-deploy.yml` exists.
 
-A companion `docs/QUANTIS_IMPROVEMENTS_MASTER.md` (consolidated improvements backlog) will be merged from the existing `docs/QUANTIS_IMPROVEMENTS_DATASET.md` + this audit's findings, keyed by invariant (I-1…I-10) and lever.
+So this is **harden + close gaps + add the missing acceptance tests**, not greenfield.
 
-**No code, schema, edge function, migration, secret, or config change in this pass.** Pure audit.
+### Proposed execution order (5 PR-sized passes)
 
-## What I will actually do (forensic, evidence-backed)
+**Pass 1 — Deploy-chain trust (Workstream 0)**
+- Add `?health=1` handler to every Edge Function via a shared helper (`_shared/health.ts`); each function exports a `FUNCTION_VERSION` constant.
+- New `scripts/verify-deploy.sh` curls all health endpoints and diffs live `version` vs the constant in source. Non-zero exit on mismatch.
+- Wire script into `production-deploy.yml` as a post-deploy gate.
+- Audit workflow for `secrets.*` inside job-level `if:` and refactor to `env:` indirection.
 
-### Read-only codebase forensics (no edits)
-- Model call graph: `rg` every `anthropic|deepseek|gemini|openai|gateway|MODELS\.` in `src/` + `supabase/functions/` → table per call (model, layer, tier, timeout, retry, max_tokens, prompt path).
-- Confirm `grep -rn "deepseek-chat\|deepseek-reasoner"` returns zero (I-6, CI guard verification).
-- Envelope audit: read `supabase/functions/quantis-analyze` (or current analysis function) line-by-line, map to the 12-step contract, list every non-2xx escape path.
-- Rate-limiter keying: `rg` for `quantis-analyze|functions.invoke|EDGE_FUNCTION_URL` in `src/` event handlers — flag any `useEffect`/`onChange`/debounce path.
-- Bundle leak scan: `rg -n "sk_live_|upstash|ANTHROPIC|DEEPSEEK" dist/ src/` and confirm secrets aren't `VITE_`-prefixed (I-5).
-- Frontend error-state grep: `rg -n "non-2xx|retry_after|Edge Function" src/` — any hit on user-facing path = CRITICAL.
-- Design-token drift: `rg -n "#[0-9a-fA-F]{6}" src/ --include="*.tsx" --include="*.ts"` minus token files.
-- Benchmark-count drift: `rg -n "95,?500|97,?500|1,?000\+" src/` — confirm one constant only (I-7).
-- Price drift: `rg -n "\$17|\$14|\$39|\$149" src/` — flag mismatches with `TIERS`.
-- Stripe webhook: read handler, check `event.id` idempotency, event coverage, billing_cycle population.
-- RLS verification: `supabase--read_query` to enumerate tables + policies; flag any public table without policy.
+**Pass 2 — TIERS drift guard + plan_entitlements mirror (Workstream 1)**
+- KEEP the current rich `tiers.ts` (do not strip).
+- New migration: `plan_entitlements(tier pk, monthly_analyses int, features jsonb)` seeded from TIERS.
+- New CI test `tiers-db-parity.test.ts` asserts byte-identical feature flags between `TIERS` and `plan_entitlements` rows.
+- Grep-based test that fails if `"$17"`, `"$49"`, `"unlimited"` appear in pricing components outside `tiers.ts`.
 
-### Live probes (read-only)
-- `supabase--curl_edge_functions` against `quantis-analyze` (or current name) for the 5 canonical free analyses (coffee Austin · dental-SaaS Denver · fitness Miami · pet-food London · consulting Toronto) — capture raw envelope, latency, degraded flag, ai_layers_attempted/succeeded.
-- Quota race: 2 concurrent identical idempotency keys → inspect `usage_counters` row deltas via `psql`.
-- 7-analysis quota walk (1–5 succeed, 6–7 quota_exhausted).
-- RVCE 6-test suite via `/dev/rvce-test` endpoint or direct `rvce-validate` curl → report `web_search_fired_ratio`, z-score outlier behavior, `rvce_validation_log` payload reality.
-- Plus-paywall leak hunt: anonymous/free-token calls to PDF export, location comparison, Document Studio, adversarial pass edge functions → record HTTP status + body.
-- Stripe checkout truth-test: **stop short of real Stripe call** — instead read the `create-checkout-session` function + `TIERS` constant and trace the price ID flow. I will NOT trigger a real test-mode checkout in this pass (it touches Stripe state); flagged for Wave 1 with your explicit approval.
-- Web Vitals: `browser--performance_profile` on `/`, `/pricing`, `/app`.
-- Public indexation: `websearch` `site:aiwmcquantis.com` to confirm "1 page indexed" reality.
+**Pass 3 — Server entitlement guards + 12-test suite (Workstream 2)**
+- Verify `requireFeature` / `requireUsage` shape matches prompt; refactor if drift.
+- Add the guard to `pdf-export` / `export-document`, `location-comparison` paths, `document-studio` (`generate-document`), white-label PDF branch, `analyze-plus` / `analyze-pro-worker`.
+- Always return `{ ok:false, reason:'feature_locked' }` envelope at HTTP 200.
+- Write the 12-test suite covering forged-tier body, expired sub, trialing, quota-exhaust, legacy grandfathering.
 
-### Could-Not-Verify items (declared upfront)
-- Vercel deploy timestamps (no Vercel API access from sandbox)
-- GSC indexation counts (no GSC access)
-- PostHog/Sentry baselines (not connected)
-- Real Stripe test checkout (deliberately deferred — has side effects)
-- Production traffic distributions / per-user analysis counts beyond what `psql` SELECT can reveal
-Each will be listed in section 7 with the exact access needed.
+**Pass 4 — Stripe ↔ Quantis bulletproofing + 20-scenario matrix (Workstream 3)**
+- Audit `stripe-webhook` for: signature verify, `stripe_events` idempotency table (create if missing), event coverage (`checkout.session.completed`, `customer.subscription.*`, `invoice.payment_succeeded|failed`), price→tier mapping ONLY via `TIERS.*.stripePriceId`, single-active-subscription invariant (partial unique index).
+- Audit `create-checkout-session` to ensure server builds session from TIERS (no client-trusted price).
+- Add 20 webhook-fixture tests (Stripe test-mode JSON payloads checked into `__tests__/stripe-fixtures/`).
 
-## Structure inside the deliverable
+**Pass 5 — Paywall safety + resilience drills + observability (Workstreams 4 + 5)**
+- Direct-fetch leak hunt test: as Free user, POST to each paid endpoint, assert `feature_locked`, zero compute side effects.
+- `locked_section_clicked` analytics event on every locked surface.
+- 7 resilience drills as CI tests (Anthropic 500, DeepSeek timeout, Upstash down, malformed body, dup webhook, RVCE timeout, cold-start).
+- Bundle grep for `sk_live_`, `upstash`, etc.; securityheaders check is manual.
 
-Every finding row:
-`ID · Dimension · Severity · Business Impact · Confidence · Evidence (file:line or curl trace) · Root Cause · Fix · Effort`
+### Final Gate
+Run all 9 scoreboard claims; report each as PASS/FAIL with proof artifact (curl output, test name, grep result).
 
-Every T-spec row:
-`ID · Lever(s) from §0.3 · Target state · Success criterion · Effort · Dependencies · Wave`
+### Questions I need answered before starting
 
-Invariant-violation findings are tagged `BLOCKS-Ix` and auto-promoted to CRITICAL.
+1. **Pro Annual + trial config**: the existing `tiers.ts` has Pro Annual `price_1TNnUb…` and Plus Annual `price_1TKenY…`. The prompt explicitly says "No annual." Should I (a) delete annual everywhere, or (b) keep annual support and just ensure the 20-scenario matrix exercises monthly (my recommendation: keep — removing live SKUs risks breaking existing customers)?
+2. **Pro feature split**: prompt suggests `white_label` + `api_access` are Pro-only. Current `tiers.ts` already enforces that. Confirm I should not change the Plus/Pro feature boolean split beyond what's already there.
+3. **Stripe test-mode keys in CI**: do you have a `STRIPE_TEST_SECRET_KEY` in GitHub Actions secrets, or should the 20 scenarios run purely against checked-in webhook fixtures (no live Stripe API calls)? Fixture-only is faster and deterministic; I recommend that.
+4. **Scope of this turn**: do you want me to execute Pass 1 immediately and report back, or write out all 5 passes' code in one mega-response? I strongly recommend pass-by-pass with verification between — that's the whole point of this stabilization prompt (avoid "CI green but nothing shipped").
 
-## What I will NOT do in this pass
-
-- No file edits except creating the two docs above
-- No migrations, no edge function deploys, no secret changes
-- No Stripe test-mode purchases
-- No marking SEO/security findings "fixed"
-- No memory updates until you approve the audit
-
-## After you approve the audit
-
-You pick which Wave 0 / Wave 1 items to execute — each becomes its own scoped build-mode session with its own preview verification. That's how we keep prod safe.
-
-## Time
-
-~20–30 min of read-only tool calls, then the doc write. One deliverable, one file, ready to diff against on the next re-run.
+Once you answer those four, I'll start Pass 1.
