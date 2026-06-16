@@ -2689,11 +2689,15 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 }
 
 serve(async (req) => {
+  // Deploy-fidelity probe — first so health is auth-free and cheap.
+  const healthResp = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (healthResp) return healthResp;
   // Per-request CORS headers (origin allowlist — see _shared/cors.ts).
   const corsHeaders = corsHeadersFor(req);
   // Correlation ID — read from `x-request-id` (set by the UI) or generate.
   const requestId = getRequestId(req);
   const responseHeaders = { ...corsHeaders, ...requestIdHeader(requestId) };
+
 
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: responseHeaders });

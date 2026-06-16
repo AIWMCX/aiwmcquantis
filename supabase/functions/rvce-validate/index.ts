@@ -639,7 +639,10 @@ function jsonResp(data: any, status = 200) {
 // ── Main handler ─────────────────────────────────────────────────────────────
 
 serve(async (req) => {
+  const healthResp = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
+  if (healthResp) return healthResp;
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS_HEADERS });
+
 
   const start = Date.now();
 
