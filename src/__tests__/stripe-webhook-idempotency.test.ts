@@ -117,21 +117,23 @@ describe('Stripe webhook idempotency (scenario #16)', () => {
 
   beforeEach(() => {
     supabase = makeFakeSupabase();
-    provisionFn = vi.fn(async (sb: any, ev: any) => {
+    provisionMock = vi.fn(async (sb: any, ev: any) => {
       await sb.rpc('provision_pro_features', {
         p_user_id: (ev.data.object as any).client_reference_id,
         event_id: ev.id,
       });
     });
+    provisionFn = provisionMock as unknown as (sb: any, ev: any) => Promise<void>;
   });
 
   it('first delivery: processes once, returns 200', async () => {
     const res = await handleEvent(supabase, proEvent, provisionFn);
     expect(res).toEqual({ replay: false, status: 200 });
-    expect(provisionFn).toHaveBeenCalledTimes(1);
+    expect(provisionMock).toHaveBeenCalledTimes(1);
     expect(supabase.__provisionCalls).toHaveLength(1);
     expect(supabase.__rows.size).toBe(1);
   });
+
 
   it('three identical deliveries: provisioned EXACTLY once', async () => {
     const r1 = await handleEvent(supabase, proEvent, provisionFn);
