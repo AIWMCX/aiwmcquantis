@@ -109,6 +109,10 @@ serve(async (req) => {
     );
   }
 
+  // Hoisted so the outer catch can mark this event as 'failed' on errors
+  // anywhere in the handler. Stripe will retry the same event.id; our
+  // idempotency guard reprocesses non-'processed' rows safely.
+  let inFlightEventId: string | null = null;
   try {
     const stripeSecretKey = Deno.env.get("STRIPE_SECRET_KEY");
     const webhookSecret = Deno.env.get("STRIPE_WEBHOOK_SECRET");
