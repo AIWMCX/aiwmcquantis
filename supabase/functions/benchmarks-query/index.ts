@@ -11,7 +11,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import { corsHeadersFor } from '../_shared/cors.ts';
 
-
 import { maybeHealthResponse } from '../_shared/health.ts';
 const FUNCTION_NAME = 'benchmarks-query';
 const FUNCTION_VERSION = '1.0.0';
