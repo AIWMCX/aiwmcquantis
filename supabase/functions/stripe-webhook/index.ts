@@ -855,11 +855,26 @@ serve(async (req) => {
     );
   } catch (error) {
     log.error(`[${requestId}] Webhook error:`, error);
+    // Mark the in-flight event as failed so the next Stripe retry knows to
+    // reprocess instead of seeing a stale 'received' row and skipping.
+    try {
+      // @ts-ignore — event may be in scope from outer try
+      const evId = (typeof event !== 'undefined' && (event as any)?.id) ? (event as any).id : null;
+      if (evId) {
+        await supabase.from("stripe_webhook_events")
+          .update({ status: "failed", error_message: String((error as Error)?.message ?? error).slice(0, 1000) })
+          .eq("event_id", evId);
+      }
+    } catch (markErr) {
+      log.warn(`[${requestId}] Could not mark event failed:`, markErr);
+    }
+    // 5xx → Stripe retries with exponential backoff. We are safe to retry
+    // because the idempotency guard above only no-ops on status='processed'.
     return new Response(
-      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)) }),
-      { 
-        status: 500, 
-        headers: { ...corsHeaders, "Content-Type": "application/json" } 
+      JSON.stringify({ error: (error instanceof Error ? error.message : String(error)), request_id: requestId }),
+      {
+        status: 503,
+        headers: { ...corsHeaders, "Content-Type": "application/json" }
       }
     );
   }
