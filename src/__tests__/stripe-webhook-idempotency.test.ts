@@ -145,7 +145,7 @@ describe('Stripe webhook idempotency (scenario #16)', () => {
     expect(r3.replay).toBe(true);
     [r1, r2, r3].forEach((r) => expect(r.status).toBe(200));
 
-    expect(provisionFn).toHaveBeenCalledTimes(1);
+    expect(provisionMock).toHaveBeenCalledTimes(1);
     expect(supabase.__provisionCalls).toHaveLength(1);
     expect(supabase.__rows.size).toBe(1);
   });
@@ -157,7 +157,7 @@ describe('Stripe webhook idempotency (scenario #16)', () => {
     await handleEvent(supabase, proEvent, provisionFn); // replay of first
     await handleEvent(supabase, other, provisionFn);    // replay of second
 
-    expect(provisionFn).toHaveBeenCalledTimes(2);
+    expect(provisionMock).toHaveBeenCalledTimes(2);
     expect(supabase.__rows.size).toBe(2);
   });
 });
