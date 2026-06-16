@@ -168,7 +168,13 @@ serve(async (req) => {
     // This is what makes the webhook safe under Stripe's at-least-once delivery
     // semantics (Scenario #16: duplicate event.id replayed 3× must provision
     // exactly once).
-    let isReplay = false;
+    // ATOMIC EVENT LOGGING + RESILIENT IDEMPOTENCY
+    // Replay is a TRUE no-op only if a prior processing attempt finished
+    // (status='processed'). Rows still 'received' or 'failed' from a crashed
+    // / timed-out previous attempt are allowed to re-process so Stripe's
+    // exponential-backoff retries actually recover us. Provisioning RPCs are
+    // already idempotent on (user_id, plan_id).
+    let alreadyProcessed = false;
     try {
       const { data: insertedRows, error: insertErr } = await supabase
         .from("stripe_webhook_events")
@@ -183,23 +189,36 @@ serve(async (req) => {
           { onConflict: "event_id", ignoreDuplicates: true }
         )
         .select("id");
-      // ignoreDuplicates returns [] on conflict, [{id}] on first insert
-      isReplay = !insertedRows || insertedRows.length === 0;
       if (insertErr) throw insertErr;
-      log.info(`[${requestId}] event_id=${event.id} isReplay=${isReplay}`);
+      const firstInsert = insertedRows && insertedRows.length > 0;
+      if (!firstInsert) {
+        // Row already exists — check whether prior attempt completed.
+        const { data: existing } = await supabase
+          .from("stripe_webhook_events")
+          .select("status")
+          .eq("event_id", event.id)
+          .maybeSingle();
+        alreadyProcessed = existing?.status === "processed";
+        if (!alreadyProcessed) {
+          log.warn(`[${requestId}] event_id=${event.id} previous attempt did not complete (status=${existing?.status}). Reprocessing.`);
+          // Re-arm row for this attempt.
+          await supabase.from("stripe_webhook_events")
+            .update({ status: "received", error_message: null })
+            .eq("event_id", event.id);
+        }
+      }
+      log.info(`[${requestId}] event_id=${event.id} alreadyProcessed=${alreadyProcessed}`);
     } catch (logErr) {
       log.error(`[${requestId}] ⚠️ event log insert failed:`, logErr);
-      // Fail-safe: if we cannot prove first-vs-replay, treat as replay (do
-      // nothing) rather than risk double-provisioning. The original event will
-      // be retried by Stripe.
+      // 5xx → Stripe will retry with backoff. Safer than 200-and-forget.
       return new Response(
-        JSON.stringify({ received: true, error: "log_unavailable" }),
-        { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        JSON.stringify({ received: false, error: "log_unavailable", request_id: requestId }),
+        { status: 503, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
 
-    if (isReplay) {
-      log.info(`[${requestId}] DUPLICATE event.id ${event.id} — idempotent no-op`);
+    if (alreadyProcessed) {
+      log.info(`[${requestId}] DUPLICATE event.id ${event.id} (already processed) — idempotent no-op`);
       return new Response(
         JSON.stringify({ received: true, replay: true, event_id: event.id }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
