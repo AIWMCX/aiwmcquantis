@@ -151,6 +151,7 @@ serve(async (req) => {
     let event: Stripe.Event;
     try {
       event = await stripe.webhooks.constructEventAsync(body, signature, webhookSecret);
+      inFlightEventId = event.id;
       log.info(`[${requestId}] Signature verified successfully`);
     } catch (err) {
       log.error(`[${requestId}] Signature verification failed:`, (err instanceof Error ? err.message : String(err)));
