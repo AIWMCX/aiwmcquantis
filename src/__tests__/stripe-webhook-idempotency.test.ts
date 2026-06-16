@@ -49,13 +49,12 @@ function makeFakeSupabase() {
         },
       };
     },
-  rpc(name: string, args: Record<string, unknown>) {
+    rpc(name: string, args: Record<string, unknown>) {
       if (name === 'provision_pro_features') {
         provisionCalls.push({
           user_id: String(args.p_user_id),
           event_id: String((args as any).event_id ?? 'unknown'),
         });
-      }
       }
       return Promise.resolve({ data: null, error: null });
     },
