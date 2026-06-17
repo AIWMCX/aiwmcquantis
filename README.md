@@ -4,6 +4,8 @@
 
 🌐 **Live:** [www.aiwmcquantis.com](https://www.aiwmcquantis.com)
 
+> **Autonomous runs / scheduled tasks:** use [`docs/AUTONOMOUS_TASK_PREAMBLE.md`](docs/AUTONOMOUS_TASK_PREAMBLE.md) as standing context. It pins the real product (financial pre-mortem, Free/$17/$49, no warehouses) so runs don't drift into BI-SaaS hallucinations.
+
 ---
 
 ## What It Does
