@@ -291,6 +291,8 @@ export function trackAnalysisStarted(idea: string, location: string): void {
   });
   // SOW canonical alias
   recordFunnelEvent('analysis_start', { location });
+  // Prompt 3 canonical
+  recordFunnelEvent('analysis_started', { location });
 }
 
 /**
@@ -308,6 +310,12 @@ export function trackAnalysisCompleted(
   });
   // SOW canonical alias
   recordFunnelEvent('analysis_complete', {
+    monthly_profit_range: getProfitRange(monthlyProfit),
+    payback_months: paybackMonths,
+    confidence_score: confidenceScore,
+  });
+  // Prompt 3 canonical (north-star activation event)
+  recordFunnelEvent('analysis_completed', {
     monthly_profit_range: getProfitRange(monthlyProfit),
     payback_months: paybackMonths,
     confidence_score: confidenceScore,
