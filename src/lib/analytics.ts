@@ -784,3 +784,50 @@ export function trackFeatureDiscovery(feature: string, source: string): void {
 export function trackOnboardingStep(step: number, stepName: string, completed: boolean): void {
   trackEvent('onboarding_step', { step, step_name: stepName, completed });
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Prompt 3 canonical conversion funnel (audit 16-Jun-2026).
+// One funnel, six events, defined ONCE here. Every surface that fires a step
+// MUST call the helper below — never `trackEvent('idea_submitted', ...)` raw —
+// so the funnel can never drift between GA4 and the Supabase sink.
+//
+// Funnel order:
+//   1. idea_submitted        — user hit "Run my free validation"
+//   2. analysis_started      — engine kicked off
+//   3. analysis_completed    — NORTH-STAR: full verdict returned on their data
+//   4. verdict_viewed        — verdict surface rendered (proceed/pivot/kill)
+//   5. upgrade_cta_seen      — upgrade CTA shown at a value moment (surface=…)
+//   6. subscription_started  — Stripe checkout session created
+// ─────────────────────────────────────────────────────────────────────────────
+
+export function trackIdeaSubmitted(idea: string, location?: string): void {
+  recordFunnelEvent('idea_submitted', {
+    idea_length: idea.length,
+    location: location ?? null,
+  });
+}
+
+export function trackVerdictViewed(verdict: 'proceed' | 'pivot' | 'kill' | string): void {
+  recordFunnelEvent('verdict_viewed', { verdict });
+}
+
+/**
+ * Fire when an upgrade CTA enters the viewport / is rendered.
+ * `surface` is the value moment that triggered it — one of:
+ *   'pdf_export' | 'location_comparison' | 'document_studio' | 'free_cap_hit'
+ *   | 'pricing_page' | 'result_footer'
+ */
+export function trackUpgradeCtaSeen(
+  surface: string,
+  fromTier: 'free' | 'plus' | 'pro' | string,
+  toTier: 'plus' | 'pro' | string,
+): void {
+  recordFunnelEvent('upgrade_cta_seen', { surface, from_tier: fromTier, to_tier: toTier });
+}
+
+export function trackSubscriptionStarted(
+  tier: 'plus' | 'pro' | string,
+  billingPeriod: 'monthly' | 'annual' | string = 'monthly',
+): void {
+  recordFunnelEvent('subscription_started', { tier, billing_period: billingPeriod });
+}
