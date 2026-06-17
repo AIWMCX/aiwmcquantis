@@ -72,6 +72,21 @@ function slugTitle(path: string): string {
   return `${words} — AIWMC Quantis`;
 }
 
+/** Per-route fallback description so unregistered routes don't share the homepage meta. */
+function slugDescription(path: string): string {
+  const segments = path.split('/').filter(Boolean);
+  const slug = segments[segments.length - 1] ?? '';
+  const human = slug.replace(/-/g, ' ');
+  const section = segments[0] ?? '';
+  if (section === 'blog') {
+    return `${human.charAt(0).toUpperCase() + human.slice(1)} — a Quantis guide for founders. Real benchmarks, brutal honesty, zero filler. Read free at AIWMC Quantis.`;
+  }
+  if (section === 'examples') {
+    return `Worked example: ${human}. See the unit economics, break-even, and verdict Quantis produced from 95,500 real benchmarks. Free to inspect.`;
+  }
+  return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, backed by 95,500 real benchmarks.`;
+}
+
 function htmlEscape(s: string): string {
   return s
     .replace(/&/g, '&amp;')
