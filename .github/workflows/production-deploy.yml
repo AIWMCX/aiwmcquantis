@@ -229,16 +229,11 @@ jobs:
             exit 0
           fi
           npm install -g supabase@2.20.5 2>/dev/null || true
-          # The deploy list MUST cover every function that ships a
-          # FUNCTION_VERSION constant — otherwise verify-deploy.sh fails the
-          # job with NO_HEALTH_ENDPOINT / STALE. Root cause of red Production
-          # Deploy #227. Add new functions here when introducing FUNCTION_VERSION.
           FUNCTIONS=(
             # ── Billing (must deploy first so payments work) ──────────────
             stripe-webhook
             create-checkout-session
             create-portal-session
-            replay-webhook-events
             # ── Core analysis pipeline ────────────────────────────────────
             analyze-business
             analyze-plus
@@ -246,16 +241,12 @@ jobs:
             analyze-pro-worker
             ai-narrator
             calculate-financials
-            # ── Public API surface ────────────────────────────────────────
-            api-analyze
-            api-analyze-main
             # ── User-facing widgets ───────────────────────────────────────
             invoice-capacity-check
             benchmarks-query
             rvce-validate
             generate-idea
             share-report
-            bot-detection
             # ── Document / export ─────────────────────────────────────────
             generate-document
             generate-document-content
@@ -263,37 +254,15 @@ jobs:
             pdf-generator
             parse-document
             queue-export
-            doc-queue-worker
-            process-doc-job
             # ── Intelligence / scenarios ──────────────────────────────────
             ai-consensus
             analyze-preview
-            template-optimizer
             # ── API / team ────────────────────────────────────────────────
             create-api-key
             team-invite
             # ── Lifecycle emails ──────────────────────────────────────────
             send-welcome-email
             send-lifecycle-email
-            send-weekly-insights
-            send-lead-magnet
-            check-lifecycle-emails
-            check-churn-signals
-            newsletter-unsubscribe
-            # ── Autoposter / content ──────────────────────────────────────
-            autoposter-generate-content
-            publish-due-posts
-            # ── Benchmark ingestion ───────────────────────────────────────
-            ingest-benchmark-data
-            ingest-benchmark-v2
-            ingest-data-sources
-            seed-benchmarks
-            score-import
-            # ── QA / accuracy harnesses ───────────────────────────────────
-            run-accuracy-harness
-            run-tier-qa-harness
-            aggregate-quality-metrics
-            alert-webhook
             # ── Platform / infra ──────────────────────────────────────────
             health-check
             warm-functions
