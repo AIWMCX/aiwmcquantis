@@ -164,7 +164,7 @@ function main(): void {
   for (const path of urls) {
     const meta: RouteMeta = routeMeta[path] ?? {
       title: slugTitle(path),
-      description: DEFAULT_DESC,
+      description: slugDescription(path),
     };
     const outDir = join(DIST, ...path.split('/').filter(Boolean));
     mkdirSync(outDir, { recursive: true });
