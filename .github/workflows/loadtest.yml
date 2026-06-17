@@ -1,0 +1,106 @@
+name: Load & Concurrency (k6)
+
+# MANUAL ONLY — k6 against staging is not free. Run before milestones and after
+# any change to: edge runtime, tier resolver, Stripe webhook, or limits.
+on:
+  workflow_dispatch:
+    inputs:
+      phase:
+        description: 'Which suite slice to run: all | quick | money | security'
+        required: true
+        default: 'quick'
+        type: choice
+        options: [all, quick, money, security]
+
+concurrency:
+  group: loadtest-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  k6:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      K6_BASE_URL: ${{ secrets.K6_BASE_URL }}
+      K6_SUPABASE_ANON_KEY: ${{ secrets.K6_SUPABASE_ANON_KEY }}
+      K6_STRIPE_MODE: test
+      K6_STRIPE_WEBHOOK_SECRET: ${{ secrets.K6_STRIPE_WEBHOOK_SECRET }}
+      K6_TEST_USER_JWTS: ${{ secrets.K6_TEST_USER_JWTS }}
+      K6_TEST_USER_IDS: ${{ secrets.K6_TEST_USER_IDS }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Safety check — staging only
+        run: |
+          set -e
+          if [ -z "$K6_BASE_URL" ]; then
+            echo "::error::K6_BASE_URL secret not set — refusing to run." && exit 1
+          fi
+          if echo "$K6_BASE_URL" | grep -qi 'aiwmcquantis\.com'; then
+            echo "::error::K6_BASE_URL appears to target production." && exit 1
+          fi
+          if [ "$K6_STRIPE_MODE" != "test" ]; then
+            echo "::error::K6_STRIPE_MODE must be 'test'." && exit 1
+          fi
+
+      - name: Install k6
+        run: |
+          sudo gpg -k
+          sudo gpg --no-default-keyring --keyring /usr/share/keyrings/k6-archive-keyring.gpg --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys C5AD17C747E3415A3642D57D77C6C491D6AC1D69
+          echo "deb [signed-by=/usr/share/keyrings/k6-archive-keyring.gpg] https://dl.k6.io/deb stable main" | sudo tee /etc/apt/sources.list.d/k6.list
+          sudo apt-get update
+          sudo apt-get install -y k6
+
+      - name: L1 health
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'quick' }}
+        run: k6 run --summary-export=summary-l1.json k6/01_health.js
+
+      - name: L2 engine only
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'quick' }}
+        run: k6 run --summary-export=summary-l2.json k6/02_engine_only.js
+
+      - name: L3 full pipeline (low)
+        if: ${{ inputs.phase == 'all' }}
+        env: { K6_PHASE: low }
+        run: k6 run --summary-export=summary-l3-low.json k6/03_full_pipeline.js
+
+      - name: L3 full pipeline (high)
+        if: ${{ inputs.phase == 'all' }}
+        env: { K6_PHASE: high }
+        run: k6 run --summary-export=summary-l3-high.json k6/03_full_pipeline.js
+
+      - name: L4 entitlement guard (SECURITY)
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'security' }}
+        run: k6 run --summary-export=summary-l4.json k6/04_entitlement_guard.js
+
+      - name: L5 usage cap
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'security' }}
+        run: k6 run --summary-export=summary-l5.json k6/05_usage_cap.js
+
+      - name: L6 webhook idempotency
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'money' }}
+        run: k6 run --summary-export=summary-l6.json k6/06_webhook_idempotency.js
+
+      - name: L7 webhook race
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'money' }}
+        run: k6 run --summary-export=summary-l7.json k6/07_webhook_race.js
+
+      - name: L8 rate limiter
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'security' }}
+        run: k6 run --summary-export=summary-l8.json k6/08_ratelimit.js
+
+      - name: L9 cold start
+        if: ${{ inputs.phase == 'all' }}
+        run: k6 run --summary-export=summary-l9.json k6/09_cold_start.js
+
+      - name: L10 RLS concurrency
+        if: ${{ inputs.phase == 'all' || inputs.phase == 'security' }}
+        run: k6 run --summary-export=summary-l10.json k6/10_rls_concurrency.js
+
+      - name: Upload k6 summaries
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: k6-summaries-${{ github.run_id }}
+          path: summary-*.json
+          retention-days: 30
