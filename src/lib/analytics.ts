@@ -188,7 +188,16 @@ export type SowFunnelEvent =
   | 'analysis_complete'
   | 'pricing_view'
   | 'paid_checkout_start'
-  | 'paid_checkout_complete';
+  | 'paid_checkout_complete'
+  // Prompt 3 canonical conversion funnel (audit 16-Jun-2026).
+  // Order: idea_submitted → analysis_started → analysis_completed (north-star)
+  //        → verdict_viewed → upgrade_cta_seen {surface} → subscription_started
+  | 'idea_submitted'
+  | 'analysis_started'
+  | 'analysis_completed'
+  | 'verdict_viewed'
+  | 'upgrade_cta_seen'
+  | 'subscription_started';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
