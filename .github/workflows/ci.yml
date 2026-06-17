@@ -132,6 +132,25 @@ jobs:
         if: always()
         run: bun run test:coverage || true
 
+      # ── Build + prerender + unique-meta guard ───────────────────────────────
+      # Audit 16-Jun-2026: regression guard against the SPA SEO bug returning
+      # (every URL shipping the same homepage <title>). vite build runs the
+      # prebuild prerender hook; then we assert every prerendered route has a
+      # unique <title> + meta description.
+      - name: Build (vite + prerender)
+        id: build
+        run: bun run build
+
+      - name: Verify unique per-route head tags
+        id: unique-meta
+        run: npx tsx scripts/verify-unique-meta.ts
+
+      - name: Unique-meta failure hint
+        if: failure() && steps.unique-meta.outcome == 'failure'
+        run: |
+          echo "::error title=Duplicate per-route SEO::Two or more public routes ship identical <title> or meta description. The SPA SEO regression is back — check scripts/prerender-seo.ts and src/components/seo/RouteSEO.tsx."
+
+
       # ── Dependency security audit ───────────────────────────────────────────
       - name: Dependency audit (bun)
         id: audit
