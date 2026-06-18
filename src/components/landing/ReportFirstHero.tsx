@@ -128,8 +128,10 @@ export function ReportFirstHero() {
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Array<HTMLElement | null>>([]);
+  const fullscreenBtnRef = useRef<HTMLButtonElement | null>(null);
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
