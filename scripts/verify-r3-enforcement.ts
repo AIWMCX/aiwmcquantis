@@ -32,6 +32,10 @@ const MIGRATION_ALLOWLIST = new Set<string>([
   'ai-consensus',             // P2-006 — to wire alongside consensus-evaluator refactor
   'rvce-validate',            // P2-007 — RVCE has its own bespoke validator; reconcile R3 wrapper next
   'generate-idea',            // P2-008 — migrating in this branch alongside the helper
+  'invoice-capacity-check',   // P2-009 — small caller, wires next sprint
+  'generate-document',        // P2-010 — doc pipeline, wires with generate-document-content
+  'generate-document-content',// P2-011 — paired with generate-document
+  'parse-document',           // P2-012 — OCR/extract path, schema added with multimodal R3
 ]);
 
 function listDeployed(): string[] {
