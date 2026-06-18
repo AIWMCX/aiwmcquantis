@@ -363,32 +363,34 @@ export function ReportFirstHero() {
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
           <div
-            className="rounded-2xl overflow-hidden shadow-2xl"
+            className={
+              isFullscreen
+                ? 'fixed inset-0 z-50 flex flex-col rounded-none overflow-hidden'
+                : 'rounded-2xl overflow-hidden shadow-2xl'
+            }
+            role={isFullscreen ? 'dialog' : undefined}
+            aria-modal={isFullscreen ? true : undefined}
+            aria-label={isFullscreen ? 'Sample Quantis report — fullscreen preview' : undefined}
             style={{
               background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              boxShadow: '0 30px 80px -20px hsl(var(--primary) / 0.25)',
+              border: isFullscreen ? 'none' : '1px solid hsl(var(--border))',
+              boxShadow: isFullscreen ? 'none' : '0 30px 80px -20px hsl(var(--primary) / 0.25)',
             }}
           >
             {/* Chrome / toolbar */}
             <div
-              className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b"
+              className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b shrink-0"
               style={{
                 background: 'hsl(var(--muted) / 0.5)',
                 borderColor: 'hsl(var(--border))',
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <div className="flex items-center gap-1.5 mr-2 shrink-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-                </div>
-                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                 <span
                   className="text-[11px] sm:text-xs font-mono truncate"
                   style={{ color: 'hsl(var(--muted-foreground))' }}
-                  title="Quantis_Executive_Report__The_Draft_Lab__Austin_TX__2026-06-14.pdf"
+                  title="Quantis_Executive_Report__The_Draft_Lab__Austin_TX__2026-06-13.pdf"
                 >
                   Quantis_Executive_Report — The_Draft_Lab — Austin_TX.pdf
                 </span>
@@ -401,28 +403,45 @@ export function ReportFirstHero() {
                     color: 'hsl(var(--primary))',
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
                   Live sample
                 </span>
-                <a
-                  href={SAMPLE_URL}
-                  target="_blank"
-                  rel="noopener"
-                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Open full report in new tab"
-                  onClick={() => trackCtaClick('sample_report_open', 'hero')}
+                <button
+                  ref={fullscreenBtnRef}
+                  type="button"
+                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                  aria-label={isFullscreen ? 'Exit fullscreen preview' : 'Open fullscreen preview'}
+                  aria-pressed={isFullscreen}
+                  onClick={() => {
+                    setIsFullscreen((v) => !v);
+                    trackCtaClick(isFullscreen ? 'sample_report_fullscreen_exit' : 'sample_report_fullscreen_enter', 'hero');
+                  }}
+                  style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
                 >
-                  <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                </a>
+                  {isFullscreen
+                    ? <Minimize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                    : <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />}
+                </button>
                 <a
                   href={SAMPLE_URL}
                   download="Quantis_Sample_Report.pdf"
                   className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Download sample report"
+                  aria-label="Download sample report PDF"
                   onClick={() => trackCtaClick('sample_report_download', 'hero')}
                 >
-                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                 </a>
+                {isFullscreen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreen(false)}
+                    aria-label="Close fullscreen preview"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                )}
               </div>
             </div>
 
