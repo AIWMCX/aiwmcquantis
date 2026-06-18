@@ -551,6 +551,28 @@ export function ReportFirstHero() {
                   >
                     <Contrast className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                   </button>
+                  {/* Density / line-height presets — Compact · Comfort · Spacious */}
+                  <div className="hidden md:flex items-center gap-0.5 ml-1" role="group" aria-label="Reading density">
+                    {(['compact', 'comfort', 'spacious'] as Density[]).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setDensity(d)}
+                        aria-pressed={density === d}
+                        aria-label={`Set reading density to ${d}`}
+                        title={d === 'compact' ? 'Compact (tight line-height)' : d === 'comfort' ? 'Comfort (recommended)' : 'Spacious (extra line-height)'}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2"
+                        style={{
+                          background: density === d ? 'hsl(var(--primary) / 0.18)' : 'transparent',
+                          color: density === d ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          border: '1px solid ' + (density === d ? 'hsl(var(--primary) / 0.4)' : 'transparent'),
+                          ['--tw-ring-color' as any]: 'hsl(var(--primary))',
+                        }}
+                      >
+                        {d === 'compact' ? 'C' : d === 'comfort' ? 'M' : 'S'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <button
                   ref={fullscreenBtnRef}
