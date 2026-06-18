@@ -244,8 +244,8 @@ export function ReportFirstHero() {
             className="grid grid-cols-2 lg:grid-cols-4 gap-3"
             aria-label="Key metrics from the sample Quantis report"
           >
-            {METRICS.map((m) => {
-              const Icon = m.icon;
+            {HEADLINE_METRICS.map((m) => {
+              const Icon = METRIC_ICONS[m.id] ?? Gauge;
               const open = expandedMetric === m.id;
               const panelId = `metric-panel-${m.id}`;
               return (
