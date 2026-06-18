@@ -1,13 +1,14 @@
 import { useState, useMemo } from "react";
-import { AppLayout } from "@/components/layout/AppLayout";
+import { Link } from "react-router-dom";
 import { directories, optimizedDescriptions, type DirectoryWave, type DirectoryStatus } from "@/data/directorySubmissions";
+import { PageSEO } from "@/components/seo/PageSEO";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ExternalLink, Copy, Check } from "lucide-react";
+import { ArrowLeft, ExternalLink, Copy, Check, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 const statusConfig: Record<DirectoryStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -35,6 +36,7 @@ export default function DirectoryTracker() {
   const liveCount = directories.filter((d) => d.status === "live").length;
   const submittedCount = directories.filter((d) => d.status === "submitted" || d.status === "live").length;
   const progressPct = (submittedCount / directories.length) * 100;
+  const publicProofs = directories.filter((d) => d.status === "live" && d.proofUrl);
 
   const waveStats = (wave: DirectoryWave) => {
     const w = directories.filter((d) => d.wave === wave);
@@ -50,18 +52,53 @@ export default function DirectoryTracker() {
   };
 
   return (
-    <AppLayout>
+    <main className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
+      <PageSEO
+        title="Quantis Directory Proof Signals"
+        description="Public directory and SEO proof signals where AIWMC Quantis has been submitted, indexed, or verified live."
+        canonical="/directory-tracker"
+        noindex
+      />
       <div className="container max-w-7xl mx-auto py-8 px-4 space-y-6">
-        <div>
-          <h1 className="text-3xl font-bold text-foreground">Directory Submission Tracker</h1>
-          <p className="text-muted-foreground mt-1">Track progress across 44 directories for SEO & visibility</p>
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 gap-2">
+              <Link to="/app"><ArrowLeft className="h-4 w-4" />Back to app</Link>
+            </Button>
+            <h1 className="text-3xl font-bold text-foreground">Directory Proof Signals</h1>
+            <p className="text-muted-foreground mt-1">Connected listings, submission targets, and live proof links for Quantis visibility.</p>
+          </div>
+          <Badge variant="outline" className="w-fit border-primary/40 px-3 py-1 text-sm">
+            {directories.length} tracked · {liveCount} live · {submittedCount} submitted/live
+          </Badge>
         </div>
+
+        {publicProofs.length > 0 && (
+          <section aria-label="Verified public proof links" className="grid gap-3 md:grid-cols-2">
+            {publicProofs.map((d) => (
+              <a
+                key={d.id}
+                href={d.proofUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="group flex items-start gap-3 rounded-lg border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 shadow-sm transition-colors hover:border-primary/50"
+              >
+                <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-primary" />
+                <span className="min-w-0 flex-1">
+                  <span className="block font-semibold text-foreground">{d.name} is live</span>
+                  <span className="mt-1 block text-sm text-muted-foreground">{d.notes}</span>
+                </span>
+                <ExternalLink className="h-4 w-4 shrink-0 text-muted-foreground transition-colors group-hover:text-primary" />
+              </a>
+            ))}
+          </section>
+        )}
 
         {/* Progress summary */}
         <Card>
           <CardContent className="pt-6 space-y-3">
             <div className="flex justify-between text-sm font-medium">
-              <span>{submittedCount}/44 directories submitted</span>
+              <span>{submittedCount}/{directories.length} directories submitted or live</span>
               <span>{liveCount} live</span>
             </div>
             <Progress value={progressPct} className="h-3" />
@@ -136,6 +173,16 @@ export default function DirectoryTracker() {
                           {d.name}
                           <ExternalLink className="h-3 w-3 shrink-0" />
                         </a>
+                        {d.proofUrl && (
+                          <a
+                            href={d.proofUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-2 inline-flex items-center gap-1 text-xs font-medium text-muted-foreground hover:text-primary hover:underline"
+                          >
+                            proof <ExternalLink className="h-3 w-3" />
+                          </a>
+                        )}
                         <span className="block text-xs text-muted-foreground">{d.type}</span>
                       </TableCell>
                       <TableCell className="text-center font-mono text-sm">
@@ -164,6 +211,6 @@ export default function DirectoryTracker() {
           </TabsContent>
         </Tabs>
       </div>
-    </AppLayout>
+    </main>
   );
 }
