@@ -7,6 +7,13 @@ import { scheduleAnonymousResultsSweep } from './lib/anonResultsCleanup';
 import './i18n'; // Side-effect import: initializes i18next before any component mounts
 import App from './App.tsx';
 import { logger } from '@/lib/logger';
+import '@fontsource/ibm-plex-sans/400.css';
+import '@fontsource/ibm-plex-sans/500.css';
+import '@fontsource/ibm-plex-sans/600.css';
+import '@fontsource/ibm-plex-sans/700.css';
+import '@fontsource/ibm-plex-mono/400.css';
+import '@fontsource/ibm-plex-mono/500.css';
+import '@fontsource/ibm-plex-mono/600.css';
 import './index.css';
 
 // Initialize monitoring and analytics before rendering
