@@ -15,7 +15,7 @@ import { PopupManager } from '@/components/marketing/PopupManager';
 import { Footer } from '@/components/layout/Footer';
 import { useLazySection } from '@/hooks/useLazySection';
 import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
-import { HeroSingleInput } from '@/components/landing/HeroSingleInput';
+import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
@@ -134,9 +134,9 @@ export default function Landing() {
       </nav>
 
       <main id="main-content" role="main">
-        {/* 0. Anonymous-first single-input — primary conversion surface */}
+        {/* 0. Report-first hero — show a real PDF, then ask for inputs */}
         <div ref={heroRef} id="single-input-hero" data-hero-form>
-          <HeroSingleInput />
+          <ReportFirstHero />
         </div>
 
         {/* 1. Hero — Founder vs Reality (visual / story) */}
