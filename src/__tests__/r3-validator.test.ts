@@ -22,7 +22,7 @@ const MetricsSchema = z.object({
 
 function assertFail<T>(r: R3Result<T>): Extract<R3Result<T>, { ok: false }> {
   if (r.ok) throw new Error('expected R3 failure but got success');
-  return r;
+  return r as Extract<R3Result<T>, { ok: false }>;
 }
 
 describe('R3 Validator — Schema · Reconcile · Reject', () => {
