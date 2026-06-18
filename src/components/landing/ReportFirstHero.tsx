@@ -1,13 +1,55 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGES = Array.from({ length: 15 }, (_, i) => ({
   url: `/sample-report/qpage-${String(i + 1).padStart(2, '0')}.jpg`,
+  label: `Page ${i + 1} of 15`,
 }));
+
+// Headline metrics extracted from the sample Quantis report (The Draft Lab · Austin, TX · Jun 2026).
+// Each card opens a short expansion explaining how the figure was produced.
+const METRICS = [
+  {
+    id: 'investment',
+    icon: DollarSign,
+    label: 'Initial investment',
+    value: '$142,500',
+    sub: 'Build-out + 4-mo runway',
+    detail:
+      'Sum of one-time CAPEX ($86,200 — buildout, equipment, deposits) and 4 months of fixed OPEX burn before break-even ($56,300). Sourced from sample report, pages 6–8.',
+  },
+  {
+    id: 'payback',
+    icon: Clock,
+    label: 'Payback period',
+    value: '18 months',
+    sub: 'Base case (P50)',
+    detail:
+      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across 12-variable Monte Carlo. Sample report, page 9.',
+  },
+  {
+    id: 'profit',
+    icon: TrendingUp,
+    label: 'Monthly profit (Y2)',
+    value: '$11,800',
+    sub: 'Net, after all OpEx',
+    detail:
+      'Steady-state monthly net income at month 24, assuming 180 paying members × $89 ARPU and 4.1% monthly churn. Bottom-up P&L on sample report, page 7.',
+  },
+  {
+    id: 'confidence',
+    icon: Gauge,
+    label: 'Confidence',
+    value: '79%',
+    sub: 'Dual-AI verified',
+    detail:
+      'Model Confidence Score: benchmark match quality 0.82, assumption fragility 0.71, narrative coherence 0.84, cross-model agreement 0.79. Sample report, page 2.',
+  },
+] as const;
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
@@ -69,6 +111,73 @@ export function ReportFirstHero() {
   const valid = idea.trim().length >= 10;
   const current = NARRATION[progressStep] ?? NARRATION[0];
 
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const pageRefs = useRef<Array<HTMLElement | null>>([]);
+  const [activePage, setActivePage] = useState(1);
+  const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+
+  // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          const idx = pageRefs.current.findIndex((el) => el === visible.target);
+          if (idx >= 0) setActivePage(idx + 1);
+        }
+      },
+      { root, threshold: [0.25, 0.5, 0.75] }
+    );
+    pageRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  const scrollToPage = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(PAGES.length - 1, idx));
+    const el = pageRefs.current[clamped];
+    if (el && scrollerRef.current) {
+      scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
+    }
+  }, []);
+
+  const onScrollerKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'PageDown':
+        case 'j':
+          e.preventDefault();
+          scrollToPage(activePage); // 1-based → next index
+          break;
+        case 'ArrowUp':
+        case 'PageUp':
+        case 'k':
+          e.preventDefault();
+          scrollToPage(activePage - 2);
+          break;
+        case 'Home':
+          e.preventDefault();
+          scrollToPage(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          scrollToPage(PAGES.length - 1);
+          break;
+        case ' ':
+          e.preventDefault();
+          scroller.scrollBy({ top: e.shiftKey ? -scroller.clientHeight * 0.9 : scroller.clientHeight * 0.9, behavior: 'smooth' });
+          break;
+      }
+    },
+    [activePage, scrollToPage]
+  );
+
   return (
     <section
       aria-label="See a real Quantis report, then generate yours"
@@ -108,6 +217,102 @@ export function ReportFirstHero() {
             Then drop your idea and generate yours in 90 seconds.
           </p>
         </div>
+
+        {/* === Headline metrics from the sample report (expandable) === */}
+        <div className="mb-8 md:mb-10">
+          <ul
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+            aria-label="Key metrics from the sample Quantis report"
+          >
+            {METRICS.map((m) => {
+              const Icon = m.icon;
+              const open = expandedMetric === m.id;
+              const panelId = `metric-panel-${m.id}`;
+              return (
+                <li key={m.id}>
+                  <div
+                    className="rounded-xl overflow-hidden h-full flex flex-col"
+                    style={{
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      aria-controls={panelId}
+                      onClick={() => {
+                        const next = open ? null : m.id;
+                        setExpandedMetric(next);
+                        if (next) trackCtaClick(`hero_metric_${m.id}`, 'hero');
+                      }}
+                      className="w-full text-left p-4 flex flex-col gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      style={{ outlineColor: 'hsl(var(--primary))' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                          {m.label}
+                        </span>
+                        <ChevronDown
+                          className="w-3.5 h-3.5 transition-transform"
+                          aria-hidden="true"
+                          style={{
+                            color: 'hsl(var(--muted-foreground))',
+                            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="font-bold leading-none mt-1"
+                        style={{
+                          fontSize: 'clamp(1.4rem, 2.4vw, 1.9rem)',
+                          color: 'hsl(var(--foreground))',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {m.value}
+                      </span>
+                      <span className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        {m.sub}
+                      </span>
+                      <span className="text-[10px] mt-1 underline-offset-2" style={{ color: 'hsl(var(--primary))' }}>
+                        {open ? 'Hide explanation' : 'Show how this was produced'}
+                      </span>
+                    </button>
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-label={`${m.label} — explanation`}
+                      hidden={!open}
+                      className="px-4 pb-4 text-[12px] leading-relaxed border-t"
+                      style={{
+                        color: 'hsl(var(--muted-foreground))',
+                        borderColor: 'hsl(var(--border))',
+                        background: 'hsl(var(--muted) / 0.35)',
+                      }}
+                    >
+                      <p className="pt-3">{m.detail}</p>
+                      <a
+                        href={SAMPLE_URL}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold"
+                        style={{ color: 'hsl(var(--primary))' }}
+                        onClick={() => trackCtaClick(`hero_metric_open_pdf_${m.id}`, 'hero')}
+                      >
+                        Open full plan <Maximize2 className="w-3 h-3" aria-hidden="true" />
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+
 
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
@@ -177,19 +382,40 @@ export function ReportFirstHero() {
 
             {/* Report viewer — scrollable page stack (real rendered PDF pages) */}
             <div
-              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth"
+              ref={scrollerRef}
+              onKeyDown={onScrollerKeyDown}
+              role="region"
+              aria-roledescription="Document preview"
+              aria-label={`Sample Quantis executive report — The Draft Lab, Austin TX. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate.`}
+              tabIndex={0}
+              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
               style={{
                 height: 'clamp(460px, 64vh, 760px)',
                 background: '#0B1220',
                 scrollbarWidth: 'thin',
+                ['--tw-ring-color' as any]: 'hsl(var(--primary))',
               }}
-              aria-label="Sample Quantis executive report — The Draft Lab, Austin TX. Scroll to read all 15 pages."
-              tabIndex={0}
             >
+              {/* Sticky page counter / live region */}
+              <div
+                className="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-5 py-1.5 text-[10px] font-mono pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to bottom, rgba(11,18,32,0.92), rgba(11,18,32,0.6))',
+                  color: 'rgba(255,255,255,0.7)',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                }}
+              >
+                <span aria-live="polite" aria-atomic="true">
+                  Page {activePage} / {PAGES.length}
+                </span>
+                <span className="hidden sm:inline opacity-70">↑ ↓ · PgUp/PgDn · Home/End</span>
+              </div>
               <div className="flex flex-col items-center gap-4 py-5 px-3 sm:px-6">
                 {PAGES.map((page, i) => (
                   <figure
                     key={i}
+                    ref={(el) => { pageRefs.current[i] = el; }}
+                    aria-label={page.label}
                     className="relative w-full max-w-[760px] rounded-md overflow-hidden"
                     style={{
                       background: '#0F1A2E',
