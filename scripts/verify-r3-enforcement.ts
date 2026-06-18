@@ -37,8 +37,8 @@ const MIGRATION_ALLOWLIST = new Set<string>([
 function listDeployed(): string[] {
   if (!existsSync(DEPLOY_WORKFLOW)) return [];
   const text = readFileSync(DEPLOY_WORKFLOW, 'utf8');
-  // Parse the bash FUNCTIONS=( ... ) array. Quick + robust enough for CI.
-  const m = text.match(/FUNCTIONS=\(([\s\S]*?)\)/);
+  // Match `FUNCTIONS=(` … and the first line that is whitespace-then-`)`.
+  const m = text.match(/FUNCTIONS=\(\n([\s\S]*?)\n\s*\)/);
   if (!m) return [];
   return m[1]
     .split('\n')
