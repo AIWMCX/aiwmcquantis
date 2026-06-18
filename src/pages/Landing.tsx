@@ -18,6 +18,7 @@ import { StickyMobileCTA } from '@/components/landing/StickyMobileCTA';
 import { HeroSingleInput } from '@/components/landing/HeroSingleInput';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
+import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
@@ -145,6 +146,11 @@ export default function Landing() {
 
         {/* 1.5. Social Proof Bar */}
         <SocialProofBar />
+
+        {/* 1.6. Featured directories — clickable proof-of-presence chips */}
+        <FeaturedDirectories />
+
+
 
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
