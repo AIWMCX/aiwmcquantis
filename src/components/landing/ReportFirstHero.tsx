@@ -532,41 +532,8 @@ export function ReportFirstHero() {
                   </div>
                 </section>
 
-                {PAGES.map((page, i) => (
-                  <figure
-                    key={i}
-                    ref={(el) => { pageRefs.current[i] = el; }}
-                    aria-label={page.label}
-                    className="relative w-full max-w-[920px] rounded-[6px] overflow-hidden group"
-                    style={{
-                      background: '#0F1A2E',
-                      boxShadow:
-                        '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.75), 0 6px 18px -8px rgba(0,0,0,0.55)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <img
-                      src={page.url}
-                      alt={`Quantis sample report — page ${i + 1} of ${PAGE_COUNT}`}
-                      loading={i < 2 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      className="block w-full h-auto select-none"
-                      draggable={false}
-                      style={{ imageRendering: 'auto' }}
-                    />
-                    <figcaption
-                      className="absolute bottom-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono tabular-nums opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{
-                        background: 'rgba(6,12,24,0.78)',
-                        color: 'rgba(230,238,255,0.7)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        backdropFilter: 'blur(4px)',
-                      }}
-                    >
-                      {String(i + 1).padStart(2, '0')} / {PAGE_COUNT}
-                    </figcaption>
-                  </figure>
-                ))}
+                <SampleReportPages zoom={zoom} theme={theme} pageRefs={pageRefs} />
+
 
                 <a
                   href={SAMPLE_URL}
