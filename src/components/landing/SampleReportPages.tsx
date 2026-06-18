@@ -12,14 +12,23 @@ import React from 'react';
 import { SAMPLE_REPORT } from '@/data/sampleReport';
 
 type Theme = 'dark' | 'highContrast' | 'sepia';
+export type Density = 'compact' | 'comfort' | 'spacious';
 
 interface SampleReportPagesProps {
   /** 1.0 = baseline (~16px body). Reading-mode zoom multiplies font/line-height. */
   zoom: number;
   theme: Theme;
+  /** Line-height / vertical-rhythm preset. Defaults to 'comfort'. */
+  density?: Density;
   /** Ref array so the parent scroller can scroll to a specific page. */
   pageRefs: React.MutableRefObject<Array<HTMLElement | null>>;
 }
+
+const DENSITY_LINE_HEIGHT: Record<Density, { base: number; body: number }> = {
+  compact:  { base: 1.45, body: 1.55 },
+  comfort:  { base: 1.65, body: 1.75 },
+  spacious: { base: 1.9,  body: 2.0  },
+};
 
 const themeStyles: Record<Theme, {
   page: React.CSSProperties;
