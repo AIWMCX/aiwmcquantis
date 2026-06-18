@@ -12,14 +12,23 @@ import React from 'react';
 import { SAMPLE_REPORT } from '@/data/sampleReport';
 
 type Theme = 'dark' | 'highContrast' | 'sepia';
+export type Density = 'compact' | 'comfort' | 'spacious';
 
 interface SampleReportPagesProps {
   /** 1.0 = baseline (~16px body). Reading-mode zoom multiplies font/line-height. */
   zoom: number;
   theme: Theme;
+  /** Line-height / vertical-rhythm preset. Defaults to 'comfort'. */
+  density?: Density;
   /** Ref array so the parent scroller can scroll to a specific page. */
   pageRefs: React.MutableRefObject<Array<HTMLElement | null>>;
 }
+
+const DENSITY_LINE_HEIGHT: Record<Density, { base: number; body: number }> = {
+  compact:  { base: 1.45, body: 1.55 },
+  comfort:  { base: 1.65, body: 1.75 },
+  spacious: { base: 1.9,  body: 2.0  },
+};
 
 const themeStyles: Record<Theme, {
   page: React.CSSProperties;
@@ -63,7 +72,8 @@ const themeStyles: Record<Theme, {
   },
 };
 
-export function SampleReportPages({ zoom, theme, pageRefs }: SampleReportPagesProps) {
+export function SampleReportPages({ zoom, theme, density = 'comfort', pageRefs }: SampleReportPagesProps) {
+  const lh = DENSITY_LINE_HEIGHT[density];
   const t = themeStyles[theme];
 
   // Typography that always renders crisply — system stack with widely-available web faces.
@@ -87,7 +97,7 @@ export function SampleReportPages({ zoom, theme, pageRefs }: SampleReportPagesPr
             ...t.page,
             fontFamily,
             fontSize: `${basePx}px`,
-            lineHeight: 1.65,
+            lineHeight: lh.base,
             letterSpacing: '-0.005em',
             fontFeatureSettings: '"kern" 1, "liga" 1, "calt" 1, "tnum" 1',
             WebkitFontSmoothing: 'antialiased',
@@ -159,7 +169,7 @@ export function SampleReportPages({ zoom, theme, pageRefs }: SampleReportPagesPr
                     style={{
                       color: t.body,
                       fontSize: `${basePx}px`,
-                      lineHeight: 1.7,
+                      lineHeight: lh.body,
                       fontFamily,
                     }}
                   >
@@ -222,7 +232,7 @@ export function SampleReportPages({ zoom, theme, pageRefs }: SampleReportPagesPr
                     style={{
                       color: t.body,
                       fontSize: `${basePx}px`,
-                      lineHeight: 1.65,
+                      lineHeight: lh.base,
                       paddingLeft: `${1.4 * basePx}px`,
                       position: 'relative',
                     }}

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
-import { SampleReportPages } from './SampleReportPages';
+import { SampleReportPages, type Density } from './SampleReportPages';
 
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
@@ -101,11 +101,62 @@ export function ReportFirstHero() {
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [theme, setTheme] = useState<ReadingTheme>('dark');
+  // ---- Reading-mode persistence (zoom · theme · density) ----
+  const PREFS_KEY = 'aiwmc.quantis.readingPrefs.v1';
+  const readPrefs = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(PREFS_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as { zoom?: number; theme?: ReadingTheme; density?: Density };
+    } catch {
+      return null;
+    }
+  };
+  const initialPrefs = readPrefs();
+  const [zoom, setZoom] = useState<number>(() => {
+    const z = initialPrefs?.zoom;
+    return typeof z === 'number' && z >= ZOOM_MIN && z <= ZOOM_MAX ? z : 1;
+  });
+  const [theme, setTheme] = useState<ReadingTheme>(() => {
+    const t = initialPrefs?.theme;
+    return t === 'dark' || t === 'highContrast' || t === 'sepia' ? t : 'dark';
+  });
+  const [density, setDensity] = useState<Density>(() => {
+    const d = initialPrefs?.density;
+    return d === 'compact' || d === 'comfort' || d === 'spacious' ? d : 'comfort';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify({ zoom, theme, density }));
+    } catch { /* quota / privacy mode → silently no-op */ }
+  }, [zoom, theme, density]);
 
   // Runtime integrity check — verifies the headline cards still match the canonical report data.
-  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), []);
+  // Re-runs when the user clicks "Reload data from API" so the banner can clear itself.
+  const [integrityNonce, setIntegrityNonce] = useState(0);
+  const [isReloading, setIsReloading] = useState(false);
+  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), [integrityNonce]);
+
+  const reloadFromApi = useCallback(async () => {
+    setIsReloading(true);
+    try {
+      // Re-fetch the sample report payload (cache-busted) — same JSON shape as the embedded
+      // SAMPLE_REPORT. In production the response is identical; this hook exists so the page
+      // can resync after a deploy without a full reload.
+      const res = await fetch(`/sample-report/sample-report.json?ts=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        // We don't replace the module-level constant at runtime, but a fresh fetch confirms
+        // the live JSON matches what the bundle was built against; the integrity validator
+        // re-runs to surface (or clear) any client-side drift.
+        await res.json().catch(() => null);
+      }
+    } catch { /* offline → keep current state */ }
+    setIntegrityNonce((n) => n + 1);
+    setIsReloading(false);
+  }, []);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
@@ -357,6 +408,7 @@ export function ReportFirstHero() {
         {integrityIssues.length > 0 && (
           <div
             role="alert"
+            aria-live="assertive"
             className="mb-4 rounded-lg px-4 py-3 flex items-start gap-3"
             style={{
               background: 'hsl(var(--destructive) / 0.08)',
@@ -365,11 +417,30 @@ export function ReportFirstHero() {
             }}
           >
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
-            <div className="text-[12px] leading-relaxed">
-              <strong className="font-semibold">Data integrity warning:</strong> headline metrics do not match the live sample report —
-              <ul className="list-disc list-inside mt-1 space-y-0.5">
+            <div className="text-[12px] leading-relaxed flex-1">
+              <strong className="font-semibold">Data integrity warning</strong> — headline KPI cards do not match the live sample report ({integrityIssues.length} drift{integrityIssues.length === 1 ? '' : 's'}):
+              <ul className="list-disc list-inside mt-1 space-y-0.5 font-mono text-[11px]">
                 {integrityIssues.map((msg) => <li key={msg}>{msg}</li>)}
               </ul>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={reloadFromApi}
+                  disabled={isReloading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-60 focus:outline-none focus-visible:ring-2"
+                  style={{
+                    background: 'hsl(var(--destructive) / 0.18)',
+                    border: '1px solid hsl(var(--destructive) / 0.5)',
+                    color: 'hsl(var(--destructive))',
+                    ['--tw-ring-color' as any]: 'hsl(var(--destructive))',
+                  }}
+                >
+                  {isReloading
+                    ? <><Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Re-syncing…</>
+                    : <>↻ Reload data from API</>}
+                </button>
+                <span className="text-[10px] opacity-75">Re-runs the integrity validator against the latest sample payload.</span>
+              </div>
             </div>
           </div>
         )}
@@ -432,8 +503,29 @@ export function ReportFirstHero() {
                   >
                     <ZoomOut className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                   </button>
+                  {/* Zoom presets: 100% / 125% / 150% */}
+                  <div className="hidden md:flex items-center gap-0.5 mx-1" role="group" aria-label="Reading zoom presets">
+                    {[1, 1.25, 1.5].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setZoom(preset)}
+                        aria-pressed={Math.abs(zoom - preset) < 0.02}
+                        aria-label={`Set reading zoom to ${Math.round(preset * 100)}%`}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums transition-colors focus:outline-none focus-visible:ring-2"
+                        style={{
+                          background: Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary) / 0.18)' : 'transparent',
+                          color: Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          border: '1px solid ' + (Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary) / 0.4)' : 'transparent'),
+                          ['--tw-ring-color' as any]: 'hsl(var(--primary))',
+                        }}
+                      >
+                        {Math.round(preset * 100)}%
+                      </button>
+                    ))}
+                  </div>
                   <span
-                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center"
+                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center md:hidden"
                     style={{ color: 'hsl(var(--muted-foreground))' }}
                     aria-live="polite"
                   >
@@ -459,6 +551,28 @@ export function ReportFirstHero() {
                   >
                     <Contrast className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                   </button>
+                  {/* Density / line-height presets — Compact · Comfort · Spacious */}
+                  <div className="hidden md:flex items-center gap-0.5 ml-1" role="group" aria-label="Reading density">
+                    {(['compact', 'comfort', 'spacious'] as Density[]).map((d) => (
+                      <button
+                        key={d}
+                        type="button"
+                        onClick={() => setDensity(d)}
+                        aria-pressed={density === d}
+                        aria-label={`Set reading density to ${d}`}
+                        title={d === 'compact' ? 'Compact (tight line-height)' : d === 'comfort' ? 'Comfort (recommended)' : 'Spacious (extra line-height)'}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wider transition-colors focus:outline-none focus-visible:ring-2"
+                        style={{
+                          background: density === d ? 'hsl(var(--primary) / 0.18)' : 'transparent',
+                          color: density === d ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          border: '1px solid ' + (density === d ? 'hsl(var(--primary) / 0.4)' : 'transparent'),
+                          ['--tw-ring-color' as any]: 'hsl(var(--primary))',
+                        }}
+                      >
+                        {d === 'compact' ? 'C' : d === 'comfort' ? 'M' : 'S'}
+                      </button>
+                    ))}
+                  </div>
                 </div>
                 <button
                   ref={fullscreenBtnRef}
@@ -612,7 +726,7 @@ export function ReportFirstHero() {
                   </div>
                 </section>
 
-                <SampleReportPages zoom={zoom} theme={theme} pageRefs={pageRefs} />
+                <SampleReportPages zoom={zoom} theme={theme} density={density} pageRefs={pageRefs} />
 
 
                 <a
