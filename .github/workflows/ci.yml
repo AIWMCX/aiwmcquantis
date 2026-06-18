@@ -69,6 +69,19 @@ jobs:
         run: |
           echo "::error title=AI cost logging::A paid AI call is not piped through ai-logger. Run 'npx tsx scripts/verify-ai-cost-logging.ts' locally."
 
+      # ── Genesis P1/P2 — R3 enforcement at every LLM boundary ──────────────
+      # Every deployed LLM function must wire r3-validator / boundary-schemas
+      # OR appear in MIGRATION_ALLOWLIST (shrinking set, reviewed manually).
+      - name: Verify R3 enforcement
+        id: r3-enforcement
+        run: npx tsx scripts/verify-r3-enforcement.ts
+
+      - name: R3 enforcement failure hint
+        if: failure() && steps.r3-enforcement.outcome == 'failure'
+        run: |
+          echo "::error title=R3 enforcement::A deployed LLM function bypasses r3-validator. Wire it or document the exemption in scripts/verify-r3-enforcement.ts."
+
+
       # ── DeepSeek deprecated-model guard (Fix #3) ─────────────────────────────
       # Legacy aliases retire 2026-07-24 15:59 UTC. Fail the build before they
       # silently break in production.
