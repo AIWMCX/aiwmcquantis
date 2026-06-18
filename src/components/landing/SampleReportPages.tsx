@@ -97,7 +97,7 @@ export function SampleReportPages({ zoom, theme, density = 'comfort', pageRefs }
             ...t.page,
             fontFamily,
             fontSize: `${basePx}px`,
-            lineHeight: 1.65,
+            lineHeight: lh.base,
             letterSpacing: '-0.005em',
             fontFeatureSettings: '"kern" 1, "liga" 1, "calt" 1, "tnum" 1',
             WebkitFontSmoothing: 'antialiased',
@@ -169,7 +169,7 @@ export function SampleReportPages({ zoom, theme, density = 'comfort', pageRefs }
                     style={{
                       color: t.body,
                       fontSize: `${basePx}px`,
-                      lineHeight: 1.7,
+                      lineHeight: lh.body,
                       fontFamily,
                     }}
                   >
@@ -232,7 +232,7 @@ export function SampleReportPages({ zoom, theme, density = 'comfort', pageRefs }
                     style={{
                       color: t.body,
                       fontSize: `${basePx}px`,
-                      lineHeight: 1.65,
+                      lineHeight: lh.base,
                       paddingLeft: `${1.4 * basePx}px`,
                       position: 'relative',
                     }}
