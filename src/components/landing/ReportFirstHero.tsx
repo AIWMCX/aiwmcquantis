@@ -503,8 +503,29 @@ export function ReportFirstHero() {
                   >
                     <ZoomOut className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                   </button>
+                  {/* Zoom presets: 100% / 125% / 150% */}
+                  <div className="hidden md:flex items-center gap-0.5 mx-1" role="group" aria-label="Reading zoom presets">
+                    {[1, 1.25, 1.5].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setZoom(preset)}
+                        aria-pressed={Math.abs(zoom - preset) < 0.02}
+                        aria-label={`Set reading zoom to ${Math.round(preset * 100)}%`}
+                        className="px-1.5 py-0.5 rounded text-[10px] font-mono tabular-nums transition-colors focus:outline-none focus-visible:ring-2"
+                        style={{
+                          background: Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary) / 0.18)' : 'transparent',
+                          color: Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary))' : 'hsl(var(--muted-foreground))',
+                          border: '1px solid ' + (Math.abs(zoom - preset) < 0.02 ? 'hsl(var(--primary) / 0.4)' : 'transparent'),
+                          ['--tw-ring-color' as any]: 'hsl(var(--primary))',
+                        }}
+                      >
+                        {Math.round(preset * 100)}%
+                      </button>
+                    ))}
+                  </div>
                   <span
-                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center"
+                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center md:hidden"
                     style={{ color: 'hsl(var(--muted-foreground))' }}
                     aria-live="polite"
                   >
