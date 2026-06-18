@@ -115,12 +115,12 @@ describe('R3 round-trip on representative LLM payload', () => {
     });
     const r = r3Validate(raw, Schema, reconcile);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('reconcile');
+    expect(r.ok === false && r.reason).toBe('reconcile');
   });
 
   it('rejects non-JSON garbage with a typed schema failure', () => {
     const r = r3Validate('this is not json', Schema, reconcile);
     expect(r.ok).toBe(false);
-    if (!r.ok) expect(r.reason).toBe('schema');
+    expect(r.ok === false && r.reason).toBe('schema');
   });
 });
