@@ -44,7 +44,7 @@ export interface EndpointStat {
   p95_latency_ms: number;
 }
 
-export type TimeRangeHours = 1 | 6 | 24 | 24 * 7 | 24 * 30;
+export type TimeRangeHours = 1 | 6 | 24 | 168 | 720;
 
 /** Fetch all AI calls for a given analysis_id. Returns [] on any error. */
 export async function getAiCallsForAnalysis(analysisId: string): Promise<AiCallRow[]> {
