@@ -5,8 +5,24 @@ import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import sampleReportAsset from '@/assets/quantis-sample-report.pdf.asset.json';
+import p01 from '@/assets/sample-report/p01.jpg.asset.json';
+import p02 from '@/assets/sample-report/p02.jpg.asset.json';
+import p03 from '@/assets/sample-report/p03.jpg.asset.json';
+import p04 from '@/assets/sample-report/p04.jpg.asset.json';
+import p05 from '@/assets/sample-report/p05.jpg.asset.json';
+import p06 from '@/assets/sample-report/p06.jpg.asset.json';
+import p07 from '@/assets/sample-report/p07.jpg.asset.json';
+import p08 from '@/assets/sample-report/p08.jpg.asset.json';
+import p09 from '@/assets/sample-report/p09.jpg.asset.json';
+import p10 from '@/assets/sample-report/p10.jpg.asset.json';
+import p11 from '@/assets/sample-report/p11.jpg.asset.json';
+import p12 from '@/assets/sample-report/p12.jpg.asset.json';
+import p13 from '@/assets/sample-report/p13.jpg.asset.json';
+import p14 from '@/assets/sample-report/p14.jpg.asset.json';
+import p15 from '@/assets/sample-report/p15.jpg.asset.json';
 
 const SAMPLE_URL = sampleReportAsset.url;
+const PAGES = [p01, p02, p03, p04, p05, p06, p07, p08, p09, p10, p11, p12, p13, p14, p15];
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
