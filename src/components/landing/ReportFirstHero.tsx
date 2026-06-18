@@ -408,6 +408,7 @@ export function ReportFirstHero() {
         {integrityIssues.length > 0 && (
           <div
             role="alert"
+            aria-live="assertive"
             className="mb-4 rounded-lg px-4 py-3 flex items-start gap-3"
             style={{
               background: 'hsl(var(--destructive) / 0.08)',
@@ -416,11 +417,30 @@ export function ReportFirstHero() {
             }}
           >
             <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
-            <div className="text-[12px] leading-relaxed">
-              <strong className="font-semibold">Data integrity warning:</strong> headline metrics do not match the live sample report —
-              <ul className="list-disc list-inside mt-1 space-y-0.5">
+            <div className="text-[12px] leading-relaxed flex-1">
+              <strong className="font-semibold">Data integrity warning</strong> — headline KPI cards do not match the live sample report ({integrityIssues.length} drift{integrityIssues.length === 1 ? '' : 's'}):
+              <ul className="list-disc list-inside mt-1 space-y-0.5 font-mono text-[11px]">
                 {integrityIssues.map((msg) => <li key={msg}>{msg}</li>)}
               </ul>
+              <div className="mt-2 flex flex-wrap items-center gap-2">
+                <button
+                  type="button"
+                  onClick={reloadFromApi}
+                  disabled={isReloading}
+                  className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-[11px] font-semibold transition-colors disabled:opacity-60 focus:outline-none focus-visible:ring-2"
+                  style={{
+                    background: 'hsl(var(--destructive) / 0.18)',
+                    border: '1px solid hsl(var(--destructive) / 0.5)',
+                    color: 'hsl(var(--destructive))',
+                    ['--tw-ring-color' as any]: 'hsl(var(--destructive))',
+                  }}
+                >
+                  {isReloading
+                    ? <><Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" /> Re-syncing…</>
+                    : <>↻ Reload data from API</>}
+                </button>
+                <span className="text-[10px] opacity-75">Re-runs the integrity validator against the latest sample payload.</span>
+              </div>
             </div>
           </div>
         )}
