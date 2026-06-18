@@ -190,26 +190,59 @@ export function ReportFirstHero() {
               </div>
             </div>
 
-            {/* PDF viewer (scrollable) */}
+            {/* Report viewer — scrollable page stack (real rendered PDF pages) */}
             <div
-              className="relative w-full"
+              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth"
               style={{
-                height: 'clamp(420px, 62vh, 720px)',
+                height: 'clamp(460px, 64vh, 760px)',
                 background: '#0B1220',
+                scrollbarWidth: 'thin',
               }}
+              aria-label="Sample Quantis executive report — The Draft Lab, Austin TX. Scroll to read all 15 pages."
+              tabIndex={0}
             >
-              <object
-                data={`${SAMPLE_URL}#view=FitH&toolbar=0&navpanes=0`}
-                type="application/pdf"
-                aria-label="Sample Quantis executive report — The Draft Lab, Austin TX"
-                className="absolute inset-0 w-full h-full"
-              >
-                <iframe
-                  src={`${SAMPLE_URL}#view=FitH&toolbar=0&navpanes=0`}
-                  title="Sample Quantis executive report — The Draft Lab, Austin TX"
-                  className="absolute inset-0 w-full h-full border-0"
-                />
-              </object>
+              <div className="flex flex-col items-center gap-4 py-5 px-3 sm:px-6">
+                {PAGES.map((page, i) => (
+                  <figure
+                    key={i}
+                    className="relative w-full max-w-[760px] rounded-md overflow-hidden"
+                    style={{
+                      background: '#0F1A2E',
+                      boxShadow: '0 10px 30px -12px rgba(0,0,0,0.6)',
+                      border: '1px solid rgba(255,255,255,0.05)',
+                    }}
+                  >
+                    <img
+                      src={page.url}
+                      alt={`Quantis sample report — page ${i + 1} of ${PAGES.length}`}
+                      loading={i < 2 ? 'eager' : 'lazy'}
+                      decoding="async"
+                      className="block w-full h-auto select-none"
+                      draggable={false}
+                    />
+                    <figcaption
+                      className="absolute bottom-1.5 right-2 px-1.5 py-0.5 rounded text-[10px] font-mono"
+                      style={{ background: 'rgba(11,18,32,0.75)', color: 'rgba(255,255,255,0.55)' }}
+                    >
+                      {String(i + 1).padStart(2, '0')} / {PAGES.length}
+                    </figcaption>
+                  </figure>
+                ))}
+                <a
+                  href={SAMPLE_URL}
+                  target="_blank"
+                  rel="noopener"
+                  onClick={() => trackCtaClick('sample_report_open_end', 'hero')}
+                  className="inline-flex items-center gap-2 mt-2 mb-2 px-4 py-2 rounded-lg text-xs font-semibold transition-colors"
+                  style={{
+                    background: 'hsl(var(--primary) / 0.12)',
+                    color: 'hsl(var(--primary))',
+                    border: '1px solid hsl(var(--primary) / 0.3)',
+                  }}
+                >
+                  Open full PDF in new tab <Maximize2 className="w-3 h-3" />
+                </a>
+              </div>
             </div>
 
             {/* Caption strip */}
