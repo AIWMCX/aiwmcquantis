@@ -70,9 +70,9 @@ describe('R3 enforcement at every LLM boundary', () => {
       const usesLlm = /from\s+['"][^'"]*_shared\/(llm-call|hybrid-validator)['"]/.test(src);
       if (!usesLlm) continue;
       const usesR3 =
-        /from\s+['"][^'"]*_shared\/r3-validator['"]/.test(src) ||
-        /from\s+['"][^'"]*_shared\/schemas['"]/.test(src) ||
-        /from\s+['"][^'"]*boundary-schemas['"]/.test(src) ||
+        /(from|import)\s*\(?\s*['"][^'"]*_shared\/r3-validator['"]/.test(src) ||
+        /(from|import)\s*\(?\s*['"][^'"]*_shared\/schemas['"]/.test(src) ||
+        /(from|import)\s*\(?\s*['"][^'"]*boundary-schemas['"]/.test(src) ||
         /\br3Validate\s*\(/.test(src);
       if (!usesR3 && !allow.has(fn)) violations.push(fn);
     }
