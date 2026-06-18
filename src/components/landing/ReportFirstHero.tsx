@@ -111,6 +111,73 @@ export function ReportFirstHero() {
   const valid = idea.trim().length >= 10;
   const current = NARRATION[progressStep] ?? NARRATION[0];
 
+  const scrollerRef = useRef<HTMLDivElement | null>(null);
+  const pageRefs = useRef<Array<HTMLElement | null>>([]);
+  const [activePage, setActivePage] = useState(1);
+  const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+
+  // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
+  useEffect(() => {
+    const root = scrollerRef.current;
+    if (!root) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        const visible = entries
+          .filter((e) => e.isIntersecting)
+          .sort((a, b) => b.intersectionRatio - a.intersectionRatio)[0];
+        if (visible) {
+          const idx = pageRefs.current.findIndex((el) => el === visible.target);
+          if (idx >= 0) setActivePage(idx + 1);
+        }
+      },
+      { root, threshold: [0.25, 0.5, 0.75] }
+    );
+    pageRefs.current.forEach((el) => el && io.observe(el));
+    return () => io.disconnect();
+  }, []);
+
+  const scrollToPage = useCallback((idx: number) => {
+    const clamped = Math.max(0, Math.min(PAGES.length - 1, idx));
+    const el = pageRefs.current[clamped];
+    if (el && scrollerRef.current) {
+      scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
+    }
+  }, []);
+
+  const onScrollerKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLDivElement>) => {
+      const scroller = scrollerRef.current;
+      if (!scroller) return;
+      switch (e.key) {
+        case 'ArrowDown':
+        case 'PageDown':
+        case 'j':
+          e.preventDefault();
+          scrollToPage(activePage); // 1-based → next index
+          break;
+        case 'ArrowUp':
+        case 'PageUp':
+        case 'k':
+          e.preventDefault();
+          scrollToPage(activePage - 2);
+          break;
+        case 'Home':
+          e.preventDefault();
+          scrollToPage(0);
+          break;
+        case 'End':
+          e.preventDefault();
+          scrollToPage(PAGES.length - 1);
+          break;
+        case ' ':
+          e.preventDefault();
+          scroller.scrollBy({ top: e.shiftKey ? -scroller.clientHeight * 0.9 : scroller.clientHeight * 0.9, behavior: 'smooth' });
+          break;
+      }
+    },
+    [activePage, scrollToPage]
+  );
+
   return (
     <section
       aria-label="See a real Quantis report, then generate yours"
