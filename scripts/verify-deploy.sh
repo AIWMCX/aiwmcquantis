@@ -31,14 +31,27 @@ BASE_URL="https://${PROJECT_REF}.supabase.co/functions/v1"
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 FN_DIR="${REPO_ROOT}/supabase/functions"
 
-# Default: every function whose source contains a FUNCTION_VERSION constant.
+# Default: every function whose source contains a FUNCTION_VERSION constant,
+# MINUS any name listed in supabase/functions/.deploy-ignore (cron jobs, admin
+# tools, QA harnesses — intentionally not in the production deploy list).
 # Override by exporting FUNCTIONS="a b c".
+IGNORE_FILE="${FN_DIR}/.deploy-ignore"
+declare -A IGNORED=()
+if [[ -f "$IGNORE_FILE" ]]; then
+  while IFS= read -r line; do
+    name="${line%%#*}"                       # strip inline comments
+    name="$(echo "$name" | xargs)"           # trim whitespace
+    [[ -n "$name" ]] && IGNORED["$name"]=1
+  done < "$IGNORE_FILE"
+fi
+
 if [[ -n "${FUNCTIONS:-}" ]]; then
   read -r -a FN_LIST <<< "$FUNCTIONS"
 else
   FN_LIST=()
   while IFS= read -r path; do
     fn_name="$(basename "$(dirname "$path")")"
+    [[ -n "${IGNORED[$fn_name]:-}" ]] && continue
     FN_LIST+=("$fn_name")
   done < <(grep -lE "^(export )?const FUNCTION_VERSION" "$FN_DIR"/*/index.ts 2>/dev/null | sort)
 fi
