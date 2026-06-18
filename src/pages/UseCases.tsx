@@ -186,7 +186,7 @@ export default function UseCases() {
                 Your Idea Deserves Real Numbers
               </h2>
               <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-                Free, no credit card, results in under 60 seconds.
+                Free, no credit card, results in about 90 seconds.
               </p>
               <Link to="/app">
                 <Button size="lg" variant="secondary" className="gap-2 py-6 px-8">

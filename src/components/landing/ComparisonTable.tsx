@@ -4,7 +4,7 @@ import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 const comparisons = [
   {
     aspect: 'Calculations',
-    generic: 'AI-generated estimates',
+    generic: 'AI-text estimates (no formulas)',
     quantis: 'Mathematical formulas',
     genericStatus: 'poor',
     quantisStatus: 'good',

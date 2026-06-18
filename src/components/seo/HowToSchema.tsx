@@ -106,7 +106,7 @@ export const QuantisAnalysisHowTo = React.memo(function QuantisAnalysisHowTo() {
     },
     {
       name: 'Explore Your Business Plan',
-      text: 'Access your AI-generated business plan with executive summary, market analysis, competitive landscape, marketing strategy, and operational roadmap tailored to your specific business idea.',
+      text: 'Access your business plan with executive summary, market analysis, competitive landscape, marketing strategy, and operational roadmap tailored to your specific business idea.',
     },
     {
       name: 'Export and Share',

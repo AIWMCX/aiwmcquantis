@@ -92,7 +92,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/viral-content': {
     title: 'Viral Content Studio',
-    description: 'AI-generated marketing posts engineered for founder audiences — anti-validation narratives that convert.',
+    description: 'Marketing posts engineered for founder audiences — anti-validation narratives that convert.',
   },
   '/viral-posts': {
     title: 'Viral Posts',
