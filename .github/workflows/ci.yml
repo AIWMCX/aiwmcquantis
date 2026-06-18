@@ -57,6 +57,18 @@ jobs:
         run: |
           echo "::error title=Deploy coverage::An edge function is neither deployed nor ignored, or a deployed function invokes an undeployed worker. Run 'npx tsx scripts/verify-deploy-coverage.ts' locally."
 
+      # ── Genesis P1 — per-call AI cost logging guard ───────────────────────
+      # Every edge function that imports _shared/llm-call.ts (i.e. makes a
+      # paid AI call) MUST also import _shared/ai-logger.ts. See plan P1.
+      - name: Verify AI cost logging
+        id: ai-cost-logging
+        run: npx tsx scripts/verify-ai-cost-logging.ts
+
+      - name: AI cost logging failure hint
+        if: failure() && steps.ai-cost-logging.outcome == 'failure'
+        run: |
+          echo "::error title=AI cost logging::A paid AI call is not piped through ai-logger. Run 'npx tsx scripts/verify-ai-cost-logging.ts' locally."
+
       # ── DeepSeek deprecated-model guard (Fix #3) ─────────────────────────────
       # Legacy aliases retire 2026-07-24 15:59 UTC. Fail the build before they
       # silently break in production.
