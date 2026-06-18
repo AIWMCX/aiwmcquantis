@@ -505,7 +505,7 @@ export function ReportFirstHero() {
               onKeyDown={onScrollerKeyDown}
               role="region"
               aria-roledescription="Document preview"
-              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGE_COUNT} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
+              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGE_COUNT} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press plus/minus to zoom, C to switch contrast, Escape to exit fullscreen.`}
               tabIndex={0}
               className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
@@ -533,7 +533,7 @@ export function ReportFirstHero() {
                   <span className="opacity-60">{PAGE_COUNT}</span>
                 </span>
                 <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
-                  ↑ ↓ · PgUp/PgDn · Home/End · Esc
+                  ↑ ↓ · PgUp/PgDn · Home/End · + / − · C · Esc
                 </span>
               </div>
               <div className="flex flex-col items-center gap-8 pt-2 pb-10 px-4 sm:px-10">
