@@ -164,6 +164,25 @@ export function ReportFirstHero() {
           e.preventDefault();
           scroller.scrollBy({ top: e.shiftKey ? -scroller.clientHeight * 0.9 : scroller.clientHeight * 0.9, behavior: 'smooth' });
           break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+          break;
+        case '0':
+          e.preventDefault();
+          setZoom(1);
+          break;
+        case 'c':
+        case 'C':
+          e.preventDefault();
+          setTheme((t) => (t === 'dark' ? 'highContrast' : t === 'highContrast' ? 'sepia' : 'dark'));
+          break;
       }
     },
     [activePage, scrollToPage]
