@@ -70,8 +70,8 @@ export default function Landing() {
         ]}
       />
       
-      {/* Urgency Banner */}
-      <UrgencyBanner />
+      {/* Urgency banner removed — replaced by RMG status indicator in header */}
+
       
       {/* RMG Header — engraved wordmark, blueprint-grid surface */}
       <RmgHeader />
