@@ -22,6 +22,7 @@ import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { RmgHeader } from '@/components/landing/RmgHeader';
 
 // Lazy-load below-fold sections
 const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
@@ -52,7 +53,7 @@ export default function Landing() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen rmg-surface dark text-[var(--rmg-text)]">
       <PageSEO
         title="AIWMC Quantis — Audit-grade business validation"
         description="Deterministic financial engine + 95,500 verified benchmarks. Stress-test any business idea before the first dollar is spent. Free to start."
@@ -69,69 +70,12 @@ export default function Landing() {
         ]}
       />
       
-      {/* Urgency Banner */}
-      <UrgencyBanner />
+      {/* Urgency banner removed — replaced by RMG status indicator in header */}
+
       
-      {/* Navigation */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <div className="md:hidden">
-              <MobileNav>
-                <button 
-                  className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center"
-                  aria-label="Open navigation menu"
-                >
-                  <Menu className="w-5 h-5" />
-                </button>
-              </MobileNav>
-            </div>
-            
-            <Link to={user ? '/app' : '/'} className="flex items-center gap-2">
-              <img src={aiwmcLogoText} alt="​AIWMC™ Quantis" width={136} height={40} className="h-8 sm:h-10 w-auto object-contain dark:invert" />
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-              <Link to="/use-cases" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Use Cases</Link>
-              <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
-              <Link to="/risk-gallery" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Risk Gallery</Link>
-              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-            </div>
-            <div className="flex items-center gap-2 sm:gap-3">
-              <button 
-                onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} 
-                className="p-2.5 rounded-lg hover:bg-accent transition-colors min-w-[48px] min-h-[48px] flex items-center justify-center" 
-                aria-label="Toggle theme"
-              >
-                {theme === 'dark' ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-              </button>
-              {user ? (
-                <>
-                  <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted">
-                    <span className="text-sm text-foreground truncate max-w-[120px]">{user.email}</span>
-                  </div>
-                  <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
-                      Go to App <ArrowRight className="w-4 h-4" />
-                    </Button>
-                  </Link>
-                </>
-              ) : (
-                <>
-                  <Link to="/auth" className="hidden sm:block">
-                    <Button variant="ghost" size="sm" className="min-h-[48px]">Sign In</Button>
-                  </Link>
-                  <Link to="/app">
-                    <Button size="sm" className="gap-2 min-h-[52px] px-5 text-sm font-semibold">
-                      Start Free Analysis →
-                    </Button>
-                  </Link>
-                </>
-              )}
-            </div>
-          </div>
-        </div>
-      </nav>
+      {/* RMG Header — engraved wordmark, blueprint-grid surface */}
+      <RmgHeader />
+
 
       <main id="main-content" role="main">
         {/* 0. Report-first hero — show a real PDF, then ask for inputs */}

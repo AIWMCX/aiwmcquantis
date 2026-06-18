@@ -1327,3 +1327,86 @@
   }
 }
 
+
+/* ═══════════════════════════════════════════════════════════════
+ * RMG — RISK MATRIX GRID DESIGN SYSTEM (Landing surface only)
+ * Audit-grade institutional research aesthetic. Scoped via
+ * `.rmg-surface` so it does not affect the in-app dashboard.
+ * ═══════════════════════════════════════════════════════════════ */
+:root {
+  --rmg-ink-0: #060C18;   /* deepest base */
+  --rmg-ink-1: #0B1220;   /* card / panel */
+  --rmg-ink-2: #0F1A2E;   /* grid line / border */
+  --rmg-ink-3: #141C2E;   /* hover surface */
+  --rmg-ink-4: #1E2A44;   /* strong border */
+  --rmg-text:  #E6ECF5;   /* off-white body */
+  --rmg-text-dim: #94A3B8;
+  --rmg-text-mute: #64748B;
+  --rmg-cyan:  #2DD4BF;   /* quantum cyan — primary accent / CTA */
+  --rmg-cyan-hi: #6FF7E6;
+  --rmg-lime:  #A6FF3D;   /* risk-safe / positive */
+  --rmg-amber: #FFB547;   /* warning */
+  --rmg-crim:  #FF4D6D;   /* risk-high */
+  --rmg-font-sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
+  --rmg-font-mono: 'IBM Plex Mono', 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.rmg-surface {
+  background-color: var(--rmg-ink-0);
+  color: var(--rmg-text);
+  font-family: var(--rmg-font-sans);
+  position: relative;
+}
+.rmg-surface::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  background-image:
+    linear-gradient(var(--rmg-ink-2) 1px, transparent 1px),
+    linear-gradient(90deg, var(--rmg-ink-2) 1px, transparent 1px);
+  background-size: 8.3333% 8px;
+  opacity: 0.28;
+  mask-image: radial-gradient(ellipse at top, #000 30%, transparent 95%);
+}
+.rmg-surface > * { position: relative; z-index: 1; }
+
+.rmg-mono { font-family: var(--rmg-font-mono); font-feature-settings: 'tnum' 1, 'zero' 1; }
+
+/* Engraved wordmark — logo dissolves into the background */
+.rmg-wordmark {
+  font-family: var(--rmg-font-sans);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  color: var(--rmg-text);
+  text-shadow: 0 1px 0 rgba(255,255,255,0.04), 0 -1px 0 rgba(0,0,0,0.6);
+}
+.rmg-wordmark-tag {
+  font-family: var(--rmg-font-mono);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--rmg-cyan);
+  opacity: 0.75;
+}
+
+/* Cyan focus ring for inputs */
+.rmg-surface input:focus,
+.rmg-surface textarea:focus,
+.rmg-surface select:focus {
+  outline: none;
+  border-color: var(--rmg-cyan) !important;
+  box-shadow: 0 0 0 1px var(--rmg-cyan), 0 0 24px rgba(45,212,191,0.18) !important;
+}
+
+/* Cyan corner brackets utility */
+.rmg-corner::before,
+.rmg-corner::after,
+.rmg-corner > .rmg-corner-bl,
+.rmg-corner > .rmg-corner-br { content:''; position: absolute; width: 12px; height: 12px; border-color: var(--rmg-cyan); }
+.rmg-corner { position: relative; }
+.rmg-corner::before { top: -1px; left: -1px; border-top: 1px solid; border-left: 1px solid; }
+.rmg-corner::after  { top: -1px; right: -1px; border-top: 1px solid; border-right: 1px solid; }
+.rmg-corner > .rmg-corner-bl { bottom: -1px; left: -1px; border-bottom: 1px solid var(--rmg-cyan); border-left: 1px solid var(--rmg-cyan); }
+.rmg-corner > .rmg-corner-br { bottom: -1px; right: -1px; border-bottom: 1px solid var(--rmg-cyan); border-right: 1px solid var(--rmg-cyan); }
