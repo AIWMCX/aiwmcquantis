@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
@@ -9,6 +10,20 @@ const PAGES = Array.from({ length: 15 }, (_, i) => ({
   url: `/sample-report/qpage-${String(i + 1).padStart(2, '0')}.jpg`,
   label: `Page ${i + 1} of 15`,
 }));
+
+// Commercial cover card shown above the rendered PDF pages.
+// Values MUST mirror the actual sample report (The Draft Lab · Austin, TX · Jun 13 2026).
+const COVER = {
+  company: 'The Draft Lab',
+  tagline: 'Specialty coffee + co-writing studio · downtown Austin',
+  industry: 'Consulting / F&B hybrid',
+  location: 'Austin, TX',
+  generated: 'Jun 13, 2026',
+  pages: 15,
+  confidence: '79%',
+  summary:
+    'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, dual-AI verified at 79% confidence.',
+} as const;
 
 // Headline metrics extracted from the sample Quantis report (The Draft Lab · Austin, TX · Jun 2026).
 // Each card opens a short expansion explaining how the figure was produced.
@@ -113,8 +128,10 @@ export function ReportFirstHero() {
 
   const scrollerRef = useRef<HTMLDivElement | null>(null);
   const pageRefs = useRef<Array<HTMLElement | null>>([]);
+  const fullscreenBtnRef = useRef<HTMLButtonElement | null>(null);
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
+  const [isFullscreen, setIsFullscreen] = useState(false);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
@@ -177,6 +194,35 @@ export function ReportFirstHero() {
     },
     [activePage, scrollToPage]
   );
+
+  // Fullscreen: lock body scroll, focus the scroller, restore focus & scroll position on exit.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Re-scroll to currently active page after layout flips.
+    requestAnimationFrame(() => {
+      const el = pageRefs.current[activePage - 1];
+      if (el && scrollerRef.current) {
+        scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'auto' });
+      }
+      scrollerRef.current?.focus();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      // restore focus to the trigger
+      fullscreenBtnRef.current?.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFullscreen]);
 
   return (
     <section
@@ -317,32 +363,34 @@ export function ReportFirstHero() {
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
           <div
-            className="rounded-2xl overflow-hidden shadow-2xl"
+            className={
+              isFullscreen
+                ? 'fixed inset-0 z-50 flex flex-col rounded-none overflow-hidden'
+                : 'rounded-2xl overflow-hidden shadow-2xl'
+            }
+            role={isFullscreen ? 'dialog' : undefined}
+            aria-modal={isFullscreen ? true : undefined}
+            aria-label={isFullscreen ? 'Sample Quantis report — fullscreen preview' : undefined}
             style={{
               background: 'hsl(var(--card))',
-              border: '1px solid hsl(var(--border))',
-              boxShadow: '0 30px 80px -20px hsl(var(--primary) / 0.25)',
+              border: isFullscreen ? 'none' : '1px solid hsl(var(--border))',
+              boxShadow: isFullscreen ? 'none' : '0 30px 80px -20px hsl(var(--primary) / 0.25)',
             }}
           >
             {/* Chrome / toolbar */}
             <div
-              className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b"
+              className="flex items-center justify-between px-3 sm:px-4 py-2.5 border-b shrink-0"
               style={{
                 background: 'hsl(var(--muted) / 0.5)',
                 borderColor: 'hsl(var(--border))',
               }}
             >
               <div className="flex items-center gap-2 min-w-0">
-                <div className="flex items-center gap-1.5 mr-2 shrink-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-red-500/70" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-yellow-500/70" />
-                  <span className="w-2.5 h-2.5 rounded-full bg-green-500/70" />
-                </div>
-                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                <FileText className="w-3.5 h-3.5 shrink-0" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                 <span
                   className="text-[11px] sm:text-xs font-mono truncate"
                   style={{ color: 'hsl(var(--muted-foreground))' }}
-                  title="Quantis_Executive_Report__The_Draft_Lab__Austin_TX__2026-06-14.pdf"
+                  title="Quantis_Executive_Report__The_Draft_Lab__Austin_TX__2026-06-13.pdf"
                 >
                   Quantis_Executive_Report — The_Draft_Lab — Austin_TX.pdf
                 </span>
@@ -355,28 +403,45 @@ export function ReportFirstHero() {
                     color: 'hsl(var(--primary))',
                   }}
                 >
-                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" />
+                  <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
                   Live sample
                 </span>
-                <a
-                  href={SAMPLE_URL}
-                  target="_blank"
-                  rel="noopener"
-                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Open full report in new tab"
-                  onClick={() => trackCtaClick('sample_report_open', 'hero')}
+                <button
+                  ref={fullscreenBtnRef}
+                  type="button"
+                  className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                  aria-label={isFullscreen ? 'Exit fullscreen preview' : 'Open fullscreen preview'}
+                  aria-pressed={isFullscreen}
+                  onClick={() => {
+                    setIsFullscreen((v) => !v);
+                    trackCtaClick(isFullscreen ? 'sample_report_fullscreen_exit' : 'sample_report_fullscreen_enter', 'hero');
+                  }}
+                  style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
                 >
-                  <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} />
-                </a>
+                  {isFullscreen
+                    ? <Minimize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                    : <Maximize2 className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />}
+                </button>
                 <a
                   href={SAMPLE_URL}
                   download="Quantis_Sample_Report.pdf"
                   className="p-1.5 rounded hover:bg-foreground/10 transition-colors"
-                  aria-label="Download sample report"
+                  aria-label="Download sample report PDF"
                   onClick={() => trackCtaClick('sample_report_download', 'hero')}
                 >
-                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} />
+                  <Download className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
                 </a>
+                {isFullscreen && (
+                  <button
+                    type="button"
+                    onClick={() => setIsFullscreen(false)}
+                    aria-label="Close fullscreen preview"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <X className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                )}
               </div>
             </div>
 
@@ -386,11 +451,11 @@ export function ReportFirstHero() {
               onKeyDown={onScrollerKeyDown}
               role="region"
               aria-roledescription="Document preview"
-              aria-label={`Sample Quantis executive report — The Draft Lab, Austin TX. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate.`}
+              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
               tabIndex={0}
-              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
-                height: 'clamp(520px, 72vh, 880px)',
+                height: isFullscreen ? 'auto' : 'clamp(520px, 72vh, 880px)',
                 background:
                   'radial-gradient(120% 80% at 50% 0%, #11203A 0%, #0A1426 55%, #060C18 100%)',
                 scrollbarWidth: 'thin',
@@ -414,10 +479,85 @@ export function ReportFirstHero() {
                   <span className="opacity-60">{PAGES.length}</span>
                 </span>
                 <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
-                  ↑ ↓ · PgUp/PgDn · Home/End
+                  ↑ ↓ · PgUp/PgDn · Home/End · Esc
                 </span>
               </div>
               <div className="flex flex-col items-center gap-8 pt-2 pb-10 px-4 sm:px-10">
+                {/* === Commercial cover (above page 1) === */}
+                <section
+                  aria-label="Report cover"
+                  className="relative w-full max-w-[920px] rounded-[8px] overflow-hidden"
+                  style={{
+                    background:
+                      'linear-gradient(160deg, #0F1F3D 0%, #0B1730 55%, #07101F 100%)',
+                    border: '1px solid rgba(143, 255, 42, 0.18)',
+                    boxShadow:
+                      '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.8)',
+                  }}
+                >
+                  <div className="flex items-center justify-between px-6 pt-5">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-bold"
+                        style={{ background: '#8FFF2A', color: '#06120A', fontFamily: 'ui-monospace, Menlo, monospace' }}
+                        aria-hidden="true"
+                      >
+                        Q
+                      </span>
+                      <span className="text-[11px] uppercase tracking-[0.22em] font-semibold" style={{ color: 'rgba(230,238,255,0.85)' }}>
+                        AIWMC<sup className="text-[7px] align-super">™</sup> Quantis
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                      Executive Report
+                    </span>
+                  </div>
+                  <div className="px-6 pt-6 pb-5">
+                    <p className="text-[10px] uppercase tracking-[0.22em] font-semibold" style={{ color: 'rgba(230,238,255,0.55)' }}>
+                      Business Feasibility Analysis
+                    </p>
+                    <h3
+                      className="mt-2 font-bold leading-tight"
+                      style={{
+                        fontSize: 'clamp(1.6rem, 3vw, 2.25rem)',
+                        color: '#FFFFFF',
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {COVER.company}
+                    </h3>
+                    <p className="mt-1 text-sm" style={{ color: 'rgba(230,238,255,0.7)' }}>
+                      {COVER.tagline}
+                    </p>
+                    <dl className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+                      {[
+                        { k: 'Company', v: COVER.company },
+                        { k: 'Location', v: COVER.location },
+                        { k: 'Industry', v: COVER.industry },
+                        { k: 'Generated', v: COVER.generated },
+                      ].map((row) => (
+                        <div key={row.k} className="rounded-md px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <dt className="text-[9px] uppercase tracking-[0.18em] font-semibold" style={{ color: 'rgba(230,238,255,0.45)' }}>{row.k}</dt>
+                          <dd className="mt-0.5 font-mono" style={{ color: 'rgba(255,255,255,0.92)' }}>{row.v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="mt-5 text-[13px] leading-relaxed" style={{ color: 'rgba(230,238,255,0.78)' }}>
+                      <span className="text-[9px] uppercase tracking-[0.22em] font-semibold block mb-1.5" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                        Executive summary
+                      </span>
+                      {COVER.summary}
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono" style={{ color: 'rgba(230,238,255,0.55)' }}>
+                      <span>{COVER.pages} pages</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Confidence {COVER.confidence}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Dual-AI verified</span>
+                    </div>
+                  </div>
+                </section>
+
                 {PAGES.map((page, i) => (
                   <figure
                     key={i}
