@@ -249,6 +249,11 @@ const App = () => {
                     <Autoposter />
                   </ProtectedRoute>
                 } />
+                <Route path="/admin/ai-costs" element={
+                  <ProtectedRoute requireAdmin>
+                    <AiCosts />
+                  </ProtectedRoute>
+                } />
                 <Route path="/directory-tracker" element={
                   <ProtectedRoute requireAdmin>
                     <DirectoryTracker />
