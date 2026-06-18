@@ -66,16 +66,8 @@ export function RmgHeader() {
             <div className="hidden lg:flex items-center gap-2 rmg-mono text-[10px] uppercase tracking-widest text-[var(--rmg-text-mute)] whitespace-nowrap">
               <span className="w-1.5 h-1.5 rounded-full bg-[var(--rmg-lime)] shadow-[0_0_8px_var(--rmg-lime)]" />
               Engine Online
-              </Link>
-            ))}
-          </nav>
-
-          {/* Right cluster */}
-          <div className="ml-auto flex items-center gap-3">
-            <div className="hidden lg:flex items-center gap-2 rmg-mono text-[10px] uppercase tracking-widest text-[var(--rmg-text-mute)]">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--rmg-lime)] shadow-[0_0_8px_var(--rmg-lime)]" />
-              Engine Online
             </div>
+
 
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
