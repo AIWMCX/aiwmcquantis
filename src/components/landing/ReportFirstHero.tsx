@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
@@ -9,6 +10,20 @@ const PAGES = Array.from({ length: 15 }, (_, i) => ({
   url: `/sample-report/qpage-${String(i + 1).padStart(2, '0')}.jpg`,
   label: `Page ${i + 1} of 15`,
 }));
+
+// Commercial cover card shown above the rendered PDF pages.
+// Values MUST mirror the actual sample report (The Draft Lab · Austin, TX · Jun 13 2026).
+const COVER = {
+  company: 'The Draft Lab',
+  tagline: 'Specialty coffee + co-writing studio · downtown Austin',
+  industry: 'Consulting / F&B hybrid',
+  location: 'Austin, TX',
+  generated: 'Jun 13, 2026',
+  pages: 15,
+  confidence: '79%',
+  summary:
+    'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, dual-AI verified at 79% confidence.',
+} as const;
 
 // Headline metrics extracted from the sample Quantis report (The Draft Lab · Austin, TX · Jun 2026).
 // Each card opens a short expansion explaining how the figure was produced.
