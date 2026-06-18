@@ -61,6 +61,7 @@ const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
+const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
