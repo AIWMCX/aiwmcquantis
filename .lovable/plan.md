@@ -9,76 +9,61 @@ Status legend: `🟡 in-progress · 🟢 green · ⚪ pending`
 
 ---
 
-## Phase 1 — Bedrock 🟡
+## Phase 1 — Bedrock 🟢
 
 Outcome: every LLM response is **structurally provable**, every engine output
 is **regression-pinned to 25 canonical fixtures**, and every paid AI call is
 **logged with cost in USD** so we can answer "how much did this analysis cost
 us?" by primary key.
 
-Deliverables:
+Shipped:
+- `supabase/functions/_shared/r3-validator.ts` + `src/lib/r3-validator.ts` (mirror)
+- `src/__tests__/r3-validator.test.ts` (162 assertions)
+- `src/__tests__/engine-regression-25.test.ts` (25 fixtures, ENGINE_VERSION pinned)
+- `src/lib/ai-cost-log.ts` (read-helper + `summarizeByEndpoint` + `listEndpoints`)
+- `/admin/ai-costs` page (filters: time range × task)
+- `scripts/verify-ai-cost-logging.ts` (CI guard)
+- `scripts/verify-r3-enforcement.ts` (CI guard, with shrinking `MIGRATION_ALLOWLIST`)
+- `src/__tests__/r3-enforcement-integration.test.ts` (mirrors the CI script
+  inside `bun run test:quality`)
 
-1. **Zod-enforced structured outputs at every LLM boundary.**
-   Existing: `supabase/functions/analyze-business/boundary-schemas.ts` already
-   gates the HTTP boundary. Extend to every internal LLM call (narrator,
-   risk_flags, action_plan, consensus_check) with per-task Zod response
-   schemas. Any parse failure is a typed error, never a silent string.
-   File: `supabase/functions/_shared/llm-schemas.ts` (new).
-
-2. **R3 Validator** — Schema → Reconcile → Reject.
-   A single wrapper that takes any LLM output + its expected Zod schema and
-   returns `{ ok: true, data } | { ok: false, reason, attempt }`. It runs:
-   - **R1 Schema**: `schema.safeParse(raw)`. On failure, one repair attempt
-     (strip code fences, balance braces, retry).
-   - **R2 Reconcile**: domain invariants (numbers finite, percentages in
-     [0,100], LTV:CAC sane per `anti-bs-sanity-checks`).
-   - **R3 Reject**: typed rejection with `{ reason, raw_preview, repair_attempted }`.
-   File: `supabase/functions/_shared/r3-validator.ts` (new) +
-   `src/__tests__/r3-validator.test.ts`.
-
-3. **25-fixture engine regression suite.**
-   25 deterministic business fixtures spanning SaaS, marketplace, services,
-   physical retail, restaurant, agency, content, and B2B enterprise. Each
-   fixture asserts: gross margin %, net margin %, LTV:CAC, payback months,
-   break-even month, 12-mo cumulative cashflow. Tolerances are per-fixture
-   and frozen — a deliberate change requires updating the fixture and
-   bumping `ENGINE_VERSION`.
-   Files: `src/lib/bedrock-fixtures.ts`,
-   `src/__tests__/engine-regression-25.test.ts`.
-
-4. **Per-call cost log.**
-   Already shipped (`supabase/functions/_shared/ai-logger.ts` → `ai_calls`).
-   Add a thin admin read-helper `src/lib/ai-cost-log.ts` + a CI guard that
-   fails if any new edge function calling `llm-call` does not pipe through
-   `logAiCall(...)`.
-
-Acceptance (all four MUST pass on `main`):
-
-- `bun run test:quality` includes `r3-validator.test.ts` and
-  `engine-regression-25.test.ts`, both green.
-- `scripts/verify-ai-cost-logging.ts` (new) returns 0 when every edge
-  function that imports `llm-call` also imports `logAiCall`.
-- `boundary-schemas` + new `llm-schemas` cover 100% of LLM tasks in the
-  `AiCallTask` enum (statically asserted in the test).
+Acceptance (green on CI):
+- `bun run test:quality` includes `r3-validator.test.ts`,
+  `engine-regression-25.test.ts`, and `r3-enforcement-integration.test.ts`.
+- `scripts/verify-ai-cost-logging.ts` and `scripts/verify-r3-enforcement.ts`
+  both exit 0.
 
 ---
 
-## Phase 2 — Determinism ⚪
+## Phase 2 — Determinism 🟡
 
 Outcome: the same input → the same output, byte-for-byte, across two
 consecutive runs. Removes LLM nondeterminism from anything user-facing
 that claims to be a *calculation*.
 
-Deliverables:
-- Pin `temperature=0`, `top_p=1`, `seed=<request_id_hash>` on every
-  validator/consensus LLM call.
-- Move all numeric outputs (margins, LTV, break-even, runway, verdicts)
-  to the deterministic engine. LLM is narration only — never authority.
-- Add `scripts/verify-determinism.ts`: re-runs the 25 fixtures twice with
-  the same seed, asserts JSON-stringified outputs are byte-identical.
+Shipped:
+- `supabase/functions/_shared/llm-determinism.ts` —
+  `deterministicLlmParams(requestId)` returns the canonical
+  `{ temperature: 0, top_p: 1, seed: fnv1a(requestId) }` triple.
+- `scripts/verify-determinism.ts` — re-runs the 25-fixture engine suite
+  twice, compares JSON byte-for-byte (volatile fields stripped).
+- CI gate `Verify engine determinism` wired into `.github/workflows/ci.yml`.
+- `.github/workflows/deploy-smoke-test.yml` — runs after Production Deploy,
+  calls every critical edge endpoint and validates the response body
+  against the R3 boundary schemas. Fails non-zero on contract mismatch.
+- `scripts/smoke-test-endpoints.ts` — invoked by the smoke workflow.
 
-Acceptance: `verify-determinism.ts` exits 0 on `main`; any LLM-authored
-numeric value in `metadata.*` fails a new lint rule.
+In progress:
+- Migrate `analyze-plus`, `analyze-pro-extension`, `ai-narrator`,
+  `ai-consensus`, `rvce-validate`, `generate-idea` to import
+  `llm-determinism` for their validator / consensus calls (R3 already
+  shrinks the allowlist as each is wired).
+- Lint rule rejecting LLM-authored numeric values in `metadata.*`.
+
+Acceptance: `verify-determinism.ts` exits 0 on `main`; the lint rule lands
+in Phase 2.5 before P3 starts.
+
+
 
 ---
 

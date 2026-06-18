@@ -69,6 +69,19 @@ jobs:
         run: |
           echo "::error title=AI cost logging::A paid AI call is not piped through ai-logger. Run 'npx tsx scripts/verify-ai-cost-logging.ts' locally."
 
+      # ── Genesis P1/P2 — R3 enforcement at every LLM boundary ──────────────
+      # Every deployed LLM function must wire r3-validator / boundary-schemas
+      # OR appear in MIGRATION_ALLOWLIST (shrinking set, reviewed manually).
+      - name: Verify R3 enforcement
+        id: r3-enforcement
+        run: npx tsx scripts/verify-r3-enforcement.ts
+
+      - name: R3 enforcement failure hint
+        if: failure() && steps.r3-enforcement.outcome == 'failure'
+        run: |
+          echo "::error title=R3 enforcement::A deployed LLM function bypasses r3-validator. Wire it or document the exemption in scripts/verify-r3-enforcement.ts."
+
+
       # ── DeepSeek deprecated-model guard (Fix #3) ─────────────────────────────
       # Legacy aliases retire 2026-07-24 15:59 UTC. Fail the build before they
       # silently break in production.
@@ -143,6 +156,20 @@ jobs:
       - name: Coverage (best-effort)
         if: always()
         run: bun run test:coverage || true
+
+      # ── Genesis P2 — deterministic engine gate ────────────────────────────
+      # Re-runs the 25-fixture engine suite twice and asserts JSON-stringified
+      # outputs are byte-identical. Catches hidden sources of nondeterminism
+      # (Date.now, Math.random, undefined property order) creeping into math.
+      - name: Verify engine determinism
+        id: determinism
+        run: npx tsx scripts/verify-determinism.ts
+
+      - name: Determinism failure hint
+        if: failure() && steps.determinism.outcome == 'failure'
+        run: |
+          echo "::error title=Determinism::The 25-fixture engine suite produced different outputs across two runs. A nondeterministic source crept into the math layer."
+
 
       # ── Build + prerender + unique-meta guard ───────────────────────────────
       # Audit 16-Jun-2026: regression guard against the SPA SEO bug returning

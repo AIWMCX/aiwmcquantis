@@ -1,0 +1,68 @@
+name: Deploy Smoke Test
+
+# Genesis P1/P3 — runs after Production Deploy and validates every critical
+# edge endpoint with an R3 contract check. Fails the run on any contract
+# mismatch so a bad deploy is caught before user traffic hits it.
+
+on:
+  workflow_run:
+    workflows: ['Production Deploy']
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-smoke-test
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    name: Critical-endpoint smoke + R3 contract
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Resolve Supabase URL
+        id: resolve
+        env:
+          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SUPABASE_URL_SECRET: ${{ secrets.VITE_SUPABASE_URL }}
+        run: |
+          if [ -n "$SUPABASE_URL_SECRET" ]; then
+            echo "url=$SUPABASE_URL_SECRET" >> "$GITHUB_OUTPUT"
+          elif [ -n "$PROJECT_REF" ]; then
+            echo "url=https://$PROJECT_REF.supabase.co" >> "$GITHUB_OUTPUT"
+          else
+            echo "::error title=Smoke skipped::No VITE_SUPABASE_URL or VITE_SUPABASE_PROJECT_ID secret configured"
+            exit 1
+          fi
+
+      - name: Smoke + R3 contract
+        env:
+          SUPABASE_URL: ${{ steps.resolve.outputs.url }}
+          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+        run: npx tsx scripts/smoke-test-endpoints.ts
+
+      - name: Smoke summary
+        if: always()
+        run: |
+          {
+            echo "## Deploy Smoke Test"
+            echo ""
+            echo "Target: \`${{ steps.resolve.outputs.url }}\`"
+            echo ""
+            echo "Validates every critical edge endpoint against the R3 boundary contract."
+            echo "Failure = bad deploy. Roll back via Vercel + redeploy edge functions."
+          } >> "$GITHUB_STEP_SUMMARY"
