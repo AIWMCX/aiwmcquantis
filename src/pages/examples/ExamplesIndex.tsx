@@ -46,7 +46,7 @@ export default function ExamplesIndex() {
     <div className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
       <PageSEO
         title="50+ Business Analysis Examples — Real AI Reports by City & Industry"
-        description="See complete AI-generated financial reports for coffee shops, gyms, SaaS, restaurants, dental clinics and more across 50+ cities. Revenue projections, risk flags, and action plans."
+        description="See complete deterministic-engine financial reports for coffee shops, gyms, SaaS, restaurants, dental clinics and more across 50+ cities. Revenue projections, risk flags, and action plans."
         canonical="/examples"
         jsonLd={{
           "@context": "https://schema.org",

@@ -71,7 +71,10 @@ export function HeroSingleInput() {
     e.preventDefault();
     if (idea.trim().length < 10) return;
     trackCtaClick('hero_single_input_submit', 'hero');
+    // Canonical Prompt 3 funnel: north-star starts at idea_submitted.
+    recordFunnelEvent('idea_submitted', { source: 'hero_single_input', idea_length: idea.length });
     recordFunnelEvent('analysis_start', { source: 'hero_single_input', idea_length: idea.length });
+    recordFunnelEvent('analysis_started', { source: 'hero_single_input', idea_length: idea.length });
     handleSubmit(e, 'quick');
   }, [idea, handleSubmit]);
 
@@ -98,7 +101,7 @@ export function HeroSingleInput() {
             }}
           >
             <Sparkles className="w-3.5 h-3.5" />
-            Free · No signup · 60 seconds
+            Free · No signup · 90 seconds
           </span>
           <h2
             className="font-bold leading-[1.1] mb-3"

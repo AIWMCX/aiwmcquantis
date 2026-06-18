@@ -9,7 +9,7 @@ import { StructuredData } from '@/components/seo/StructuredData';
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: 'AIWMC Quantis is an AI-powered business validation and risk stress-testing platform. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 95,500 industry benchmarks — in under 60 seconds.'
+    answer: 'AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 95,500 industry benchmarks — in about 90 seconds.'
   },
   {
     question: 'How is this different from ChatGPT?',
