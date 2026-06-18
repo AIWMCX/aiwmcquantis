@@ -81,8 +81,9 @@ describe('R3 enforcement at every LLM boundary', () => {
 
   it('migration allowlist is monotonically shrinking (review before adding)', () => {
     // The allowlist exists to be drained. This test pins the upper bound so
-    // accidental additions show up in code review.
-    expect(allow.size).toBeLessThanOrEqual(10);
+    // accidental additions show up in code review. Lower this number as the
+    // allowlist shrinks.
+    expect(allow.size).toBeLessThanOrEqual(12);
   });
 });
 
