@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
-import { SampleReportPages } from './SampleReportPages';
+import { SampleReportPages, type Density } from './SampleReportPages';
 
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
