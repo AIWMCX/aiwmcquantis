@@ -353,6 +353,27 @@ export function ReportFirstHero() {
 
 
 
+        {/* Data-integrity banner — visible only if headline metrics drift from canonical report */}
+        {integrityIssues.length > 0 && (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg px-4 py-3 flex items-start gap-3"
+            style={{
+              background: 'hsl(var(--destructive) / 0.08)',
+              border: '1px solid hsl(var(--destructive) / 0.35)',
+              color: 'hsl(var(--destructive))',
+            }}
+          >
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="text-[12px] leading-relaxed">
+              <strong className="font-semibold">Data integrity warning:</strong> headline metrics do not match the live sample report —
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {integrityIssues.map((msg) => <li key={msg}>{msg}</li>)}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
           <div
