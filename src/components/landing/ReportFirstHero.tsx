@@ -195,6 +195,35 @@ export function ReportFirstHero() {
     [activePage, scrollToPage]
   );
 
+  // Fullscreen: lock body scroll, focus the scroller, restore focus & scroll position on exit.
+  useEffect(() => {
+    if (!isFullscreen) return;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    // Re-scroll to currently active page after layout flips.
+    requestAnimationFrame(() => {
+      const el = pageRefs.current[activePage - 1];
+      if (el && scrollerRef.current) {
+        scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'auto' });
+      }
+      scrollerRef.current?.focus();
+    });
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setIsFullscreen(false);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => {
+      window.removeEventListener('keydown', onKey);
+      document.body.style.overflow = prevOverflow;
+      // restore focus to the trigger
+      fullscreenBtnRef.current?.focus();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isFullscreen]);
+
   return (
     <section
       aria-label="See a real Quantis report, then generate yours"
