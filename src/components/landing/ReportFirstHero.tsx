@@ -101,6 +101,11 @@ export function ReportFirstHero() {
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [theme, setTheme] = useState<ReadingTheme>('dark');
+
+  // Runtime integrity check — verifies the headline cards still match the canonical report data.
+  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), []);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
