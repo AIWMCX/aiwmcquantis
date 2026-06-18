@@ -22,6 +22,7 @@ import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
+import { RmgHeader } from '@/components/landing/RmgHeader';
 
 // Lazy-load below-fold sections
 const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
