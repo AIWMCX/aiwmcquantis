@@ -49,14 +49,23 @@ export function RmgHeader() {
           </Link>
 
           {/* Nav */}
-          <nav className="hidden md:flex items-center gap-7 ml-4">
+          <nav className="hidden md:flex items-center gap-7 ml-4 whitespace-nowrap">
             {nav.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
-                className="rmg-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rmg-text-dim)] hover:text-[var(--rmg-cyan)] transition-colors"
+                className="rmg-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rmg-text-dim)] hover:text-[var(--rmg-cyan)] transition-colors whitespace-nowrap"
               >
                 {n.label}
+              </Link>
+            ))}
+          </nav>
+
+          {/* Right cluster */}
+          <div className="ml-auto flex items-center gap-3 whitespace-nowrap">
+            <div className="hidden lg:flex items-center gap-2 rmg-mono text-[10px] uppercase tracking-widest text-[var(--rmg-text-mute)] whitespace-nowrap">
+              <span className="w-1.5 h-1.5 rounded-full bg-[var(--rmg-lime)] shadow-[0_0_8px_var(--rmg-lime)]" />
+              Engine Online
               </Link>
             ))}
           </nav>
