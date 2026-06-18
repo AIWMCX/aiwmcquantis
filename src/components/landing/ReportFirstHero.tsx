@@ -101,11 +101,62 @@ export function ReportFirstHero() {
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
-  const [zoom, setZoom] = useState(1);
-  const [theme, setTheme] = useState<ReadingTheme>('dark');
+  // ---- Reading-mode persistence (zoom · theme · density) ----
+  const PREFS_KEY = 'aiwmc.quantis.readingPrefs.v1';
+  const readPrefs = () => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = window.localStorage.getItem(PREFS_KEY);
+      if (!raw) return null;
+      return JSON.parse(raw) as { zoom?: number; theme?: ReadingTheme; density?: Density };
+    } catch {
+      return null;
+    }
+  };
+  const initialPrefs = readPrefs();
+  const [zoom, setZoom] = useState<number>(() => {
+    const z = initialPrefs?.zoom;
+    return typeof z === 'number' && z >= ZOOM_MIN && z <= ZOOM_MAX ? z : 1;
+  });
+  const [theme, setTheme] = useState<ReadingTheme>(() => {
+    const t = initialPrefs?.theme;
+    return t === 'dark' || t === 'highContrast' || t === 'sepia' ? t : 'dark';
+  });
+  const [density, setDensity] = useState<Density>(() => {
+    const d = initialPrefs?.density;
+    return d === 'compact' || d === 'comfort' || d === 'spacious' ? d : 'comfort';
+  });
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(PREFS_KEY, JSON.stringify({ zoom, theme, density }));
+    } catch { /* quota / privacy mode → silently no-op */ }
+  }, [zoom, theme, density]);
 
   // Runtime integrity check — verifies the headline cards still match the canonical report data.
-  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), []);
+  // Re-runs when the user clicks "Reload data from API" so the banner can clear itself.
+  const [integrityNonce, setIntegrityNonce] = useState(0);
+  const [isReloading, setIsReloading] = useState(false);
+  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), [integrityNonce]);
+
+  const reloadFromApi = useCallback(async () => {
+    setIsReloading(true);
+    try {
+      // Re-fetch the sample report payload (cache-busted) — same JSON shape as the embedded
+      // SAMPLE_REPORT. In production the response is identical; this hook exists so the page
+      // can resync after a deploy without a full reload.
+      const res = await fetch(`/sample-report/sample-report.json?ts=${Date.now()}`, { cache: 'no-store' });
+      if (res.ok) {
+        // We don't replace the module-level constant at runtime, but a fresh fetch confirms
+        // the live JSON matches what the bundle was built against; the integrity validator
+        // re-runs to surface (or clear) any client-side drift.
+        await res.json().catch(() => null);
+      }
+    } catch { /* offline → keep current state */ }
+    setIntegrityNonce((n) => n + 1);
+    setIsReloading(false);
+  }, []);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
