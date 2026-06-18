@@ -380,6 +380,46 @@ export function ReportFirstHero() {
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
                   Live sample
                 </span>
+                {/* Reading-mode controls: zoom out / zoom in / contrast cycle */}
+                <div className="hidden sm:flex items-center gap-0.5 mr-1 pr-1.5" style={{ borderRight: '1px solid hsl(var(--border))' }}>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)))}
+                    disabled={zoom <= ZOOM_MIN}
+                    aria-label="Decrease reading zoom"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-40"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                  <span
+                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center"
+                    style={{ color: 'hsl(var(--muted-foreground))' }}
+                    aria-live="polite"
+                  >
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)))}
+                    disabled={zoom >= ZOOM_MAX}
+                    aria-label="Increase reading zoom"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-40"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme((t) => (t === 'dark' ? 'highContrast' : t === 'highContrast' ? 'sepia' : 'dark'))}
+                    aria-label={`Toggle reading contrast (current: ${theme})`}
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                    title={`Contrast: ${theme}`}
+                  >
+                    <Contrast className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                </div>
                 <button
                   ref={fullscreenBtnRef}
                   type="button"
