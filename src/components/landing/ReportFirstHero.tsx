@@ -620,6 +620,7 @@ export function ReportFirstHero() {
               role="region"
               aria-roledescription="Document preview"
               aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGE_COUNT} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press plus/minus to zoom, C to switch contrast, Escape to exit fullscreen.`}
+              // eslint-disable-next-line jsx-a11y/no-noninteractive-tabindex -- intentional: a keyboard-scrollable document viewer (role="region" + onKeyDown) must be focusable per the WAI-ARIA scrollable-region pattern
               tabIndex={0}
               className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
