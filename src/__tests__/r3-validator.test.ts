@@ -6,7 +6,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { r3Validate, defaultFinancialReconciler } from '@/lib/r3-validator';
+import { r3Validate, defaultFinancialReconciler, type R3Result } from '@/lib/r3-validator';
 
 const NarratorSchema = z.object({
   headline: z.string().min(1).max(160),
@@ -19,6 +19,11 @@ const MetricsSchema = z.object({
   net_margin_pct: z.number(),
   ltv_cac: z.number(),
 });
+
+function assertFail<T>(r: R3Result<T>): Extract<R3Result<T>, { ok: false }> {
+  if (r.ok) throw new Error('expected R3 failure but got success');
+  return r;
+}
 
 describe('R3 Validator — Schema · Reconcile · Reject', () => {
   it('accepts clean JSON matching the schema', () => {
@@ -54,64 +59,59 @@ describe('R3 Validator — Schema · Reconcile · Reject', () => {
   });
 
   it('rejects empty body with reason="empty"', () => {
-    const result = r3Validate('', NarratorSchema);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('empty');
+    const fail = assertFail(r3Validate('', NarratorSchema));
+    expect(fail.reason).toBe('empty');
   });
 
   it('rejects unparseable garbage with reason="schema" after repair attempt', () => {
-    const result = r3Validate('not json at all <<<', NarratorSchema);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toBe('schema');
-      expect(result.repair_attempted).toBe(true);
-    }
+    const fail = assertFail(r3Validate('not json at all <<<', NarratorSchema));
+    expect(fail.reason).toBe('schema');
+    expect(fail.repair_attempted).toBe(true);
   });
 
   it('rejects schema mismatches (out of range confidence)', () => {
     const raw = JSON.stringify({ headline: 'h', body: 'b', confidence: 5 });
-    const result = r3Validate(raw, NarratorSchema);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('schema');
+    const fail = assertFail(r3Validate(raw, NarratorSchema));
+    expect(fail.reason).toBe('schema');
   });
 
   it('reconciler catches out-of-range percent', () => {
     const raw = JSON.stringify({
-      gross_margin_pct: 150, // impossible
+      gross_margin_pct: 150,
       net_margin_pct: 10,
       ltv_cac: 3,
     });
-    const result = r3Validate(
-      raw,
-      MetricsSchema,
-      defaultFinancialReconciler({
-        percentFields: ['gross_margin_pct', 'net_margin_pct'],
-        ltvCacField: 'ltv_cac',
-      })
+    const fail = assertFail(
+      r3Validate(
+        raw,
+        MetricsSchema,
+        defaultFinancialReconciler({
+          percentFields: ['gross_margin_pct', 'net_margin_pct'],
+          ltvCacField: 'ltv_cac',
+        })
+      )
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.reason).toBe('reconcile');
+    expect(fail.reason).toBe('reconcile');
   });
 
   it('reconciler catches implausible LTV:CAC (anti-BS)', () => {
     const raw = JSON.stringify({
       gross_margin_pct: 60,
       net_margin_pct: 20,
-      ltv_cac: 47, // cartoon number
+      ltv_cac: 47,
     });
-    const result = r3Validate(
-      raw,
-      MetricsSchema,
-      defaultFinancialReconciler({
-        percentFields: ['gross_margin_pct', 'net_margin_pct'],
-        ltvCacField: 'ltv_cac',
-      })
+    const fail = assertFail(
+      r3Validate(
+        raw,
+        MetricsSchema,
+        defaultFinancialReconciler({
+          percentFields: ['gross_margin_pct', 'net_margin_pct'],
+          ltvCacField: 'ltv_cac',
+        })
+      )
     );
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.reason).toBe('reconcile');
-      expect(result.detail).toMatch(/LTV:CAC/);
-    }
+    expect(fail.reason).toBe('reconcile');
+    expect(fail.detail).toMatch(/LTV:CAC/);
   });
 
   it('reconciler accepts sane values', () => {
@@ -133,8 +133,7 @@ describe('R3 Validator — Schema · Reconcile · Reject', () => {
 
   it('raw_preview is always <= 240 chars', () => {
     const raw = 'x'.repeat(10000);
-    const result = r3Validate(raw, NarratorSchema);
-    expect(result.ok).toBe(false);
-    if (!result.ok) expect(result.raw_preview.length).toBeLessThanOrEqual(240);
+    const fail = assertFail(r3Validate(raw, NarratorSchema));
+    expect(fail.raw_preview.length).toBeLessThanOrEqual(240);
   });
 });
