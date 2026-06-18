@@ -72,7 +72,8 @@ const themeStyles: Record<Theme, {
   },
 };
 
-export function SampleReportPages({ zoom, theme, pageRefs }: SampleReportPagesProps) {
+export function SampleReportPages({ zoom, theme, density = 'comfort', pageRefs }: SampleReportPagesProps) {
+  const lh = DENSITY_LINE_HEIGHT[density];
   const t = themeStyles[theme];
 
   // Typography that always renders crisply — system stack with widely-available web faces.
