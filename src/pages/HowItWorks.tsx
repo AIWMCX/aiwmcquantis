@@ -27,7 +27,7 @@ const STEPS = [
   step: 3,
   icon: BarChart3,
   title: 'Get Your Risk Report & Action Plan',
-  description: 'Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, and a clear action plan — in under 60 seconds.',
+  description: 'Receive 3-scenario projections (conservative, realistic, optimistic), risk flags, and a clear action plan — in about 90 seconds.',
   example: '$4,200/mo profit, 7.1 months payback, 168% ROI, 3 risk flags identified',
   color: 'bg-amber-500/10 text-amber-600 dark:text-amber-400'
 }];
@@ -74,8 +74,8 @@ export default function HowItWorks() {
           '@context': 'https://schema.org',
           '@type': 'HowTo',
           name: 'How to Validate a Business Idea with AIWMC Quantis',
-          description: 'Stress-test your business model in 60 seconds using AI-powered financial analysis.',
-          totalTime: 'PT1M',
+          description: 'Stress-test your business model in about 90 seconds with a deterministic financial engine and 95,500 benchmarks.',
+          totalTime: 'PT90S',
           step: STEPS.map((s) => ({
             '@type': 'HowToStep',
             position: s.step,
@@ -130,7 +130,7 @@ export default function HowItWorks() {
             How AIWMC™ Quantis Validates Your Business Model
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto mb-8">
-            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 95,500 industry benchmarks, in under 60 seconds., in under 60 seconds.
+            Enter your business idea and location. Get revenue projections, risk flags, and an action plan — powered by 95,500 industry benchmarks, in about 90 seconds.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8 text-base">
@@ -219,7 +219,7 @@ export default function HowItWorks() {
                 Ready to Stress-Test Your Idea?
               </h2>
               <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-                Revenue projections, risk flags, and an action plan — free, no credit card, results in under 60 seconds.
+                Revenue projections, risk flags, and an action plan — free, no credit card, results in about 90 seconds.
               </p>
               <Link to="/app">
                 <Button size="lg" variant="secondary" className="gap-2 py-6 px-8">

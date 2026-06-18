@@ -351,7 +351,7 @@ export const HERO_HEADLINES: Record<(typeof EXPERIMENTS)['hero_headline']['varia
   },
   action_focused: {
     title: 'Turn Your Business Idea Into a Funded Plan',
-    subtitle: 'Professional financial projections, market analysis, and launch roadmap — all AI-generated.',
+    subtitle: 'Professional financial projections, market analysis, and launch roadmap — produced by a deterministic engine.',
   },
 };
 
