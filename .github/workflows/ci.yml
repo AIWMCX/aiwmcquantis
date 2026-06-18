@@ -157,6 +157,20 @@ jobs:
         if: always()
         run: bun run test:coverage || true
 
+      # ── Genesis P2 — deterministic engine gate ────────────────────────────
+      # Re-runs the 25-fixture engine suite twice and asserts JSON-stringified
+      # outputs are byte-identical. Catches hidden sources of nondeterminism
+      # (Date.now, Math.random, undefined property order) creeping into math.
+      - name: Verify engine determinism
+        id: determinism
+        run: npx tsx scripts/verify-determinism.ts
+
+      - name: Determinism failure hint
+        if: failure() && steps.determinism.outcome == 'failure'
+        run: |
+          echo "::error title=Determinism::The 25-fixture engine suite produced different outputs across two runs. A nondeterministic source crept into the math layer."
+
+
       # ── Build + prerender + unique-meta guard ───────────────────────────────
       # Audit 16-Jun-2026: regression guard against the SPA SEO bug returning
       # (every URL shipping the same homepage <title>). vite build runs the
