@@ -218,6 +218,102 @@ export function ReportFirstHero() {
           </p>
         </div>
 
+        {/* === Headline metrics from the sample report (expandable) === */}
+        <div className="mb-8 md:mb-10">
+          <ul
+            className="grid grid-cols-2 lg:grid-cols-4 gap-3"
+            aria-label="Key metrics from the sample Quantis report"
+          >
+            {METRICS.map((m) => {
+              const Icon = m.icon;
+              const open = expandedMetric === m.id;
+              const panelId = `metric-panel-${m.id}`;
+              return (
+                <li key={m.id}>
+                  <div
+                    className="rounded-xl overflow-hidden h-full flex flex-col"
+                    style={{
+                      background: 'hsl(var(--card))',
+                      border: '1px solid hsl(var(--border))',
+                    }}
+                  >
+                    <button
+                      type="button"
+                      aria-expanded={open}
+                      aria-controls={panelId}
+                      onClick={() => {
+                        const next = open ? null : m.id;
+                        setExpandedMetric(next);
+                        if (next) trackCtaClick(`hero_metric_${m.id}`, 'hero');
+                      }}
+                      className="w-full text-left p-4 flex flex-col gap-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
+                      style={{ outlineColor: 'hsl(var(--primary))' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="inline-flex items-center gap-1.5 text-[10px] font-semibold uppercase tracking-wider" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                          <Icon className="w-3.5 h-3.5" aria-hidden="true" />
+                          {m.label}
+                        </span>
+                        <ChevronDown
+                          className="w-3.5 h-3.5 transition-transform"
+                          aria-hidden="true"
+                          style={{
+                            color: 'hsl(var(--muted-foreground))',
+                            transform: open ? 'rotate(180deg)' : 'rotate(0deg)',
+                          }}
+                        />
+                      </div>
+                      <span
+                        className="font-bold leading-none mt-1"
+                        style={{
+                          fontSize: 'clamp(1.4rem, 2.4vw, 1.9rem)',
+                          color: 'hsl(var(--foreground))',
+                          fontFamily: 'ui-monospace, SFMono-Regular, Menlo, monospace',
+                          letterSpacing: '-0.02em',
+                        }}
+                      >
+                        {m.value}
+                      </span>
+                      <span className="text-[11px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
+                        {m.sub}
+                      </span>
+                      <span className="text-[10px] mt-1 underline-offset-2" style={{ color: 'hsl(var(--primary))' }}>
+                        {open ? 'Hide explanation' : 'Show how this was produced'}
+                      </span>
+                    </button>
+                    <div
+                      id={panelId}
+                      role="region"
+                      aria-label={`${m.label} — explanation`}
+                      hidden={!open}
+                      className="px-4 pb-4 text-[12px] leading-relaxed border-t"
+                      style={{
+                        color: 'hsl(var(--muted-foreground))',
+                        borderColor: 'hsl(var(--border))',
+                        background: 'hsl(var(--muted) / 0.35)',
+                      }}
+                    >
+                      <p className="pt-3">{m.detail}</p>
+                      <a
+                        href={SAMPLE_URL}
+                        target="_blank"
+                        rel="noopener"
+                        className="inline-flex items-center gap-1 mt-2 text-[11px] font-semibold"
+                        style={{ color: 'hsl(var(--primary))' }}
+                        onClick={() => trackCtaClick(`hero_metric_open_pdf_${m.id}`, 'hero')}
+                      >
+                        Open full plan <Maximize2 className="w-3 h-3" aria-hidden="true" />
+                      </a>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
+
+
+
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
           <div
