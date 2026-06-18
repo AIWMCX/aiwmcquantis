@@ -451,11 +451,11 @@ export function ReportFirstHero() {
               onKeyDown={onScrollerKeyDown}
               role="region"
               aria-roledescription="Document preview"
-              aria-label={`Sample Quantis executive report — The Draft Lab, Austin TX. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate.`}
+              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
               tabIndex={0}
-              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
+              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
-                height: 'clamp(520px, 72vh, 880px)',
+                height: isFullscreen ? 'auto' : 'clamp(520px, 72vh, 880px)',
                 background:
                   'radial-gradient(120% 80% at 50% 0%, #11203A 0%, #0A1426 55%, #060C18 100%)',
                 scrollbarWidth: 'thin',
@@ -479,10 +479,85 @@ export function ReportFirstHero() {
                   <span className="opacity-60">{PAGES.length}</span>
                 </span>
                 <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
-                  ↑ ↓ · PgUp/PgDn · Home/End
+                  ↑ ↓ · PgUp/PgDn · Home/End · Esc
                 </span>
               </div>
               <div className="flex flex-col items-center gap-8 pt-2 pb-10 px-4 sm:px-10">
+                {/* === Commercial cover (above page 1) === */}
+                <section
+                  aria-label="Report cover"
+                  className="relative w-full max-w-[920px] rounded-[8px] overflow-hidden"
+                  style={{
+                    background:
+                      'linear-gradient(160deg, #0F1F3D 0%, #0B1730 55%, #07101F 100%)',
+                    border: '1px solid rgba(143, 255, 42, 0.18)',
+                    boxShadow:
+                      '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.8)',
+                  }}
+                >
+                  <div className="flex items-center justify-between px-6 pt-5">
+                    <div className="flex items-center gap-2">
+                      <span
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-bold"
+                        style={{ background: '#8FFF2A', color: '#06120A', fontFamily: 'ui-monospace, Menlo, monospace' }}
+                        aria-hidden="true"
+                      >
+                        Q
+                      </span>
+                      <span className="text-[11px] uppercase tracking-[0.22em] font-semibold" style={{ color: 'rgba(230,238,255,0.85)' }}>
+                        AIWMC<sup className="text-[7px] align-super">™</sup> Quantis
+                      </span>
+                    </div>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                      Executive Report
+                    </span>
+                  </div>
+                  <div className="px-6 pt-6 pb-5">
+                    <p className="text-[10px] uppercase tracking-[0.22em] font-semibold" style={{ color: 'rgba(230,238,255,0.55)' }}>
+                      Business Feasibility Analysis
+                    </p>
+                    <h3
+                      className="mt-2 font-bold leading-tight"
+                      style={{
+                        fontSize: 'clamp(1.6rem, 3vw, 2.25rem)',
+                        color: '#FFFFFF',
+                        letterSpacing: '-0.02em',
+                      }}
+                    >
+                      {COVER.company}
+                    </h3>
+                    <p className="mt-1 text-sm" style={{ color: 'rgba(230,238,255,0.7)' }}>
+                      {COVER.tagline}
+                    </p>
+                    <dl className="mt-5 grid grid-cols-2 sm:grid-cols-4 gap-3 text-[11px]">
+                      {[
+                        { k: 'Company', v: COVER.company },
+                        { k: 'Location', v: COVER.location },
+                        { k: 'Industry', v: COVER.industry },
+                        { k: 'Generated', v: COVER.generated },
+                      ].map((row) => (
+                        <div key={row.k} className="rounded-md px-3 py-2" style={{ background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.06)' }}>
+                          <dt className="text-[9px] uppercase tracking-[0.18em] font-semibold" style={{ color: 'rgba(230,238,255,0.45)' }}>{row.k}</dt>
+                          <dd className="mt-0.5 font-mono" style={{ color: 'rgba(255,255,255,0.92)' }}>{row.v}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                    <p className="mt-5 text-[13px] leading-relaxed" style={{ color: 'rgba(230,238,255,0.78)' }}>
+                      <span className="text-[9px] uppercase tracking-[0.22em] font-semibold block mb-1.5" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                        Executive summary
+                      </span>
+                      {COVER.summary}
+                    </p>
+                    <div className="mt-5 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] font-mono" style={{ color: 'rgba(230,238,255,0.55)' }}>
+                      <span>{COVER.pages} pages</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Confidence {COVER.confidence}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>Dual-AI verified</span>
+                    </div>
+                  </div>
+                </section>
+
                 {PAGES.map((page, i) => (
                   <figure
                     key={i}
