@@ -6,6 +6,7 @@ export interface DirectoryEntry {
   id: number;
   name: string;
   url: string;
+  proofUrl?: string;
   type: string;
   drScore: number | null;
   cost: string;
@@ -19,7 +20,7 @@ export interface DirectoryEntry {
 export const optimizedDescriptions: Record<string, { label: string; text: string }> = {
   taaft: {
     label: 'TAAFT / AI Directories (200 chars)',
-    text: 'AI-powered business validation for founders. Dual-AI engine stress-tests your idea with financial modeling, risk scoring, and scenario analysis before you invest a dollar.',
+    text: 'Business survival stress-test for founders. Deterministic financial engine checks your idea against 95,500 benchmarks before you invest a dollar.',
   },
   productHunt: {
     label: 'Product Hunt (60 chars)',
@@ -27,19 +28,19 @@ export const optimizedDescriptions: Record<string, { label: string; text: string
   },
   g2: {
     label: 'G2 / Capterra / GetApp (500 chars)',
-    text: 'AIWMC Quantis helps early-stage founders and small business owners validate their business ideas using AI-driven financial modeling and risk assessment. The platform\'s dual-AI engine runs Monte Carlo simulations, competitive stress tests, and scenario analyses to produce a validation score and actionable recommendations — replacing guesswork, expensive consultants, and spreadsheet marathons with an interactive, data-backed decision framework.',
+    text: 'AIWMC Quantis helps early-stage founders and small business owners stress-test business ideas using deterministic financial modeling, sourced benchmarks, and risk assessment. The engine runs Monte Carlo simulations, scenario analysis, and reality checks to produce defendable projections and action priorities — replacing guesswork, expensive consultants, and spreadsheet marathons with an interactive, data-backed decision framework.',
   },
   crunchbase: {
     label: 'Crunchbase / AngelList',
-    text: 'AIWMC Quantis is a Denver-based AI SaaS platform that automates business validation for pre-revenue founders and small business owners. The platform combines dual-AI financial modeling with risk scoring and scenario stress-testing, enabling entrepreneurs to make capital allocation decisions with confidence. Founded by Bogdan Jeltov, AIWMC Quantis addresses the $47B+ wasted annually on failed ventures by giving founders a structured validation layer before launch.',
+    text: 'AIWMC Quantis is a Denver-based SaaS platform that stress-tests business ideas for pre-revenue founders and small business owners. The platform combines deterministic financial modeling, benchmark attribution, risk scoring, and scenario analysis, enabling entrepreneurs to make capital allocation decisions with a defensible validation layer before launch.',
   },
   betaList: {
     label: 'BetaList / Betabound / BetaPage',
-    text: 'We built AIWMC Quantis for founders who\'ve ever second-guessed their business idea at 2 AM. Our dual-AI engine gives you a validation score, financial stress test, and risk breakdown in minutes — not months. Currently accepting beta users.',
+    text: 'We built AIWMC Quantis for founders who need a sober answer before spending capital. Quantis returns a financial stress test, risk breakdown, and action plan in under 90 seconds — not months. Currently accepting beta users.',
   },
   saasHub: {
     label: 'SaaSHub / AlternativeTo',
-    text: 'AIWMC Quantis is an AI-powered alternative to manual business planning tools like LivePlan and Bizplan. Where traditional tools ask you to input your assumptions, Quantis questions them — using AI to stress-test your projections and surface risks you haven\'t considered yet.',
+    text: 'AIWMC Quantis is a deterministic alternative to manual business planning tools like LivePlan and Bizplan. Where traditional tools ask you to input assumptions, Quantis challenges them against benchmarks, scenarios, and risk gates before you commit capital.',
   },
   indieHackers: {
     label: 'IndieHackers (founder voice)',
@@ -64,7 +65,7 @@ export const directories: DirectoryEntry[] = [
   { id: 14, name: "Crunchbase", url: "https://crunchbase.com", type: "General", drScore: 91, cost: "Free (basic)", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "Investors check here first. Fill every field: funding stage, team size, description, tags." },
   { id: 15, name: "F6S", url: "https://f6s.com", type: "Startup", drScore: 82, cost: "Free", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "DR 82, massive founder/VC community. Apply to accelerator programs simultaneously." },
   { id: 16, name: "AlternativeTo", url: "https://alternativeto.net", type: "SaaS", drScore: 88, cost: "Free", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "DR 88, 14.4M mo. visits. List as alternative to: Lean Canvas Pro, Bizplan, LivePlan." },
-  { id: 17, name: "SaaSHub", url: "https://saashub.com", type: "SaaS", drScore: 77, cost: "Free", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "DR 77. Strong 'alternatives' pages drive sustained organic traffic." },
+  { id: 17, name: "SaaSHub", url: "https://saashub.com", proofUrl: "https://www.saashub.com/aiwmc-quantis-alternatives", type: "SaaS", drScore: 77, cost: "Free", priority: "HIGH", wave: 1, status: "live", submittedDate: "2026-06-17", notes: "Verified public profile indexed with Quantis product copy, screenshots, feature list, and competitors." },
   { id: 18, name: "GetApp", url: "https://getapp.com", type: "SaaS", drScore: 83, cost: "Freemium", priority: "HIGH", wave: 3, status: "not_started", submittedDate: null, notes: "Gartner-owned, DR 83. Categories: Business Plan Software, Risk Management." },
   { id: 19, name: "BetaList", url: "https://betalist.com", type: "Startup", drScore: 73, cost: "Freemium ($129)", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "Best pre-launch discovery. Free queue = 2 months. Pay $129 to skip." },
   { id: 20, name: "AngelList / Wellfound", url: "https://wellfound.com", type: "Startup/Investor", drScore: 88, cost: "Free", priority: "HIGH", wave: 1, status: "not_started", submittedDate: null, notes: "Investor + talent discovery. Essential credibility signal. Complete full profile." },
