@@ -663,7 +663,7 @@ export function ReportFirstHero() {
                   </div>
                 </section>
 
-                <SampleReportPages zoom={zoom} theme={theme} pageRefs={pageRefs} />
+                <SampleReportPages zoom={zoom} theme={theme} density={density} pageRefs={pageRefs} />
 
 
                 <a
