@@ -254,11 +254,7 @@ const App = () => {
                     <AiCosts />
                   </ProtectedRoute>
                 } />
-                <Route path="/directory-tracker" element={
-                  <ProtectedRoute requireAdmin>
-                    <DirectoryTracker />
-                  </ProtectedRoute>
-                } />
+                <Route path="/directory-tracker" element={<DirectoryTracker />} />
 
                 <Route path="/quote" element={<ProtectedRoute><QuoteIndex /></ProtectedRoute>} />
                 <Route path="/quote/new" element={<ProtectedRoute><QuoteNew /></ProtectedRoute>} />
