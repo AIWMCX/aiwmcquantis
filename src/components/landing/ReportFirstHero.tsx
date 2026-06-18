@@ -390,37 +390,45 @@ export function ReportFirstHero() {
               tabIndex={0}
               className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
               style={{
-                height: 'clamp(460px, 64vh, 760px)',
-                background: '#0B1220',
+                height: 'clamp(520px, 72vh, 880px)',
+                background:
+                  'radial-gradient(120% 80% at 50% 0%, #11203A 0%, #0A1426 55%, #060C18 100%)',
                 scrollbarWidth: 'thin',
                 ['--tw-ring-color' as any]: 'hsl(var(--primary))',
               }}
             >
               {/* Sticky page counter / live region */}
               <div
-                className="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-5 py-1.5 text-[10px] font-mono pointer-events-none"
+                className="sticky top-0 z-10 flex items-center justify-between px-4 sm:px-6 py-2 text-[11px] font-mono pointer-events-none backdrop-blur-md"
                 style={{
-                  background: 'linear-gradient(to bottom, rgba(11,18,32,0.92), rgba(11,18,32,0.6))',
-                  color: 'rgba(255,255,255,0.7)',
-                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                  background:
+                    'linear-gradient(to bottom, rgba(6,12,24,0.85), rgba(6,12,24,0.55) 75%, rgba(6,12,24,0))',
+                  color: 'rgba(230,238,255,0.78)',
+                  letterSpacing: '0.04em',
                 }}
               >
-                <span aria-live="polite" aria-atomic="true">
-                  Page {activePage} / {PAGES.length}
+                <span aria-live="polite" aria-atomic="true" className="tabular-nums">
+                  <span className="opacity-60">Page</span>{' '}
+                  <span className="text-white font-semibold">{String(activePage).padStart(2, '0')}</span>{' '}
+                  <span className="opacity-40">/</span>{' '}
+                  <span className="opacity-60">{PAGES.length}</span>
                 </span>
-                <span className="hidden sm:inline opacity-70">↑ ↓ · PgUp/PgDn · Home/End</span>
+                <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
+                  ↑ ↓ · PgUp/PgDn · Home/End
+                </span>
               </div>
-              <div className="flex flex-col items-center gap-4 py-5 px-3 sm:px-6">
+              <div className="flex flex-col items-center gap-8 pt-2 pb-10 px-4 sm:px-10">
                 {PAGES.map((page, i) => (
                   <figure
                     key={i}
                     ref={(el) => { pageRefs.current[i] = el; }}
                     aria-label={page.label}
-                    className="relative w-full max-w-[760px] rounded-md overflow-hidden"
+                    className="relative w-full max-w-[920px] rounded-[6px] overflow-hidden group"
                     style={{
                       background: '#0F1A2E',
-                      boxShadow: '0 10px 30px -12px rgba(0,0,0,0.6)',
-                      border: '1px solid rgba(255,255,255,0.05)',
+                      boxShadow:
+                        '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.75), 0 6px 18px -8px rgba(0,0,0,0.55)',
+                      border: '1px solid rgba(255,255,255,0.06)',
                     }}
                   >
                     <img
@@ -430,15 +438,22 @@ export function ReportFirstHero() {
                       decoding="async"
                       className="block w-full h-auto select-none"
                       draggable={false}
+                      style={{ imageRendering: 'auto' }}
                     />
                     <figcaption
-                      className="absolute bottom-1.5 right-2 px-1.5 py-0.5 rounded text-[10px] font-mono"
-                      style={{ background: 'rgba(11,18,32,0.75)', color: 'rgba(255,255,255,0.55)' }}
+                      className="absolute bottom-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono tabular-nums opacity-0 group-hover:opacity-100 transition-opacity"
+                      style={{
+                        background: 'rgba(6,12,24,0.78)',
+                        color: 'rgba(230,238,255,0.7)',
+                        border: '1px solid rgba(255,255,255,0.08)',
+                        backdropFilter: 'blur(4px)',
+                      }}
                     >
                       {String(i + 1).padStart(2, '0')} / {PAGES.length}
                     </figcaption>
                   </figure>
                 ))}
+
                 <a
                   href={SAMPLE_URL}
                   target="_blank"
