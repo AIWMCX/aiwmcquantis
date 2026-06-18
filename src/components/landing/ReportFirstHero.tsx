@@ -382,19 +382,40 @@ export function ReportFirstHero() {
 
             {/* Report viewer — scrollable page stack (real rendered PDF pages) */}
             <div
-              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth"
+              ref={scrollerRef}
+              onKeyDown={onScrollerKeyDown}
+              role="region"
+              aria-roledescription="Document preview"
+              aria-label={`Sample Quantis executive report — The Draft Lab, Austin TX. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate.`}
+              tabIndex={0}
+              className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset"
               style={{
                 height: 'clamp(460px, 64vh, 760px)',
                 background: '#0B1220',
                 scrollbarWidth: 'thin',
+                ['--tw-ring-color' as any]: 'hsl(var(--primary))',
               }}
-              aria-label="Sample Quantis executive report — The Draft Lab, Austin TX. Scroll to read all 15 pages."
-              tabIndex={0}
             >
+              {/* Sticky page counter / live region */}
+              <div
+                className="sticky top-0 z-10 flex items-center justify-between px-3 sm:px-5 py-1.5 text-[10px] font-mono pointer-events-none"
+                style={{
+                  background: 'linear-gradient(to bottom, rgba(11,18,32,0.92), rgba(11,18,32,0.6))',
+                  color: 'rgba(255,255,255,0.7)',
+                  borderBottom: '1px solid rgba(255,255,255,0.05)',
+                }}
+              >
+                <span aria-live="polite" aria-atomic="true">
+                  Page {activePage} / {PAGES.length}
+                </span>
+                <span className="hidden sm:inline opacity-70">↑ ↓ · PgUp/PgDn · Home/End</span>
+              </div>
               <div className="flex flex-col items-center gap-4 py-5 px-3 sm:px-6">
                 {PAGES.map((page, i) => (
                   <figure
                     key={i}
+                    ref={(el) => { pageRefs.current[i] = el; }}
+                    aria-label={page.label}
                     className="relative w-full max-w-[760px] rounded-md overflow-hidden"
                     style={{
                       background: '#0F1A2E',
