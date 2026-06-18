@@ -123,7 +123,7 @@ export function ReportFirstHero() {
   }, []);
 
   const scrollToPage = useCallback((idx: number) => {
-    const clamped = Math.max(0, Math.min(PAGES.length - 1, idx));
+    const clamped = Math.max(0, Math.min(PAGE_COUNT - 1, idx));
     const el = pageRefs.current[clamped];
     if (el && scrollerRef.current) {
       scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
@@ -153,7 +153,7 @@ export function ReportFirstHero() {
           break;
         case 'End':
           e.preventDefault();
-          scrollToPage(PAGES.length - 1);
+          scrollToPage(PAGE_COUNT - 1);
           break;
         case ' ':
           e.preventDefault();
@@ -420,7 +420,7 @@ export function ReportFirstHero() {
               onKeyDown={onScrollerKeyDown}
               role="region"
               aria-roledescription="Document preview"
-              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
+              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGE_COUNT} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
               tabIndex={0}
               className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
@@ -445,7 +445,7 @@ export function ReportFirstHero() {
                   <span className="opacity-60">Page</span>{' '}
                   <span className="text-white font-semibold">{String(activePage).padStart(2, '0')}</span>{' '}
                   <span className="opacity-40">/</span>{' '}
-                  <span className="opacity-60">{PAGES.length}</span>
+                  <span className="opacity-60">{PAGE_COUNT}</span>
                 </span>
                 <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
                   ↑ ↓ · PgUp/PgDn · Home/End · Esc
@@ -542,7 +542,7 @@ export function ReportFirstHero() {
                   >
                     <img
                       src={page.url}
-                      alt={`Quantis sample report — page ${i + 1} of ${PAGES.length}`}
+                      alt={`Quantis sample report — page ${i + 1} of ${PAGE_COUNT}`}
                       loading={i < 2 ? 'eager' : 'lazy'}
                       decoding="async"
                       className="block w-full h-auto select-none"
@@ -558,7 +558,7 @@ export function ReportFirstHero() {
                         backdropFilter: 'blur(4px)',
                       }}
                     >
-                      {String(i + 1).padStart(2, '0')} / {PAGES.length}
+                      {String(i + 1).padStart(2, '0')} / {PAGE_COUNT}
                     </figcaption>
                   </figure>
                 ))}
