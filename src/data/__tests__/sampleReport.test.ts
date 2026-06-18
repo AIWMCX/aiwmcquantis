@@ -70,10 +70,10 @@ describe('validateSampleReportIntegrity()', () => {
 
   it('integrity validator surfaces page-3 KPI drift specifically', () => {
     // Simulate the page rendering an outdated KPI: temporarily monkey-patch a kpi label.
-    const page3 = SAMPLE_REPORT.pages.find((p) => p.id === 3) as {
-      kpis?: Array<{ label: string; value: string }>;
+    const page3 = SAMPLE_REPORT.pages.find((p) => p.id === 3) as unknown as {
+      kpis: Array<{ label: string; value: string }>;
     };
-    const kpi = page3.kpis!.find((k) => k.label === 'Total investment required')!;
+    const kpi = page3.kpis.find((k) => k.label === 'Total investment required')!;
     const original = kpi.value;
     kpi.value = '$0';
     try {
