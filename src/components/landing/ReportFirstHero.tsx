@@ -1,13 +1,55 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Download, Maximize2, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGES = Array.from({ length: 15 }, (_, i) => ({
   url: `/sample-report/qpage-${String(i + 1).padStart(2, '0')}.jpg`,
+  label: `Page ${i + 1} of 15`,
 }));
+
+// Headline metrics extracted from the sample Quantis report (The Draft Lab · Austin, TX · Jun 2026).
+// Each card opens a short expansion explaining how the figure was produced.
+const METRICS = [
+  {
+    id: 'investment',
+    icon: DollarSign,
+    label: 'Initial investment',
+    value: '$142,500',
+    sub: 'Build-out + 4-mo runway',
+    detail:
+      'Sum of one-time CAPEX ($86,200 — buildout, equipment, deposits) and 4 months of fixed OPEX burn before break-even ($56,300). Sourced from sample report, pages 6–8.',
+  },
+  {
+    id: 'payback',
+    icon: Clock,
+    label: 'Payback period',
+    value: '18 months',
+    sub: 'Base case (P50)',
+    detail:
+      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across 12-variable Monte Carlo. Sample report, page 9.',
+  },
+  {
+    id: 'profit',
+    icon: TrendingUp,
+    label: 'Monthly profit (Y2)',
+    value: '$11,800',
+    sub: 'Net, after all OpEx',
+    detail:
+      'Steady-state monthly net income at month 24, assuming 180 paying members × $89 ARPU and 4.1% monthly churn. Bottom-up P&L on sample report, page 7.',
+  },
+  {
+    id: 'confidence',
+    icon: Gauge,
+    label: 'Confidence',
+    value: '79%',
+    sub: 'Dual-AI verified',
+    detail:
+      'Model Confidence Score: benchmark match quality 0.82, assumption fragility 0.71, narrative coherence 0.84, cross-model agreement 0.79. Sample report, page 2.',
+  },
+] as const;
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
