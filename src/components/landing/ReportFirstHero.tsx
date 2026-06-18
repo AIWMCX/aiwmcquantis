@@ -1,70 +1,39 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 
 import { useNavigate } from 'react-router-dom';
-import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge } from 'lucide-react';
+import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
-const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
-const PAGES = Array.from({ length: 15 }, (_, i) => ({
-  url: `/sample-report/qpage-${String(i + 1).padStart(2, '0')}.jpg`,
-  label: `Page ${i + 1} of 15`,
-}));
+import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
+import { SampleReportPages } from './SampleReportPages';
 
-// Commercial cover card shown above the rendered PDF pages.
-// Values MUST mirror the actual sample report (The Draft Lab · Austin, TX · Jun 13 2026).
+const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
+const PAGE_COUNT = SAMPLE_REPORT.pages.length;
+
+// Commercial cover card shown above the rendered report pages.
 const COVER = {
-  company: 'The Draft Lab',
-  tagline: 'Specialty coffee + co-writing studio · downtown Austin',
-  industry: 'Consulting / F&B hybrid',
-  location: 'Austin, TX',
-  generated: 'Jun 13, 2026',
-  pages: 15,
-  confidence: '79%',
-  summary:
-    'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, dual-AI verified at 79% confidence.',
+  company: SAMPLE_REPORT.meta.company,
+  tagline: SAMPLE_REPORT.meta.tagline,
+  industry: SAMPLE_REPORT.meta.industry,
+  location: SAMPLE_REPORT.meta.location,
+  generated: SAMPLE_REPORT.meta.generated,
+  pages: SAMPLE_REPORT.meta.pages,
+  confidence: SAMPLE_REPORT.meta.confidenceLabel,
+  summary: SAMPLE_REPORT.meta.summary,
 } as const;
 
-// Headline metrics extracted from the sample Quantis report (The Draft Lab · Austin, TX · Jun 2026).
-// Each card opens a short expansion explaining how the figure was produced.
-const METRICS = [
-  {
-    id: 'investment',
-    icon: DollarSign,
-    label: 'Initial investment',
-    value: '$142,500',
-    sub: 'Build-out + 4-mo runway',
-    detail:
-      'Sum of one-time CAPEX ($86,200 — buildout, equipment, deposits) and 4 months of fixed OPEX burn before break-even ($56,300). Sourced from sample report, pages 6–8.',
-  },
-  {
-    id: 'payback',
-    icon: Clock,
-    label: 'Payback period',
-    value: '18 months',
-    sub: 'Base case (P50)',
-    detail:
-      'Cumulative free cash flow turns positive in month 18 under the base scenario. P25 = 14mo, P75 = 26mo across 12-variable Monte Carlo. Sample report, page 9.',
-  },
-  {
-    id: 'profit',
-    icon: TrendingUp,
-    label: 'Monthly profit (Y2)',
-    value: '$11,800',
-    sub: 'Net, after all OpEx',
-    detail:
-      'Steady-state monthly net income at month 24, assuming 180 paying members × $89 ARPU and 4.1% monthly churn. Bottom-up P&L on sample report, page 7.',
-  },
-  {
-    id: 'confidence',
-    icon: Gauge,
-    label: 'Confidence',
-    value: '79%',
-    sub: 'Dual-AI verified',
-    detail:
-      'Model Confidence Score: benchmark match quality 0.82, assumption fragility 0.71, narrative coherence 0.84, cross-model agreement 0.79. Sample report, page 2.',
-  },
-] as const;
+const METRIC_ICONS: Record<string, typeof DollarSign> = {
+  investment: DollarSign,
+  payback: Clock,
+  profit: TrendingUp,
+  confidence: Gauge,
+};
+
+type ReadingTheme = 'dark' | 'highContrast' | 'sepia';
+const ZOOM_MIN = 0.85;
+const ZOOM_MAX = 1.6;
+const ZOOM_STEP = 0.1;
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
@@ -132,6 +101,11 @@ export function ReportFirstHero() {
   const [activePage, setActivePage] = useState(1);
   const [expandedMetric, setExpandedMetric] = useState<string | null>(null);
   const [isFullscreen, setIsFullscreen] = useState(false);
+  const [zoom, setZoom] = useState(1);
+  const [theme, setTheme] = useState<ReadingTheme>('dark');
+
+  // Runtime integrity check — verifies the headline cards still match the canonical report data.
+  const integrityIssues = useMemo(() => validateSampleReportIntegrity(), []);
 
   // Track which page is most visible inside the scroller (for aria-live "Page X of 15").
   useEffect(() => {
@@ -154,7 +128,7 @@ export function ReportFirstHero() {
   }, []);
 
   const scrollToPage = useCallback((idx: number) => {
-    const clamped = Math.max(0, Math.min(PAGES.length - 1, idx));
+    const clamped = Math.max(0, Math.min(PAGE_COUNT - 1, idx));
     const el = pageRefs.current[clamped];
     if (el && scrollerRef.current) {
       scrollerRef.current.scrollTo({ top: el.offsetTop - 12, behavior: 'smooth' });
@@ -184,11 +158,30 @@ export function ReportFirstHero() {
           break;
         case 'End':
           e.preventDefault();
-          scrollToPage(PAGES.length - 1);
+          scrollToPage(PAGE_COUNT - 1);
           break;
         case ' ':
           e.preventDefault();
           scroller.scrollBy({ top: e.shiftKey ? -scroller.clientHeight * 0.9 : scroller.clientHeight * 0.9, behavior: 'smooth' });
+          break;
+        case '+':
+        case '=':
+          e.preventDefault();
+          setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)));
+          break;
+        case '-':
+        case '_':
+          e.preventDefault();
+          setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)));
+          break;
+        case '0':
+          e.preventDefault();
+          setZoom(1);
+          break;
+        case 'c':
+        case 'C':
+          e.preventDefault();
+          setTheme((t) => (t === 'dark' ? 'highContrast' : t === 'highContrast' ? 'sepia' : 'dark'));
           break;
       }
     },
@@ -270,8 +263,8 @@ export function ReportFirstHero() {
             className="grid grid-cols-2 lg:grid-cols-4 gap-3"
             aria-label="Key metrics from the sample Quantis report"
           >
-            {METRICS.map((m) => {
-              const Icon = m.icon;
+            {HEADLINE_METRICS.map((m) => {
+              const Icon = METRIC_ICONS[m.id] ?? Gauge;
               const open = expandedMetric === m.id;
               const panelId = `metric-panel-${m.id}`;
               return (
@@ -360,6 +353,27 @@ export function ReportFirstHero() {
 
 
 
+        {/* Data-integrity banner — visible only if headline metrics drift from canonical report */}
+        {integrityIssues.length > 0 && (
+          <div
+            role="alert"
+            className="mb-4 rounded-lg px-4 py-3 flex items-start gap-3"
+            style={{
+              background: 'hsl(var(--destructive) / 0.08)',
+              border: '1px solid hsl(var(--destructive) / 0.35)',
+              color: 'hsl(var(--destructive))',
+            }}
+          >
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" aria-hidden="true" />
+            <div className="text-[12px] leading-relaxed">
+              <strong className="font-semibold">Data integrity warning:</strong> headline metrics do not match the live sample report —
+              <ul className="list-disc list-inside mt-1 space-y-0.5">
+                {integrityIssues.map((msg) => <li key={msg}>{msg}</li>)}
+              </ul>
+            </div>
+          </div>
+        )}
+
         <div className="grid lg:grid-cols-[1.35fr_1fr] gap-6 lg:gap-8 items-start">
           {/* === LEFT: scrollable PDF preview === */}
           <div
@@ -406,6 +420,46 @@ export function ReportFirstHero() {
                   <span className="w-1.5 h-1.5 rounded-full bg-current animate-pulse" aria-hidden="true" />
                   Live sample
                 </span>
+                {/* Reading-mode controls: zoom out / zoom in / contrast cycle */}
+                <div className="hidden sm:flex items-center gap-0.5 mr-1 pr-1.5" style={{ borderRight: '1px solid hsl(var(--border))' }}>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.max(ZOOM_MIN, +(z - ZOOM_STEP).toFixed(2)))}
+                    disabled={zoom <= ZOOM_MIN}
+                    aria-label="Decrease reading zoom"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-40"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <ZoomOut className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                  <span
+                    className="text-[10px] font-mono tabular-nums px-1 min-w-[34px] text-center"
+                    style={{ color: 'hsl(var(--muted-foreground))' }}
+                    aria-live="polite"
+                  >
+                    {Math.round(zoom * 100)}%
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setZoom((z) => Math.min(ZOOM_MAX, +(z + ZOOM_STEP).toFixed(2)))}
+                    disabled={zoom >= ZOOM_MAX}
+                    aria-label="Increase reading zoom"
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2 disabled:opacity-40"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                  >
+                    <ZoomIn className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setTheme((t) => (t === 'dark' ? 'highContrast' : t === 'highContrast' ? 'sepia' : 'dark'))}
+                    aria-label={`Toggle reading contrast (current: ${theme})`}
+                    className="p-1.5 rounded hover:bg-foreground/10 transition-colors focus:outline-none focus-visible:ring-2"
+                    style={{ ['--tw-ring-color' as any]: 'hsl(var(--primary))' }}
+                    title={`Contrast: ${theme}`}
+                  >
+                    <Contrast className="w-3.5 h-3.5" style={{ color: 'hsl(var(--muted-foreground))' }} aria-hidden="true" />
+                  </button>
+                </div>
                 <button
                   ref={fullscreenBtnRef}
                   type="button"
@@ -451,7 +505,7 @@ export function ReportFirstHero() {
               onKeyDown={onScrollerKeyDown}
               role="region"
               aria-roledescription="Document preview"
-              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGES.length} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press Escape to exit fullscreen.`}
+              aria-label={`Sample Quantis executive report — ${COVER.company}, ${COVER.location}. ${PAGE_COUNT} pages. Use arrow keys, Page Up/Down, Home/End or space to navigate. Press plus/minus to zoom, C to switch contrast, Escape to exit fullscreen.`}
               tabIndex={0}
               className="relative w-full overflow-y-auto overscroll-contain scroll-smooth focus:outline-none focus-visible:ring-2 focus-visible:ring-inset flex-1"
               style={{
@@ -476,10 +530,10 @@ export function ReportFirstHero() {
                   <span className="opacity-60">Page</span>{' '}
                   <span className="text-white font-semibold">{String(activePage).padStart(2, '0')}</span>{' '}
                   <span className="opacity-40">/</span>{' '}
-                  <span className="opacity-60">{PAGES.length}</span>
+                  <span className="opacity-60">{PAGE_COUNT}</span>
                 </span>
                 <span className="hidden sm:inline opacity-55 text-[10px] uppercase tracking-[0.18em]">
-                  ↑ ↓ · PgUp/PgDn · Home/End · Esc
+                  ↑ ↓ · PgUp/PgDn · Home/End · + / − · C · Esc
                 </span>
               </div>
               <div className="flex flex-col items-center gap-8 pt-2 pb-10 px-4 sm:px-10">
@@ -558,41 +612,8 @@ export function ReportFirstHero() {
                   </div>
                 </section>
 
-                {PAGES.map((page, i) => (
-                  <figure
-                    key={i}
-                    ref={(el) => { pageRefs.current[i] = el; }}
-                    aria-label={page.label}
-                    className="relative w-full max-w-[920px] rounded-[6px] overflow-hidden group"
-                    style={{
-                      background: '#0F1A2E',
-                      boxShadow:
-                        '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.75), 0 6px 18px -8px rgba(0,0,0,0.55)',
-                      border: '1px solid rgba(255,255,255,0.06)',
-                    }}
-                  >
-                    <img
-                      src={page.url}
-                      alt={`Quantis sample report — page ${i + 1} of ${PAGES.length}`}
-                      loading={i < 2 ? 'eager' : 'lazy'}
-                      decoding="async"
-                      className="block w-full h-auto select-none"
-                      draggable={false}
-                      style={{ imageRendering: 'auto' }}
-                    />
-                    <figcaption
-                      className="absolute bottom-2.5 right-3 px-2 py-0.5 rounded-full text-[10px] font-mono tabular-nums opacity-0 group-hover:opacity-100 transition-opacity"
-                      style={{
-                        background: 'rgba(6,12,24,0.78)',
-                        color: 'rgba(230,238,255,0.7)',
-                        border: '1px solid rgba(255,255,255,0.08)',
-                        backdropFilter: 'blur(4px)',
-                      }}
-                    >
-                      {String(i + 1).padStart(2, '0')} / {PAGES.length}
-                    </figcaption>
-                  </figure>
-                ))}
+                <SampleReportPages zoom={zoom} theme={theme} pageRefs={pageRefs} />
+
 
                 <a
                   href={SAMPLE_URL}
