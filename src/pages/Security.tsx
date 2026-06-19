@@ -75,10 +75,10 @@ export default function SecurityPage() {
 
             <Section icon={FileCheck} title="AI safety & output validation">
               <p className="text-sm text-muted-foreground mb-3">
-                Our analysis engine runs through a <strong className="text-foreground">7-layer safety architecture</strong>:
+                Our analysis engine runs through an <strong className="text-foreground">8-layer safety architecture (incl. RVCE)</strong>:
                 input sanitization, prompt-injection detection, output schema validation, financial sanity
-                checks (the Anti-BS layer), reconciliation rules, dual-AI consensus scoring, and a deterministic
-                fallback engine if any AI provider returns unsafe output.
+                checks (the Anti-BS layer), reconciliation rules, dual-AI consensus scoring, RVCE cross-validation,
+                and a deterministic fallback engine if any AI provider returns unsafe output.
               </p>
               <p className="text-sm text-muted-foreground">
                 Numbers in your reports are computed with <code className="px-1 py-0.5 rounded bg-muted text-xs">decimal.js</code> to

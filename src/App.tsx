@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect } from "react";
+import { Suspense, lazy, useEffect, useState } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -86,6 +86,14 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+function RenderedFlag() {
+  useEffect(() => {
+    document.documentElement.setAttribute('data-rendered', 'true');
+    return () => { document.documentElement.removeAttribute('data-rendered'); };
+  }, []);
+  return null;
+}
 
 const App = () => {
   // Initialize performance and engagement tracking on mount
@@ -264,6 +272,7 @@ const App = () => {
                 {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                 <Route path="*" element={<NotFound />} />
               </Routes>
+              <RenderedFlag />
             </Suspense>
             </BrowserRouter>
           </TooltipProvider>

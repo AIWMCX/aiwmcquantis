@@ -34,7 +34,7 @@ const CHANGELOG: ChangeEntry[] = [
     type: 'feature',
     changes: [
       'Public Status page with real-time database/auth health checks (auto-refresh every 60s).',
-      'Security posture page documenting encryption, RLS, anomaly detection, and 7-layer AI safety.',
+      'Security posture page documenting encryption, RLS, anomaly detection, and 8-layer AI safety (incl. RVCE).',
       'Plain-English 14-day refund policy with explicit Pro Annual handling.',
       'Per-route SEO meta tags via react-helmet-async — Googlebot now sees proper title/description/OpenGraph on every page.',
     ],

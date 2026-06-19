@@ -30,7 +30,7 @@ const BUSINESS_LOGIC_DOCS: { name: string; path: string; note: string }[] = [
   {
     name: "AI_SAFETY_ARCHITECTURE.md",
     path: "/docs/AI_SAFETY_ARCHITECTURE.md",
-    note: "7-layer safety architecture (referenced in spec §4)",
+    note: "8-layer safety architecture incl. RVCE (referenced in spec §4)",
   },
   {
     name: "GROWTH_TECHNICAL_SPEC.md",

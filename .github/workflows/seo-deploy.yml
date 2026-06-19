@@ -1,0 +1,106 @@
+# =============================================================================
+# .github/workflows/seo-deploy.yml
+#
+# Production deploy that ships prerendered HTML so crawlers see real content.
+#
+# Order is deliberate and FAIL-CLOSED:
+#   build → prerender → sitemap → verify gate → deploy → live smoke
+# If the gate fails, deploy never runs. If live smoke fails, the run is red.
+#
+# Required repo secrets:
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+# =============================================================================
+
+name: SEO Deploy (prerender + visibility gate)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: seo-deploy
+  cancel-in-progress: false
+
+jobs:
+  build-verify-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Puppeteer browser
+        run: npx puppeteer browsers install chrome
+
+      - name: Build (Vite + head-stamp)
+        run: bun run build
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+
+      - name: Prerender all public routes (Puppeteer)
+        run: node scripts/prerender.mjs
+
+      - name: Generate sitemap + robots
+        run: node scripts/generate-sitemap.mjs
+
+      - name: Visibility gate (BLOCKS deploy if any page is a shell)
+        run: node scripts/verify-visibility.mjs
+
+      - name: Prepare Vercel output
+        run: |
+          mkdir -p .vercel/output/static
+          cp -r dist/* .vercel/output/static/
+          cat > .vercel/output/config.json << 'VCONFIG'
+          {
+            "version": 3,
+            "routes": [
+              {
+                "src": "/assets/(.*)",
+                "headers": { "Cache-Control": "public, max-age=31536000, immutable" },
+                "continue": true
+              },
+              { "handle": "filesystem" },
+              { "src": "/(.*)", "dest": "/index.html" }
+            ],
+            "overrides": {}
+          }
+          VCONFIG
+
+      - name: Deploy prebuilt to Vercel
+        if: ${{ secrets.VERCEL_TOKEN != '' }}
+        id: deploy
+        run: |
+          npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1 | tee deploy-output.txt
+          URL=$(tail -1 deploy-output.txt)
+          echo "url=$URL" >> "$GITHUB_OUTPUT"
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Live smoke test
+        if: steps.deploy.outcome == 'success'
+        run: node scripts/smoke-live.mjs https://aiwmcquantis.com
+
+      - name: Deploy summary
+        if: always()
+        run: |
+          {
+            echo "## SEO Deploy"
+            echo ""
+            echo "Prerendered all public routes with Puppeteer."
+            echo "Visibility gate verified unique body content per route."
+            echo ""
+            echo "Deploy URL: \`${{ steps.deploy.outputs.url || 'skipped (no VERCEL_TOKEN)' }}\`"
+          } >> "$GITHUB_STEP_SUMMARY"

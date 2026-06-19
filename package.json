@@ -19,7 +19,11 @@
     "format:write": "prettier --write $(cat .prettier-check-files.txt | tr '\\n' ' ')",
     "audit:ci": "bun pm audit --prod || true",
     "pre-commit": "bun run lint && bun run typecheck:financial && bun run verify:business-logic && bun run test:quality",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "build:prod": "vite build && node scripts/prerender.mjs && node scripts/generate-sitemap.mjs && node scripts/verify-visibility.mjs",
+    "prerender": "node scripts/prerender.mjs",
+    "sitemap": "node scripts/generate-sitemap.mjs",
+    "verify:seo": "node scripts/verify-visibility.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
@@ -121,6 +125,7 @@
     "tailwindcss": "^3.4.11",
     "typescript": "^5.5.3",
     "typescript-eslint": "^8.0.1",
-    "vite": "^5.4.1"
+    "vite": "^5.4.1",
+    "puppeteer": "^23.0.0"
   }
 }
