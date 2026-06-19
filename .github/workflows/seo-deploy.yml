@@ -39,6 +39,9 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
+      - name: Install Puppeteer (workflow-scoped, not in lockfile)
+        run: npm install --no-save puppeteer@23
+
       - name: Install Puppeteer browser
         run: npx puppeteer browsers install chrome
 
@@ -78,7 +81,6 @@ jobs:
           VCONFIG
 
       - name: Deploy prebuilt to Vercel
-        if: ${{ secrets.VERCEL_TOKEN != '' }}
         id: deploy
         run: |
           npx vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN 2>&1 | tee deploy-output.txt
