@@ -68,9 +68,9 @@ for spec in "${REQUIRED[@]}"; do
     echo "  ✗ $name — MISSING"
   else
     # Length only; never echo the value itself.
-    echo "  ✓ $name (len=${#__v}${__v:=${!name}})" >/dev/null
-    echo "  ✓ $name (set, ${#__v} chars)"
-    unset __v
+    val="${!name}"
+    echo "  ✓ $name (set, ${#val} chars)"
+    unset val
   fi
 done
 
