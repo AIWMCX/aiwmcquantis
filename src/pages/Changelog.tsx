@@ -42,12 +42,12 @@ const CHANGELOG: ChangeEntry[] = [
   {
     date: 'April 15, 2026',
     version: '2.2.0',
-    title: 'Stripe Pricing Migration',
+    title: 'Pro tier launch + annual billing',
     type: 'feature',
     changes: [
-      'New Plus pricing: $14/mo (down from $17), $168/yr (saves $24).',
-      'New Pro tier: $41/mo with 14-day trial, $492/yr immediate charge (saves $96).',
-      'Existing Plus subscribers grandfathered at $17 — no auto-reprice.',
+      'Pro tier launched at $49/mo (or $492/yr — saves $96) with 14-day trial. Includes white-label PDF, API access, TAM/SAM/SOM, 5-year model, and pitch-deck data package.',
+      'Annual billing added for Plus ($168/yr — saves $36) and Pro ($492/yr).',
+      'Plus pricing held at $17/mo. Existing Plus subscribers remain at $17 — no auto-reprice.',
       'Trial reminder email at day 11 of any 14-day trial.',
     ],
   },
