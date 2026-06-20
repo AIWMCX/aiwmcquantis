@@ -48,6 +48,7 @@ const FormulasDashboard = lazy(() => import("./pages/admin/FormulasDashboard"));
 const AccuracyDashboard = lazy(() => import("./pages/admin/AccuracyDashboard"));
 const DataSources = lazy(() => import("./pages/admin/DataSources"));
 const Methodology = lazy(() => import("./pages/Methodology"));
+const VsComparePage = lazy(() => import("./pages/vs/VsComparePage"));
 const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
@@ -136,6 +137,7 @@ const App = () => {
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
                 <Route path="/methodology" element={<Methodology />} />
+                <Route path="/vs/:slug" element={<VsComparePage />} />
                 <Route path="/research" element={<Research />} />
                 <Route path="/pricing" element={<PricingPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />

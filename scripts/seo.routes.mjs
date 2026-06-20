@@ -35,6 +35,11 @@ export const PUBLIC_ROUTES = [
   { path: "/privacy",         title: "Privacy" },
   { path: "/terms",           title: "Terms" },
 
+  // ---- 3 competitive comparison pages (audit D10.3) -------------------------
+  { path: "/vs/liveplan",     title: "Quantis vs LivePlan" },
+  { path: "/vs/upmetrics",    title: "Quantis vs Upmetrics" },
+  { path: "/vs/bizplanr",     title: "Quantis vs Bizplanr" },
+
   // ---- 51 worked examples ---------------------------------------------------
   ...[
     "coffee-shop-denver", "saas-project-management", "restaurant-miami",
