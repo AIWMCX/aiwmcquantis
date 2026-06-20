@@ -1,3 +1,5 @@
+import { MONTE_CARLO_ITERATIONS } from './canonical-facts';
+
 /**
  * TIER MATRIX — Single Source of Truth
  * ======================================
@@ -67,7 +69,7 @@ export const TIERS = {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 36,
-      monteCarloScenarios: 95_500,
+      monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 1,
       templates: 12,
     },
@@ -104,7 +106,7 @@ export const TIERS = {
       analysesPerMonth: Number.POSITIVE_INFINITY,
       downloadsPerDay: Number.POSITIVE_INFINITY,
       projectionMonths: 60,
-      monteCarloScenarios: 95_500,
+      monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 3,
       templates: 12,
     },
@@ -193,7 +195,7 @@ export const UPGRADE_COPY: Record<
   depthFull: {
     title: 'Full Report Mode',
     bullets: [
-      '95,500-scenario Monte Carlo',
+      `${MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}-iteration Monte Carlo across 95,500 benchmarks`,
       '36-month P&L with variance bands',
       'Prioritized action plan',
     ],

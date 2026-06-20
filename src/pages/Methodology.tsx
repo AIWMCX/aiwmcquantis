@@ -9,6 +9,11 @@ import { LastAuditedBadge } from '@/components/analysis/LastAuditedBadge';
 import { GOLDEN_VECTORS } from '@/lib/golden-test-vectors';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import {
+  BENCHMARK_COUNT_DISPLAY,
+  BENCHMARK_SECTORS,
+  PIPELINE_LAYERS_LABEL,
+} from '@/config/canonical-facts';
 
 export default function Methodology() {
   const { data: provenanceSources, isLoading: sourcesLoading } = useQuery({
@@ -34,7 +39,7 @@ export default function Methodology() {
     <AppLayout title="Methodology & Safety">
       <PageSEO
         title="Quantis Methodology — Deterministic Financial Engine"
-        description="How Quantis calculates projections: deterministic math engine, 95,500 industry benchmarks, dual-AI consensus validation, and 8-layer safety architecture (incl. RVCE)."
+        description={`How Quantis calculates projections: deterministic math engine, ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, dual-AI consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
         canonical="/methodology"
       />
       

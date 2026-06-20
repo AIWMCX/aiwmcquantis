@@ -7,6 +7,8 @@ import { StructuredData } from '@/components/seo/StructuredData';
 import { Footer } from '@/components/layout/Footer';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { recordFunnelEvent } from '@/lib/analytics';
+import { TIERS } from '@/config/tiers';
+import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
 
 export default function Pricing() {
   // SOW §6.1 funnel event: pricing_view fires once per /pricing visit
@@ -17,14 +19,14 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-background text-foreground">
       <PageSEO
-        title="Quantis Pricing — Free Analysis & Plus at $17/mo"
-        description="Run 1 free analysis to see your viability score and top 3 risks. Plus at $17/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export."
+        title={`Quantis Pricing — Free, Plus $${TIERS.plus.priceMonthly}/mo, Pro $${TIERS.pro.priceMonthly}/mo`}
+        description={`Run ${FREE_ANALYSES_PER_MONTH} free analyses/month to see your viability score and top risks. Plus at $${TIERS.plus.priceMonthly}/mo unlocks the full Monte Carlo report, P&L, action plan, and PDF export. Pro at $${TIERS.pro.priceMonthly}/mo adds white-label, API access, TAM/SAM/SOM, and the 5-year model.`}
         canonical="/pricing"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'WebPage',
           name: 'AIWMC™ Quantis Pricing',
-          description: 'Simple pricing for serious founders. 1 free analysis with score and risks. Plus at $17/month unlocks the full report, Monte Carlo, and unlimited runs.',
+          description: `Simple pricing for serious founders. Free (${FREE_ANALYSES_PER_MONTH}/mo) · Plus $${TIERS.plus.priceMonthly}/mo · Pro $${TIERS.pro.priceMonthly}/mo.`,
           url: 'https://aiwmcquantis.com/pricing',
         }}
       />

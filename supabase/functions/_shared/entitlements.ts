@@ -60,8 +60,11 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
 
 export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
   free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
-  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 95_500, teamSeats: 1, templates: 12 },
-  pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 95_500, teamSeats: 3, templates: 12 },
+  // monteCarloScenarios = MC iteration count (per src/config/canonical-facts.ts MONTE_CARLO_ITERATIONS).
+  // Previously 95_500 — that was the BENCHMARK corpus size, not the iteration count.
+  // Fixed per audit 2026-06-20 contradiction C-8.
+  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 1, templates: 12 },
+  pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 1_000, teamSeats: 3, templates: 12 },
 };
 
 // ---------- Errors ----------
