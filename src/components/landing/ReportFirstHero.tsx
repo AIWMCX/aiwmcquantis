@@ -659,7 +659,7 @@ export function ReportFirstHero() {
                   style={{
                     background:
                       'linear-gradient(160deg, #0F1F3D 0%, #0B1730 55%, #07101F 100%)',
-                    border: '1px solid rgba(143, 255, 42, 0.18)',
+                    border: '1px solid rgba(0, 123, 255, 0.18)',
                     boxShadow:
                       '0 1px 0 rgba(255,255,255,0.06) inset, 0 24px 60px -20px rgba(0,0,0,0.8)',
                   }}
@@ -668,7 +668,7 @@ export function ReportFirstHero() {
                     <div className="flex items-center gap-2">
                       <span
                         className="inline-flex items-center justify-center w-7 h-7 rounded-md text-[11px] font-bold"
-                        style={{ background: '#8FFF2A', color: '#06120A', fontFamily: 'ui-monospace, Menlo, monospace' }}
+                        style={{ background: '#007BFF', color: '#FFFFFF', fontFamily: 'ui-monospace, Menlo, monospace' }}
                         aria-hidden="true"
                       >
                         Q
@@ -677,7 +677,7 @@ export function ReportFirstHero() {
                         AIWMC<sup className="text-[7px] align-super">™</sup> Quantis
                       </span>
                     </div>
-                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                    <span className="text-[10px] font-mono uppercase tracking-[0.18em]" style={{ color: 'rgba(0,123,255,0.85)' }}>
                       Executive Report
                     </span>
                   </div>
@@ -712,7 +712,7 @@ export function ReportFirstHero() {
                       ))}
                     </dl>
                     <p className="mt-5 text-[13px] leading-relaxed" style={{ color: 'rgba(230,238,255,0.78)' }}>
-                      <span className="text-[9px] uppercase tracking-[0.22em] font-semibold block mb-1.5" style={{ color: 'rgba(143,255,42,0.85)' }}>
+                      <span className="text-[9px] uppercase tracking-[0.22em] font-semibold block mb-1.5" style={{ color: 'rgba(0,123,255,0.85)' }}>
                         Executive summary
                       </span>
                       {COVER.summary}

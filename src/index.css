@@ -548,7 +548,7 @@
   }
   .text-shine-soft {
     color: #F8FAFC;
-    text-shadow: 0 0 16px rgba(143, 255, 42, 0.06), 0 1px 0 rgba(255, 255, 255, 0.04);
+    text-shadow: 0 0 16px rgba(0, 123, 255, 0.06), 0 1px 0 rgba(255, 255, 255, 0.04);
   }
   
   /* ── DATA — Financial figures (ALWAYS JetBrains Mono) ── */

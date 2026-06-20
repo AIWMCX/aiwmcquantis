@@ -45,10 +45,10 @@ const themeStyles: Record<Theme, {
     title: '#FFFFFF',
     body: 'rgba(230,238,255,0.86)',
     muted: 'rgba(230,238,255,0.55)',
-    rule: 'rgba(143,255,42,0.35)',
+    rule: 'rgba(0,123,255,0.35)',
     kpiBg: 'rgba(255,255,255,0.04)',
     kpiBorder: 'rgba(255,255,255,0.08)',
-    accent: '#8FFF2A',
+    accent: '#007BFF',
   },
   highContrast: {
     page: { background: '#000000', color: '#FFFFFF' },
