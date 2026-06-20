@@ -5,7 +5,7 @@
 
 export type ValidationStatus = 'OK' | 'WARN' | 'OUTLIER' | 'NO_DATA';
 export type FlagSeverity = 'high' | 'medium' | 'low';
-export type RvceRunStatus = 'COMPLETED' | 'PARTIAL' | 'UNAVAILABLE';
+export type RvceRunStatus = 'COMPLETED' | 'PARTIAL' | 'UNAVAILABLE' | 'SKIPPED_TIER' | 'SKIPPED_AUTH';
 
 export interface ReferenceClass {
   id: string;

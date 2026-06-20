@@ -16,7 +16,7 @@ import { getUserTier } from '../_shared/entitlements.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
-const FUNCTION_VERSION = '0.3.0';
+const FUNCTION_VERSION = '0.4.0';
 
 
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -25,7 +25,7 @@ const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const DEEPSEEK_URL      = 'https://api.deepseek.com/v1/chat/completions';
-const RVCE_VERSION      = 'rvce-0.3.0-deepseek';
+const RVCE_VERSION      = 'rvce-0.4.0-deepseek';
 
 // Tier → max total observations collected across all metrics
 const OBS_LIMITS: Record<string, number> = {
@@ -648,35 +648,68 @@ serve(async (req) => {
 
   try {
     // ── Tier resolution ──
+    // RVCE is non-blocking. A failure here MUST NOT return 4xx — the client
+    // would render it as "could not be reached" which is a lie. Instead we
+    // return a structured 200 with status: SKIPPED_TIER or SKIPPED_AUTH so
+    // the UI can render the honest reason.
     const authHeader = req.headers.get('Authorization') ?? '';
     let tier: 'free' | 'plus' | 'pro' = 'free';
     let userId: string | null = null;
-    let adminClient: any = SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
-      ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
-      : null;
+    let tierResolutionReason = 'no_auth_header';
+    const adminClient: ReturnType<typeof createClient> | null =
+      SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY
+        ? createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY)
+        : null;
 
     if (authHeader.startsWith('Bearer ') && SUPABASE_URL && SUPABASE_SERVICE_ROLE_KEY) {
       try {
-        const userClient  = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+        const userClient = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
           global: { headers: { Authorization: authHeader } },
         });
-        const { data: claims } = await userClient.auth.getUser();
-        if (claims?.user?.id) {
+        const { data: claims, error: authErr } = await userClient.auth.getUser();
+        if (authErr) {
+          tierResolutionReason = `auth_error:${authErr.message}`;
+        } else if (claims?.user?.id) {
           userId = claims.user.id;
-          const { tier: resolvedTier } = await getUserTier(adminClient, userId);
-          tier = resolvedTier;
+          try {
+            const { tier: resolvedTier } = await getUserTier(adminClient, userId);
+            tier = resolvedTier;
+            tierResolutionReason = `resolved:${resolvedTier}`;
+          } catch (tierErr) {
+            tierResolutionReason = `tier_lookup_error:${(tierErr as Error).message}`;
+          }
+        } else {
+          tierResolutionReason = 'no_user_in_claims';
         }
-      } catch { /* fail open — external validation is non-blocking */ }
+      } catch (e) {
+        tierResolutionReason = `unexpected_error:${(e as Error).message}`;
+      }
     }
 
-    // RVCE requires Plus or Pro
+    // RVCE requires Plus or Pro. If we couldn't confirm tier or user is on
+    // free, return a structured SKIPPED payload (HTTP 200) — never 403.
     if (tier === 'free') {
+      console.log(`[rvce] skipping for tier=free, reason=${tierResolutionReason}`);
+      const isAuthIssue = !userId || tierResolutionReason.startsWith('auth_error') || tierResolutionReason === 'no_auth_header' || tierResolutionReason === 'no_user_in_claims';
       return jsonResp({
-        error: 'FEATURE_LOCKED',
-        message: 'External validation (RVCE) requires a Plus or Pro subscription.',
-        feature: 'rvce',
-        currentTier: 'free',
-      }, 403);
+        analysis_id: 'unknown',
+        rvce_version: RVCE_VERSION,
+        global_confidence_score: 0,
+        reference_classes: [],
+        metrics_validation: {},
+        flags: [],
+        evidence_samples: [],
+        latency_ms: Date.now() - start,
+        status: isAuthIssue ? 'SKIPPED_AUTH' : 'SKIPPED_TIER',
+        search_health: {
+          total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0,
+          total_observations_collected: 0, total_source_urls: 0,
+          fallback_queries_used: 0, metrics_with_zero_observations: 0,
+          observation_limit: 0, tier_used: tier, search_provider: 'skipped',
+        },
+        search_diagnostics: [],
+        skip_reason: tierResolutionReason,
+      });
     }
 
     const obsLimit = OBS_LIMITS[tier] ?? 40;

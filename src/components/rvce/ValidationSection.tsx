@@ -22,6 +22,24 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
     );
   }
 
+  if (validation.status === 'SKIPPED_TIER') {
+    return (
+      <section className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground flex items-center gap-2">
+        <HelpCircle className="h-4 w-4" />
+        External Reality Validation (RVCE) is included with Plus and Pro plans.
+      </section>
+    );
+  }
+
+  if (validation.status === 'SKIPPED_AUTH') {
+    return (
+      <section className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground flex items-center gap-2">
+        <HelpCircle className="h-4 w-4" />
+        We couldn't confirm your subscription for external validation. Try refreshing — if it persists, sign out and back in.
+      </section>
+    );
+  }
+
   const metrics = Object.entries(validation.metrics_validation);
   if (metrics.length === 0) {
     // Empty metrics with PARTIAL status means the rvce-validate call failed or
