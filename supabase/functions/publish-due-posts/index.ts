@@ -141,12 +141,17 @@ Deno.serve(async (req) => {
     });
   }
 
-  // Pull all credentials in one shot.
+  // Pull all credentials in one shot, then resolve their Vault-stored tokens.
   const { data: credRows } = await supa.from('autoposter_credentials').select('*').eq('is_active', true);
   const credsByPlatform = new Map<string, any>();
-  (credRows ?? []).forEach((c: any) => credsByPlatform.set(c.platform, c));
-
-  const results: Array<{ id: string; platform: string; ok: boolean; status: string; error?: string }> = [];
+  for (const c of (credRows ?? []) as any[]) {
+    let access_token: string | null = null;
+    if (c.access_token_secret_id) {
+      const { data: tok } = await supa.rpc('autoposter_read_token', { p_id: c.access_token_secret_id });
+      access_token = (tok as string) ?? null;
+    }
+    credsByPlatform.set(c.platform, { ...c, access_token });
+  }
 
   for (const row of due) {
     const platform = row.platform as Platform;
