@@ -1581,6 +1581,30 @@ export type Database = {
         }
         Relationships: []
       }
+      autoposter_oauth_state: {
+        Row: {
+          code_verifier: string | null
+          created_at: string
+          platform: string
+          redirect_uri: string | null
+          state: string
+        }
+        Insert: {
+          code_verifier?: string | null
+          created_at?: string
+          platform: string
+          redirect_uri?: string | null
+          state: string
+        }
+        Update: {
+          code_verifier?: string | null
+          created_at?: string
+          platform?: string
+          redirect_uri?: string | null
+          state?: string
+        }
+        Relationships: []
+      }
       autoposter_post_analytics: {
         Row: {
           clicks: number | null
@@ -6083,6 +6107,11 @@ export type Database = {
           rls_forced: boolean
           table_name: string
         }[]
+      }
+      autoposter_read_token: { Args: { p_id: string }; Returns: string }
+      autoposter_store_token: {
+        Args: { p_name: string; p_secret: string }
+        Returns: string
       }
       benchmark_lookup: {
         Args: {
