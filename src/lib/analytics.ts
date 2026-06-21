@@ -197,7 +197,8 @@ export type SowFunnelEvent =
   | 'analysis_completed'
   | 'verdict_viewed'
   | 'upgrade_cta_seen'
-  | 'subscription_started';
+  | 'subscription_started'
+  | 'vs_page_view';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
