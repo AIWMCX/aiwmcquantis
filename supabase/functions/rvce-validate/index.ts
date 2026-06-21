@@ -6,7 +6,8 @@
  *   1. Search  → DuckDuckGo Lite HTML scrape (no API key) + Tavily fallback if TAVILY_API_KEY set
  *   2. Extract → DeepSeek deepseek-v4-flash (JSON mode, temp=0.1) to pull numeric observations
  *      (legacy deepseek model deprecated 2026-07-24 — migrated to V4 model name directly)
- *   3. Gate    → Tier-aware: free=20 obs, plus=40 obs, pro=60 obs; plus/pro required for RVCE
+ *   3. Gate    → Tier-aware budgets: free=20 obs, plus=40 obs, pro=100 obs.
+ *               RVCE runs for every authenticated user (canonical spec 2026-06-20).
  *
  * Why DeepSeek: directive from product spec. No ANTHROPIC_API_KEY required.
  */
@@ -16,7 +17,7 @@ import { getUserTier } from '../_shared/entitlements.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
-const FUNCTION_VERSION = '0.4.0';
+const FUNCTION_VERSION = '0.5.0';
 
 
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
@@ -25,13 +26,14 @@ const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
 const DEEPSEEK_URL      = 'https://api.deepseek.com/v1/chat/completions';
-const RVCE_VERSION      = 'rvce-0.4.0-deepseek';
+const RVCE_VERSION      = 'rvce-0.5.0-deepseek';
 
-// Tier → max total observations collected across all metrics
+// Tier → max total observations collected across all metrics.
+// Canonical spec (2026-06-20, locked): Free 20 / Plus 40 / Pro 100.
 const OBS_LIMITS: Record<string, number> = {
   free:  20,
   plus:  40,
-  pro:   60,
+  pro:   100,
 };
 
 const CORS_HEADERS = {
@@ -686,11 +688,13 @@ serve(async (req) => {
       }
     }
 
-    // RVCE requires Plus or Pro. If we couldn't confirm tier or user is on
-    // free, return a structured SKIPPED payload (HTTP 200) — never 403.
-    if (tier === 'free') {
-      console.log(`[rvce] skipping for tier=free, reason=${tierResolutionReason}`);
-      const isAuthIssue = !userId || tierResolutionReason.startsWith('auth_error') || tierResolutionReason === 'no_auth_header' || tierResolutionReason === 'no_user_in_claims';
+    // Per canonical spec 2026-06-20: RVCE is available to ALL authenticated
+    // tiers — Free gets 20 obs, Plus 40, Pro 100. We only short-circuit when
+    // we genuinely could not authenticate the user (SKIPPED_AUTH) — never for
+    // a confirmed free user. Any tier resolution failure that still gives us
+    // a user_id falls through and runs RVCE with the free budget.
+    if (!userId) {
+      console.log(`[rvce] skipping for missing user, reason=${tierResolutionReason}`);
       return jsonResp({
         analysis_id: 'unknown',
         rvce_version: RVCE_VERSION,
@@ -700,7 +704,7 @@ serve(async (req) => {
         flags: [],
         evidence_samples: [],
         latency_ms: Date.now() - start,
-        status: isAuthIssue ? 'SKIPPED_AUTH' : 'SKIPPED_TIER',
+        status: 'SKIPPED_AUTH',
         search_health: {
           total_metrics_searched: 0, web_search_fired_count: 0, web_search_fired_ratio: 0,
           total_observations_collected: 0, total_source_urls: 0,
@@ -711,6 +715,7 @@ serve(async (req) => {
         skip_reason: tierResolutionReason,
       });
     }
+    console.log(`[rvce] running for tier=${tier}, reason=${tierResolutionReason}`);
 
     const obsLimit = OBS_LIMITS[tier] ?? 40;
 

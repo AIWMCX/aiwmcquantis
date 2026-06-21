@@ -22,15 +22,6 @@ export function ValidationSection({ validation }: { validation: AnalysisValidati
     );
   }
 
-  if (validation.status === 'SKIPPED_TIER') {
-    return (
-      <section className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground flex items-center gap-2">
-        <HelpCircle className="h-4 w-4" />
-        External Reality Validation (RVCE) is included with Plus and Pro plans.
-      </section>
-    );
-  }
-
   if (validation.status === 'SKIPPED_AUTH') {
     return (
       <section className="rounded-lg border border-border bg-card/40 p-4 text-sm text-muted-foreground flex items-center gap-2">
