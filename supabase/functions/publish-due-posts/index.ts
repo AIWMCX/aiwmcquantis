@@ -153,6 +153,10 @@ Deno.serve(async (req) => {
     credsByPlatform.set(c.platform, { ...c, access_token });
   }
 
+  const results: Array<{ id: string; platform: string; ok: boolean; status: string; error?: string }> = [];
+
+
+
   for (const row of due) {
     const platform = row.platform as Platform;
     const publisher = PUBLISHERS[platform];
