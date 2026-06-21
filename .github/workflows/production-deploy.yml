@@ -273,6 +273,10 @@ jobs:
             # ── Entitlements / admin observability (June stabilization) ───
             entitlements-snapshot
             admin-health-sweep
+            # ── Autoposter integration (OAuth + Meta credential bootstrap) ──
+            oauth-linkedin-callback
+            oauth-twitter-callback
+            meta-credentials-setup
           )
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do

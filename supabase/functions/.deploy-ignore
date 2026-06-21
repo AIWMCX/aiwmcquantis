@@ -35,6 +35,10 @@ autoposter-generate-content
 send-lead-magnet
 template-optimizer
 newsletter-unsubscribe
+# Admin-only Content Studio generator. Uses Lovable AI Gateway directly without
+# the shared _shared/ai-logger.ts middleware — adding to deploy list would fail
+# the verify-ai-cost-logging guard. Wire ai-logger first, then promote.
+content-studio-generate
 
 # ── Async workers / public API surface (review before relying on in prod) ──
 process-doc-job
