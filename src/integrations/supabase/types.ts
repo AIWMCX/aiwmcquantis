@@ -2771,6 +2771,63 @@ export type Database = {
         }
         Relationships: []
       }
+      content_studio_generations: {
+        Row: {
+          angle: string | null
+          audience: string | null
+          created_at: string
+          created_by: string
+          cta: string | null
+          emoji_enabled: boolean
+          hashtags_enabled: boolean
+          id: string
+          language: string
+          length: string | null
+          meta: Json
+          model: string | null
+          platforms: string[]
+          tone: string | null
+          topic: string
+          variants: Json
+        }
+        Insert: {
+          angle?: string | null
+          audience?: string | null
+          created_at?: string
+          created_by: string
+          cta?: string | null
+          emoji_enabled?: boolean
+          hashtags_enabled?: boolean
+          id?: string
+          language?: string
+          length?: string | null
+          meta?: Json
+          model?: string | null
+          platforms?: string[]
+          tone?: string | null
+          topic: string
+          variants?: Json
+        }
+        Update: {
+          angle?: string | null
+          audience?: string | null
+          created_at?: string
+          created_by?: string
+          cta?: string | null
+          emoji_enabled?: boolean
+          hashtags_enabled?: boolean
+          id?: string
+          language?: string
+          length?: string | null
+          meta?: Json
+          model?: string | null
+          platforms?: string[]
+          tone?: string | null
+          topic?: string
+          variants?: Json
+        }
+        Relationships: []
+      }
       data_provenance: {
         Row: {
           allowed_uses: string[] | null
@@ -6167,6 +6224,7 @@ export type Database = {
         }
         Returns: Json
       }
+      claim_admin_if_allowlisted: { Args: never; Returns: boolean }
       claim_anonymous_analysis: {
         Args: { p_analysis_id: string; p_anonymous_session_id: string }
         Returns: Json
@@ -6435,6 +6493,7 @@ export type Database = {
         Args: { p_month_year: string; p_user_id: string }
         Returns: undefined
       }
+      is_admin_allowlisted: { Args: { _email: string }; Returns: boolean }
       is_in_readonly_window: { Args: never; Returns: boolean }
       is_service_role: { Args: never; Returns: boolean }
       is_team_admin: {

@@ -37,6 +37,7 @@ import {
   Crown,
   Lock,
   Megaphone,
+  Sparkles,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -92,6 +93,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
+      { title: 'Content Studio', url: '/admin/content-studio', icon: Sparkles, adminOnly: true },
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
     ],
   },

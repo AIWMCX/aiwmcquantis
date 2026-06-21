@@ -18,6 +18,10 @@ export function useAdmin() {
       }
 
       try {
+        // Auto-claim admin role if the signed-in email is on the allowlist
+        // (beltovbogdan / jeltovbogdan / legal@aiwmcquantis.com).
+        await supabase.rpc('claim_admin_if_allowlisted');
+
         const { data, error } = await supabase
           .from('user_roles')
           .select('role')
