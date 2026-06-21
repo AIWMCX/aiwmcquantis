@@ -37,6 +37,7 @@ import {
   Crown,
   Lock,
   Megaphone,
+  Sparkles,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
