@@ -93,6 +93,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
+      { title: 'Content Studio', url: '/admin/content-studio', icon: Sparkles, adminOnly: true },
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
     ],
   },
