@@ -95,7 +95,7 @@ export default function ContentStudio() {
       .order('created_at', { ascending: false })
       .limit(20);
     if (error) return;
-    setHistory((data ?? []) as HistoryRow[]);
+    setHistory((data ?? []) as unknown as HistoryRow[]);
   }
 
   const togglePlatform = (p: Platform) =>
