@@ -17,7 +17,7 @@
 1. [Product Identity — Live Verified](#1-product-identity--live-verified)
 2. [Live Site Architecture](#2-live-site-architecture)
 3. [The 12 Financial Variables — Confirmed Engine Output](#3-the-12-financial-variables--confirmed-engine-output)
-4. [8-Layer AI Safety Architecture — Confirmed Live](#4-7-layer-ai-safety-architecture--confirmed-live)
+4. [8-Layer AI Safety Architecture — Confirmed Live](#4-8-layer-ai-safety-architecture--confirmed-live)
 5. [Deterministic Engine + Monte Carlo Protocol](#5-deterministic-engine--monte-carlo-protocol)
 6. [36-Month P&L Construction Rules](#6-36-month-pl-construction-rules)
 7. [Benchmark Database — Live Verified](#7-benchmark-database--live-verified)

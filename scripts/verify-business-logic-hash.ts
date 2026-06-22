@@ -12,7 +12,7 @@ import { readFileSync, statSync } from "node:fs";
 import { createHash } from "node:crypto";
 import { resolve } from "node:path";
 
-const EXPECTED_MD5 = "26a9e7bccf7b3e248dd2b411f887a2f5";
+const EXPECTED_MD5 = "678bcb87d247e05ff83cc407780d7104";
 const EXPECTED_VERSION = "4.0.0";
 const ROOT = resolve(import.meta.dirname ?? ".", "..");
 const TARGETS = [
