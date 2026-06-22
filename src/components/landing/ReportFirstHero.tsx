@@ -290,7 +290,7 @@ export function ReportFirstHero() {
             }}
           >
             <ShieldCheck className="w-3.5 h-3.5" />
-            Live sample · Audit-grade
+            Deterministic engine · Sources cited on every number
           </span>
           <h1
             className="font-bold leading-[1.05] tracking-tight max-w-4xl"
@@ -300,13 +300,40 @@ export function ReportFirstHero() {
               letterSpacing: '-0.03em',
             }}
           >
-            This is the report your investor will read.
+            Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
           </h1>
           <p className="mt-4 text-base md:text-lg max-w-2xl" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Scroll through a real Quantis pre-mortem below — same engine, same format you'll get.
-            Then drop your idea and generate yours in 90 seconds.
+            Quantis stress-tests your idea against <strong>95,500 verified benchmarks</strong> from SBA,
+            BLS, U.S. Census, IBISWorld, and OECD — and returns a proceed / pivot / kill verdict with
+            a saveable PDF. No credit card. First analysis free.
           </p>
+          {/* Data-source attribution row — real trust signals replacing fabricated review counts */}
+          <ul
+            aria-label="Benchmark data sources"
+            className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-mono uppercase tracking-wider"
+            style={{ color: 'hsl(var(--muted-foreground))' }}
+          >
+            {['SBA', 'BLS', 'U.S. Census', 'IBISWorld', 'OECD'].map((src) => (
+              <li key={src} className="inline-flex items-center gap-1.5">
+                <span
+                  className="inline-block w-1 h-1 rounded-full"
+                  style={{ background: 'hsl(var(--primary))' }}
+                  aria-hidden="true"
+                />
+                {src}
+              </li>
+            ))}
+            <li className="inline-flex items-center gap-1.5">
+              <span
+                className="inline-block w-1 h-1 rounded-full"
+                style={{ background: 'hsl(var(--primary))' }}
+                aria-hidden="true"
+              />
+              7-Layer QSL safety
+            </li>
+          </ul>
         </div>
+
 
         {/* === Headline metrics from the sample report (expandable) === */}
         <div className="mb-8 md:mb-10">
