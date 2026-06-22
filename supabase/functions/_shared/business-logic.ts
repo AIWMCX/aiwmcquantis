@@ -52,7 +52,7 @@ export const TWELVE_FINANCIAL_VARIABLES = [
 export type TwelveVariableKey = (typeof TWELVE_FINANCIAL_VARIABLES)[number];
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Section 4 — 7-Layer AI Safety Architecture (labels for telemetry + UI)
+// Section 4 — 8-Layer AI Safety Architecture (labels for telemetry + UI)
 // ─────────────────────────────────────────────────────────────────────────────
 export const SAFETY_LAYERS = [
   { id: 1, label: "Input sanitization & business type classification" },

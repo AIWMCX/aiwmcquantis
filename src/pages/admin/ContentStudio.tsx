@@ -153,7 +153,7 @@ export default function ContentStudio() {
       <div className="p-4 md:p-6 max-w-[1400px] mx-auto space-y-6">
         <header>
           <h1 className="text-2xl md:text-3xl font-bold font-sora flex items-center gap-2">
-            <Sparkles className="w-6 h-6 text-[#8FFF2A]" />
+            <Sparkles className="w-6 h-6 text-primary" />
             Content Studio
           </h1>
           <p className="text-sm text-[var(--q-text-secondary)] mt-1">
@@ -236,7 +236,7 @@ export default function ContentStudio() {
                       key={p.id}
                       onClick={() => togglePlatform(p.id)}
                       className={`px-3 py-1.5 rounded-md text-xs font-medium border transition ${
-                        on ? 'bg-[#8FFF2A] text-black border-[#8FFF2A]' : 'bg-transparent border-border text-foreground/70 hover:border-foreground'
+                        on ? 'bg-primary text-primary-foreground border-primary' : 'bg-transparent border-border text-foreground/70 hover:border-foreground'
                       }`}
                     >
                       {p.label}
@@ -268,7 +268,7 @@ export default function ContentStudio() {
               </Select>
             </div>
 
-            <Button onClick={generate} disabled={generating} className="w-full h-12 text-base font-semibold bg-[#8FFF2A] text-black hover:bg-[#8FFF2A]/90">
+            <Button onClick={generate} disabled={generating} className="w-full h-12 text-base font-semibold bg-primary text-primary-foreground hover:bg-primary/90">
               {generating ? <><Loader2 className="w-4 h-4 mr-2 animate-spin" />Generating…</> : <><Sparkles className="w-4 h-4 mr-2" />Generate</>}
             </Button>
           </Card>
@@ -306,7 +306,7 @@ export default function ContentStudio() {
                   {v.hook && <p className="text-sm font-semibold text-foreground/90">{v.hook}</p>}
                   <pre className="whitespace-pre-wrap text-sm leading-relaxed font-sans bg-background/40 p-3 rounded-md border border-border">{v.body}</pre>
                   {v.hashtags?.length ? (
-                    <p className="text-xs text-[#8FFF2A] font-mono">{v.hashtags.join(' ')}</p>
+                    <p className="text-xs text-primary font-mono">{v.hashtags.join(' ')}</p>
                   ) : null}
                   {v.image_prompt ? (
                     <p className="text-xs text-[var(--q-text-secondary)]">

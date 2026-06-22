@@ -63,7 +63,7 @@ This project follows **Airplane-Grade Security Engineering**:
 - ✅ **PII encryption** — Emails and phones encrypted via Supabase Vault (`pgp_sym_encrypt`)
 - ✅ **Admin lockdown** — Database trigger restricts admin role to a single authorized account
 - ✅ **Rate limiting** — Multi-layer (device, IP, browser fingerprint) with anti-incognito measures
-- ✅ **Input sanitization** — 1MB limit, regex cleaning, 7-layer AI safety guardrails
+- ✅ **Input sanitization** — 1MB limit, regex cleaning, 8-layer AI safety guardrails
 - ✅ **Edge Function auth** — CRON_SECRET-only authentication for scheduled tasks, no raw key comparisons
 - ✅ **Webhook security** — Stripe signature verification, PII redaction on stored payloads
 - ✅ **No secrets in code** — All API keys stored as encrypted environment variables

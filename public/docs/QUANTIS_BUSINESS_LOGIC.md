@@ -17,7 +17,7 @@
 1. [Product Identity — Live Verified](#1-product-identity--live-verified)
 2. [Live Site Architecture](#2-live-site-architecture)
 3. [The 12 Financial Variables — Confirmed Engine Output](#3-the-12-financial-variables--confirmed-engine-output)
-4. [7-Layer AI Safety Architecture — Confirmed Live](#4-7-layer-ai-safety-architecture--confirmed-live)
+4. [8-Layer AI Safety Architecture — Confirmed Live](#4-7-layer-ai-safety-architecture--confirmed-live)
 5. [Deterministic Engine + Monte Carlo Protocol](#5-deterministic-engine--monte-carlo-protocol)
 6. [36-Month P&L Construction Rules](#6-36-month-pl-construction-rules)
 7. [Benchmark Database — Live Verified](#7-benchmark-database--live-verified)
@@ -97,7 +97,7 @@ Quantis is a **"financial pre-mortem"** tool — this exact phrase is in the liv
 /examples/[slug]    51 individual pages
 /blog               Blog index
 /blog/[slug]        9 individual articles
-/methodology        Data sources, engine, 7-layer architecture
+/methodology        Data sources, engine, 8-layer architecture
 /risk-gallery       Common business risk patterns
 /leaderboard        Top validated ideas
 /app                The analysis tool
@@ -148,9 +148,9 @@ The live site explicitly states the engine calculates **exactly 12 financial var
 
 ---
 
-## 4. 7-LAYER AI SAFETY ARCHITECTURE — CONFIRMED LIVE
+## 4. 8-LAYER AI SAFETY ARCHITECTURE — CONFIRMED LIVE
 
-This is a core trust and marketing claim on the live site. Every implementation must honor all 7 layers exactly as described publicly.
+This is a core trust and marketing claim on the live site. Every implementation must honor all 8 layers exactly as described publicly.
 
 ```
 LAYER 1: Input sanitization & business type classification
@@ -916,7 +916,7 @@ STEP 1 — Input:
   Min 10 chars + valid city
 
 STEP 2 — Processing (≤90 seconds):
-  Progress labels matching 7-layer architecture:
+  Progress labels matching 8-layer architecture:
   "Classifying business type..." → "Matching 95,500 benchmarks..." →
   "Adjusting for [city]..." → "Running dual-AI consensus..." →
   "Running 1,000 Monte Carlo simulations..." → "Running sanity checks..." →
@@ -1093,7 +1093,7 @@ Twitter:      "Quantis — 90% of Businesses Fail. Yours Doesn't Have To | Free 
 ✓ USE: "proceed/pivot/kill verdict"
 ✓ USE: "P10/P50/P90"
 ✓ USE: "deterministic financial engine" (live terminology)
-✓ USE: "7-layer AI safety architecture" (live trust claim)
+✓ USE: "8-layer AI safety architecture" (live trust claim, incl. RVCE)
 ✓ USE: "12 financial variables" (live output claim)
 ✓ USE: "AIWMC™ LLC" in footer and legal contexts
 
