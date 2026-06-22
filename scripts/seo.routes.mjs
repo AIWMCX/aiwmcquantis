@@ -17,6 +17,8 @@ export const PUBLIC_ROUTES = [
   // ---- Core pages (17) ------------------------------------------------------
   { path: "/",                title: "AIWMC Quantis", isHome: true,
     must: ["$17", "Plus", "$49", "Pro"] },
+  { path: "/app",             title: "Quantis",
+    must: ["analysis"] },
   { path: "/how-it-works",    title: "Quantis" },
   { path: "/use-cases",       title: "Quantis" },
   { path: "/pricing",         title: "Pricing",

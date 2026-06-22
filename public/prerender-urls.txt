@@ -1,4 +1,5 @@
 /
+/app
 /pricing
 /how-it-works
 /methodology

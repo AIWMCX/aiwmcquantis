@@ -11,6 +11,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
 import { ShareRail } from '@/components/result/ShareRail';
 import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSkeleton';
+import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 
@@ -223,6 +224,22 @@ export default function PublicAnalysisResult() {
         <Suspense fallback={<AnalysisResultsSkeleton />}>
           <AccuracyTransparentResults result={data.result} analysisId={id} />
         </Suspense>
+
+        {/* Above-the-fold-of-decision email capture — anon users only.
+            Wired through useLeadCapture → capture_lead RPC → send-welcome-email edge fn. */}
+        {!isAuthenticated && (
+          <PostAnalysisEmailCapture
+            ideaTitle={data.idea}
+            monthlyProfit={
+              typeof data.result?.financial_analysis?.monthly_profit === 'number'
+                ? `$${Math.round(data.result.financial_analysis.monthly_profit).toLocaleString()}`
+                : undefined
+            }
+            onDismiss={() => {
+              trackEvent('post_results_email_dismissed', { analysis_id: id });
+            }}
+          />
+        )}
       </main>
 
       <Footer />

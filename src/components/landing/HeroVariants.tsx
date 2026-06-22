@@ -11,20 +11,22 @@ export interface HeroContent {
 
 // Extended CTA variants beyond the existing headlines
 export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
+  // Audit-approved control (2026-06-22): personalises stakes, time-bounds the promise,
+  // bridges directly to outcome. Replaces the old "90% fail" stat headline (no urgency, no bridge).
   control: {
-    title: '90% of businesses fail in 5 years. Most had a plan. None had validation.',
-    subtitle: 'A financial consultant charges $1,500–$25,000 to stress-test your model. Quantis does it in 90 seconds. Your first analysis is free.',
-    ctaText: 'Stress-test my idea — free',
+    title: 'Before you invest $50K, spend 90 seconds finding out if you’ll get it back.',
+    subtitle: 'Quantis stress-tests your idea against 95,500 verified benchmarks (SBA · BLS · Census · IBISWorld · OECD) and returns a proceed / pivot / kill verdict. No credit card. First analysis free.',
+    ctaText: 'Stress-test my idea — free (90s)',
   },
   numbers_first: {
-    title: '3 fatal assumptions. 36-month stress-test. One clear verdict.',
-    subtitle: 'Every number sourced. Every assumption challenged. Know exactly where your model breaks before you invest a dollar.',
-    ctaText: 'Stress-test my idea — free',
+    title: 'Your business idea has 3 fatal assumptions. We’ll find them in 90 seconds.',
+    subtitle: 'Deterministic engine. 12 financial variables. 1,000 Monte Carlo runs. Every number sourced — see exactly where your model breaks before you spend a dollar.',
+    ctaText: 'Find my 3 fatal assumptions — free',
   },
   action_focused: {
-    title: 'Should you commit $50k to this idea? Find out in 90 seconds.',
-    subtitle: 'Dual AI engines run a forensic pre-mortem on your business model — financial, market, and operational. Get a proceed/pivot/kill verdict.',
-    ctaText: 'Stress-test my idea — free',
+    title: 'Every number in your business plan is a guess. Stress-test them against 95,500 real benchmarks — free.',
+    subtitle: 'Dual-AI consensus on financial, market, and operational risk. Get a proceed/pivot/kill verdict with a saveable PDF in 90 seconds.',
+    ctaText: 'Run my free stress-test',
   },
 };
 

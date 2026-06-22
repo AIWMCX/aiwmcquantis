@@ -331,10 +331,9 @@ export default function Index() {
   return (
     <AppLayout title="Dashboard">
       <PageSEO
-        title="Dashboard | AIWMC Quantis"
-        description="Access your AI-powered business analyses, financial projections, and business plans."
+        title="Run a free business idea analysis in 90 seconds | AIWMC Quantis"
+        description="Stress-test any business idea against 95,500 verified benchmarks (SBA, BLS, Census, IBISWorld, OECD). Free first analysis — no credit card. Get a proceed/pivot/kill verdict with Monte Carlo projections."
         canonical="/app"
-        noindex={true}
       />
 
       <div className="container max-w-7xl px-4 sm:px-6 py-6">
