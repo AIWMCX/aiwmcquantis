@@ -231,8 +231,8 @@ export default function PublicAnalysisResult() {
           <PostAnalysisEmailCapture
             ideaTitle={data.idea}
             monthlyProfit={
-              typeof data.result?.financial_projections?.monthly_profit === 'number'
-                ? `$${Math.round(data.result.financial_projections.monthly_profit).toLocaleString()}`
+              typeof data.result?.financial_analysis?.monthly_profit === 'number'
+                ? `$${Math.round(data.result.financial_analysis.monthly_profit).toLocaleString()}`
                 : undefined
             }
             onDismiss={() => {
