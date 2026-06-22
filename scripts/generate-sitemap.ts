@@ -43,6 +43,7 @@ type Entry = { path: string; changefreq: string; priority: string };
 
 const staticEntries: Entry[] = [
   { path: '/', changefreq: 'weekly', priority: '1.0' },
+  { path: '/app', changefreq: 'weekly', priority: '0.95' },
   { path: '/pricing', changefreq: 'weekly', priority: '0.9' },
   { path: '/how-it-works', changefreq: 'monthly', priority: '0.9' },
   { path: '/methodology', changefreq: 'monthly', priority: '0.8' },
