@@ -11,7 +11,8 @@ Allow: /risk-gallery
 Allow: /pricing
 Allow: /blog
 Allow: /methodology
-Disallow: /app
+Allow: /app
+Allow: /app$
 Disallow: /app/
 Disallow: /admin
 Disallow: /admin/
