@@ -11,6 +11,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { Footer } from '@/components/layout/Footer';
 import { ShareRail } from '@/components/result/ShareRail';
 import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSkeleton';
+import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
 
