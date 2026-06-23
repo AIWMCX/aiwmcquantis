@@ -1,86 +1,153 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Moon, Sun, Menu, ArrowRight } from 'lucide-react';
+import { Sun, Moon, Menu, ArrowRight } from 'lucide-react';
 import { MobileNav } from '@/components/layout/MobileNav';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/hooks/useAuth';
 
 /**
- * RMG Header — "Risk Matrix Grid" direction.
- * The AIWMC // QUANTIS wordmark is engraved directly into the header bar;
- * there is no boxed logo chip. The header sits on the same 12-col grid as
- * the rest of the landing surface.
+ * Quantis Landing Header
+ *
+ * Unified with the in-app design system — uses only var(--q-*) tokens
+ * and the same Cabinet Grotesk / IBM Plex Mono font pair as the sidebar.
+ * No more rmg-* CSS dependencies.
  */
+
+const NAV = [
+  { to: '/how-it-works', label: 'How It Works' },
+  { to: '/use-cases',    label: 'Use Cases'    },
+  { to: '/examples',     label: 'Examples'     },
+  { to: '/risk-gallery', label: 'Risk Gallery' },
+  { to: '/pricing',      label: 'Pricing'      },
+];
+
 export function RmgHeader() {
   const { theme, setTheme } = useTheme();
   const { user } = useAuth();
 
-  const nav = [
-    { to: '/how-it-works', label: 'How It Works' },
-    { to: '/use-cases', label: 'Use Cases' },
-    { to: '/examples', label: 'Examples' },
-    { to: '/risk-gallery', label: 'Risk Gallery' },
-    { to: '/pricing', label: 'Pricing' },
-  ];
-
   return (
-    <header className="sticky top-0 z-50 w-full border-b border-[var(--rmg-ink-2)] bg-[var(--rmg-ink-0)]/85 backdrop-blur-md">
+    <header
+      className="sticky top-0 z-50 w-full"
+      style={{
+        background: 'rgba(7,13,26,0.88)',
+        backdropFilter: 'blur(14px)',
+        WebkitBackdropFilter: 'blur(14px)',
+        borderBottom: '1px solid var(--q-border-subtle)',
+      }}
+    >
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex h-16 items-center gap-6">
-          {/* Mobile menu */}
+        <div className="flex items-center gap-6" style={{ height: '56px' }}>
+
+          {/* ── Mobile hamburger ── */}
           <div className="md:hidden">
             <MobileNav>
               <button
-                className="p-2 rounded-md text-[var(--rmg-text-dim)] hover:text-[var(--rmg-text)] hover:bg-[var(--rmg-ink-2)] transition-colors"
-                aria-label="Open navigation menu"
+                className="p-2 rounded-lg transition-colors"
+                style={{ color: 'var(--q-text-tertiary)' }}
+                aria-label="Open menu"
               >
                 <Menu className="w-5 h-5" />
               </button>
             </MobileNav>
           </div>
 
-          {/* Engraved wordmark — dissolves into ink */}
-          <Link to={user ? '/app' : '/'} className="flex items-baseline gap-2.5 group" aria-label="AIWMC Quantis — home">
-            <span className="rmg-wordmark-tag hidden sm:inline">AIWMC //</span>
-            <span className="rmg-wordmark text-[20px] sm:text-[22px] leading-none">
+          {/* ── AIWMC // QUANTIS. wordmark — same as AppSidebar ── */}
+          <Link
+            to={user ? '/app' : '/'}
+            className="flex items-baseline gap-2 flex-shrink-0 group"
+            aria-label="AIWMC Quantis — home"
+          >
+            <span
+              className="hidden sm:inline-block text-[10px] font-semibold tracking-[0.16em] uppercase transition-opacity group-hover:opacity-100 opacity-75"
+              style={{
+                fontFamily: 'var(--q-font-mono)',
+                color: 'var(--q-accent-primary)',
+              }}
+            >
+              AIWMC //
+            </span>
+            <span
+              className="text-[20px] sm:text-[22px] font-extrabold leading-none tracking-tight"
+              style={{
+                fontFamily: 'var(--q-font-heading)',
+                color: 'var(--q-text-primary)',
+                letterSpacing: '-0.02em',
+              }}
+            >
               QUANTIS
-              <span className="text-[var(--rmg-cyan)] opacity-60">.</span>
+              <span style={{ color: 'var(--q-accent-primary)' }}>.</span>
             </span>
           </Link>
 
-          {/* Nav */}
-          <nav className="hidden md:flex items-center gap-7 ml-4 whitespace-nowrap">
-            {nav.map((n) => (
+          {/* ── Primary nav ── */}
+          <nav className="hidden md:flex items-center gap-6 ml-2">
+            {NAV.map((n) => (
               <Link
                 key={n.to}
                 to={n.to}
-                className="rmg-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rmg-text-dim)] hover:text-[var(--rmg-cyan)] transition-colors whitespace-nowrap"
+                className="text-[11px] font-medium uppercase tracking-[0.13em] transition-colors whitespace-nowrap"
+                style={{
+                  fontFamily: 'var(--q-font-mono)',
+                  color: 'var(--q-text-tertiary)',
+                }}
+                onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-primary)'; }}
+                onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-tertiary)'; }}
               >
                 {n.label}
               </Link>
             ))}
           </nav>
 
-          {/* Right cluster */}
-          <div className="ml-auto flex items-center gap-3 whitespace-nowrap">
-            <div className="hidden lg:flex items-center gap-2 rmg-mono text-[10px] uppercase tracking-widest text-[var(--rmg-text-mute)] whitespace-nowrap">
-              <span className="w-1.5 h-1.5 rounded-full bg-[var(--rmg-lime)] shadow-[0_0_8px_var(--rmg-lime)]" />
+          {/* ── Right cluster ── */}
+          <div className="ml-auto flex items-center gap-3 flex-shrink-0">
+
+            {/* ENGINE ONLINE — matches AppTopBar */}
+            <div
+              className="hidden lg:flex items-center gap-1.5 text-[10px] font-medium uppercase tracking-[0.14em] whitespace-nowrap"
+              style={{
+                fontFamily: 'var(--q-font-mono)',
+                color: 'var(--q-text-tertiary)',
+              }}
+            >
+              <span
+                className="w-1.5 h-1.5 rounded-full inline-block"
+                style={{
+                  background: 'var(--q-status-green)',
+                  boxShadow: '0 0 7px var(--q-status-green)',
+                }}
+              />
               Engine Online
             </div>
 
-
+            {/* Theme toggle */}
             <button
               onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-md text-[var(--rmg-text-dim)] hover:text-[var(--rmg-text)] hover:bg-[var(--rmg-ink-2)] transition-colors"
+              className="p-2 rounded-lg transition-colors"
+              style={{ color: 'var(--q-text-tertiary)' }}
               aria-label="Toggle theme"
+              onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-primary)'; }}
+              onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-tertiary)'; }}
             >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+              {theme === 'dark'
+                ? <Sun className="w-4 h-4" />
+                : <Moon className="w-4 h-4" />}
             </button>
 
+            {/* CTA — same teal as before, but via css variable */}
             {user ? (
               <Link
                 to="/app"
-                className="rmg-mono text-[11px] uppercase tracking-[0.14em] bg-[var(--rmg-cyan)] hover:bg-[var(--rmg-cyan-hi)] text-[var(--rmg-ink-0)] font-semibold px-4 py-2.5 inline-flex items-center gap-1.5 transition-colors"
+                className="inline-flex items-center gap-1.5 font-semibold transition-opacity hover:opacity-90"
+                style={{
+                  fontFamily: 'var(--q-font-mono)',
+                  fontSize: '11px',
+                  letterSpacing: '0.12em',
+                  textTransform: 'uppercase',
+                  background: 'var(--aiwmc-teal, #2DD4BF)',
+                  color: '#060C18',
+                  padding: '9px 16px',
+                  borderRadius: '4px',
+                }}
               >
                 Go to App <ArrowRight className="w-3.5 h-3.5" />
               </Link>
@@ -88,19 +155,37 @@ export function RmgHeader() {
               <>
                 <Link
                   to="/auth"
-                  className="hidden sm:inline rmg-mono text-[11px] uppercase tracking-[0.14em] text-[var(--rmg-text-dim)] hover:text-[var(--rmg-text)] transition-colors px-2"
+                  className="hidden sm:inline text-[11px] font-medium uppercase tracking-[0.12em] transition-colors px-2"
+                  style={{
+                    fontFamily: 'var(--q-font-mono)',
+                    color: 'var(--q-text-tertiary)',
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-primary)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.color = 'var(--q-text-tertiary)'; }}
                 >
                   Sign In
                 </Link>
                 <Link
                   to="/auth?mode=signup"
-                  className="rmg-mono text-[11px] uppercase tracking-[0.14em] bg-[var(--rmg-cyan)] hover:bg-[var(--rmg-cyan-hi)] text-[var(--rmg-ink-0)] font-semibold px-4 py-2.5 inline-flex items-center gap-1.5 transition-colors"
+                  className="inline-flex items-center gap-1.5 font-semibold transition-opacity hover:opacity-90"
+                  style={{
+                    fontFamily: 'var(--q-font-mono)',
+                    fontSize: '11px',
+                    letterSpacing: '0.12em',
+                    textTransform: 'uppercase',
+                    background: 'var(--aiwmc-teal, #2DD4BF)',
+                    color: '#060C18',
+                    padding: '9px 16px',
+                    borderRadius: '4px',
+                    whiteSpace: 'nowrap',
+                  }}
                 >
                   Start Free Analysis <ArrowRight className="w-3.5 h-3.5" />
                 </Link>
               </>
             )}
           </div>
+
         </div>
       </div>
     </header>
