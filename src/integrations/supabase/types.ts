@@ -3989,12 +3989,15 @@ export type Database = {
       }
       leads: {
         Row: {
+          confirmation_token: string | null
+          confirmed_at: string | null
           conversion_type: string | null
           converted_at: string | null
           created_at: string | null
           email_encrypted: string
           email_hash: string | null
           id: string
+          marketing_opt_in: boolean | null
           metadata: Json | null
           offer: string
           score: number | null
@@ -4004,12 +4007,15 @@ export type Database = {
           updated_at: string | null
         }
         Insert: {
+          confirmation_token?: string | null
+          confirmed_at?: string | null
           conversion_type?: string | null
           converted_at?: string | null
           created_at?: string | null
           email_encrypted: string
           email_hash?: string | null
           id?: string
+          marketing_opt_in?: boolean | null
           metadata?: Json | null
           offer: string
           score?: number | null
@@ -4019,12 +4025,15 @@ export type Database = {
           updated_at?: string | null
         }
         Update: {
+          confirmation_token?: string | null
+          confirmed_at?: string | null
           conversion_type?: string | null
           converted_at?: string | null
           created_at?: string | null
           email_encrypted?: string
           email_hash?: string | null
           id?: string
+          marketing_opt_in?: boolean | null
           metadata?: Json | null
           offer?: string
           score?: number | null
@@ -4226,6 +4235,7 @@ export type Database = {
       profiles: {
         Row: {
           created_at: string | null
+          email_marketing_opt_in: boolean | null
           full_name: string | null
           id: string
           phone_encrypted: string | null
@@ -4233,6 +4243,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string | null
+          email_marketing_opt_in?: boolean | null
           full_name?: string | null
           id: string
           phone_encrypted?: string | null
@@ -4240,6 +4251,7 @@ export type Database = {
         }
         Update: {
           created_at?: string | null
+          email_marketing_opt_in?: boolean | null
           full_name?: string | null
           id?: string
           phone_encrypted?: string | null

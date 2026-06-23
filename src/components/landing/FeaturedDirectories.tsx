@@ -5,7 +5,7 @@ import { Link } from 'react-router-dom';
 // Curated set shown on the landing page as a proof-of-presence strip.
 // Order matches a "tech SaaS" aesthetic: launch platforms first, then
 // AI tool directories, then SaaS comparison sites.
-const FEATURED_IDS = [11, 17, 16, 2, 5, 7, 8, 6, 9, 14, 19, 41];
+const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41];
 
 function faviconFor(url: string): string {
   try {

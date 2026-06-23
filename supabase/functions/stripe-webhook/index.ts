@@ -407,6 +407,9 @@ serve(async (req) => {
           status: status,
           current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
           current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+          trial_ends_at: (subscription as any).trial_end
+            ? new Date((subscription as any).trial_end * 1000).toISOString()
+            : null,
         };
         log.info(`[${requestId}] Subscription data:`, JSON.stringify(subscriptionData));
 
@@ -484,6 +487,9 @@ serve(async (req) => {
                     status: status,
                     current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
                     current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                    trial_ends_at: (subscription as any).trial_end
+                      ? new Date((subscription as any).trial_end * 1000).toISOString()
+                      : null,
                   })
                   .eq("stripe_subscription_id", (subscription as any).id);
                 if (error) throw error;
@@ -529,6 +535,9 @@ serve(async (req) => {
                   status: status,
                   current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
                   current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  trial_ends_at: (subscription as any).trial_end
+                    ? new Date((subscription as any).trial_end * 1000).toISOString()
+                    : null,
                 });
                 if (result.success) {
                   log.info(`[${requestId}] SUCCESS: Subscription upserted via email fallback for user ${userId}`);
@@ -694,6 +703,9 @@ serve(async (req) => {
                   status: status,
                   current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
                   current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+                  trial_ends_at: (subscription as any).trial_end
+                    ? new Date((subscription as any).trial_end * 1000).toISOString()
+                    : null,
                 });
                 if (result.success) {
                   log.info(`[${requestId}] ✓ Subscription synced via invoice.paid email fallback for user ${userId}`);

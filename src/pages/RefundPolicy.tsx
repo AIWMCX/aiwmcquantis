@@ -80,9 +80,9 @@ export default function RefundPolicyPage() {
 
             <Block title="Pro Annual ($492/yr)">
               <p>
-                Pro Annual does not include a free trial — you're charged immediately. The 14-day refund
-                window applies from the charge date, so you have two full weeks to evaluate the product and
-                request a full refund if it doesn't meet expectations.
+                Pro Annual includes the same 14-day free trial as all other paid plans. You can cancel
+                during the trial without being charged. If you're charged after the trial, the 14-day
+                refund window applies from that charge date.
               </p>
             </Block>
 

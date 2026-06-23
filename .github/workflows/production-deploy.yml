@@ -263,6 +263,7 @@ jobs:
             # ── Lifecycle emails ──────────────────────────────────────────
             send-welcome-email
             send-lifecycle-email
+            confirm-email-subscription
             # ── Platform / infra ──────────────────────────────────────────
             health-check
             warm-functions
@@ -278,10 +279,17 @@ jobs:
             oauth-twitter-callback
             meta-credentials-setup
           )
+          # Functions that must be callable without a JWT (email confirm/unsubscribe links)
+          NO_VERIFY_JWT_FNS="confirm-email-subscription"
+
           FAILED=()
           for fn in "${FUNCTIONS[@]}"; do
             echo "Deploying $fn …"
-            if npx supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --use-api 2>&1; then
+            EXTRA_FLAGS=""
+            if echo "$NO_VERIFY_JWT_FNS" | grep -qw "$fn"; then
+              EXTRA_FLAGS="--no-verify-jwt"
+            fi
+            if npx supabase functions deploy "$fn" --project-ref "$PROJECT_REF" --use-api $EXTRA_FLAGS 2>&1; then
               echo "✓ $fn deployed"
             else
               echo "✗ $fn FAILED"

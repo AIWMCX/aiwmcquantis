@@ -144,7 +144,7 @@ export const ExitIntentPopup = ({ isOpen, onClose, onSubmitSuccess }: ExitIntent
               </h3>
               
               <p className="text-muted-foreground mb-4">
-                Check your inbox for the Founder Validation Starter Kit.
+                Check your inbox to confirm your email and get the Founder Validation Starter Kit.
               </p>
               
               <p className="text-sm text-muted-foreground">

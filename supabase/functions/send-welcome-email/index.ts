@@ -42,9 +42,12 @@ const sendEmail = async (options: {
 interface WelcomeEmailRequest {
   email: string;
   name: string;
+  mode?: 'welcome' | 'confirmation';
+  leadId?: string;
+  unsubscribeUrl?: string;
 }
 
-const generateWelcomeEmailHtml = (name: string, email: string): string => {
+const generateWelcomeEmailHtml = (name: string, email: string, unsubscribeUrl?: string): string => {
   const firstName = name.split(' ')[0] || 'Friend';
   const encodedEmail = encodeURIComponent(email);
   const signupUrl = `https://aiwmcquantis.com/auth?email=${encodedEmail}&tab=signup`;
@@ -219,6 +222,7 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
                       <a href="https://aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms of Service</a>
                       &nbsp;|&nbsp;
                       <a href="https://aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy Policy</a>
+                      ${unsubscribeUrl ? `&nbsp;|&nbsp;<a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>` : ''}
                     </p>
                   </td>
                 </tr>
@@ -237,6 +241,85 @@ const generateWelcomeEmailHtml = (name: string, email: string): string => {
   `;
 };
 
+const generateConfirmationEmailHtml = (name: string, confirmUrl: string, unsubscribeUrl: string): string => {
+  const firstName = name.split(' ')[0] || 'Friend';
+  return `
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Confirm Your Email - AIWMC Quantis</title>
+</head>
+<body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f4f4f5; color: #1f2937;">
+  <div style="display: none; max-height: 0px; overflow: hidden;">
+    Please confirm your email to start receiving insights from AIWMC Quantis.
+  </div>
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" border="0" style="background-color: #f4f4f5;">
+    <tr>
+      <td align="center" style="padding: 40px 20px;">
+        <table role="presentation" width="600" cellspacing="0" cellpadding="0" border="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05); max-width: 600px; width: 100%;">
+          <tr>
+            <td align="center" style="padding: 40px 40px 30px 40px; border-bottom: 1px solid #e5e7eb;">
+              <span style="font-size: 28px; font-weight: 700; color: #1a1a1a; letter-spacing: -0.5px;">AIWMC Quantis</span>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 40px 40px 20px 40px;">
+              <h1 style="margin: 0 0 20px 0; font-size: 24px; font-weight: 600; color: #1a1a1a;">
+                Confirm your email, ${firstName}
+              </h1>
+              <p style="margin: 0 0 20px 0; font-size: 16px; line-height: 1.6; color: #4b5563;">
+                Thanks for signing up! Please confirm your email address so we can send you business insights, analysis tips, and product updates.
+              </p>
+              <p style="margin: 0 0 20px 0; font-size: 14px; line-height: 1.6; color: #6b7280;">
+                This is a one-time confirmation. We will never share your email with third parties.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td align="center" style="padding: 0 40px 30px 40px;">
+              <table role="presentation" cellspacing="0" cellpadding="0" border="0">
+                <tr>
+                  <td align="center" style="border-radius: 8px; background-color: #1a1a1a;">
+                    <a href="${confirmUrl}" target="_blank" style="display: inline-block; padding: 16px 32px; font-size: 16px; font-weight: 600; color: #ffffff; text-decoration: none;">
+                      Yes, Confirm My Email
+                    </a>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 0 40px 30px 40px;">
+              <p style="margin: 0; font-size: 13px; line-height: 1.6; color: #9ca3af;">
+                If you didn't sign up for AIWMC Quantis, you can safely ignore this email. The link expires in 7 days.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 30px 40px; background-color: #f9fafb; border-radius: 0 0 12px 12px;">
+              <p style="margin: 0 0 8px 0; font-size: 12px; color: #9ca3af; text-align: center;">
+                &copy; ${new Date().getFullYear()} AIWMC Quantis. All Rights Reserved.
+              </p>
+              <p style="margin: 0; font-size: 11px; color: #9ca3af; text-align: center;">
+                <a href="https://aiwmcquantis.com/terms" style="color: #6b7280; text-decoration: underline;">Terms</a>
+                &nbsp;|&nbsp;
+                <a href="https://aiwmcquantis.com/privacy" style="color: #6b7280; text-decoration: underline;">Privacy</a>
+                &nbsp;|&nbsp;
+                <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: underline;">Unsubscribe</a>
+              </p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
+  `;
+};
+
 const handler = async (req: Request): Promise<Response> => {
   const __health = maybeHealthResponse(req, FUNCTION_NAME, FUNCTION_VERSION);
   if (__health) return __health;
@@ -249,7 +332,7 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, name }: WelcomeEmailRequest = await req.json();
+    const { email, name, mode, leadId, unsubscribeUrl: passedUnsubUrl }: WelcomeEmailRequest = await req.json();
 
     // Validate input
     if (!email || !name) {
@@ -275,7 +358,6 @@ const handler = async (req: Request): Promise<Response> => {
     }
 
     // Anti-abuse: 3 sends/hr per recipient, 20/hr per caller IP.
-    // If the caller is authenticated AND emailing themselves, skip the limit.
     const admin = createClient(
       Deno.env.get("SUPABASE_URL")!,
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!,
@@ -296,25 +378,68 @@ const handler = async (req: Request): Promise<Response> => {
       } catch { /* fall through to rate limit */ }
     }
 
+    const templateKey = mode === 'confirmation' ? 'confirmation_email' : 'welcome_email';
     const guard = await assertEmailSendAllowed(
       admin,
-      { req, recipient: email, templateKey: "welcome_email", skip: skipLimit },
+      { req, recipient: email, templateKey, skip: skipLimit },
       corsHeaders,
     );
     if (!guard.ok) {
-      log.info("welcome-email send rate-limited");
+      log.info(`${templateKey} send rate-limited`);
       return guard.response;
     }
 
-    log.info(`Sending welcome email to: ${email}`);
+    let emailResponse: Record<string, unknown>;
 
-    const emailResponse = await sendEmail({
-      from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
-      to: [email],
-      replyTo: "AIWMCSRM@gmail.com",
-      subject: "Welcome to AIWMC Quantis - Your Free Analysis Awaits!",
-      html: generateWelcomeEmailHtml(name, email),
-    });
+    if (mode === 'confirmation' && leadId) {
+      // Look up the confirmation token from the leads table
+      const { data: lead } = await admin
+        .from('leads')
+        .select('confirmation_token, email_hash')
+        .eq('id', leadId)
+        .single();
+
+      if (!lead?.confirmation_token) {
+        return new Response(
+          JSON.stringify({ error: "Lead not found or already confirmed" }),
+          { status: 404, headers: { "Content-Type": "application/json", ...corsHeaders } }
+        );
+      }
+
+      const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+      const confirmUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=confirm&token=${lead.confirmation_token}`;
+      const unsubscribeUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=unsubscribe&hash=${lead.email_hash}`;
+
+      log.info(`Sending confirmation email to: ${email}`);
+
+      emailResponse = await sendEmail({
+        from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
+        to: [email],
+        replyTo: "AIWMCSRM@gmail.com",
+        subject: "Confirm your email - AIWMC Quantis",
+        html: generateConfirmationEmailHtml(name, confirmUrl, unsubscribeUrl),
+      });
+    } else {
+      log.info(`Sending welcome email to: ${email}`);
+
+      // Compute unsubscribe URL from email hash
+      let unsubscribeUrl = passedUnsubUrl;
+      if (!unsubscribeUrl) {
+        const encoder = new TextEncoder();
+        const hashBuffer = await crypto.subtle.digest('SHA-256', encoder.encode(email.toLowerCase()));
+        const emailHash = Array.from(new Uint8Array(hashBuffer)).map(b => b.toString(16).padStart(2, '0')).join('');
+        const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
+        unsubscribeUrl = `${supabaseUrl}/functions/v1/confirm-email-subscription?action=unsubscribe&hash=${emailHash}`;
+      }
+
+      emailResponse = await sendEmail({
+        from: "AIWMC Quantis <noreply@aiwmcquantis.com>",
+        to: [email],
+        replyTo: "AIWMCSRM@gmail.com",
+        subject: "Welcome to AIWMC Quantis - Your Free Analysis Awaits!",
+        html: generateWelcomeEmailHtml(name, email, unsubscribeUrl),
+      });
+    }
 
     await guard.recordSend((emailResponse as { id?: string })?.id ?? null);
     log.info("Email sent successfully:", emailResponse);

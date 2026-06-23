@@ -203,24 +203,18 @@ export function useLeadCapture(config: LeadCaptureConfig): UseLeadCaptureReturn 
       // 2. Save to localStorage for auth prefill
       saveLeadEmail(email, source as 'exit_intent_popup' | 'landing_page' | 'other');
 
-      // 3. Send lead magnet email (with resource link for applicable offers)
+      // 3. Send double opt-in confirmation email
       const emailName = email.split('@')[0].replace(/[._-]/g, ' ') || 'Friend';
-      const capitalizedName = emailName.split(' ').map(word => 
+      const capitalizedName = emailName.split(' ').map(word =>
         word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
       ).join(' ');
 
-      // Use send-lead-magnet for offer-specific emails, send-welcome-email as fallback
-      const edgeFn = ['founder_starter_kit', 'free_analysis', 'business_guide', 'validation_questions', 'projection_template', 'newsletter', 'early_access'].includes(offer)
-        ? 'send-lead-magnet'
-        : 'send-welcome-email';
-
-      const { error: emailError } = await supabase.functions.invoke(edgeFn, {
-        body: { email, name: capitalizedName, offer, leadId: data },
+      const { error: emailError } = await supabase.functions.invoke('send-welcome-email', {
+        body: { email, name: capitalizedName, mode: 'confirmation', leadId: data },
       });
 
       if (emailError) {
-        logger.error(`Failed to send ${edgeFn} email:`, emailError);
-        // Don't fail the flow - lead is captured
+        logger.error('Failed to send confirmation email:', emailError);
       }
 
       // 4. Update cooldown state

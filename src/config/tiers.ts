@@ -15,10 +15,11 @@ import { MONTE_CARLO_ITERATIONS } from './canonical-facts';
  * - Plus monthly: price_1TKemwLKMhSmZURCw1AwGYX2 (legacy $17 → grandfathered)
  * - Plus annual:  price_1TKenYLKMhSmZURCEqUTfJDM
  * - Pro monthly:  price_1TNnKkLKMhSmZURCWyQTblmg ($49, 14d trial)
- * - Pro annual:   price_1TNnUbLKMhSmZURC3DetuKsA  ($492, NO trial)
+ * - Pro annual:   price_1TNnUbLKMhSmZURC3DetuKsA  ($492, 14d trial)
  *
  * Trial duration is configured on each Stripe Payment Link in the Dashboard,
- * NOT in this file. Pro Annual must be set to 0 trial days in Stripe.
+ * NOT in this file. All 4 paid plans (Plus monthly/annual, Pro monthly/annual)
+ * must have trial_period_days = 14 set on their Stripe Payment Links.
  */
 
 export const TIERS = {
@@ -130,7 +131,7 @@ export const TIERS = {
       actionPlan: true,
     },
     supportSla: '24h-guaranteed',
-    trialEligible: { monthly: true, annual: false, days: 14 }, // Pro Annual = NO trial
+    trialEligible: { monthly: true, annual: true, days: 14 },
   },
 } as const;
 
@@ -150,7 +151,7 @@ export const STRIPE_PRICE_TO_TIER: Record<
   price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
   // Pro monthly ($49, 14-day trial)
   price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
-  // Pro annual ($492, NO trial)
+  // Pro annual ($492, 14-day trial)
   price_1TNnUbLKMhSmZURC3DetuKsA: { tier: 'pro', cycle: 'annual' },
 };
 

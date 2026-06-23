@@ -16,6 +16,9 @@
 /changelog
 /privacy
 /terms
+/vs/liveplan
+/vs/upmetrics
+/vs/bizplanr
 /blog/validate-startup-idea-using-ai
 /blog/5-financial-mistakes-early-founders-make
 /blog/ai-vs-traditional-business-planning

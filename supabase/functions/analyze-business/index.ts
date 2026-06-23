@@ -2703,6 +2703,24 @@ serve(async (req) => {
     return new Response(null, { headers: responseHeaders });
   }
 
+  // ── WS1: GOLDEN RESULT CHECKPOINT ──
+  // Once a schema-valid deterministic result exists, it MUST reach the user.
+  // GOLDEN is set right after transformResponse produces `result`. Every
+  // enrichment after that is wrapped so a throw only degrades — never kills.
+  let GOLDEN: Record<string, unknown> | null = null;
+  let GOLDEN_degraded = false;
+  let GOLDEN_reason: string | null = null;
+  // Hoisted inputs for the last-resort fallback in the outermost catch.
+  let _idea_clean = '';
+  let _location_clean = '';
+  let _mergedFinancialInputs: OptionalFinancialInputs | undefined;
+  let _detectedIndustry: IndustryBenchmarks | undefined;
+  let _locationMultipliers: LocationMultiplierResult | undefined;
+  let _userPlan = 'free';
+  let _corsHeaders: Record<string, string> = corsHeaders;
+  let _isAnonymous = true;
+  let _userId: string | null = null;
+
   try {
     // ========== HTTP REQUEST VALIDATION ==========
     const httpValidation = validateHttpRequest(req);
@@ -3215,6 +3233,8 @@ serve(async (req) => {
     // Use sanitized values for the rest of processing
     const idea_clean = sanitizedIdea;
     const location_clean = sanitizedLocation;
+    _idea_clean = idea_clean;
+    _location_clean = location_clean;
 
     log.info(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
 
@@ -3312,7 +3332,8 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       ...documentDerivedInputs,
       ...financial_inputs,
     };
-    
+    _mergedFinancialInputs = mergedFinancialInputs;
+
     // Log data sources
     if (Object.keys(documentDerivedInputs).length > 0) {
       log.info('Document-derived inputs:', documentDerivedInputs);
@@ -3320,12 +3341,9 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
       log.info('Merged inputs:', mergedFinancialInputs);
     }
 
-    if (!Deno.env.get("LOVABLE_API_KEY")) {
-      return new Response(
-        JSON.stringify({ error: "AI service is not configured", code: "CONFIG_ERROR" }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    // LOVABLE_API_KEY absence no longer blocks — the deterministic engine runs
+    // without any AI provider. The AI retry loop handles missing keys gracefully.
+    const _hasAiProvider = !!Deno.env.get("LOVABLE_API_KEY");
 
     // ========== DATABASE-DRIVEN INDUSTRY DETECTION ==========
     // Fetch benchmarks from database first, then fall back to hardcoded
@@ -3419,7 +3437,13 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // ========== ENHANCED LOCATION INTELLIGENCE ==========
     const locationMultipliers = getEnhancedLocationMultiplier(location_clean);
     const locationMultiplier = locationMultipliers.overall; // Legacy compatibility
-    
+    _detectedIndustry = detectedIndustry;
+    _locationMultipliers = locationMultipliers;
+    _userPlan = userPlan;
+    _isAnonymous = isAnonymous;
+    _userId = userId;
+    _corsHeaders = corsHeaders;
+
     // ========== SUB-INDUSTRY DETECTION ==========
     const subIndustry = detectSubIndustry(idea_clean, detectedIndustry.id);
     
@@ -3722,6 +3746,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const calc = result._calc as StrictFinancialResult;
     delete (result as Record<string, unknown>)._calc;
 
+    // ── WS1: SET GOLDEN — a valid deterministic result now exists ──
+    GOLDEN = { ...result } as Record<string, unknown>;
+    if (usedFallback) { GOLDEN_degraded = true; GOLDEN_reason = 'deterministic_fallback'; }
+    log.info('[golden] Checkpoint set — deterministic result captured');
+
     // ========== NARRATIVE HONESTY SANITIZER ==========
     // Strip forbidden optimistic phrases ("rapid payback", "healthy margin", etc.)
     // when the base-case financials do not support them. Numbers always win.
@@ -3763,30 +3792,35 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
-    // Run the bulletproof validation and recommendation engine
-    const quantisInput: QuantisEngineInput = {
-      businessIdea: idea_clean,
-      location: location_clean,
-      financialInputs: mergedFinancialInputs ? {
-        startupInvestment: mergedFinancialInputs.startup_investment,
-        monthlyRevenue: mergedFinancialInputs.monthly_revenue,
-        averagePrice: mergedFinancialInputs.average_price,
-        expectedCustomers: mergedFinancialInputs.expected_customers,
-        monthlyCosts: mergedFinancialInputs.monthly_costs,
-        cac: mergedFinancialInputs.cac,
-        churnRate: mergedFinancialInputs.churn_rate,
-      } : undefined,
-      expenses: undefined, // Will be populated from documents if available
-      selectedIndustry: selected_industry,
-      documents: documents as unknown as QuantisEngineInput['documents'],
-      benchmarks: detectedIndustry,
-      locationMultipliers,
-      subIndustry,
-    };
-    
-    // Process through Quantis 2.0 engine
-    const quantisOutput = processQuantisAnalysis(quantisInput);
-    log.info(`Quantis 2.0: success=${quantisOutput.success}, health=${quantisOutput.validation.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput.recommendations.summary.totalRecommendations}`);
+    // ── WS2: Wrapped — quantisOutput failure degrades but never kills ──
+    let quantisOutput: QuantisEngineOutput | null = null;
+    try {
+      const quantisInput: QuantisEngineInput = {
+        businessIdea: idea_clean,
+        location: location_clean,
+        financialInputs: mergedFinancialInputs ? {
+          startupInvestment: mergedFinancialInputs.startup_investment,
+          monthlyRevenue: mergedFinancialInputs.monthly_revenue,
+          averagePrice: mergedFinancialInputs.average_price,
+          expectedCustomers: mergedFinancialInputs.expected_customers,
+          monthlyCosts: mergedFinancialInputs.monthly_costs,
+          cac: mergedFinancialInputs.cac,
+          churnRate: mergedFinancialInputs.churn_rate,
+        } : undefined,
+        expenses: undefined,
+        selectedIndustry: selected_industry,
+        documents: documents as unknown as QuantisEngineInput['documents'],
+        benchmarks: detectedIndustry,
+        locationMultipliers,
+        subIndustry,
+      };
+      quantisOutput = processQuantisAnalysis(quantisInput);
+      log.info(`Quantis 2.0: success=${quantisOutput?.success}, health=${quantisOutput?.validation?.healthScores?.overallHealthScore || 'N/A'}, recommendations=${quantisOutput?.recommendations?.summary?.totalRecommendations ?? 0}`);
+    } catch (q2Err) {
+      log.error('[enrich:quantis-2.0] non-blocking:', q2Err);
+      GOLDEN_degraded = true;
+      GOLDEN_reason ??= 'quantis_engine';
+    }
     
     // Generate actionable insights (legacy system - enhanced by Quantis 2.0)
     const actionableInsights = generateActionableInsights(calc, detectedIndustry);
@@ -3801,7 +3835,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }> = [];
     
     // Add Quantis 2.0 validation warnings
-    for (const w of quantisOutput.validation.warnings) {
+    for (const w of (quantisOutput?.validation?.warnings ?? [])) {
       warnings.push({
         field: w.code,
         value: w.message,
@@ -4175,14 +4209,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
 
     // ========== CROSS-VALIDATION + SENSITIVITY + BENCHMARK CONFIDENCE ==========
     let crossValidation: CrossValidationResult | undefined;
-    try {
-      crossValidation = crossValidateEngines(
-        { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses, cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths, roiYear1Percent: calc.roiYear1Percent, breakEvenRevenue: calc.breakEvenRevenue, npv3Years: calc.npv3Years },
-        { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths ?? 0, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
-      );
-      log.info(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
-    } catch (cvErr) {
-      log.error('Cross-validation failed:', cvErr);
+    if (quantisOutput) {
+      try {
+        crossValidation = crossValidateEngines(
+          { mrr: calc.mrr, netProfit: calc.netProfit, netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent, totalExpenses: calc.totalExpenses, cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths, roiYear1Percent: calc.roiYear1Percent, breakEvenRevenue: calc.breakEvenRevenue, npv3Years: calc.npv3Years },
+          { mrr: quantisOutput.metrics.mrr, netProfit: quantisOutput.metrics.netProfit, netMarginPercent: quantisOutput.metrics.netMarginPercent, grossProfit: quantisOutput.metrics.grossProfit, grossMarginPercent: quantisOutput.metrics.grossMarginPercent, totalExpenses: quantisOutput.metrics.totalExpenses, cac: quantisOutput.metrics.cac, ltv: quantisOutput.metrics.ltv, ltvCacRatio: quantisOutput.metrics.ltvCacRatio, paybackMonths: quantisOutput.metrics.paybackMonths ?? 0, roiYear1Percent: quantisOutput.metrics.roiYear1Percent }
+        );
+        log.info(`Cross-validation: score=${crossValidation.agreementScore}, verified=${crossValidation.isDualEngineVerified}, recommendation=${crossValidation.recommendation}`);
+      } catch (cvErr) {
+        log.error('Cross-validation failed:', cvErr);
+      }
     }
 
     let sensitivityAnalysis: SensitivityResult | undefined;
@@ -4345,7 +4381,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       document_analysis_summary: documentAnalysisSummary,
       
       // ========== QUANTIS 2.0 ENHANCED VALIDATION ==========
-      validation: {
+      validation: quantisOutput ? {
         is_realistic: quantisOutput.validation.isRealistic,
         is_profitable: quantisOutput.validation.isProfitable,
         was_auto_corrected: quantisOutput.validation.wasAutoCorrected,
@@ -4360,9 +4396,24 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         improvement_suggestions: quantisOutput.validation.improvementSuggestions,
         summary: quantisOutput.validation.summary,
         health_scores: quantisOutput.validation.healthScores,
+      } : {
+        is_realistic: true,
+        is_profitable: calc.netProfit > 0,
+        was_auto_corrected: calc.corrections.length > 0,
+        reliability_score: 50,
+        corrections: calc.corrections,
+        warnings,
+        calculation_audit: null,
+        break_even_revenue: null,
+        revenue_for_45k_profit: null,
+        industry_detected: calc.industryDetected,
+        confidence_breakdown: null,
+        improvement_suggestions: [],
+        summary: 'Quantis engine unavailable — deterministic financials only.',
+        health_scores: null,
       },
-      
-      recommendations: {
+
+      recommendations: quantisOutput ? {
         summary: quantisOutput.recommendations.summary,
         priorities: {
           immediate: quantisOutput.recommendations.priorities.immediate,
@@ -4372,9 +4423,15 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         action_plan: quantisOutput.recommendations.actionPlan,
         generated_at: quantisOutput.recommendations.generatedAt,
         version: quantisOutput.recommendations.version,
+      } : {
+        summary: 'Recommendations unavailable — deterministic engine only.',
+        priorities: { immediate: [], short_term: [], long_term: [] },
+        action_plan: [],
+        generated_at: new Date().toISOString(),
+        version: '2.0-degraded',
       },
-      
-      quantis_metrics: {
+
+      quantis_metrics: quantisOutput ? {
         mrr: quantisOutput.metrics.mrr,
         arr: quantisOutput.metrics.arr,
         net_profit: quantisOutput.metrics.netProfit,
@@ -4388,6 +4445,20 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ltv_cac_ratio: quantisOutput.metrics.ltvCacRatio,
         cac: quantisOutput.metrics.cac,
         ltv: quantisOutput.metrics.ltv,
+      } : {
+        mrr: calc.mrr,
+        arr: calc.mrr * 12,
+        net_profit: calc.netProfit,
+        net_margin_percent: calc.netMarginPercent,
+        gross_profit: calc.grossProfit,
+        gross_margin_percent: calc.grossMarginPercent,
+        total_expenses: calc.totalExpenses,
+        payback_months: calc.paybackMonths,
+        payback_display: `${calc.paybackMonths} months`,
+        roi_year_1_percent: calc.roiYear1Percent,
+        ltv_cac_ratio: calc.ltvCacRatio,
+        cac: calc.cac,
+        ltv: calc.ltv,
       },
 
       cross_validation: crossValidation ? {
@@ -4421,7 +4492,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       market_prior: marketPrior || undefined,
       score_compliance: scoreCompliance || undefined,
       
-      engine_version: quantisOutput.version,
+      engine_version: quantisOutput?.version ?? '2.0-degraded',
       data_sources: [
         benchmarkSource === 'database' 
           ? `Proprietary Industry Benchmark Database (${benchmarkDataSource?.replace(/kerry/gi, 'verified') || 'verified benchmarks'})` 
@@ -4446,25 +4517,26 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       ].filter(Boolean),
       reconciliation_status: (() => {
         const checks = [];
-        const rev = quantisOutput.metrics.mrr;
+        const rev = quantisOutput?.metrics?.mrr ?? calc.mrr;
         const cogs = calc.expenses.cogs || 0;
-        const grossProfit = quantisOutput.metrics.grossProfit;
-        const totalExpenses = quantisOutput.metrics.totalExpenses;
-        const netProfit = quantisOutput.metrics.netProfit;
-        const netMarginPct = quantisOutput.metrics.netMarginPercent;
+        const grossProfit = quantisOutput?.metrics?.grossProfit ?? calc.grossProfit;
+        const totalExpenses = quantisOutput?.metrics?.totalExpenses ?? calc.totalExpenses;
+        const netProfit = quantisOutput?.metrics?.netProfit ?? calc.netProfit;
+        const netMarginPct = quantisOutput?.metrics?.netMarginPercent ?? calc.netMarginPercent;
         const r001pass = Math.abs((cogs + grossProfit) - rev) <= 0.01 || cogs === 0;
         checks.push({ rule: 'R-001', label: 'Sum Integrity', pass: r001pass });
         checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
         checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
         checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
-        const riskLevel = (quantisOutput.validation.healthScores as Record<string, unknown>)?.overall || 'medium';
+        const riskLevel = (quantisOutput?.validation?.healthScores as Record<string, unknown>)?.overall || 'medium';
         const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
         checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
-        checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: quantisOutput.metrics.ltvCacRatio > 0 });
-        const gmPct = quantisOutput.metrics.grossMarginPercent / 100;
+        const ltvCac = quantisOutput?.metrics?.ltvCacRatio ?? calc.ltvCacRatio;
+        checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: ltvCac > 0 });
+        const gmPct = (quantisOutput?.metrics?.grossMarginPercent ?? calc.grossMarginPercent) / 100;
         checks.push({ rule: 'R-008', label: 'Gross Margin Range', pass: gmPct >= -1.0 && gmPct <= 1.0 });
         const allPassed = checks.every(c => c.pass);
-        return { checks, all_passed: allPassed, engine_version: quantisOutput.version };
+        return { checks, all_passed: allPassed, engine_version: quantisOutput?.version ?? '2.0-degraded' };
       })(),
 
       metadata: (() => {
@@ -4505,7 +4577,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_id: detectedIndustry.id,
         location_cost_multiplier: locationMultiplier,
         generated_at: new Date().toISOString(),
-        model: usedFallback ? "deterministic-engine" : "google/gemini-3-flash-preview",
+        model: usedFallback ? "deterministic-engine" : "deepseek-v4-flash",
         version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
         // ── NEW: canonical benchmarks block ──
@@ -4626,8 +4698,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             'Document Studio (12+ branded templates)',
             'No watermark on PDFs',
           ],
-          plus_price_monthly: 14,
+          plus_price_monthly: 17,
           plus_trial_days: 14,
+          pro_trial_days: 14,
         },
         metadata: {
           ...(fullPayload as any).metadata,
@@ -4651,14 +4724,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       ResponseSchema.parse({ success: true, data: wirePayload });
     } catch (schemaErr) {
       log.error('[response-schema] outgoing payload failed validation:', schemaErr);
-      return new Response(
-        JSON.stringify({
-          error: "Analysis output failed integrity check. Please retry.",
-          code: "RESPONSE_SCHEMA_INVALID",
-          details: schemaErr instanceof Error ? schemaErr.message : String(schemaErr),
-        }),
-        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
+      if (GOLDEN) {
+        log.info('[response-schema] Falling back to GOLDEN checkpoint');
+        GOLDEN_degraded = true;
+        GOLDEN_reason ??= 'response_schema_invalid';
+        const goldenPayload = { ...GOLDEN, _degraded: true, _degraded_reason: GOLDEN_reason };
+        return new Response(
+          JSON.stringify({ success: true, data: goldenPayload }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
     }
 
     return new Response(
@@ -4669,32 +4744,58 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : 'Unknown error';
     const errorStack = error instanceof Error ? error.stack : '';
-    log.error("Unhandled error:", errorMessage);
-    log.error("Stack:", errorStack);
-    
-    // Provide user-friendly error messages
-    let userMessage = "Something went wrong. Please try again.";
-    let errorCode = "INTERNAL_ERROR";
-    
-    if (errorMessage.includes('timeout') || errorMessage.includes('abort')) {
-      userMessage = "Request took too long. Please try with a shorter description.";
-      errorCode = "TIMEOUT_ERROR";
-    } else if (errorMessage.includes('JSON')) {
-      userMessage = "Error processing response. Please try again.";
-      errorCode = "PARSE_ERROR";
-    } else if (errorMessage.includes('network') || errorMessage.includes('fetch')) {
-      userMessage = "Network error. Please check your connection and try again.";
-      errorCode = "NETWORK_ERROR";
+    log.error("[outermost-catch] Unhandled error:", errorMessage);
+    log.error("[outermost-catch] Stack:", errorStack);
+
+    // ── WS3: ZERO-FAIL outermost catch ──
+    // If GOLDEN exists, the deterministic engine already produced a valid result.
+    // Return it with degradation flags — never a bare 500.
+    if (GOLDEN) {
+      log.info('[outermost-catch] Returning GOLDEN checkpoint (degraded)');
+      const goldenPayload = {
+        ...GOLDEN,
+        _degraded: true,
+        _degraded_reason: GOLDEN_reason || 'outermost_catch',
+        _error_context: errorMessage,
+      };
+      return new Response(
+        JSON.stringify({ success: true, data: goldenPayload }),
+        { headers: { ..._corsHeaders, "Content-Type": "application/json" } }
+      );
     }
-    
-    return new Response(
-      JSON.stringify({ 
-        error: userMessage, 
-        code: errorCode,
-        details: errorMessage,
-        timestamp: new Date().toISOString()
-      }),
-      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-    );
+
+    // GOLDEN is null — crash happened before transformResponse.
+    // Build a last-resort deterministic result from whatever inputs we have.
+    log.info('[outermost-catch] GOLDEN null — building last-resort deterministic result');
+    try {
+      const lastResort = generateDeterministicFallbackResult(
+        _idea_clean || 'Unknown business',
+        _location_clean || 'United States',
+        _detectedIndustry || INDUSTRY_BENCHMARKS.find(b => b.id === 'general')!,
+        _locationMultipliers || { overall: 1.0, salary: 1.0, rent: 1.0, utility: 1.0, marketing: 1.0, matched: false, matchedCity: null, region: 'National Average', confidence: 0 },
+        _mergedFinancialInputs || {},
+      );
+      const lastResortPayload = {
+        ...lastResort,
+        _degraded: true,
+        _degraded_reason: 'last_resort_deterministic',
+        _error_context: errorMessage,
+      };
+      return new Response(
+        JSON.stringify({ success: true, data: lastResortPayload }),
+        { headers: { ..._corsHeaders, "Content-Type": "application/json" } }
+      );
+    } catch (lastResortErr) {
+      log.error('[outermost-catch] Last-resort also failed:', lastResortErr);
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Analysis could not be completed. Please try again.",
+          code: "TOTAL_FAILURE",
+          timestamp: new Date().toISOString(),
+        }),
+        { status: 500, headers: { ..._corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
   }
 });

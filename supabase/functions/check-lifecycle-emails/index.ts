@@ -80,6 +80,16 @@ serve(async (req: Request): Promise<Response> => {
       return (data && data.length > 0) || false;
     }
 
+    // Helper: check if user has opted out of marketing emails
+    async function hasOptedOut(userId: string): Promise<boolean> {
+      const { data } = await supabase
+        .from("profiles")
+        .select("email_marketing_opt_in")
+        .eq("id", userId)
+        .single();
+      return data?.email_marketing_opt_in === false;
+    }
+
     // Helper: send lifecycle email via the existing edge function
     async function sendEmail(userId: string, templateKey: string): Promise<boolean> {
       try {
@@ -115,7 +125,7 @@ serve(async (req: Request): Promise<Response> => {
       if (users) {
         for (const user of users) {
           // Skip if on 48h global cooldown (anti-spam)
-          if (await isOnCooldown(user.id)) continue;
+          if (await isOnCooldown(user.id) || await hasOptedOut(user.id)) continue;
 
           // Check if they have any analyses
           const { count } = await supabase
@@ -140,7 +150,7 @@ serve(async (req: Request): Promise<Response> => {
 
       if (users) {
         for (const user of users) {
-          if (await isOnCooldown(user.id)) continue;
+          if (await isOnCooldown(user.id) || await hasOptedOut(user.id)) continue;
 
           const { count } = await supabase
             .from("analyses")
@@ -173,7 +183,7 @@ serve(async (req: Request): Promise<Response> => {
         }
 
         for (const [userId] of firstAnalysisByUser) {
-          if (await isOnCooldown(userId)) continue;
+          if (await isOnCooldown(userId) || await hasOptedOut(userId)) continue;
 
           // Only send if this is truly their first analysis ever
           const { count } = await supabase
@@ -198,7 +208,7 @@ serve(async (req: Request): Promise<Response> => {
 
       if (inactiveUsers) {
         for (const user of inactiveUsers) {
-          if (await isOnCooldown(user.user_id)) continue;
+          if (await isOnCooldown(user.user_id) || await hasOptedOut(user.user_id)) continue;
 
           if (!(await alreadySent(user.user_id, "reengagement", 1))) {
             await sendEmail(user.user_id, "reengagement_step_1");
@@ -230,7 +240,7 @@ serve(async (req: Request): Promise<Response> => {
           const weekKey = weekStart.toISOString().split("T")[0]; // e.g. "2026-02-17"
 
           for (const user of activeUsers) {
-            if (await isOnCooldown(user.user_id)) continue;
+            if (await isOnCooldown(user.user_id) || await hasOptedOut(user.user_id)) continue;
 
             // Check if we already sent this week's pulse
             const { data: existingPulse } = await supabase
@@ -243,6 +253,78 @@ serve(async (req: Request): Promise<Response> => {
 
             if (!existingPulse || existingPulse.length === 0) {
               await sendEmail(user.user_id, "weekly_pulse");
+            }
+          }
+        }
+      }
+    }
+
+    // ===== SEQUENCE 6: Lead Nurture Days 2–7 (confirmed leads, not yet signed up) =====
+    {
+      const NURTURE_DAYS = [
+        { day: 2, key: 'nurture_day_2' },
+        { day: 3, key: 'nurture_day_3' },
+        { day: 4, key: 'nurture_day_4' },
+        { day: 5, key: 'nurture_day_5' },
+        { day: 6, key: 'nurture_day_6' },
+        { day: 7, key: 'nurture_day_7' },
+      ];
+
+      for (const { day, key } of NURTURE_DAYS) {
+        const windowStart = new Date(Date.now() - day * 24 * 60 * 60 * 1000).toISOString();
+        const windowEnd = new Date(Date.now() - (day - 1) * 24 * 60 * 60 * 1000).toISOString();
+
+        const { data: leads } = await supabase
+          .from("leads")
+          .select("id, email_hash, confirmed_at, unsubscribed_at, converted_at, marketing_opt_in")
+          .not("confirmed_at", "is", null)
+          .is("converted_at", null)
+          .is("unsubscribed_at", null)
+          .gte("confirmed_at", windowStart)
+          .lt("confirmed_at", windowEnd);
+
+        if (leads) {
+          for (const lead of leads) {
+            if (lead.marketing_opt_in === false) continue;
+
+            // Check if this nurture email was already sent to this lead
+            const { data: existing } = await supabase
+              .from("email_send_log")
+              .select("id")
+              .eq("lead_id", lead.id)
+              .eq("template_key", key)
+              .limit(1);
+
+            if (existing && existing.length > 0) continue;
+
+            // 24h cooldown per lead
+            const leadCutoff = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+            const { data: recentSend } = await supabase
+              .from("email_send_log")
+              .select("id")
+              .eq("lead_id", lead.id)
+              .gte("sent_at", leadCutoff)
+              .limit(1);
+
+            if (recentSend && recentSend.length > 0) continue;
+
+            try {
+              const resp = await fetch(functionUrl, {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  "Authorization": `Bearer ${serviceKey}`,
+                },
+                body: JSON.stringify({ lead_id: lead.id, template_key: key }),
+              });
+              if (resp.ok) {
+                emailsSent++;
+              } else {
+                const errText = await resp.text();
+                errors.push(`Failed ${key} for lead ${lead.id}: ${errText}`);
+              }
+            } catch (e) {
+              errors.push(`Error ${key} for lead ${lead.id}: ${e instanceof Error ? e.message : String(e)}`);
             }
           }
         }

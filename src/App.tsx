@@ -64,7 +64,10 @@ const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
 const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const ContentStudio = lazy(() => import("./pages/admin/ContentStudio"));
 const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
+const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
+const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
+const EmailPreferences = lazy(() => import("./pages/EmailPreferences"));
 const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
 const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
@@ -148,6 +151,8 @@ const App = () => {
                 <Route path="/changelog" element={<Changelog />} />
                 <Route path="/cases" element={<CaseBrowser />} />
                 <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
+                <Route path="/email-confirmed" element={<EmailConfirmed />} />
+                <Route path="/email-preferences" element={<EmailPreferences />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />
@@ -268,6 +273,11 @@ const App = () => {
                 <Route path="/admin/ai-costs" element={
                   <ProtectedRoute requireAdmin>
                     <AiCosts />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/email-funnel" element={
+                  <ProtectedRoute requireAdmin>
+                    <EmailFunnel />
                   </ProtectedRoute>
                 } />
                 <Route path="/directory-tracker" element={<DirectoryTracker />} />

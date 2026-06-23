@@ -38,7 +38,7 @@ export function FooterEmailSignup() {
     return (
       <div className="flex items-center gap-2 text-success">
         <CheckCircle2 className="h-5 w-5" />
-        <span className="text-sm font-medium">You're subscribed! Check your inbox.</span>
+        <span className="text-sm font-medium">Check your inbox to confirm your subscription.</span>
       </div>
     );
   }

@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import {
   BENCHMARK_COUNT_DISPLAY,
   BENCHMARK_SECTORS,
+  MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS_LABEL,
 } from '@/config/canonical-facts';
 
@@ -255,6 +256,113 @@ export default function Methodology() {
                   <p className="text-xs text-muted-foreground mt-1">{vector.description}</p>
                 </div>
               ))}
+            </div>
+          </div>
+        </section>
+
+        {/* How We Source & Calculate Section */}
+        <section className="space-y-6">
+          <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
+            <Database className="w-6 h-6 text-primary" />
+            How We Source & Calculate Every Number
+          </h2>
+          <div className="bg-card border border-border rounded-xl p-6 space-y-6">
+            <p className="text-muted-foreground leading-relaxed">
+              Every metric badge, projection, and risk score in a Quantis report traces back to a specific data source and a deterministic formula. Below is the exact pipeline — no black boxes.
+            </p>
+
+            <div className="space-y-5">
+              <div className="p-4 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-green-500" />
+                  SEC XBRL Financial Statement Dataset
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>What it is:</strong> Machine-readable financial filings (10-K, 10-Q) from every US public company, published by the SEC. ~500,000 records spanning 2009–2025.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How we use it:</strong> We extract line-item distributions (revenue, COGS, SG&A, net income) per NAICS sector code, then compute P25 / median / P75 ranges. These become the "industry benchmark" bands shown on every metric badge. When your coffee shop's gross margin is 62%, the badge shows whether that falls within or outside the interquartile range for food-service businesses.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>License:</strong> Public Domain (US Government work product). No restrictions on commercial use.
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-green-500" />
+                  World Bank Enterprise Surveys
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>What it is:</strong> Firm-level survey data from 180,000+ small and medium enterprises across 150+ countries. Covers employment, cost structures, revenue, and business environment.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How we use it:</strong> This is the backbone of our international location calibration. When you enter "bakery in Paris", we pull median employee costs, rent-to-revenue ratios, and utility spend for Western European food businesses, then apply location multipliers (salary ×1.3, rent ×1.6, etc.) relative to the US baseline. The confidence badge drops to QSL-2 if your country has fewer than 50 surveyed firms in the relevant sector.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>License:</strong> CC BY 4.0. Attribution required; commercial use permitted.
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-green-500" />
+                  JPMorgan Chase Institute SME Cash Flow
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>What it is:</strong> Anonymized transaction-level data from ~10,000 small business checking accounts, published as an academic research series by JPMorgan Chase Institute.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How we use it:</strong> We calibrate three critical assumptions: (1) median cash buffer in days, which feeds the "runway" projection; (2) revenue volatility coefficient of variation, which seeds the Monte Carlo standard deviation; (3) seasonal revenue patterns by sector, which adjust month-over-month projections. These distributions make the Monte Carlo stress test realistic — not just random noise.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>License:</strong> Academic reference. Published findings used for calibration; raw data is not redistributed.
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-green-500" />
+                  ProjectionHub SMB Benchmarks
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>What it is:</strong> Industry-specific financial ratio benchmarks (COGS %, payroll %, rent %, profit margin) for ~50 common small business types, maintained by ProjectionHub.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How we use it:</strong> This is the "sanity check" layer. After the deterministic engine computes your projected expenses, we compare each ratio against the ProjectionHub median. If your food truck's payroll is 45% of revenue but the industry median is 28%, the Reconciliation Engine flags it as a QSL-2 "Plausible Extrapolation" and surfaces a correction suggestion.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>License:</strong> Public reference. Ratios are publicly cited; no raw data redistribution.
+                </p>
+              </div>
+
+              <div className="p-4 bg-muted/30 rounded-lg border border-border/50 space-y-2">
+                <h4 className="font-semibold text-sm flex items-center gap-2">
+                  <FileCheck className="w-4 h-4 text-green-500" />
+                  AIWMC Quantis Benchmark Library
+                </h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>What it is:</strong> Our derived benchmark corpus — {BENCHMARK_COUNT_DISPLAY} datapoints synthesized from all upstream sources, continuously refreshed. Each datapoint is a (industry × geography × metric × percentile) tuple.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>How we use it:</strong> This is the lookup table the deterministic engine queries at runtime. For any (industry, location) pair, it returns the P25/median/P75 range for every financial metric: gross margin, CAC, LTV, churn rate, average check, startup costs, etc. The {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo draws from these distributions to generate pessimistic / base / optimistic scenarios across {BENCHMARK_SECTORS} sectors.
+                </p>
+                <p className="text-xs text-muted-foreground leading-relaxed">
+                  <strong>License:</strong> Proprietary derived. Built from open datasets; the composite library is AIWMC intellectual property.
+                </p>
+              </div>
+            </div>
+
+            <div className="p-4 bg-primary/5 border border-primary/20 rounded-lg space-y-3">
+              <h4 className="font-semibold text-sm">How a Benchmark Number Becomes a Projection</h4>
+              <ol className="list-decimal list-inside text-xs text-muted-foreground space-y-2 leading-relaxed">
+                <li><strong>Industry detection:</strong> Your business idea is matched to one of {BENCHMARK_SECTORS} sectors via keyword + AI classification. If no strong match, the "general" sector fallback (cross-sector medians) is used — never a hallucinated number.</li>
+                <li><strong>Location calibration:</strong> Base US metrics are multiplied by location-specific factors (salary, rent, utility, marketing) derived from World Bank + cost-of-living indices for 50+ global hubs.</li>
+                <li><strong>Deterministic calculation:</strong> Revenue = average check × orders/month. Expenses = rent + payroll + COGS + marketing + utilities + insurance. All from the benchmark P50 (median). Net profit, margins, CAC, LTV, payback — all computed from these inputs via standard financial formulas.</li>
+                <li><strong>Monte Carlo stress test (Plus/Pro):</strong> {MONTE_CARLO_ITERATIONS_DISPLAY} iterations sample from the P25–P75 range with realistic variance (JPMorgan volatility coefficients). Output: pessimistic (P10), base (P50), optimistic (P90) bands.</li>
+                <li><strong>Reconciliation gate:</strong> The dual-AI Reconciliation Engine cross-checks every output against Golden Test Vectors (±15% tolerance). Outputs that fail are auto-corrected or flagged QSL-1.</li>
+                <li><strong>Confidence assignment:</strong> Each metric gets a QSL badge (4 = deterministic certainty, 3 = benchmark-aligned, 2 = extrapolated, 1 = speculative) based on how close the user's inputs are to the benchmark IQR.</li>
+              </ol>
             </div>
           </div>
         </section>
