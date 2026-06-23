@@ -30,7 +30,7 @@ import { readFileSync, writeFileSync, mkdirSync, existsSync } from 'fs';
 import { resolve, join } from 'path';
 
 const DIST = resolve('dist');
-const BASE_URL = 'https://aiwmcquantis.com';
+const BASE_URL = 'https://www.aiwmcquantis.com';
 const TEMPLATE_PATH = join(DIST, 'index.html');
 
 const DEFAULT_TITLE = 'AIWMC Quantis — AI Business Idea Validator';

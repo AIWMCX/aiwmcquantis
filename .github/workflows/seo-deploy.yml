@@ -93,7 +93,7 @@ jobs:
 
       - name: Live smoke test
         if: steps.deploy.outcome == 'success'
-        run: node scripts/smoke-live.mjs https://aiwmcquantis.com
+        run: node scripts/smoke-live.mjs https://www.aiwmcquantis.com
 
       - name: Deploy summary
         if: always()

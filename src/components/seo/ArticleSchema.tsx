@@ -72,7 +72,7 @@ export const ArticleSchema = React.memo(function ArticleSchema({
           name: 'AIWMC™ LLC',
           logo: {
             '@type': 'ImageObject',
-            url: 'https://aiwmcquantis.com/icon-512.png',
+            url: 'https://www.aiwmcquantis.com/icon-512.png',
           },
         },
     mainEntityOfPage: {

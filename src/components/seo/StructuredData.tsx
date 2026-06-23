@@ -1,7 +1,7 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
 
-const SITE_URL = 'https://aiwmcquantis.com';
+const SITE_URL = 'https://www.aiwmcquantis.com';
 
 interface BreadcrumbItem {
   name: string;

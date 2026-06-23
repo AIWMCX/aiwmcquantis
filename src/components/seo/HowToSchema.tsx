@@ -120,7 +120,7 @@ export const QuantisAnalysisHowTo = React.memo(function QuantisAnalysisHowTo() {
       description="Complete guide to validating your business idea using AIWMC Quantis AI-powered business analysis platform. Get financial projections, market analysis, and a complete business plan in under 2 minutes."
       steps={steps}
       estimatedTime="PT2M"
-      image="https://aiwmcquantis.com/og-image.png"
+      image="https://www.aiwmcquantis.com/og-image.png"
       tool={['Web browser', 'AIWMC Quantis account']}
     />
   );

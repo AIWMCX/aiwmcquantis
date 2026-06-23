@@ -122,9 +122,9 @@ export const AIWMCLocalBusiness = React.memo(function AIWMCLocalBusiness() {
     <LocalBusinessSchema
       name="AIWMC Quantis"
       description="AIWMC Quantis is an AI-powered business validation platform for early-stage founders, solopreneurs, and small business owners. Our dual-AI engine combines financial stress-testing, risk scoring, and scenario modeling to give founders a structured validation score and clear recommendations — before they've spent their first dollar on execution. Founded in Denver, CO by Bogdan Jeltov."
-      url="https://aiwmcquantis.com"
-      logo="https://aiwmcquantis.com/icon-512.png"
-      image="https://aiwmcquantis.com/og-image.png"
+      url="https://www.aiwmcquantis.com"
+      logo="https://www.aiwmcquantis.com/icon-512.png"
+      image="https://www.aiwmcquantis.com/og-image.png"
       email="support@aiwmcquantis.com"
       address={{
         streetAddress: '',

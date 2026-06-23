@@ -36,7 +36,7 @@ const BLOG_SLUGS = (() => {
   return Array.from(articlesBlock.matchAll(/slug:\s*['"]([a-z0-9-]+)['"]/g)).map((m) => m[1]);
 })();
 
-const BASE_URL = 'https://aiwmcquantis.com';
+const BASE_URL = 'https://www.aiwmcquantis.com';
 const today = new Date().toISOString().slice(0, 10);
 
 type Entry = { path: string; changefreq: string; priority: string };

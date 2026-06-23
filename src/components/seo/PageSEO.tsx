@@ -1,6 +1,6 @@
 import { Helmet } from 'react-helmet-async';
 
-const SITE_URL = 'https://aiwmcquantis.com';
+const SITE_URL = 'https://www.aiwmcquantis.com';
 const DEFAULT_OG_IMAGE = `${SITE_URL}/og-image.png`;
 
 interface PageSEOProps {

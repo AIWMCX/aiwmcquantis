@@ -8,7 +8,7 @@
 // any route here renders as the homepage shell.
 // =============================================================================
 
-export const ORIGIN = "https://aiwmcquantis.com";
+export const ORIGIN = "https://www.aiwmcquantis.com";
 
 // Routes that must render their OWN body content (NOT the homepage shell).
 // `title` = a substring that must appear in <title> for that route (uniqueness check).

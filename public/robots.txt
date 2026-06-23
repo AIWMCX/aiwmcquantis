@@ -53,4 +53,4 @@ User-agent: LinkedInBot
 Allow: /
 
 # Sitemap location
-Sitemap: https://aiwmcquantis.com/sitemap.xml
+Sitemap: https://www.aiwmcquantis.com/sitemap.xml
