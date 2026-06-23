@@ -19,6 +19,7 @@ import { ReportFirstHero } from '@/components/landing/ReportFirstHero';
 import { LeadCaptureInline } from '@/components/landing/LeadCaptureInline';
 import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
+import { SocialPanel } from '@/components/landing/SocialPanel';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
@@ -172,6 +173,8 @@ export default function Landing() {
             </div>
           </div>
         </section>
+        {/* 11. Social Community Panel */}
+        <SocialPanel />
       </main>
 
       <Footer />
