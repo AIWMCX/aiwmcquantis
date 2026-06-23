@@ -68,6 +68,7 @@ const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
 const EmailPreferences = lazy(() => import("./pages/EmailPreferences"));
+const Connect = lazy(() => import("./pages/Connect"));
 const QuoteIndex = lazy(() => import("./pages/quote/QuoteIndex"));
 const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
 const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
@@ -153,6 +154,7 @@ const App = () => {
                 <Route path="/dev/rvce-test" element={<RvceTestPanel />} />
                 <Route path="/email-confirmed" element={<EmailConfirmed />} />
                 <Route path="/email-preferences" element={<EmailPreferences />} />
+                <Route path="/connect" element={<Connect />} />
                 
                 {/* Public share route - no auth required */}
                 <Route path="/share/:token" element={<SharedReport />} />

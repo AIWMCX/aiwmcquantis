@@ -81,3 +81,4 @@
 /examples/saas-hr-tech-bangalore
 /examples/print-shop-warsaw
 /examples/plumbing-business-toronto
+/connect
