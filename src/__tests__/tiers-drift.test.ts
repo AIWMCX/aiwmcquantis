@@ -174,13 +174,15 @@ describe('Stripe price IDs are consistent', () => {
 
 // ---------- 4. Pricing displayed in components matches TIERS ----------
 describe('No hardcoded prices outside src/config/tiers.ts', () => {
-  // We allow `$17`/`$49` inside marketing copy, but disallow them appearing as
-  // structural prices in PricingPage / paywall components. This is a soft
-  // sentinel; tighten as needed.
+  // Hard gate: paywall UI components must NOT contain raw "$17/mo" or "$49/mo"
+  // literals. They must read prices from TIERS (src/config/tiers.ts).
+  // Pattern: /\$(17|49)\s*\/\s*mo/  — matches "$17/mo", "$49 / mo", etc.
   const pricingFiles = [
     'src/pages/Pricing.tsx',
     'src/components/PlusGate.tsx',
     'src/components/UpgradePrompt.tsx',
+    'src/components/analysis/LockedAnalysisPaywall.tsx',
+    'src/pages/quote/_components/QuoteGenPaywall.tsx',
   ];
   for (const f of pricingFiles) {
     it(`${f}: contains no raw "$17/mo" or "$49/mo" literal`, () => {
@@ -190,14 +192,14 @@ describe('No hardcoded prices outside src/config/tiers.ts', () => {
       } catch {
         return; // file may not exist; skip
       }
-      // Allow inside comments/strings that come from TIERS interpolation
-      const offenders = src.match(/\$(17|49)\s*\/\s*mo/g);
-      if (offenders) {
-        // eslint-disable-next-line no-console
-        console.warn(`[drift] ${f} contains raw price literals:`, offenders);
-      }
-      // Don't hard-fail; this is informational. Hard-fail would require
-      // codemod first. Convert to expect(...).toBeNull() after cleanup.
+      // Strip comments so test-file self-references don't fire
+      const noComments = src.replace(/\/\/[^\n]*/g, '').replace(/\/\*[\s\S]*?\*\//g, '');
+      const offenders = noComments.match(/\$(17|49)\s*\/\s*mo/g) ?? null;
+      expect(
+        offenders,
+        `${f} contains raw price literal(s): ${JSON.stringify(offenders)}. ` +
+        `Import TIERS from '@/config/tiers' and use TIERS.plus.priceMonthly / TIERS.pro.priceMonthly instead.`,
+      ).toBeNull();
     });
   }
 });

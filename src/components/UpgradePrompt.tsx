@@ -11,6 +11,9 @@ import { CheckCircle2, Zap, Loader2, Shield, Lock, TrendingUp } from 'lucide-rea
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useAuth } from '@/hooks/useAuth';
 import { FreeVsProMatrix } from '@/components/FreeVsProMatrix';
+import { TIERS } from '@/config/tiers';
+
+const PLUS_PRICE_MONTHLY = TIERS.plus.priceMonthly;
 
 interface UpgradePromptProps {
   open: boolean;
@@ -75,7 +78,7 @@ export function UpgradePrompt({
                   </span>
                 </div>
                 <p className="text-2xl font-bold text-foreground">
-                  $17<span className="text-sm font-normal text-muted-foreground">/mo</span>
+                  ${PLUS_PRICE_MONTHLY}<span className="text-sm font-normal text-muted-foreground">/mo</span>
                 </p>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   $0.56/day · replaces 3–5 hrs of CFO analysis

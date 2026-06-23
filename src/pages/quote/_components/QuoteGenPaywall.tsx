@@ -10,6 +10,10 @@ import { Lock, AlertCircle, Sparkles } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import type { QuoteGenStatus } from '@/hooks/useQuoteGenUsage';
+import { TIERS } from '@/config/tiers';
+
+const PLUS_PRICE_MONTHLY = TIERS.plus.priceMonthly;
+const PRO_PRICE_MONTHLY = TIERS.pro.priceMonthly;
 
 export function QuoteGenUsagePill({ status }: { status: QuoteGenStatus }) {
   if (!status.isEnabled) return null;
@@ -46,12 +50,12 @@ export function QuoteGenFreeLock() {
         <div className="rounded-lg border border-border bg-background p-3">
           <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Plus</p>
           <p className="text-lg font-bold text-foreground mt-1">Unlimited quotes</p>
-          <p className="text-xs text-muted-foreground">$17 / mo</p>
+          <p className="text-xs text-muted-foreground">${PLUS_PRICE_MONTHLY} / mo</p>
         </div>
         <div className="rounded-lg border border-primary/40 bg-primary/5 p-3">
           <p className="text-xs font-semibold text-primary uppercase tracking-wide">Pro</p>
           <p className="text-lg font-bold text-foreground mt-1">Unlimited quotes</p>
-          <p className="text-xs text-muted-foreground">$49 / mo</p>
+          <p className="text-xs text-muted-foreground">${PRO_PRICE_MONTHLY} / mo</p>
         </div>
       </div>
       <Link to="/pricing">

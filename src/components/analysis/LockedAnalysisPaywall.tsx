@@ -6,6 +6,9 @@ import { useAuth } from '@/hooks/useAuth';
 import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
 import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
+import { TIERS } from '@/config/tiers';
+
+const PLUS_PRICE_MONTHLY = TIERS.plus.priceMonthly;
 
 interface LockedAnalysisPaywallProps {
   /** What section is being gated — 'levers' (Step 2) or 'action-plan' (Step 3) */
@@ -128,7 +131,7 @@ export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
         <div className="flex flex-col items-stretch lg:items-end justify-center gap-3 lg:min-w-[220px]">
           <div className="text-right">
             <p className="text-3xl font-black text-foreground leading-none">
-              $17<span className="text-base font-medium text-muted-foreground">/mo</span>
+              ${PLUS_PRICE_MONTHLY}<span className="text-base font-medium text-muted-foreground">/mo</span>
             </p>
             <p className="text-[11px] text-muted-foreground mt-1">{t('common.trial_note')}</p>
           </div>

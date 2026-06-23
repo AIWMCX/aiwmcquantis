@@ -8,6 +8,9 @@ import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
+import { TIERS } from '@/config/tiers';
+
+const PLUS_PRICE_MONTHLY = TIERS.plus.priceMonthly; // single source of truth
 
 interface PlusGateProps {
   /** The module being gated */
@@ -136,7 +139,7 @@ export function PlusGate({ module, children }: PlusGateProps) {
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-5 pt-4 border-t border-border/50">
                 <div>
                   <p className="text-3xl font-black text-foreground leading-none">
-                    $17<span className="text-base font-medium text-muted-foreground">/mo</span>
+                    ${PLUS_PRICE_MONTHLY}<span className="text-base font-medium text-muted-foreground">/mo</span>
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-1">
                     {t('common.plus_summary')}
