@@ -9,7 +9,6 @@ import {
   SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
-  SidebarGroupLabel,
   SidebarHeader,
   SidebarMenu,
   SidebarMenuButton,
@@ -17,7 +16,6 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
 import { Tooltip, TooltipContent, TooltipTrigger, TooltipProvider } from '@/components/ui/tooltip';
 import { ActivationWidget } from '@/components/engagement/ActivationWidget';
 import {
@@ -37,7 +35,7 @@ import {
   Crown,
   Lock,
   Megaphone,
-  Sparkles,
+  Radio,
 } from 'lucide-react';
 import { isEnabled } from '@/lib/flags';
 
@@ -48,9 +46,7 @@ interface NavItem {
   adminOnly?: boolean;
   external?: boolean;
   badge?: string;
-  /** True = the item itself is a Plus-only module — show 🔒 to Free users */
   plusOnly?: boolean;
-  /** Optional feature-flag gate. Item only renders when `isEnabled(flag)` is true. */
   flag?: 'service_job';
 }
 
@@ -64,7 +60,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'ANALYSIS',
     items: [
       { title: 'Dashboard', url: '/app', icon: LayoutDashboard },
-      { title: 'Instant Quotes', url: '/quote', icon: Zap, badge: 'Beta', flag: 'service_job' },
+      { title: 'Instant Quotes', url: '/quote', icon: Zap, badge: 'BETA', flag: 'service_job' },
       { title: 'History', url: '/app?tab=history', icon: Clock },
     ],
   },
@@ -93,7 +89,7 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
-      { title: 'Content Studio', url: '/admin/content-studio', icon: Sparkles, adminOnly: true },
+      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, adminOnly: true },
       { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
     ],
   },
@@ -102,7 +98,7 @@ const NAV_SECTIONS: NavSection[] = [
     items: [
       { title: 'Settings', url: '__settings__', icon: Settings },
       { title: 'Billing', url: '__settings__?tab=billing', icon: CreditCard },
-      { title: 'Help', url: 'https://aiwmcquantis.lovable.app/how-it-works', icon: HelpCircle, external: true },
+      { title: 'Help', url: 'https://aiwmcquantis.com/how-it-works', icon: HelpCircle, external: true },
     ],
   },
 ];
@@ -112,71 +108,130 @@ export function AppSidebar() {
   const navigate = useNavigate();
   const { state } = useSidebar();
   const collapsed = state === 'collapsed';
-  
+
   const { user } = useAuth();
   const { isPlus, isPro } = useSubscription();
   const { isAdmin } = useAdmin();
 
+  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
   const resolveUrl = (url: string) => url.replace('__settings__', settingsPath);
 
   const isActive = (url: string) => {
     const resolvedUrl = resolveUrl(url);
     const [path, query] = resolvedUrl.split('?');
-    if (query) {
-      return location.pathname === path && location.search.includes(query);
-    }
+    if (query) return location.pathname === path && location.search.includes(query);
     return location.pathname === path && !location.search;
   };
 
   const handleNavClick = (item: NavItem) => {
-    if (item.external) {
-      window.open(item.url, '_blank', 'noopener,noreferrer');
-    } else {
-      navigate(resolveUrl(item.url));
-    }
+    if (item.external) window.open(item.url, '_blank', 'noopener,noreferrer');
+    else navigate(resolveUrl(item.url));
   };
 
   const userInitials = user?.email?.slice(0, 2).toUpperCase() || 'U';
-  const userEmail = user?.email || 'User';
-  const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
+  const userEmail = user?.email || '';
+
+  const tierLabel = isPro ? 'PRO' : isPlus ? 'PLUS' : 'FREE';
+  const tierColor = isPro
+    ? 'text-amber-400'
+    : isPlus
+      ? 'text-[var(--q-accent-primary)]'
+      : 'text-[var(--q-text-tertiary)]';
 
   return (
     <TooltipProvider delayDuration={200}>
       <Sidebar
         collapsible="offcanvas"
-        className="border-r border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]"
-        style={{ width: collapsed ? '60px' : '240px' }}
+        className="border-r"
+        style={{
+          background: 'var(--q-bg-surface)',
+          borderColor: 'var(--q-border-subtle)',
+          width: collapsed ? '60px' : '228px',
+        }}
       >
-        <SidebarHeader className="h-16 flex items-center px-4 border-b border-[var(--q-border-subtle)]">
-          <div className="flex items-center gap-3">
-            <div className="w-[3px] h-8 bg-[var(--q-accent-primary)] rounded-full" />
-            {!collapsed && (
-              <div className="flex flex-col">
-                <span className="font-sora font-bold text-sm text-[var(--q-text-primary)]">
-                  AIWMC Quantis
-                </span>
-                <span className="font-dm-sans font-mono font-semibold text-xs border-[sidebar-accent-foreground] border-card shadow-none">
-                  by AIWMC​™  LLC
+        {/* ── HEADER — AIWMC // QUANTIS. wordmark ── */}
+        <SidebarHeader
+          className="flex items-center px-4 border-b"
+          style={{
+            height: '52px',
+            borderColor: 'var(--q-border-subtle)',
+          }}
+        >
+          {collapsed ? (
+            /* Collapsed: accent bar only */
+            <div
+              className="w-[3px] h-6 rounded-full mx-auto"
+              style={{ background: 'var(--q-accent-primary)' }}
+            />
+          ) : (
+            <div className="flex items-center gap-2.5">
+              <div
+                className="w-[3px] h-7 rounded-full flex-shrink-0"
+                style={{ background: 'var(--q-accent-primary)' }}
+              />
+              <div className="flex flex-col leading-none">
+                <div className="flex items-baseline gap-1">
+                  <span
+                    className="text-[9px] font-semibold tracking-[0.15em] uppercase"
+                    style={{
+                      fontFamily: 'var(--q-font-mono)',
+                      color: 'var(--q-accent-primary)',
+                    }}
+                  >
+                    AIWMC //
+                  </span>
+                  <span
+                    className="text-sm font-extrabold tracking-tight"
+                    style={{
+                      fontFamily: 'var(--q-font-heading)',
+                      color: 'var(--q-text-primary)',
+                      letterSpacing: '-0.02em',
+                    }}
+                  >
+                    QUANTIS
+                    <span style={{ color: 'var(--q-accent-primary)' }}>.</span>
+                  </span>
+                </div>
+                <span
+                  className="text-[9px] tracking-[0.08em] uppercase"
+                  style={{
+                    fontFamily: 'var(--q-font-mono)',
+                    color: 'var(--q-text-tertiary)',
+                    marginTop: '1px',
+                  }}
+                >
+                  {tierLabel} PLAN
                 </span>
               </div>
-            )}
-          </div>
+            </div>
+          )}
         </SidebarHeader>
 
-        <SidebarContent className="py-4">
+        {/* ── NAV ── */}
+        <SidebarContent className="py-3 overflow-y-auto">
           {NAV_SECTIONS.map((section) => {
             const visibleItems = section.items.filter(
               (item) => (!item.adminOnly || isAdmin) && (!item.flag || isEnabled(item.flag))
             );
-            
             if (visibleItems.length === 0) return null;
 
             return (
-              <SidebarGroup key={section.label}>
+              <SidebarGroup key={section.label} className="mb-1">
+                {/* Section label — IBM Plex Mono, uppercase, faint */}
                 {!collapsed && (
-                  <SidebarGroupLabel className="px-4 mb-2 text-[12px] font-dm-sans font-medium tracking-[0.06em] text-[#94A3B8] uppercase">
+                  <div
+                    className="px-4 mb-1 mt-2"
+                    style={{
+                      fontFamily: 'var(--q-font-mono)',
+                      fontSize: '9px',
+                      fontWeight: 600,
+                      letterSpacing: '0.14em',
+                      textTransform: 'uppercase',
+                      color: 'var(--q-text-ghost)',
+                    }}
+                  >
                     {section.label}
-                  </SidebarGroupLabel>
+                  </div>
                 )}
                 <SidebarGroupContent>
                   <SidebarMenu>
@@ -184,38 +239,69 @@ export function AppSidebar() {
                       const active = isActive(item.url);
                       const Icon = item.icon;
 
-                      const button = (
+                      const btn = (
                         <SidebarMenuButton
                           onClick={() => handleNavClick(item)}
-                          className={`
-                            h-11 mx-2 rounded-[var(--q-radius-md)] transition-all duration-150
-                            ${active
-                              ? 'bg-[var(--q-bg-elevated)] border-l-[3px] border-[var(--q-accent-primary)] text-[var(--q-accent-primary)]'
-                              : 'text-[var(--q-text-secondary)] hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]'
-                            }
-                          `}
+                          style={{
+                            height: '36px',
+                            margin: '1px 6px',
+                            borderRadius: 'var(--q-radius-md)',
+                            transition: 'all 120ms ease-out',
+                            fontFamily: 'var(--q-font-body)',
+                            fontSize: '13px',
+                            fontWeight: active ? 500 : 400,
+                            ...(active
+                              ? {
+                                  background: 'var(--q-bg-elevated)',
+                                  borderLeft: '2px solid var(--q-accent-primary)',
+                                  color: 'var(--q-accent-primary)',
+                                  paddingLeft: '10px',
+                                }
+                              : {
+                                  color: 'var(--q-text-secondary)',
+                                }),
+                          }}
+                          className={!active ? 'hover:bg-[var(--q-bg-elevated)] hover:text-[var(--q-text-primary)]' : ''}
                         >
                           <Icon
-                            className={`w-4 h-4 shrink-0 ${active ? 'text-[var(--q-accent-primary)]' : ''}`}
+                            className="w-3.5 h-3.5 shrink-0"
+                            style={{ color: active ? 'var(--q-accent-primary)' : 'inherit' }}
                           />
                           {!collapsed && (
-                            <span className="ml-3 text-sm font-dm-sans font-medium">
-                              {item.title}
-                            </span>
-                          )}
-                          {!collapsed && item.plusOnly && !isPlus && (
-                            <span
-                              className="ml-auto inline-flex items-center gap-1 text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border border-[var(--q-accent-primary)]/30"
-                              title="Plus only"
-                            >
-                              <Lock className="w-2.5 h-2.5" />
-                              Plus
-                            </span>
-                          )}
-                          {!collapsed && item.badge && (
-                            <span className="ml-auto text-[9px] font-bold px-1.5 py-0.5 rounded-full" style={{ background: 'var(--q-status-red)', color: '#fff' }}>
-                              {item.badge}
-                            </span>
+                            <>
+                              <span className="ml-2.5 truncate">{item.title}</span>
+                              {/* Lock badge for Plus-only items */}
+                              {item.plusOnly && !isPlus && (
+                                <span
+                                  className="ml-auto inline-flex items-center gap-0.5 text-[8px] font-bold px-1.5 py-0.5 rounded-full border"
+                                  style={{
+                                    fontFamily: 'var(--q-font-mono)',
+                                    letterSpacing: '0.06em',
+                                    background: 'var(--q-accent-glow)',
+                                    color: 'var(--q-accent-primary)',
+                                    borderColor: 'color-mix(in srgb, var(--q-accent-primary) 30%, transparent)',
+                                  }}
+                                >
+                                  <Lock className="w-2 h-2" />
+                                  PLUS
+                                </span>
+                              )}
+                              {/* Generic badge (BETA etc.) */}
+                              {item.badge && (
+                                <span
+                                  className="ml-auto text-[8px] font-bold px-1.5 py-0.5 rounded"
+                                  style={{
+                                    fontFamily: 'var(--q-font-mono)',
+                                    letterSpacing: '0.08em',
+                                    background: 'var(--q-status-green-bg)',
+                                    color: 'var(--q-status-green)',
+                                    border: '1px solid var(--q-status-green-border)',
+                                  }}
+                                >
+                                  {item.badge}
+                                </span>
+                              )}
+                            </>
                           )}
                         </SidebarMenuButton>
                       );
@@ -224,12 +310,10 @@ export function AppSidebar() {
                         <SidebarMenuItem key={item.title}>
                           {collapsed ? (
                             <Tooltip>
-                              <TooltipTrigger asChild>{button}</TooltipTrigger>
+                              <TooltipTrigger asChild>{btn}</TooltipTrigger>
                               <TooltipContent side="right">{item.title}</TooltipContent>
                             </Tooltip>
-                          ) : (
-                            button
-                          )}
+                          ) : btn}
                         </SidebarMenuItem>
                       );
                     })}
@@ -240,36 +324,49 @@ export function AppSidebar() {
           })}
         </SidebarContent>
 
-        <SidebarFooter className="p-4 border-t border-[var(--q-border-subtle)]">
+        {/* ── FOOTER — user info ── */}
+        <SidebarFooter
+          className="border-t"
+          style={{
+            padding: '12px',
+            borderColor: 'var(--q-border-subtle)',
+          }}
+        >
           <ActivationWidget collapsed={collapsed} />
-          <div className={`flex items-center ${collapsed ? 'justify-center' : 'gap-3'}`}>
-            <Avatar className="h-8 w-8 shrink-0">
-              <AvatarFallback className="bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] text-xs font-medium">
+          <div className={`flex items-center mt-2 ${collapsed ? 'justify-center' : 'gap-2.5'}`}>
+            <Avatar className="h-7 w-7 shrink-0">
+              <AvatarFallback
+                className="text-[10px] font-bold"
+                style={{
+                  background: 'var(--q-accent-glow)',
+                  color: 'var(--q-accent-primary)',
+                  fontFamily: 'var(--q-font-mono)',
+                }}
+              >
                 {userInitials}
               </AvatarFallback>
             </Avatar>
             {!collapsed && (
               <div className="flex-1 min-w-0">
-                <p className="text-sm font-dm-sans font-medium text-[var(--q-text-primary)] truncate">
+                <p
+                  className="truncate leading-none"
+                  style={{
+                    fontFamily: 'var(--q-font-body)',
+                    fontSize: '12px',
+                    fontWeight: 500,
+                    color: 'var(--q-text-primary)',
+                  }}
+                >
                   {userEmail}
                 </p>
-                <Badge
-                  variant={isPlus ? 'default' : 'secondary'}
-                  className={`mt-0.5 text-[10px] h-5 ${
-                    isPro
-                      ? 'bg-[var(--q-status-yellow-bg)] text-[var(--q-status-yellow)] border-[var(--q-status-yellow-border)]'
-                      : isPlus
-                        ? 'bg-[var(--q-accent-glow)] text-[var(--q-accent-primary)] border-[var(--q-accent-primary)]/30'
-                        : ''
-                  }`}
+                <span
+                  className={`text-[9px] font-bold tracking-[0.1em] uppercase mt-0.5 block ${tierColor}`}
+                  style={{ fontFamily: 'var(--q-font-mono)' }}
                 >
-                  {isPro ? (
-                    <Crown className="w-2.5 h-2.5 mr-1" />
-                  ) : isPlus ? (
-                    <Zap className="w-2.5 h-2.5 mr-1" />
-                  ) : null}
-                  {isPro ? 'Pro' : isPlus ? 'Plus' : 'Free'}
-                </Badge>
+                  {isPro && <Crown className="w-2.5 h-2.5 inline mr-0.5 mb-px" />}
+                  {!isPro && isPlus && <Zap className="w-2.5 h-2.5 inline mr-0.5 mb-px" />}
+                  {tierLabel}
+                </span>
               </div>
             )}
           </div>
