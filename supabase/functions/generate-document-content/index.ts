@@ -265,13 +265,13 @@ serve(async (req) => {
       .eq('user_id', user.id)
       .single();
 
-    const isPlusUser = subscription &&
-      subscription.plan_id === 'plus' &&
+    const hasAccess = subscription &&
+      (subscription.plan_id === 'plus' || subscription.plan_id === 'pro' || subscription.plan_id === 'enterprise') &&
       (subscription.status === 'active' || subscription.status === 'trialing');
 
-    if (!isPlusUser) {
+    if (!hasAccess) {
       return new Response(
-        JSON.stringify({ error: 'Plus subscription required for AI document generation' }),
+        JSON.stringify({ error: 'Plus or Pro subscription required for AI document generation' }),
         { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
