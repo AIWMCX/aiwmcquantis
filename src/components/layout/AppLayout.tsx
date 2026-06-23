@@ -14,9 +14,36 @@ interface AppLayoutProps {
 export function AppLayout({ children, title }: AppLayoutProps) {
   return (
     <SidebarProvider>
-      <div className="min-h-screen flex w-full bg-[var(--q-bg-base)]">
+      {/* Finance-grade surface — deep navy base with blueprint grid at top */}
+      <div
+        className="min-h-screen flex w-full relative"
+        style={{ backgroundColor: 'var(--q-bg-base)' }}
+      >
+        {/* Blueprint grid — fades out after 280px, never intrudes on content */}
+        <div
+          aria-hidden="true"
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            height: '280px',
+            pointerEvents: 'none',
+            zIndex: 0,
+            backgroundImage: `
+              linear-gradient(var(--q-border-subtle) 1px, transparent 1px),
+              linear-gradient(90deg, var(--q-border-subtle) 1px, transparent 1px)
+            `,
+            backgroundSize: '48px 48px',
+            opacity: 0.28,
+            maskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)',
+            WebkitMaskImage: 'linear-gradient(to bottom, rgba(0,0,0,1) 0%, rgba(0,0,0,0) 100%)',
+          }}
+        />
+
         <AppSidebar />
-        <div className="flex-1 flex flex-col min-w-0">
+
+        <div className="flex-1 flex flex-col min-w-0 relative z-10">
           <AppTopBar title={title} />
           <ProTrialBanner />
           <UpgradeNudgeBanner />

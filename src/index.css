@@ -58,9 +58,9 @@
     --q-status-orange-bg: #FFF7ED;
     --q-status-orange-border: #FED7AA;
     
-    --q-status-ai: #818CF8;
-    --q-status-ai-bg: #EEF2FF;
-    --q-status-ai-border: #C7D2FE;
+    --q-status-ai: #06B6D4;
+    --q-status-ai-bg: #ECFEFF;
+    --q-status-ai-border: #A5F3FC;
     
   /* ── CHART COLORS ── */
     --q-chart-1: #4F8EF7;
@@ -114,15 +114,15 @@
     /* ── AIWMC BRAND COLORS (cross-product) ── */
     --aiwmc-green: #8FFF2A;
     --aiwmc-green-dark: #6ECC1A;
-    --aiwmc-purple: #8B5CF6;
+    --aiwmc-teal: #2DD4BF;
     --aiwmc-blue: #3B82F6;
     --aiwmc-black: #0A0A0A;
     --aiwmc-white: #F7F7F5;
     
     /* ── TYPOGRAPHY TOKENS (AIWMC system) ── */
-    --q-font-heading: 'Cabinet Grotesk', 'Sora', 'DM Sans', system-ui, sans-serif;
-    --q-font-body: 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
-    --q-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --q-font-heading: 'Cabinet Grotesk', 'IBM Plex Sans', 'Sora', system-ui, sans-serif;
+    --q-font-body: 'IBM Plex Sans', 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
+    --q-font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace;
     --q-fs-hero: clamp(40px, 5.5vw, 72px);
     --q-fs-h2: clamp(28px, 3.5vw, 48px);
     --q-fs-h3: 20px;
@@ -213,7 +213,7 @@
     /* ── AIWMC BRAND COLORS (cross-product) ── */
     --aiwmc-green: #8FFF2A;
     --aiwmc-green-dark: #6ECC1A;
-    --aiwmc-purple: #8B5CF6;
+    --aiwmc-teal: #2DD4BF;
     --aiwmc-blue: #3B82F6;
     --aiwmc-black: #0A0A0A;
     --aiwmc-white: #F7F7F5;
@@ -236,9 +236,9 @@
     --q-status-orange-bg: rgba(247,115,22,0.07);
     --q-status-orange-border: rgba(247,115,22,0.25);
     
-    --q-status-ai: #818CF8;
-    --q-status-ai-bg: rgba(129,140,248,0.07);
-    --q-status-ai-border: rgba(129,140,248,0.25);
+    --q-status-ai: #06B6D4;
+    --q-status-ai-bg: rgba(6,182,212,0.07);
+    --q-status-ai-border: rgba(6,182,212,0.25);
     
     /* ── VERDICT SYSTEM ── */
     --q-proceed: #10B981;
@@ -298,9 +298,9 @@
     --q-shadow-glow-green: 0 0 24px rgba(16,185,129,0.15);
     
     /* ── TYPOGRAPHY TOKENS (AIWMC system) ── */
-    --q-font-heading: 'Cabinet Grotesk', 'Sora', 'DM Sans', system-ui, sans-serif;
-    --q-font-body: 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
-    --q-font-mono: 'JetBrains Mono', 'Fira Code', monospace;
+    --q-font-heading: 'Cabinet Grotesk', 'IBM Plex Sans', 'Sora', system-ui, sans-serif;
+    --q-font-body: 'IBM Plex Sans', 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
+    --q-font-mono: 'IBM Plex Mono', 'JetBrains Mono', 'Fira Code', monospace;
     --q-fs-hero: clamp(40px, 5.5vw, 72px);
     --q-fs-h2: clamp(28px, 3.5vw, 48px);
     --q-fs-h3: 20px;
@@ -362,14 +362,14 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    /* Apple-grade typography base — buttery Cabinet Grotesk on dark */
-    font-family: 'Cabinet Grotesk', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Inter', 'DM Sans', system-ui, sans-serif;
-    font-weight: 450; /* Apple's between-400-and-500 trick for dark UI legibility */
+    /* Finance-grade typography — IBM Plex Sans for institutional feel */
+    font-family: 'IBM Plex Sans', 'Cabinet Grotesk', -apple-system, BlinkMacSystemFont, 'DM Sans', system-ui, sans-serif;
+    font-weight: 400;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
-    font-feature-settings: "ss01", "cv11", "kern";
-    letter-spacing: -0.011em;
+    font-feature-settings: "kern", "liga", "tnum" 0;
+    letter-spacing: -0.008em;
     color: var(--q-text-primary);
   }
   /* WCAG AA legibility floor — never let body text drop below readable */
@@ -921,6 +921,196 @@
     animation: q-metric-flash 1s var(--q-ease-out);
   }
   
+  /* ═══════════════════════════════════════════════
+   * FINANCE SURFACE SYSTEM
+   * Extends the RMG landing aesthetic to the full app.
+   * Use .q-finance-surface on page wrappers / sections.
+   * ═══════════════════════════════════════════════ */
+
+  /* Subtle blueprint grid — institutional finance feel */
+  .q-finance-surface {
+    position: relative;
+    background-color: var(--q-bg-base);
+  }
+  .q-finance-surface::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(var(--q-border-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--q-border-subtle) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.35;
+    mask-image: radial-gradient(ellipse at 50% 0%, #000 20%, transparent 80%);
+  }
+  .q-finance-surface > * { position: relative; z-index: 1; }
+
+  /* ── FINANCE PAGE SHELL — full page wrapper with grid ── */
+  .q-page-shell {
+    min-height: 100vh;
+    background-color: var(--q-bg-base);
+    position: relative;
+  }
+  .q-page-shell::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 320px;
+    pointer-events: none;
+    z-index: 0;
+    background-image:
+      linear-gradient(var(--q-border-subtle) 1px, transparent 1px),
+      linear-gradient(90deg, var(--q-border-subtle) 1px, transparent 1px);
+    background-size: 48px 48px;
+    opacity: 0.3;
+    mask-image: linear-gradient(to bottom, #000 0%, transparent 100%);
+  }
+  .q-page-shell > * { position: relative; z-index: 1; }
+
+  /* ── EYEBROW LABEL — the institutional section tag ── */
+  .q-eyebrow {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--q-accent-primary);
+  }
+
+  /* ── DATA TABLE ROWS — finance-grade tabular data ── */
+  .q-table-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--q-border-subtle);
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 13px;
+  }
+  .q-table-row:last-child { border-bottom: none; }
+  .q-table-row-label {
+    color: var(--q-text-tertiary);
+    font-weight: 400;
+  }
+  .q-table-row-value {
+    font-family: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+    font-feature-settings: 'tnum' 1;
+    font-weight: 500;
+    color: var(--q-text-primary);
+  }
+
+  /* ── FINANCE CARD — institutional card with precision border ── */
+  .q-finance-card {
+    background: var(--q-bg-surface);
+    border: 1px solid var(--q-border-default);
+    border-radius: var(--q-radius-md);
+    position: relative;
+    overflow: hidden;
+  }
+  .q-finance-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, var(--q-accent-primary), transparent);
+    opacity: 0.4;
+  }
+
+  /* ── SECTION DIVIDER — horizontal rule with label ── */
+  .q-section-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 24px 0;
+  }
+  .q-section-divider::before,
+  .q-section-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--q-border-subtle);
+  }
+
+  /* ── STATUS DOT — the ENGINE ONLINE style indicator ── */
+  .q-status-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+  .q-status-dot::before {
+    content: '';
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--q-status-green);
+    box-shadow: 0 0 6px var(--q-status-green);
+  }
+  .q-status-dot-yellow::before { background: var(--q-status-yellow); box-shadow: 0 0 6px var(--q-status-yellow); }
+  .q-status-dot-red::before { background: var(--q-status-red); box-shadow: 0 0 6px var(--q-status-red); }
+
+  /* ── CORNER BRACKETS — institutional data container ── */
+  .q-bracket {
+    position: relative;
+    padding: 16px;
+  }
+  .q-bracket::before,
+  .q-bracket::after {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-color: var(--q-accent-primary);
+    opacity: 0.6;
+  }
+  .q-bracket::before {
+    top: 0; left: 0;
+    border-top: 1px solid; border-left: 1px solid;
+  }
+  .q-bracket::after {
+    bottom: 0; right: 0;
+    border-bottom: 1px solid; border-right: 1px solid;
+  }
+
+  /* ── METRIC BAND — the hero KPI row from the screenshot ── */
+  .q-metric-band {
+    background: var(--q-bg-surface);
+    border: 1px solid var(--q-border-default);
+    border-radius: var(--q-radius-md);
+    padding: 20px 24px;
+  }
+  .q-metric-band-label {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    font-weight: 500;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--q-text-tertiary);
+    margin-bottom: 6px;
+  }
+  .q-metric-band-value {
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 28px;
+    font-weight: 600;
+    font-feature-settings: 'tnum' 1;
+    color: var(--q-text-primary);
+    line-height: 1;
+    letter-spacing: -0.02em;
+  }
+  .q-metric-band-sub {
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    font-size: 11px;
+    color: var(--q-text-tertiary);
+    margin-top: 4px;
+  }
+
   /* ── LEGACY ALIASES ── */
   .quantis-display-xl { @apply text-display; }
   .quantis-display-lg { @apply text-display-sm; }

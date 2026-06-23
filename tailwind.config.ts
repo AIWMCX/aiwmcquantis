@@ -20,9 +20,11 @@ export default {
 		},
 		extend: {
 			fontFamily: {
-				sans: ['Cabinet Grotesk', 'DM Sans', ...fontFamily.sans],
-				display: ['Cabinet Grotesk', 'Sora', 'DM Sans', ...fontFamily.sans],
-				mono: ['JetBrains Mono', 'Fira Code', ...fontFamily.mono],
+				sans: ['IBM Plex Sans', 'Cabinet Grotesk', 'DM Sans', ...fontFamily.sans],
+				display: ['Cabinet Grotesk', 'IBM Plex Sans', 'Sora', ...fontFamily.sans],
+				mono: ['IBM Plex Mono', 'JetBrains Mono', 'Fira Code', ...fontFamily.mono],
+				plex: ['IBM Plex Sans', 'system-ui', ...fontFamily.sans],
+				cabinet: ['Cabinet Grotesk', 'DM Sans', ...fontFamily.sans],
 			},
 			colors: {
 				// Legacy shadcn tokens
