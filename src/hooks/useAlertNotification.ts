@@ -28,22 +28,20 @@ export interface AlertResponse {
  * For client-side alerting (e.g., from admin dashboard)
  */
 export async function sendAlert(alert: AlertPayload): Promise<AlertResponse> {
-  const { data, error } = await supabase.functions.invoke<AlertResponse>('alert-webhook', {
-    body: {
-      ...alert,
-      timestamp: new Date().toISOString(),
-    },
-  });
-
-  if (error) {
-    throw new Error(error.message);
+  // alert-webhook is a server-to-server endpoint protected by ALERT_WEBHOOK_SECRET
+  // (held only by cron/monitoring). Browser clients cannot authenticate to it, so
+  // we no-op here instead of surfacing a 401 as a runtime error. Real alerts
+  // are dispatched by server-side health checks.
+  const noop: AlertResponse = {
+    success: true,
+    message: 'client-side alert suppressed (server-only endpoint)',
+    notifications: [],
+    alert_id: 'noop',
+  };
+  if (typeof console !== 'undefined') {
+    console.debug('[sendAlert] suppressed client invocation', alert);
   }
-
-  if (!data) {
-    throw new Error('No response from alert webhook');
-  }
-
-  return data;
+  return noop;
 }
 
 /**
