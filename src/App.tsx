@@ -65,6 +65,7 @@ const Autoposter = lazy(() => import("./pages/admin/Autoposter"));
 const ContentStudio = lazy(() => import("./pages/admin/ContentStudio"));
 const AiCosts = lazy(() => import("./pages/admin/AiCosts"));
 const EmailFunnel = lazy(() => import("./pages/admin/EmailFunnel"));
+const QocMonitor = lazy(() => import("./pages/admin/QocMonitor"));
 const RvceTestPanel = lazy(() => import("./pages/dev/RvceTestPanel"));
 const EmailConfirmed = lazy(() => import("./pages/EmailConfirmed"));
 const EmailPreferences = lazy(() => import("./pages/EmailPreferences"));
@@ -280,6 +281,11 @@ const App = () => {
                 <Route path="/admin/email-funnel" element={
                   <ProtectedRoute requireAdmin>
                     <EmailFunnel />
+                  </ProtectedRoute>
+                } />
+                <Route path="/admin/qoc" element={
+                  <ProtectedRoute requireAdmin>
+                    <QocMonitor />
                   </ProtectedRoute>
                 } />
                 <Route path="/directory-tracker" element={<DirectoryTracker />} />
