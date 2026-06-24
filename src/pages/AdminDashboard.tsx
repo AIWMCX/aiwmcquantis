@@ -10,7 +10,7 @@ import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
-import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen } from 'lucide-react';
+import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen, Workflow } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -89,6 +89,12 @@ export default function AdminDashboard() {
               <Link to="/admin/engine">
                 <BookOpen className="w-4 h-4 mr-2" />
                 Engine &amp; Spec v4
+              </Link>
+            </Button>
+            <Button variant="outline" size="sm" asChild>
+              <Link to="/admin/qoc">
+                <Workflow className="w-4 h-4 mr-2" />
+                QOC Monitor
               </Link>
             </Button>
             <Button variant="outline" size="sm" asChild>
