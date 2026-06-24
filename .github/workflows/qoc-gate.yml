@@ -1,0 +1,45 @@
+name: qoc-gate
+
+# ============================================================================
+# QOC fail-closed gate.
+# ----------------------------------------------------------------------------
+# This is the mechanism that makes QOC survive Lovable regeneration. If Lovable
+# (or anyone) overwrites/removes a QOC stage, deletes the seams, or breaks a
+# short-circuit invariant, THIS JOB FAILS and blocks the deploy. A green main is
+# the only state in which SEO/acquisition work should be built on top.
+#
+# It runs three independent checks:
+#   1. typecheck — Deno type-checks every QOC module.
+#   2. tests     — the 11 acceptance invariants must pass.
+#   3. structure — required files + critical invariants exist verbatim
+#                  (defends against silent stub-replacement).
+# ============================================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  qoc-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Type-check QOC modules
+        run: |
+          deno check supabase/functions/qoc-orchestrate/qoc/*.ts \
+                     supabase/functions/qoc-orchestrate/adapters.ts \
+                     supabase/functions/qoc-orchestrate/index.ts
+
+      - name: Run QOC acceptance tests
+        run: deno test --allow-none tests/qoc.test.ts
+
+      - name: Structural integrity gate (fail-closed)
+        run: bash scripts/qoc-structure-check.sh
