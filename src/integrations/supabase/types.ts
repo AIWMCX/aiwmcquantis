@@ -4247,6 +4247,48 @@ export type Database = {
         }
         Relationships: []
       }
+      qoc_audit: {
+        Row: {
+          created_at: string
+          fingerprint: string | null
+          id: string
+          overall_verdict: string
+          report_id: string
+          request_id: string
+          short_circuit: Json | null
+          total_cost_usd: number
+          total_duration_ms: number
+          traces: Json
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          overall_verdict: string
+          report_id: string
+          request_id: string
+          short_circuit?: Json | null
+          total_cost_usd?: number
+          total_duration_ms?: number
+          traces?: Json
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          fingerprint?: string | null
+          id?: string
+          overall_verdict?: string
+          report_id?: string
+          request_id?: string
+          short_circuit?: Json | null
+          total_cost_usd?: number
+          total_duration_ms?: number
+          traces?: Json
+          user_id?: string
+        }
+        Relationships: []
+      }
       quality_metrics_daily: {
         Row: {
           avg_confidence_score: number | null
