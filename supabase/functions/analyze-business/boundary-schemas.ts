@@ -50,7 +50,7 @@ export const FinancialInputsSchema = z
 
 export const RequestSchema = z
   .object({
-    idea: z.string().min(1).max(5000),
+    idea: z.string().min(1).max(20000),
     location: z.string().min(1).max(200),
     financial_inputs: FinancialInputsSchema.optional(),
     selected_industry: z.coerce.string().max(100).optional(),

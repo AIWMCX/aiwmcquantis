@@ -27,7 +27,7 @@ export const analysisInputSchema = z.object({
   idea: z.string()
     .trim()
     .min(10, "Business idea must be at least 10 characters")
-    .max(5000, "Business idea must not exceed 5000 characters")
+    .max(20000, "Business idea must not exceed 20,000 characters")
     .refine(val => noXssPattern.test(val), "Invalid characters in business idea"),
   
   location: z.string()

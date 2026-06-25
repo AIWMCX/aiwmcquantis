@@ -119,7 +119,19 @@ export default function QocMonitor() {
     const p50 = durs[Math.floor(durs.length * 0.5)] ?? 0;
     const p95 = durs[Math.floor(durs.length * 0.95)] ?? 0;
     const passRate = total ? (pass / total) * 100 : 0;
-    return { total, pass, blocked, cost, p50, p95, passRate };
+    // QOC-ECON v1.0 §4.3 — dedupe savings: every short-circuit at "dedupe"
+    // would have otherwise cost the average non-dedupe PASS spend.
+    const dedupeHits = data.filter(r => {
+      const sc = r.short_circuit as { at?: string; stage?: string } | null;
+      return sc?.at === "dedupe" || sc?.stage === "dedupe";
+    }).length;
+    const paidRuns = data.filter(r => !r.short_circuit && Number(r.total_cost_usd || 0) > 0);
+    const avgPaidCost = paidRuns.length
+      ? paidRuns.reduce((s, r) => s + Number(r.total_cost_usd || 0), 0) / paidRuns.length
+      : 0;
+    const dedupeSavings = dedupeHits * avgPaidCost;
+    const dedupeRate = total ? (dedupeHits / total) * 100 : 0;
+    return { total, pass, blocked, cost, p50, p95, passRate, dedupeHits, dedupeSavings, dedupeRate };
   }, [rows]);
 
   return (
@@ -158,7 +170,7 @@ export default function QocMonitor() {
         </div>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Requests" value={rows == null ? null : kpi.total.toString()} />
           <KpiCard label="Pass rate" value={rows == null ? null : `${kpi.passRate.toFixed(1)}%`}
                    tone={kpi.passRate >= 95 ? "good" : kpi.passRate >= 80 ? "warn" : "bad"} />
@@ -168,6 +180,12 @@ export default function QocMonitor() {
                    value={rows == null ? null : `${fmtMs(kpi.p50)} / ${fmtMs(kpi.p95)}`}
                    icon={Clock} />
           <KpiCard label="Spend (window)" value={rows == null ? null : fmtUsd(kpi.cost)} icon={DollarSign} />
+          <KpiCard
+            label={`Dedupe saved (${kpi.dedupeRate.toFixed(1)}%)`}
+            value={rows == null ? null : fmtUsd(kpi.dedupeSavings)}
+            tone={kpi.dedupeHits > 0 ? "good" : undefined}
+            icon={DollarSign}
+          />
         </div>
 
         {/* Filters */}

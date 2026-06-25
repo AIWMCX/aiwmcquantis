@@ -84,6 +84,24 @@ For every major metric, point to the underlying formula and inputs. If you canno
 Under-promise on weak inputs. Mark assumption-heavy sections explicitly. Prefer ranges over point estimates.
 `;
 
+// ========== TIER FIREWALL (QOC-ECON v1.0 §4.5) ==========
+// Server-side bind tier→model. The request's `tier` is set by QOC's narrate
+// adapter from the server-resolved plan (DB truth) — never client-claimed.
+// Any client-supplied `model` field is IGNORED. This makes a Free run
+// structurally incapable of reaching a premium model (the 50x cost spike fix).
+type NarrationTier = "deepseek" | "haiku" | "sonnet" | "opus";
+const TIER_TO_MODEL: Record<NarrationTier, string> = {
+  deepseek: "google/gemini-2.5-flash-lite", // free tier — cheapest
+  haiku:    "google/gemini-2.5-flash",      // plus baseline
+  sonnet:   "openai/gpt-5-mini",            // pro narration (current default)
+  opus:     "openai/gpt-5",                 // adversarial / Plus validation
+};
+function resolveTierModel(rawTier: unknown): { tier: NarrationTier; model: string } {
+  const t = String(rawTier ?? "sonnet").toLowerCase() as NarrationTier;
+  const tier: NarrationTier = (t in TIER_TO_MODEL) ? t : "sonnet";
+  return { tier, model: TIER_TO_MODEL[tier] };
+}
+
 // ========== TYPES ==========
 
 export interface NarratorInput {
@@ -301,13 +319,18 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const input: NarratorInput = await req.json();
-    
+    // deno-lint-ignore no-explicit-any
+    const body: any = await req.json();
+    const input: NarratorInput = body;
+    // Tier firewall: pull `tier` from request (set by QOC), never trust `model`.
+    const { tier, model: firewalledModel } = resolveTierModel(body?.tier);
+    log.info(`Tier firewall: tier=${tier} → model=${firewalledModel}`);
+
     // Validate required fields
     if (!input.businessIdea || !input.location) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: "businessIdea and location are required",
           usedFallback: false,
           latencyMs: Date.now() - startTime
@@ -377,12 +400,12 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
 
       const aiResult = await aiCall(
         {
-          model: "openai/gpt-5-mini",
+          model: firewalledModel, // QOC tier firewall — bound server-side
           messages: [{ role: "user", content: prompt }],
           tools: [analysisToolSchema],
           tool_choice: { type: "function", function: { name: "submit_analysis" } },
         },
-        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name } },
+        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name, tier, model: firewalledModel } },
       );
 
       if (!aiResult.ok) {
@@ -446,7 +469,8 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
           success: true,
           content,
           usedFallback: false,
-          model: "openai/gpt-5-mini",
+          model: firewalledModel,
+          tier,
           latencyMs: Date.now() - startTime
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
