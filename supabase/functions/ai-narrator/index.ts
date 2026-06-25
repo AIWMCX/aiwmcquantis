@@ -319,13 +319,18 @@ serve(async (req) => {
   const startTime = Date.now();
 
   try {
-    const input: NarratorInput = await req.json();
-    
+    // deno-lint-ignore no-explicit-any
+    const body: any = await req.json();
+    const input: NarratorInput = body;
+    // Tier firewall: pull `tier` from request (set by QOC), never trust `model`.
+    const { tier, model: firewalledModel } = resolveTierModel(body?.tier);
+    log.info(`Tier firewall: tier=${tier} → model=${firewalledModel}`);
+
     // Validate required fields
     if (!input.businessIdea || !input.location) {
       return new Response(
-        JSON.stringify({ 
-          success: false, 
+        JSON.stringify({
+          success: false,
           error: "businessIdea and location are required",
           usedFallback: false,
           latencyMs: Date.now() - startTime
