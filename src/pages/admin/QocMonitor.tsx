@@ -170,7 +170,7 @@ export default function QocMonitor() {
         </div>
 
         {/* KPI strip */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
           <KpiCard label="Requests" value={rows == null ? null : kpi.total.toString()} />
           <KpiCard label="Pass rate" value={rows == null ? null : `${kpi.passRate.toFixed(1)}%`}
                    tone={kpi.passRate >= 95 ? "good" : kpi.passRate >= 80 ? "warn" : "bad"} />
@@ -180,6 +180,12 @@ export default function QocMonitor() {
                    value={rows == null ? null : `${fmtMs(kpi.p50)} / ${fmtMs(kpi.p95)}`}
                    icon={Clock} />
           <KpiCard label="Spend (window)" value={rows == null ? null : fmtUsd(kpi.cost)} icon={DollarSign} />
+          <KpiCard
+            label={`Dedupe saved (${kpi.dedupeRate.toFixed(1)}%)`}
+            value={rows == null ? null : fmtUsd(kpi.dedupeSavings)}
+            tone={kpi.dedupeHits > 0 ? "good" : undefined}
+            icon={DollarSign}
+          />
         </div>
 
         {/* Filters */}
