@@ -278,6 +278,8 @@ jobs:
             oauth-linkedin-callback
             oauth-twitter-callback
             meta-credentials-setup
+            # ── QOC orchestration layer ────────────────────────────────────
+            qoc-orchestrate
           )
           # Functions that must be callable without a JWT (email confirm/unsubscribe links)
           NO_VERIFY_JWT_FNS="confirm-email-subscription"

@@ -39,7 +39,7 @@ jobs:
                      supabase/functions/qoc-orchestrate/index.ts
 
       - name: Run QOC acceptance tests
-        run: deno test --allow-none tests/qoc.test.ts
+        run: deno test tests/qoc.test.ts
 
       - name: Structural integrity gate (fail-closed)
         run: bash scripts/qoc-structure-check.sh
