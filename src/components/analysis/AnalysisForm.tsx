@@ -100,35 +100,27 @@ export function AnalysisForm({
         <div className="flex justify-between items-center">
           {errors.idea ? (
             <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>
+          ) : idea.length > 20000 ? (
+            <p className="text-sm text-destructive" role="alert">
+              Over the limit by {(idea.length - 20000).toLocaleString()} characters — please shorten your idea.
+            </p>
           ) : (
-            <span id="idea-hint" className="text-xs text-muted-foreground">More detail = better analysis</span>
+            <span id="idea-hint" className="text-xs text-muted-foreground">
+              Minimum 10 characters — more detail = better analysis
+            </span>
           )}
-          <span 
+          <span
             className={cn(
-              "text-xs font-medium",
-              idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
+              "text-xs font-medium tabular-nums",
+              idea.length > 20000 ? "text-destructive" : idea.length > 18000 ? "text-amber-500" : "text-muted-foreground"
             )}
             aria-live="polite"
             aria-atomic="true"
           >
-            {idea.length > 999 ? `${(idea.length / 1000).toFixed(1)}k` : idea.length}/5k
-          </span>
-        </div>
-        <div className="flex justify-between items-center">
-          {errors.idea ? (
-            <p id="idea-error" className="text-sm text-destructive" role="alert">{errors.idea}</p>
-          ) : (
-            <span id="idea-hint" className="text-xs text-muted-foreground">Minimum 10 characters — more detail = better analysis</span>
-          )}
-          <span 
-            className={cn(
-              "text-xs font-medium",
-              idea.length > 5000 ? "text-destructive" : idea.length > 4000 ? "text-amber-500" : "text-muted-foreground"
+            {idea.length.toLocaleString()}/{(20000).toLocaleString()}
+            {idea.length > 18000 && idea.length <= 20000 && (
+              <span className="ml-1">({(20000 - idea.length).toLocaleString()} left)</span>
             )}
-            aria-live="polite"
-            aria-atomic="true"
-          >
-            {idea.length.toLocaleString()}/5,000
           </span>
         </div>
       </div>
@@ -152,9 +144,27 @@ export function AnalysisForm({
             errors.location && "border-destructive focus-visible:ring-destructive"
           )}
         />
-        {errors.location && (
-          <p id="location-error" className="text-sm text-destructive" role="alert">{errors.location}</p>
-        )}
+        <div className="flex justify-between items-center">
+          {errors.location ? (
+            <p id="location-error" className="text-sm text-destructive" role="alert">{errors.location}</p>
+          ) : location.length > 200 ? (
+            <p className="text-sm text-destructive" role="alert">
+              Over the limit by {(location.length - 200).toLocaleString()} characters.
+            </p>
+          ) : null}
+          {location.length > 150 && (
+            <span
+              className={cn(
+                "text-xs font-medium tabular-nums",
+                location.length > 200 ? "text-destructive" : "text-amber-500"
+              )}
+              aria-live="polite"
+            >
+              {location.length}/200
+              {location.length <= 200 && <span className="ml-1">({200 - location.length} left)</span>}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Industry Selector */}
@@ -268,7 +278,7 @@ export function AnalysisForm({
       {/* Tip */}
       <div className="p-3 rounded-lg bg-muted/50">
         <p className="text-xs text-muted-foreground">
-          <strong className="text-foreground">Pro Tip:</strong> For best results, provide detailed descriptions (up to 5,000 characters) and upload real financial documents. 
+          <strong className="text-foreground">Pro Tip:</strong> For best results, provide detailed descriptions (up to 20,000 characters) and upload real financial documents. 
           The AI will analyze actual numbers from your revenue statements and marketing data for precise insights.
         </p>
       </div>

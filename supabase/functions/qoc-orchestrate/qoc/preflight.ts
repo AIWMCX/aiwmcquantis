@@ -113,6 +113,30 @@ export function preflight(req: AnalysisRequest, now: () => number): {
   }
 
   const idea = String(req.idea);
+  const loc = typeof req.location === "string" ? req.location : "";
+
+  // 1b) Input length caps (idea ≤ 20 000 chars, location ≤ 200 chars).
+  if (idea.length > 20_000 || loc.length > 200) {
+    const field = idea.length > 20_000 ? "idea" : "location";
+    const limit = field === "idea" ? 20_000 : 200;
+    const actual = field === "idea" ? idea.length : loc.length;
+    const result: PreflightResult = {
+      ok: false,
+      reject_reason: "input_too_long",
+      sector: "unknown",
+      sector_confidence: 0,
+      fields_present: 0,
+      confidence_band: "very_low",
+      hard_block: false,
+      imputations: [],
+    };
+    return {
+      result,
+      trace: finalize("FAIL", started, now, { result, field, limit, actual }, [
+        `${field} is ${actual.toLocaleString()} chars (max ${limit.toLocaleString()}).`,
+      ]),
+    };
+  }
 
   // 2) Hard-block (injection or out-of-scope).
   for (const rx of INJECTION_PATTERNS) {

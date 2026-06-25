@@ -67,6 +67,22 @@ function json(body: unknown, status = 200) {
     initial_investment: body.initial_investment,
   };
 
+  // Input length guard — reject before orchestration
+  const ideaLen = req.idea.length;
+  const locLen = typeof req.location === "string" ? req.location.length : 0;
+  if (ideaLen > 20_000 || locLen > 200) {
+    const field = ideaLen > 20_000 ? "idea" : "location";
+    const limit = field === "idea" ? 20_000 : 200;
+    const actual = field === "idea" ? ideaLen : locLen;
+    return json({
+      error: "input_too_long",
+      field,
+      limit,
+      actual,
+      message: `${field} is ${actual.toLocaleString()} characters (max ${limit.toLocaleString()}). Please shorten it.`,
+    }, 422);
+  }
+
   const deps = makeDeps(sb);
   // Inject user_id onto the envelope for the audit insert (see adapters).
   const patchedDeps = {

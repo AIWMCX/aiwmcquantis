@@ -60,6 +60,9 @@ require_contains "$BASE/qoc/orchestrator.ts" "DETERMINISTIC ENGINE" "engine boun
 # Invariant 7: hard-block patterns exist (safety not stripped).
 require_contains "$BASE/qoc/preflight.ts" "INJECTION_PATTERNS" "injection guard present"
 
+# Invariant 8: input length caps enforced in preflight (20k idea / 200 location).
+require_contains "$BASE/qoc/preflight.ts" "input_too_long" "input length cap guard present"
+
 if [[ "$FAIL" -ne 0 ]]; then
   red "QOC STRUCTURAL GATE FAILED — deploy blocked."
   exit 1

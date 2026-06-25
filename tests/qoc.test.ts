@@ -12,6 +12,7 @@ import {
 import { orchestrate } from "../supabase/functions/qoc-orchestrate/qoc/orchestrator.ts";
 import { preflight } from "../supabase/functions/qoc-orchestrate/qoc/preflight.ts";
 import { fingerprint, normalize } from "../supabase/functions/qoc-orchestrate/qoc/dedupe.ts";
+import { tierForPlan } from "../supabase/functions/qoc-orchestrate/qoc/types.ts";
 import type {
   AnalysisRequest,
   AuditEnvelope,
@@ -223,4 +224,99 @@ Deno.test("preflight classifies saas sector with confidence", () => {
   assertEquals(result.sector, "saas_software");
   assert(result.sector_confidence > 0);
   assertEquals(result.confidence_band, "very_high");
+});
+
+// ---- AT-12: tier-to-model binding (free → deepseek, plus → opus, pro → sonnet)
+Deno.test("tierForPlan binds each plan to exactly one narration tier", () => {
+  assertEquals(tierForPlan("free"), "deepseek");
+  assertEquals(tierForPlan("plus"), "opus");
+  assertEquals(tierForPlan("pro"), "sonnet");
+  // unknown plan falls back to deepseek (cheapest)
+  assertEquals(tierForPlan("enterprise" as any), "deepseek");
+});
+
+// ---- AT-13: narrate stage records the correct tier in its trace -------------
+Deno.test("narrate stage records the tier derived from plan in trace detail", async () => {
+  const tiers: string[] = [];
+  const store = makeFakeStore();
+  const deps = makeDeps(store, {
+    narrate: async (_r, tier) => {
+      tiers.push(tier);
+      return { text: "x", cost_usd: 0.001 };
+    },
+  });
+  // pro plan → sonnet tier
+  await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
+  assertEquals(tiers[0], "sonnet");
+  const env = store.puts[0];
+  const narrateTrace = env.traces.find((t) => t.stage === "narrate");
+  assert(narrateTrace);
+  assertEquals((narrateTrace.detail as any).tier, "sonnet");
+});
+
+// ---- AT-14: dedupe savings KPI — short-circuited requests cost exactly $0 ---
+Deno.test("dedupe hit produces $0 total cost and no engine/narrate/verify traces", async () => {
+  const req = baseReq();
+  const fp = fingerprint(req);
+  const store = makeFakeStore({ fp });
+  const deps = makeDeps(store);
+  const env = await orchestrate(req, deps, { now: clock });
+  assertEquals(env.total_cost_usd, 0);
+  assertEquals(env.short_circuit?.at, "dedupe");
+  // Only preflight + dedupe traces — engine, narrate, verify never ran
+  const stages = env.traces.map((t) => t.stage);
+  assertEquals(stages.includes("engine"), false);
+  assertEquals(stages.includes("narrate"), false);
+  assertEquals(stages.includes("verify"), false);
+  // Every trace individually costs $0
+  for (const t of env.traces) {
+    assertEquals(t.cost_usd, 0, `stage ${t.stage} should cost $0 on dedupe hit`);
+  }
+});
+
+// ---- AT-15: burst-throttled requests cost $0 and record reason --------------
+Deno.test("burst-throttled request costs $0 and records burst_throttled reason", async () => {
+  const store = makeFakeStore({ recent: 10 });
+  const deps = makeDeps(store);
+  const env = await orchestrate(baseReq(), deps, { now: clock });
+  assertEquals(env.total_cost_usd, 0);
+  assertEquals(env.short_circuit?.reason, "burst_throttled");
+  assertEquals(env.overall_verdict, "FAIL");
+});
+
+// ---- AT-16: over-cap idea (>20k chars) rejected at preflight ----------------
+Deno.test("idea exceeding 20,000 chars is rejected by preflight with input_too_long", () => {
+  const longIdea = "a".repeat(20_001);
+  const { result } = preflight(baseReq({ idea: longIdea }), clock);
+  assertEquals(result.ok, false);
+  assertEquals(result.reject_reason, "input_too_long");
+  assertEquals(result.hard_block, false);
+});
+
+// ---- AT-17: over-cap location (>200 chars) rejected at preflight ------------
+Deno.test("location exceeding 200 chars is rejected by preflight with input_too_long", () => {
+  const longLoc = "x".repeat(201);
+  const { result } = preflight(baseReq({ location: longLoc }), clock);
+  assertEquals(result.ok, false);
+  assertEquals(result.reject_reason, "input_too_long");
+});
+
+// ---- AT-18: over-cap rejection returns expected edge schema response --------
+Deno.test("over-cap idea through orchestrator returns FAIL with preflight short-circuit", async () => {
+  const store = makeFakeStore();
+  const deps = makeDeps(store);
+  let engineRan = false;
+  const patchedDeps = makeDeps(store, {
+    runEngine: async () => { engineRan = true; return {}; },
+  });
+  const env = await orchestrate(
+    baseReq({ idea: "b".repeat(20_001) }),
+    patchedDeps,
+    { now: clock },
+  );
+  assertEquals(env.overall_verdict, "FAIL");
+  assertEquals(env.short_circuit?.at, "preflight");
+  assertEquals(env.short_circuit?.reason, "input_too_long");
+  assertEquals(env.total_cost_usd, 0);
+  assertEquals(engineRan, false);
 });

@@ -131,7 +131,29 @@ export default function QocMonitor() {
       : 0;
     const dedupeSavings = dedupeHits * avgPaidCost;
     const dedupeRate = total ? (dedupeHits / total) * 100 : 0;
-    return { total, pass, blocked, cost, p50, p95, passRate, dedupeHits, dedupeSavings, dedupeRate };
+
+    // Breakdown: short-circuits by verdict and stage, with estimated savings
+    const shortCircuits = data.filter(r => r.short_circuit != null);
+    const scByStage: Record<string, { count: number; savedUsd: number }> = {};
+    const scByVerdict: Record<string, { count: number; savedUsd: number }> = {};
+    for (const r of shortCircuits) {
+      const sc = r.short_circuit as { at?: string; stage?: string; reason?: string } | null;
+      const stage = sc?.at ?? sc?.stage ?? "unknown";
+      const verdict = r.overall_verdict;
+      if (!scByStage[stage]) scByStage[stage] = { count: 0, savedUsd: 0 };
+      scByStage[stage].count++;
+      scByStage[stage].savedUsd += avgPaidCost;
+      if (!scByVerdict[verdict]) scByVerdict[verdict] = { count: 0, savedUsd: 0 };
+      scByVerdict[verdict].count++;
+      scByVerdict[verdict].savedUsd += avgPaidCost;
+    }
+
+    return {
+      total, pass, blocked, cost, p50, p95, passRate,
+      dedupeHits, dedupeSavings, dedupeRate,
+      shortCircuitTotal: shortCircuits.length,
+      scByStage, scByVerdict, avgPaidCost,
+    };
   }, [rows]);
 
   return (
@@ -187,6 +209,58 @@ export default function QocMonitor() {
             icon={DollarSign}
           />
         </div>
+
+        {/* Dedupe / short-circuit breakdown */}
+        {rows != null && kpi.shortCircuitTotal > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                Short-circuit breakdown
+                <Badge variant="outline" className="font-mono text-xs">
+                  {kpi.shortCircuitTotal} requests · est. {fmtUsd(kpi.shortCircuitTotal * kpi.avgPaidCost)} saved
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid md:grid-cols-2 gap-6">
+                {/* By stage */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">By stage</h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(kpi.scByStage)
+                      .sort(([, a], [, b]) => b.count - a.count)
+                      .map(([stage, { count, savedUsd }]) => (
+                        <div key={stage} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono text-xs bg-muted px-1.5 py-0.5 rounded">{stage}</span>
+                            <span className="text-muted-foreground">{count} req</span>
+                          </div>
+                          <span className="text-emerald-600 tabular-nums text-xs">{fmtUsd(savedUsd)} saved</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+                {/* By verdict */}
+                <div>
+                  <h4 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-2">By verdict</h4>
+                  <div className="space-y-1.5">
+                    {Object.entries(kpi.scByVerdict)
+                      .sort(([, a], [, b]) => b.count - a.count)
+                      .map(([verdict, { count, savedUsd }]) => (
+                        <div key={verdict} className="flex items-center justify-between text-sm">
+                          <div className="flex items-center gap-2">
+                            <VerdictBadge v={verdict as Verdict} />
+                            <span className="text-muted-foreground">{count} req</span>
+                          </div>
+                          <span className="text-emerald-600 tabular-nums text-xs">{fmtUsd(savedUsd)} saved</span>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Filters */}
         <Card>

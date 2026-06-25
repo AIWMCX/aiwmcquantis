@@ -1,6 +1,6 @@
 {
   "tasks": {
-    "test": "deno test --allow-none tests/qoc.test.ts",
+    "test": "deno test tests/qoc.test.ts",
     "check": "deno check supabase/functions/qoc-orchestrate/qoc/*.ts supabase/functions/qoc-orchestrate/adapters.ts supabase/functions/qoc-orchestrate/index.ts",
     "gate": "deno task check && deno task test && bash scripts/qoc-structure-check.sh"
   },

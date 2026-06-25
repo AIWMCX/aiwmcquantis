@@ -326,6 +326,59 @@ serve(async (req) => {
     const { tier, model: firewalledModel } = resolveTierModel(body?.tier);
     log.info(`Tier firewall: tier=${tier} → model=${firewalledModel}`);
 
+    // ── Model-binding assertion: reject if client-supplied model ≠ tier-derived ──
+    // A mismatch means either a spoofed request or a misconfigured client.
+    // Block the request and log a SECURITY audit event.
+    const clientModel = body?.model;
+    if (clientModel && typeof clientModel === "string" && clientModel !== firewalledModel) {
+      log.error(`SECURITY AUDIT: tier-model mismatch — client sent model="${clientModel}" but tier="${tier}" resolves to "${firewalledModel}". Request blocked.`);
+      // Best-effort audit write (non-blocking)
+      try {
+        const sbUrl = Deno.env.get("SUPABASE_URL");
+        const sbKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+        if (sbUrl && sbKey) {
+          fetch(`${sbUrl}/rest/v1/qoc_audit`, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "authorization": `Bearer ${sbKey}`,
+              "apikey": sbKey,
+              "prefer": "return=minimal",
+            },
+            body: JSON.stringify({
+              request_id: `sec-${crypto.randomUUID()}`,
+              report_id: "SECURITY_MODEL_MISMATCH",
+              overall_verdict: "HARD_BLOCK",
+              total_cost_usd: 0,
+              total_duration_ms: 0,
+              traces: JSON.stringify([{
+                stage: "narrate",
+                verdict: "HARD_BLOCK",
+                cost_usd: 0,
+                duration_ms: 0,
+                detail: {
+                  event: "SECURITY_MODEL_MISMATCH",
+                  client_model: clientModel,
+                  expected_model: firewalledModel,
+                  tier,
+                },
+                notes: ["Blocked: client-provided model does not match tier-derived binding."],
+              }]),
+            }),
+          }).catch(() => {});
+        }
+      } catch { /* audit is best-effort */ }
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "MODEL_MISMATCH: client-provided model does not match tier binding. This incident has been logged.",
+          usedFallback: false,
+          latencyMs: Date.now() - startTime,
+        }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
     // Validate required fields
     if (!input.businessIdea || !input.location) {
       return new Response(
