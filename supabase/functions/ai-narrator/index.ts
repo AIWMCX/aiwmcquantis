@@ -469,7 +469,8 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
           success: true,
           content,
           usedFallback: false,
-          model: "openai/gpt-5-mini",
+          model: firewalledModel,
+          tier,
           latencyMs: Date.now() - startTime
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
