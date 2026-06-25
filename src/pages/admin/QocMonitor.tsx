@@ -119,7 +119,19 @@ export default function QocMonitor() {
     const p50 = durs[Math.floor(durs.length * 0.5)] ?? 0;
     const p95 = durs[Math.floor(durs.length * 0.95)] ?? 0;
     const passRate = total ? (pass / total) * 100 : 0;
-    return { total, pass, blocked, cost, p50, p95, passRate };
+    // QOC-ECON v1.0 §4.3 — dedupe savings: every short-circuit at "dedupe"
+    // would have otherwise cost the average non-dedupe PASS spend.
+    const dedupeHits = data.filter(r => {
+      const sc = r.short_circuit as { at?: string; stage?: string } | null;
+      return sc?.at === "dedupe" || sc?.stage === "dedupe";
+    }).length;
+    const paidRuns = data.filter(r => !r.short_circuit && Number(r.total_cost_usd || 0) > 0);
+    const avgPaidCost = paidRuns.length
+      ? paidRuns.reduce((s, r) => s + Number(r.total_cost_usd || 0), 0) / paidRuns.length
+      : 0;
+    const dedupeSavings = dedupeHits * avgPaidCost;
+    const dedupeRate = total ? (dedupeHits / total) * 100 : 0;
+    return { total, pass, blocked, cost, p50, p95, passRate, dedupeHits, dedupeSavings, dedupeRate };
   }, [rows]);
 
   return (
