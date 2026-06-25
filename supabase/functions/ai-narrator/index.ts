@@ -400,12 +400,12 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
 
       const aiResult = await aiCall(
         {
-          model: "openai/gpt-5-mini",
+          model: firewalledModel, // QOC tier firewall — bound server-side
           messages: [{ role: "user", content: prompt }],
           tools: [analysisToolSchema],
           tool_choice: { type: "function", function: { name: "submit_analysis" } },
         },
-        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name } },
+        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name, tier, model: firewalledModel } },
       );
 
       if (!aiResult.ok) {
