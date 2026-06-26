@@ -529,16 +529,16 @@ export default function QocMonitor() {
               </div>
 
               {/* Unverified claims warning */}
-              {(selected.report as any)?.verification?.unverified_count > 0 && (
+              {((selected as any).report)?.verification?.unverified_count > 0 && (
                 <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <AlertTriangle className="w-4 h-4 text-amber-600" />
                     <h3 className="font-semibold text-amber-700">
-                      {(selected.report as any).verification.unverified_count} unverified claim{(selected.report as any).verification.unverified_count !== 1 ? "s" : ""}
+                      {((selected as any).report).verification.unverified_count} unverified claim{((selected as any).report).verification.unverified_count !== 1 ? "s" : ""}
                     </h3>
                   </div>
                   <div className="space-y-1">
-                    {((selected.report as any).verification.claims ?? [])
+                    {(((selected as any).report).verification.claims ?? [])
                       .filter((c: any) => c.verdict !== "PASS")
                       .map((c: any, i: number) => (
                         <div key={i} className="flex items-center justify-between text-xs">
