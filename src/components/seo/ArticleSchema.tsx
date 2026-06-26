@@ -1,5 +1,6 @@
 import React from 'react';
 import { Helmet } from 'react-helmet-async';
+import { TIERS } from '@/config/tiers';
 
 interface ArticleAuthor {
   name: string;
@@ -139,7 +140,7 @@ export const QuantisFAQ = React.memo(function QuantisFAQ() {
     },
     {
       question: 'Is AIWMC Quantis free to use?',
-      answer: 'Yes — your first analysis is free and shows your viability score plus the top 3 critical risks. To unlock the full report (Monte Carlo, P&L, competitive analysis, action plan) and unlimited analyses, upgrade to Plus for $17/month.',
+      answer: `Yes — your first analysis is free and shows your viability score plus the top 3 critical risks. To unlock the full report (Monte Carlo, P&L, competitive analysis, action plan) and unlimited analyses, upgrade to Plus for $${TIERS.plus.priceMonthly}/month.`,
     },
     {
       question: 'How accurate are the financial projections?',

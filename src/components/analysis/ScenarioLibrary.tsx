@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Pin, PinOff, Trash2, Plus, GitCompare, Zap, Loader2, Star } from 'lucide-react';
+import { TIERS } from '@/config/tiers';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
@@ -131,7 +132,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
           Save multiple scenarios, compare side-by-side, and track how your assumptions evolve.
         </p>
         <Button size="sm" onClick={() => createCheckout('plus')} className="gap-1.5">
-          <Zap className="w-3.5 h-3.5" /> Upgrade to Plus — $17/mo
+          <Zap className="w-3.5 h-3.5" /> Upgrade to Plus — ${TIERS.plus.priceMonthly}/mo
         </Button>
       </div>
     );

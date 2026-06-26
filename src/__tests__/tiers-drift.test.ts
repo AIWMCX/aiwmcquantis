@@ -18,6 +18,7 @@ import { describe, it, expect } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { TIERS, STRIPE_PRICE_TO_TIER, type TierId, type FeatureKey } from '@/config/tiers';
+import { TIER_PRICES } from '@/lib/tier-spec';
 
 const ROOT = process.cwd();
 const TIER_IDS: TierId[] = ['free', 'plus', 'pro'];
@@ -183,6 +184,19 @@ describe('No hardcoded prices outside src/config/tiers.ts', () => {
     'src/components/UpgradePrompt.tsx',
     'src/components/analysis/LockedAnalysisPaywall.tsx',
     'src/pages/quote/_components/QuoteGenPaywall.tsx',
+    'src/components/landing/FAQSection.tsx',
+    'src/components/landing/PricingSection.tsx',
+    'src/components/landing/ROICalculator.tsx',
+    'src/components/landing/ValueAnchor.tsx',
+    'src/components/analysis/CompactAnalysisForm.tsx',
+    'src/components/analysis/ScenarioLibrary.tsx',
+    'src/components/seo/RouteSEO.tsx',
+    'src/components/seo/ArticleSchema.tsx',
+    'src/pages/Landing.tsx',
+    'src/pages/PlusSettings.tsx',
+    'src/pages/Terms.tsx',
+    'src/pages/settings/ApiKeys.tsx',
+    'src/lib/tier-spec.ts',
   ];
   for (const f of pricingFiles) {
     it(`${f}: contains no raw "$17/mo" or "$49/mo" literal`, () => {
@@ -202,4 +216,20 @@ describe('No hardcoded prices outside src/config/tiers.ts', () => {
       ).toBeNull();
     });
   }
+});
+
+// ---------- 5. TIER_PRICES in tier-spec.ts matches TIERS ----------
+describe('TIER_PRICES mirrors TIERS config', () => {
+  it('Plus monthly price matches', () => {
+    expect(TIER_PRICES.plus.monthly).toBe(TIERS.plus.priceMonthly);
+  });
+  it('Plus annual equivalent matches', () => {
+    expect(TIER_PRICES.plus.annual).toBe(TIERS.plus.priceAnnualMonthlyEquivalent);
+  });
+  it('Pro monthly price matches', () => {
+    expect(TIER_PRICES.pro.monthly).toBe(TIERS.pro.priceMonthly);
+  });
+  it('Pro annual equivalent matches', () => {
+    expect(TIER_PRICES.pro.annual).toBe(TIERS.pro.priceAnnualMonthlyEquivalent);
+  });
 });

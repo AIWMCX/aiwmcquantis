@@ -8,6 +8,7 @@ import { CheckCircle2, Minus } from 'lucide-react';
 import { ValueAnchor } from './ValueAnchor';
 import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
+import { TIERS } from '@/config/tiers';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -301,9 +302,9 @@ export function PricingSection() {
 
         {/* Legacy grandfather note */}
         <p className="text-xs text-center text-muted-foreground mb-6 max-w-2xl mx-auto">
-          Existing Plus customers on the original $17/mo plan keep that price for the lifetime of
-          their subscription. New monthly signups today are billed at $17/mo with the option to
-          switch to annual ($14/mo) anytime.
+          Existing Plus customers on the original ${TIERS.plus.priceMonthly}/mo plan keep that price for the lifetime of
+          their subscription. New monthly signups today are billed at ${TIERS.plus.priceMonthly}/mo with the option to
+          switch to annual (${TIERS.plus.priceAnnualMonthlyEquivalent}/mo) anytime.
         </p>
 
         {/* Money-Back Guarantee */}

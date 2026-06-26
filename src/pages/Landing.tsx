@@ -24,6 +24,7 @@ import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngage
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 import { RmgHeader } from '@/components/landing/RmgHeader';
+import { TIERS } from '@/config/tiers';
 
 // Lazy-load below-fold sections
 const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
@@ -64,7 +65,7 @@ export default function Landing() {
         includeFAQ
         faqItems={[
           { question: 'What is Quantis?', answer: 'Quantis is an AI-powered business idea validator and startup viability calculator that runs a financial pre-mortem on any business idea in 90 seconds. It stress-tests 12 financial variables using 95,500 industry benchmarks and 50+ city-level cost indices — the best free break-even calculator AI for entrepreneurs.' },
-          { question: 'Is Quantis free to use?', answer: 'Yes — every founder gets 1 free analysis with the headline viability score, top-3 risks, and basic revenue projection. The full report (Monte Carlo, 36-month P&L, unit economics, action plan, Pre-Mortem Stress Test, Invoice & Capacity Check) and unlimited analyses unlock with Plus at $17/mo. No credit card required for the free analysis.' },
+          { question: 'Is Quantis free to use?', answer: `Yes — every founder gets 1 free analysis with the headline viability score, top-3 risks, and basic revenue projection. The full report (Monte Carlo, 36-month P&L, unit economics, action plan, Pre-Mortem Stress Test, Invoice & Capacity Check) and unlimited analyses unlock with Plus at $${TIERS.plus.priceMonthly}/mo. No credit card required for the free analysis.` },
           { question: 'How accurate are the financial projections?', answer: 'Quantis uses a deterministic financial engine calibrated against 95,500 industry benchmarks from public datasets (BLS, Census, IBISWorld). Every projection includes a confidence score and assumption transparency so you know exactly what drives each number. Our business plan risk analysis tools are trusted by founders worldwide.' },
           { question: 'What does a "financial pre-mortem" mean?', answer: 'A pre-mortem identifies how your business could fail before you launch. Our financial stress test tool stress-tests revenue assumptions, cost structures, and unit economics to surface fatal flaws — like a rent-to-revenue ratio that guarantees losses.' },
           { question: 'How is Quantis different from ChatGPT or a spreadsheet?', answer: 'ChatGPT gives qualitative opinions. Spreadsheets require you to know the right formulas. Quantis combines a deterministic math engine with an AI narrator layer — giving you both precise, reproducible numbers and strategic context, cross-checked by a dual-AI consensus pass.' },

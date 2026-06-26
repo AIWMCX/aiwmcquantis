@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { TIERS } from '@/config/tiers';
 import { StructuredData } from '@/components/seo/StructuredData';
 
 export default function Terms() {
@@ -84,7 +85,7 @@ export default function Terms() {
               <li>Basic revenue projection (locked: Monte Carlo, P&L, competitive matrix, full action plan)</li>
             </ul>
 
-            <h3 className="text-xl font-medium text-foreground">4.2 Plus Plan ($17/month)</h3>
+            <h3 className="text-xl font-medium text-foreground">4.2 Plus Plan (${TIERS.plus.priceMonthly}/month)</h3>
             <ul className="list-disc pl-6 text-muted-foreground space-y-2">
               <li>14-day free trial</li>
               <li>Unlimited analyses</li>

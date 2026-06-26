@@ -1,5 +1,6 @@
 import React, { useState, useCallback, useMemo } from 'react';
 import { toast } from 'sonner';
+import { TIERS } from '@/config/tiers';
 import {
   BarChart3,
   FileText,
@@ -98,7 +99,7 @@ export function CompactAnalysisForm({
       if (opt?.plusOnly && !isPlus) {
         toast.error(`${opt.label} is a Plus feature`, {
           description:
-            'Upgrade to Plus ($17/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.',
+            `Upgrade to Plus ($${TIERS.plus.priceMonthly}/mo) to unlock Pre-Mortem, Invoice Capacity Check, and unlimited analyses.`,
           duration: 8000,
           action: {
             label: 'Upgrade to Plus →',

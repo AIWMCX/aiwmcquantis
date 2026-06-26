@@ -1,5 +1,6 @@
 import React from 'react';
 import { Clock, DollarSign, FileText, Zap } from 'lucide-react';
+import { TIERS } from '@/config/tiers';
 
 interface ComparisonRow {
   approach: string;
@@ -27,7 +28,7 @@ const comparisons: ComparisonRow[] = [
   },
   {
     approach: 'AIWMC Quantis',
-    cost: '$0 – $17/mo',
+    cost: `$0 – $${TIERS.plus.priceMonthly}/mo`,
     time: '< 2 minutes',
     output: 'Complete analysis + PDF',
     icon: Zap,

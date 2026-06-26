@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TIERS } from '@/config/tiers';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { BrandingSettings } from '@/components/pro/BrandingSettings';
 import { PlusValueIndicator } from '@/components/pro/PlusValueIndicator';
@@ -99,7 +100,7 @@ export default function PlusSettings() {
                   className="gap-2"
                 >
                   <Zap className="w-4 h-4" />
-                  Upgrade to Plus - $17/month
+                  Upgrade to Plus - ${TIERS.plus.priceMonthly}/month
                 </Button>
                 <p className="text-sm text-muted-foreground">
                   14-day free trial included

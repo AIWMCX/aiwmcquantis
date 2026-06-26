@@ -11,6 +11,12 @@
  *   - Edge functions (`supabase/functions/_shared/tier-spec.ts`, identical copy)
  */
 
+// ─── Pricing (must match TIERS in src/config/tiers.ts — enforced by drift test) ──
+export const TIER_PRICES = {
+  plus: { monthly: 17, annual: 14 },
+  pro: { monthly: 49, annual: 41 },
+} as const;
+
 // ─── Tier identifiers ───────────────────────────────────────────────────────
 export type Tier = 'FREE' | 'PLUS' | 'PRO';
 
@@ -267,7 +273,7 @@ export function evaluateGate(args: {
         message: 'This feature requires a higher plan.',
         required_tier: requiredTier,
         upgrade_url: UPGRADE_URL,
-        cta: requiredTier === 'PLUS' ? 'Unlock with Plus — $17/mo' : 'Unlock with Pro — $49/mo',
+        cta: requiredTier === 'PLUS' ? `Unlock with Plus — $${TIER_PRICES.plus.monthly}/mo` : `Unlock with Pro — $${TIER_PRICES.pro.monthly}/mo`,
       },
     };
   }
@@ -372,7 +378,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
     trigger: 'free_quota_hit',
     headline: "You're out of free analyses",
     body: 'Your monthly analysis is used. Upgrade for unlimited, with Monte Carlo and full P&L.',
-    cta: 'Unlock Unlimited — $17/mo',
+    cta: `Unlock Unlimited — $${TIER_PRICES.plus.monthly}/mo`,
     required_tier: 'PLUS',
   },
   locked_premortem: {
@@ -386,7 +392,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
     trigger: 'clean_pdf_export',
     headline: 'Remove the watermark',
     body: 'Download clean, branded PDFs unlimited times. Add your logo. Look professional.',
-    cta: 'Get Clean Exports — $17/mo',
+    cta: `Get Clean Exports — $${TIER_PRICES.plus.monthly}/mo`,
     required_tier: 'PLUS',
   },
   locked_document_studio: {
@@ -400,7 +406,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
     trigger: 'free_returning_7d',
     headline: 'Your idea is still waiting',
     body: 'Run your full Monte Carlo analysis and get a complete 36-month P&L. Takes 90 seconds.',
-    cta: 'Start Full Analysis — $17/mo',
+    cta: `Start Full Analysis — $${TIER_PRICES.plus.monthly}/mo`,
     required_tier: 'PLUS',
   },
   // §10.2 Plus → Pro
@@ -408,7 +414,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
     trigger: 'plus_complete_investor',
     headline: 'Ready for investors?',
     body: 'Get your TAM/SAM/SOM, pitch deck data package, 5-year model, and week-by-week strategic roadmap.',
-    cta: 'Upgrade to Pro — $49/mo',
+    cta: `Upgrade to Pro — $${TIER_PRICES.pro.monthly}/mo`,
     required_tier: 'PRO',
   },
   plus_share_team: {
@@ -448,7 +454,7 @@ export function buildUpgradeNudge(tier: Tier): UpgradeMessage | null {
       trigger: 'free_post_analysis',
       headline: 'Want the full picture?',
       body: 'Unlock Monte Carlo simulation, 36-month P&L, and your action plan on Plus.',
-      cta: 'Upgrade to Plus — $17/mo',
+      cta: `Upgrade to Plus — $${TIER_PRICES.plus.monthly}/mo`,
       required_tier: 'PLUS',
     };
   if (tier === 'PLUS') return UPGRADE_TRIGGERS.plus_complete_investor;

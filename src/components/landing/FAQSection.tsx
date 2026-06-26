@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from '@/components/ui/accordion';
 import { StructuredData } from '@/components/seo/StructuredData';
+import { TIERS } from '@/config/tiers';
 
 const faqItems = [
   {
@@ -25,7 +26,7 @@ const faqItems = [
   },
   {
     question: 'Can I try AIWMC Quantis for free?',
-    answer: 'Yes — your first analysis is free. You get a score, top 3 critical risks, and basic revenue projection. To unlock Monte Carlo simulations, P&L breakdown, full action plan, and unlimited analyses, upgrade to Plus ($17/mo) with a 14-day free trial.'
+    answer: `Yes — your first analysis is free. You get a score, top 3 critical risks, and basic revenue projection. To unlock Monte Carlo simulations, P&L breakdown, full action plan, and unlimited analyses, upgrade to Plus ($${TIERS.plus.priceMonthly}/mo) with a 14-day free trial.`
   },
   {
     question: 'What industries does AIWMC Quantis support?',

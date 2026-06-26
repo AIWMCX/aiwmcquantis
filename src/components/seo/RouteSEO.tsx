@@ -1,5 +1,6 @@
 import { useLocation } from 'react-router-dom';
 import { PageMeta } from './PageMeta';
+import { TIERS } from '@/config/tiers';
 
 /**
  * RouteSEO — drop-in component that auto-resolves title/description/canonical
@@ -39,8 +40,8 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description: 'Browse real Quantis analyses across industries. See risk flags, scenarios, and unit economics on actual business ideas.',
   },
   '/pricing': {
-    title: 'Pricing — Free Plan & Plus at $17/mo',
-    description: 'Quantis pricing: 3 free analyses or unlimited Plus at $17/mo with PDF export, Doc Studio, and location comparison.',
+    title: `Pricing — Free Plan & Plus at $${TIERS.plus.priceMonthly}/mo`,
+    description: `Quantis pricing: ${TIERS.free.limits.analysesPerMonth} free analyses or unlimited Plus at $${TIERS.plus.priceMonthly}/mo with PDF export, Doc Studio, and location comparison.`,
   },
   '/risk-gallery': {
     title: 'Risk Gallery — How Real Businesses Fail',

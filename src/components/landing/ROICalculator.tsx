@@ -4,6 +4,7 @@ import { DollarSign, ArrowRight, Calculator } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Slider } from '@/components/ui/slider';
 import { trackCtaClick } from '@/lib/analytics';
+import { TIERS } from '@/config/tiers';
 
 export function ROICalculator() {
   const [analyses, setAnalyses] = useState(10);
@@ -108,7 +109,7 @@ export function ROICalculator() {
                   ${fmt(savings.netSavings)}
                 </p>
                 <div className="flex justify-center gap-4 mt-2 text-xs text-muted-foreground">
-                  <span>Your cost: <strong className="text-foreground">$17/mo</strong></span>
+                  <span>Your cost: <strong className="text-foreground">${TIERS.plus.priceMonthly}/mo</strong></span>
                   <span>ROI: <strong className="text-success">{fmt(savings.roi)}%</strong></span>
                 </div>
               </div>

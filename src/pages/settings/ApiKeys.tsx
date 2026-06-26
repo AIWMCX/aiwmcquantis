@@ -9,6 +9,7 @@
  */
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { TIERS } from '@/config/tiers';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { Button } from '@/components/ui/button';
@@ -156,7 +157,7 @@ export default function ApiKeysSettings() {
             </CardHeader>
             <CardContent className="flex flex-col sm:flex-row gap-3">
               <Button onClick={() => createCheckout('pro')} className="min-h-[48px]">
-                Upgrade to Pro — $49/mo
+                Upgrade to Pro — ${TIERS.pro.priceMonthly}/mo
               </Button>
               <Button variant="outline" onClick={() => navigate('/pricing')} className="min-h-[48px]">
                 Compare plans
