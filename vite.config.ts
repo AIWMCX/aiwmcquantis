@@ -5,6 +5,15 @@ import { componentTagger } from "lovable-tagger";
 
 // https://vitejs.dev/config/
 export default defineConfig(({ mode }) => ({
+  define: {
+    // Inlined at build time and read by src/lib/appRecovery.ts so the
+    // diagnostics UI and SW update flow can compare deploys.
+    __BUILD_ID__: JSON.stringify(
+      process.env.VITE_BUILD_ID ||
+        process.env.VERCEL_GIT_COMMIT_SHA ||
+        `dev-${Date.now()}`,
+    ),
+  },
   server: {
     host: "::",
     port: 8080,

@@ -49,13 +49,13 @@ if ('serviceWorker' in navigator && (isInIframe || isPreviewHost)) {
 if ('serviceWorker' in navigator && !isInIframe && !isPreviewHost) {
   window.addEventListener('load', async () => {
     try {
-      // First, clear any stale caches on startup
+      // Clear stale caches from older deploys on startup.
       if ('caches' in window) {
         const cacheNames = await caches.keys();
-        const staleVersions = cacheNames.filter(name => 
-          !name.includes('v3.0.0') // Current version
+        const staleVersions = cacheNames.filter(
+          (name) => !name.includes('v3.1.0'),
         );
-        await Promise.all(staleVersions.map(name => caches.delete(name)));
+        await Promise.all(staleVersions.map((name) => caches.delete(name)));
         if (staleVersions.length > 0) {
           logger.info('[App] Cleared stale caches:', staleVersions);
         }
@@ -63,26 +63,61 @@ if ('serviceWorker' in navigator && !isInIframe && !isPreviewHost) {
 
       const registration = await navigator.serviceWorker.register('/sw.js');
       logger.info('[SW] Registered:', registration.scope);
-      
-      // Check for updates immediately
-      registration.update().catch(() => {
-        // Silently ignore update errors - they're non-critical
+
+      // Toast helper — lazy import so SW path stays out of critical bundle.
+      const promptReload = async (label = 'A new version is available.') => {
+        try {
+          const { toast } = await import('sonner');
+          toast(label, {
+            duration: Infinity,
+            action: {
+              label: 'Reload',
+              onClick: () => window.location.reload(),
+            },
+          });
+        } catch {
+          /* sonner not yet mounted — next visit will pick up new chunks */
+        }
+      };
+
+      // 1) Immediate update check.
+      registration.update().catch(() => {});
+
+      // 2) Periodic update poll — catches deploys that happen while a tab is open.
+      const POLL_MS = 60_000;
+      setInterval(() => {
+        registration.update().catch(() => {});
+      }, POLL_MS);
+
+      // 3) Re-check whenever the tab becomes visible again.
+      document.addEventListener('visibilitychange', () => {
+        if (document.visibilityState === 'visible') {
+          registration.update().catch(() => {});
+        }
       });
-      
-      // Listen for new service worker — notify only, no auto-reload
+
+      // 4) New worker found → prompt to reload as soon as it's installed.
       registration.addEventListener('updatefound', () => {
         const newWorker = registration.installing;
-        if (newWorker) {
-          newWorker.addEventListener('statechange', () => {
-            if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
-              logger.info('[SW] New version available. Will activate on next visit.');
-            }
-          });
+        if (!newWorker) return;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            logger.info('[SW] New version installed — prompting reload');
+            // Activate the new SW immediately so the next reload serves new chunks.
+            newWorker.postMessage({ type: 'SKIP_WAITING' });
+            promptReload('A newer version of the app is available.');
+          }
+        });
+      });
+
+      // 5) New SW broadcast — fired from the activate handler in sw.js.
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        if (event.data && event.data.type === 'NEW_VERSION_ACTIVE') {
+          logger.info('[SW] New version active:', event.data.version);
+          promptReload('App updated — reload to get the latest version.');
         }
       });
     } catch (error) {
-      // Silently handle SW registration failures - they're non-critical
-      // This prevents console errors from affecting Best Practices score
       if (process.env.NODE_ENV === 'development') {
         logger.warn('[SW] Registration failed:', error);
       }
