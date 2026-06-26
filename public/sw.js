@@ -55,8 +55,8 @@ self.addEventListener('activate', (event) => {
       );
     })
   );
-  // Take control of ALL clients immediately
-  self.clients.claim();
+  // Take control of ALL clients immediately, then tell them a new version is live.
+  self.clients.claim().then(() => broadcastNewVersion());
 });
 
 // Fetch event - NETWORK-FIRST for HTML/JS, cache fallback only for offline
