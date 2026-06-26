@@ -23,8 +23,9 @@ export function DocGenerationProgress({
   const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
+    const channelName = `doc_jobs:${jobId}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`doc_jobs:${jobId}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

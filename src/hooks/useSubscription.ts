@@ -213,8 +213,9 @@ export function useSubscription(): SubscriptionData {
   // user sees Pro features unlock without a reload.
   useEffect(() => {
     if (!user) return;
+    const channelName = `subscription:${user.id}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`subscription:${user.id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

@@ -20,8 +20,9 @@ export function useDocQueue() {
   useEffect(() => {
     if (!activeJob || activeJob.status === 'complete' || activeJob.status === 'failed') return;
 
+    const channelName = `doc-job-${activeJob.job_id}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`doc-job-${activeJob.job_id}`)
+      .channel(channelName)
       .on(
         'postgres_changes',
         {

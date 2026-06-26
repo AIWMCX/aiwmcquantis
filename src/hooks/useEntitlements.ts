@@ -104,8 +104,9 @@ export function useEntitlements(): UseEntitlementsResult {
   // Realtime: subscriptions row changes (Stripe webhook lands) → refetch.
   useEffect(() => {
     if (!user) return;
+    const channelName = `entitlements:${user.id}:${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const channel = supabase
-      .channel(`entitlements:${user.id}`)
+      .channel(channelName)
       .on('postgres_changes', {
         event: '*',
         schema: 'public',
