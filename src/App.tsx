@@ -16,6 +16,8 @@ import { trackReturnVisitIfApplicable } from "./lib/activationTracking";
 // CRITICAL: Landing page is NOT lazy loaded for instant first paint
 import Landing from "./pages/Landing";
 const AppDashboard = lazy(() => import("./pages/AppDashboard"));
+const AppDiagnostics = lazy(() => import("./pages/AppDiagnostics"));
+import { RouteErrorBoundary } from "./components/RouteErrorBoundary";
 const Auth = lazy(() => import("./pages/Auth"));
 const ResetPassword = lazy(() => import("./pages/ResetPassword"));
 const ThankYou = lazy(() => import("./pages/ThankYou"));
