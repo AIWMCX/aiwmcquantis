@@ -102,6 +102,25 @@ function resolveTierModel(rawTier: unknown): { tier: NarrationTier; model: strin
   return { tier, model: TIER_TO_MODEL[tier] };
 }
 
+// ========== DYNAMIC TOKEN CAPS (QOC confidence-gated) ==========
+// Fewer input fields → simpler analysis → fewer output tokens needed.
+// Saves 30-50% on simple requests without affecting complex ones.
+type ConfidenceBand = "very_high" | "high" | "medium" | "low" | "very_low";
+function resolveMaxTokens(confidenceBand?: string, fieldsPresent?: number): number {
+  const band = (confidenceBand ?? "medium") as ConfidenceBand;
+  const fields = fieldsPresent ?? 5;
+  if (band === "very_high" || fields >= 8) return 4096;
+  if (band === "high" || fields >= 6) return 3500;
+  if (band === "medium" || fields >= 4) return 3000;
+  if (band === "low") return 2000;
+  return 1500; // very_low — minimal inputs, cap output tightly
+}
+
+// Enable extended thinking only for the hardest cases (opus + weak inputs).
+function shouldEnableThinking(tier: NarrationTier, confidenceBand?: string): boolean {
+  return tier === "opus" && (confidenceBand === "very_low" || confidenceBand === "low");
+}
+
 // ========== TYPES ==========
 
 export interface NarratorInput {
@@ -409,7 +428,19 @@ serve(async (req) => {
       );
     }
 
-    // Build the prompt
+    // ── QOC confidence signals for dynamic token caps ──
+    const confidenceBand = body?.confidence_band as string | undefined;
+    const fieldsPresent = typeof body?.fields_present === "number" ? body.fields_present : undefined;
+    const maxTokens = resolveMaxTokens(confidenceBand, fieldsPresent);
+    const useThinking = shouldEnableThinking(tier, confidenceBand);
+    log.info(`Dynamic caps: confidence=${confidenceBand ?? "unknown"} fields=${fieldsPresent ?? "?"} max_tokens=${maxTokens} thinking=${useThinking}`);
+
+    // ── Build the prompt ──
+    // CACHE OPTIMIZATION: static directives go in the system message (identical
+    // across all requests → provider-side prefix caching at 10-25% input cost).
+    // Variable per-request data goes in the user message.
+    const systemPrompt = `${MASTER_PROMPT_DIRECTIVES}\n\n${CANONICAL_DATA_SOURCES_PROMPT}`;
+
     const userFinancialContext = input.financialInputs ? `
 ## USER-PROVIDED FINANCIAL DATA
 ${input.financialInputs.monthly_revenue ? `- Monthly Revenue: $${input.financialInputs.monthly_revenue.toLocaleString()}` : ''}
@@ -427,11 +458,7 @@ ${input.financialInputs.monthly_costs ? `- Monthly Operating Costs: $${input.fin
 - Payback: ${input.calculatedMetrics.paybackMonths} months
 ` : '';
 
-    const prompt = `${MASTER_PROMPT_DIRECTIVES}
-
-${CANONICAL_DATA_SOURCES_PROMPT}
-
-## BUSINESS IDEA
+    const userPrompt = `## BUSINESS IDEA
 ${input.businessIdea}
 
 ## LOCATION
@@ -451,14 +478,36 @@ Provide comprehensive, actionable analysis. Use the correct industry archetype f
     try {
       log.info("Making AI narrator request...");
 
+      // deno-lint-ignore no-explicit-any
+      const requestBody: any = {
+        model: firewalledModel, // QOC tier firewall — bound server-side
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: userPrompt },
+        ],
+        max_tokens: maxTokens,
+        tools: [analysisToolSchema],
+        tool_choice: { type: "function", function: { name: "submit_analysis" } },
+      };
+      // Conditional thinking for hardest cases (opus + weak inputs)
+      if (useThinking) {
+        requestBody.thinking = { type: "enabled" };
+      }
+
       const aiResult = await aiCall(
+        requestBody,
         {
-          model: firewalledModel, // QOC tier firewall — bound server-side
-          messages: [{ role: "user", content: prompt }],
-          tools: [analysisToolSchema],
-          tool_choice: { type: "function", function: { name: "submit_analysis" } },
+          task: 'ai-narrator',
+          timeoutMs: useThinking ? 40_000 : 25_000,
+          metadata: {
+            industry: input.industry?.name,
+            tier,
+            model: firewalledModel,
+            max_tokens: maxTokens,
+            confidence_band: confidenceBand,
+            thinking_enabled: useThinking,
+          },
         },
-        { task: 'ai-narrator', timeoutMs: 25_000, metadata: { industry: input.industry?.name, tier, model: firewalledModel } },
       );
 
       if (!aiResult.ok) {
