@@ -72,6 +72,9 @@ require_contains "$BASE/qoc/dedupe.ts" "is_soft_throttle" "soft throttle mechani
 # Invariant 11: safePut logs store failures (not silently swallowed).
 require_contains "$BASE/qoc/orchestrator.ts" "AUDIT_STORE_FAILURE" "safePut failure logging present"
 
+# Invariant 12: dynamic token caps present in ai-narrator.
+require_contains "supabase/functions/ai-narrator/index.ts" "resolveMaxTokens" "dynamic token caps present in narrator"
+
 if [[ "$FAIL" -ne 0 ]]; then
   red "QOC STRUCTURAL GATE FAILED — deploy blocked."
   exit 1

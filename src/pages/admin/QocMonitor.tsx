@@ -18,6 +18,7 @@ import { supabase } from "@/integrations/supabase/client";
 import {
   ArrowLeft, Activity, RefreshCw, Clock, DollarSign,
   CheckCircle2, AlertTriangle, XCircle, ShieldX, MinusCircle,
+  TrendingUp, Gauge, Shield,
 } from "lucide-react";
 
 // ---------------------------------------------------------------------------
@@ -148,11 +149,40 @@ export default function QocMonitor() {
       scByVerdict[verdict].savedUsd += avgPaidCost;
     }
 
+    // Optimization intelligence: extract signals from stage trace details.
+    const fullRuns = data.filter(r => !r.short_circuit && Array.isArray(r.traces));
+    let escalatedCount = 0;
+    let softThrottledCount = 0;
+    let singleModelCount = 0;
+    let dualModelCount = 0;
+    for (const r of fullRuns) {
+      for (const t of r.traces as Trace[]) {
+        if (t.stage === "narrate") {
+          if ((t as any).detail?.confidence_gated || (t as Record<string, unknown>)["confidence_gated"]) escalatedCount++;
+          if ((t as any).detail?.soft_throttled || (t as Record<string, unknown>)["soft_throttled"]) softThrottledCount++;
+        }
+        if (t.stage === "verify") {
+          const sm = (t as any).detail?.single_model ?? (t as Record<string, unknown>)["single_model"];
+          if (sm === true) singleModelCount++;
+          else if (sm === false) dualModelCount++;
+        }
+      }
+    }
+    const escalationRate = fullRuns.length ? (escalatedCount / fullRuns.length) * 100 : 0;
+    const softThrottleRate = fullRuns.length ? (softThrottledCount / fullRuns.length) * 100 : 0;
+    const singleModelRate = (singleModelCount + dualModelCount)
+      ? (singleModelCount / (singleModelCount + dualModelCount)) * 100
+      : 0;
+
     return {
       total, pass, blocked, cost, p50, p95, passRate,
       dedupeHits, dedupeSavings, dedupeRate,
       shortCircuitTotal: shortCircuits.length,
       scByStage, scByVerdict, avgPaidCost,
+      fullRunCount: fullRuns.length,
+      escalatedCount, escalationRate,
+      softThrottledCount, softThrottleRate,
+      singleModelCount, dualModelCount, singleModelRate,
     };
   }, [rows]);
 
@@ -209,6 +239,60 @@ export default function QocMonitor() {
             icon={DollarSign}
           />
         </div>
+
+        {/* Optimization intelligence */}
+        {rows != null && kpi.fullRunCount > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                Optimization intelligence
+                <Badge variant="outline" className="font-mono text-xs">
+                  {kpi.fullRunCount} full runs
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="rounded-md border p-3 bg-muted/20">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <TrendingUp className="w-3.5 h-3.5" />
+                    Confidence-gated escalation
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums">
+                    {kpi.escalatedCount} <span className="text-sm font-normal text-muted-foreground">({kpi.escalationRate.toFixed(1)}%)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Free-tier requests upgraded from deepseek → haiku due to weak input confidence.
+                  </p>
+                </div>
+                <div className="rounded-md border p-3 bg-muted/20">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Gauge className="w-3.5 h-3.5" />
+                    Soft throttle
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums">
+                    {kpi.softThrottledCount} <span className="text-sm font-normal text-muted-foreground">({kpi.softThrottleRate.toFixed(1)}%)</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Narration tier downshifted under moderate load (3-4 req/min) — graceful degradation vs hard block.
+                  </p>
+                </div>
+                <div className="rounded-md border p-3 bg-muted/20">
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-1.5 mb-1">
+                    <Shield className="w-3.5 h-3.5" />
+                    Conditional verify depth
+                  </div>
+                  <div className="text-xl font-semibold tabular-nums">
+                    {kpi.singleModelRate.toFixed(1)}% <span className="text-sm font-normal text-muted-foreground">single-model</span>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {kpi.singleModelCount} single / {kpi.dualModelCount} dual — high-confidence requests skip dual-model consensus (~50% verify cost savings).
+                  </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Dedupe / short-circuit breakdown */}
         {rows != null && kpi.shortCircuitTotal > 0 && (
@@ -410,6 +494,29 @@ export default function QocMonitor() {
                             {typeof t.cost_usd === "number" && <span>{fmtUsd(t.cost_usd)}</span>}
                           </div>
                         </div>
+                        {/* Optimization signal badges */}
+                        {(t as any).detail && (
+                          <div className="mt-1.5 flex flex-wrap gap-1">
+                            {(t as any).detail.confidence_gated && (
+                              <Badge variant="outline" className="text-[10px] bg-blue-500/10 text-blue-600 border-blue-500/30">escalated</Badge>
+                            )}
+                            {(t as any).detail.soft_throttled && (
+                              <Badge variant="outline" className="text-[10px] bg-amber-500/10 text-amber-600 border-amber-500/30">soft-throttled</Badge>
+                            )}
+                            {(t as any).detail.single_model === true && (
+                              <Badge variant="outline" className="text-[10px] bg-emerald-500/10 text-emerald-600 border-emerald-500/30">single-model</Badge>
+                            )}
+                            {(t as any).detail.single_model === false && (
+                              <Badge variant="outline" className="text-[10px] bg-purple-500/10 text-purple-600 border-purple-500/30">dual-model</Badge>
+                            )}
+                            {(t as any).detail.tier && (
+                              <Badge variant="outline" className="text-[10px]">{(t as any).detail.tier}</Badge>
+                            )}
+                            {(t as any).detail.force_model && (
+                              <Badge variant="outline" className="text-[10px]">forced: {(t as any).detail.force_model}</Badge>
+                            )}
+                          </div>
+                        )}
                         {t.notes && (
                           <div className="mt-1 text-xs text-muted-foreground">{t.notes}</div>
                         )}
@@ -420,6 +527,32 @@ export default function QocMonitor() {
                   <div className="text-xs text-muted-foreground">No stage traces recorded.</div>
                 )}
               </div>
+
+              {/* Unverified claims warning */}
+              {(selected.report as any)?.verification?.unverified_count > 0 && (
+                <div className="rounded-md border border-amber-500/30 bg-amber-500/5 p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <AlertTriangle className="w-4 h-4 text-amber-600" />
+                    <h3 className="font-semibold text-amber-700">
+                      {(selected.report as any).verification.unverified_count} unverified claim{(selected.report as any).verification.unverified_count !== 1 ? "s" : ""}
+                    </h3>
+                  </div>
+                  <div className="space-y-1">
+                    {((selected.report as any).verification.claims ?? [])
+                      .filter((c: any) => c.verdict !== "PASS")
+                      .map((c: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-xs">
+                          <span className="text-muted-foreground">{c.text}</span>
+                          <Badge variant="outline" className={
+                            c.verdict === "FAIL"
+                              ? "bg-rose-500/10 text-rose-600 border-rose-500/30"
+                              : "bg-amber-500/10 text-amber-600 border-amber-500/30"
+                          }>{c.verdict}</Badge>
+                        </div>
+                      ))}
+                  </div>
+                </div>
+              )}
 
               {selected.short_circuit && (
                 <div>
