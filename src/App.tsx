@@ -166,7 +166,8 @@ const App = () => {
                 <Route path="/r/:id" element={<PublicAnalysisResult />} />
                 
                 {/* Protected routes - require authentication */}
-                <Route path="/app" element={<AppDashboard />} />
+                <Route path="/app" element={<RouteErrorBoundary routeName="app"><AppDashboard /></RouteErrorBoundary>} />
+                <Route path="/app/diagnostics" element={<RouteErrorBoundary routeName="app-diagnostics"><AppDiagnostics /></RouteErrorBoundary>} />
                 <Route path="/app/stats" element={
                   <ProtectedRoute>
                     <MyStats />
