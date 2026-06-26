@@ -84,30 +84,75 @@ function buildUserPrompt(opts: {
   ].filter(Boolean).join('\n');
 }
 
-async function callGateway(model: string, system: string, user: string) {
+async function callGatewayOnce(model: string, system: string, user: string, useJsonFormat: boolean) {
+  const body: Record<string, unknown> = {
+    model,
+    messages: [
+      { role: 'system', content: system },
+      { role: 'user', content: user },
+    ],
+    temperature: 0.85,
+  };
+  if (useJsonFormat) body.response_format = { type: 'json_object' };
   const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${LOVABLE_API_KEY}`,
-    },
-    body: JSON.stringify({
-      model,
-      messages: [
-        { role: 'system', content: system },
-        { role: 'user', content: user },
-      ],
-      response_format: { type: 'json_object' },
-      temperature: 0.85,
-    }),
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
+    body: JSON.stringify(body),
   });
   if (res.status === 429) throw new Error('RATE_LIMIT: AI gateway rate-limited. Try again in a moment.');
   if (res.status === 402) throw new Error('CREDITS: AI credits exhausted. Add credits in workspace settings.');
   if (!res.ok) throw new Error(`Gateway ${res.status}: ${(await res.text()).slice(0, 400)}`);
   const json = await res.json();
-  const content = json?.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Empty model response');
-  try { return JSON.parse(content); } catch { throw new Error('Model returned non-JSON content'); }
+  const choice = json?.choices?.[0];
+  const content: string = choice?.message?.content ?? '';
+  const finish = choice?.finish_reason ?? 'unknown';
+  return { content, finish };
+}
+
+function extractJson(text: string): unknown | null {
+  if (!text) return null;
+  const cleaned = text.replace(/```json\s*|```\s*/g, '').trim();
+  try { return JSON.parse(cleaned); } catch {}
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start >= 0 && end > start) {
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+  }
+  return null;
+}
+
+async function callGateway(model: string, system: string, user: string) {
+  // Attempt 1: requested model with json_object format
+  let last: { content: string; finish: string } = { content: '', finish: 'none' };
+  try {
+    last = await callGatewayOnce(model, system, user, true);
+    const parsed = extractJson(last.content);
+    if (parsed) return parsed;
+  } catch (e) {
+    // If non-credits/rate error, fall through to retry
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith('RATE_LIMIT') || msg.startsWith('CREDITS')) throw e;
+    console.error('[content-studio] primary call failed:', msg);
+  }
+
+  // Attempt 2: same model without response_format (some models reject it / return empty)
+  try {
+    last = await callGatewayOnce(model, system, user + '\n\nReturn ONLY raw JSON, no fences, no prose.', false);
+    const parsed = extractJson(last.content);
+    if (parsed) return parsed;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    if (msg.startsWith('RATE_LIMIT') || msg.startsWith('CREDITS')) throw e;
+    console.error('[content-studio] retry-no-format failed:', msg);
+  }
+
+  // Attempt 3: stable fallback model
+  const fallback = 'google/gemini-2.5-flash';
+  last = await callGatewayOnce(fallback, system, user + '\n\nReturn ONLY raw JSON.', true);
+  const parsed = extractJson(last.content);
+  if (parsed) return parsed;
+
+  throw new Error(`Empty model response (finish_reason=${last.finish}). Try a shorter topic or fewer platforms.`);
 }
 
 Deno.serve(async (req) => {
