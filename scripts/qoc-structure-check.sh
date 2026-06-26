@@ -63,6 +63,15 @@ require_contains "$BASE/qoc/preflight.ts" "INJECTION_PATTERNS" "injection guard 
 # Invariant 8: input length caps enforced in preflight (20k idea / 200 location).
 require_contains "$BASE/qoc/preflight.ts" "input_too_long" "input length cap guard present"
 
+# Invariant 9: confidence-gated tier escalation present in types.
+require_contains "$BASE/qoc/types.ts" "tierForRequest" "confidence-gated escalation function present"
+
+# Invariant 10: soft throttle mechanism present in dedupe.
+require_contains "$BASE/qoc/dedupe.ts" "is_soft_throttle" "soft throttle mechanism present"
+
+# Invariant 11: safePut logs store failures (not silently swallowed).
+require_contains "$BASE/qoc/orchestrator.ts" "AUDIT_STORE_FAILURE" "safePut failure logging present"
+
 if [[ "$FAIL" -ne 0 ]]; then
   red "QOC STRUCTURAL GATE FAILED — deploy blocked."
   exit 1

@@ -105,6 +105,7 @@ export interface DedupeResult {
   is_duplicate: boolean;
   duplicate_of?: string; // prior report id
   is_burst: boolean;
+  is_soft_throttle: boolean;
   cache_action: "hit" | "miss" | "store";
 }
 
@@ -137,21 +138,32 @@ export interface StageContext {
   deps: StageDeps;
 }
 
+export interface NarrationContext {
+  confidence_band: ConfidenceBand;
+  fields_present: number;
+  sector: Sector;
+  soft_throttled: boolean;
+}
+
 export interface StageDeps {
   // Persistence for idempotency + audit (Supabase in prod, in-memory in tests)
   store: AuditStore;
   // The untouched deterministic engine. QOC only CALLS it; never reimplements.
   runEngine: (req: AnalysisRequest, pf: PreflightResult) => Promise<unknown>;
   // Tier-routed narration. QOC selects tier from plan; provider does the call.
+  // ctx is optional for backwards compat with existing test fakes.
   narrate: (
     report: unknown,
     tier: NarrationTier,
     req: AnalysisRequest,
+    ctx?: NarrationContext,
   ) => Promise<{ text: string; cost_usd: number; variants?: string[] }>;
   // RVCE / source verification (Tavily etc.). Returns per-claim verdicts.
+  // forceModel is optional — set by orchestrator for conditional verification depth.
   verify: (
     report: unknown,
     req: AnalysisRequest,
+    forceModel?: string,
   ) => Promise<{
     claims: Array<{ text: string; verdict: Verdict; sources: number }>;
     overall: Verdict;
@@ -170,10 +182,30 @@ export function tierForPlan(plan: Plan): NarrationTier {
     case "free":
       return "deepseek";
     case "plus":
-      return "opus"; // Plus gets adversarial Opus validation per spec
+      return "opus";
     case "pro":
       return "sonnet";
     default:
       return "deepseek";
   }
+}
+
+// Confidence-gated escalation: weak inputs on cheap tiers get one step up.
+// Free users with very_low/low confidence get haiku (flash) instead of
+// deepseek (flash-lite) — marginal cost increase, significant accuracy gain
+// on the hardest requests. Paid tiers are never downgraded.
+export function tierForRequest(
+  plan: Plan,
+  confidenceBand: ConfidenceBand,
+  sectorConfidence: number,
+): NarrationTier {
+  const base = tierForPlan(plan);
+  if (
+    base === "deepseek" &&
+    (confidenceBand === "very_low" || confidenceBand === "low") &&
+    sectorConfidence < 0.5
+  ) {
+    return "haiku";
+  }
+  return base;
 }

@@ -1,5 +1,5 @@
 // ============================================================================
-// QOC Test Suite (Deno) — runs with: deno test --allow-none
+// QOC Test Suite (Deno) — runs with: deno test tests/qoc.test.ts
 // ----------------------------------------------------------------------------
 // Zero network. Fake adapters. Deterministic clock. These tests ARE the CI
 // gate's teeth: if any acceptance invariant breaks, the build fails closed.
@@ -12,7 +12,7 @@ import {
 import { orchestrate } from "../supabase/functions/qoc-orchestrate/qoc/orchestrator.ts";
 import { preflight } from "../supabase/functions/qoc-orchestrate/qoc/preflight.ts";
 import { fingerprint, normalize } from "../supabase/functions/qoc-orchestrate/qoc/dedupe.ts";
-import { tierForPlan } from "../supabase/functions/qoc-orchestrate/qoc/types.ts";
+import { tierForPlan, tierForRequest } from "../supabase/functions/qoc-orchestrate/qoc/types.ts";
 import type {
   AnalysisRequest,
   AuditEnvelope,
@@ -231,7 +231,6 @@ Deno.test("tierForPlan binds each plan to exactly one narration tier", () => {
   assertEquals(tierForPlan("free"), "deepseek");
   assertEquals(tierForPlan("plus"), "opus");
   assertEquals(tierForPlan("pro"), "sonnet");
-  // unknown plan falls back to deepseek (cheapest)
   assertEquals(tierForPlan("enterprise" as any), "deepseek");
 });
 
@@ -245,7 +244,6 @@ Deno.test("narrate stage records the tier derived from plan in trace detail", as
       return { text: "x", cost_usd: 0.001 };
     },
   });
-  // pro plan → sonnet tier
   await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
   assertEquals(tiers[0], "sonnet");
   const env = store.puts[0];
@@ -263,12 +261,10 @@ Deno.test("dedupe hit produces $0 total cost and no engine/narrate/verify traces
   const env = await orchestrate(req, deps, { now: clock });
   assertEquals(env.total_cost_usd, 0);
   assertEquals(env.short_circuit?.at, "dedupe");
-  // Only preflight + dedupe traces — engine, narrate, verify never ran
   const stages = env.traces.map((t) => t.stage);
   assertEquals(stages.includes("engine"), false);
   assertEquals(stages.includes("narrate"), false);
   assertEquals(stages.includes("verify"), false);
-  // Every trace individually costs $0
   for (const t of env.traces) {
     assertEquals(t.cost_usd, 0, `stage ${t.stage} should cost $0 on dedupe hit`);
   }
@@ -304,7 +300,6 @@ Deno.test("location exceeding 200 chars is rejected by preflight with input_too_
 // ---- AT-18: over-cap rejection returns expected edge schema response --------
 Deno.test("over-cap idea through orchestrator returns FAIL with preflight short-circuit", async () => {
   const store = makeFakeStore();
-  const deps = makeDeps(store);
   let engineRan = false;
   const patchedDeps = makeDeps(store, {
     runEngine: async () => { engineRan = true; return {}; },
@@ -319,4 +314,127 @@ Deno.test("over-cap idea through orchestrator returns FAIL with preflight short-
   assertEquals(env.short_circuit?.reason, "input_too_long");
   assertEquals(env.total_cost_usd, 0);
   assertEquals(engineRan, false);
+});
+
+// ---- AT-19: confidence-gated escalation — free + weak input → haiku --------
+Deno.test("tierForRequest escalates free tier on weak inputs", () => {
+  assertEquals(tierForRequest("free", "very_low", 0), "haiku");
+  assertEquals(tierForRequest("free", "low", 0.3), "haiku");
+  // Strong inputs stay on deepseek (no escalation)
+  assertEquals(tierForRequest("free", "medium", 0.6), "deepseek");
+  assertEquals(tierForRequest("free", "very_high", 0.9), "deepseek");
+  // Paid tiers never change
+  assertEquals(tierForRequest("pro", "very_low", 0), "sonnet");
+  assertEquals(tierForRequest("plus", "very_low", 0), "opus");
+});
+
+// ---- AT-20: free + minimal input escalates tier through orchestrator --------
+Deno.test("free plan with minimal input escalates narration to haiku", async () => {
+  let seenTier = "";
+  const store = makeFakeStore();
+  const deps = makeDeps(store, {
+    narrate: async (_r, tier) => {
+      seenTier = tier;
+      return { text: "x", cost_usd: 0.0005 };
+    },
+  });
+  // Minimal input: only idea, no other fields → very_low confidence + low sector_confidence
+  await orchestrate(
+    {
+      request_id: "req-esc",
+      user_id: "user-1",
+      plan: "free",
+      idea: "I want to start something cool",
+    } as AnalysisRequest,
+    deps,
+    { now: clock },
+  );
+  assertEquals(seenTier, "haiku");
+});
+
+// ---- AT-21: soft throttle downgrades narration tier but doesn't block ------
+Deno.test("soft throttle (3 recent) downgrades tier but still produces report", async () => {
+  let seenTier = "";
+  const store = makeFakeStore({ recent: 3 });
+  const deps = makeDeps(store, {
+    narrate: async (_r, tier) => {
+      seenTier = tier;
+      return { text: "Downshifted.", cost_usd: 0.001 };
+    },
+  });
+  const env = await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
+  assertEquals(env.overall_verdict, "PASS");
+  // Pro (sonnet) soft-throttled → haiku
+  assertEquals(seenTier, "haiku");
+  assert(env.report !== undefined);
+  // No short-circuit — request completed fully
+  assertEquals(env.short_circuit, undefined);
+});
+
+// ---- AT-22: soft throttle trace records downshift in detail -----------------
+Deno.test("soft throttle narrate trace records soft_throttled flag", async () => {
+  const store = makeFakeStore({ recent: 4 });
+  const deps = makeDeps(store);
+  const env = await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
+  const narrateTrace = env.traces.find((t) => t.stage === "narrate");
+  assert(narrateTrace);
+  assertEquals((narrateTrace.detail as any).soft_throttled, true);
+});
+
+// ---- AT-23: conditional verify depth — high confidence → single model ------
+Deno.test("high confidence + known sector sets single_model in verify trace", async () => {
+  const store = makeFakeStore();
+  const deps = makeDeps(store);
+  // baseReq has all fields (very_high confidence) + saas sector
+  const env = await orchestrate(baseReq(), deps, { now: clock });
+  const verifyTrace = env.traces.find((t) => t.stage === "verify");
+  assert(verifyTrace);
+  assertEquals((verifyTrace.detail as any).single_model, true);
+});
+
+// ---- AT-24: low confidence → dual model (full consensus) -------------------
+Deno.test("low confidence triggers full dual-model verification", async () => {
+  let forceModelSeen: string | undefined;
+  const store = makeFakeStore();
+  const deps = makeDeps(store, {
+    verify: async (_r, _req, forceModel) => {
+      forceModelSeen = forceModel;
+      return {
+        claims: [{ text: "x", verdict: "PASS" as const, sources: 1 }],
+        overall: "PASS" as const,
+        cost_usd: 0.01,
+      };
+    },
+  });
+  await orchestrate(
+    {
+      request_id: "req-low",
+      user_id: "user-1",
+      plan: "free",
+      idea: "I want to do something interesting",
+    } as AnalysisRequest,
+    deps,
+    { now: clock },
+  );
+  assertEquals(forceModelSeen, undefined);
+});
+
+// ---- AT-25: composed report surfaces unverified claim count ----------------
+Deno.test("composed report includes unverified_count from verify claims", async () => {
+  const store = makeFakeStore();
+  const deps = makeDeps(store, {
+    verify: async () => ({
+      claims: [
+        { text: "Revenue assumption", verdict: "PASS" as const, sources: 3 },
+        { text: "Market size claim", verdict: "PARTIAL" as const, sources: 1 },
+        { text: "Growth rate", verdict: "FAIL" as const, sources: 0 },
+      ],
+      overall: "PARTIAL" as const,
+      cost_usd: 0.005,
+    }),
+  });
+  const env = await orchestrate(baseReq(), deps, { now: clock });
+  const report = env.report as any;
+  assertEquals(report.verification.unverified_count, 2);
+  assertEquals(report.verification.claims.length, 3);
 });

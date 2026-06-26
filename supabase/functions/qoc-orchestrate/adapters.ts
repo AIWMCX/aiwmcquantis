@@ -17,6 +17,7 @@ import type {
   AnalysisRequest,
   AuditEnvelope,
   AuditStore,
+  NarrationContext,
   NarrationTier,
   PreflightResult,
   StageDeps,
@@ -126,12 +127,17 @@ export async function narrateAdapter(
   report: unknown,
   tier: NarrationTier,
   req: AnalysisRequest,
+  ctx?: NarrationContext,
 ): Promise<{ text: string; cost_usd: number; variants?: string[] }> {
   // deno-lint-ignore no-explicit-any
   const out: any = await invokeFn("ai-narrator", {
     report,
     tier,
     request: { idea: req.idea, location: req.location, industry: req.industry, plan: req.plan },
+    // Confidence signals for dynamic token caps and thinking mode
+    confidence_band: ctx?.confidence_band,
+    fields_present: ctx?.fields_present,
+    soft_throttled: ctx?.soft_throttled,
   });
   const text =
     typeof out?.narrative === "string" ? out.narrative :
@@ -152,6 +158,7 @@ export async function narrateAdapter(
 export async function verifyAdapter(
   report: unknown,
   req: AnalysisRequest,
+  forceModel?: string,
 ): Promise<{
   claims: Array<{ text: string; verdict: Verdict; sources: number }>;
   overall: Verdict;
@@ -161,6 +168,8 @@ export async function verifyAdapter(
   const out: any = await invokeFn("ai-consensus", {
     report,
     request: { idea: req.idea, location: req.location, industry: req.industry },
+    // Conditional verification depth: "gpt" = single-model (cheaper for easy cases)
+    options: forceModel ? { forceModel } : undefined,
   });
   // deno-lint-ignore no-explicit-any
   const rawClaims: any[] = Array.isArray(out?.claims) ? out.claims : [];

@@ -132,12 +132,12 @@ export async function orchestrate(
     return env;
   }
 
-  // ---- Stage 4: NARRATE (D1/D2) ---------------------------------------------
-  const nar = await narrate(report, req, deps, now);
+  // ---- Stage 4: NARRATE (D1/D2) — confidence-gated tier, soft-throttle ------
+  const nar = await narrate(report, req, deps, now, pf.result, dd.result.is_soft_throttle);
   traces.push(nar.trace);
 
-  // ---- Stage 5: VERIFY / RVCE (D3) ------------------------------------------
-  const ver = await verify(report, req, deps, now);
+  // ---- Stage 5: VERIFY / RVCE (D3) — conditional depth via preflight --------
+  const ver = await verify(report, req, deps, now, pf.result);
   traces.push(ver.trace);
 
   // ---- Compose final report payload -----------------------------------------
@@ -145,7 +145,11 @@ export async function orchestrate(
     engine: report,
     narrative: nar.text,
     variants: nar.variants ?? [],
-    verification: { claims: ver.claims, overall: ver.overall },
+    verification: {
+      claims: ver.claims,
+      overall: ver.overall,
+      unverified_count: ver.claims.filter((c) => c.verdict !== "PASS").length,
+    },
     confidence_band: pf.result.confidence_band,
     sector: pf.result.sector,
     imputations: pf.result.imputations,
@@ -157,12 +161,15 @@ export async function orchestrate(
 }
 
 // Persistence must never crash the request path. Audit is best-effort-durable:
-// we attempt to store, but a store failure degrades to a logged note, not a 500.
+// we attempt to store, but a store failure degrades to a logged warning, not a 500.
 async function safePut(deps: StageDeps, env: AuditEnvelope): Promise<void> {
   try {
     await deps.store.putEnvelope(env);
-  } catch {
-    // Intentionally swallowed: returning the user's analysis matters more than
-    // the audit write. A separate alarm on store errors belongs in infra, not here.
+  } catch (e) {
+    console.error(
+      "AUDIT_STORE_FAILURE",
+      env.request_id,
+      String((e as Error)?.message ?? e),
+    );
   }
 }

@@ -62,7 +62,8 @@ export function fingerprint(req: AnalysisRequest): string {
 }
 
 const BURST_WINDOW_MS = 60_000;
-const BURST_LIMIT = 5; // >5 analyses / 60s / user => throttle
+const SOFT_THROTTLE_LIMIT = 3; // 3–4 analyses / 60s => degrade narration tier
+const BURST_LIMIT = 5; // ≥5 analyses / 60s / user => hard throttle
 
 export async function dedupe(
   req: AnalysisRequest,
@@ -80,6 +81,7 @@ export async function dedupe(
       is_duplicate: true,
       duplicate_of: prior.report_id,
       is_burst: false,
+      is_soft_throttle: false,
       cache_action: "hit",
     };
     return {
@@ -96,15 +98,21 @@ export async function dedupe(
     };
   }
 
-  // 2) Burst guard.
+  // 2) Burst guard (two tiers: soft throttle degrades quality, hard burst blocks).
   const recent = await store.recentCountForUser(req.user_id, BURST_WINDOW_MS);
   const isBurst = recent >= BURST_LIMIT;
+  const isSoftThrottle = !isBurst && recent >= SOFT_THROTTLE_LIMIT;
   const result: DedupeResult = {
     fingerprint: fp,
     is_duplicate: false,
     is_burst: isBurst,
+    is_soft_throttle: isSoftThrottle,
     cache_action: isBurst ? "miss" : "store",
   };
+
+  const notes: string[] = [];
+  if (isBurst) notes.push(`Burst limit hit (${recent} in 60s); throttle this user.`);
+  else if (isSoftThrottle) notes.push(`Soft throttle (${recent} in 60s); narration tier downshifted.`);
 
   return {
     result,
@@ -115,11 +123,9 @@ export async function dedupe(
       duration_ms: now() - started,
       cost_usd: 0,
       detail: { result, recent_count: recent },
-      notes: isBurst
-        ? [`Burst limit hit (${recent} in 60s); throttle this user.`]
-        : [],
+      notes,
     },
   };
 }
 
-export const _internal = { BURST_LIMIT, BURST_WINDOW_MS };
+export const _internal = { BURST_LIMIT, BURST_WINDOW_MS, SOFT_THROTTLE_LIMIT };
