@@ -5,9 +5,19 @@
  * IMPORTANT: Increment CACHE_VERSION on every deployment to bust old caches
  */
 
-const CACHE_VERSION = 'v3.0.0';
+const CACHE_VERSION = 'v3.1.0';
 const STATIC_CACHE = `aiwmc-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `aiwmc-dynamic-${CACHE_VERSION}`;
+
+// Broadcast a NEW_VERSION_ACTIVE message to all clients after activation so
+// the app can prompt the user to refresh and pick up new chunks.
+function broadcastNewVersion() {
+  self.clients.matchAll({ includeUncontrolled: true }).then((clients) => {
+    clients.forEach((c) => {
+      try { c.postMessage({ type: 'NEW_VERSION_ACTIVE', version: CACHE_VERSION }); } catch (_) {}
+    });
+  });
+}
 
 // Only cache truly static assets
 const STATIC_ASSETS = [
