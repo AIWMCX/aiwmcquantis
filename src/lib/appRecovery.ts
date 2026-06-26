@@ -21,9 +21,15 @@ export interface CapturedError {
 }
 
 /** Best-effort persistent build identifier injected at build time. */
-export const BUILD_ID: string =
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (typeof __BUILD_ID__ !== 'undefined' ? (__BUILD_ID__ as string) : 'dev');
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+declare const __BUILD_ID__: any;
+export const BUILD_ID: string = (() => {
+  try {
+    return typeof __BUILD_ID__ !== 'undefined' ? String(__BUILD_ID__) : 'dev';
+  } catch {
+    return 'dev';
+  }
+})();
 
 export function captureLastError(
   error: Error,
