@@ -150,6 +150,15 @@ export function useAnalysis() {
             result: safeData,
             created_at: new Date().toISOString(),
           });
+          // Device memory: mark this browser as having run an analysis, and stash
+          // the analysis id so that if the visitor signs up from the post-result
+          // prompt, useAuth's SIGNED_IN handler claims this run into their new
+          // account (claim_anonymous_analysis). Previously these were only set on
+          // the /r/:id page, so dashboard-flow signups never claimed the result.
+          try {
+            localStorage.setItem('has_run_analysis', '1');
+            localStorage.setItem('quantis_claim_analysis_id', saved.id);
+          } catch { /* storage unavailable — non-fatal */ }
         }
       }
       setAnalysisId(savedId);

@@ -40,7 +40,8 @@ import {
 } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
-import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
+import { PostAnalysisAuthPrompt } from '@/components/analysis/PostAnalysisAuthPrompt';
+import { isReturningAnonymousUser } from '@/lib/anonymousTracking';
 import { SectionErrorBoundary } from '@/components/analysis/SectionErrorBoundary';
 import { AnalysisErrorPanel } from '@/components/analysis/AnalysisErrorPanel';
 import { CapacityCheckCard } from '@/components/analysis/CapacityCheckCard';
@@ -81,6 +82,26 @@ export default function Index() {
 
   const { isAuthenticated, user } = useAuth();
 
+  // Soft "welcome back" nudge for recognized returning visitors who already ran a
+  // free analysis on this device but never created an account. Non-blocking (they
+  // can still run another) — it just invites the +1 sign-in. Computed in an effect
+  // so the prerendered HTML and the client agree (no hydration mismatch).
+  const [showWelcomeBack, setShowWelcomeBack] = useState(false);
+  useEffect(() => {
+    if (isAuthenticated) {
+      setShowWelcomeBack(false);
+      return;
+    }
+    try {
+      if (sessionStorage.getItem('quantis_welcome_back_dismissed')) return;
+      if (isReturningAnonymousUser() && localStorage.getItem('has_run_analysis')) {
+        setShowWelcomeBack(true);
+      }
+    } catch {
+      /* storage unavailable — skip the nudge */
+    }
+  }, [isAuthenticated]);
+
   const {
     shouldShowQuickStart,
     shouldShowFirstAnalysisCelebration,
@@ -113,6 +134,7 @@ export default function Index() {
     clearError,
     result,
     setResult,
+    analysisId,
     isLoading,
     isError,
     error,
@@ -360,6 +382,42 @@ export default function Index() {
           <DashboardSkeleton />
         ) : (
           <>
+            {/* Welcome-back nudge — recognized returning visitor, not signed in */}
+            {showWelcomeBack && (
+              <div className="mb-4 p-3 rounded-lg border border-primary/30 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
+                <div className="flex items-center gap-2 text-sm text-foreground">
+                  <span aria-hidden>👋</span>
+                  <span>
+                    Welcome back — sign in to save your analyses and pick up where you left off.
+                  </span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    onClick={() => navigate('/auth?returnUrl=%2Fapp')}
+                    className="h-7 text-xs"
+                  >
+                    Sign in
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => {
+                      try {
+                        sessionStorage.setItem('quantis_welcome_back_dismissed', 'true');
+                      } catch {
+                        /* noop */
+                      }
+                      setShowWelcomeBack(false);
+                    }}
+                    className="h-7 text-xs"
+                  >
+                    Dismiss
+                  </Button>
+                </div>
+              </div>
+            )}
+
             {/* Subscription Status Bar — slim */}
             {isAuthenticated && (
               <>
@@ -732,7 +790,8 @@ export default function Index() {
                             }}
                           />
                         )}
-                        <PostAnalysisEmailCapture
+                        <PostAnalysisAuthPrompt
+                          analysisId={currentAnalysisId ?? analysisId}
                           ideaTitle={idea}
                           monthlyProfit={
                             result?.financial_analysis?.scenarios?.base?.net_profit
