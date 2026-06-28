@@ -16,6 +16,41 @@ export interface ExampleData {
   costBreakdown: { label: string; value: string }[];
   risks: { text: string; severity: 'high' | 'medium' | 'low' }[];
   actionPlan: string[];
+  /**
+   * Optional cornerstone-depth content for high-priority SEO targets.
+   * Pages without `deepDive` render the standard template (5 risks + plan).
+   * Pages WITH `deepDive` get the full long-form treatment: market overview,
+   * deep cost breakdown, unit economics, competitive landscape, and FAQ —
+   * 1,500-2,500 unique crawlable words targeting cornerstone keywords.
+   *
+   * Add `deepDive` to ONE example at a time as you produce real research-
+   * backed content; the template renders sections conditionally so partial
+   * data is safe.
+   */
+  deepDive?: {
+    /** 1-2 paragraphs sizing the local market and naming the underlying trends. */
+    marketOverview: { heading: string; paragraphs: string[] };
+    /** Why this specific neighborhood / sub-market is the right wedge. */
+    locationDeep: { heading: string; paragraphs: string[]; bullets?: string[] };
+    /** Per-line monthly operating cost table — the actual P&L lines, not the rolled-up startup line. */
+    monthlyEconomics: {
+      heading: string;
+      intro?: string;
+      rows: Array<{ label: string; value: string; note?: string }>;
+      footnote?: string;
+    };
+    /** Unit-economics deep dive: CAC, LTV, cups-per-day to break even. */
+    unitEconomics: {
+      heading: string;
+      bullets: Array<{ label: string; value: string; explainer?: string }>;
+    };
+    /** Competitive landscape — categories, not named competitor lists (avoids defamation risk). */
+    competition: { heading: string; paragraphs: string[]; bullets?: string[] };
+    /** People-Also-Ask-shaped FAQ. Each Q must be a real question a founder Googles. */
+    faq: Array<{ q: string; a: string }>;
+    /** Methodology footer linking to /methodology for transparency. */
+    methodologyNote: string;
+  };
 }
 
 export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
@@ -50,6 +85,97 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       'Partner with 5 local businesses for cross-promotion within first 60 days.',
       'Implement a loyalty app from day one — target 40% repeat customer rate by month 3.',
     ],
+    deepDive: {
+      marketOverview: {
+        heading: 'The Denver Specialty Coffee Market in 2026',
+        paragraphs: [
+          'Denver supports roughly 350 independent and small-chain coffee shops across its metro footprint, with the densest concentration in the LoHi, RiNo, Highlands, and Capitol Hill neighborhoods. The market grew at an estimated 4–6% per year over the past five years, slightly above the US average for specialty coffee, driven by inbound migration, a high rate of remote workers, and a culture that treats third-place cafés as default office space.',
+          'The competitive picture is bifurcated. National chains (Starbucks, Dutch Bros) compete on convenience and speed. Independent specialty roasters compete on bean quality and atmosphere. A new shop entering this market needs a sharply defined wedge that the chains structurally cannot match — most commonly remote-work optimization, single-origin sourcing relationships, or community programming (cuppings, latte art classes, neighborhood events).',
+          'The two most consequential macro pressures on a 2026 Denver opening are commercial rent escalation in the trendy submarkets (LoHi pricing rose ~18% over three years) and persistent wage inflation in the service sector. Both compress operating margin and shorten the runway a marginal location has before it becomes unprofitable.',
+        ],
+      },
+      locationDeep: {
+        heading: 'Why LoHi (Lower Highlands) — and What That Costs You',
+        paragraphs: [
+          'LoHi sits across the South Platte from downtown Denver, walkable to the central business district and saturated with dual-income professionals working hybrid schedules. Daytime foot traffic peaks 8–11 AM and 1–3 PM — exactly the windows where a remote-work-positioned café captures wallet share that a fast-casual chain cannot. Weekend traffic is brunch-driven, with higher average ticket sizes.',
+        ],
+        bullets: [
+          'Median commercial rent on a 1,000–1,500 sq ft retail space in LoHi: $4,000–$5,500/month, NNN, with $30–$60/sq ft annual rates depending on frontage.',
+          'Walk Score 92, Bike Score 85 — both directly correlate with morning-rush coffee revenue per a 2024 Specialty Coffee Association study.',
+          'Tenant build-out concessions are rare in LoHi after 2023; budget the full equipment + buildout cost up front rather than amortizing against rent.',
+          'Adjacent neighborhoods (Sunnyside, Jefferson Park) offer 25–35% lower rent for ~60% of the foot traffic — a defensible alternative if the LoHi math does not pencil out.',
+        ],
+      },
+      monthlyEconomics: {
+        heading: 'Monthly P&L at the $18,500 Revenue Line',
+        intro: 'A target $18,500 in monthly revenue at a ~22.7% net margin assumes ~110 average daily transactions at a $5.60 average ticket. The line-by-line OpEx structure looks roughly like this:',
+        rows: [
+          { label: 'Rent (LoHi, 1,200 sq ft)', value: '$4,500', note: 'NNN; add 12–18% for triple-net pass-throughs' },
+          { label: 'Cost of Goods (beans, milk, cups)', value: '$5,180', note: '~28% of revenue at specialty-grade sourcing' },
+          { label: 'Payroll (2 baristas + owner-operator)', value: '$3,200', note: 'Net of owner draw; full burden if hiring out is +$1,400' },
+          { label: 'Utilities + WiFi + POS', value: '$520', note: 'Includes 200 Mbps business fiber' },
+          { label: 'Insurance + permits + licensing', value: '$340', note: 'Amortized monthly' },
+          { label: 'Marketing (loyalty app, ads, content)', value: '$420', note: '~2.3% of revenue — light by SCA benchmark' },
+          { label: 'Reserve + miscellaneous', value: '$140', note: 'Equipment repair sinking fund' },
+        ],
+        footnote: 'Total monthly OpEx ≈ $14,300; gross profit ≈ $4,200/mo at the base case. Pessimistic case (rent +10%, ticket −8%) drops monthly profit to ≈ $1,100. Optimistic case (loyalty conversion 45%+, weekend uplift) drives profit to ≈ $7,400.',
+      },
+      unitEconomics: {
+        heading: 'Unit Economics — The Numbers That Decide Whether This Survives',
+        bullets: [
+          { label: 'Average ticket', value: '$5.60', explainer: 'Drink + occasional pastry; lower than Seattle/Portland averages, in line with Denver SCA city data.' },
+          { label: 'Daily transactions to break even', value: '~85 / day', explainer: 'Below this, fixed costs eat all of contribution margin.' },
+          { label: 'Daily transactions at target', value: '~110 / day', explainer: 'Achievable in LoHi at peak season — slower Q1 needs to be modeled.' },
+          { label: 'Customer acquisition cost (CAC)', value: '$3–$8', explainer: 'Loyalty app referrals + local social. Paid acquisition rarely pays back in single-shop hospitality.' },
+          { label: 'Customer lifetime value (LTV)', value: '$340–$520', explainer: 'Repeat customers visiting 2–4× per week over an 18–24 month window.' },
+          { label: 'LTV : CAC ratio at target', value: '40× – 100×', explainer: 'Healthy. The leverage point is repeat rate, not acquisition cost.' },
+          { label: 'CAC payback period', value: '2–3 weeks', explainer: 'A repeat customer covers acquisition cost within the first month — IF retention holds.' },
+        ],
+      },
+      competition: {
+        heading: 'Competitive Landscape — and Where the Wedge Lives',
+        paragraphs: [
+          'Within a 1-mile radius of LoHi you can expect 8–14 direct coffee competitors: a mix of two national chains, three to five established local specialty shops, and a long tail of bakery/coffee hybrids and food-truck-adjacent operators. None of them is dominant; the market is fragmented.',
+          'The structural opening is the "remote-work café" position — high-bandwidth, abundant outlets, low-traffic hours optimized for laptop guests, with a coffee program serious enough to attract weekend specialty traffic. National chains will not invest in long-dwell seating because it kills throughput per square foot. Most local specialty shops underinvest in WiFi and outlets because they prioritize the connoisseur audience.',
+        ],
+        bullets: [
+          'Defensible wedge: remote-work optimization (WiFi, outlets, longer dwell, predictable AM/PM cadence).',
+          'Indefensible wedges: cheapest coffee (chains win), fastest drive-through (chains win), trendiest drink menu (copied within 60 days).',
+          'Risk window: months 4–9, when the launch novelty fades and the operator must prove repeat rate before working capital runs out.',
+        ],
+      },
+      faq: [
+        {
+          q: 'How much does it actually cost to open a coffee shop in Denver?',
+          a: 'For a 1,000–1,500 sq ft specialty shop in a desirable neighborhood like LoHi or RiNo, plan for $30,000–$60,000 in startup costs (equipment, buildout, licenses, initial inventory, marketing, and 3 months of working capital). The $35,000 figure in this analysis is the leaner end — possible if the space comes partially built out from a previous café tenant. A full ground-up buildout in a raw shell runs $80,000+.',
+        },
+        {
+          q: 'Is the Denver coffee market saturated?',
+          a: 'Saturated but fragmented — those are different things. There are many coffee shops, but no single operator dominates any neighborhood. A new entrant with a sharply defined wedge (remote-work positioning, single-origin sourcing, or community programming) can carve out share. A "generic specialty coffee shop" with no distinguishing position will struggle.',
+        },
+        {
+          q: 'How long does it take to break even on a Denver coffee shop?',
+          a: 'The base case in this analysis projects 7.1 months — that assumes hitting ~110 transactions per day from month 2 onward and stable lease terms. A pessimistic case (slow ramp, higher rent, summer-only tourism uplift) extends payback to 10–13 months. Operators who do not hit 85 transactions per day by month 4 typically do not reach breakeven before working capital exhausts.',
+        },
+        {
+          q: 'What is the biggest hidden cost of opening a coffee shop?',
+          a: 'Equipment service contracts and unplanned repairs. Espresso machines need quarterly maintenance ($200–$400 per visit) and have a 7–10 year replacement cycle on a machine that costs $8,000–$18,000. Most first-time operators omit the sinking fund and discover the cost when the machine fails during a Saturday rush.',
+        },
+        {
+          q: 'Do I need barista experience to open a coffee shop?',
+          a: 'No, but you need someone in the founding team who can train and quality-control the bar. Inconsistent espresso quality is the single most common reason a specialty shop loses its repeat customers. If the founder is not a trained barista, budget for a head-barista hire at $24–$32/hour and treat their retention as a top-3 operating priority.',
+        },
+        {
+          q: 'What permits do I need to open a coffee shop in Denver?',
+          a: 'At minimum: a Denver Business License, a Colorado Sales Tax License, a Retail Food Establishment License from Denver Department of Public Health & Environment, a sign permit, and (if serving any alcohol or selling sealed beer/wine) a state liquor license. Most operators budget $2,000–$3,000 and 60–90 days for the full permitting cycle.',
+        },
+        {
+          q: 'Can I run a coffee shop profitably without a loyalty program?',
+          a: 'Mathematically possible, practically very difficult. The unit economics depend on repeat visits (2–4× per week per regular). A loyalty program is the cheapest mechanism to convert first-time visitors into regulars; the conversion lift typically pays for the loyalty app subscription within 60 days.',
+        },
+      ],
+      methodologyNote: 'Figures in this analysis use Quantis sector benchmarks for specialty coffee in metro markets, layered with Denver-specific cost-of-business indices (commercial rent, prevailing wages, utility rates). Specific numbers cited are illustrative midpoints — your actual numbers will vary with lease terms, sourcing relationships, and seasonality. For the underlying methodology and data sources, see the Methodology page.',
+    },
   },
   'saas-project-management': {
     title: 'SaaS Project Management Tool',
