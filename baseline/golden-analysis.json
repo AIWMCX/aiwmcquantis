@@ -1,0 +1,32 @@
+{
+  "_note": "Shape-only placeholder. Replace with a real end-to-end QOC AuditEnvelope by running a live analysis and redacting volatile fields to __VOLATILE__. See scripts/capture-baseline.sh and docs/QOC_CLAUDE.md.",
+  "_how_to_update": "Run a live analysis, capture the AuditEnvelope from /admin/qoc-monitor or the qoc-orchestrate response, redact timestamps/ids/cost_usd/duration_ms to __VOLATILE__, paste here, commit in same PR.",
+  "qoc_version": "1.0.0",
+  "request_id": "__VOLATILE__",
+  "overall_verdict": "PASS",
+  "traces": [
+    { "stage": "preflight", "verdict": "PASS", "started_at": "__VOLATILE__", "duration_ms": "__VOLATILE__", "cost_usd": 0, "detail": { "sector": "saas_software", "confidence_band": "high" }, "notes": [] },
+    { "stage": "dedupe",    "verdict": "PASS", "started_at": "__VOLATILE__", "duration_ms": "__VOLATILE__", "cost_usd": 0, "detail": { "cache_action": "miss" }, "notes": [] },
+    { "stage": "engine",    "verdict": "PASS", "started_at": "__VOLATILE__", "duration_ms": "__VOLATILE__", "cost_usd": 0, "detail": { "sector": "saas_software", "confidence_band": "high" }, "notes": [] },
+    { "stage": "narrate",   "verdict": "PASS", "started_at": "__VOLATILE__", "duration_ms": "__VOLATILE__", "cost_usd": "__VOLATILE__", "detail": { "tier": "deepseek" }, "notes": [] },
+    { "stage": "verify",    "verdict": "PASS", "started_at": "__VOLATILE__", "duration_ms": "__VOLATILE__", "cost_usd": "__VOLATILE__", "detail": { "single_model": true }, "notes": [] }
+  ],
+  "total_cost_usd": "__VOLATILE__",
+  "total_duration_ms": "__VOLATILE__",
+  "report": {
+    "_shape": "BusinessAnalysisResult — see src/types/analysis.ts",
+    "engine": {
+      "_required_keys": ["financial_analysis", "business_plan", "market_analysis", "marketing_plan", "confidence_score", "data_sources", "limitations", "metadata"]
+    },
+    "narrative": "__VOLATILE__",
+    "variants": [],
+    "verification": {
+      "claims": [],
+      "overall": "PASS",
+      "unverified_count": 0
+    },
+    "confidence_band": "high",
+    "sector": "saas_software",
+    "imputations": []
+  }
+}

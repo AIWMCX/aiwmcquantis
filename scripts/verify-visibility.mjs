@@ -71,6 +71,29 @@ for (const r of NON_HOME) {
     `SHELL BUG: ${r.path} body is IDENTICAL to the homepage — it rendered the shell, not its own content.`);
 }
 
+// --- 2b: NO two route bodies may share a hash (duplicate-content guard) ------
+const seenHashes = new Map(); // hash → first route that had it
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  const h = bodyHash(html);
+  if (seenHashes.has(h)) {
+    fail.push(`DUPLICATE_BODY: ${r.path} has IDENTICAL body to ${seenHashes.get(h)} — duplicate content will confuse crawlers`);
+  } else {
+    seenHashes.set(h, r.path);
+  }
+}
+
+// --- 2c: "7-Layer" must never appear in any built route body -----------------
+// This string was the historical staleness signal — it means a stale cached
+// render slipped through before we patched to 8-Layer.
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  note(!html.includes("7-Layer"),
+    `STALE_CONTENT: ${r.path} contains "7-Layer" — the pre-patch stale content is back. Check prerender and RouteSEO.`);
+}
+
 // --- 5: sitemap completeness -------------------------------------------------
 const sitemapPath = path.join(DIST, "sitemap.xml");
 if (!fs.existsSync(sitemapPath)) {

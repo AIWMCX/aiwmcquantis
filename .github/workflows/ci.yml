@@ -189,6 +189,33 @@ jobs:
         run: |
           echo "::error title=Duplicate per-route SEO::Two or more public routes ship identical <title> or meta description. The SPA SEO regression is back — check scripts/prerender-seo.ts and src/components/seo/RouteSEO.tsx."
 
+      # ── Prerender regression tripwire (Task 2) ──────────────────────────────
+      # Asserts: no route body equals homepage, no two bodies identical,
+      # no "7-Layer" stale content, all required marker strings present,
+      # Pro $49 in pricing route, sitemap complete.
+      - name: Prerender visibility gate
+        id: visibility
+        run: node scripts/verify-visibility.mjs
+
+      - name: Visibility gate failure hint
+        if: failure() && steps.visibility.outcome == 'failure'
+        run: |
+          echo "::error title=Prerender visibility gate::A route body equals the homepage shell, two routes share identical bodies, '7-Layer' reappeared, or a required content marker is missing. Run 'node scripts/verify-visibility.mjs' locally against dist/."
+
+      # ── Baseline diff gate (Task 5) ─────────────────────────────────────────
+      # Compares built output against baseline/MANIFEST.json. Any unannounced
+      # change to a route body, title, or meta description fails the build.
+      # Accept changes by running scripts/capture-baseline.sh and committing
+      # the updated baseline/ in the same PR.
+      - name: Diff against baseline
+        id: baseline-diff
+        run: bash scripts/diff-against-baseline.sh
+
+      - name: Baseline diff failure hint
+        if: failure() && steps.baseline-diff.outcome == 'failure'
+        run: |
+          echo "::error title=Baseline drift::An unannounced change to a route body, title, or meta was detected, OR the test count dropped. Run 'scripts/capture-baseline.sh' and commit the updated baseline/ in the same PR to accept the change."
+
 
       # ── Dependency security audit ───────────────────────────────────────────
       - name: Dependency audit (bun)
@@ -237,6 +264,9 @@ jobs:
             echo "| Supabase ref guard | ${{ steps.ref-guard.outcome }} |"
             echo "| Business-logic hash | ${{ steps.verify.outcome }} |"
             echo "| Tests | ${{ steps.tests.outcome }} |"
+            echo "| Determinism | ${{ steps.determinism.outcome }} |"
+            echo "| Prerender visibility | ${{ steps.visibility.outcome }} |"
+            echo "| Baseline diff | ${{ steps.baseline-diff.outcome }} |"
             echo "| Audit | ${{ steps.audit.outcome }} |"
             echo ""
             echo "Download \`ci-artifacts-${{ github.run_id }}\` for lint, test, and audit logs."

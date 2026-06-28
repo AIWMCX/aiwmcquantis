@@ -1,0 +1,19 @@
+{
+  "_note": "Baseline captured at commit time. Route body hashes reflect a Vite-only build (no Puppeteer prerender locally). CI re-captures with full prerender via scripts/capture-baseline.sh after the first green build.",
+  "captured_at": "2026-06-28T03:46:52.177Z",
+  "git_sha": "af2ec01ba4730d90057c93789d7f18eccdadd3a1",
+  "test_files": 37,
+  "test_cases": 580,
+  "route_count": 83,
+  "routes_emitted": 1,
+  "routes": {
+    "/": {
+      "body_sha256": null,
+      "title": null,
+      "description": null,
+      "canonical": null,
+      "emitted": true,
+      "_note": "Populate via: bun run build && bash scripts/capture-baseline.sh"
+    }
+  }
+}
