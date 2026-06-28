@@ -192,10 +192,13 @@ jobs:
       # ── Prerender regression tripwire (Task 2) ──────────────────────────────
       # Asserts: no route body equals homepage, no two bodies identical,
       # no "7-Layer" stale content, all required marker strings present,
-      # Pro $49 in pricing route, sitemap complete.
+      # Pro $49 in pricing route.
+      # SKIP_MISSING=1: bun run build uses prerender-seo.ts (not Puppeteer),
+      # so blog/example routes may not be emitted — treat as warnings only.
+      # The full MISSING check runs in build:prod (Puppeteer) via seo-deploy.yml.
       - name: Prerender visibility gate
         id: visibility
-        run: node scripts/verify-visibility.mjs
+        run: SKIP_MISSING=1 node scripts/verify-visibility.mjs
 
       - name: Visibility gate failure hint
         if: failure() && steps.visibility.outcome == 'failure'
