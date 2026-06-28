@@ -219,6 +219,19 @@ jobs:
         run: |
           echo "::error title=Baseline drift::An unannounced change to a route body, title, or meta was detected, OR the test count dropped. Run 'scripts/capture-baseline.sh' and commit the updated baseline/ in the same PR to accept the change."
 
+      # ── Internal-link crawl-health gate (Prompt 2 F6) ───────────────────────
+      # Walks dist/ HTML, asserts every public route is linked from somewhere,
+      # and every internal <a href> resolves to a registry route or allowed SPA
+      # path. SKIP_MISSING=1 because bun run build doesn't fully prerender.
+      - name: Verify internal-link integrity
+        id: internal-links
+        run: SKIP_MISSING=1 node scripts/verify-internal-links.mjs
+
+      - name: Internal-link failure hint
+        if: failure() && steps.internal-links.outcome == 'failure'
+        run: |
+          echo "::error title=Internal-link integrity::An emitted route has zero inbound links (orphan), or an <a href> points to a destination not in seo.routes.mjs nor ALLOWED_SPA_PATHS. Fix the link target, add the route to the registry, or add to ALLOWED_SPA_PATHS in scripts/verify-internal-links.mjs."
+
 
       # ── Dependency security audit ───────────────────────────────────────────
       - name: Dependency audit (bun)

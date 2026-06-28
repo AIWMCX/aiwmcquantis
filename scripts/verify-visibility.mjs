@@ -51,6 +51,18 @@ function titleOf(html) {
   const m = html && html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return m ? m[1] : "";
 }
+function canonicalOf(html) {
+  const m = html && html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
+  return m ? m[1] : "";
+}
+function descriptionOf(html) {
+  const m = html && html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
+  return m ? m[1] : "";
+}
+function ogUrlOf(html) {
+  const m = html && html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i);
+  return m ? m[1] : "";
+}
 
 // --- 1 & 4: every route emitted, with correct unique title -------------------
 const homeHtml = readRoute("/");
@@ -111,6 +123,70 @@ for (const r of PUBLIC_ROUTES) {
   if (!html) continue;
   note(!html.includes("7-Layer"),
     `STALE_CONTENT: ${r.path} contains "7-Layer" — the pre-patch stale content is back. Check prerender and RouteSEO.`);
+}
+
+// Helper: identify routes that rendered as SPA shells (no prerender data) in
+// SKIP_MISSING mode. Those share the homepage hash and would false-positive
+// every per-route head-tag check below. Skip them.
+function isShellRender(routePath, html) {
+  if (!SKIP_MISSING) return false;
+  if (routePath === "/") return false;
+  return bodyHash(html) === homeHash;
+}
+
+// --- 3a: every emitted route must have a self-referencing absolute canonical -
+// The historical canonical-collapse bug consolidated the whole site to /. This
+// guard ensures every route's <link rel="canonical"> points to its own
+// absolute ORIGIN-prefixed URL.
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  if (isShellRender(r.path, html)) continue; // SPA shell — no per-route head yet
+  const canon = canonicalOf(html);
+  if (!canon) {
+    note(false, `CANONICAL_MISSING: ${r.path} has no <link rel="canonical">`, SKIP_MISSING);
+    continue;
+  }
+  const expected = `${ORIGIN}${r.path}`;
+  // Homepage canonical may be either ORIGIN or ORIGIN + "/"
+  const valid = r.path === "/"
+    ? (canon === ORIGIN || canon === `${ORIGIN}/`)
+    : canon === expected;
+  note(valid,
+    `CANONICAL_WRONG: ${r.path} canonical is "${canon}", expected "${expected}"`);
+}
+
+// --- 3b: og:url must match canonical (drift guard) ---------------------------
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  if (isShellRender(r.path, html)) continue;
+  const canon = canonicalOf(html);
+  const og = ogUrlOf(html);
+  if (!canon || !og) continue; // covered by 3a / N/A on shell pages
+  note(og === canon,
+    `OG_URL_MISMATCH: ${r.path} og:url="${og}" but canonical="${canon}" — must match`);
+}
+
+// --- 5a: unique meta description per route -----------------------------------
+// Duplicate descriptions tell crawlers "these are the same page" and collapse
+// indexing. This was the same root failure mode as duplicate <title>.
+const seenDescs = new Map();
+for (const r of PUBLIC_ROUTES) {
+  const html = readRoute(r.path);
+  if (!html) continue;
+  if (isShellRender(r.path, html)) continue;
+  const desc = descriptionOf(html);
+  if (!desc) {
+    note(false, `DESC_MISSING: ${r.path} has no <meta name="description">`, SKIP_MISSING);
+    continue;
+  }
+  if (seenDescs.has(desc)) {
+    note(false,
+      `DUPLICATE_DESC: ${r.path} shares its meta description with ${seenDescs.get(desc)} — crawlers will collapse these as one page`);
+  } else {
+    seenDescs.set(desc, r.path);
+  }
 }
 
 // --- 5: sitemap completeness -------------------------------------------------
