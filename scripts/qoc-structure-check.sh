@@ -75,6 +75,40 @@ require_contains "$BASE/qoc/orchestrator.ts" "AUDIT_STORE_FAILURE" "safePut fail
 # Invariant 12: dynamic token caps present in ai-narrator.
 require_contains "supabase/functions/ai-narrator/index.ts" "resolveMaxTokens" "dynamic token caps present in narrator"
 
+# ---- Hardening invariants (F-1, F-3/13, F-4, F-5, F-7, F-11, F-14) --------
+
+# Invariant 13: policy module exists (HTTP status + cost ceiling).
+require_file "$BASE/qoc/policies.ts"
+
+# Invariant 14: tier mapping corrected — Plus→sonnet, Pro→opus (F-1).
+# Line-aware awk: reads the case/return pair that spans two lines.
+if awk '
+  /case "plus":/ { getline l; if (l ~ /return "sonnet"/) p=1 }
+  /case "pro":/  { getline m; if (m ~ /return "opus"/)   q=1 }
+  END { exit (p && q) ? 0 : 1 }
+' "$BASE/qoc/types.ts"; then
+  grn "ok inv   tier mapping plus->sonnet, pro->opus"
+else
+  red "MISSING INVARIANT [tier mapping plus->sonnet, pro->opus] in $BASE/qoc/types.ts"; FAIL=1
+fi
+
+# Invariant 15: fingerprint is per-user + 64-bit (F-7).
+require_contains "$BASE/qoc/dedupe.ts" "req\.user_id" "fingerprint keyed by user_id"
+require_contains "$BASE/qoc/dedupe.ts" "hash64" "64-bit fingerprint present"
+
+# Invariant 16: injection scan covers all free-text fields (F-3/F-13).
+require_contains "$BASE/qoc/preflight.ts" "freeTextScan" "multi-field injection scan present"
+
+# Invariant 17: compliance false-positive guard present (F-4).
+require_contains "$BASE/qoc/preflight.ts" "LEGIT_CONTEXT" "compliance false-positive guard present"
+
+# Invariant 18: HTTP status mapping wired into transport (F-5).
+require_contains "$BASE/qoc/policies.ts" "httpStatusFor" "status mapping policy present"
+require_contains "$BASE/index.ts" "httpStatusFor" "transport uses status mapping"
+
+# Invariant 19: cost ceiling enforced as audit signal (F-11).
+require_contains "$BASE/qoc/orchestrator.ts" "withinCeiling" "cost ceiling check present"
+
 if [[ "$FAIL" -ne 0 ]]; then
   red "QOC STRUCTURAL GATE FAILED — deploy blocked."
   exit 1

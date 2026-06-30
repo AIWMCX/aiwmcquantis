@@ -8,6 +8,7 @@
 // @ts-ignore deno remote import (resolved at deploy)
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { orchestrate } from "./qoc/orchestrator.ts";
+import { httpStatusFor } from "./qoc/policies.ts";
 import { makeDeps } from "./adapters.ts";
 import type { AnalysisRequest } from "./qoc/types.ts";
 
@@ -95,10 +96,7 @@ function json(body: unknown, status = 200) {
 
   try {
     const envelope = await orchestrate(req, patchedDeps);
-    const status =
-      envelope.overall_verdict === "HARD_BLOCK" ? 422 :
-      envelope.overall_verdict === "FAIL" ? 502 : 200;
-    return json(envelope, status);
+    return json(envelope, httpStatusFor(envelope));
   } catch (e) {
     return json({ error: "orchestrator_error", detail: String((e as Error)?.message ?? e) }, 500);
   }

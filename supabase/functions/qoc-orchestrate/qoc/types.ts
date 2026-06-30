@@ -2,8 +2,10 @@
 // Quantis Orchestration Core (QOC) — Type Contracts
 // ----------------------------------------------------------------------------
 // Single source of truth for the data shapes that flow through every stage.
-// These contracts are the "auditability" promise made concrete: every stage
-// emits a StageTrace, and the union of traces IS the audit envelope.
+//
+// HARDENING (F-1): tierForPlan was inverted vs QOC-SPEC Table 10/16.
+//   Plus $17 was routing to Opus (the most expensive) while Pro $49 got Sonnet.
+//   Fixed: free→deepseek, plus→sonnet, pro→opus.
 //
 // HARD ARCHITECTURAL CONSTRAINT (do not violate):
 //   The deterministic engine + Monte Carlo runs FIRST and is the only thing
@@ -11,7 +13,11 @@
 //   verification ONLY. No QOC stage may compute a financial figure.
 // ============================================================================
 
-export const QOC_VERSION = "1.0.0" as const;
+export const QOC_VERSION = "1.0.1" as const;
+
+// Per-analysis unit-cost ceiling (QUANTIS_AI_ENGINE_INTELLIGENCE.md). Breaching
+// it does not fail the analysis; it raises a cost_guard flag for alarms.
+export const MAX_COST_USD = 0.15 as const;
 
 // ---- Tiering (mirrors the live model lineup; QOC does not pick the engine) --
 export type Plan = "free" | "plus" | "pro";
@@ -20,8 +26,6 @@ export type Plan = "free" | "plus" | "pro";
 export type NarrationTier = "deepseek" | "haiku" | "sonnet" | "opus";
 
 // ---- Stage identity ---------------------------------------------------------
-// We keep the D-naming as an internal alias so the framework lineage is legible
-// in traces, but the *product* names are the canonical ones.
 export type StageId =
   | "preflight" // D5  — classify + validate + hard-block
   | "dedupe" //    D4  — fingerprint + idempotency + burst
@@ -38,16 +42,11 @@ export interface StageTrace {
   started_at: number; // epoch ms
   duration_ms: number;
   cost_usd: number; // 0 for all non-AI stages
-  // Free-form, stage-specific structured detail. Must be JSON-serializable.
   detail: Record<string, unknown>;
-  // Non-fatal notes surfaced into the report's confidence/limitations section.
   notes: string[];
 }
 
-// ---- Sector taxonomy (Quantis-native, NOT the 8-color clock taxonomy) -------
-// These are the real Quantis sectors used for benchmark routing. The framework
-// shipped an 8x50 "clock" taxonomy for a consumer chat app — irrelevant here.
-// We keep a compact, auditable sector enum aligned to the benchmark corpus.
+// ---- Sector taxonomy --------------------------------------------------------
 export type Sector =
   | "saas_software"
   | "food_beverage"
@@ -62,10 +61,10 @@ export type Sector =
 
 // ---- Input envelope ---------------------------------------------------------
 export interface AnalysisRequest {
-  request_id: string; // client-supplied UUID for idempotency
+  request_id: string;
   user_id: string;
   plan: Plan;
-  idea: string; // required; without it we cannot proceed
+  idea: string;
   location?: string;
   industry?: string;
   revenue?: number;
@@ -75,7 +74,6 @@ export interface AnalysisRequest {
   cac?: number;
   churn_rate?: number;
   initial_investment?: number;
-  // anything else passes through untouched to the engine
   [k: string]: unknown;
 }
 
@@ -88,10 +86,10 @@ export type ConfidenceBand =
   | "very_low";
 
 export interface PreflightResult {
-  ok: boolean; // false => short-circuit, engine never runs
+  ok: boolean;
   reject_reason?: string;
   sector: Sector;
-  sector_confidence: number; // 0..1
+  sector_confidence: number;
   fields_present: number;
   confidence_band: ConfidenceBand;
   hard_block: boolean;
@@ -103,10 +101,18 @@ export interface PreflightResult {
 export interface DedupeResult {
   fingerprint: string;
   is_duplicate: boolean;
-  duplicate_of?: string; // prior report id
+  duplicate_of?: string;
   is_burst: boolean;
   is_soft_throttle: boolean;
   cache_action: "hit" | "miss" | "store";
+}
+
+// ---- Narration context passed from orchestrator to narrator adapter ----------
+export interface NarrationContext {
+  confidence_band: ConfidenceBand;
+  fields_present: number;
+  sector: Sector;
+  soft_throttled: boolean;
 }
 
 // ---- The composed envelope returned to the caller ---------------------------
@@ -117,10 +123,7 @@ export interface AuditEnvelope {
   traces: StageTrace[];
   total_cost_usd: number;
   total_duration_ms: number;
-  // The actual report payload from the deterministic engine + narration.
-  // QOC treats this as opaque except for attaching verify verdicts.
   report?: unknown;
-  // Present only on short-circuit (hard block / dedupe hit / preflight fail).
   short_circuit?: {
     at: StageId;
     reason: string;
@@ -128,29 +131,15 @@ export interface AuditEnvelope {
 }
 
 // ---- Stage interface --------------------------------------------------------
-// Every stage is independently testable: pure-ish function, explicit deps in,
-// StageTrace out. This is the framework's one genuinely good idea, kept.
 export interface StageContext {
   req: AnalysisRequest;
-  now: () => number; // injectable clock for deterministic tests
-  // Injected adapters (engine call, model call, verifier, store). Each is
-  // swappable for a fake in tests — no network needed to unit-test a stage.
+  now: () => number;
   deps: StageDeps;
 }
 
-export interface NarrationContext {
-  confidence_band: ConfidenceBand;
-  fields_present: number;
-  sector: Sector;
-  soft_throttled: boolean;
-}
-
 export interface StageDeps {
-  // Persistence for idempotency + audit (Supabase in prod, in-memory in tests)
   store: AuditStore;
-  // The untouched deterministic engine. QOC only CALLS it; never reimplements.
   runEngine: (req: AnalysisRequest, pf: PreflightResult) => Promise<unknown>;
-  // Tier-routed narration. QOC selects tier from plan; provider does the call.
   // ctx is optional for backwards compat with existing test fakes.
   narrate: (
     report: unknown,
@@ -158,7 +147,6 @@ export interface StageDeps {
     req: AnalysisRequest,
     ctx?: NarrationContext,
   ) => Promise<{ text: string; cost_usd: number; variants?: string[] }>;
-  // RVCE / source verification (Tavily etc.). Returns per-claim verdicts.
   // forceModel is optional — set by orchestrator for conditional verification depth.
   verify: (
     report: unknown,
@@ -177,23 +165,27 @@ export interface AuditStore {
   putEnvelope(env: AuditEnvelope): Promise<void>;
 }
 
+// FIXED (F-1): tier mapping now matches QOC-SPEC Table 10/16.
+// Plus $17 tops out at Sonnet; Pro $49 adds the deepest Opus adversarial path.
+// The original code had these swapped, causing Plus to overpay for Opus and
+// Pro to underpay for Sonnet — an inverted-margin tier leak.
 export function tierForPlan(plan: Plan): NarrationTier {
   switch (plan) {
     case "free":
       return "deepseek";
     case "plus":
-      return "opus";
+      return "sonnet"; // $17 — Sonnet narrative + adversarial pass
     case "pro":
-      return "sonnet";
+      return "opus";   // $49 — deepest Opus adversarial validation
     default:
       return "deepseek";
   }
 }
 
 // Confidence-gated escalation: weak inputs on cheap tiers get one step up.
-// Free users with very_low/low confidence get haiku (flash) instead of
-// deepseek (flash-lite) — marginal cost increase, significant accuracy gain
-// on the hardest requests. Paid tiers are never downgraded.
+// Free users with very_low/low confidence and weak sector get haiku instead of
+// deepseek — marginal cost increase, significant accuracy gain on hard requests.
+// Paid tiers are never downgraded.
 export function tierForRequest(
   plan: Plan,
   confidenceBand: ConfidenceBand,

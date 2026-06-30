@@ -24,10 +24,11 @@ import type {
   StageTrace,
   Verdict,
 } from "./types.ts";
-import { QOC_VERSION } from "./types.ts";
+import { QOC_VERSION, tierForPlan } from "./types.ts";
 import { preflight } from "./preflight.ts";
 import { dedupe } from "./dedupe.ts";
 import { narrate, verify } from "./stages.ts";
+import { withinCeiling } from "./policies.ts";
 
 export interface OrchestrateOptions {
   now?: () => number;
@@ -156,6 +157,21 @@ export async function orchestrate(
   };
 
   const env = envelope(req, traces, { report: composedReport });
+
+  // F-11: enforce the econ-doc cost ceiling as an AUDITABLE signal. The spend
+  // already happened, so we do not fail the verdict — we stamp the narrate
+  // trace so margin breaches are visible in the audit table, not silent.
+  const ceiling = withinCeiling(tierForPlan(req.plan), env.total_cost_usd);
+  if (!ceiling.ok) {
+    const nt = env.traces.find((t) => t.stage === "narrate");
+    if (nt) {
+      nt.notes.push(
+        `Cost ceiling exceeded: $${env.total_cost_usd.toFixed(4)} > $${ceiling.ceiling.toFixed(4)} for tier ${tierForPlan(req.plan)}.`,
+      );
+      (nt.detail as Record<string, unknown>).cost_ceiling_exceeded = true;
+    }
+  }
+
   await safePut(deps, env);
   return env;
 }

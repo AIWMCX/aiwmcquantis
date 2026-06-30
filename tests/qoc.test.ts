@@ -226,11 +226,11 @@ Deno.test("preflight classifies saas sector with confidence", () => {
   assertEquals(result.confidence_band, "very_high");
 });
 
-// ---- AT-12: tier-to-model binding (free → deepseek, plus → opus, pro → sonnet)
+// ---- AT-12: tier-to-model binding (free → deepseek, plus → sonnet, pro → opus)
 Deno.test("tierForPlan binds each plan to exactly one narration tier", () => {
   assertEquals(tierForPlan("free"), "deepseek");
-  assertEquals(tierForPlan("plus"), "opus");
-  assertEquals(tierForPlan("pro"), "sonnet");
+  assertEquals(tierForPlan("plus"), "sonnet"); // F-1 fix: plus=$17 → sonnet
+  assertEquals(tierForPlan("pro"), "opus");    // F-1 fix: pro=$49 → opus
   assertEquals(tierForPlan("enterprise" as any), "deepseek");
 });
 
@@ -245,11 +245,11 @@ Deno.test("narrate stage records the tier derived from plan in trace detail", as
     },
   });
   await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
-  assertEquals(tiers[0], "sonnet");
+  assertEquals(tiers[0], "opus"); // F-1 fix: pro=$49 → opus (was sonnet)
   const env = store.puts[0];
   const narrateTrace = env.traces.find((t) => t.stage === "narrate");
   assert(narrateTrace);
-  assertEquals((narrateTrace.detail as any).tier, "sonnet");
+  assertEquals((narrateTrace.detail as any).tier, "opus");
 });
 
 // ---- AT-14: dedupe savings KPI — short-circuited requests cost exactly $0 ---
@@ -323,9 +323,9 @@ Deno.test("tierForRequest escalates free tier on weak inputs", () => {
   // Strong inputs stay on deepseek (no escalation)
   assertEquals(tierForRequest("free", "medium", 0.6), "deepseek");
   assertEquals(tierForRequest("free", "very_high", 0.9), "deepseek");
-  // Paid tiers never change
-  assertEquals(tierForRequest("pro", "very_low", 0), "sonnet");
-  assertEquals(tierForRequest("plus", "very_low", 0), "opus");
+  // Paid tiers never change (F-1 fix: pro→opus, plus→sonnet)
+  assertEquals(tierForRequest("pro", "very_low", 0), "opus");
+  assertEquals(tierForRequest("plus", "very_low", 0), "sonnet");
 });
 
 // ---- AT-20: free + minimal input escalates tier through orchestrator --------
@@ -364,8 +364,8 @@ Deno.test("soft throttle (3 recent) downgrades tier but still produces report", 
   });
   const env = await orchestrate(baseReq({ plan: "pro" }), deps, { now: clock });
   assertEquals(env.overall_verdict, "PASS");
-  // Pro (sonnet) soft-throttled → haiku
-  assertEquals(seenTier, "haiku");
+  // Pro (opus) soft-throttled → sonnet (F-1 fix: pro=opus, downshift opus→sonnet)
+  assertEquals(seenTier, "sonnet");
   assert(env.report !== undefined);
   // No short-circuit — request completed fully
   assertEquals(env.short_circuit, undefined);
