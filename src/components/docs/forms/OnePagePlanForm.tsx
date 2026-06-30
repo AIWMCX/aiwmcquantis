@@ -131,7 +131,7 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
     
     const rawHTML = `
       <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
-        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">Created by AIWMC Quantis &middot; Denver, CO, USA</p>
         <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
         <h1 style="font-family: Georgia,serif; font-size: 22px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0;">${safeValues.company_name || 'Company'}</h1>
         <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0; font-style: italic;">${safeValues.tagline || ''}</p>
