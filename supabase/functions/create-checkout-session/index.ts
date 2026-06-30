@@ -107,12 +107,16 @@ serve(async (req) => {
     const userId = user.id;
     const userEmail = user.email;
 
-    const { plan } = await req.json();
-    log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}`);
+    const { plan, promotion_code } = await req.json() as {
+      plan?: string;
+      promotion_code?: string;
+    };
+    const promoCodeRaw = (promotion_code ?? '').trim().toUpperCase();
+    log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}${promoCodeRaw ? ` (promo: ${promoCodeRaw})` : ''}`);
 
-    // Spec §11.3 — accept 'plus' (no trial) and 'pro' (14-day trial). The
-    // Pro price ID is optional: if STRIPE_PRO_PRICE_ID is unset we reject the
-    // request rather than silently fall back to Plus pricing.
+    // Canonical Master Spec — both Plus AND Pro ship with a 14-day free trial.
+    // (Previously only Pro got the trial; that contradicted the canon and
+    // blocked the AIWMCQ17 marketing campaign which depends on Plus trial.)
     if (plan !== 'plus' && plan !== 'pro') {
       log.warn(`Invalid plan requested: ${plan}`);
       return new Response(
@@ -164,6 +168,33 @@ serve(async (req) => {
       }
     }
 
+    // ── Promotion code resolution ──────────────────────────────────────────
+    // If the client passed a promo code (e.g. AIWMCQ17 from /trial landing),
+    // resolve it against Stripe's promotion_codes API. We never trust the
+    // string blindly — Stripe enforces max_redemptions and expiry server-side.
+    // If the code is invalid/expired/exhausted, we DO NOT fail the checkout —
+    // we fall through to a normal trial-only checkout and let the user discover
+    // the issue on the Stripe page (with `allow_promotion_codes: true`).
+    let resolvedPromotionCodeId: string | undefined;
+    if (promoCodeRaw) {
+      try {
+        const list = await stripe.promotionCodes.list({
+          code: promoCodeRaw,
+          active: true,
+          limit: 1,
+        });
+        if (list.data.length > 0) {
+          resolvedPromotionCodeId = list.data[0].id;
+          log.info(`Promo code resolved: ${promoCodeRaw} → ${resolvedPromotionCodeId}`);
+        } else {
+          log.warn(`Promo code not found or inactive: ${promoCodeRaw}`);
+        }
+      } catch (err) {
+        log.warn(`Promo code lookup failed for ${promoCodeRaw}:`, err);
+        // Fall through — Stripe page will offer the input field manually
+      }
+    }
+
     // Create checkout session
     const returnOrigin = origin || "https://aiwmcquantis.com";
     const session = await stripe.checkout.sessions.create({
@@ -178,19 +209,28 @@ serve(async (req) => {
         },
       ],
       success_url: `${returnOrigin}/app?checkout=success`,
-      cancel_url: `${returnOrigin}/app?checkout=canceled`,
+      cancel_url: `${returnOrigin}/app?checkout=canceled${promoCodeRaw ? `&promo=${promoCodeRaw}` : ''}`,
+      // Canonical Master Spec: both Plus AND Pro ship with 14-day free trial.
       subscription_data: {
+        trial_period_days: 14,
         metadata: {
           supabase_user_id: userId,
           plan,
+          ...(promoCodeRaw ? { applied_promo_code: promoCodeRaw } : {}),
         },
-        // Spec §11.3 — PRO ships with a 14-day free trial. Plus has no trial.
-        ...(plan === 'pro' ? { trial_period_days: 14 } : {}),
       },
       metadata: {
         supabase_user_id: userId,
         plan,
+        ...(promoCodeRaw ? { applied_promo_code: promoCodeRaw } : {}),
       },
+      // Server-side promo application (preferred path — UX is instant)
+      ...(resolvedPromotionCodeId ? { discounts: [{ promotion_code: resolvedPromotionCodeId }] } : {}),
+      // Fallback: also expose Stripe's built-in promo input field on the
+      // checkout page, so users can manually enter a code if needed.
+      // NOTE: discounts and allow_promotion_codes are mutually exclusive —
+      // we use discounts when we resolved a code, allow_promotion_codes otherwise.
+      ...(resolvedPromotionCodeId ? {} : { allow_promotion_codes: true }),
     });
 
     log.info(`Checkout session created: ${session.id}`);

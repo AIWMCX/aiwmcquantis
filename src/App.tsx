@@ -40,6 +40,7 @@ const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const UseCases = lazy(() => import("./pages/UseCases"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
+const TrialPage = lazy(() => import("./pages/Trial"));
 const RiskGallery = lazy(() => import("./pages/RiskGallery"));
 const QuantisHealth = lazy(() => import("./pages/admin/QuantisHealth"));
 const EdgeHealth = lazy(() => import("./pages/admin/EdgeHealth"));
@@ -148,6 +149,7 @@ const App = () => {
                 <Route path="/vs/:slug" element={<VsComparePage />} />
                 <Route path="/research" element={<Research />} />
                 <Route path="/pricing" element={<PricingPage />} />
+                <Route path="/trial" element={<TrialPage />} />
                 <Route path="/risk-gallery" element={<RiskGallery />} />
                 <Route path="/status" element={<Status />} />
                 <Route path="/security" element={<Security />} />
