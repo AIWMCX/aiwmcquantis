@@ -139,132 +139,78 @@ export function FounderAgreementForm({ template, onGenerate, onPreviewUpdate, is
     }[d.company_type];
     
     const html = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; line-height: 1.8;">
-        <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #7C3AED; padding-bottom: 20px;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 24px; margin: 0 0 8px 0; color: #0F172A; letter-spacing: -0.02em;">FOUNDER'S AGREEMENT</h1>
-          <p style="color: #64748B; margin: 0; font-size: 14px;">${d.company_name || '[Company Name]'}</p>
-        </div>
-        
-        <p style="line-height: 1.8; margin-bottom: 24px;">
-          This Founder's Agreement ("Agreement") is entered into as of <strong>${d.effective_date || '[Date]'}</strong>
-          by and among the undersigned founders of <strong>${d.company_name || '[Company Name]'}</strong>,
-          a ${companyTypeLabel} organized under the laws of the State of <strong>${d.state_of_incorporation || '[State]'}</strong>.
-        </p>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">1. FOUNDERS & EQUITY DISTRIBUTION</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 20px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.06em;">Founder&rsquo;s Agreement</h1>
+        <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0;">${d.company_name || '[Company Name]'}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">Effective Date: ${d.effective_date || '[Date]'}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 20px 0;">This Founder&rsquo;s Agreement (&ldquo;Agreement&rdquo;) is entered into as of <strong>${d.effective_date || '[Date]'}</strong> by and among the undersigned founders of <strong>${d.company_name || '[Company Name]'}</strong>, a ${companyTypeLabel} organized under the laws of the State of <strong>${d.state_of_incorporation || '[State]'}</strong>.</p>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">1. Founders &amp; Equity Distribution</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
             <thead>
-              <tr style="background: #F8FAFC;">
-                <th style="padding: 12px; text-align: left; border: 1px solid #E2E8F0;">Founder</th>
-                <th style="padding: 12px; text-align: left; border: 1px solid #E2E8F0;">Role</th>
-                <th style="padding: 12px; text-align: center; border: 1px solid #E2E8F0;">Equity %</th>
-                <th style="padding: 12px; text-align: center; border: 1px solid #E2E8F0;">Vesting</th>
-                <th style="padding: 12px; text-align: center; border: 1px solid #E2E8F0;">Cliff</th>
+              <tr>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: left;">Founder</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: left;">Role</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Equity %</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Vesting</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Cliff</th>
               </tr>
             </thead>
             <tbody>
-              ${d.founders.map((f, i) => `
-                <tr>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.name || `Founder ${i + 1}`}</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0;">${f.role || '-'}</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${rawData.founders[i]?.equity_percent || 0}%</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.vesting_months || 0} mo</td>
-                  <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center;">${rawData.founders[i]?.cliff_months || 0} mo</td>
-                </tr>
-              `).join('')}
-              <tr style="background: ${equityBalanced ? '#F0FDF4' : '#FEF2F2'};">
-                <td colspan="2" style="padding: 12px; border: 1px solid #E2E8F0; font-weight: 600;">Total</td>
-                <td style="padding: 12px; border: 1px solid #E2E8F0; text-align: center; font-weight: 700; color: ${equityBalanced ? '#16A34A' : '#DC2626'}; font-family: 'JetBrains Mono', monospace;">${totalEquity}%</td>
-                <td colspan="2" style="padding: 12px; border: 1px solid #E2E8F0;"></td>
-              </tr>
+              ${d.founders.map((f, i) => `<tr><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">${f.name || `Founder ${i + 1}`}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">${f.role || '-'}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${rawData.founders[i]?.equity_percent || 0}%</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center;">${rawData.founders[i]?.vesting_months || 0} mo</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center;">${rawData.founders[i]?.cliff_months || 0} mo</td></tr>`).join('')}
+              <tr><td colspan="2" style="padding: 8px 10px; font-size: 12px; font-weight: bold; border-bottom: 2px solid #111111;">Total</td><td style="padding: 8px 10px; font-size: 12px; border-bottom: 2px solid #111111; text-align: center; font-family: 'Courier New',Courier,monospace; font-weight: bold; color: ${equityBalanced ? '#111111' : '#cc0000'};">${totalEquity}%</td><td colspan="2" style="border-bottom: 2px solid #111111;"></td></tr>
             </tbody>
           </table>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">2. VESTING SCHEDULE</h2>
-          <ul style="padding-left: 20px; line-height: 1.8;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">2. Vesting Schedule</h2>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #111111;">
             <li>Standard vesting period: <strong>${rawData.standard_vesting_months} months</strong></li>
             <li>Cliff period: <strong>${rawData.standard_cliff_months} months</strong></li>
             <li>Acceleration on exit: <strong>${rawData.acceleration_on_exit ? 'Yes (100% acceleration)' : 'No'}</strong></li>
             <li>Acceleration on termination without cause: <strong>${rawData.acceleration_on_termination ? 'Yes' : 'No'}</strong></li>
           </ul>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">3. INTELLECTUAL PROPERTY</h2>
-          <p style="line-height: 1.8;">
-            ${rawData.ip_assignment ? 'All founders agree to assign all intellectual property created for or relating to the Company to the Company.' : 'IP assignment terms to be negotiated separately.'}
-          </p>
-          <p style="line-height: 1.8; margin-top: 12px;">
-            <strong>Non-Compete Period:</strong> ${rawData.non_compete_months} months after departure<br/>
-            <strong>Non-Solicitation Period:</strong> ${rawData.non_solicit_months} months after departure
-          </p>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">3. Intellectual Property</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;">${rawData.ip_assignment ? 'All founders agree to assign all intellectual property created for or relating to the Company to the Company.' : 'IP assignment terms to be negotiated separately.'}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Non-Compete:</strong> ${rawData.non_compete_months} months after departure &nbsp;&middot;&nbsp; <strong>Non-Solicitation:</strong> ${rawData.non_solicit_months} months after departure</p>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">4. DECISION MAKING</h2>
-          <ul style="padding-left: 20px; line-height: 1.8;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">4. Decision Making</h2>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #111111;">
             <li>Voting threshold for ordinary decisions: <strong>${rawData.voting_threshold}%</strong></li>
             <li>Major decisions require unanimous consent: <strong>${rawData.major_decisions_require_unanimous ? 'Yes' : 'No'}</strong></li>
           </ul>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">5. EXIT PROVISIONS</h2>
-          <ul style="padding-left: 20px; line-height: 1.8;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">5. Exit Provisions</h2>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #111111;">
             <li>Drag-Along Rights: <strong>${rawData.drag_along ? 'Enabled' : 'Disabled'}</strong></li>
             <li>Tag-Along Rights: <strong>${rawData.tag_along ? 'Enabled' : 'Disabled'}</strong></li>
             <li>Right of First Refusal: <strong>${rawData.right_of_first_refusal ? 'Enabled' : 'Disabled'}</strong></li>
           </ul>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">6. FOUNDER DEPARTURE</h2>
-          <p style="line-height: 1.8;">
-            <strong>Good Leaver:</strong> ${rawData.good_leaver_buyback ? 'Company may repurchase unvested shares' : 'No buyback provision'}<br/>
-            <strong>Bad Leaver:</strong> ${rawData.bad_leaver_buyback ? 'Company may repurchase all shares (vested and unvested)' : 'No buyback provision'}<br/>
-            <strong>Buyback Price:</strong> ${rawData.buyback_price_method === 'fair_market_value' ? 'Fair Market Value' : rawData.buyback_price_method === 'cost_basis' ? 'Original Cost Basis' : 'Formula-based'}
-          </p>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">6. Founder Departure</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Good Leaver:</strong> ${rawData.good_leaver_buyback ? 'Company may repurchase unvested shares' : 'No buyback provision'}<br/><strong>Bad Leaver:</strong> ${rawData.bad_leaver_buyback ? 'Company may repurchase all shares (vested and unvested)' : 'No buyback provision'}<br/><strong>Buyback Price:</strong> ${rawData.buyback_price_method === 'fair_market_value' ? 'Fair Market Value' : rawData.buyback_price_method === 'cost_basis' ? 'Original Cost Basis' : 'Formula-based'}</p>
         </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">7. GOVERNING LAW & DISPUTES</h2>
-          <p style="line-height: 1.8;">
-            This Agreement shall be governed by the laws of the State of <strong>${d.governing_law_state || '[State]'}</strong>.<br/>
-            Dispute resolution method: <strong>${rawData.dispute_resolution === 'arbitration' ? 'Binding Arbitration' : rawData.dispute_resolution === 'litigation' ? 'Court Litigation' : 'Mediation, then Arbitration'}</strong>
-          </p>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">7. Governing Law &amp; Disputes</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">This Agreement shall be governed by the laws of the State of <strong>${d.governing_law_state || '[State]'}</strong>. Dispute resolution: <strong>${rawData.dispute_resolution === 'arbitration' ? 'Binding Arbitration' : rawData.dispute_resolution === 'litigation' ? 'Court Litigation' : 'Mediation, then Arbitration'}</strong></p>
         </section>
-        
-        ${d.additional_terms ? `
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 2px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">8. ADDITIONAL TERMS</h2>
-          <p style="line-height: 1.8;">${d.additional_terms}</p>
-        </section>` : ''}
-        
-        <section style="margin-top: 60px; padding-top: 40px; border-top: 2px solid #E2E8F0;">
-          <h2 style="font-size: 18px; color: #0F172A; margin-bottom: 24px;">SIGNATURES</h2>
-          ${d.founders.map((f) => `
-            <div style="display: inline-block; width: 45%; margin-right: 5%; margin-bottom: 40px;">
-              <div style="border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px;"></div>
-              <p style="margin: 0; font-size: 14px;"><strong>${f.name || '________________'}</strong></p>
-              <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748B;">${f.role || 'Founder'}</p>
-              <p style="margin: 4px 0 0 0; font-size: 12px; color: #64748B;">Date: ________________</p>
-            </div>
-          `).join('')}
+        ${d.additional_terms ? `<section style="margin-bottom: 24px;"><h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">8. Additional Terms</h2><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.additional_terms}</p></section>` : ''}
+        <section style="margin-top: 40px; margin-bottom: 24px; padding-top: 24px; border-top: 1px solid #cccccc;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Signatures</h2>
+          ${d.founders.map((f) => `<div style="display: inline-block; width: 44%; margin-right: 5%; margin-bottom: 32px; vertical-align: top;"><div style="border-bottom: 1px solid #000000; margin-bottom: 8px; height: 40px;"></div><p style="margin: 0; font-size: 13px;"><strong>${f.name || '________________'}</strong></p><p style="margin: 4px 0 0 0; font-size: 11px; color: #555555;">${f.role || 'Founder'}</p><p style="margin: 4px 0 0 0; font-size: 11px; color: #555555;">Date: ________________</p></div>`).join('')}
         </section>
-        
-        <div style="margin-top: 40px; padding: 16px; background: #FEF3C7; border-radius: 8px; border-left: 4px solid #F59E0B;">
-          <p style="margin: 0; font-size: 12px; color: #92400E;">
-            <strong>LEGAL DISCLAIMER:</strong> This template is provided for informational purposes only and does not constitute legal advice. 
-            Consult with a qualified attorney before executing any legal agreement.
-          </p>
+        <div style="padding: 12px 16px; border: 1px solid #cccccc; background: #fafafa; margin-bottom: 24px;">
+          <p style="margin: 0; font-size: 11px; color: #444444;"><strong>LEGAL DISCLAIMER:</strong> This template is provided for informational purposes only and does not constitute legal advice. Consult with a qualified attorney before executing any legal agreement.</p>
         </div>
-        
-        <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: center; color: #94A3B8; font-size: 11px;">
-          Generated with AIWMC Quantis | aiwmcquantis.com
-        </footer>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">FOUNDER&rsquo;S AGREEMENT &middot; ${d.company_name || 'Company'} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     onPreviewUpdate(sanitizePreviewHTML(html));

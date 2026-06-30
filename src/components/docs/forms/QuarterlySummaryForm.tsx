@@ -134,121 +134,55 @@ export function QuarterlySummaryForm({ template, onGenerate, onPreviewUpdate, is
     const formatPercent = (num: number) => `${(num || 0).toFixed(1)}%`;
 
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #2563eb;">
-          <p style="color: #dc2626; font-weight: 600; font-size: 12px; letter-spacing: 2px; margin: 0 0 8px 0;">CONFIDENTIAL</p>
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 700; color: #1f2937; margin: 0 0 8px 0; letter-spacing: -0.02em;">QUARTERLY BUSINESS SUMMARY</h1>
-          <p style="font-size: 18px; color: #2563eb; font-weight: 600; margin: 0;">${safeValues.company_name || ''}</p>
-          <p style="color: #6b7280; margin: 8px 0 0 0;">${safeValues.quarter || ''} | Prepared by ${safeValues.prepared_by || ''}</p>
-          <p style="color: #9ca3af; font-size: 12px; margin: 4px 0 0 0;">Report Date: ${prepDate}</p>
-        </div>
-
-        <!-- Executive Summary -->
-        <div style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Executive Summary</h2>
-          <p style="line-height: 1.6; color: #374151;">${safeValues.overview || ''}</p>
-          
-          <div style="margin-top: 16px; background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; border-radius: 0 8px 8px 0;">
-            <p style="font-weight: 600; color: #166534; margin: 0 0 12px 0;">Key Highlights</p>
-            <ul style="margin: 0; padding-left: 20px;">
-              ${safeHighlights.map(h => `<li style="color: #166534; margin: 4px 0;">${h}</li>`).join('')}
-            </ul>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 20px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.06em;">Quarterly Business Summary</h1>
+        <p style="font-size: 13px; text-align: center; font-weight: bold; color: #111111; margin: 0 0 4px 0;">${safeValues.company_name || ''}</p>
+        <p style="font-size: 11px; text-align: center; color: #555555; margin: 0 0 4px 0;">${safeValues.quarter || ''} &middot; Prepared by ${safeValues.prepared_by || ''}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">Report Date: ${prepDate}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Executive Summary</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 12px 0;">${safeValues.overview || ''}</p>
+          ${safeHighlights.length > 0 ? `<p style="font-size: 11px; font-weight: bold; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Key Highlights</p><ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #111111;">${safeHighlights.map(h => `<li style="margin-bottom: 4px;">${h}</li>`).join('')}</ul>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Financial Performance</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 16px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Total Revenue</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.total_revenue)}</p><p style="font-size: 11px; color: #555555; margin: 4px 0 0 0;">&uarr; ${calculations.revenueGrowth}% YoY</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Total Expenses</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.total_expenses)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Net Income</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.net_income)}</p><p style="font-size: 11px; color: #555555; margin: 4px 0 0 0;">${formatPercent(calculations.grossMargin)} margin</p></div>
           </div>
-        </div>
-
-        <!-- Financial Performance -->
-        <div style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Financial Performance</h2>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-bottom: 20px;">
-            <div style="background: #eff6ff; padding: 16px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">Total Revenue</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.total_revenue)}</p>
-              <p style="color: #22c55e; font-size: 12px; margin: 0;">↑ ${calculations.revenueGrowth}% YoY</p>
-            </div>
-            <div style="background: #fef3c7; padding: 16px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">Total Expenses</p>
-              <p style="font-size: 24px; font-weight: 700; color: #f59e0b; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.total_expenses)}</p>
-            </div>
-            <div style="background: #f0fdf4; padding: 16px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 12px; margin: 0;">Net Income</p>
-              <p style="font-size: 24px; font-weight: 700; color: #22c55e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.net_income)}</p>
-              <p style="color: #22c55e; font-size: 12px; margin: 0;">${formatPercent(calculations.grossMargin)} margin</p>
-            </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; color: #555555; width: 50%;">Subscription Revenue</td><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.subscription_revenue)}</td></tr>
+              <tr><td style="padding: 8px 0; color: #555555;">Consulting Services</td><td style="padding: 8px 0; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.consulting_revenue)}</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Operational Metrics</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Customers</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.total_customers?.toLocaleString() || 0}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">New</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">+${formValues.new_customers || 0}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Retention</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.retention_rate || 0}%</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Team</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.total_employees || 0}</p></div>
           </div>
-
-          <div style="background: #f9fafb; padding: 16px; border-radius: 8px;">
-            <p style="font-weight: 600; margin: 0 0 12px 0;">Revenue Breakdown</p>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-              <span>Subscription Revenue:</span>
-              <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.subscription_revenue)}</span>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-              <span>Consulting Services:</span>
-              <span style="font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.consulting_revenue)}</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Operational Metrics -->
-        <div style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Operational Metrics</h2>
-          
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 11px; margin: 0;">Total Customers</p>
-              <p style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formValues.total_customers?.toLocaleString() || 0}</p>
-            </div>
-            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 11px; margin: 0;">New Customers</p>
-              <p style="font-size: 20px; font-weight: 700; color: #22c55e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">+${formValues.new_customers || 0}</p>
-            </div>
-            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 11px; margin: 0;">Retention Rate</p>
-              <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formValues.retention_rate || 0}%</p>
-            </div>
-            <div style="background: #f3f4f6; padding: 12px; border-radius: 8px; text-align: center;">
-              <p style="color: #6b7280; font-size: 11px; margin: 0;">Team Size</p>
-              <p style="font-size: 20px; font-weight: 700; color: #1f2937; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formValues.total_employees || 0}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Key Achievements -->
+        </section>
         ${safeAchievements.length > 0 ? `
-          <div style="margin-bottom: 32px;">
-            <h2 style="font-size: 18px; color: #2563eb; border-bottom: 2px solid #2563eb; padding-bottom: 8px; margin-bottom: 16px;">Key Achievements</h2>
-            ${safeAchievements.map(a => `
-              <div style="background: #f9fafb; padding: 16px; border-radius: 8px; margin-bottom: 12px; border-left: 4px solid #2563eb;">
-                <p style="font-weight: 600; color: #2563eb; margin: 0 0 4px 0;">${a.area}</p>
-                <p style="margin: 0 0 8px 0;">${a.achievement}</p>
-                <p style="color: #22c55e; font-size: 14px; margin: 0;">Impact: ${a.impact}</p>
-              </div>
-            `).join('')}
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Key Achievements</h2>
+          ${safeAchievements.map(a => `<div style="margin-bottom: 12px; padding-left: 12px; border-left: 2px solid #111111;"><p style="font-weight: bold; color: #111111; margin: 0 0 2px 0; font-size: 13px;">${a.area}</p><p style="font-size: 13px; margin: 0 0 2px 0; color: #111111;">${a.achievement}</p><p style="font-size: 12px; color: #444444; margin: 0;"><em>Impact: ${a.impact}</em></p></div>`).join('')}
+        </section>` : ''}
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Next Quarter Targets</h2>
+          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Revenue Target</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.next_quarter_revenue_target)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">New Customers</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.next_quarter_customers_target}</p></div>
           </div>
-        ` : ''}
-
-        <!-- Outlook -->
-        <div style="background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; padding: 24px; border-radius: 12px;">
-          <h2 style="font-size: 18px; margin: 0 0 16px 0; color: white;">Next Quarter Targets</h2>
-          <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-            <div>
-              <p style="opacity: 0.8; font-size: 12px; margin: 0;">Revenue Target</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.next_quarter_revenue_target)}</p>
-            </div>
-            <div>
-              <p style="opacity: 0.8; font-size: 12px; margin: 0;">New Customers Target</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formValues.next_quarter_customers_target}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="margin-top: 32px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
-          <p>CONFIDENTIAL - For Internal Use Only | ${safeValues.company_name}</p>
-          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
-        </div>
+        </section>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">CONFIDENTIAL &mdash; FOR INTERNAL USE ONLY &middot; ${safeValues.company_name} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

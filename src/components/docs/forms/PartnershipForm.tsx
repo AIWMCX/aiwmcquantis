@@ -137,89 +137,61 @@ export function PartnershipForm({ template, onGenerate, onPreviewUpdate, isGener
     const partnershipType = PARTNERSHIP_TYPES.find(t => t.value === d.partnership_type)?.label || d.partnership_type;
     
     const html = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a; line-height: 1.8;">
-        <div style="text-align: center; margin-bottom: 40px; border-bottom: 3px solid #3B82F6; padding-bottom: 20px;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; margin: 0 0 8px 0; color: #0F172A; letter-spacing: -0.02em;">PARTNERSHIP PROPOSAL</h1>
-          <p style="color: #64748B; margin: 0; font-size: 14px;">${partnershipType}</p>
-        </div>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-bottom: 40px;">
-          <div style="padding: 20px; background: #F8FAFC; border-radius: 8px;">
-            <h3 style="font-size: 12px; color: #64748B; margin: 0 0 8px 0; text-transform: uppercase;">From</h3>
-            <p style="font-weight: 600; margin: 0 0 4px 0; color: #0F172A;">${d.your_company_name || '[Your Company]'}</p>
-            <p style="font-size: 13px; color: #475569; margin: 0;">${d.your_contact_name || '[Contact Name]'}</p>
-            <p style="font-size: 13px; color: #475569; margin: 0;">${d.your_contact_title || '[Title]'}</p>
-          </div>
-          <div style="padding: 20px; background: #F8FAFC; border-radius: 8px;">
-            <h3 style="font-size: 12px; color: #64748B; margin: 0 0 8px 0; text-transform: uppercase;">To</h3>
-            <p style="font-weight: 600; margin: 0 0 4px 0; color: #0F172A;">${d.partner_company_name || '[Partner Company]'}</p>
-            <p style="font-size: 13px; color: #475569; margin: 0;">${d.partner_contact_name || ''}</p>
-          </div>
-        </div>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Partnership Objective</h2>
-          <p style="line-height: 1.7; color: #334155;">${d.partnership_objective || '[Describe the main objective of this partnership]'}</p>
-        </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Value Proposition</h2>
-          <p style="line-height: 1.7; color: #334155;">${d.value_proposition || '[Describe the mutual value proposition]'}</p>
-        </section>
-        
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Proposed Terms</h2>
-          <table style="width: 100%; border-collapse: collapse;">
-            <tr style="border-bottom: 1px solid #E2E8F0;">
-              <td style="padding: 12px 0; color: #64748B; width: 40%;">Duration</td>
-              <td style="padding: 12px 0; color: #0F172A; font-weight: 500;">${d.duration_months || 24} months</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #E2E8F0;">
-              <td style="padding: 12px 0; color: #64748B;">Exclusivity</td>
-              <td style="padding: 12px 0; color: #0F172A; font-weight: 500;">${d.exclusivity === 'exclusive' ? 'Exclusive' : d.exclusivity === 'semi_exclusive' ? 'Semi-Exclusive' : 'Non-Exclusive'}</td>
-            </tr>
-            <tr style="border-bottom: 1px solid #E2E8F0;">
-              <td style="padding: 12px 0; color: #64748B;">Territory</td>
-              <td style="padding: 12px 0; color: #0F172A; font-weight: 500;">${d.territory || 'Worldwide'}</td>
-            </tr>
-            ${d.revenue_share_percent ? `
-            <tr style="border-bottom: 1px solid #E2E8F0;">
-              <td style="padding: 12px 0; color: #64748B;">Revenue Share</td>
-              <td style="padding: 12px 0; color: #0F172A; font-weight: 500;">${d.revenue_share_percent}%</td>
-            </tr>` : ''}
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 20px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.06em;">Partnership Proposal</h1>
+        <p style="font-size: 12px; text-align: center; color: #444444; margin: 0 0 24px 0; font-style: italic;">${partnershipType}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Parties</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr>
+                <td style="padding: 12px 16px 12px 0; border-bottom: 1px solid #e0e0e0; vertical-align: top; width: 50%;">
+                  <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">From</p>
+                  <p style="font-weight: bold; margin: 0 0 2px 0; color: #111111;">${d.your_company_name || '[Your Company]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${d.your_contact_name || ''}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${d.your_contact_title || ''}</p>
+                </td>
+                <td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #e0e0e0; border-left: 1px solid #e0e0e0; vertical-align: top;">
+                  <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">To</p>
+                  <p style="font-weight: bold; margin: 0 0 2px 0; color: #111111;">${d.partner_company_name || '[Partner Company]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${d.partner_contact_name || ''}</p>
+                </td>
+              </tr>
+            </tbody>
           </table>
         </section>
-        
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 32px;">
-          <section>
-            <h2 style="font-size: 16px; color: #0F172A; margin-bottom: 12px;">Our Responsibilities</h2>
-            <div style="padding: 16px; background: #EFF6FF; border-radius: 8px; border-left: 3px solid #3B82F6;">
-              <p style="margin: 0; font-size: 14px; color: #1E40AF; line-height: 1.6;">${d.your_responsibilities || '[Your responsibilities]'}</p>
-            </div>
-          </section>
-          <section>
-            <h2 style="font-size: 16px; color: #0F172A; margin-bottom: 12px;">Partner Responsibilities</h2>
-            <div style="padding: 16px; background: #F0FDF4; border-radius: 8px; border-left: 3px solid #10B981;">
-              <p style="margin: 0; font-size: 14px; color: #166534; line-height: 1.6;">${d.partner_responsibilities || '[Partner responsibilities]'}</p>
-            </div>
-          </section>
-        </div>
-        
-        ${d.success_metrics ? `
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Success Metrics</h2>
-          <p style="line-height: 1.7; color: #334155;">${d.success_metrics}</p>
-        </section>` : ''}
-        
-        ${d.special_terms ? `
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 18px; color: #0F172A; border-bottom: 1px solid #E2E8F0; padding-bottom: 8px; margin-bottom: 16px;">Additional Terms</h2>
-          <p style="line-height: 1.7; color: #334155;">${d.special_terms}</p>
-        </section>` : ''}
-        
-        <footer style="margin-top: 60px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: center; color: #94A3B8; font-size: 11px;">
-          Generated with AIWMC Quantis | aiwmcquantis.com
-        </footer>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Partnership Objective</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.partnership_objective || '[Describe the main objective of this partnership]'}</p>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Value Proposition</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.value_proposition || '[Describe the mutual value proposition]'}</p>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Proposed Terms</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; color: #555555; width: 40%;">Duration</td><td style="padding: 8px 0; font-family: 'Courier New',Courier,monospace; font-weight: 500;">${d.duration_months || 24} months</td></tr>
+              <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; color: #555555;">Exclusivity</td><td style="padding: 8px 0; font-weight: 500;">${d.exclusivity === 'exclusive' ? 'Exclusive' : d.exclusivity === 'semi_exclusive' ? 'Semi-Exclusive' : 'Non-Exclusive'}</td></tr>
+              <tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; color: #555555;">Territory</td><td style="padding: 8px 0; font-weight: 500;">${d.territory || 'Worldwide'}</td></tr>
+              ${d.revenue_share_percent ? `<tr style="border-bottom: 1px solid #e0e0e0;"><td style="padding: 8px 0; color: #555555;">Revenue Share</td><td style="padding: 8px 0; font-family: 'Courier New',Courier,monospace; font-weight: 500;">${d.revenue_share_percent}%</td></tr>` : ''}
+            </tbody>
+          </table>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Responsibilities</h2>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
+            <div><p style="font-size: 11px; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Our Responsibilities</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding: 12px; border: 1px solid #cccccc; background: #fafafa;">${d.your_responsibilities || '[Your responsibilities]'}</p></div>
+            <div><p style="font-size: 11px; font-weight: bold; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Partner Responsibilities</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding: 12px; border: 1px solid #cccccc; background: #fafafa;">${d.partner_responsibilities || '[Partner responsibilities]'}</p></div>
+          </div>
+        </section>
+        ${d.success_metrics ? `<section style="margin-bottom: 24px;"><h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Success Metrics</h2><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.success_metrics}</p></section>` : ''}
+        ${d.special_terms ? `<section style="margin-bottom: 24px;"><h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Additional Terms</h2><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.special_terms}</p></section>` : ''}
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">PARTNERSHIP PROPOSAL &middot; ${d.your_company_name || 'Company'} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     onPreviewUpdate(sanitizePreviewHTML(html));

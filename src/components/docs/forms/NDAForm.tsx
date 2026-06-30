@@ -105,142 +105,93 @@ export function NDAForm({ template, onGenerate, onPreviewUpdate, isGenerating }:
       : '[Date]';
 
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937; line-height: 1.8;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 40px;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 24px; font-weight: 700; margin: 0 0 8px 0; letter-spacing: 2px;">MUTUAL NON-DISCLOSURE AGREEMENT</h1>
-          <p style="color: #6b7280; font-style: italic; margin: 0;">Confidential Information Protection</p>
-        </div>
-
-        <!-- Introduction -->
-        <p style="text-align: justify; margin-bottom: 24px;">
-          <strong>This Mutual Non-Disclosure Agreement</strong> (the "Agreement") is entered into as of 
-          <strong>${effectiveDate}</strong> (the "Effective Date"), by and between:
-        </p>
-
-        <!-- Parties -->
-        <div style="margin-bottom: 24px; padding: 20px; background: #f9fafb; border-radius: 8px;">
-          <div style="margin-bottom: 16px;">
-            <p style="margin: 0; font-weight: 600; color: #2563eb;">PARTY A:</p>
-            <p style="margin: 4px 0 0 0;"><strong>${safeValues.party_a_name || '[Company Name]'}</strong></p>
-            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_a_address || '[Address]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_a_city || '[City, State ZIP]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${safeValues.party_a_rep || '[Representative]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Email: ${safeValues.party_a_email || '[Email]'}</p>
-          </div>
-          <div>
-            <p style="margin: 0; font-weight: 600; color: #2563eb;">PARTY B:</p>
-            <p style="margin: 4px 0 0 0;"><strong>${safeValues.party_b_name || '[Company Name]'}</strong></p>
-            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_b_address || '[Address]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">${safeValues.party_b_city || '[City, State ZIP]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Represented by: ${safeValues.party_b_rep || '[Representative]'}</p>
-            <p style="margin: 2px 0; color: #6b7280;">Email: ${safeValues.party_b_email || '[Email]'}</p>
-          </div>
-        </div>
-
-        <!-- Recitals -->
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">RECITALS</h2>
-          <p style="text-align: justify; margin-bottom: 12px;">
-            <strong>WHEREAS,</strong> ${safeValues.purpose || '[Purpose]'}
-          </p>
-          <p style="text-align: justify;">
-            <strong>WHEREAS,</strong> the Parties desire to protect the confidentiality of such information and to define the terms and conditions under which Confidential Information may be disclosed and used;
-          </p>
-        </div>
-
-        <!-- Agreement -->
-        <p style="text-align: justify; margin-bottom: 24px;">
-          <strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants and agreements contained herein, the Parties agree as follows:
-        </p>
-
-        <!-- Terms -->
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">1. DEFINITION OF CONFIDENTIAL INFORMATION</h2>
-          <p style="text-align: justify; margin-bottom: 12px;">
-            "Confidential Information" means any and all technical and non-technical information disclosed by either Party (the "Disclosing Party") to the other Party (the "Receiving Party"), including but not limited to:
-          </p>
-          <ul style="margin: 0 0 12px 20px; padding: 0;">
-            <li style="margin-bottom: 8px;">Trade secrets, know-how, inventions, techniques, processes, algorithms, software programs</li>
-            <li style="margin-bottom: 8px;">Business and technical information, customer lists, supplier lists</li>
-            <li style="margin-bottom: 8px;">Information regarding research, development, marketing plans, budgets</li>
-            <li style="margin-bottom: 8px;">Any information designated as confidential or proprietary</li>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 20px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; letter-spacing: 0.06em; text-transform: uppercase;">Mutual Non-Disclosure Agreement</h1>
+        <p style="font-size: 11px; text-align: center; color: #555555; margin: 0 0 6px 0; font-style: italic;">Confidential Information Protection</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">Effective Date: ${effectiveDate}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Parties</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr>
+                <td style="padding: 12px 16px 12px 0; border-bottom: 1px solid #e0e0e0; vertical-align: top; width: 50%;">
+                  <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Party A</p>
+                  <p style="font-weight: bold; margin: 0 0 2px 0; color: #111111;">${safeValues.party_a_name || '[Company Name]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_a_address || ''}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_a_city || ''}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">Rep: ${safeValues.party_a_rep || '[Representative]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_a_email || ''}</p>
+                </td>
+                <td style="padding: 12px 0 12px 16px; border-bottom: 1px solid #e0e0e0; border-left: 1px solid #e0e0e0; vertical-align: top;">
+                  <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.08em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Party B</p>
+                  <p style="font-weight: bold; margin: 0 0 2px 0; color: #111111;">${safeValues.party_b_name || '[Company Name]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_b_address || ''}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_b_city || ''}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">Rep: ${safeValues.party_b_rep || '[Representative]'}</p>
+                  <p style="color: #555555; margin: 2px 0; font-size: 12px;">${safeValues.party_b_email || ''}</p>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Recitals</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;"><strong>WHEREAS,</strong> ${safeValues.purpose || '[Purpose]'}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;"><strong>WHEREAS,</strong> the Parties desire to protect the confidentiality of such information and define the terms under which Confidential Information may be disclosed and used;</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>NOW, THEREFORE,</strong> in consideration of the mutual covenants herein, the Parties agree as follows:</p>
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">1. Definition of Confidential Information</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;">&ldquo;Confidential Information&rdquo; means any and all technical and non-technical information disclosed by either Party, including but not limited to:</p>
+          <ul style="margin: 0; padding-left: 20px; font-size: 13px; line-height: 1.75; color: #111111;">
+            <li style="margin-bottom: 4px;">Trade secrets, know-how, inventions, techniques, processes, algorithms, software programs</li>
+            <li style="margin-bottom: 4px;">Business and technical information, customer lists, supplier lists</li>
+            <li style="margin-bottom: 4px;">Information regarding research, development, marketing plans, and budgets</li>
+            <li style="margin-bottom: 4px;">Any information designated as confidential or proprietary</li>
           </ul>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">2. OBLIGATIONS OF RECEIVING PARTY</h2>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>2.1</strong> The Receiving Party agrees to hold the Confidential Information in strict confidence and to take all reasonable precautions to protect such information.
-          </p>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>2.2</strong> The Receiving Party agrees not to divulge any Confidential Information to any third person without prior written consent.
-          </p>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>2.3</strong> The Receiving Party agrees not to use the Confidential Information for any purpose except to evaluate the potential business relationship.
-          </p>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">3. TERM</h2>
-          <p style="text-align: justify;">
-            This Agreement shall remain in effect for a period of <strong>${safeValues.term_years} (${formValues.term_years === 1 ? 'one' : formValues.term_years === 2 ? 'two' : formValues.term_years === 3 ? 'three' : formValues.term_years}) year${formValues.term_years > 1 ? 's' : ''}</strong> from the Effective Date. The obligations of the Receiving Party shall survive for a period of <strong>${safeValues.confidentiality_years} (${formValues.confidentiality_years === 1 ? 'one' : formValues.confidentiality_years === 2 ? 'two' : formValues.confidentiality_years === 3 ? 'three' : formValues.confidentiality_years === 4 ? 'four' : formValues.confidentiality_years === 5 ? 'five' : formValues.confidentiality_years}) year${formValues.confidentiality_years > 1 ? 's' : ''}</strong> from the date of disclosure.
-          </p>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">4. GOVERNING LAW</h2>
-          <p style="text-align: justify;">
-            This Agreement shall be governed by and construed in accordance with the laws of <strong>${safeValues.jurisdiction || '[Jurisdiction]'}</strong>, without regard to its conflicts of law provisions.
-          </p>
-        </div>
-
-        <div style="margin-bottom: 24px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 12px 0; color: #2563eb;">5. ADDITIONAL PROVISIONS</h2>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>5.1 Entire Agreement:</strong> This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof.
-          </p>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>5.2 Amendments:</strong> This Agreement may be amended only by a written instrument executed by both Parties.
-          </p>
-          <p style="text-align: justify; margin-bottom: 8px;">
-            <strong>5.3 Severability:</strong> If any provision is found invalid, the remaining provisions shall continue in full force and effect.
-          </p>
-          <p style="text-align: justify;">
-            <strong>5.4 Counterparts:</strong> This Agreement may be executed in counterparts, each of which shall be deemed an original.
-          </p>
-        </div>
-
-        <!-- Signature Blocks -->
-        <div style="margin-top: 48px; page-break-inside: avoid;">
-          <p style="text-align: center; margin-bottom: 32px; font-weight: 600;">
-            IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date.
-          </p>
-          
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">2. Obligations of Receiving Party</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>2.1</strong> The Receiving Party agrees to hold Confidential Information in strict confidence and take all reasonable precautions to protect such information.</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>2.2</strong> The Receiving Party agrees not to divulge any Confidential Information to any third person without prior written consent.</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>2.3</strong> The Receiving Party agrees not to use the Confidential Information for any purpose except to evaluate the potential business relationship.</p>
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">3. Term</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">This Agreement shall remain in effect for <strong>${safeValues.term_years} (${formValues.term_years === 1 ? 'one' : formValues.term_years === 2 ? 'two' : formValues.term_years === 3 ? 'three' : formValues.term_years}) year${formValues.term_years > 1 ? 's' : ''}</strong> from the Effective Date. Confidentiality obligations survive for <strong>${safeValues.confidentiality_years} (${formValues.confidentiality_years === 1 ? 'one' : formValues.confidentiality_years === 2 ? 'two' : formValues.confidentiality_years === 3 ? 'three' : formValues.confidentiality_years === 4 ? 'four' : formValues.confidentiality_years === 5 ? 'five' : formValues.confidentiality_years}) year${formValues.confidentiality_years > 1 ? 's' : ''}</strong> from the date of disclosure.</p>
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">4. Governing Law</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">This Agreement shall be governed by the laws of <strong>${safeValues.jurisdiction || '[Jurisdiction]'}</strong>, without regard to its conflicts of law provisions.</p>
+        </section>
+        <section style="margin-bottom: 20px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">5. Additional Provisions</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>5.1 Entire Agreement:</strong> This Agreement constitutes the entire agreement between the Parties with respect to the subject matter hereof.</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>5.2 Amendments:</strong> This Agreement may be amended only by a written instrument executed by both Parties.</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>5.3 Severability:</strong> If any provision is found invalid, the remaining provisions shall continue in full force and effect.</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>5.4 Counterparts:</strong> This Agreement may be executed in counterparts, each of which shall be deemed an original.</p>
+        </section>
+        <section style="margin-top: 40px; margin-bottom: 24px;">
+          <p style="text-align: center; font-size: 13px; font-weight: bold; margin: 0 0 32px 0; color: #111111;">IN WITNESS WHEREOF, the Parties have executed this Agreement as of the Effective Date.</p>
           <div style="display: flex; justify-content: space-between; gap: 48px;">
             <div style="flex: 1;">
-              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${safeValues.party_a_name || 'PARTY A'}</p>
-              <div style="border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px;"></div>
-              <p style="margin: 4px 0; font-size: 14px;">By: ${safeValues.party_a_rep || '[Name]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Title: ${(safeValues.party_a_rep as string)?.split(',')[1]?.trim() || '[Title]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Date: _______________________</p>
+              <p style="font-weight: bold; margin: 0 0 24px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;">${safeValues.party_a_name || 'PARTY A'}</p>
+              <div style="border-bottom: 1px solid #000000; margin-bottom: 8px; height: 40px;"></div>
+              <p style="margin: 4px 0; font-size: 12px; color: #444444;">By: ${safeValues.party_a_rep || '[Name]'}</p>
+              <p style="margin: 4px 0; font-size: 12px; color: #444444;">Date: _______________________</p>
             </div>
             <div style="flex: 1;">
-              <p style="font-weight: 600; color: #2563eb; margin: 0 0 24px 0;">${safeValues.party_b_name || 'PARTY B'}</p>
-              <div style="border-bottom: 1px solid #000; margin-bottom: 8px; height: 40px;"></div>
-              <p style="margin: 4px 0; font-size: 14px;">By: ${safeValues.party_b_rep || '[Name]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Title: ${(safeValues.party_b_rep as string)?.split(',')[1]?.trim() || '[Title]'}</p>
-              <p style="margin: 4px 0; font-size: 14px;">Date: _______________________</p>
+              <p style="font-weight: bold; margin: 0 0 24px 0; font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em;">${safeValues.party_b_name || 'PARTY B'}</p>
+              <div style="border-bottom: 1px solid #000000; margin-bottom: 8px; height: 40px;"></div>
+              <p style="margin: 4px 0; font-size: 12px; color: #444444;">By: ${safeValues.party_b_rep || '[Name]'}</p>
+              <p style="margin: 4px 0; font-size: 12px; color: #444444;">Date: _______________________</p>
             </div>
           </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
-          <p style="color: #dc2626; font-weight: 600;">CONFIDENTIAL - Unauthorized distribution is prohibited</p>
-          <p>This document is a template and should be reviewed by legal counsel before execution.</p>
-          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
-        </div>
+        </section>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">CONFIDENTIAL &mdash; UNAUTHORIZED DISTRIBUTION PROHIBITED &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

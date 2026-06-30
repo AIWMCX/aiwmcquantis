@@ -130,101 +130,42 @@ export function OnePagePlanForm({ template, onGenerate, onPreviewUpdate, isGener
     const safeValues = escapeFormValues(formValues);
     
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
-        <!-- Header -->
-        <div style="text-align: center; padding: 24px; background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%); color: white; border-radius: 12px; margin-bottom: 24px;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 700; margin: 0; letter-spacing: -0.02em;">${safeValues.company_name || 'Company'}</h1>
-          <p style="font-size: 16px; margin: 8px 0 0 0; opacity: 0.9;">${safeValues.tagline || 'Tagline'}</p>
-          ${safeValues.website ? `<p style="font-size: 12px; margin: 12px 0 0 0; opacity: 0.8;">${safeValues.website} • ${safeValues.contact_email || ''}</p>` : ''}
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 22px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0;">${safeValues.company_name || 'Company'}</h1>
+        <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0; font-style: italic;">${safeValues.tagline || ''}</p>
+        ${safeValues.website ? `<p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 4px 0;">${safeValues.website}${safeValues.contact_email ? ' &middot; ' + safeValues.contact_email : ''}</p>` : ''}
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">One-Page Business Plan</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;">
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Vision</p><p style="font-size: 13px; margin: 0; line-height: 1.6; color: #111111;">${safeValues.vision || ''}</p></div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Mission</p><p style="font-size: 13px; margin: 0; line-height: 1.6; color: #111111;">${safeValues.mission || ''}</p></div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Problem</p><p style="font-size: 13px; margin: 0; line-height: 1.6; color: #111111;">${safeValues.problem || ''}</p></div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Solution</p><p style="font-size: 13px; margin: 0; line-height: 1.6; color: #111111;">${safeValues.solution || ''}</p></div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Target Customer</p><p style="font-size: 13px; margin: 0 0 4px 0; line-height: 1.6; color: #111111;">${safeValues.target_customer || ''}</p><p style="font-size: 12px; color: #555555; margin: 0;"><strong>Market:</strong> ${safeValues.market_size || ''}</p></div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Value Proposition</p><p style="font-size: 13px; margin: 0 0 4px 0; line-height: 1.6; color: #111111;">${safeValues.value_proposition || ''}</p><p style="font-size: 12px; color: #555555; margin: 0;"><strong>Differentiator:</strong> ${safeValues.key_differentiator || ''}</p></div>
         </div>
-
-        <!-- Main Grid -->
-        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px;">
-          
-          <!-- Vision & Mission -->
-          <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">VISION</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.vision || ''}</p>
-          </div>
-          
-          <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">MISSION</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.mission || ''}</p>
-          </div>
-
-          <!-- Problem & Solution -->
-          <div style="padding: 16px; background: #fef2f2; border-radius: 8px; border-left: 4px solid #dc2626;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">PROBLEM</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.problem || ''}</p>
-          </div>
-          
-          <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; border-left: 4px solid #10b981;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">SOLUTION</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.solution || ''}</p>
-          </div>
-
-          <!-- Target Market -->
-          <div style="padding: 16px; background: #faf5ff; border-radius: 8px; border-left: 4px solid #9333ea;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #9333ea; margin: 0 0 8px 0;">TARGET CUSTOMER</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.target_customer || ''}</p>
-            <p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;"><strong>Market:</strong> ${safeValues.market_size || ''}</p>
-          </div>
-
-          <!-- Value Proposition -->
-          <div style="padding: 16px; background: #fefce8; border-radius: 8px; border-left: 4px solid #ca8a04;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #ca8a04; margin: 0 0 8px 0;">VALUE PROPOSITION</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.value_proposition || ''}</p>
-            <p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;"><strong>Differentiator:</strong> ${safeValues.key_differentiator || ''}</p>
-          </div>
-
-          <!-- Revenue Model -->
-          <div style="grid-column: span 2; padding: 16px; background: #f0fdf4; border-radius: 8px; border-left: 4px solid #16a34a;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #16a34a; margin: 0 0 8px 0;">REVENUE MODEL</h3>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-              <p style="font-size: 13px; margin: 0;"><strong>Streams:</strong> ${safeValues.revenue_streams || ''}</p>
-              <p style="font-size: 13px; margin: 0;"><strong>Pricing:</strong> ${safeValues.pricing || ''}</p>
-            </div>
-          </div>
-
-          <!-- Key Metrics -->
-          <div style="grid-column: span 2; padding: 16px; background: #f9fafb; border-radius: 8px;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #374151; margin: 0 0 12px 0;">KEY METRICS</h3>
-            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-              <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #2563eb; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_1_value || '-'}</p>
-                <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_1_name || ''}</p>
-              </div>
-              <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_2_value || '-'}</p>
-                <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_2_name || ''}</p>
-              </div>
-              <div style="text-align: center; padding: 12px; background: white; border-radius: 8px; border: 1px solid #e5e7eb;">
-                <p style="font-size: 20px; font-weight: 700; color: #9333ea; margin: 0; font-family: 'JetBrains Mono', monospace;">${safeValues.metric_3_value || '-'}</p>
-                <p style="font-size: 11px; color: #6b7280; margin: 4px 0 0 0;">${safeValues.metric_3_name || ''}</p>
-              </div>
-            </div>
-          </div>
-
-          <!-- Team -->
-          <div style="padding: 16px; background: #fff7ed; border-radius: 8px; border-left: 4px solid #ea580c;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #ea580c; margin: 0 0 8px 0;">TEAM</h3>
-            <p style="font-size: 13px; margin: 0; line-height: 1.5;">${safeValues.founders || ''}</p>
-            ${safeValues.team_size ? `<p style="font-size: 12px; color: #6b7280; margin: 8px 0 0 0;">${safeValues.team_size}</p>` : ''}
-          </div>
-
-          <!-- Goals -->
-          <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; border-left: 4px solid #2563eb;">
-            <h3 style="font-size: 12px; font-weight: 600; color: #2563eb; margin: 0 0 8px 0;">GOALS</h3>
-            <p style="font-size: 12px; margin: 0;"><strong>Short-term:</strong> ${safeValues.short_term_goals || ''}</p>
-            <p style="font-size: 12px; margin: 8px 0 0 0;"><strong>Long-term:</strong> ${safeValues.long_term_goals || ''}</p>
+        <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa; margin-bottom: 14px;">
+          <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Revenue Model</p>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+            <p style="font-size: 13px; margin: 0; color: #111111;"><strong>Streams:</strong> ${safeValues.revenue_streams || ''}</p>
+            <p style="font-size: 13px; margin: 0; color: #111111;"><strong>Pricing:</strong> ${safeValues.pricing || ''}</p>
           </div>
         </div>
-
-        <!-- Footer -->
-        <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 11px;">
-          <p>One-Page Business Plan - ${safeValues.company_name || 'Company'} © ${new Date().getFullYear()}</p>
-          <p style="margin-top: 4px; font-size: 10px;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
+        <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa; margin-bottom: 14px;">
+          <p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 10px 0;">Key Metrics</p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.metric_1_value || '-'}</p><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">${safeValues.metric_1_name || ''}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.metric_2_value || '-'}</p><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">${safeValues.metric_2_name || ''}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.metric_3_value || '-'}</p><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">${safeValues.metric_3_name || ''}</p></div>
+          </div>
         </div>
+        <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; margin-bottom: 14px;">
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Team</p><p style="font-size: 13px; margin: 0 0 4px 0; line-height: 1.6; color: #111111;">${safeValues.founders || ''}</p>${safeValues.team_size ? `<p style="font-size: 12px; color: #555555; margin: 0;">${safeValues.team_size}</p>` : ''}</div>
+          <div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 6px 0;">Goals</p><p style="font-size: 12px; margin: 0 0 4px 0; color: #111111;"><strong>Short-term:</strong> ${safeValues.short_term_goals || ''}</p><p style="font-size: 12px; margin: 0; color: #111111;"><strong>Long-term:</strong> ${safeValues.long_term_goals || ''}</p></div>
+        </div>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">ONE-PAGE BUSINESS PLAN &middot; ${safeValues.company_name || 'Company'} &middot; &copy; ${new Date().getFullYear()} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

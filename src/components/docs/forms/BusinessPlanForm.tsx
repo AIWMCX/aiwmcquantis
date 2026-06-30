@@ -145,170 +145,90 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
     const formatMillions = (n: number) => `$${(n / 1000000000).toFixed(1)}B`;
     
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
-        <!-- Cover -->
-        <div style="text-align: center; padding: 48px 0; border-bottom: 3px solid #2563eb; margin-bottom: 32px;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 36px; font-weight: 700; margin: 0; color: #2563eb; letter-spacing: -0.02em;">${safeValues.company_name || 'Company Name'}</h1>
-          <p style="font-size: 18px; color: #6b7280; margin: 16px 0 0 0; font-style: italic;">${safeValues.tagline || 'Tagline'}</p>
-          <p style="font-size: 14px; color: #9ca3af; margin-top: 24px;">Business Plan ${new Date().getFullYear()}</p>
-        </div>
-
-        <!-- Executive Summary -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Executive Summary
-          </h2>
-          <p style="line-height: 1.8; text-align: justify;">${safeValues.executive_summary || ''}</p>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 26px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 8px 0; line-height: 1.3;">${safeValues.company_name || 'Company Name'}</h1>
+        <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0; font-style: italic;">${safeValues.tagline || ''}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">Business Plan &middot; ${new Date().getFullYear()}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Executive Summary</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111;">${safeValues.executive_summary || ''}</p>
         </section>
-
-        <!-- Problem & Solution -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Problem & Solution
-          </h2>
-          <div style="display: grid; gap: 16px;">
-            <div style="padding: 16px; background: #fef2f2; border-left: 4px solid #dc2626; border-radius: 0 8px 8px 0;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">The Problem</h3>
-              <p style="margin: 0; line-height: 1.6;">${safeValues.problem_statement || ''}</p>
-            </div>
-            <div style="padding: 16px; background: #ecfdf5; border-left: 4px solid #10b981; border-radius: 0 8px 8px 0;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">Our Solution</h3>
-              <p style="margin: 0; line-height: 1.6;">${safeValues.solution_description || ''}</p>
-            </div>
-          </div>
-          <div style="margin-top: 16px; padding: 12px; background: #2563eb; color: white; border-radius: 8px; text-align: center;">
-            <strong>Value Proposition:</strong> ${safeValues.unique_value_proposition || ''}
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Problem &amp; Solution</h2>
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">The Problem</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 14px 0; padding-left: 14px; border-left: 2px solid #cccccc;">${safeValues.problem_statement || ''}</p>
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Our Solution</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 14px 0; padding-left: 14px; border-left: 2px solid #111111;">${safeValues.solution_description || ''}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Value Proposition:</strong> ${safeValues.unique_value_proposition || ''}</p>
         </section>
-
-        <!-- Market Analysis -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Market Analysis
-          </h2>
-          <p style="margin-bottom: 16px; line-height: 1.6;"><strong>Target Market:</strong> ${safeValues.target_market || ''}</p>
-          
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">TAM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_tam || 0)}</p>
-            </div>
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">SAM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_sam || 0)}</p>
-            </div>
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">SOM</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_som || 0)}</p>
-            </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Market Analysis</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 12px 0;"><strong>Target Market:</strong> ${safeValues.target_market || ''}</p>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin: 0 0 12px 0;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">TAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_tam || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_sam || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SOM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_som || 0)}</p></div>
           </div>
-          
-          <p style="line-height: 1.6;"><strong>Competitive Advantage:</strong> ${safeValues.competitive_advantage || ''}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Competitive Advantage:</strong> ${safeValues.competitive_advantage || ''}</p>
         </section>
-
-        <!-- Business Model -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Business Model
-          </h2>
-          <div style="display: grid; gap: 12px;">
-            <div style="padding: 12px; background: #f9fafb; border-radius: 8px;">
-              <strong>Revenue Model:</strong> ${safeValues.revenue_model || ''}
-            </div>
-            <div style="padding: 12px; background: #f9fafb; border-radius: 8px;">
-              <strong>Pricing Strategy:</strong> ${safeValues.pricing_strategy || ''}
-            </div>
-            <div style="padding: 12px; background: #f9fafb; border-radius: 8px;">
-              <strong>Sales Channels:</strong> ${safeValues.sales_channels || ''}
-            </div>
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Business Model</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; color: #555555; width: 30%; vertical-align: top;"><strong>Revenue Model</strong></td><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 12px;">${safeValues.revenue_model || ''}</td></tr>
+              <tr><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; color: #555555; vertical-align: top;"><strong>Pricing Strategy</strong></td><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 12px;">${safeValues.pricing_strategy || ''}</td></tr>
+              <tr><td style="padding: 8px 0; color: #555555; vertical-align: top;"><strong>Sales Channels</strong></td><td style="padding: 8px 12px;">${safeValues.sales_channels || ''}</td></tr>
+            </tbody>
+          </table>
         </section>
-
-        <!-- Financial Projections -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Financial Projections
-          </h2>
-          <table style="width: 100%; border-collapse: collapse; margin-bottom: 16px;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Financial Projections</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px; margin-bottom: 14px;">
             <thead>
-              <tr style="background: #2563eb; color: white;">
-                <th style="padding: 12px; text-align: left;">Metric</th>
-                <th style="padding: 12px; text-align: right;">Year 1</th>
-                <th style="padding: 12px; text-align: right;">Year 2</th>
-                <th style="padding: 12px; text-align: right;">Year 3</th>
+              <tr>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: left;">Metric</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 1</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 2</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 3</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 12px;">Revenue</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year1_revenue || 0)}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year2_revenue || 0)}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year3_revenue || 0)}</td>
+              <tr>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">Revenue</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year1_revenue || 0)}</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year2_revenue || 0)}</td>
+                <td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.year3_revenue || 0)}</td>
               </tr>
             </tbody>
           </table>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <div style="padding: 12px; background: #fef3c7; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #92400e; margin: 0;">Startup Costs</p>
-              <p style="font-size: 18px; font-weight: 700; margin: 4px 0;">${formatCurrency(formValues.startup_costs || 0)}</p>
-            </div>
-            <div style="padding: 12px; background: #fef3c7; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #92400e; margin: 0;">Monthly Burn</p>
-              <p style="font-size: 18px; font-weight: 700; margin: 4px 0;">${formatCurrency(formValues.monthly_burn_rate || 0)}</p>
-            </div>
-            <div style="padding: 12px; background: #ecfdf5; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #065f46; margin: 0;">Break-even</p>
-              <p style="font-size: 18px; font-weight: 700; margin: 4px 0;">${formValues.break_even_months || 0} months</p>
-            </div>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Startup Costs</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.startup_costs || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Monthly Burn</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.monthly_burn_rate || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Break-Even</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formValues.break_even_months || 0} mo</p></div>
           </div>
         </section>
-
-        <!-- Team -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            Team
-          </h2>
-          <p style="line-height: 1.6;"><strong>Founders:</strong> ${safeValues.founders || ''}</p>
-          <p style="line-height: 1.6;"><strong>Current Team Size:</strong> ${safeValues.team_size} employees</p>
-          ${safeValues.key_hires_needed ? `<p style="line-height: 1.6;"><strong>Key Hires Needed:</strong> ${safeValues.key_hires_needed}</p>` : ''}
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Team</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 6px 0;"><strong>Founders:</strong> ${safeValues.founders || ''}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 6px 0;"><strong>Current Team Size:</strong> ${safeValues.team_size} employees</p>
+          ${safeValues.key_hires_needed ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Key Hires Needed:</strong> ${safeValues.key_hires_needed}</p>` : ''}
         </section>
-
-        <!-- Risks & Milestones -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            Risks & Milestones
-          </h2>
-          <div style="display: grid; gap: 16px;">
-            <div style="padding: 16px; background: #fef2f2; border-radius: 8px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #dc2626; margin: 0 0 8px 0;">Key Risks</h3>
-              <p style="margin: 0; white-space: pre-line;">${safeValues.key_risks || ''}</p>
-            </div>
-            <div style="padding: 16px; background: #ecfdf5; border-radius: 8px;">
-              <h3 style="font-size: 14px; font-weight: 600; color: #10b981; margin: 0 0 8px 0;">Key Milestones</h3>
-              <p style="margin: 0; white-space: pre-line;">${safeValues.milestones || ''}</p>
-            </div>
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Risks &amp; Milestones</h2>
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Key Risks</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 14px 0; white-space: pre-line;">${safeValues.key_risks || ''}</p>
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Key Milestones</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; white-space: pre-line;">${safeValues.milestones || ''}</p>
         </section>
-
-        <!-- Funding -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-size: 20px; font-weight: 600; color: #2563eb; border-bottom: 2px solid #e5e7eb; padding-bottom: 8px; margin-bottom: 16px;">
-            Funding Request
-          </h2>
-          <div style="padding: 24px; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; border-radius: 12px; text-align: center;">
-            <p style="font-size: 14px; margin: 0 0 8px 0; opacity: 0.9;">Seeking ${safeValues.funding_stage?.toUpperCase() || 'SEED'} Round</p>
-            <p style="font-size: 36px; font-weight: 700; margin: 0;">${formatCurrency(formValues.funding_amount || 0)}</p>
-          </div>
-          <div style="margin-top: 16px; padding: 16px; background: #f9fafb; border-radius: 8px;">
-            <strong>Use of Funds:</strong> ${safeValues.use_of_funds || ''}
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Funding Request</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;">Seeking <strong>${safeValues.funding_stage?.toUpperCase() || 'SEED'} round</strong> &mdash; <strong style="font-family: 'Courier New',Courier,monospace; font-size: 15px;">${formatCurrency(formValues.funding_amount || 0)}</strong></p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Use of Funds:</strong> ${safeValues.use_of_funds || ''}</p>
         </section>
-
-        <!-- Footer -->
-        <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>Confidential Business Plan - ${safeValues.company_name || 'Company'} © ${new Date().getFullYear()}</p>
-          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
-        </div>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">CONFIDENTIAL &middot; ${safeValues.company_name || 'Company'} &middot; &copy; ${new Date().getFullYear()} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

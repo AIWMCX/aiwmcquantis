@@ -169,155 +169,76 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
     const formatMillions = (n: number) => n >= 1000000000 ? `$${(n / 1000000000).toFixed(1)}B` : `$${(n / 1000000).toFixed(0)}M`;
     
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 24px; color: #1f2937;">
-        
-        <!-- Slide 1: Cover -->
-        <div style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; padding: 48px; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-family: 'DM Sans', sans-serif; font-size: 12px; letter-spacing: 2px; margin: 0 0 16px 0; opacity: 0.8; text-transform: uppercase; font-weight: 600;">INVESTOR PITCH DECK</p>
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 48px; font-weight: 700; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.company_name || 'Company Name'}</h1>
-          <p style="font-size: 20px; margin: 0 0 32px 0; opacity: 0.9;">${safeValues.tagline || 'Tagline'}</p>
-          <div style="margin-top: 48px;">
-            <p style="margin: 0; font-size: 14px;">${safeValues.presenter_name || 'Name'} • ${safeValues.presenter_title || 'Title'}</p>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 26px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; line-height: 1.3;">${safeValues.company_name || 'Company Name'}</h1>
+        <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0; font-style: italic;">${safeValues.tagline || ''}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 6px 0;">Investor Pitch Deck</p>
+        <p style="font-size: 11px; text-align: center; color: #555555; margin: 0 0 24px 0;">${safeValues.presenter_name || ''}${safeValues.presenter_title ? ' &mdash; ' + safeValues.presenter_title : ''}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">I. The Problem</h2>
+          <p style="font-size: 14px; font-weight: bold; color: #111111; margin: 0 0 6px 0;">${safeValues.problem_headline || ''}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;">${safeValues.problem_description || ''}</p>
+          ${safeValues.problem_impact ? `<p style="font-size: 12px; color: #555555; padding-left: 12px; border-left: 2px solid #111111; margin: 0;"><strong>Impact:</strong> ${safeValues.problem_impact}</p>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">II. Our Solution</h2>
+          <p style="font-size: 14px; font-weight: bold; color: #111111; margin: 0 0 6px 0;">${safeValues.solution_headline || ''}</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;">${safeValues.solution_description || ''}</p>
+          ${safeValues.key_features ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; white-space: pre-line;">${safeValues.key_features}</p>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">III. Market Opportunity</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">TAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_tam || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SAM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_sam || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SOM</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatMillions(formValues.market_size_som || 0)}</p></div>
           </div>
-        </div>
-
-        <!-- Slide 2: Problem -->
-        <div style="padding: 32px; background: #fef2f2; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #dc2626; font-weight: 600; margin: 0 0 8px 0;">THE PROBLEM</p>
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #dc2626; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.problem_headline || 'Problem'}</h2>
-          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${safeValues.problem_description || ''}</p>
-          <div style="padding: 16px; background: white; border-radius: 8px; font-weight: 600; color: #dc2626;">
-            Impact: ${safeValues.problem_impact || ''}
+          <p style="font-size: 12px; color: #555555; margin: 0;">Market growing at <strong>${safeValues.market_growth_rate || 0}% CAGR</strong></p>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">IV. Business Model</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+            <tbody>
+              <tr><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; color: #555555; width: 35%;"><strong>Revenue Model</strong></td><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 12px;">${safeValues.revenue_model || ''}</td></tr>
+              <tr><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 0; color: #555555;"><strong>Average Deal Size</strong></td><td style="border-bottom: 1px solid #e0e0e0; padding: 8px 12px; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(formValues.average_deal_size || 0)}/yr</td></tr>
+              <tr><td style="padding: 8px 0; color: #555555;"><strong>Target Customers</strong></td><td style="padding: 8px 12px;">${safeValues.target_customers || ''}</td></tr>
+            </tbody>
+          </table>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">V. Traction</h2>
+          ${safeValues.traction_metrics ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0; white-space: pre-line;">${safeValues.traction_metrics}</p>` : ''}
+          ${safeValues.key_customers ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 6px 0;"><strong>Key Customers:</strong> ${safeValues.key_customers}</p>` : ''}
+          ${safeValues.growth_rate ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Growth:</strong> ${safeValues.growth_rate}</p>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">VI. Competitive Landscape</h2>
+          ${safeValues.competitors ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;"><strong>Competitors:</strong> ${safeValues.competitors}</p>` : ''}
+          ${safeValues.differentiation ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding-left: 14px; border-left: 2px solid #111111;"><strong>Our Differentiation:</strong> ${safeValues.differentiation}</p>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">VII. Team</h2>
+          ${safeValues.team_members ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0; white-space: pre-line;">${safeValues.team_members}</p>` : ''}
+          ${safeValues.advisors ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;"><strong>Advisors:</strong> ${safeValues.advisors}</p>` : ''}
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">VIII. Financial Projections</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Current ARR</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.current_revenue || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Year 1</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.year1_projection || 0)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Year 3</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.year3_projection || 0)}</p></div>
           </div>
-        </div>
-
-        <!-- Slide 3: Solution -->
-        <div style="padding: 32px; background: #ecfdf5; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #10b981; font-weight: 600; margin: 0 0 8px 0;">OUR SOLUTION</p>
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #10b981; margin: 0 0 16px 0; letter-spacing: -0.02em;">${safeValues.solution_headline || 'Solution'}</h2>
-          <p style="font-size: 16px; line-height: 1.6; margin: 0 0 16px 0;">${safeValues.solution_description || ''}</p>
-          <div style="padding: 16px; background: white; border-radius: 8px; white-space: pre-line;">
-            ${safeValues.key_features || ''}
-          </div>
-        </div>
-
-        <!-- Slide 4: Market -->
-        <div style="padding: 32px; background: #f0f9ff; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #2563eb; font-weight: 600; margin: 0 0 8px 0;">MARKET OPPORTUNITY</p>
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 32px; font-weight: 700; color: #2563eb; margin: 0 0 24px 0; letter-spacing: -0.02em;">TAM / SAM / SOM</h2>
-          <div style="display: flex; gap: 16px; justify-content: center;">
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">TAM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_tam || 0)}</p>
-            </div>
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">SAM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_sam || 0)}</p>
-            </div>
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">SOM</p>
-              <p style="font-size: 36px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatMillions(formValues.market_size_som || 0)}</p>
-            </div>
-          </div>
-          <p style="text-align: center; margin-top: 16px; font-size: 14px; color: #6b7280;">
-            Market growing at <strong style="color: #2563eb;">${safeValues.market_growth_rate || 0}% CAGR</strong>
-          </p>
-        </div>
-
-        <!-- Slide 5: Business Model -->
-        <div style="padding: 32px; background: #fefce8; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #ca8a04; font-weight: 600; margin: 0 0 8px 0;">BUSINESS MODEL</p>
-          <h2 style="font-size: 24px; font-weight: 700; color: #ca8a04; margin: 0 0 24px 0;">How We Make Money</h2>
-          <div style="display: grid; gap: 16px;">
-            <div style="padding: 16px; background: white; border-radius: 8px;">
-              <strong>Revenue Model:</strong> ${safeValues.revenue_model || ''}
-            </div>
-            <div style="padding: 16px; background: white; border-radius: 8px;">
-              <strong>Average Deal Size:</strong> ${formatCurrency(formValues.average_deal_size || 0)}/year
-            </div>
-            <div style="padding: 16px; background: white; border-radius: 8px;">
-              <strong>Target Customers:</strong> ${safeValues.target_customers || ''}
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 6: Traction -->
-        <div style="padding: 32px; background: #f0fdf4; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #16a34a; font-weight: 600; margin: 0 0 8px 0;">TRACTION</p>
-          <h2 style="font-size: 24px; font-weight: 700; color: #16a34a; margin: 0 0 24px 0;">Proof Points</h2>
-          <div style="padding: 16px; background: white; border-radius: 8px; white-space: pre-line; margin-bottom: 16px;">
-            ${safeValues.traction_metrics || ''}
-          </div>
-          ${safeValues.key_customers ? `<p><strong>Key Customers:</strong> ${safeValues.key_customers}</p>` : ''}
-          ${safeValues.growth_rate ? `<p><strong>Growth:</strong> ${safeValues.growth_rate}</p>` : ''}
-        </div>
-
-        <!-- Slide 7: Competition -->
-        <div style="padding: 32px; background: #fff7ed; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #ea580c; font-weight: 600; margin: 0 0 8px 0;">COMPETITIVE LANDSCAPE</p>
-          <h2 style="font-size: 24px; font-weight: 700; color: #ea580c; margin: 0 0 24px 0;">Why We Win</h2>
-          <div style="display: grid; gap: 16px;">
-            <div style="padding: 16px; background: white; border-radius: 8px;">
-              <strong>Competitors:</strong> ${safeValues.competitors || ''}
-            </div>
-            <div style="padding: 16px; background: #ea580c; color: white; border-radius: 8px;">
-              <strong>Our Differentiation:</strong> ${safeValues.differentiation || ''}
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 8: Team -->
-        <div style="padding: 32px; background: #faf5ff; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #9333ea; font-weight: 600; margin: 0 0 8px 0;">THE TEAM</p>
-          <h2 style="font-size: 24px; font-weight: 700; color: #9333ea; margin: 0 0 24px 0;">Who's Building This</h2>
-          <div style="padding: 16px; background: white; border-radius: 8px; white-space: pre-line; margin-bottom: 16px;">
-            ${safeValues.team_members || ''}
-          </div>
-          ${safeValues.advisors ? `<p style="color: #6b7280;"><strong>Advisors:</strong> ${safeValues.advisors}</p>` : ''}
-        </div>
-
-        <!-- Slide 9: Financials -->
-        <div style="padding: 32px; background: #f0f9ff; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; color: #2563eb; font-weight: 600; margin: 0 0 8px 0;">FINANCIAL PROJECTIONS</p>
-          <h2 style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 0 0 24px 0;">Path to Scale</h2>
-          <div style="display: flex; gap: 16px; justify-content: center;">
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Current ARR</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_revenue || 0)}</p>
-            </div>
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Year 1</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year1_projection || 0)}</p>
-            </div>
-            <div style="flex: 1; padding: 24px; background: white; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Year 3</p>
-              <p style="font-size: 28px; font-weight: 700; color: #2563eb; margin: 8px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.year3_projection || 0)}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Slide 10: The Ask -->
-        <div style="min-height: 400px; display: flex; flex-direction: column; justify-content: center; padding: 48px; background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%); color: white; border-radius: 16px; margin-bottom: 24px;">
-          <p style="font-size: 12px; letter-spacing: 2px; margin: 0 0 16px 0; opacity: 0.8;">THE ASK</p>
-          <h2 style="font-size: 48px; font-weight: 700; margin: 0 0 32px 0;">${formatCurrency(formValues.funding_amount || 0)}</h2>
-          
-          <div style="display: grid; gap: 24px;">
-            <div>
-              <p style="font-size: 14px; opacity: 0.8; margin: 0 0 8px 0;">Use of Funds:</p>
-              <p style="font-size: 16px; white-space: pre-line; margin: 0;">${safeValues.use_of_funds || ''}</p>
-            </div>
-            <div>
-              <p style="font-size: 14px; opacity: 0.8; margin: 0 0 8px 0;">Key Milestones:</p>
-              <p style="font-size: 16px; white-space: pre-line; margin: 0;">${safeValues.milestones || ''}</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- Footer -->
-        <div style="text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>Confidential - ${safeValues.company_name || 'Company'} © ${new Date().getFullYear()}</p>
-          <p style="margin-top: 8px; font-size: 10px; color: #d1d5db;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
-        </div>
+        </section>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">IX. The Ask</h2>
+          <p style="font-size: 22px; font-weight: bold; font-family: 'Courier New',Courier,monospace; color: #000000; margin: 0 0 10px 0;">${formatCurrency(formValues.funding_amount || 0)}</p>
+          ${safeValues.use_of_funds ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 8px 0;"><strong>Use of Funds:</strong> ${safeValues.use_of_funds}</p>` : ''}
+          ${safeValues.milestones ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; white-space: pre-line;"><strong>Key Milestones:</strong> ${safeValues.milestones}</p>` : ''}
+        </section>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">CONFIDENTIAL &middot; ${safeValues.company_name || 'Company'} &middot; &copy; ${new Date().getFullYear()} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

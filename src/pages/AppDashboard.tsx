@@ -596,7 +596,7 @@ export default function Index() {
                         }
                         if (data?.idea) {
                           setIdea(data.idea);
-                          setLocation('New York, NY');
+                          setLocation(data.location || 'Denver, CO');
                           setFinancialInputs((prev) => ({
                             ...prev,
                             startup_investment: data.startingCapital || 50000,

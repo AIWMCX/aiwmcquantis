@@ -143,154 +143,66 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
     }[d.competition_level];
     
     const html = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 40px; color: #1a1a1a;">
-        <div style="margin-bottom: 40px; border-bottom: 4px solid #3B82F6; padding-bottom: 20px;">
-          <p style="color: #64748B; font-size: 12px; margin: 0 0 8px 0; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Market Analysis Report</p>
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 32px; margin: 0 0 12px 0; color: #0F172A; font-weight: 700; letter-spacing: -0.02em;">${d.market_name || '[Market Name]'}</h1>
-          <p style="color: #64748B; margin: 0; font-size: 14px;">
-            Prepared for <strong>${d.company_name || '[Company]'}</strong> • ${d.report_date || new Date().toLocaleDateString()}
-            ${d.prepared_by ? ` • By ${d.prepared_by}` : ''}
-          </p>
-        </div>
-        
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Market Overview
-          </h2>
-          <div style="padding: 20px; background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%); border-radius: 12px; border-left: 4px solid #3B82F6;">
-            <p style="line-height: 1.8; margin: 0; color: #334155;">${d.market_description || '[Describe the market]'}</p>
-            <p style="margin: 12px 0 0 0; font-size: 14px; color: #64748B;">
-              <strong>Industry:</strong> ${d.industry || '[Industry]'} • 
-              <strong>Region:</strong> ${d.geographic_focus || '[Region]'}
-            </p>
-          </div>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <p style="font-size: 9px; letter-spacing: 0.14em; text-transform: uppercase; color: #555555; text-align: center; margin: 0 0 6px 0;">Market Analysis Report</p>
+        <h1 style="font-family: Georgia,serif; font-size: 24px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; line-height: 1.3;">${d.market_name || '[Market Name]'}</h1>
+        <p style="font-size: 11px; text-align: center; color: #555555; margin: 0 0 4px 0;">Prepared for <strong>${d.company_name || '[Company]'}</strong> &middot; ${d.report_date || new Date().toLocaleDateString()}${d.prepared_by ? ` &middot; By ${d.prepared_by}` : ''}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">&copy; ${new Date().getFullYear()}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Market Overview</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;">${d.market_description || '[Describe the market]'}</p>
+          <p style="font-size: 12px; color: #555555; margin: 0;"><strong>Industry:</strong> ${d.industry || '[Industry]'} &middot; <strong>Region:</strong> ${d.geographic_focus || '[Region]'}</p>
         </section>
-        
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Market Size (${d.market_size_year || 'Current'})
-          </h2>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px;">
-            <div style="padding: 24px; background: #EFF6FF; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #3B82F6; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">TAM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #1E40AF; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.tam_value)}</p>
-              <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Total Addressable Market</p>
-            </div>
-            <div style="padding: 24px; background: #F0FDF4; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #10B981; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">SAM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #166534; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.sam_value)}</p>
-              <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Serviceable Addressable Market</p>
-            </div>
-            <div style="padding: 24px; background: #FEF3C7; border-radius: 12px; text-align: center;">
-              <p style="font-size: 12px; color: #F59E0B; margin: 0 0 8px 0; text-transform: uppercase; font-weight: 600;">SOM</p>
-              <p style="font-size: 28px; font-weight: 700; margin: 0; color: #92400E; font-family: 'JetBrains Mono', monospace;">${formatCurrency(d.som_value)}</p>
-              <p style="font-size: 11px; color: #64748B; margin: 8px 0 0 0;">Serviceable Obtainable Market</p>
-            </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Market Size (${d.market_size_year || 'Current'})</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">TAM &mdash; Total Addressable</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(d.tam_value)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SAM &mdash; Serviceable</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(d.sam_value)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">SOM &mdash; Obtainable</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(d.som_value)}</p></div>
           </div>
-          ${d.market_growth_rate ? `
-          <div style="margin-top: 16px; padding: 12px 16px; background: #F8FAFC; border-radius: 8px;">
-            <span style="font-size: 14px; color: #334155;">Projected annual growth rate: <strong style="color: ${(d.market_growth_rate || 0) > 0 ? '#10B981' : '#EF4444'};">${d.market_growth_rate}%</strong></span>
-          </div>` : ''}
+          ${d.market_growth_rate ? `<p style="font-size: 12px; color: #444444; margin: 0;">Projected annual growth rate: <strong>${d.market_growth_rate}%</strong></p>` : ''}
         </section>
-        
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Target Customer
-          </h2>
-          <div style="padding: 20px; background: #F8FAFC; border-radius: 12px; border-left: 4px solid #10B981;">
-            <h3 style="font-size: 16px; color: #0F172A; margin: 0 0 12px 0;">Customer Profile</h3>
-            <p style="line-height: 1.8; margin: 0; color: #334155;">${d.target_customer_description || '[Describe target customer]'}</p>
-            ${d.customer_demographics ? `<p style="margin: 12px 0 0 0; font-size: 13px; color: #64748B;"><strong>Demographics:</strong> ${d.customer_demographics}</p>` : ''}
-          </div>
-          <div style="margin-top: 16px; padding: 20px; background: #FEF2F2; border-radius: 12px; border-left: 4px solid #EF4444;">
-            <h3 style="font-size: 16px; color: #0F172A; margin: 0 0 12px 0;">Pain Points</h3>
-            <p style="line-height: 1.8; margin: 0; color: #334155;">${d.customer_pain_points || '[Describe pain points]'}</p>
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Target Customer</h2>
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Customer Profile</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0; padding-left: 12px; border-left: 2px solid #111111;">${d.target_customer_description || '[Describe target customer]'}</p>
+          ${d.customer_demographics ? `<p style="font-size: 12px; color: #444444; margin: 0 0 10px 0;"><strong>Demographics:</strong> ${d.customer_demographics}</p>` : ''}
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Pain Points</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding-left: 12px; border-left: 2px solid #cccccc;">${d.customer_pain_points || '[Describe pain points]'}</p>
         </section>
-        
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Competitive Landscape
-          </h2>
-          <div style="padding: 16px 20px; background: #F8FAFC; border-radius: 12px; margin-bottom: 16px; display: flex; align-items: center; justify-content: space-between;">
-            <span style="font-size: 14px; color: #334155;">Competition Level:</span>
-            <span style="padding: 6px 16px; background: ${competitionColor}20; color: ${competitionColor}; border-radius: 20px; font-weight: 600; font-size: 13px;">${competitionLabel}</span>
-          </div>
-          ${d.main_competitors ? `
-          <div style="margin-bottom: 16px;">
-            <h3 style="font-size: 14px; color: #64748B; margin: 0 0 8px 0;">Key Competitors</h3>
-            <p style="line-height: 1.7; color: #334155; margin: 0;">${d.main_competitors}</p>
-          </div>` : ''}
-          <div style="padding: 20px; background: #EFF6FF; border-radius: 12px; border-left: 4px solid #3B82F6;">
-            <h3 style="font-size: 16px; color: #1E40AF; margin: 0 0 12px 0;">Our Competitive Advantages</h3>
-            <p style="line-height: 1.8; margin: 0; color: #334155;">${d.competitive_advantages || '[Describe advantages]'}</p>
-          </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Competitive Landscape</h2>
+          <p style="font-size: 12px; color: #444444; margin: 0 0 10px 0;">Competition Level: <strong>${competitionLabel}</strong></p>
+          ${d.main_competitors ? `<p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0 0 10px 0;"><strong>Key Competitors:</strong> ${d.main_competitors}</p>` : ''}
+          <p style="font-size: 11px; font-weight: bold; margin: 0 0 4px 0; text-transform: uppercase; letter-spacing: 0.06em; color: #444444;">Our Competitive Advantages</p>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding: 12px; border: 1px solid #cccccc; background: #fafafa;">${d.competitive_advantages || '[Describe advantages]'}</p>
         </section>
-        
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 20px; color: #0F172A; margin-bottom: 16px; letter-spacing: -0.01em;">
-            Market Trends
-          </h2>
-          <p style="line-height: 1.8; color: #334155;">${d.market_trends || '[Describe market trends]'}</p>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Market Trends</h2>
+          <p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.market_trends || '[Describe market trends]'}</p>
         </section>
-        
         ${(d.opportunities || d.threats) ? `
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">Opportunities & Threats</h2>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Opportunities &amp; Threats</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            ${d.opportunities ? `
-            <div style="padding: 20px; background: #F0FDF4; border-radius: 12px; border-top: 4px solid #10B981;">
-              <h3 style="font-size: 14px; color: #166534; margin: 0 0 12px 0;">
-                Opportunities
-              </h3>
-              <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.opportunities}</p>
-            </div>` : ''}
-            ${d.threats ? `
-            <div style="padding: 20px; background: #FEF2F2; border-radius: 12px; border-top: 4px solid #EF4444;">
-              <h3 style="font-size: 14px; color: #991B1B; margin: 0 0 12px 0;">
-                Threats
-              </h3>
-              <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.threats}</p>
-            </div>` : ''}
+            ${d.opportunities ? `<div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Opportunities</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.opportunities}</p></div>` : ''}
+            ${d.threats ? `<div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Threats</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.threats}</p></div>` : ''}
           </div>
         </section>` : ''}
-        
         ${(d.strengths || d.weaknesses) ? `
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">SWOT Analysis (Partial)</h2>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">SWOT Analysis</h2>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            ${d.strengths ? `
-            <div style="padding: 20px; background: #EFF6FF; border-radius: 12px;">
-              <h3 style="font-size: 14px; color: #1E40AF; margin: 0 0 12px 0;">Strengths</h3>
-              <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.strengths}</p>
-            </div>` : ''}
-            ${d.weaknesses ? `
-            <div style="padding: 20px; background: #FEF3C7; border-radius: 12px;">
-              <h3 style="font-size: 14px; color: #92400E; margin: 0 0 12px 0;">Weaknesses</h3>
-              <p style="line-height: 1.7; margin: 0; color: #334155; font-size: 14px;">${d.weaknesses}</p>
-            </div>` : ''}
+            ${d.strengths ? `<div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Strengths</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.strengths}</p></div>` : ''}
+            ${d.weaknesses ? `<div style="padding: 14px; border: 1px solid #cccccc; background: #fafafa;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Weaknesses</p><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0;">${d.weaknesses}</p></div>` : ''}
           </div>
         </section>` : ''}
-        
-        ${d.recommendations ? `
-        <section style="margin-bottom: 40px;">
-          <h2 style="font-size: 20px; color: #0F172A; margin-bottom: 16px;">
-            Recommendations
-          </h2>
-          <div style="padding: 20px; background: linear-gradient(135deg, #3B82F6 0%, #1E40AF 100%); border-radius: 12px; color: white;">
-            <p style="line-height: 1.8; margin: 0;">${d.recommendations}</p>
-          </div>
-        </section>` : ''}
-        
-        ${d.sources ? `
-        <section style="margin-bottom: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0;">
-          <h3 style="font-size: 14px; color: #64748B; margin: 0 0 12px 0;">Sources & References</h3>
-          <p style="font-size: 12px; color: #94A3B8; line-height: 1.6; margin: 0;">${d.sources}</p>
-        </section>` : ''}
-        
-        <footer style="margin-top: 40px; padding-top: 20px; border-top: 1px solid #E2E8F0; text-align: center; color: #94A3B8; font-size: 11px;">
-          Generated with AIWMC Quantis | aiwmcquantis.com
-        </footer>
+        ${d.recommendations ? `<section style="margin-bottom: 24px;"><h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Recommendations</h2><p style="font-size: 13px; line-height: 1.75; text-align: justify; color: #111111; margin: 0; padding: 14px; border: 1px solid #cccccc; background: #fafafa;">${d.recommendations}</p></section>` : ''}
+        ${d.sources ? `<section style="margin-bottom: 24px; padding-top: 16px; border-top: 1px solid #cccccc;"><p style="font-size: 10px; font-weight: bold; letter-spacing: 0.1em; text-transform: uppercase; color: #444444; margin: 0 0 8px 0;">Sources &amp; References</p><p style="font-size: 11px; color: #555555; line-height: 1.6; margin: 0;">${d.sources}</p></section>` : ''}
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">MARKET ANALYSIS &middot; ${d.company_name || 'Company'} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     onPreviewUpdate(html);

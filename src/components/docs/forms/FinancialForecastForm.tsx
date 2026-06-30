@@ -139,153 +139,76 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
     const formatCurrency = (n: number) => `$${n.toLocaleString('en-US')}`;
     
     const rawHTML = `
-      <div style="font-family: 'DM Sans', 'Inter', sans-serif; max-width: 800px; margin: 0 auto; padding: 32px; color: #1f2937;">
-        <!-- Header -->
-        <div style="text-align: center; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 3px solid #2563eb;">
-          <h1 style="font-family: 'Sora', sans-serif; font-size: 28px; font-weight: 700; color: #2563eb; margin: 0; letter-spacing: -0.02em;">Financial Forecast</h1>
-          <p style="font-size: 16px; color: #6b7280; margin: 8px 0 0 0;">${safeValues.company_name || 'Company'} • ${safeValues.forecast_period || 'Period'}</p>
-        </div>
-
-        <!-- Current State -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Current State</h2>
-          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px;">
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Monthly Revenue</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_mrr)}</p>
-            </div>
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Customers</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.current_customers}</p>
-            </div>
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">ARPU</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.current_arpu)}</p>
-            </div>
-            <div style="padding: 16px; background: #f0f9ff; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #6b7280; margin: 0;">Churn Rate</p>
-              <p style="font-size: 24px; font-weight: 700; color: #2563eb; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.current_churn_rate}%</p>
-            </div>
+      <div style="font-family: Georgia,'Times New Roman',Times,serif; max-width: 800px; margin: 0 auto; padding: 56px 72px; color: #111111; background: #ffffff;">
+        <p style="font-size: 9px; letter-spacing: 0.18em; text-transform: uppercase; color: #444444; text-align: center; margin: 0 0 8px 0;">AIWMC Research Foundation &middot; AIWMC Quantis &middot; Denver, CO, USA</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 20px 0;" />
+        <h1 style="font-family: Georgia,serif; font-size: 22px; font-weight: bold; text-align: center; color: #000000; margin: 0 0 6px 0; text-transform: uppercase; letter-spacing: 0.04em;">Financial Forecast</h1>
+        <p style="font-size: 13px; text-align: center; color: #444444; margin: 0 0 4px 0;">${safeValues.company_name || 'Company'} &middot; ${safeValues.forecast_period || 'Period'}</p>
+        <p style="font-size: 11px; text-align: center; color: #777777; margin: 0 0 24px 0;">&copy; ${new Date().getFullYear()}</p>
+        <hr style="border: none; border-top: 1px solid #000000; margin: 0 0 28px 0;" />
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Current State</h2>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Monthly Rev.</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.current_mrr)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Customers</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.current_customers}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">ARPU</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.current_arpu)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Churn</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.current_churn_rate}%</p></div>
           </div>
         </section>
-
-        <!-- 3-Scenario Projections -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Revenue Projections (3 Scenarios)</h2>
-          <table style="width: 100%; border-collapse: collapse;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Revenue Projections &mdash; 3 Scenarios</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
-              <tr style="background: #374151; color: white;">
-                <th style="padding: 12px; text-align: left;">Scenario</th>
-                <th style="padding: 12px; text-align: right;">Month 1</th>
-                <th style="padding: 12px; text-align: right;">Year 1</th>
-                <th style="padding: 12px; text-align: right;">Year 2</th>
-                <th style="padding: 12px; text-align: right;">Year 3</th>
+              <tr>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: left;">Scenario</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Month 1</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 1</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 2</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: right;">Year 3</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom: 1px solid #e5e7eb; background: #fef2f2;">
-                <td style="padding: 12px; font-weight: 600; color: #dc2626;">Pessimistic</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[0])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[1])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.pessimistic[2])}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(projections.pessimistic[3])}</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e5e7eb; background: #f0f9ff;">
-                <td style="padding: 12px; font-weight: 600; color: #2563eb;">Base Case</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[0])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[1])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.base[2])}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(projections.base[3])}</td>
-              </tr>
-              <tr style="background: #ecfdf5;">
-                <td style="padding: 12px; font-weight: 600; color: #10b981;">Optimistic</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[0])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[1])}</td>
-                <td style="padding: 12px; text-align: right;">${formatCurrency(projections.optimistic[2])}</td>
-                <td style="padding: 12px; text-align: right; font-weight: 600;">${formatCurrency(projections.optimistic[3])}</td>
-              </tr>
+              <tr><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; font-style: italic;">Pessimistic</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.pessimistic[0])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.pessimistic[1])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.pessimistic[2])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(projections.pessimistic[3])}</td></tr>
+              <tr><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; font-weight: bold;">Base Case</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.base[0])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.base[1])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.base[2])}</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(projections.base[3])}</td></tr>
+              <tr><td style="padding: 8px 10px; font-size: 12px; font-style: italic;">Optimistic</td><td style="padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.optimistic[0])}</td><td style="padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.optimistic[1])}</td><td style="padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace;">${formatCurrency(projections.optimistic[2])}</td><td style="padding: 8px 10px; font-size: 12px; text-align: right; font-family: 'Courier New',Courier,monospace; font-weight: bold;">${formatCurrency(projections.optimistic[3])}</td></tr>
             </tbody>
           </table>
         </section>
-
-        <!-- Assumptions -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Key Assumptions</h2>
-          <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Key Assumptions</h2>
+          <table style="width: 100%; border-collapse: collapse; font-size: 12px;">
             <thead>
-              <tr style="background: #f9fafb;">
-                <th style="padding: 10px; text-align: left; border-bottom: 1px solid #e5e7eb;">Metric</th>
-                <th style="padding: 10px; text-align: center; color: #dc2626; border-bottom: 1px solid #e5e7eb;">Pessimistic</th>
-                <th style="padding: 10px; text-align: center; color: #2563eb; border-bottom: 1px solid #e5e7eb;">Base</th>
-                <th style="padding: 10px; text-align: center; color: #10b981; border-bottom: 1px solid #e5e7eb;">Optimistic</th>
+              <tr>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: left;">Metric</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Pessimistic</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Base</th>
+                <th style="font-size: 9px; font-weight: bold; letter-spacing: 0.06em; text-transform: uppercase; border-bottom: 2px solid #111111; padding: 6px 10px; text-align: center;">Optimistic</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px;">Growth Rate</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.pess_growth_rate}%</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.base_growth_rate}%</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.opt_growth_rate}%</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px;">Churn Rate</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.pess_churn_rate}%</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.base_churn_rate}%</td>
-                <td style="padding: 10px; text-align: center;">${safeValues.opt_churn_rate}%</td>
-              </tr>
-              <tr style="border-bottom: 1px solid #e5e7eb;">
-                <td style="padding: 10px;">CAC</td>
-                <td style="padding: 10px; text-align: center;">${formatCurrency(formValues.pess_cac)}</td>
-                <td style="padding: 10px; text-align: center;">${formatCurrency(formValues.base_cac)}</td>
-                <td style="padding: 10px; text-align: center;">${formatCurrency(formValues.opt_cac)}</td>
-              </tr>
+              <tr><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">Growth Rate</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.pess_growth_rate}%</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.base_growth_rate}%</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.opt_growth_rate}%</td></tr>
+              <tr><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px;">Churn Rate</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.pess_churn_rate}%</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.base_churn_rate}%</td><td style="border-bottom: 1px solid #cccccc; padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${safeValues.opt_churn_rate}%</td></tr>
+              <tr><td style="padding: 8px 10px; font-size: 12px;">CAC</td><td style="padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.pess_cac)}</td><td style="padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.base_cac)}</td><td style="padding: 8px 10px; font-size: 12px; text-align: center; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.opt_cac)}</td></tr>
             </tbody>
           </table>
         </section>
-
-        <!-- Cost Structure -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Cost Structure</h2>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #92400e; margin: 0;">Fixed Costs (Monthly)</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.fixed_costs_monthly)}</p>
-            </div>
-            <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #92400e; margin: 0;">Variable Costs</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.variable_cost_percent}%</p>
-            </div>
-            <div style="padding: 16px; background: #fef3c7; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #92400e; margin: 0;">Sales & Marketing</p>
-              <p style="font-size: 20px; font-weight: 700; color: #92400e; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.sales_marketing_percent}%</p>
-            </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Cost Structure</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Fixed Costs/Mo</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.fixed_costs_monthly)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Variable Costs</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.variable_cost_percent}%</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Sales &amp; Mktg</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.sales_marketing_percent}%</p></div>
           </div>
         </section>
-
-        <!-- Target Metrics -->
-        <section style="margin-bottom: 32px;">
-          <h2 style="font-family: 'Sora', sans-serif; font-size: 18px; font-weight: 600; color: #374151; margin: 0 0 16px 0;">Target Metrics</h2>
-          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px;">
-            <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #065f46; margin: 0;">LTV Target</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${formatCurrency(formValues.ltv_target)}</p>
-            </div>
-            <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #065f46; margin: 0;">Payback Period</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.payback_months_target} mo</p>
-            </div>
-            <div style="padding: 16px; background: #ecfdf5; border-radius: 8px; text-align: center;">
-              <p style="font-size: 12px; color: #065f46; margin: 0;">Gross Margin</p>
-              <p style="font-size: 20px; font-weight: 700; color: #10b981; margin: 4px 0; font-family: 'JetBrains Mono', monospace;">${safeValues.gross_margin_target}%</p>
-            </div>
+        <section style="margin-bottom: 24px;">
+          <h2 style="font-size: 10px; font-weight: bold; letter-spacing: 0.12em; text-transform: uppercase; border-bottom: 1px solid #000000; padding-bottom: 4px; margin: 0 0 12px 0; color: #000000;">Target Metrics</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px;">
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">LTV Target</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${formatCurrency(formValues.ltv_target)}</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Payback Period</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.payback_months_target} mo</p></div>
+            <div style="border: 1px solid #cccccc; padding: 14px 8px; text-align: center; background: #fafafa;"><p style="font-size: 9px; letter-spacing: 0.1em; text-transform: uppercase; color: #666666; margin: 0 0 4px 0;">Gross Margin</p><p style="font-size: 20px; font-weight: bold; color: #000000; margin: 0; font-family: 'Courier New',Courier,monospace;">${safeValues.gross_margin_target}%</p></div>
           </div>
         </section>
-
-        <!-- Footer -->
-        <div style="margin-top: 48px; padding-top: 16px; border-top: 1px solid #e5e7eb; text-align: center; color: #9ca3af; font-size: 12px;">
-          <p>Financial Forecast - ${safeValues.company_name || 'Company'} © ${new Date().getFullYear()}</p>
-          <p style="margin-top: 8px; font-size: 10px;">Generated with <a href="https://aiwmcquantis.com" style="color: #3B82F6; text-decoration: none;">AIWMC Quantis</a></p>
-        </div>
+        <div style="font-size: 9px; color: #666666; text-align: center; border-top: 1px solid #000000; padding-top: 10px; margin-top: 48px; letter-spacing: 0.08em; text-transform: uppercase;">FINANCIAL FORECAST &middot; ${safeValues.company_name || 'Company'} &middot; &copy; ${new Date().getFullYear()} &middot; AIWMC Quantis &middot; aiwmcquantis.com</div>
       </div>
     `;
     

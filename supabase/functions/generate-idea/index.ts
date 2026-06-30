@@ -269,6 +269,7 @@ function buildDeterministicIdea(seed: ReturnType<typeof getRandomSeed>) {
 
   return {
     idea: `${seed.concept} for a tightly defined local customer segment`,
+    location: 'Denver, CO',
     differentiator: `Launches with a focused ${seed.industry.replace(/_/g, ' ')} niche and benchmark-constrained unit economics rather than generic demand assumptions.`,
     targetCustomer: 'Budget-conscious early adopters with a visible recurring pain point and clear willingness to pay',
     startingCapital,
@@ -427,6 +428,7 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
                 type: "object",
                 properties: {
                   idea: { type: "string", description: "One-sentence specific concept with target customer and location context" },
+                  location: { type: "string", description: "Primary US city and state for the business, e.g. 'Austin, TX' or 'Denver, CO'" },
                   differentiator: { type: "string", description: "The specific financial moat, competitive edge, or market inefficiency exploited" },
                   targetCustomer: { type: "string", description: "Specific customer persona (age, income, pain point)" },
                   startingCapital: { type: "number", description: "Total capital needed to launch (USD)" },
@@ -440,7 +442,7 @@ Respond ONLY via the suggest_idea tool. Make numbers precise (not round thousand
                   mitigationStrategy: { type: "string", description: "How to mitigate the primary risk" },
                 },
                 required: [
-                  "idea", "differentiator", "targetCustomer",
+                  "idea", "location", "differentiator", "targetCustomer",
                   "startingCapital", "pricePerCustomer", "customersAtLaunch",
                   "monthlyOpCosts", "estimatedBreakEven", "estimatedRevM12",
                   "grossMarginPct", "riskNote", "mitigationStrategy",
