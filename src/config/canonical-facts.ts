@@ -46,3 +46,15 @@ export const FREE_ANALYSES_PER_MONTH = 5;
 
 /** Time-to-verdict ceiling promised on the homepage hero. */
 export const VERDICT_SECONDS = 90;
+
+/**
+ * Doc Studio template count — the number of distinct, functional document
+ * templates a Plus/Pro user can generate. Source of truth is the count of
+ * form components in src/components/docs/forms/index.ts, mirrored in the
+ * `doc_templates` table (is_active rows). Corrected 2026-06-30: marketing
+ * copy across the site had drifted to "12" / "12+" for over a year while
+ * only 10 templates ever existed — never hardcode this number, import it.
+ */
+export const DOC_TEMPLATE_COUNT = 10;
+/** Formatted variant for display: "10". */
+export const DOC_TEMPLATE_COUNT_DISPLAY = '10';

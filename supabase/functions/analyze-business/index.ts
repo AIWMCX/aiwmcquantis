@@ -4695,7 +4695,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             '95,500-scenario Monte Carlo simulation',
             'Pre-Mortem stress testing',
             'Invoice & capacity check',
-            'Document Studio (12+ branded templates)',
+            'Document Studio (10 branded templates)',
             'No watermark on PDFs',
           ],
           plus_price_monthly: 17,

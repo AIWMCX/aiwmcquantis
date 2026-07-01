@@ -9,6 +9,7 @@ import { ValueAnchor } from './ValueAnchor';
 import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
 import { TIERS } from '@/config/tiers';
+import { DOC_TEMPLATE_COUNT } from '@/config/canonical-facts';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 
@@ -79,7 +80,7 @@ const PLUS_FEATURES = [
   {
     text: 'Document Studio ✓',
     highlight: false,
-    subtext: '12+ branded templates auto-populated from your analysis',
+    subtext: `${DOC_TEMPLATE_COUNT} branded templates auto-populated from your analysis`,
   },
   {
     text: 'TAM / SAM / SOM Calculator ✓',

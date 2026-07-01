@@ -202,7 +202,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <li>95,500-scenario Monte Carlo simulation</li>
           <li>36-month P&L projections with variance bands</li>
           <li>Pre-Mortem Stress Test + Invoice & Capacity Check</li>
-          <li>Document Studio (12 branded templates)</li>
+          <li>Document Studio (10 branded templates)</li>
           <li>Watermark-free PDF exports + unlimited downloads</li>
         </ul>
         <div style="text-align: center; margin: 30px 0;">
@@ -371,7 +371,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           <li>Risk factors and mitigation strategies</li>
         </ul>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Plus users get access to the <strong>Document Studio</strong> — 12 branded templates for pitch decks, loan applications, and business plans.
+          Plus users get access to the <strong>Document Studio</strong> — 10 branded templates for pitch decks, loan applications, and business plans.
         </p>
         <div style="text-align: center; margin: 30px 0;">
           <a href="https://aiwmcquantis.com/app"

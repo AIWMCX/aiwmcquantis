@@ -19,6 +19,7 @@ import {
   FINANCIAL_VARIABLES,
   FREE_ANALYSES_PER_MONTH,
   VERDICT_SECONDS,
+  DOC_TEMPLATE_COUNT,
 } from '@/config/canonical-facts';
 
 const STEPS = [
@@ -543,7 +544,7 @@ export default function HowItWorks() {
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> 36-month P&L + cash flow</li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> {MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo</li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> Pre-Mortem Stress Test</li>
-                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> Document Studio (12 templates)</li>
+                <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> Document Studio ({DOC_TEMPLATE_COUNT} templates)</li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> Invoice & Capacity Check</li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> RVCE external validation</li>
                 <li className="flex items-start gap-2"><CheckCircle2 className="w-4 h-4 text-emerald-500 mt-0.5 flex-shrink-0" /> Action plan + TAM/SAM/SOM</li>

@@ -31,17 +31,21 @@ const entitlementsSrc = readFileSync(
 
 function findMigration(): string {
   const dir = join(ROOT, 'supabase/migrations');
-  const files = readdirSync(dir);
-  // Prefer name match; fall back to content match (the canonical migration
-  // contains "plan_entitlements — server-side mirror").
-  let file = files.filter((f) => /plan_entitlements/i.test(f)).sort().pop();
-  if (!file) {
-    file = files
-      .filter((f) => f.endsWith('.sql'))
-      .find((f) => readFileSync(join(dir, f), 'utf8').includes("'plan_entitlements'") ||
-                   readFileSync(join(dir, f), 'utf8').includes('plan_entitlements'));
-  }
-  if (!file) throw new Error('plan_entitlements migration not found');
+  const files = readdirSync(dir).filter((f) => f.endsWith('.sql'));
+  // Must be the seed migration specifically — i.e. contains the INSERT with
+  // all three tier rows — not just any migration that mentions the table
+  // name (e.g. a later corrective UPDATE, which would make the row-parsing
+  // regexes below match nothing and fail every assertion).
+  const file = files.find((f) => {
+    const content = readFileSync(join(dir, f), 'utf8');
+    return (
+      content.includes('INSERT INTO public.plan_entitlements') &&
+      content.includes("'free'") &&
+      content.includes("'plus'") &&
+      content.includes("'pro'")
+    );
+  });
+  if (!file) throw new Error('plan_entitlements seed migration not found');
   return readFileSync(join(dir, file), 'utf8');
 }
 

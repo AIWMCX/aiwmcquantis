@@ -1,4 +1,4 @@
-import { MONTE_CARLO_ITERATIONS } from './canonical-facts';
+import { MONTE_CARLO_ITERATIONS, DOC_TEMPLATE_COUNT } from './canonical-facts';
 
 /**
  * TIER MATRIX — Single Source of Truth
@@ -72,7 +72,7 @@ export const TIERS = {
       projectionMonths: 36,
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 1,
-      templates: 12,
+      templates: DOC_TEMPLATE_COUNT,
     },
     features: {
       depthQuick: true,
@@ -109,7 +109,7 @@ export const TIERS = {
       projectionMonths: 60,
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 3,
-      templates: 12,
+      templates: DOC_TEMPLATE_COUNT,
     },
     features: {
       depthQuick: true,
@@ -227,7 +227,7 @@ export const UPGRADE_COPY: Record<
   },
   documentStudio: {
     title: 'Document Studio',
-    bullets: ['12+ branded templates', 'Auto-populated from your analysis', 'PDF + DOCX export'],
+    bullets: [`${DOC_TEMPLATE_COUNT} branded templates`, 'Auto-populated from your analysis', 'PDF + DOCX export'],
     recommendedTier: 'plus',
   },
   aiDocIntelligence: {

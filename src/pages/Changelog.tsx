@@ -72,7 +72,7 @@ const CHANGELOG: ChangeEntry[] = [
       'Parallel calls to GPT-5-mini and Gemini 3 Flash with consensus scoring.',
       'Pre-Mortem Stress Test launched: churn shocks, cost spikes, customer concentration scenarios.',
       'Invoice & Capacity Check: "Should you accept this client?" cash-flow analyzer.',
-      'Document Studio with 12+ branded templates auto-populated from your analysis.',
+      'Document Studio with 10 branded templates auto-populated from your analysis.',
     ],
   },
 ];
