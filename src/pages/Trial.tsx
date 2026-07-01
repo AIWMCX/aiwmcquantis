@@ -1,13 +1,13 @@
 /**
  * /trial — Founder Trial Landing Page
  * =====================================
- * Dedicated conversion landing for the 50-seat AIWMCQ17 founder cohort.
+ * Dedicated conversion landing for the 50-seat AIWMCQJULY17 founder cohort.
  *
  * Flow:
- *   1. DM/email shares: aiwmcquantis.com/trial?code=AIWMCQ17
+ *   1. DM/email shares: aiwmcquantis.com/trial?code=AIWMCQJULY17
  *   2. Visitor lands here, code auto-detected from URL
  *   3. Signed-out: prompt to sign in/up (preserves code through auth)
- *   4. Signed-in: one-click "Start free month" → calls createCheckout('plus', 'AIWMCQ17')
+ *   4. Signed-in: one-click "Start free month" → calls createCheckout('plus', 'AIWMCQJULY17')
  *   5. Stripe Checkout applies the 100%-off coupon + 14-day trial
  *   6. Webhook activates Plus tier; user lands back on /app?checkout=success
  *
@@ -37,7 +37,7 @@ import { TIERS } from '@/config/tiers';
  * to a specific campaign and must exist in the Stripe Dashboard as an
  * active promotion code with appropriate `max_redemptions` set.
  */
-const RECOGNIZED_PROMO_CODES = new Set(['AIWMCQ17']);
+const RECOGNIZED_PROMO_CODES = new Set(['AIWMCQJULY17']);
 
 /** sessionStorage key for preserving the code through auth redirects. */
 const SESSION_KEY = 'quantis_trial_promo_code';
@@ -135,7 +135,7 @@ export default function Trial() {
             <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
             <h1 className="text-2xl font-bold text-foreground mb-2">You've already claimed this offer</h1>
             <p className="text-muted-foreground mb-6">
-              Code {promoCode || 'AIWMCQ17'} was already redeemed on this account. Each founder invite is one-time only —
+              Code {promoCode || 'AIWMCQJULY17'} was already redeemed on this account. Each founder invite is one-time only —
               head to Pricing to see current plans, or your dashboard if you're still subscribed.
             </p>
             <div className="flex flex-col sm:flex-row gap-2 justify-center">

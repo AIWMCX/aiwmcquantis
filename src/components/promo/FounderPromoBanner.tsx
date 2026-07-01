@@ -1,6 +1,6 @@
 /**
  * FounderPromoBanner — site-wide invite for the 50-seat founder trial
- * (AIWMCQ17: 1 month of Plus, 100% off, layered on top of the standard
+ * (AIWMCQJULY17: 1 month of Plus, 100% off, layered on top of the standard
  * 14-day trial). Mounted once at the app root (see App.tsx) so it appears
  * on every route — public marketing pages AND the authenticated dashboard.
  *

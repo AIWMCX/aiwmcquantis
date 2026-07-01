@@ -16,7 +16,7 @@ import { useAuth } from './useAuth';
 import { useSubscription } from './useSubscription';
 import { logger } from '@/lib/logger';
 
-export const FOUNDER_PROMO_CODE = 'AIWMCQ17';
+export const FOUNDER_PROMO_CODE = 'AIWMCQJULY17';
 
 interface PromoStatus {
   showPromo: boolean;
