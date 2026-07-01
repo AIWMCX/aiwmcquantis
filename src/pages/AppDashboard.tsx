@@ -37,7 +37,10 @@ import {
   ChevronDown,
   CheckCircle2,
   Crown,
+  Sparkles,
+  ArrowRight,
 } from 'lucide-react';
+import { usePromoStatus, FOUNDER_PROMO_CODE } from '@/hooks/usePromoStatus';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { NextStepsBar } from '@/components/analysis/NextStepsBar';
 import { PostAnalysisAuthPrompt } from '@/components/analysis/PostAnalysisAuthPrompt';
@@ -81,6 +84,7 @@ export default function Index() {
   const prevResultRef = useRef<boolean>(false);
 
   const { isAuthenticated, user } = useAuth();
+  const { showPromo: showFounderPromoCard } = usePromoStatus();
 
   // Soft "welcome back" nudge for recognized returning visitors who already ran a
   // free analysis on this device but never created an account. Non-blocking (they
@@ -382,6 +386,34 @@ export default function Index() {
           <DashboardSkeleton />
         ) : (
           <>
+            {/* Founder trial promo — prominent, dedicated dashboard CTA (in addition
+                to the site-wide top banner in App.tsx). Every new signup lands here
+                right after auth, so this is the first thing an eligible new user sees.
+                usePromoStatus already excludes users who redeemed before or are
+                already Plus/Pro, so this never re-appears for converted users. */}
+            {isAuthenticated && showFounderPromoCard && (
+              <div className="mb-4 p-4 sm:p-5 rounded-xl border-2 border-primary/40 bg-primary/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 animate-fade-in">
+                <div className="flex items-start gap-3 min-w-0">
+                  <Sparkles className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" aria-hidden />
+                  <div className="min-w-0">
+                    <h3 className="text-sm font-semibold text-foreground">
+                      Founder trial — 50 seats, limited time
+                    </h3>
+                    <p className="text-sm text-muted-foreground mt-0.5">
+                      Get a full month of Plus free — unlimited analyses, Monte Carlo, Document Studio.
+                      Code {FOUNDER_PROMO_CODE}.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={() => navigate(`/trial?code=${FOUNDER_PROMO_CODE}`)}
+                  className="gap-2 flex-shrink-0 w-full sm:w-auto"
+                >
+                  Claim free month <ArrowRight className="w-4 h-4" />
+                </Button>
+              </div>
+            )}
+
             {/* Welcome-back nudge — recognized returning visitor, not signed in */}
             {showWelcomeBack && (
               <div className="mb-4 p-3 rounded-lg border border-primary/30 bg-primary/5 flex flex-wrap items-center justify-between gap-3 animate-fade-in">
