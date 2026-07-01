@@ -145,17 +145,24 @@ describe('TIERS drift: src/config/tiers.ts ↔ plan_entitlements migration seed'
 
 // ---------- 3. STRIPE_PRICE_TO_TIER ↔ migration stripe_price_ids parity ----------
 describe('Stripe price IDs are consistent', () => {
-  const migrationSql = findMigration();
+  // Checks across ALL migrations concatenated, not just the original seed
+  // file. The seed migration must never be edited after it's applied
+  // (20260630140000_fix_plus_stripe_price_ids.sql corrects a stale seeded
+  // price ID via an idempotent UPDATE in a later migration instead) -- so a
+  // price ID can legitimately be correct-in-prod while absent from the
+  // original seed's literal text. Concatenating history lets a later
+  // corrective migration satisfy this assertion.
+  const allMigrationsSql = readdirSync(join(ROOT, 'supabase/migrations'))
+    .filter((f) => f.endsWith('.sql'))
+    .map((f) => readFileSync(join(ROOT, 'supabase/migrations', f), 'utf8'))
+    .join('\n');
 
-  it('every price ID in STRIPE_PRICE_TO_TIER appears in the migration row for its tier', () => {
+  it('every price ID in STRIPE_PRICE_TO_TIER appears somewhere in migration history for its tier', () => {
     for (const [priceId, { tier }] of Object.entries(STRIPE_PRICE_TO_TIER)) {
-      const rowMatch = migrationSql.match(
-        new RegExp(`'${tier}'[\\s\\S]*?(?='free'|'plus'|'pro'|ON CONFLICT)`),
-      );
-      expect(rowMatch, `migration missing row for tier=${tier}`).toBeTruthy();
       expect(
-        rowMatch![0].includes(priceId),
-        `Stripe price ${priceId} (→ ${tier}) missing from migration seed for ${tier}`,
+        allMigrationsSql.includes(priceId),
+        `Stripe price ${priceId} (→ ${tier}) not found in any migration -- ` +
+        `add it to the seed (new tiers) or a corrective UPDATE (price ID fix).`,
       ).toBe(true);
     }
   });

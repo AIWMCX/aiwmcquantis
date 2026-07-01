@@ -147,15 +147,26 @@ export type FeatureKey = keyof typeof TIERS.pro.features;
 export type LimitKey = keyof typeof TIERS.pro.limits;
 export type BillingCycle = 'monthly' | 'annual';
 
-/** Stripe price ID → tier mapping. Used by webhook + checkout. */
+/**
+ * Stripe price ID → tier mapping. Used by webhook + checkout.
+ *
+ * Corrected 2026-06-30: this previously listed price_1TKemwLKMhSmZURCw1AwGYX2
+ * and price_1TKenYLKMhSmZURCEqUTfJDM for Plus, labeled as a "legacy
+ * grandfathered" price. Verified directly against Stripe (GetPrices on
+ * prod_ThBb89uyqRxyBa): neither ID exists in the account, and no archived/
+ * inactive recurring price exists under any other ID either (the only
+ * inactive object on that product is an unrelated one-time price,
+ * price_1Skr4GLKMhSmZURCmRN6jvBi). The "legacy grandfathering" scenario had
+ * no basis in the real Stripe account — replaced with the real, active IDs.
+ */
 export const STRIPE_PRICE_TO_TIER: Record<
   string,
   { tier: TierId; cycle: BillingCycle; isLegacy?: boolean }
 > = {
-  // Legacy Plus monthly ($17) — grandfathered, still treated as Plus
-  price_1TKemwLKMhSmZURCw1AwGYX2: { tier: 'plus', cycle: 'monthly', isLegacy: true },
-  // Plus annual
-  price_1TKenYLKMhSmZURCEqUTfJDM: { tier: 'plus', cycle: 'annual' },
+  // Plus monthly ($17)
+  price_1SjnEiLKMhSmZURCONsiueNU: { tier: 'plus', cycle: 'monthly' },
+  // Plus annual ($168)
+  price_1SvWTaLKMhSmZURClCoqty4O: { tier: 'plus', cycle: 'annual' },
   // Pro monthly ($49, 14-day trial)
   price_1TNnKkLKMhSmZURCWyQTblmg: { tier: 'pro', cycle: 'monthly' },
   // Pro annual ($492, 14-day trial)

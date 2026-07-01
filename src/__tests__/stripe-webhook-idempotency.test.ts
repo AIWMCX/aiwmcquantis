@@ -182,13 +182,21 @@ describe('Forged tier claim is ignored (scenario #7)', () => {
   });
 });
 
-// ---------- Grandfathering (scenario #12) ----------
+// ---------- Price ID -> tier mapping matches live Stripe (scenario #12) ----------
+// Previously asserted a "legacy grandfathered" Plus price
+// (price_1TKemwLKMhSmZURCw1AwGYX2) that turned out not to exist anywhere in
+// the Stripe account (verified via GetPrices on prod_ThBb89uyqRxyBa,
+// 2026-06-30) -- no archived/inactive recurring price exists under any ID
+// either, so there was never a real grandfathering scenario to protect.
+// Replaced with an assertion against the real, active Plus price.
 
-describe('Legacy price grandfathering', () => {
-  it('legacy Plus monthly price maps to Plus tier with isLegacy=true', async () => {
+describe('Price ID -> tier mapping', () => {
+  it('real Plus monthly price maps to plus tier, no fabricated legacy flag', async () => {
     const { STRIPE_PRICE_TO_TIER } = await import('@/config/tiers');
-    const legacy = STRIPE_PRICE_TO_TIER['price_1TKemwLKMhSmZURCw1AwGYX2'];
-    expect(legacy.tier).toBe('plus');
-    expect(legacy.isLegacy).toBe(true);
+    const plusMonthly = STRIPE_PRICE_TO_TIER['price_1SjnEiLKMhSmZURCONsiueNU'];
+    expect(plusMonthly).toBeDefined();
+    expect(plusMonthly.tier).toBe('plus');
+    expect(plusMonthly.cycle).toBe('monthly');
+    expect(plusMonthly.isLegacy).toBeUndefined();
   });
 });
