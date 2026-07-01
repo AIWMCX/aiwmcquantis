@@ -26,7 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle2, Sparkles, Lock, Clock, BarChart3, FileText, Brain, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { usePromoStatus } from '@/hooks/usePromoStatus';
+import { usePromoStatus, FOUNDER_PROMO_ENABLED } from '@/hooks/usePromoStatus';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -91,6 +91,42 @@ export default function Trial() {
       setRedeeming(false);
     }
   };
+
+  // ─── Kill switch — promo temporarily paused ─────────────────────────────
+  // Checkout confirmed NOT applying the discount in production even though
+  // this exact page and the create-checkout-session code are verified
+  // correct — root cause is a broken deploy pipeline (CI failing silently,
+  // which skips Production Deploy's job chain entirely). This blocks the
+  // real checkout button so nobody gets charged full price expecting $0.00
+  // while that's being fixed. See FOUNDER_PROMO_ENABLED in usePromoStatus.ts.
+  if (!FOUNDER_PROMO_ENABLED) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+        <PageSEO
+          title="Founder trial — back shortly | AIWMC Quantis"
+          description="The founder trial invitation is temporarily paused while we finish a checkout fix. Check back soon, or start free today."
+          canonical="/trial"
+          noindex
+        />
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-6 text-center">
+            <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
+            <h1 className="text-xl font-bold text-foreground mb-2">This invitation is paused for a moment</h1>
+            <p className="text-sm text-muted-foreground mb-6">
+              We're finishing a checkout fix for the founder trial. Your invitation code is still reserved —
+              check back shortly, or start free right now with no card required.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button variant="outline" onClick={() => navigate('/pricing')}>See plans</Button>
+              <Button onClick={() => navigate('/app')} className="gap-2">
+                Try Free <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   // ─── Already a paid subscriber ──────────────────────────────────────────
   if (!authLoading && isAuthenticated && (isPlus || isPro)) {
