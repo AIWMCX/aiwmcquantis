@@ -52,7 +52,7 @@ interface SubscriptionData {
   error: string | null;
   isTimedOut: boolean;
   refetch: () => Promise<void>;
-  createCheckout: (plan: 'plus' | 'pro', promotionCode?: string) => Promise<void>;
+  createCheckout: (plan: 'plus' | 'pro', promotionCode?: string, billingPeriod?: 'monthly' | 'annual') => Promise<void>;
   openPortal: () => Promise<void>;
 }
 
@@ -258,7 +258,7 @@ export function useSubscription(): SubscriptionData {
   const canAnalyze = !isFree || analysesUsed < monthlyLimit;
   const remainingAnalyses = isFree ? Math.max(0, monthlyLimit - analysesUsed) : Infinity;
 
-  const createCheckout = async (plan: 'plus' | 'pro', promotionCode?: string) => {
+  const createCheckout = async (plan: 'plus' | 'pro', promotionCode?: string, billingPeriod?: 'monthly' | 'annual') => {
     if (!user) {
       toast({
         title: 'Authentication required',
@@ -270,7 +270,8 @@ export function useSubscription(): SubscriptionData {
 
     try {
       const trimmedCode = (promotionCode ?? '').trim().toUpperCase();
-      logger.info('[Checkout] Starting checkout for plan:', plan, trimmedCode ? `(promo: ${trimmedCode})` : '');
+      const period = billingPeriod === 'annual' ? 'annual' : 'monthly';
+      logger.info('[Checkout] Starting checkout for plan:', plan, period, trimmedCode ? `(promo: ${trimmedCode})` : '');
 
       toast({
         title: 'Starting checkout...',
@@ -280,7 +281,7 @@ export function useSubscription(): SubscriptionData {
       });
 
       const { data, error } = await supabase.functions.invoke('create-checkout-session', {
-        body: trimmedCode ? { plan, promotion_code: trimmedCode } : { plan },
+        body: { plan, billing_period: period, ...(trimmedCode ? { promotion_code: trimmedCode } : {}) },
       });
 
       logger.info('[Checkout] Response:', { data, error });

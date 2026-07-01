@@ -11,15 +11,22 @@ import { MONTE_CARLO_ITERATIONS, DOC_TEMPLATE_COUNT } from './canonical-facts';
  * 3. Client `useEntitlements()` reads features from here for UX cosmetics.
  * 4. Real gate is server-side. Client flags are decorative only.
  *
- * STRIPE PRICE MAPPING (live mode):
- * - Plus monthly: price_1TKemwLKMhSmZURCw1AwGYX2 (legacy $17 → grandfathered)
- * - Plus annual:  price_1TKenYLKMhSmZURCEqUTfJDM
- * - Pro monthly:  price_1TNnKkLKMhSmZURCWyQTblmg ($49, 14d trial)
- * - Pro annual:   price_1TNnUbLKMhSmZURC3DetuKsA  ($492, 14d trial)
+ * STRIPE PRICE MAPPING (live mode) — verified 2026-06-30 directly against
+ * Stripe via GetPrices (the previous Plus IDs below were wrong; price_1TKemwLKMhSmZURCw1AwGYX2
+ * does not exist in the account at all — corrected here):
+ * - Plus monthly: price_1SjnEiLKMhSmZURCONsiueNU ($17)
+ * - Plus annual:  price_1SvWTaLKMhSmZURClCoqty4O ($168)
+ * - Pro monthly:  price_1TNnKkLKMhSmZURCWyQTblmg ($49)
+ * - Pro annual:   price_1TNnUbLKMhSmZURC3DetuKsA ($492)
  *
- * Trial duration is configured on each Stripe Payment Link in the Dashboard,
- * NOT in this file. All 4 paid plans (Plus monthly/annual, Pro monthly/annual)
- * must have trial_period_days = 14 set on their Stripe Payment Links.
+ * All 4 correspond to env vars in supabase/functions/create-checkout-session
+ * (STRIPE_PLUS_PRICE_ID, STRIPE_PLUS_ANNUAL_PRICE_ID, STRIPE_PRO_PRICE_ID,
+ * STRIPE_PRO_ANNUAL_PRICE_ID) which must be set in Supabase secrets to these
+ * values. Trial (14 days, both plans) is applied per-checkout-session in
+ * that function via `subscription_data.trial_period_days`, not on the Price
+ * object or a Stripe Payment Link — every "Upgrade to Plus" entry point in
+ * the app now routes through create-checkout-session (see useSubscription's
+ * createCheckout), not static Payment Links.
  */
 
 export const TIERS = {

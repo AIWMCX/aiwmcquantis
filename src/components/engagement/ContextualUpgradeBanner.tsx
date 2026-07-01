@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useActivation } from '@/hooks/useActivation';
 import { useAuth } from '@/hooks/useAuth';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useSubscription } from '@/hooks/useSubscription';
 import { markTriggerShown, dismissTrigger } from '@/lib/contextualTriggers';
 import { Button } from '@/components/ui/button';
 import { Sparkles, X } from 'lucide-react';
@@ -13,7 +13,8 @@ import { Sparkles, X } from 'lucide-react';
 export function ContextualUpgradeBanner() {
   const { trigger, isPlus } = useActivation();
   const { user } = useAuth();
-  const { redirectToPayment, isLoading } = usePaymentLinks();
+  const { createCheckout } = useSubscription();
+  const [isLoading, setIsLoading] = useState(false);
   const [visible, setVisible] = useState(false);
   const [shownId, setShownId] = useState<string | null>(null);
 
@@ -34,7 +35,8 @@ export function ContextualUpgradeBanner() {
 
   const handleUpgrade = () => {
     if (user) {
-      redirectToPayment('plus_monthly', user.id, user.email || undefined);
+      setIsLoading(true);
+      createCheckout('plus').catch(() => setIsLoading(false));
     }
   };
 

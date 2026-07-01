@@ -4,7 +4,6 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
 import { useNavigate } from 'react-router-dom';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
@@ -34,9 +33,9 @@ const MODULE_TO_TRIGGER: Record<PlusGateProps['module'], keyof typeof UPGRADE_TR
  * it in `src/i18n/index.ts`. No component changes required.
  */
 export function PlusGate({ module, children }: PlusGateProps) {
-  const { isPlus, loading, isTimedOut, refetch } = useSubscription();
+  const { isPlus, loading, isTimedOut, refetch, createCheckout } = useSubscription();
   const { user, isAuthenticated } = useAuth();
-  const { redirectToPayment, isLoading: payLoading } = usePaymentLinks();
+  const [payLoading, setPayLoading] = React.useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation('paywall');
 
@@ -68,7 +67,8 @@ export function PlusGate({ module, children }: PlusGateProps) {
 
   const handleUpgrade = () => {
     if (isAuthenticated && user) {
-      redirectToPayment('plus_monthly', user.id, user.email || undefined);
+      setPayLoading(true);
+      createCheckout('plus').catch(() => setPayLoading(false));
     } else {
       navigate(`/auth?redirect=/pricing&intent=plus`);
     }

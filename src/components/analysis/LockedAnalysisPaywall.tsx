@@ -3,7 +3,7 @@ import { Lock, Zap, TrendingUp, Activity, FileText, Target, CheckCircle2 } from 
 import { useTranslation, Trans } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/hooks/useAuth';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useNavigate } from 'react-router-dom';
 import { UPGRADE_TRIGGERS } from '@/lib/tier-spec';
 import { TIERS } from '@/config/tiers';
@@ -36,13 +36,15 @@ const SECTION_TRIGGER: Record<LockedAnalysisPaywallProps['section'], keyof typeo
  */
 export function LockedAnalysisPaywall({ section }: LockedAnalysisPaywallProps) {
   const { user, isAuthenticated } = useAuth();
-  const { redirectToPayment, isLoading } = usePaymentLinks();
+  const { createCheckout } = useSubscription();
+  const [isLoading, setIsLoading] = React.useState(false);
   const navigate = useNavigate();
   const { t } = useTranslation('paywall');
 
   const handleUpgrade = () => {
     if (isAuthenticated && user) {
-      redirectToPayment('plus_monthly', user.id, user.email || undefined);
+      setIsLoading(true);
+      createCheckout('plus').catch(() => setIsLoading(false));
     } else {
       navigate('/auth?redirect=/pricing&intent=plus');
     }

@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { useAuth } from '@/hooks/useAuth';
-import { redirectToPaymentLink } from '@/hooks/useStripeCheckout';
+import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SignupForm, LoginForm, ForgotPasswordForm } from '@/components/auth';
@@ -19,6 +19,7 @@ export default function Auth() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const { isAuthenticated, isLoading: authLoading } = useAuth();
+  const { createCheckout } = useSubscription();
   const checkoutTriggered = useRef(false);
   const [isProcessingCheckout, setIsProcessingCheckout] = useState(false);
   const [showForgotPassword, setShowForgotPassword] = useState(false);
@@ -87,7 +88,8 @@ export default function Auth() {
             setIsProcessingCheckout(true);
             // Clear stored plan
             localStorage.removeItem('pending_checkout_plan');
-            redirectToPaymentLink(plan, user.id, user.email || undefined);
+            const [planOnly, billing] = plan.split('_') as ['plus' | 'pro', 'monthly' | 'annual'];
+            createCheckout(planOnly, undefined, billing).catch(() => setIsProcessingCheckout(false));
           } else {
             // Redirect to returnUrl if provided, otherwise to /app
             const destination = returnUrl ? decodeURIComponent(returnUrl) : '/app';

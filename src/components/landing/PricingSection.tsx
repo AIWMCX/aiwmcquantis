@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useExperiment, trackExperimentConversion } from '@/lib/abTesting';
 import { trackEvent } from '@/lib/analytics';
 import { CheckCircle2, Minus } from 'lucide-react';
@@ -123,7 +123,7 @@ const PRO_FEATURES = [
 export function PricingSection() {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { redirectToPayment } = usePaymentLinks();
+  const { createCheckout } = useSubscription();
 
   // Get experiment variant FIRST so we can use it for initial state
   const pricingVariant = useExperiment('pricing_display');
@@ -186,21 +186,13 @@ export function PricingSection() {
       return;
     }
 
-    // Build the correct Stripe Payment Link key for the chosen plan + billing period
-    const planKey =
-      planName === 'pro'
-        ? currentBilling === 'annual'
-          ? 'pro_annual'
-          : 'pro_monthly'
-        : currentBilling === 'annual'
-          ? 'plus_annual'
-          : 'plus_monthly';
-
     setLoadingPlan(planName);
     if (user) {
-      redirectToPayment(planKey, user.id, user.email || undefined);
+      createCheckout(planName, undefined, currentBilling).catch(() => setLoadingPlan(null));
     } else {
-      localStorage.setItem('pending_checkout_plan', planKey);
+      // Packed string kept for backward compat with Auth.tsx's post-signup
+      // checkout resume logic (parses 'plus_monthly' | 'plus_annual' | etc.).
+      localStorage.setItem('pending_checkout_plan', `${planName}_${currentBilling}`);
       navigate('/auth');
     }
   };

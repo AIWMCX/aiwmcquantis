@@ -8,7 +8,7 @@ import {
 } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { CheckCircle2, Zap, Loader2, Shield, Lock, TrendingUp } from 'lucide-react';
-import { usePaymentLinks } from '@/hooks/useStripeCheckout';
+import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
 import { FreeVsProMatrix } from '@/components/FreeVsProMatrix';
 import { TIERS } from '@/config/tiers';
@@ -28,13 +28,15 @@ export function UpgradePrompt({
   remainingAnalyses
 }: UpgradePromptProps) {
   const { user } = useAuth();
-  const { redirectToPayment, isLoading } = usePaymentLinks();
+  const { createCheckout } = useSubscription();
+  const [isLoading, setIsLoading] = React.useState(false);
 
   const handleUpgrade = () => {
     if (user) {
       onOpenChange(false);
+      setIsLoading(true);
       setTimeout(() => {
-        redirectToPayment('plus_monthly', user.id, user.email || undefined);
+        createCheckout('plus').catch(() => setIsLoading(false));
       }, 100);
     }
   };

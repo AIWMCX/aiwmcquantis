@@ -107,12 +107,14 @@ serve(async (req) => {
     const userId = user.id;
     const userEmail = user.email;
 
-    const { plan, promotion_code } = await req.json() as {
+    const { plan, promotion_code, billing_period } = await req.json() as {
       plan?: string;
       promotion_code?: string;
+      billing_period?: string;
     };
     const promoCodeRaw = (promotion_code ?? '').trim().toUpperCase();
-    log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}${promoCodeRaw ? ` (promo: ${promoCodeRaw})` : ''}`);
+    const billingPeriod = billing_period === 'annual' ? 'annual' : 'monthly';
+    log.info(`Creating checkout session for plan: ${plan} (${billingPeriod}), user: ${userEmail}${promoCodeRaw ? ` (promo: ${promoCodeRaw})` : ''}`);
 
     // ── Abuse prevention: reject repeat redemption before we ever call Stripe ──
     // Defense-in-depth on top of Stripe's own `max_redemptions` cap and
@@ -153,12 +155,25 @@ serve(async (req) => {
       );
     }
 
-    const priceId =
+    // Price ID resolution — 4 possible env vars (plan x billing period).
+    // Verified live against Stripe (2026-06-30): Plus monthly/annual =
+    // price_1SjnEiLKMhSmZURCONsiueNU / price_1SvWTaLKMhSmZURClCoqty4O.
+    // Pro monthly/annual = price_1TNnKkLKMhSmZURCWyQTblmg / price_1TNnUbLKMhSmZURC3DetuKsA.
+    // Monthly env var names try both conventions — stripe-webhook/index.ts's
+    // PRO_PRICE_IDS reads STRIPE_PRO_MONTHLY_PRICE_ID while this function
+    // historically read STRIPE_PRO_PRICE_ID for the same value; accept
+    // either so a single Supabase secret naming convention isn't required.
+    const priceEnvCandidates =
       plan === 'pro'
-        ? Deno.env.get('STRIPE_PRO_PRICE_ID')
-        : Deno.env.get('STRIPE_PLUS_PRICE_ID');
+        ? billingPeriod === 'annual'
+          ? ['STRIPE_PRO_ANNUAL_PRICE_ID']
+          : ['STRIPE_PRO_PRICE_ID', 'STRIPE_PRO_MONTHLY_PRICE_ID']
+        : billingPeriod === 'annual'
+          ? ['STRIPE_PLUS_ANNUAL_PRICE_ID']
+          : ['STRIPE_PLUS_PRICE_ID', 'STRIPE_PLUS_MONTHLY_PRICE_ID'];
+    const priceId = priceEnvCandidates.map((k) => Deno.env.get(k)).find(Boolean);
     if (!priceId) {
-      log.error(`STRIPE_${plan.toUpperCase()}_PRICE_ID not configured`);
+      log.error(`None of [${priceEnvCandidates.join(', ')}] configured`);
       throw new Error('Payment configuration error. Please contact support.');
     }
 
@@ -241,12 +256,14 @@ serve(async (req) => {
         metadata: {
           supabase_user_id: userId,
           plan,
+          billing_period: billingPeriod,
           ...(promoCodeRaw ? { applied_promo_code: promoCodeRaw } : {}),
         },
       },
       metadata: {
         supabase_user_id: userId,
         plan,
+        billing_period: billingPeriod,
         ...(promoCodeRaw ? { applied_promo_code: promoCodeRaw } : {}),
       },
       // Server-side promo application (preferred path — UX is instant)

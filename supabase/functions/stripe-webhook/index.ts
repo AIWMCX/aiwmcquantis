@@ -322,9 +322,15 @@ serve(async (req) => {
 
     // Deterministic Stripe Price ID → plan mapper.
     // Pro price IDs are stored as secrets so we never confuse Plus vs Pro buyers.
+    // Accepts both naming conventions for the monthly price (this function
+    // historically expected STRIPE_PRO_MONTHLY_PRICE_ID while
+    // create-checkout-session/index.ts historically read STRIPE_PRO_PRICE_ID
+    // for the same value) so a Pro-monthly buyer is never silently
+    // misclassified as Plus if only one of the two secret names was ever set.
     const PRO_PRICE_IDS = new Set<string>(
       [
         Deno.env.get("STRIPE_PRO_MONTHLY_PRICE_ID"),
+        Deno.env.get("STRIPE_PRO_PRICE_ID"),
         Deno.env.get("STRIPE_PRO_ANNUAL_PRICE_ID"),
       ].filter(Boolean) as string[]
     );
