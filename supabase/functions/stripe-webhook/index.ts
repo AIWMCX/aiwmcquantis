@@ -417,6 +417,30 @@ serve(async (req) => {
         if (result.success) {
           log.info(`[${requestId}] SUCCESS: Subscription created for user ${userId}, plan: ${plan}`);
 
+          // Record promo redemption — durable, server-verified source of truth
+          // for "never show this promo invite again" (see usePromoStatus /
+          // FounderPromoBanner). Only written here, after Stripe has confirmed
+          // the checkout actually completed with this code applied.
+          const appliedPromoCode = session.metadata?.applied_promo_code;
+          if (appliedPromoCode) {
+            const { error: promoErr } = await supabase
+              .from("promo_redemptions")
+              .upsert(
+                {
+                  user_id: userId,
+                  promo_code: appliedPromoCode,
+                  stripe_customer_id: customerId,
+                  stripe_subscription_id: subscriptionId,
+                },
+                { onConflict: "user_id,promo_code", ignoreDuplicates: true }
+              );
+            if (promoErr) {
+              log.error(`[${requestId}] Failed to record promo redemption:`, promoErr.message);
+            } else {
+              log.info(`[${requestId}] ✓ Promo redemption recorded: ${appliedPromoCode} for user ${userId}`);
+            }
+          }
+
           // ISSUE-004 — Provision PRO immediately on checkout completion so
           // the buyer gets api_keys/white-label without waiting for invoice.paid.
           if (plan === "pro") {

@@ -9,6 +9,7 @@ import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
 import { ProtectedRoute } from "./components/auth/ProtectedRoute";
 import { SkipToContent } from "./components/accessibility/SkipToContent";
+import { FounderPromoBanner } from "./components/promo/FounderPromoBanner";
 import { initWebVitals } from "./lib/webVitals";
 import { initEngagementTracking } from "./lib/engagementTracking";
 import { trackReturnVisitIfApplicable } from "./lib/activationTracking";
@@ -122,6 +123,7 @@ const App = () => {
             <Toaster richColors position="top-center" />
             <BrowserRouter>
             <SkipToContent />
+            <FounderPromoBanner />
             <Suspense fallback={<LoadingFallback />}>
               <Routes>
                 {/* Public routes */}

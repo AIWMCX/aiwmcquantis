@@ -26,6 +26,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle2, Sparkles, Lock, Clock, BarChart3, FileText, Brain, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
+import { usePromoStatus } from '@/hooks/usePromoStatus';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
@@ -46,6 +47,7 @@ export default function Trial() {
   const navigate = useNavigate();
   const { user, isAuthenticated, isLoading: authLoading } = useAuth();
   const { isPlus, isPro, createCheckout } = useSubscription();
+  const { alreadyRedeemed, loading: promoStatusLoading } = usePromoStatus();
   const [redeeming, setRedeeming] = useState(false);
 
   // Resolve the promo code from URL or sessionStorage. URL takes precedence;
@@ -110,6 +112,38 @@ export default function Trial() {
             <Button size="lg" onClick={() => navigate('/app')} className="gap-2">
               Go to Dashboard <ArrowRight className="w-4 h-4" />
             </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // ─── Already redeemed this promo before (even if no longer subscribed) ──
+  // Server-verified via promo_redemptions — a Stripe-confirmed record that
+  // survives cancellation, cleared cookies, and a different browser/device.
+  if (!authLoading && isAuthenticated && !promoStatusLoading && alreadyRedeemed) {
+    return (
+      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+        <PageSEO
+          title="Promotion already redeemed — AIWMC Quantis"
+          description="You've already used this founder trial promotion."
+          canonical="/trial"
+          noindex
+        />
+        <Card className="max-w-md w-full">
+          <CardContent className="pt-8 pb-6 text-center">
+            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
+            <h1 className="text-2xl font-bold text-foreground mb-2">You've already claimed this offer</h1>
+            <p className="text-muted-foreground mb-6">
+              Code {promoCode || 'AIWMCQ17'} was already redeemed on this account. Each founder invite is one-time only —
+              head to Pricing to see current plans, or your dashboard if you're still subscribed.
+            </p>
+            <div className="flex flex-col sm:flex-row gap-2 justify-center">
+              <Button variant="outline" onClick={() => navigate('/pricing')}>See plans</Button>
+              <Button onClick={() => navigate('/app')} className="gap-2">
+                Go to Dashboard <ArrowRight className="w-4 h-4" />
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

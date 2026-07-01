@@ -114,6 +114,31 @@ serve(async (req) => {
     const promoCodeRaw = (promotion_code ?? '').trim().toUpperCase();
     log.info(`Creating checkout session for plan: ${plan}, user: ${userEmail}${promoCodeRaw ? ` (promo: ${promoCodeRaw})` : ''}`);
 
+    // ── Abuse prevention: reject repeat redemption before we ever call Stripe ──
+    // Defense-in-depth on top of Stripe's own `max_redemptions` cap and
+    // `first_time_transaction` restriction: even if those are misconfigured,
+    // one Supabase user can never redeem the same promo code twice, because
+    // `promo_redemptions` is only ever written by the webhook after a real,
+    // Stripe-confirmed checkout (see stripe-webhook/index.ts).
+    if (promoCodeRaw) {
+      const { data: existingRedemption } = await supabase
+        .from('promo_redemptions')
+        .select('id')
+        .eq('user_id', userId)
+        .eq('promo_code', promoCodeRaw)
+        .maybeSingle();
+      if (existingRedemption) {
+        log.warn(`Promo code ${promoCodeRaw} already redeemed by user ${userId} — rejecting duplicate`);
+        return new Response(
+          JSON.stringify({
+            error: 'You have already redeemed this promotion.',
+            code: 'PROMO_ALREADY_REDEEMED',
+          }),
+          { status: 409, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        );
+      }
+    }
+
     // Canonical Master Spec — both Plus AND Pro ship with a 14-day free trial.
     // (Previously only Pro got the trial; that contradicted the canon and
     // blocked the AIWMCQ17 marketing campaign which depends on Plus trial.)
