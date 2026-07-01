@@ -295,8 +295,8 @@ export default function Trial() {
                 {[
                   { t: 'You hit Start', d: 'We open Stripe Checkout with your invitation code pre-applied. No card charged.' },
                   { t: 'Days 1–14: Free trial', d: 'Full Plus access. Run analyses, generate documents, export PDFs.' },
-                  { t: 'Days 15–30: Promo covers it', d: `Code ${promoCode} gives 100% off the first month — Stripe shows $0.00.` },
-                  { t: 'Day 31: Standard billing begins', d: `$${TIERS.plus.priceMonthly}/mo unless you cancel beforehand. You can cancel in 1 click from the billing portal.` },
+                  { t: 'Day 15: Promo applies', d: `Your trial ends and Stripe generates your first invoice. Code ${promoCode} gives 100% off that invoice — Stripe shows $0.00, covering a full month of Plus.` },
+                  { t: 'The following month: Standard billing begins', d: `$${TIERS.plus.priceMonthly}/mo unless you cancel beforehand. You can cancel in 1 click from the billing portal.` },
                 ].map((step, i) => (
                   <li key={i} className="flex items-start gap-4">
                     <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold shrink-0">
