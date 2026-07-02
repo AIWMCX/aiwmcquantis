@@ -99,6 +99,20 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Viral Posts',
     description: 'Library of viral marketing posts for founders, investors, and operators built with Quantis.',
   },
+  // Competitive comparison pages — each carries its own "Quantis vs …"
+  // title so the crawler and the F8-hardened SEO gate see the same intent.
+  '/vs/liveplan': {
+    title: 'Quantis vs LivePlan — Which financial validator wins?',
+    description: 'Side-by-side: Quantis (95,500 benchmarks + Monte Carlo) vs LivePlan for stress-testing a business idea in 90 seconds.',
+  },
+  '/vs/upmetrics': {
+    title: 'Quantis vs Upmetrics — 90-second financial pre-mortem',
+    description: 'Side-by-side: Quantis vs Upmetrics for founders who need a defensible unit-economics model before spending capital.',
+  },
+  '/vs/bizplanr': {
+    title: 'Quantis vs Bizplanr — Deterministic engine vs AI plan writer',
+    description: 'Side-by-side: Quantis (deterministic engine + Monte Carlo + RVCE) vs Bizplanr for pre-launch financial validation.',
+  },
   // Auth / transactional — noIndex
   '/auth': { title: 'Sign In', description: 'Sign in or create your AIWMC Quantis account.', noIndex: true },
   '/reset-password': { title: 'Reset Password', description: 'Reset your AIWMC Quantis password.', noIndex: true },

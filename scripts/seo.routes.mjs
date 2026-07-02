@@ -20,11 +20,11 @@ export const PUBLIC_ROUTES = [
   { path: "/app",             title: "Quantis",
     must: ["analysis"] },
   { path: "/how-it-works",    title: "Quantis" },
-  { path: "/use-cases",       title: "Quantis" },
+  { path: "/use-cases",       title: "Use Cases" },
   { path: "/pricing",         title: "Pricing",
     must: ["Free", "$17", "Plus", "$49", "Pro"] },
   { path: "/methodology",     title: "Methodology" },
-  { path: "/examples",        title: "Examples" },
+  { path: "/examples",        title: "Example" },
   { path: "/blog",            title: "Blog" },
   { path: "/risk-gallery",    title: "Risk" },
   { path: "/leaderboard",     title: "Leaderboard" },
@@ -64,7 +64,7 @@ export const PUBLIC_ROUTES = [
   ].map((slug) => ({ path: `/examples/${slug}`, title: "AIWMC Quantis" })),
 
   // ---- 11 blog posts --------------------------------------------------------
-  { path: "/blog/how-to-stress-test-your-startup",        title: "Stress-Test" },
+  { path: "/blog/how-to-stress-test-your-startup",        title: "Stress Test" },
   { path: "/blog/startup-validation-checklist",            title: "Validation Checklist" },
   { path: "/blog/ai-vs-spreadsheets-startup-planning",     title: "Spreadsheets" },
   { path: "/blog/validate-startup-idea-using-ai",          title: "Validate" },
