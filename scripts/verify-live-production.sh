@@ -26,9 +26,8 @@
 #   - robots.txt unreachable
 #   - an unknown path NOT returning a real 404 (soft-404 regression)
 #
-# The $49/Pro-in-bundle check runs and logs but is currently NON-FATAL —
-# see the "KNOWN FLAKY" comment at that check for why (unexplained
-# GH-Actions-vs-residential content discrepancy, still under investigation).
+# The $49/Pro-in-bundle check is fatal like everything else — see the comment
+# at that check for the SIGPIPE/pipefail bug that used to make it flaky.
 #
 # Usage: bash scripts/verify-live-production.sh
 # No secrets required — this only reads public HTTP responses.
@@ -102,7 +101,7 @@ for route in "${ROUTES[@]}"; do
     note_ok "$route canonical OK ($canonical)"
   fi
 
-  if printf '%s' "$html" | grep -q '7-Layer'; then
+  if grep -q '7-Layer' <<< "$html"; then
     note_fail "$route contains the stale \"7-Layer\" string"
   fi
 done
@@ -145,29 +144,28 @@ echo
 # in the page a real user's browser renders" check needs a JS-executing
 # fetch — Puppeteer/Playwright — and belongs in a heavier, less frequent job
 # if that ever becomes worth adding).
-# KNOWN FLAKY — investigated 2026-07-02, deliberately non-fatal for now.
-# This check has failed on 2 of 2 real GH-Actions runs so far while the
+# RESOLVED 2026-07-02: this failed on 3 of 3 real GH-Actions runs while the
 # identical URL, fetched independently via PowerShell from a residential
-# connection, passed 3/3 with $49 clearly present at a real byte offset.
-# Ruled out before demoting this to a warning: CDN propagation timing
-# (re-triggered minutes apart, same result); truncated/garbled transfer
-# (--compressed added, byte count now matches expected size within ~5
-# bytes of a locally-saved copy of the identical content); a bash/grep
-# bug (the exact variable-capture + printf + grep pipeline was tested
-# locally against a file proven to contain the string and passed). What's
-# NOT yet ruled out: GitHub Actions runners use well-known public IP
-# ranges, and if there is ANY bot-detection/WAF layer in front of this
-# domain (this stack has a `bot-detection` edge function) that serves
-# different content to recognized cloud/CI IP ranges, that would explain
-# a byte-size-similar but content-different response with zero other
-# symptoms. Not confirmed — flagged here so the next person debugging
-# this doesn't start from zero. Left non-fatal deliberately: the core
-# SEO-permanence checks above (uniqueness, canonicals, no stale content,
-# real 404s) are the actual regression classes from tonight and are
-# passing solidly; blocking the whole monitor on this secondary,
-# harder-to-diagnose check would make the WHOLE thing untrustworthy over
-# one still-open question about one supplementary signal.
-echo "-- Pro/\$49 present in the shipped JS bundle (data wasn't dropped at build) [non-fatal] --"
+# connection, passed 3/3 with $49 clearly present. That pointed at network/
+# WAF/CDN causes (IP-range bot detection, edge-cache staleness) and none of
+# those panned out — headers off this domain never show any mitigation/
+# challenge markers, and a curl-User-Agent fetch from residential returns
+# byte-identical content to a browser UA. Pulling the actual GH-Actions job
+# logs (via the Actions API) showed the real cause on all 3 failing runs:
+#   scripts/verify-live-production.sh: line 152: printf: write error: Broken pipe
+# `printf '%s' "$bundle_js" | grep -q '\$49'` — grep -q exits the instant it
+# finds a match, closing its read end while printf is still mid-write of an
+# ~890KB string; printf gets SIGPIPE and returns non-zero. Under `set -o
+# pipefail` that makes the WHOLE pipeline report failure even though grep
+# genuinely found the match, so the check fell through to "missing $49 or
+# Pro" every time — 100% deterministic, nothing to do with what production
+# served. It never reproduced via the PowerShell probe because that probe
+# used -match, not this printf-into-grep-q pipeline, so it was testing a
+# different code path than the one that was actually broken. Fixed by using
+# a here-string (`grep -q ... <<< "$var"`) instead of `printf | grep -q`,
+# which doesn't fork a separate writer process that grep's early exit can
+# SIGPIPE. Fatal again now that the cause is understood and fixed.
+echo "-- Pro/\$49 present in the shipped JS bundle (data wasn't dropped at build) --"
 home_html=$(curl -sS --compressed -m 15 "$ORIGIN/" 2>/dev/null)
 bundle_path=$(printf '%s' "$home_html" | grep -oE 'src="/assets/index-[^"]+\.js"' | head -1 | sed -E 's/src="(.*)"/\1/')
 if [[ -z "$bundle_path" ]]; then
@@ -175,14 +173,14 @@ if [[ -z "$bundle_path" ]]; then
 else
   bundle_js=$(curl -sS --compressed -m 30 "$ORIGIN$bundle_path" 2>/dev/null)
   bundle_size=${#bundle_js}
-  bundle_sample=$(printf '%s' "$bundle_js" | head -c 80)
+  bundle_sample=$(head -c 80 <<< "$bundle_js")
   echo "  (fetched $bundle_path — $bundle_size bytes decoded; starts with: ${bundle_sample}...)"
   if [[ "$bundle_size" -lt 50000 ]]; then
-    echo "  ⚠ bundle fetch looks truncated/broken ($bundle_size bytes) — not counted against pass/fail"
-  elif printf '%s' "$bundle_js" | grep -q '\$49' && printf '%s' "$bundle_js" | grep -q 'Pro'; then
+    note_fail "bundle fetch looks truncated/broken ($bundle_size bytes)"
+  elif grep -q '\$49' <<< "$bundle_js" && grep -q 'Pro' <<< "$bundle_js"; then
     note_ok "shipped bundle ($bundle_path) contains \$49 and Pro"
   else
-    echo "  ⚠ shipped bundle missing \$49 or Pro per this check — KNOWN FLAKY, see comment above. Not counted against pass/fail. Verify manually before treating as a real regression."
+    note_fail "shipped bundle missing \$49 or Pro — pricing data may be broken"
   fi
 fi
 echo
