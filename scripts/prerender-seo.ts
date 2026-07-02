@@ -127,13 +127,20 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
   // leak through, if it re-appears in the template later.
   const ogSlug = path === '/' ? 'home' : path.slice(1).replace(/\//g, '-');
   const ogImageUrl = `${BASE_URL}/og-image.png?r=${encodeURIComponent(ogSlug)}`;
+  // BUG FIXED 2026-07-02: function replacers do NOT interpret $1/$2 as
+  // backreferences — that substitution only happens for STRING replacement
+  // patterns. Passing a function meant `$1${ogImageUrl}$2` was returned and
+  // inserted LITERALLY, corrupting every route's <head> with visible
+  // "$1https://...og-image.png?r=home$2" text above the rendered page.
+  // Fix: consume the captured groups as the function's own arguments
+  // instead of referencing $1/$2 syntax.
   html = html.replace(
     /(<meta\s+property="og:image"\s+content=")[^"]+(")/g,
-    () => `$1${ogImageUrl}$2`,
+    (_match, open: string, close: string) => `${open}${ogImageUrl}${close}`,
   );
   html = html.replace(
     /(<meta\s+name="twitter:image"\s+content=")[^"]+(")/g,
-    () => `$1${ogImageUrl}$2`,
+    (_match, open: string, close: string) => `${open}${ogImageUrl}${close}`,
   );
 
   // Inject canonical + og:url + a per-route WebPage JSON-LD block immediately
