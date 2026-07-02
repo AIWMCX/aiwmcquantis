@@ -50,10 +50,12 @@ function parseRouteMeta(): Record<string, RouteMeta> {
   const meta: Record<string, RouteMeta> = {};
 
   // Match: '/path': { title: '...', description: '...', noIndex: true },
-  // Handles both single-line and multi-line entries; \1 captures the quote so
-  // apostrophes inside titles (e.g. What\'s New) don't terminate early.
+  // The path char class now includes `/` so multi-segment paths
+  // (`/vs/liveplan`, `/blog/post-slug`) are captured — the original
+  // `[a-z0-9-]*` only matched a single segment and silently dropped every
+  // `/vs/*` entry, causing prerender-seo to fall through to slugTitle().
   const entryRe =
-    /'(\/[a-z0-9-]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
+    /'(\/[a-z0-9\-\/]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
   let m: RegExpExecArray | null;
   while ((m = entryRe.exec(block)) !== null) {
     meta[m[1]] = {
