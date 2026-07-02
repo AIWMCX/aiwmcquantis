@@ -30,6 +30,7 @@
 /blog/coffee-shop-startup-costs-by-city
 /blog/food-truck-profit-calculator
 /blog/how-to-validate-restaurant-idea
+/blog/business-validation-for-financial-clients
 /examples/coffee-shop-denver
 /examples/saas-project-management
 /examples/restaurant-miami

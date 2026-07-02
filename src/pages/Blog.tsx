@@ -115,6 +115,15 @@ export const BLOG_ARTICLES: BlogArticle[] = [
     category: 'Validation',
     keywords: ['validate restaurant idea', 'restaurant business plan', 'restaurant profit margin', 'restaurant feasibility', 'restaurant startup costs', 'restaurant financial analysis'],
   },
+  {
+    slug: 'business-validation-for-financial-clients',
+    title: 'Business Validation for Financial Clients Explained',
+    description: 'What KYB actually requires: beneficial ownership mapping, risk-tiered monitoring, and the documentation gaps that produce AML fines. A compliance-officer framework for validating business clients.',
+    date: '2026-07-02',
+    readTime: '11 min read',
+    category: 'Compliance',
+    keywords: ['business validation for financial clients', 'KYB', 'know your business', 'beneficial ownership verification', 'AML compliance', 'financial client validation process', 'enhanced due diligence'],
+  },
 ];
 
 export default function Blog() {
