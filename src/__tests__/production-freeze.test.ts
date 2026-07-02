@@ -185,6 +185,66 @@ describe('T4a: only canonical Quantis tier prices ($0/$17/$49) in source config'
 });
 
 // ============================================================================
+// T4c — Doc Studio template-count guard: the canonical count is 10.
+// The "12" era keeps resurrecting: b2c2617a fixed marketing copy + the DB
+// seed, then a live screenshot on 2026-07-02 caught "12 documents,
+// auto-written" still shipping from THREE more surfaces (paywall i18n,
+// tier-spec paywall trigger, HowItWorks). This guard scans every user-facing
+// source file recursively so no new surface can reintroduce the stale count.
+// ============================================================================
+describe('T4c: Doc Studio template count is 10 everywhere (never 12)', () => {
+  // Any of these patterns on a Quantis surface means the stale count is back.
+  const STALE_COUNT_PATTERNS = [
+    /12\+?\s*(professional\s+)?templates/i,
+    /12\+?\s*documents/i,
+    /\b12\s+doc\s+templates/i,
+  ];
+
+  function walk(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        // Skip test dirs (this file mentions the banned strings) and vendored code
+        if (/__tests__|node_modules|\.git/.test(entry.name)) continue;
+        walk(rel, out);
+      } else if (/\.(tsx?|json)$/.test(entry.name) && !/\.test\.|\.spec\./.test(entry.name)) {
+        out.push(rel);
+      }
+    }
+    return out;
+  }
+
+  it('DOC_TEMPLATE_COUNT canonical constant is 10', () => {
+    const facts = readFileSync(join(ROOT, 'src/config/canonical-facts.ts'), 'utf8');
+    expect(facts).toMatch(/DOC_TEMPLATE_COUNT\s*=\s*10\b/);
+  });
+
+  it('no source file under src/ carries a "12 templates/documents" claim', () => {
+    const files = walk('src');
+    const offenders: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      for (const rx of STALE_COUNT_PATTERNS) {
+        if (rx.test(src)) offenders.push(`${f} matches ${rx}`);
+      }
+    }
+    expect(offenders, `Stale template count found:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('edge functions carry no "12 templates/documents" claim either', () => {
+    const files = walk('supabase/functions');
+    const offenders: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      for (const rx of STALE_COUNT_PATTERNS) {
+        if (rx.test(src)) offenders.push(`${f} matches ${rx}`);
+      }
+    }
+    expect(offenders, `Stale template count found:\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
+// ============================================================================
 // T4b — Forged entitlement guard: authoritative test must exist
 // stripe-webhook-matrix.test.ts already tests forged plan payloads.
 // This guard asserts the test cannot be deleted without CI catching it.
