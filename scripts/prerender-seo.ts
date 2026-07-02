@@ -55,7 +55,7 @@ function parseRouteMeta(): Record<string, RouteMeta> {
   // `[a-z0-9-]*` only matched a single segment and silently dropped every
   // `/vs/*` entry, causing prerender-seo to fall through to slugTitle().
   const entryRe =
-    /'(\/[a-z0-9\-\/]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
+    /'(\/[a-z0-9\-/]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
   let m: RegExpExecArray | null;
   while ((m = entryRe.exec(block)) !== null) {
     meta[m[1]] = {
