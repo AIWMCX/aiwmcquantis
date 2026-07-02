@@ -293,3 +293,61 @@ describe('T5: test suite floor', () => {
     expect(matches.length).toBeGreaterThanOrEqual(25);
   });
 });
+
+// ============================================================================
+// T6 — QOC shadow-mode guard (docs/QOC_MIGRATION_PLAN.md, Stage 1)
+// analyze-business fires a parallel, non-blocking call to qoc-orchestrate so
+// real production data accumulates for the QOC migration's parity analysis.
+// This guard is a STATIC structural check — it cannot prove runtime behavior,
+// but it can prove the source can't do the one thing that must never happen:
+// let a shadow-mode failure delay or break the real user response. If this
+// guard ever fails, someone made the shadow call blocking or unguarded —
+// stop and fix it before it ships, don't weaken the assertion.
+// ============================================================================
+describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
+  const src = readFileSync(
+    join(ROOT, 'supabase/functions/analyze-business/index.ts'),
+    'utf8',
+  );
+
+  it('the shadow-mode block exists and references the migration plan', () => {
+    expect(src).toContain('QOC Shadow Mode');
+    expect(src).toContain('QOC_MIGRATION_PLAN.md');
+    expect(src).toContain("supabaseService.functions");
+    expect(src).toContain("'qoc-orchestrate'");
+  });
+
+  it('the shadow invoke is never awaited before the final response is built', () => {
+    // Isolate the shadow-mode block (between its start marker and the final
+    // `return new Response` that ships wirePayload to the user).
+    const start = src.indexOf('QOC Shadow Mode');
+    const responseMarker = 'success: true, data: wirePayload';
+    const end = src.indexOf(responseMarker, start);
+    expect(start, 'shadow-mode block not found').toBeGreaterThan(-1);
+    expect(end, 'final wirePayload response not found after shadow block').toBeGreaterThan(start);
+    const block = src.slice(start, end);
+    // The shadow invoke promise must never be awaited directly — only handed
+    // to EdgeRuntime.waitUntil (background) or left to run via .then/.catch.
+    expect(block).not.toMatch(/await\s+shadowInvoke/);
+    expect(block).toContain('EdgeRuntime');
+    expect(block).toContain('waitUntil');
+  });
+
+  it('the shadow-mode setup is wrapped in try/catch so it cannot throw into the request', () => {
+    const start = src.indexOf('QOC Shadow Mode');
+    const responseMarker = 'success: true, data: wirePayload';
+    const end = src.indexOf(responseMarker, start);
+    const block = src.slice(start, end);
+    // The comment header alone runs ~700 chars; assert structurally within
+    // the whole isolated block rather than a fixed-size window.
+    expect(block).toMatch(/try\s*\{/);
+    expect(block).toMatch(/\}\s*catch\s*\(shadowSetupErr\)/);
+  });
+
+  it('the shadow invoke has its own .catch so a rejected promise cannot become an unhandled rejection', () => {
+    const start = src.indexOf('QOC Shadow Mode');
+    const end = src.indexOf('EdgeRuntime', start);
+    const block = src.slice(start, end);
+    expect(block).toMatch(/\.catch\(/);
+  });
+});
