@@ -77,15 +77,15 @@ for (const r of PUBLIC_ROUTES) {
   note(html, `MISSING: no index.html emitted for ${r.path}`, SKIP_MISSING);
   if (!html) continue;
 
-  // In SKIP_MISSING mode (partial prerender via prerender-seo.ts) the body is
-  // the SPA shell — title/must[] checks depend on registry markers that may
-  // not match prerender-seo's parsed RouteSEO titles, AND body-content `must`
-  // strings won't be present because the SPA hasn't rendered. Downgrade to
-  // warnings — only the full-Puppeteer build:prod proves real content.
+  // HEAD checks (title, canonical, og:url, description) are stamped by
+  // prerender-seo.ts even in partial-prerender / CI mode — those are the
+  // ones the crawler actually reads, so they must HARD-FAIL always.
+  // BODY-content `must[]` strings depend on the SPA having rendered, which
+  // only happens in the full-Puppeteer build:prod. Body checks stay as
+  // warnings in SKIP_MISSING mode; head checks do not.
   if (r.title) {
     note(titleOf(html).includes(r.title),
-      `TITLE: ${r.path} — <title> should contain "${r.title}", got "${titleOf(html).slice(0, 80)}"`,
-      SKIP_MISSING);
+      `TITLE: ${r.path} — <title> should contain "${r.title}", got "${titleOf(html).slice(0, 80)}"`);
   }
   for (const s of (r.must || [])) {
     note(html.includes(s),
@@ -126,21 +126,24 @@ for (const r of PUBLIC_ROUTES) {
 }
 
 // NOTE on head checks below: `prerender-seo.ts` injects per-route <head> tags
-// even though the <body> remains the SPA shell. So the head checks below
-// validate the head — but in SKIP_MISSING mode all body/head deviations are
-// warnings only, because partial-prerender output is incomplete. The full
-// Puppeteer build:prod is what enforces hard correctness.
+// on every emitted route, including in CI (partial-prerender) mode. So the
+// head IS canonical and MUST match — every head check is a HARD FAIL, even
+// with SKIP_MISSING=1. Only body-content (must[]) and route-emission
+// (MISSING) checks may downgrade to warnings without Puppeteer.
+// This closes F8 from the 2026-07-01 audit: SKIP_MISSING used to downgrade
+// canonicals, og:url, descriptions, and sitemap entries to warnings — every
+// SEO tripwire the freeze prompt built was quietly fail-open in CI.
 
 // --- 3a: every emitted route must have a self-referencing absolute canonical -
 // The historical canonical-collapse bug consolidated the whole site to /. This
 // guard ensures every route's <link rel="canonical"> points to its own
-// absolute ORIGIN-prefixed URL.
+// absolute ORIGIN-prefixed URL. HARD FAIL in every mode.
 for (const r of PUBLIC_ROUTES) {
   const html = readRoute(r.path);
   if (!html) continue;
   const canon = canonicalOf(html);
   if (!canon) {
-    note(false, `CANONICAL_MISSING: ${r.path} has no <link rel="canonical">`, SKIP_MISSING);
+    note(false, `CANONICAL_MISSING: ${r.path} has no <link rel="canonical">`);
     continue;
   }
   const expected = `${ORIGIN}${r.path}`;
@@ -148,24 +151,22 @@ for (const r of PUBLIC_ROUTES) {
   const valid = r.path === "/"
     ? (canon === ORIGIN || canon === `${ORIGIN}/`)
     : canon === expected;
-  // In SKIP_MISSING mode, treat wrong canonicals as warnings — the head may
-  // not yet be injected on every route (depends on which prerender ran).
   note(valid,
-    `CANONICAL_WRONG: ${r.path} canonical is "${canon}", expected "${expected}"`, SKIP_MISSING);
+    `CANONICAL_WRONG: ${r.path} canonical is "${canon}", expected "${expected}"`);
 }
 
-// --- 3b: og:url must match canonical (drift guard) ---------------------------
+// --- 3b: og:url must match canonical (drift guard) — HARD FAIL --------------
 for (const r of PUBLIC_ROUTES) {
   const html = readRoute(r.path);
   if (!html) continue;
   const canon = canonicalOf(html);
   const og = ogUrlOf(html);
-  if (!canon || !og) continue; // covered by 3a / N/A on shell pages
+  if (!canon || !og) continue; // covered by 3a
   note(og === canon,
-    `OG_URL_MISMATCH: ${r.path} og:url="${og}" but canonical="${canon}" — must match`, SKIP_MISSING);
+    `OG_URL_MISMATCH: ${r.path} og:url="${og}" but canonical="${canon}" — must match`);
 }
 
-// --- 5a: unique meta description per route -----------------------------------
+// --- 5a: unique meta description per route — HARD FAIL ----------------------
 // Duplicate descriptions tell crawlers "these are the same page" and collapse
 // indexing. This was the same root failure mode as duplicate <title>.
 const seenDescs = new Map();
@@ -174,28 +175,29 @@ for (const r of PUBLIC_ROUTES) {
   if (!html) continue;
   const desc = descriptionOf(html);
   if (!desc) {
-    note(false, `DESC_MISSING: ${r.path} has no <meta name="description">`, SKIP_MISSING);
+    note(false, `DESC_MISSING: ${r.path} has no <meta name="description">`);
     continue;
   }
   if (seenDescs.has(desc)) {
     note(false,
-      `DUPLICATE_DESC: ${r.path} shares its meta description with ${seenDescs.get(desc)} — crawlers will collapse these as one page`,
-      SKIP_MISSING);
+      `DUPLICATE_DESC: ${r.path} shares its meta description with ${seenDescs.get(desc)} — crawlers will collapse these as one page`);
   } else {
     seenDescs.set(desc, r.path);
   }
 }
 
-// --- 5: sitemap completeness -------------------------------------------------
+// --- 5: sitemap completeness — HARD FAIL ------------------------------------
+// generate-sitemap.mjs runs in build and always emits dist/sitemap.xml,
+// so any missing route in it is a real regression, not a partial-prerender
+// artefact.
 const sitemapPath = path.join(DIST, "sitemap.xml");
 if (!fs.existsSync(sitemapPath)) {
-  // Sitemap is generated by build:prod — warn only in SKIP_MISSING mode.
-  note(false, "MISSING: dist/sitemap.xml", SKIP_MISSING);
+  note(false, "MISSING: dist/sitemap.xml");
 } else {
   const sitemap = fs.readFileSync(sitemapPath, "utf8");
   for (const r of PUBLIC_ROUTES) {
     const url = `${ORIGIN}${r.path === "/" ? "/" : r.path}`;
-    note(sitemap.includes(url), `SITEMAP: missing ${url}`, SKIP_MISSING);
+    note(sitemap.includes(url), `SITEMAP: missing ${url}`);
   }
 }
 
