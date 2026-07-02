@@ -173,7 +173,7 @@ const TOOLS = [
   {
     icon: FileText,
     title: 'Document Studio',
-    desc: '12+ professional templates — executive summary, investor snapshot, financial forecast, business plan, NDA, partnership agreement — auto-populated from your analysis. PDF and DOCX export with custom branding.',
+    desc: '10 professional templates — executive summary, investor snapshot, financial forecast, business plan, NDA, partnership agreement — auto-populated from your analysis. PDF and DOCX export with custom branding.',
     tier: 'Plus / Pro',
   },
   {
