@@ -245,6 +245,51 @@ describe('T4c: Doc Studio template count is 10 everywhere (never 12)', () => {
 });
 
 // ============================================================================
+// T7 — Pro checkout schema guard: 2026-07-02, a real customer completed a
+// live $49/mo Stripe checkout and the app never granted them Pro. Root
+// cause: public.subscriptions' valid_plan CHECK constraint only allowed
+// ('free','plus','enterprise') — 'pro' was never added — so every Pro
+// checkout's DB write was silently rejected regardless of whether the
+// Stripe webhook itself was delivered correctly. Separately,
+// provision_pro_features()/mark_subscription_canceled() were defined in a
+// migration that never actually applied in production (SUPABASE_DB_PASSWORD
+// missing from GH Actions secrets — the same root cause as the broader
+// deploy-freeze incident). This is a SOURCE-level guard only: it proves the
+// fix migration exists and mentions 'pro' in the constraint text. It cannot
+// prove the migration actually APPLIED in production — that gap is exactly
+// what silently broke this feature for however long it was broken, and is
+// why scripts/verify-live-production.sh (or a future billing-specific
+// extension of it) is the load-bearing check, not this test.
+// ============================================================================
+describe('T7: Pro checkout schema fix is present in migrations (source-level only)', () => {
+  function findMigrationsContaining(needle: string): string[] {
+    const dir = join(ROOT, 'supabase/migrations');
+    const hits: string[] = [];
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.sql')) continue;
+      const src = readFileSync(join(dir, f), 'utf8');
+      if (src.includes(needle)) hits.push(f);
+    }
+    return hits;
+  }
+
+  it('a migration widens valid_plan to include \'pro\'', () => {
+    const hits = findMigrationsContaining("ARRAY['free'::text, 'plus'::text, 'pro'::text");
+    expect(hits.length, 'No migration found that adds \'pro\' to the valid_plan constraint').toBeGreaterThan(0);
+  });
+
+  it('a migration defines provision_pro_features standalone (no enforce_white_label_pro dependency)', () => {
+    const hits = findMigrationsContaining('CREATE OR REPLACE FUNCTION public.provision_pro_features');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('a migration defines mark_subscription_canceled', () => {
+    const hits = findMigrationsContaining('CREATE OR REPLACE FUNCTION public.mark_subscription_canceled');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
 // T4b — Forged entitlement guard: authoritative test must exist
 // stripe-webhook-matrix.test.ts already tests forged plan payloads.
 // This guard asserts the test cannot be deleted without CI catching it.
