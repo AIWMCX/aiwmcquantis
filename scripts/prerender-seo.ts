@@ -160,7 +160,18 @@ function main(): void {
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
 
-  let written = 0;
+  // Homepage: stamp dist/index.html in place so it gets the same canonical +
+  // og:url + WebPage JSON-LD as every other public route. The prior filter
+  // dropped '/' entirely, so the live homepage had no <link rel="canonical">.
+  // We use the pre-read `template` (line 147) so the read-then-overwrite is
+  // safe even though template and output share a path.
+  const homeMeta: RouteMeta = routeMeta['/'] ?? {
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESC,
+  };
+  writeFileSync(TEMPLATE_PATH, stampHtml(template, '/', homeMeta), 'utf8');
+
+  let written = 1; // homepage counted
   for (const path of urls) {
     const meta: RouteMeta = routeMeta[path] ?? {
       title: slugTitle(path),
