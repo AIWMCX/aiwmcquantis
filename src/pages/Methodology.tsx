@@ -367,7 +367,7 @@ export default function Methodology() {
           </div>
         </section>
 
-        {/* System Architecture Section — how QOC, the engine, and RVCE are wired */}
+        {/* System Architecture Section — how the engine, guardrails, and RVCE are wired */}
         <section className="space-y-6">
           <h2 className="text-2xl font-semibold border-b pb-2 flex items-center gap-2">
             <Workflow className="w-6 h-6 text-primary" />
@@ -375,17 +375,16 @@ export default function Methodology() {
           </h2>
           <div className="bg-card border border-border rounded-xl p-6 space-y-6">
             <p className="text-muted-foreground leading-relaxed">
-              A single analysis is not one AI call. It's a fixed pipeline of five stages, each with one job, each logging its own audit trace. Nothing downstream runs until upstream clears — so a request that fails early never reaches the parts of the system that cost money or time.
+              A single analysis is not one AI call. Your request passes through input validation, a deterministic engine, a monitored narration step, and — separately — an external reality check. Each stage has one job, and the parts that cost money don't run until the parts before them clear.
             </p>
 
             {/* Pipeline flow */}
-            <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-3 items-stretch">
+            <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3 items-stretch">
               {[
-                { icon: ShieldCheck, title: 'Preflight', desc: 'Validates the request, classifies the industry sector, and hard-blocks abusive or out-of-scope input — before anything costs money.' },
-                { icon: Layers, title: 'Dedupe', desc: 'Fingerprints the request. An identical or rapid-repeat submission returns the prior result instead of recomputing — zero cost, instant response.' },
-                { icon: Database, title: 'Deterministic Engine', desc: 'The only stage allowed to produce a financial number. Pure math against the benchmark library — no language model touches this step.' },
-                { icon: Bot, title: 'Narrate', desc: 'A language model writes the human-readable explanation of what the engine already calculated. It explains numbers; it cannot create or change them.' },
-                { icon: Search, title: 'RVCE Verify', desc: 'Cross-checks the engine\'s output against live, real-world sources and flags anything that looks off before you see it.' },
+                { icon: ShieldCheck, title: 'Input Guardrails', desc: 'Sanitizes and classifies the request, checks it against abuse and rate-limit thresholds, and rejects out-of-scope or injection-shaped input — before any AI call is made.' },
+                { icon: Database, title: 'Deterministic Engine', desc: 'The only step that produces a financial number. Pure math against the benchmark library (engine v2.0.0-precision) — no language model touches this step.' },
+                { icon: Bot, title: 'Narrate + Verify', desc: 'A language model explains what the engine calculated. Every dollar figure it writes is extracted and checked against the engine\'s own computed metrics before the report ships.' },
+                { icon: Search, title: 'RVCE Check', desc: 'A separate, independently-invoked pass that cross-references your results against current external sources and reports back honestly — including when it can\'t run.' },
               ].map((stage, i) => (
                 <div key={stage.title} className="p-4 bg-muted/50 rounded-lg border border-border/50 flex flex-col gap-2">
                   <div className="flex items-center gap-2 text-sm font-semibold">
@@ -398,14 +397,14 @@ export default function Methodology() {
               ))}
             </div>
 
-            {/* QOC explainer */}
+            {/* Guardrails explainer */}
             <div className="p-5 bg-muted/30 rounded-lg border border-border/50 space-y-3">
               <h4 className="font-semibold text-sm flex items-center gap-2">
-                <Workflow className="w-4 h-4 text-primary" />
-                QOC — the wiring, not the calculator
+                <ShieldCheck className="w-4 h-4 text-primary" />
+                What happens before the engine ever runs
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                The five stages above are coordinated by the <strong>Quantis Orchestration Core (QOC)</strong> — a governance layer that sits around the pipeline, not inside the math. QOC itself never computes a dollar figure. Its job is sequencing, cost control, and the audit trail: every stage a request passes through writes a timestamped trace (what ran, what it decided, what it cost) into a durable log. If preflight rejects a request or dedupe catches a repeat, the pipeline stops right there — the deterministic engine never runs, no language model is called, and the cost is $0. That's why a malformed or duplicate request is cheap: QOC refuses to let it reach the expensive stages.
+                Every idea and location you submit is sanitized and classified before it reaches any model. Length limits are enforced, known injection patterns and instruction-style phrasing are flagged, and requests are rate-limited per device and per session so a single actor can't hammer the system. If a request trips these checks, it's rejected right there — the deterministic engine never runs and no AI call is made, so the cost of a bad request is effectively zero. An automatic kill switch also watches the system's live error rate: if AI failures spike, AI-dependent narration is temporarily disabled and every user gets the deterministic result instead, rather than the system quietly serving broken output.
               </p>
             </div>
 
@@ -416,7 +415,7 @@ export default function Methodology() {
                 Why the engine is protected — the financial firewall
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Every projection, margin, and risk score you see traces back to the deterministic engine described in the section above — never to a language model's guess. This is enforced architecturally, not just by instruction: the narration stage receives the engine's completed output as read-only context and can only write prose around it. Any numeric field a narration response tries to introduce is stripped before it can reach your report. If the AI narration layer fails or times out entirely, the engine's numbers still ship — flagged as a degraded response rather than replaced with a fabricated one. The math either comes from the engine, or the report says so.
+                Every projection, margin, and risk score you see traces back to the deterministic engine described in the section above — never to a language model's guess. This is checked, not assumed: after the narration model writes your report, every dollar figure and percentage in that text is extracted and compared against the engine's own computed metrics, either as an exact match or within a tight tolerance of a real, derived value. Anything that doesn't trace back — an invented number — is flagged and the report's trust score drops accordingly. If the AI narration layer fails or times out entirely, the engine's numbers still ship on their own, clearly marked, rather than being replaced with a fabricated explanation.
               </p>
             </div>
 
@@ -427,15 +426,26 @@ export default function Methodology() {
                 RVCE (Reality Validation & Calibration Engine) — Layer 8
               </h4>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Benchmarks tell you what's typical. RVCE checks whether your specific numbers are still plausible against what's happening right now. After the engine finishes, RVCE takes your report's core metrics and cross-references each one against live, current web sources — industry reporting, market data, comparable public information — rather than relying solely on the static benchmark library. Each metric comes back tagged <strong>OK</strong> (consistent with current external evidence), <strong>WARN</strong> (outside the typical range found), or <strong>OUTLIER</strong> (materially different from what's currently observable). This is what catches a number that is internally consistent — correct math, plausible benchmark alignment — but has quietly drifted from reality since the benchmark data was last refreshed.
+                Benchmarks tell you what's typical. RVCE checks whether your specific numbers are still plausible against what's happening right now. It's invoked as its own independent step — separate from the engine and separate from narration — and cross-references your report's core metrics against live, current external sources rather than relying solely on the static benchmark library. Each metric comes back tagged <strong>OK</strong> (consistent with current external evidence), <strong>WARN</strong> (outside the typical range found), or <strong>OUTLIER</strong> (materially different from what's currently observable). This is what catches a number that is internally consistent — correct math, plausible benchmark alignment — but has quietly drifted from reality since the benchmark data was last refreshed.
               </p>
               <p className="text-xs text-muted-foreground leading-relaxed">
-                Two things by design: RVCE runs on infrastructure kept separate from the narration stage, so the model writing your report is never the same one checking it — a system shouldn't grade its own homework. And validation depth scales with plan tier: every analysis gets RVCE, paid tiers get a deeper cross-reference pass with more sources examined per metric. If RVCE can't reach its data sources or a user's session doesn't qualify for a full check, it says so honestly (a labeled "unavailable" or "limited" state) — it does not silently skip the check and present the report as fully verified when it wasn't.
+                Two things by design: RVCE runs on infrastructure kept separate from the narration stage, so the model writing your report is never the same one checking it — a system shouldn't grade its own homework. And RVCE is honest about its own limits — if it can't authenticate your session or can't reach its data sources, it reports that plainly (a labeled "skipped" or "unavailable" state with a specific reason) rather than silently omitting the check and letting the report look fully verified when it wasn't.
+              </p>
+            </div>
+
+            {/* Roadmap: QOC */}
+            <div className="p-5 bg-muted/30 rounded-lg border border-border/50 space-y-3">
+              <h4 className="font-semibold text-sm flex items-center gap-2">
+                <Layers className="w-4 h-4 text-amber-500" />
+                In development: a unified orchestration layer
+              </h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                The guardrails, engine, and narration firewall above run as coordinated but separately-implemented steps today. We're building the <strong>Quantis Orchestration Core (QOC)</strong> — a single coordination layer that formalizes this same sequence with a unified, queryable audit trace per request and request-level deduplication. QOC is built and deployed to a non-production environment for testing; it is not yet the path a live analysis runs through. We're listing it here, rather than describing it as already load-bearing, because that's the accurate state of the work — and we'll update this section the day that changes.
               </p>
             </div>
 
             <p className="text-xs text-muted-foreground/80 leading-relaxed italic">
-              What we're intentionally not publishing here: exact fraud/abuse detection logic, specific model vendors and per-call costs, and internal scoring thresholds. Those stay unpublished because describing them precisely would hand a roadmap to anyone trying to defeat the safeguards — not because the architecture itself is a secret. The stage order, the firewall, and RVCE's role are exactly as described above in every environment, including this one.
+              What we're intentionally not publishing here: exact abuse-detection patterns, specific model vendors and per-call costs, and internal scoring thresholds. Those stay unpublished because describing them precisely would hand a roadmap to anyone trying to defeat the safeguards — not because the architecture itself is a secret. Everything else above is exactly how a request is handled in production today.
             </p>
           </div>
         </section>
