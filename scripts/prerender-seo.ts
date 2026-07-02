@@ -116,6 +116,24 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
     );
   }
 
+  // Per-route og:image URL: same underlying self-hosted asset, unique URL
+  // per route (query-string carries the route slug). Crawlers key on the
+  // image URL when deciding whether two social cards are the same page, so
+  // this closes F13 (all routes sharing an identical og:image URL) while we
+  // keep visual generation as a future task. Also swaps in the self-hosted
+  // /og-image.png fallback everywhere the off-domain googleapis URL used to
+  // leak through, if it re-appears in the template later.
+  const ogSlug = path === '/' ? 'home' : path.slice(1).replace(/\//g, '-');
+  const ogImageUrl = `${BASE_URL}/og-image.png?r=${encodeURIComponent(ogSlug)}`;
+  html = html.replace(
+    /(<meta\s+property="og:image"\s+content=")[^"]+(")/g,
+    () => `$1${ogImageUrl}$2`,
+  );
+  html = html.replace(
+    /(<meta\s+name="twitter:image"\s+content=")[^"]+(")/g,
+    () => `$1${ogImageUrl}$2`,
+  );
+
   // Inject canonical + og:url + a per-route WebPage JSON-LD block immediately
   // after the (now per-route) <title>. The JSON-LD gives crawlers an explicit,
   // unique structured-data entity per URL — strengthens rich-result eligibility
@@ -128,6 +146,7 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
         name: meta.title,
         description: meta.description,
         url,
+        image: ogImageUrl,
         isPartOf: { '@type': 'WebSite', name: 'AIWMC Quantis', url: BASE_URL },
         publisher: { '@type': 'Organization', name: 'AIWMC LLC', url: BASE_URL },
       })}</script>`;

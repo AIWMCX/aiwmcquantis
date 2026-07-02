@@ -250,6 +250,12 @@ Decide.`;
       maxTokens: 200,
       temperature: 0.1,
       json: true,
+      // F14: system prompt is stable across every hybrid-validator invocation
+      // (line 219-226). First analysis in a 5-min window pays cache-write
+      // premium; every subsequent one bills the ~800-token system at ~10%
+      // of Opus input cost. Adopt-and-measure — the ledger row above will
+      // surface cache_creation vs cache_read once wired.
+      cacheSystem: true,
     });
 
     if (claude.ok && claude.parsed) {
