@@ -160,12 +160,46 @@ serve(async (req) => {
       );
     }
 
+    // ========== SSRF GUARD ==========
+    // Only allow fetching from this project's Supabase Storage endpoint.
+    // Blocks arbitrary URLs (internal metadata endpoints, localhost, private IPs,
+    // attacker-controlled hosts, non-http(s) schemes).
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(fileUrl);
+    } catch {
+      return new Response(
+        JSON.stringify({ error: "fileUrl must be a valid URL", code: "INVALID_URL" }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    const storageOrigin = new URL(supabaseUrl).origin;
+    const isAllowedHost = parsedUrl.origin === storageOrigin;
+    const isAllowedPath = parsedUrl.pathname.startsWith("/storage/v1/object/");
+    if (
+      (parsedUrl.protocol !== "https:" && parsedUrl.protocol !== "http:") ||
+      !isAllowedHost ||
+      !isAllowedPath
+    ) {
+      log.warn(`[parse-document] Blocked non-storage fileUrl for user=${userId}: ${parsedUrl.origin}${parsedUrl.pathname}`);
+      return new Response(
+        JSON.stringify({
+          error: "fileUrl must point to this project's document storage",
+          code: "UNTRUSTED_FILE_URL",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+    // ========== END SSRF GUARD ==========
+
     // ========== DOCUMENT SIZE LIMIT (100KB) ==========
     const MAX_DOCUMENT_SIZE = 102400; // 100KB limit
     log.info(`Parsing document: ${fileName} (${fileType})`);
 
     // Fetch the file with size check
-    const fileResponse = await fetch(fileUrl);
+    const fileResponse = await fetch(fileUrl, { redirect: "error" });
+
     if (!fileResponse.ok) {
       throw new Error(`Failed to fetch file: ${fileResponse.status}`);
     }
