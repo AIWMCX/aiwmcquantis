@@ -22,7 +22,7 @@
 #   - two routes sharing an identical body (duplicate-content)
 #   - a missing or non-self-referencing canonical
 #   - the "7-Layer" stale-content string reappearing anywhere
-#   - $49/Pro missing from the homepage or pricing body
+#   - $49/Pro missing from the shipped JS bundle (data dropped at build)
 #   - sitemap.xml unreachable or missing an expected route
 #   - robots.txt unreachable
 #   - an unknown path NOT returning a real 404 (soft-404 regression)
@@ -66,7 +66,7 @@ HOME_HASH=""
 body_hash_of() {
   # Strip hashed asset filenames (they legitimately differ build-to-build)
   # and whitespace before hashing, matching verify-visibility.mjs's method.
-  curl -sS -m 15 "$ORIGIN$1" 2>/dev/null \
+  curl -sS --compressed -m 15 "$ORIGIN$1" 2>/dev/null \
     | sed -n '/<body/,/<\/body>/p' \
     | sed -E 's/[a-f0-9]{8,}\.(js|css)//g' \
     | tr -s '[:space:]' ' ' \
@@ -75,7 +75,7 @@ body_hash_of() {
 
 echo "-- Route uniqueness + canonical checks --"
 for route in "${ROUTES[@]}"; do
-  code=$(curl -sS -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN$route" 2>/dev/null)
+  code=$(curl -sS --compressed -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN$route" 2>/dev/null)
   ROUTE_STATUS["$route"]="$code"
   if [[ "$code" != "200" ]]; then
     note_fail "$route returned HTTP $code (expected 200)"
@@ -86,7 +86,7 @@ for route in "${ROUTES[@]}"; do
   BODY_HASH["$route"]="$hash"
   [[ "$route" == "/" ]] && HOME_HASH="$hash"
 
-  html=$(curl -sS -m 15 "$ORIGIN$route" 2>/dev/null)
+  html=$(curl -sS --compressed -m 15 "$ORIGIN$route" 2>/dev/null)
   canonical=$(printf '%s' "$html" | grep -oE '<link rel="canonical" href="[^"]+"' | head -1 | sed -E 's/.*href="([^"]+)".*/\1/')
   expected_canonical="${ORIGIN}${route}"
   [[ "$route" == "/" ]] && expected_canonical="$ORIGIN/"
@@ -143,13 +143,29 @@ echo
 # fetch — Puppeteer/Playwright — and belongs in a heavier, less frequent job
 # if that ever becomes worth adding).
 echo "-- Pro/\$49 present in the shipped JS bundle (data wasn't dropped at build) --"
-home_html=$(curl -sS -m 15 "$ORIGIN/" 2>/dev/null)
+home_html=$(curl -sS --compressed -m 15 "$ORIGIN/" 2>/dev/null)
 bundle_path=$(printf '%s' "$home_html" | grep -oE 'src="/assets/index-[^"]+\.js"' | head -1 | sed -E 's/src="(.*)"/\1/')
 if [[ -z "$bundle_path" ]]; then
   note_fail "could not find the main JS bundle reference in the homepage HTML"
 else
-  bundle_js=$(curl -sS -m 20 "$ORIGIN$bundle_path" 2>/dev/null)
-  if printf '%s' "$bundle_js" | grep -q '\$49' && printf '%s' "$bundle_js" | grep -q 'Pro'; then
+  # --compressed is load-bearing here, not cosmetic: this bundle is typically
+  # ~800KB-1MB and Vercel's CDN serves it gzip/brotli-encoded. Without
+  # --compressed, curl doesn't advertise Accept-Encoding and (depending on
+  # CDN behavior) can end up with compressed bytes in the variable while grep
+  # silently searches binary garbage and finds nothing — a real bug this
+  # exact script shipped with once (caught same-day: two consecutive
+  # workflow_dispatch runs failed this exact check while three independent
+  # PowerShell/browser fetches of the identical URL passed 3/3 — the fetch
+  # method, not the site, was wrong). -w reports the real transfer size so a
+  # future truncated/garbled fetch shows up in the log instead of just
+  # "missing", and a >50KB floor distinguishes "fetch broke" from "content
+  # genuinely absent".
+  bundle_js=$(curl -sS --compressed -m 30 "$ORIGIN$bundle_path" 2>/dev/null)
+  bundle_size=${#bundle_js}
+  echo "  (fetched $bundle_path — $bundle_size bytes decoded)"
+  if [[ "$bundle_size" -lt 50000 ]]; then
+    note_fail "bundle fetch looks truncated/broken ($bundle_size bytes — expected several hundred KB); not a content-absence signal"
+  elif printf '%s' "$bundle_js" | grep -q '\$49' && printf '%s' "$bundle_js" | grep -q 'Pro'; then
     note_ok "shipped bundle ($bundle_path) contains \$49 and Pro"
   else
     note_fail "shipped bundle missing \$49 or Pro — pricing data may be broken"
@@ -158,15 +174,15 @@ fi
 echo
 
 echo "-- sitemap.xml + robots.txt reachability --"
-sitemap_code=$(curl -sS -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/sitemap.xml" 2>/dev/null)
+sitemap_code=$(curl -sS --compressed -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/sitemap.xml" 2>/dev/null)
 if [[ "$sitemap_code" == "200" ]]; then
-  url_count=$(curl -sS -m 15 "$ORIGIN/sitemap.xml" 2>/dev/null | grep -c '<url>')
+  url_count=$(curl -sS --compressed -m 15 "$ORIGIN/sitemap.xml" 2>/dev/null | grep -c '<url>')
   note_ok "sitemap.xml reachable, $url_count <url> entries"
   [[ "$url_count" -lt 40 ]] && note_fail "sitemap.xml has only $url_count entries — expected 40+"
 else
   note_fail "sitemap.xml returned HTTP $sitemap_code"
 fi
-robots_code=$(curl -sS -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/robots.txt" 2>/dev/null)
+robots_code=$(curl -sS --compressed -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/robots.txt" 2>/dev/null)
 if [[ "$robots_code" == "200" ]]; then
   note_ok "robots.txt reachable"
 else
@@ -175,7 +191,7 @@ fi
 echo
 
 echo "-- Real 404 (soft-404 regression class) --"
-notfound_code=$(curl -sS -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/this-route-does-not-exist-$(date +%s)" 2>/dev/null)
+notfound_code=$(curl -sS --compressed -o /dev/null -m 15 -w '%{http_code}' "$ORIGIN/this-route-does-not-exist-$(date +%s)" 2>/dev/null)
 if [[ "$notfound_code" == "404" ]]; then
   note_ok "unknown route correctly returns 404"
 else
