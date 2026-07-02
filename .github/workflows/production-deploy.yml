@@ -289,6 +289,14 @@ jobs:
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
             qoc-orchestrate
+            # ── Observability harnesses (admin dashboard reads their output) ─
+            # Missing from the list meant source changes to these functions
+            # never actually shipped. Confirmed 2026-07-02: after PR #4
+            # merged, every other function's ?health=1 returned the merge
+            # sha; run-tier-qa-harness returned 404 — never deployed via
+            # this workflow at all.
+            run-tier-qa-harness
+            run-accuracy-harness
           )
           # Functions that must be callable without a JWT (email confirm/unsubscribe links)
           NO_VERIFY_JWT_FNS="confirm-email-subscription"
