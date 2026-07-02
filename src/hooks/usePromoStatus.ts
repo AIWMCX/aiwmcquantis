@@ -49,7 +49,7 @@ export function usePromoStatus(promoCode: string = FOUNDER_PROMO_CODE): PromoSta
       return;
     }
     try {
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('promo_redemptions')
         .select('id')
         .eq('user_id', user.id)
