@@ -29,7 +29,15 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 };
 
-// -------- Canonical expected matrix (mirrors src/config/tiers.ts) --------
+// -------- Canonical expected matrix (LOCKED per canonical tier spec 2026-06-20) --------
+// Source of truth: quantis_canonical_tier_spec.md + src/config/tiers.ts +
+// supabase/functions/_shared/entitlements.ts. Any drift between these files is
+// a real regression; drift between this matrix and the spec is a HARNESS bug.
+// Historical: pre-2026-07-02 the harness confused BENCHMARK_COUNT (95,500) with
+// monteCarloScenarios (1,000 MC iteration count) — the tier spec is explicit
+// that these are DISTINCT and 95,500 is the benchmark corpus, not MC runs.
+// It also had free.analysesPerMonth=1 and plus.tamSamSom=false, both drifted
+// from the locked spec (Free is 5/mo, Plus DOES include TAM/SAM/SOM).
 const EXPECTED_FEATURES = {
   free: {
     depthQuick: true, depthFull: false, depthPro: false,
@@ -42,7 +50,7 @@ const EXPECTED_FEATURES = {
     depthQuick: true, depthFull: true, depthPro: false,
     preMortem: true, invoiceCapacity: true, documentStudio: true, aiDocIntelligence: true,
     customBranding: true, whiteLabel: false, unlimitedHistory: true, watermarkFree: true,
-    apiAccess: false, tamSamSom: false, pitchDeck: false, strategicRoadmap: false,
+    apiAccess: false, tamSamSom: true, pitchDeck: false, strategicRoadmap: false,
     fiveYearModel: false, actionPlan: true,
   },
   pro: {
@@ -55,9 +63,9 @@ const EXPECTED_FEATURES = {
 } as const;
 
 const EXPECTED_LIMITS = {
-  free: { analysesPerMonth: 1, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
-  plus: { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 36, monteCarloScenarios: 95_500, teamSeats: 1, templates: 10 },
-  pro:  { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 60, monteCarloScenarios: 95_500, teamSeats: 3, templates: 10 },
+  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
+  plus: { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 1, templates: 10 },
+  pro:  { analysesPerMonth: Number.POSITIVE_INFINITY, downloadsPerDay: Number.POSITIVE_INFINITY, projectionMonths: 60, monteCarloScenarios: 1_000, teamSeats: 3, templates: 10 },
 } as const;
 
 const EXPECTED_PRICES = {
