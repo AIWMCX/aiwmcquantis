@@ -9,15 +9,34 @@ permanent SEO-monitoring layer decoupled from the deploy pipeline (see
 **Ground truth as of writing (verify fresh before trusting — see "How to
 re-verify" at the bottom):**
 
+**CORRECTION (2026-07-02, same day):** the first version of this document
+reported "22 accounts in an active Plus trial" as a real growth signal and
+built a whole ranked recommendation around converting them. That number was
+wrong — it was a raw `COUNT(*)` that was never checked against the actual
+rows. Of the 22 `status='trialing'` subscription rows, **20 are
+`@quantis-e2e.test` accounts** (a reserved test TLD, all created within one
+13-minute window on 2026-06-05 — an automated test suite run, not
+signups), and **the other 2 are the founder's own accounts**
+(`beltovbogdan@gmail.com` / `jeltovbogdan@gmail.com`). Real trial count,
+verified: **0**. The user caught this by asking to see the actual names —
+exactly the "verify before trusting" discipline this document was supposed
+to model, applied to this document itself. See the corrected table below
+and the removed Rank 3 section.
+
 | Metric | Value |
 |---|---|
-| Analyses, ever | 53 |
-| Analyses, last 7 days | 8 |
+| Analyses, ever | 53 total — but 32 of those are the founder's own two accounts. **Non-founder analyses, ever, since the January 18 launch: 21.** |
+| Analyses, last 7 days | 8 (not yet re-split by founder-vs-other; treat as an upper bound) |
 | Confirmed paid subscriptions | 0 |
-| Accounts in active Plus trial | 22 (`status='trialing'`, `plan_id='plus'`) |
+| Accounts in a real (non-test, non-founder) Plus trial | **0** |
 | MRR | $0 |
 | Directory listings live | 11 of 46 tracked |
 | Directory listings not started, HIGH priority | includes Crunchbase (DR91), Capterra (DR90), G2 (DR83), GetApp (DR83), Wellfound (DR88), F6S (DR82), BetaList (DR73), TAAFT (DR77) |
+
+The corrected picture is starker than the original draft, not better: in
+~5.5 months since launch, 21 analyses have come from anyone other than the
+founder. That is the real traffic-term number this whole document's
+sequencing logic should be read against.
 
 This document does not repeat the multiplicative-zero framing from earlier
 tonight (traffic × conversion × retention — any zero term zeroes the
@@ -115,27 +134,18 @@ The fix isn't more automated posting, it's:
   earlier is resolved — sequences are reportedly already written, this is
   an unblock, not new work.
 
-### Rank 3 — Convert the 22 trials before chasing new signups
+### Rank 3 — REMOVED (was based on a bad number, see correction above)
 
-This is the highest-leverage number in the whole dataset and it's the one
-least discussed tonight: **22 people are currently inside a 14-day Plus
-trial.** Converting even a handful of those to paid is faster and cheaper
-than acquiring 22 new trial signups from scratch, and it's the first real
-signal on whether the product/pricing/onboarding actually converts once
-someone's in the door.
-
-Concrete moves, all bounded and low-effort:
-- Check whether there's an automated "trial ending soon" touchpoint email
-  (`send-lifecycle-email` exists in the function list — verify it's wired
-  to trial-expiry, not just welcome/onboarding).
-- Personally reach out to active trial users if the volume is small enough
-  to do by hand (it is — 22 is a number one person can act on individually
-  today, not a segment that needs automation to be worth touching).
-- The progress-bar UX fix shipped this session (removing the alarming
-  "taking longer than usual" warning on normal-length requests) directly
-  serves this: a trial user's first impression during their 14-day window
-  matters disproportionately, and that fix removes a real, screenshotted
-  point of friction from exactly that experience.
+The original Rank 3 ("convert the 22 trials before chasing new signups")
+is deleted rather than left in the numbering gap silently, because the
+reasoning it was built on doesn't exist — there are no real trial users to
+convert. What's still true and worth keeping from that section: the
+progress-bar UX fix shipped earlier this session (removing the alarming
+"taking longer than usual" warning on normal-length requests) is a real,
+already-shipped improvement to first-impression quality. It just isn't
+"serving 22 trial users" — it's serving whoever the next real visitor is,
+which, per the corrected numbers above, is a much rarer event than this
+document originally implied.
 
 ### Rank 4 — The consultant-repositioning idea (real, but sequence-gated)
 
@@ -191,15 +201,27 @@ This is the same discipline the SEO-permanence section of this session was
 built around — a status claim is only as good as when it was last verified.
 
 ```sql
--- analyses volume
-select count(*) as total, count(*) filter (where created_at > now() - interval '7 days') as last_7d
-from public.analyses;
+-- analyses volume, split out founder-vs-other (the split that got missed
+-- the first time this document was written — do not drop it in future
+-- re-verification, a raw COUNT(*) here is exactly how the "22 trials"
+-- error happened)
+select
+  count(*) as total,
+  count(*) filter (where u.email in ('beltovbogdan@gmail.com','jeltovbogdan@gmail.com')) as founder_rows,
+  count(*) filter (where u.email is null or u.email not in ('beltovbogdan@gmail.com','jeltovbogdan@gmail.com')) as non_founder_rows,
+  count(*) filter (where a.created_at > now() - interval '7 days') as last_7d
+from public.analyses a
+left join auth.users u on u.id = a.user_id;
 
--- trial/paid state
-select status, plan_id, count(*) as n
-from public.subscriptions
-where status in ('active', 'trialing')
-group by status, plan_id;
+-- trial/paid state — ALWAYS join to auth.users and inspect real emails
+-- before reporting a trial/subscription count as a growth signal. Exclude
+-- @quantis-e2e.test (reserved test TLD, RFC 2606) and the founder's own
+-- accounts, or you will reproduce the exact error corrected above.
+select s.user_id, u.email, s.plan_id, s.status, s.created_at, s.trial_ends_at
+from public.subscriptions s
+left join auth.users u on u.id = s.user_id
+where s.status in ('active', 'trialing')
+order by s.created_at desc;
 ```
 
 ```bash
