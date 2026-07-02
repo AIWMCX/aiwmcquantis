@@ -19,6 +19,12 @@
 const ANTHROPIC_API_KEY = Deno.env.get('ANTHROPIC_API_KEY');
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
+// Prompt-caching beta gate. When cacheSystem is true, this header is sent
+// and the system prompt is uploaded as a cache_control:ephemeral content
+// block — the same prompt reused within 5 minutes bills at ~10% of the
+// original input cost. Safe to send unconditionally; the API ignores the
+// beta header when no cache_control blocks are present.
+const ANTHROPIC_BETA = 'prompt-caching-2024-07-31';
 
 export type ClaudeModel =
   | 'claude-opus-4-5'
@@ -33,6 +39,16 @@ export interface ClaudeCallOptions {
   temperature?: number;
   /** When true, instructs Claude to return strict JSON and parses it. */
   json?: boolean;
+  /**
+   * When true, marks the system prompt as prompt-cache eligible. The FIRST
+   * call within a 5-min window pays a ~25% cache-write premium; subsequent
+   * calls with the SAME system prompt bill input at ~10% of normal.
+   * Use for hot paths that fan out multiple LLM calls sharing a stable
+   * system prompt (e.g. deterministicResult narration → variants → verify).
+   * See F14 from the 2026-07-01 audit — the ~5,400 duplicated input tokens
+   * per analysis identified there.
+   */
+  cacheSystem?: boolean;
 }
 
 export interface ClaudeCallResult<T = unknown> {
@@ -41,9 +57,21 @@ export interface ClaudeCallResult<T = unknown> {
   parsed?: T;
   inputTokens: number;
   outputTokens: number;
+  /** Cache-write tokens (billed at ~1.25x input cost). Undefined when caching off. */
+  cacheCreationTokens?: number;
+  /** Cache-read tokens (billed at ~0.10x input cost). Undefined when caching off. */
+  cacheReadTokens?: number;
   latencyMs: number;
   model: string;
   error?: string;
+}
+
+// Serialize the system prompt as either a raw string (legacy) or an
+// ephemeral-cached content block (F14). The Anthropic API accepts both;
+// only the array form supports cache_control.
+function buildSystemField(prompt: string, cache: boolean) {
+  if (!cache) return prompt;
+  return [{ type: 'text', text: prompt, cache_control: { type: 'ephemeral' } }];
 }
 
 export function isAnthropicConfigured(): boolean {
@@ -75,19 +103,22 @@ export async function callClaude<T = unknown>(
     ? `${opts.system}\n\nRespond with STRICT JSON only — no markdown fences, no prose.`
     : opts.system;
 
+  const headers: Record<string, string> = {
+    'x-api-key': ANTHROPIC_API_KEY,
+    'anthropic-version': ANTHROPIC_VERSION,
+    'content-type': 'application/json',
+  };
+  if (opts.cacheSystem) headers['anthropic-beta'] = ANTHROPIC_BETA;
+
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
-      headers: {
-        'x-api-key': ANTHROPIC_API_KEY,
-        'anthropic-version': ANTHROPIC_VERSION,
-        'content-type': 'application/json',
-      },
+      headers,
       body: JSON.stringify({
         model: opts.model,
         max_tokens: opts.maxTokens ?? 1024,
         temperature: opts.temperature ?? 0.2,
-        system: systemPrompt,
+        system: buildSystemField(systemPrompt, opts.cacheSystem === true),
         messages: [{ role: 'user', content: opts.user }],
       }),
     });
@@ -108,6 +139,12 @@ export async function callClaude<T = unknown>(
       data?.content?.[0]?.text?.toString().trim() ?? '';
     const inputTokens = Number(data?.usage?.input_tokens ?? 0);
     const outputTokens = Number(data?.usage?.output_tokens ?? 0);
+    const cacheCreationTokens = data?.usage?.cache_creation_input_tokens
+      ? Number(data.usage.cache_creation_input_tokens)
+      : undefined;
+    const cacheReadTokens = data?.usage?.cache_read_input_tokens
+      ? Number(data.usage.cache_read_input_tokens)
+      : undefined;
 
     let parsed: T | undefined;
     if (opts.json && text) {
@@ -115,14 +152,13 @@ export async function callClaude<T = unknown>(
         const cleaned = text.replace(/```json\s*|```\s*/g, '').trim();
         parsed = JSON.parse(cleaned) as T;
       } catch {
-        // Retry once with explicit instruction
+        // Retry once with explicit instruction. Note: the retry system
+        // prompt is different (appends the parse-fail hint), so it MUST
+        // NOT reuse the ephemeral cache breakpoint — a different prompt
+        // string cannot benefit from the earlier cache write anyway.
         const retry = await fetch(ANTHROPIC_URL, {
           method: 'POST',
-          headers: {
-            'x-api-key': ANTHROPIC_API_KEY,
-            'anthropic-version': ANTHROPIC_VERSION,
-            'content-type': 'application/json',
-          },
+          headers,
           body: JSON.stringify({
             model: opts.model,
             max_tokens: opts.maxTokens ?? 1024,
@@ -160,6 +196,8 @@ export async function callClaude<T = unknown>(
       parsed,
       inputTokens,
       outputTokens,
+      cacheCreationTokens,
+      cacheReadTokens,
       latencyMs,
       model: opts.model,
     };

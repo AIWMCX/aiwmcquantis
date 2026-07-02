@@ -7,7 +7,30 @@
   "trailingSlash": false,
 
   "rewrites": [
-    { "source": "/(.*)", "destination": "/index.html" }
+    { "source": "/app", "destination": "/index.html" },
+    { "source": "/app/(.*)", "destination": "/index.html" },
+    { "source": "/admin", "destination": "/index.html" },
+    { "source": "/admin/(.*)", "destination": "/index.html" },
+    { "source": "/settings/(.*)", "destination": "/index.html" },
+    { "source": "/dev/(.*)", "destination": "/index.html" },
+    { "source": "/share/(.*)", "destination": "/index.html" },
+    { "source": "/r/(.*)", "destination": "/index.html" },
+    { "source": "/auth", "destination": "/index.html" },
+    { "source": "/auth/(.*)", "destination": "/index.html" },
+    { "source": "/reset-password", "destination": "/index.html" },
+    { "source": "/email-confirmed", "destination": "/index.html" },
+    { "source": "/email-preferences", "destination": "/index.html" },
+    { "source": "/thank-you", "destination": "/index.html" },
+    { "source": "/trial", "destination": "/index.html" },
+    { "source": "/plus-settings", "destination": "/index.html" },
+    { "source": "/pro-settings", "destination": "/index.html" },
+    { "source": "/docs", "destination": "/index.html" },
+    { "source": "/connect", "destination": "/index.html" },
+    { "source": "/directory-tracker", "destination": "/index.html" },
+    { "source": "/quote", "destination": "/index.html" },
+    { "source": "/viral-content", "destination": "/index.html" },
+    { "source": "/viral-posts", "destination": "/index.html" },
+    { "source": "/__maintenance", "destination": "/index.html" }
   ],
 
   "headers": [

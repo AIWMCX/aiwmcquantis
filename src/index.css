@@ -111,14 +111,12 @@
     --border-default: var(--q-border-default);
     --shadow-glow: 0 0 0 3px rgba(59,130,246,0.3);
     
-    /* ── AIWMC BRAND COLORS (cross-product) ── */
-    --aiwmc-green: #8FFF2A;
-    --aiwmc-green-dark: #6ECC1A;
+    /* ── AIWMC BRAND COLORS (cross-product; Quantis-forbidden acid green removed) ── */
     --aiwmc-teal: #2DD4BF;
     --aiwmc-blue: #3B82F6;
     --aiwmc-black: #0A0A0A;
     --aiwmc-white: #F7F7F5;
-    
+
     /* ── TYPOGRAPHY TOKENS (AIWMC system) ── */
     --q-font-heading: 'Cabinet Grotesk', 'IBM Plex Sans', 'Sora', system-ui, sans-serif;
     --q-font-body: 'IBM Plex Sans', 'Cabinet Grotesk', 'DM Sans', system-ui, sans-serif;
@@ -210,14 +208,12 @@
     --q-accent-hover: #6BA3FF;
     --q-accent-pressed: #3A72D4;
     
-    /* ── AIWMC BRAND COLORS (cross-product) ── */
-    --aiwmc-green: #8FFF2A;
-    --aiwmc-green-dark: #6ECC1A;
+    /* ── AIWMC BRAND COLORS (cross-product; Quantis-forbidden acid green removed) ── */
     --aiwmc-teal: #2DD4BF;
     --aiwmc-blue: #3B82F6;
     --aiwmc-black: #0A0A0A;
     --aiwmc-white: #F7F7F5;
-    
+
     /* ── SEMANTIC STATUS COLORS ── */
     --q-status-green: #10B981;
     --q-status-green-light: #6EE7B7;

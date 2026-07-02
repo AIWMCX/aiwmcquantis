@@ -61,8 +61,11 @@ if [[ ${#FN_LIST[@]} -eq 0 ]]; then
   exit 0
 fi
 
-printf '%-35s %-15s %-15s %s\n' "FUNCTION" "SOURCE_VERSION" "LIVE_VERSION" "STATUS"
-printf '%s\n' "------------------------------------------------------------------------------------"
+printf '%-35s %-15s %-15s %-15s %s\n' "FUNCTION" "SOURCE_VERSION" "LIVE_VERSION" "LIVE_SHA" "STATUS"
+printf '%s\n' "---------------------------------------------------------------------------------------------------------"
+if [[ -n "${EXPECT_COMMIT_SHA:-}" ]]; then
+  echo "Expecting COMMIT_SHA=${EXPECT_COMMIT_SHA:0:8} on every function."
+fi
 
 fail=0
 for fn in "${FN_LIST[@]}"; do
@@ -99,14 +102,34 @@ for fn in "${FN_LIST[@]}"; do
     fail=1; continue
   fi
 
-  if [[ "$src_version" == "$live_version" ]]; then
-    sha_tag="${live_commit_sha:0:7}"
-    [[ -z "$sha_tag" ]] && sha_tag="(no-sha)"
-    printf '%-35s %-15s %-15s %s %s\n' "$fn" "$src_version" "$live_version" "OK" "$sha_tag"
-  else
-    printf '%-35s %-15s %-15s %s\n' "$fn" "$src_version" "$live_version" "STALE"
+  # PRIMARY fidelity check: live commit_sha == the SHA we just pushed.
+  # This is what makes "green CI" factually mean "the new code is answering",
+  # not "the deploy command exited 0". FUNCTION_VERSION is retained as the
+  # human-readable contract marker (bump per breaking change) — but a fresh
+  # deploy is provable only via the commit_sha comparison. Falls back to
+  # source-vs-live version match when EXPECT_COMMIT_SHA isn't provided
+  # (e.g. running the script locally against a shipped build).
+  status="OK"
+  reason=""
+  if [[ "$src_version" != "$live_version" ]]; then
+    status="STALE_VERSION"
+    reason="src=$src_version live=$live_version"
     fail=1
   fi
+  if [[ -n "${EXPECT_COMMIT_SHA:-}" ]]; then
+    if [[ -z "$live_commit_sha" ]]; then
+      status="NO_COMMIT_SHA"
+      reason="COMMIT_SHA env var not exposed to live function — deploy secret sync failed"
+      fail=1
+    elif [[ "$live_commit_sha" != "$EXPECT_COMMIT_SHA" ]]; then
+      status="STALE_SHA"
+      reason="live=${live_commit_sha:0:8} expected=${EXPECT_COMMIT_SHA:0:8}"
+      fail=1
+    fi
+  fi
+  sha_tag="${live_commit_sha:0:7}"
+  [[ -z "$sha_tag" ]] && sha_tag="(no-sha)"
+  printf '%-35s %-15s %-15s %-15s %s\n' "$fn" "$src_version" "$live_version" "$sha_tag" "$status${reason:+  ($reason)}"
 
 done
 

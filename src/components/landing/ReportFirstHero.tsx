@@ -329,7 +329,7 @@ export function ReportFirstHero() {
                 style={{ background: 'hsl(var(--primary))' }}
                 aria-hidden="true"
               />
-              7-Layer QSL safety
+              8-Layer QSL safety
             </li>
           </ul>
         </div>

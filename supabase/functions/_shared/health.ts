@@ -34,6 +34,14 @@ export interface HealthEnvelope {
   commit_sha: string | null;
 }
 
+// Captured at module-load time so `deployed_at` reflects the FIRST invocation
+// after (cold-start) deploy — not the moment the health probe was called. The
+// previous per-request `new Date()` made `deployed_at` a useless "now" value
+// that could never distinguish a fresh deploy from a stale one. commit_sha
+// (COMMIT_SHA env var, injected at deploy) is the load-bearing fidelity
+// signal now; `deployed_at` is the tiebreaker for humans reading a log.
+const MODULE_LOADED_AT = new Date().toISOString();
+
 export function maybeHealthResponse(
   req: Request,
   functionName: string,
@@ -47,7 +55,7 @@ export function maybeHealthResponse(
     ok: true,
     function: functionName,
     version,
-    deployed_at: new Date().toISOString(),
+    deployed_at: MODULE_LOADED_AT,
     commit_sha: Deno.env.get('COMMIT_SHA') ?? null,
   };
 

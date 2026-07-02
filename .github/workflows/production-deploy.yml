@@ -216,6 +216,15 @@ jobs:
           fi
           # TAVILY_API_KEY: optional search enhancement for RVCE
           if [ -n "$TAVILY_API_KEY" ]; then npx supabase secrets set TAVILY_API_KEY="$TAVILY_API_KEY" --project-ref "$PROJECT_REF"; fi
+          # COMMIT_SHA: the load-bearing deploy-fidelity signal. Every function's
+          # /?health=1 endpoint returns Deno.env.get('COMMIT_SHA'); verify-deploy.sh
+          # asserts it equals the SHA we just pushed. "CI green" now factually
+          # means "the new code is answering", not "the deploy exited 0".
+          PUSHED_SHA="${{ github.event.workflow_run.head_sha || github.sha }}"
+          if [ -n "$PUSHED_SHA" ]; then
+            npx supabase secrets set COMMIT_SHA="$PUSHED_SHA" --project-ref "$PROJECT_REF"
+            echo "✓ COMMIT_SHA synced to Supabase ($PUSHED_SHA)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           echo "Secret sync complete" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Deploy edge functions
@@ -336,14 +345,19 @@ jobs:
       # matches the constant in source. This is what makes "CI green" actually
       # mean "the new code is live", not "the deploy command exited 0".
       # See scripts/verify-deploy.sh.
-      - name: Verify deploy fidelity (live version == source version)
+      - name: Verify deploy fidelity (live commit_sha == pushed sha)
         env:
           PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
           SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          EXPECT_COMMIT_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           if [ -z "$PROJECT_REF" ] || [ -z "$SUPABASE_ANON_KEY" ]; then
             echo "::warning title=Deploy-fidelity gate skipped::PROJECT_REF or anon key missing"
             exit 0
           fi
+          # Give the just-set COMMIT_SHA secret a moment to propagate to warm
+          # function replicas before we probe them. A cold-invoke will always
+          # see the new env; a still-warm replica may need a beat.
+          sleep 10
           bash scripts/verify-deploy.sh
 

@@ -147,10 +147,10 @@ export default {
 						corridor: 'var(--q-chart-corridor-fill)'
 					}
 				},
-				// AIWMC Brand Colors (cross-product)
+				// AIWMC Brand Colors (cross-product; Quantis-forbidden acid green removed
+				// per docs/AUDIT_2026-06-20.md finding 8.1 — Quantis surface uses --primary
+				// tokens only. Foundation-only tokens live in the Foundation repo.)
 				aiwmc: {
-					green: 'var(--aiwmc-green, #8FFF2A)',
-					'green-dark': 'var(--aiwmc-green-dark, #6ECC1A)',
 					purple: 'var(--aiwmc-purple, #8B5CF6)',
 					blue: 'var(--aiwmc-blue, #3B82F6)',
 					black: 'var(--aiwmc-black, #0A0A0A)',
