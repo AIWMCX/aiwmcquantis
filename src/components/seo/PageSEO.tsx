@@ -35,8 +35,14 @@ export function PageSEO({
   twitterCard = 'summary_large_image',
   jsonLd,
 }: PageSEOProps) {
-  const canonicalUrl = canonical ? `${SITE_URL}${canonical}` : SITE_URL;
+  // Fallback: use current pathname so every page self-references its canonical
+  // even if a caller forgot to pass one. Prevents canonical-to-homepage collapse.
+  const path =
+    canonical ??
+    (typeof window !== 'undefined' ? window.location.pathname + window.location.search : '/');
+  const canonicalUrl = `${SITE_URL}${path}`;
   const robotsContent = noindex ? 'noindex, nofollow' : 'index, follow';
+
 
   return (
     <Helmet prioritizeSeoTags>

@@ -143,7 +143,7 @@ export default function ApiKeysSettings() {
   if (!isPro) {
     return (
       <AppLayout title="API Keys">
-        <PageSEO title="API Keys — AIWMC Quantis" description="Programmatic API access for Pro accounts." />
+        <PageSEO title="API Keys — AIWMC Quantis" description="Programmatic API access for Pro accounts." canonical="/settings/api-keys" noindex />
         <div className="container max-w-2xl px-4 sm:px-6 py-12">
           <Card>
             <CardHeader>
@@ -174,7 +174,10 @@ export default function ApiKeysSettings() {
       <PageSEO
         title="API Keys — AIWMC Quantis"
         description="Create, label, and revoke API keys for programmatic access to Quantis analyses."
+        canonical="/settings/api-keys"
+        noindex
       />
+
       <div className="container max-w-4xl px-4 sm:px-6 py-8 space-y-6">
         <header className="space-y-1">
           <h1 className="text-3xl font-bold tracking-tight">API Keys</h1>
