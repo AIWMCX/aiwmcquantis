@@ -398,7 +398,7 @@ export const UPGRADE_TRIGGERS: Record<string, UpgradeMessage> = {
   },
   locked_document_studio: {
     trigger: 'locked_document_studio',
-    headline: '12 documents, auto-written',
+    headline: '10 documents, auto-written',
     body: 'Business case, financial projection, risk register, action tracker — all auto-populated from your analysis.',
     cta: 'Unlock Document Studio',
     required_tier: 'PLUS',

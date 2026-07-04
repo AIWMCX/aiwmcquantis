@@ -3,7 +3,7 @@ import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-
 import { maybeHealthResponse } from '../_shared/health.ts';
 
 const FUNCTION_NAME = 'analyze-business';
-const FUNCTION_VERSION = '1.0.0';
+const FUNCTION_VERSION = '1.1.0';
 // Embedded benchmarks are now seeded via database migration - no import needed
 
 
@@ -4734,6 +4734,50 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           { headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
+    }
+
+    // ── QOC Shadow Mode (docs/QOC_MIGRATION_PLAN.md, Stage 1) ──
+    // Fire-and-forget parallel call to the newer qoc-orchestrate pipeline.
+    // Purely observational: not awaited before the response below, wrapped so
+    // it can never throw into this request, and has zero ability to change
+    // wirePayload or any header the user actually receives. Its only effect
+    // is a best-effort row in qoc_audit_envelopes when it succeeds. Only
+    // fires for authenticated requests (anonymous callers have no bearer
+    // token for qoc-orchestrate to authenticate — that's fine, coverage
+    // starts with the logged-in tiers and is intentionally partial in this
+    // stage). A failed or skipped shadow call is invisible to the caller.
+    try {
+      const authHeader = req.headers.get('Authorization');
+      if (authHeader && idea_clean) {
+        const shadowInvoke = supabaseService.functions
+          .invoke('qoc-orchestrate', {
+            headers: { Authorization: authHeader },
+            body: {
+              request_id: crypto.randomUUID(),
+              idea: idea_clean,
+              location: location_clean,
+            },
+          })
+          .then(({ data, error: shadowErr }) => {
+            if (shadowErr) {
+              log.info('[qoc-shadow] invoke error (non-fatal)', String(shadowErr));
+            } else {
+              log.info('[qoc-shadow] recorded', { verdict: data?.overall_verdict });
+            }
+          })
+          .catch((e) => {
+            log.info('[qoc-shadow] skipped (non-fatal)', String(e?.message ?? e));
+          });
+
+        // deno-lint-ignore no-explicit-any
+        const edgeRuntime = (globalThis as any).EdgeRuntime;
+        if (edgeRuntime?.waitUntil) {
+          edgeRuntime.waitUntil(shadowInvoke);
+        }
+      }
+    } catch (shadowSetupErr) {
+      // Shadow mode must never affect the real response path, even here.
+      log.info('[qoc-shadow] setup skipped (non-fatal)', String(shadowSetupErr));
     }
 
     return new Response(

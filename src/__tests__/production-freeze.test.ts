@@ -185,6 +185,111 @@ describe('T4a: only canonical Quantis tier prices ($0/$17/$49) in source config'
 });
 
 // ============================================================================
+// T4c — Doc Studio template-count guard: the canonical count is 10.
+// The "12" era keeps resurrecting: b2c2617a fixed marketing copy + the DB
+// seed, then a live screenshot on 2026-07-02 caught "12 documents,
+// auto-written" still shipping from THREE more surfaces (paywall i18n,
+// tier-spec paywall trigger, HowItWorks). This guard scans every user-facing
+// source file recursively so no new surface can reintroduce the stale count.
+// ============================================================================
+describe('T4c: Doc Studio template count is 10 everywhere (never 12)', () => {
+  // Any of these patterns on a Quantis surface means the stale count is back.
+  const STALE_COUNT_PATTERNS = [
+    /12\+?\s*(professional\s+)?templates/i,
+    /12\+?\s*documents/i,
+    /\b12\s+doc\s+templates/i,
+  ];
+
+  function walk(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        // Skip test dirs (this file mentions the banned strings) and vendored code
+        if (/__tests__|node_modules|\.git/.test(entry.name)) continue;
+        walk(rel, out);
+      } else if (/\.(tsx?|json)$/.test(entry.name) && !/\.test\.|\.spec\./.test(entry.name)) {
+        out.push(rel);
+      }
+    }
+    return out;
+  }
+
+  it('DOC_TEMPLATE_COUNT canonical constant is 10', () => {
+    const facts = readFileSync(join(ROOT, 'src/config/canonical-facts.ts'), 'utf8');
+    expect(facts).toMatch(/DOC_TEMPLATE_COUNT\s*=\s*10\b/);
+  });
+
+  it('no source file under src/ carries a "12 templates/documents" claim', () => {
+    const files = walk('src');
+    const offenders: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      for (const rx of STALE_COUNT_PATTERNS) {
+        if (rx.test(src)) offenders.push(`${f} matches ${rx}`);
+      }
+    }
+    expect(offenders, `Stale template count found:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('edge functions carry no "12 templates/documents" claim either', () => {
+    const files = walk('supabase/functions');
+    const offenders: string[] = [];
+    for (const f of files) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      for (const rx of STALE_COUNT_PATTERNS) {
+        if (rx.test(src)) offenders.push(`${f} matches ${rx}`);
+      }
+    }
+    expect(offenders, `Stale template count found:\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
+// ============================================================================
+// T7 — Pro checkout schema guard: 2026-07-02, a real customer completed a
+// live $49/mo Stripe checkout and the app never granted them Pro. Root
+// cause: public.subscriptions' valid_plan CHECK constraint only allowed
+// ('free','plus','enterprise') — 'pro' was never added — so every Pro
+// checkout's DB write was silently rejected regardless of whether the
+// Stripe webhook itself was delivered correctly. Separately,
+// provision_pro_features()/mark_subscription_canceled() were defined in a
+// migration that never actually applied in production (SUPABASE_DB_PASSWORD
+// missing from GH Actions secrets — the same root cause as the broader
+// deploy-freeze incident). This is a SOURCE-level guard only: it proves the
+// fix migration exists and mentions 'pro' in the constraint text. It cannot
+// prove the migration actually APPLIED in production — that gap is exactly
+// what silently broke this feature for however long it was broken, and is
+// why scripts/verify-live-production.sh (or a future billing-specific
+// extension of it) is the load-bearing check, not this test.
+// ============================================================================
+describe('T7: Pro checkout schema fix is present in migrations (source-level only)', () => {
+  function findMigrationsContaining(needle: string): string[] {
+    const dir = join(ROOT, 'supabase/migrations');
+    const hits: string[] = [];
+    for (const f of readdirSync(dir)) {
+      if (!f.endsWith('.sql')) continue;
+      const src = readFileSync(join(dir, f), 'utf8');
+      if (src.includes(needle)) hits.push(f);
+    }
+    return hits;
+  }
+
+  it('a migration widens valid_plan to include \'pro\'', () => {
+    const hits = findMigrationsContaining("ARRAY['free'::text, 'plus'::text, 'pro'::text");
+    expect(hits.length, 'No migration found that adds \'pro\' to the valid_plan constraint').toBeGreaterThan(0);
+  });
+
+  it('a migration defines provision_pro_features standalone (no enforce_white_label_pro dependency)', () => {
+    const hits = findMigrationsContaining('CREATE OR REPLACE FUNCTION public.provision_pro_features');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+
+  it('a migration defines mark_subscription_canceled', () => {
+    const hits = findMigrationsContaining('CREATE OR REPLACE FUNCTION public.mark_subscription_canceled');
+    expect(hits.length).toBeGreaterThan(0);
+  });
+});
+
+// ============================================================================
 // T4b — Forged entitlement guard: authoritative test must exist
 // stripe-webhook-matrix.test.ts already tests forged plan payloads.
 // This guard asserts the test cannot be deleted without CI catching it.
@@ -231,5 +336,63 @@ describe('T5: test suite floor', () => {
     const src = readFileSync(join(ROOT, 'tests/qoc.test.ts'), 'utf8');
     const matches = src.match(/Deno\.test\(/g) ?? [];
     expect(matches.length).toBeGreaterThanOrEqual(25);
+  });
+});
+
+// ============================================================================
+// T6 — QOC shadow-mode guard (docs/QOC_MIGRATION_PLAN.md, Stage 1)
+// analyze-business fires a parallel, non-blocking call to qoc-orchestrate so
+// real production data accumulates for the QOC migration's parity analysis.
+// This guard is a STATIC structural check — it cannot prove runtime behavior,
+// but it can prove the source can't do the one thing that must never happen:
+// let a shadow-mode failure delay or break the real user response. If this
+// guard ever fails, someone made the shadow call blocking or unguarded —
+// stop and fix it before it ships, don't weaken the assertion.
+// ============================================================================
+describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
+  const src = readFileSync(
+    join(ROOT, 'supabase/functions/analyze-business/index.ts'),
+    'utf8',
+  );
+
+  it('the shadow-mode block exists and references the migration plan', () => {
+    expect(src).toContain('QOC Shadow Mode');
+    expect(src).toContain('QOC_MIGRATION_PLAN.md');
+    expect(src).toContain("supabaseService.functions");
+    expect(src).toContain("'qoc-orchestrate'");
+  });
+
+  it('the shadow invoke is never awaited before the final response is built', () => {
+    // Isolate the shadow-mode block (between its start marker and the final
+    // `return new Response` that ships wirePayload to the user).
+    const start = src.indexOf('QOC Shadow Mode');
+    const responseMarker = 'success: true, data: wirePayload';
+    const end = src.indexOf(responseMarker, start);
+    expect(start, 'shadow-mode block not found').toBeGreaterThan(-1);
+    expect(end, 'final wirePayload response not found after shadow block').toBeGreaterThan(start);
+    const block = src.slice(start, end);
+    // The shadow invoke promise must never be awaited directly — only handed
+    // to EdgeRuntime.waitUntil (background) or left to run via .then/.catch.
+    expect(block).not.toMatch(/await\s+shadowInvoke/);
+    expect(block).toContain('EdgeRuntime');
+    expect(block).toContain('waitUntil');
+  });
+
+  it('the shadow-mode setup is wrapped in try/catch so it cannot throw into the request', () => {
+    const start = src.indexOf('QOC Shadow Mode');
+    const responseMarker = 'success: true, data: wirePayload';
+    const end = src.indexOf(responseMarker, start);
+    const block = src.slice(start, end);
+    // The comment header alone runs ~700 chars; assert structurally within
+    // the whole isolated block rather than a fixed-size window.
+    expect(block).toMatch(/try\s*\{/);
+    expect(block).toMatch(/\}\s*catch\s*\(shadowSetupErr\)/);
+  });
+
+  it('the shadow invoke has its own .catch so a rejected promise cannot become an unhandled rejection', () => {
+    const start = src.indexOf('QOC Shadow Mode');
+    const end = src.indexOf('EdgeRuntime', start);
+    const block = src.slice(start, end);
+    expect(block).toMatch(/\.catch\(/);
   });
 });

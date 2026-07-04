@@ -1,0 +1,39 @@
+name: SEO Live Monitor
+
+# The SEO-permanence guarantee, structural not just promised. Every other SEO
+# gate in this repo (verify-visibility.mjs, the freeze tests) checks a BUILD
+# ARTIFACT before it ships. This workflow is the opposite: it checks the LIVE
+# domain directly, on its own schedule, independent of whether the current
+# live state got there through this repo's normal CI/CD path at all.
+#
+# See scripts/verify-live-production.sh for the full rationale and the exact
+# checks — this file only wires it to a schedule and reports failures loudly.
+#
+# A red run here means: something is wrong on aiwmcquantis.com RIGHT NOW,
+# regardless of what any build-time gate said about the commit that shipped
+# it, and regardless of whether that commit went through this repo's CI at
+# all (a bad Vercel promotion, a stale CDN edge cache, or a manual
+# out-of-band deploy would all be caught here and nowhere else).
+
+on:
+  schedule:
+    # Every 6 hours. Frequent enough to catch a regression within the same
+    # day it happens; infrequent enough not to spam Actions minutes on a
+    # check that (when passing) has nothing new to say.
+    - cron: '17 */6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: seo-live-monitor
+  cancel-in-progress: false
+
+jobs:
+  verify-live:
+    name: Verify live production SEO invariants
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run live-production SEO checks
+        run: bash scripts/verify-live-production.sh

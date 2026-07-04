@@ -57,10 +57,12 @@ function parseRouteMeta(): Record<string, RouteMeta> {
   const meta: Record<string, RouteMeta> = {};
 
   // Match: '/path': { title: '...', description: '...', noIndex: true },
-  // Handles both single-line and multi-line entries; \1 captures the quote so
-  // apostrophes inside titles (e.g. What\'s New) don't terminate early.
+  // The path char class now includes `/` so multi-segment paths
+  // (`/vs/liveplan`, `/blog/post-slug`) are captured — the original
+  // `[a-z0-9-]*` only matched a single segment and silently dropped every
+  // `/vs/*` entry, causing prerender-seo to fall through to slugTitle().
   const entryRe =
-    /'(\/[a-z0-9-]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
+    /'(\/[a-z0-9\-/]*)':\s*\{\s*title:\s*(['"])((?:\\.|(?!\2).)*)\2,\s*description:\s*(['"])((?:\\.|(?!\4).)*)\4(?:,\s*noIndex:\s*(true))?/g;
   let m: RegExpExecArray | null;
   while ((m = entryRe.exec(block)) !== null) {
     meta[m[1]] = {
@@ -123,6 +125,31 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
     );
   }
 
+  // Per-route og:image URL: same underlying self-hosted asset, unique URL
+  // per route (query-string carries the route slug). Crawlers key on the
+  // image URL when deciding whether two social cards are the same page, so
+  // this closes F13 (all routes sharing an identical og:image URL) while we
+  // keep visual generation as a future task. Also swaps in the self-hosted
+  // /og-image.png fallback everywhere the off-domain googleapis URL used to
+  // leak through, if it re-appears in the template later.
+  const ogSlug = path === '/' ? 'home' : path.slice(1).replace(/\//g, '-');
+  const ogImageUrl = `${BASE_URL}/og-image.png?r=${encodeURIComponent(ogSlug)}`;
+  // BUG FIXED 2026-07-02: function replacers do NOT interpret $1/$2 as
+  // backreferences — that substitution only happens for STRING replacement
+  // patterns. Passing a function meant `$1${ogImageUrl}$2` was returned and
+  // inserted LITERALLY, corrupting every route's <head> with visible
+  // "$1https://...og-image.png?r=home$2" text above the rendered page.
+  // Fix: consume the captured groups as the function's own arguments
+  // instead of referencing $1/$2 syntax.
+  html = html.replace(
+    /(<meta\s+property="og:image"\s+content=")[^"]+(")/g,
+    (_match, open: string, close: string) => `${open}${ogImageUrl}${close}`,
+  );
+  html = html.replace(
+    /(<meta\s+name="twitter:image"\s+content=")[^"]+(")/g,
+    (_match, open: string, close: string) => `${open}${ogImageUrl}${close}`,
+  );
+
   // Inject canonical + og:url + a per-route WebPage JSON-LD block immediately
   // after the (now per-route) <title>. The JSON-LD gives crawlers an explicit,
   // unique structured-data entity per URL — strengthens rich-result eligibility
@@ -135,6 +162,7 @@ function stampHtml(template: string, path: string, meta: RouteMeta): string {
         name: meta.title,
         description: meta.description,
         url,
+        image: ogImageUrl,
         isPartOf: { '@type': 'WebSite', name: 'AIWMC Quantis', url: BASE_URL },
         publisher: { '@type': 'Organization', name: 'AIWMC LLC', url: BASE_URL },
       })}</script>`;
@@ -167,7 +195,18 @@ function main(): void {
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
 
-  let written = 0;
+  // Homepage: stamp dist/index.html in place so it gets the same canonical +
+  // og:url + WebPage JSON-LD as every other public route. The prior filter
+  // dropped '/' entirely, so the live homepage had no <link rel="canonical">.
+  // We use the pre-read `template` (line 147) so the read-then-overwrite is
+  // safe even though template and output share a path.
+  const homeMeta: RouteMeta = routeMeta['/'] ?? {
+    title: DEFAULT_TITLE,
+    description: DEFAULT_DESC,
+  };
+  writeFileSync(TEMPLATE_PATH, stampHtml(template, '/', homeMeta), 'utf8');
+
+  let written = 1; // homepage counted
   for (const path of urls) {
     const meta: RouteMeta = routeMeta[path] ?? {
       title: slugTitle(path),

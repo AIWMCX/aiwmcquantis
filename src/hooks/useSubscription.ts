@@ -271,7 +271,7 @@ export function useSubscription(): SubscriptionData {
     try {
       const trimmedCode = (promotionCode ?? '').trim().toUpperCase();
       const period = billingPeriod === 'annual' ? 'annual' : 'monthly';
-      logger.info('[Checkout] Starting checkout for plan:', plan, period, trimmedCode ? `(promo: ${trimmedCode})` : '');
+      logger.info(`[Checkout] Starting checkout for plan: ${plan} ${period}${trimmedCode ? ` (promo: ${trimmedCode})` : ''}`);
 
       toast({
         title: 'Starting checkout...',

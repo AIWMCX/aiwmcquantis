@@ -133,7 +133,9 @@ export default function Auth() {
         title="Sign In | AIWMC Quantis"
         description="Sign in or create an account to access AI-powered business analysis with financial projections and market insights."
         canonical="/auth"
+        noindex
       />
+
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Left — Brand panel (hidden on mobile) */}
         <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: 'var(--q-gradient-hero)' }}>

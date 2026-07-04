@@ -119,7 +119,7 @@ export function useUpdateInvoiceStatus() {
 
       const { error } = await supabase
         .from('invoices')
-        .update(updates)
+        .update(updates as never)
         .eq('id', id);
       if (error) throw error;
     },

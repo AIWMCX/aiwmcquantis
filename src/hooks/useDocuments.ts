@@ -140,7 +140,7 @@ export function useUpdateDocument() {
 
       const { data, error } = await supabase
         .from('documents')
-        .update(updates)
+        .update(updates as never)
         .eq('id', params.documentId)
         .select()
         .single();

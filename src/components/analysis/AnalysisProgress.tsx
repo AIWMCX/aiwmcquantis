@@ -137,7 +137,13 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
     const interval = setInterval(() => {
       const elapsed = Math.floor((Date.now() - effectiveStart) / 1000);
       setElapsedSeconds(elapsed);
-      if (elapsed >= 60) setShowTimeout(true);
+      // The backend's own AI narration call has a documented 60s budget on a
+      // slow-provider day (supabase/functions/analyze-business/index.ts,
+      // AI_TIMEOUT_MS) — firing our "taking longer" warning at exactly 60s
+      // meant we alarmed the user at the precise moment the backend was
+      // still comfortably inside its own normal, expected budget. Wait past
+      // that budget plus response-shaping overhead before showing it.
+      if (elapsed >= 70) setShowTimeout(true);
     }, 100);
     return () => clearInterval(interval);
   }, [isLoading, effectiveStart]);
@@ -183,7 +189,13 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
     const lastStage = stages[stages.length - 1];
     let progress: number;
     if (elapsedSeconds >= lastStage.endTime) {
-      progress = Math.min(90 + ((elapsedSeconds - lastStage.endTime) / 15) * 9, 99);
+      // Was a fixed 15s climb from 90% to 99%, then flat for as long as the
+      // backend kept running — the exact "frozen at 99%" complaint. The
+      // real backend budget (AI_TIMEOUT_MS + overhead) runs to ~65-70s on a
+      // slow day, so spread the climb over that full realistic window
+      // instead of capping out 30-40s before the backend could legitimately
+      // still be working.
+      progress = Math.min(90 + ((elapsedSeconds - lastStage.endTime) / 35) * 9, 99);
     } else {
       progress = (elapsedSeconds / lastStage.endTime) * 90;
     }
@@ -191,7 +203,11 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
   }, [isLoading, isComplete, completionPhase, elapsedSeconds, stages]);
 
   const estimatedRemaining = useMemo(() => {
-    const total = 45;
+    // Was 45 — well under the backend's real 60s AI-call budget, so
+    // "~Xs remaining" hit 0 and vanished up to 15-25s before a normal
+    // request actually finished, leaving a silent dead zone with no
+    // status text at all before the (also premature) timeout warning.
+    const total = 65;
     return Math.max(0, total - elapsedSeconds);
   }, [elapsedSeconds]);
 
@@ -301,6 +317,16 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
           </p>
         )}
 
+        {/* Bridge state: estimate has run out but we're not into the real
+            "slow" window yet (showTimeout) — without this the status line
+            goes blank for several seconds, which reads as frozen even
+            though the request is progressing completely normally. */}
+        {estimatedRemaining === 0 && !showTimeout && completionPhase === 'none' && (
+          <p className="text-sm text-center text-[var(--q-text-tertiary)]">
+            Almost there — finishing your analysis...
+          </p>
+        )}
+
         {/* Timeout warning */}
         {showTimeout && (
           <div className="p-3 rounded-lg bg-[var(--q-status-yellow-bg)] border border-[var(--q-status-yellow-border)]">
@@ -308,10 +334,10 @@ export const AnalysisProgress = React.memo(function AnalysisProgress({
               <AlertCircle className="w-4 h-4 text-[var(--q-status-yellow)] shrink-0 mt-0.5" />
               <div className="flex-1 space-y-2">
                 <p className="text-sm font-medium text-[var(--q-text-primary)]">
-                  Taking longer than usual
+                  Still working — this one's detailed
                 </p>
                 <p className="text-xs text-[var(--q-text-tertiary)]">
-                  Complex analyses may take up to 90 seconds.
+                  Full analyses can take up to 90 seconds. Your results are on the way.
                 </p>
                 <div className="flex gap-2">
                   {onRetry && (

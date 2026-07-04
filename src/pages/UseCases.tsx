@@ -29,7 +29,7 @@ const PERSONAS = [
     subtitle: 'Scale your client analysis',
     description: 'Your clients need financial clarity fast. Instead of spending 20+ hours on each feasibility study, generate comprehensive analyses in minutes — then add your strategic expertise on top.',
     benefits: [
-      'Deliver 10x more client analyses without hiring',
+      'Serve more clients per week without adding headcount',
       'White-label reports with your branding (Plus plan)',
       'Professional PDF exports ready for client presentations',
       'Industry benchmarks that strengthen your recommendations',
