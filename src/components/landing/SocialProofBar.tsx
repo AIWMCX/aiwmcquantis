@@ -1,76 +1,68 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Users, TrendingUp, Globe, Clock } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Users, TrendingUp, Globe, Clock, Activity } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 /**
- * SocialProofBar — Real-time social proof strip shown below the hero.
- * "Plans stress-tested" = analyses + generated docs, floored at 2000,
- * monotonically increasing (high-water mark persisted in localStorage),
- * with a live tick to reflect ongoing activity. Never goes down.
+ * SocialProofBar — Social-proof strip shown below the hero.
+ *
+ * "Plans stress-tested" is now backed by the `public_metrics` table's
+ * `plans_stress_tested` row — a bigint value guarded by a BEFORE UPDATE
+ * trigger that rejects any decrease. Uniform for every visitor (no more
+ * per-browser localStorage divergence) and impossible to regress via a
+ * coding accident. Seeded at 175, grows only when real events call
+ * bump_public_metric(). See migration 20260704120000.
+ *
+ * The 4th stat is a live "analyses today" tick sourced from the real
+ * `analyses` table (count of rows created in the last 24h). This is an
+ * honest, real-time activity signal — replaces the previous fabricated
+ * "33% chance of +1 every 15 seconds" client-side ticker.
  */
-const FLOOR = 2000;
-const STORAGE_KEY = 'q_plans_stress_tested_hwm';
 
-function readHwm(): number {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    const n = raw ? parseInt(raw, 10) : 0;
-    return Number.isFinite(n) && n > FLOOR ? n : FLOOR;
-  } catch {
-    return FLOOR;
-  }
-}
-
-function writeHwm(n: number) {
-  try {
-    localStorage.setItem(STORAGE_KEY, String(n));
-  } catch {}
-}
+const PLANS_METRIC_KEY = 'plans_stress_tested';
+const POLL_INTERVAL_MS = 30_000; // Poll every 30 seconds
 
 export function SocialProofBar() {
-  const [plansCount, setPlansCount] = useState<number>(() => readHwm());
-  const hwmRef = useRef<number>(plansCount);
+  const [plansCount, setPlansCount] = useState<number>(175);
+  const [analysesToday, setAnalysesToday] = useState<number | null>(null);
 
-  const bump = (next: number) => {
-    if (next > hwmRef.current) {
-      hwmRef.current = next;
-      writeHwm(next);
-      setPlansCount(next);
-    }
-  };
-
-  // Pull real counts from DB (analyses + generated documents) and merge with floor.
   useEffect(() => {
     let cancelled = false;
-    const fetchCounts = async () => {
-      try {
-        const [a, d] = await Promise.all([
-          supabase.from('analyses').select('*', { count: 'exact', head: true }),
-          supabase.from('documents').select('*', { count: 'exact', head: true }),
-        ]);
-        if (cancelled) return;
-        const total = (a.count ?? 0) + (d.count ?? 0);
-        bump(Math.max(FLOOR, total));
-      } catch {}
+
+    const fetchAll = async () => {
+      const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+      const [metricRes, todayRes] = await Promise.all([
+        (supabase as any)
+          .from('public_metrics')
+          .select('value')
+          .eq('key', PLANS_METRIC_KEY)
+          .maybeSingle(),
+        (supabase as any)
+          .from('analyses')
+          .select('id', { count: 'exact', head: true })
+          .gte('created_at', yesterday),
+      ]);
+
+      if (cancelled) return;
+
+      if (metricRes.data && typeof metricRes.data.value === 'number') {
+        // Client-side floor mirroring the DB monotonic guarantee — even if a
+        // future migration ever mis-seeds, the UI still shows non-decreasing.
+        setPlansCount((prev) => Math.max(prev, metricRes.data.value));
+      }
+      if (typeof todayRes.count === 'number') {
+        setAnalysesToday(todayRes.count);
+      }
     };
 
-    const t = setTimeout(fetchCounts, 1200);
-    const poll = setInterval(fetchCounts, 30_000);
+    // Initial fetch after a short delay so LCP isn't blocked by network
+    const t = setTimeout(fetchAll, 800);
+    const poll = setInterval(fetchAll, POLL_INTERVAL_MS);
     return () => {
       cancelled = true;
       clearTimeout(t);
       clearInterval(poll);
     };
-  }, []);
-
-  // Live tick: small organic increment so the counter feels alive between polls.
-  // Never decreases; capped to avoid runaway inflation between real syncs.
-  useEffect(() => {
-    const tick = setInterval(() => {
-      // ~1 increment every 45s on average
-      if (Math.random() < 0.33) bump(hwmRef.current + 1);
-    }, 15_000);
-    return () => clearInterval(tick);
   }, []);
 
   const stats = [
@@ -81,7 +73,11 @@ export function SocialProofBar() {
     },
     { icon: Globe, value: '50+', label: 'Cities covered' },
     { icon: Clock, value: '90s', label: 'Average analysis time' },
-    { icon: Users, value: '95,500', label: 'Benchmark data points' },
+    {
+      icon: Activity,
+      value: analysesToday === null ? '—' : analysesToday.toLocaleString(),
+      label: 'Analyses in last 24h',
+    },
   ];
 
   return (
