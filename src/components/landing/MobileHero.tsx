@@ -119,8 +119,14 @@ export function MobileHero() {
               </span>
             </div>
 
-            {/* H1 — fear-driven, pain-first */}
-            <h1
+            {/* Fear-driven, pain-first headline. NOT an <h1> — ReportFirstHero
+                renders the page's single canonical <h1>; both hero variants
+                mount unconditionally (responsive CSS only toggles visual
+                display), so a second real <h1> here would create a
+                duplicate-H1 SEO issue. Styled identically to a heading. */}
+            <p
+              role="heading"
+              aria-level={2}
               className="animate-fade-in leading-[1.0]"
               style={{ fontSize: 'var(--q-fs-hero, clamp(2rem,5.5vw,4.5rem))', fontFamily: 'var(--q-font-heading)', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
             >
@@ -129,7 +135,7 @@ export function MobileHero() {
               <span style={{ color: 'var(--q-accent-primary)' }}>
                 Most had a plan. None had validation.
               </span>
-            </h1>
+            </p>
 
             {/* Subtitle — conversion-focused */}
             <p

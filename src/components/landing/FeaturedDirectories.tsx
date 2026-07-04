@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { ExternalLink } from 'lucide-react';
 import { directories, type DirectoryEntry } from '@/data/directorySubmissions';
 import { Link } from 'react-router-dom';
@@ -16,6 +17,44 @@ function faviconFor(url: string): string {
   }
 }
 
+// Favicons are fetched from Google's service and vary wildly in their own
+// background (many are transparent or white-on-transparent). Rendered
+// directly against this section's dark card background, a white/transparent
+// icon becomes invisible — indistinguishable from a failed load. Every icon
+// gets a small white rounded backing so it reads clearly regardless of its
+// own colors, on both light and dark themes.
+function DirectoryIcon({ d }: { d: DirectoryEntry }) {
+  const [failed, setFailed] = useState(false);
+  const src = faviconFor(d.url);
+
+  if (failed || !src) {
+    // Fallback: colored initial avatar — never leave an invisible gap where
+    // a logo should be.
+    return (
+      <span
+        aria-hidden="true"
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-[10px] font-bold text-primary"
+      >
+        {d.name.charAt(0).toUpperCase()}
+      </span>
+    );
+  }
+
+  return (
+    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-white p-0.5">
+      <img
+        src={src}
+        alt=""
+        width={16}
+        height={16}
+        loading="lazy"
+        className="h-4 w-4 rounded-[2px]"
+        onError={() => setFailed(true)}
+      />
+    </span>
+  );
+}
+
 function DirectoryChip({ d }: { d: DirectoryEntry }) {
   const href = d.proofUrl ?? d.url;
   const isLive = d.status === 'live' && !!d.proofUrl;
@@ -27,15 +66,7 @@ function DirectoryChip({ d }: { d: DirectoryEntry }) {
       aria-label={`AIWMC Quantis on ${d.name}${isLive ? ' (verified listing)' : ''}`}
       className="group flex items-center gap-2.5 rounded-xl border border-border bg-card/60 px-4 py-2.5 transition-all hover:border-primary/40 hover:bg-card hover:shadow-sm"
     >
-      <img
-        src={faviconFor(d.url)}
-        alt=""
-        width={20}
-        height={20}
-        loading="lazy"
-        className="h-5 w-5 rounded-sm"
-        onError={(e) => { (e.currentTarget as HTMLImageElement).style.visibility = 'hidden'; }}
-      />
+      <DirectoryIcon d={d} />
       <span className="text-sm font-medium text-foreground">{d.name}</span>
       {isLive && (
         <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-500">Live</span>

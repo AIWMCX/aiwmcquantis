@@ -120,7 +120,7 @@
 
     
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AIWMC Quantis — AI Business Idea Validator</title>
+    <title>AIWMC Quantis — Audit-grade business validation</title>
     <meta name="description" content="Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.">
     <meta name="author" content="AIWMC™ LLC" />
     <meta name="robots" content="index, follow" />
@@ -324,14 +324,22 @@
   
   
   
-  <meta property="og:title" content="AIWMC Quantis — AI Business Idea Validator">
-  <meta name="twitter:title" content="AIWMC Quantis — AI Business Idea Validator">
+  <meta property="og:title" content="AIWMC Quantis — Audit-grade business validation">
+  <meta name="twitter:title" content="AIWMC Quantis — Audit-grade business validation">
   <meta property="og:description" content="Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.">
   <meta name="twitter:description" content="Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.">
 </head>
 
   <body>
     <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
+      <!-- Real, crawlable <h1> present from first byte — matches ReportFirstHero's
+           hydrated <h1> content exactly. Some SEO tools/basic crawlers snapshot
+           before React hydrates; without this, they see zero <h1> anywhere
+           (this placeholder had only a <span>) and flag "Missing H1 Tag" even
+           though the hydrated page has one. Visually hidden, not CLS-affecting. -->
+      <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
+        Before you invest $50K, spend 90 seconds finding out if you'll get it back.
+      </h1>
       <div id="lcp-banner-placeholder" style="background:#1F6FEB;color:#FFFFFF;padding:10px 16px;text-align:center;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px">
         <span>Financial stress-test for founders — risk map, scenarios, and projections in under 90 seconds</span>
       </div>

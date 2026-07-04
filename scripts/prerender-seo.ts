@@ -33,7 +33,14 @@ const DIST = resolve('dist');
 const BASE_URL = 'https://www.aiwmcquantis.com';
 const TEMPLATE_PATH = join(DIST, 'index.html');
 
-const DEFAULT_TITLE = 'AIWMC Quantis — AI Business Idea Validator';
+// MUST exactly match <title>/og:title/twitter:title in index.html — this
+// literal string is the substitution anchor stampHtml() searches for and
+// replaces per-route (see split(DEFAULT_TITLE).join(title) below). Changing
+// index.html's title without updating this constant breaks per-route title
+// injection silently: every route falls back to the raw base title verbatim,
+// producing a mass duplicate-title regression across all ~62 non-ROUTE_META
+// routes (caught by scripts/verify-unique-meta.ts, 2026-06-30).
+const DEFAULT_TITLE = 'AIWMC Quantis — Audit-grade business validation';
 const DEFAULT_DESC =
   'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.';
 
