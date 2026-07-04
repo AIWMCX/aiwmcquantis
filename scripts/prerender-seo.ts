@@ -195,16 +195,31 @@ function main(): void {
     .map((l) => l.trim())
     .filter((l) => l && l.startsWith('/') && l !== '/');
 
+  // If scripts/prerender.mjs already ran (Puppeteer full-page capture), each
+  // route's dist/<route>/index.html contains the REAL rendered body for that
+  // route instead of the bare SPA shell. Re-stamping THAT file (rather than
+  // always starting fresh from the base `template`) preserves the real body
+  // while still guaranteeing correct title/description/canonical/OG/JSON-LD —
+  // stampHtml's DEFAULT_TITLE/DEFAULT_DESC substitution is a no-op wherever
+  // the live app already set a correct value, and fixes it wherever it
+  // didn't (see F-prerender-body, 2026-07-04: most routes' live descriptions
+  // were never actually overridden by RouteSEO/PageSEO at runtime, so without
+  // this composition every route's body AND several routes' descriptions
+  // were silently duplicating the homepage).
+  function readRouteInput(path: string, dir: string): string {
+    const candidate = join(dir, 'index.html');
+    return existsSync(candidate) ? readFileSync(candidate, 'utf8') : template;
+  }
+
   // Homepage: stamp dist/index.html in place so it gets the same canonical +
   // og:url + WebPage JSON-LD as every other public route. The prior filter
   // dropped '/' entirely, so the live homepage had no <link rel="canonical">.
-  // We use the pre-read `template` (line 147) so the read-then-overwrite is
-  // safe even though template and output share a path.
   const homeMeta: RouteMeta = routeMeta['/'] ?? {
     title: DEFAULT_TITLE,
     description: DEFAULT_DESC,
   };
-  writeFileSync(TEMPLATE_PATH, stampHtml(template, '/', homeMeta), 'utf8');
+  const homeInput = readRouteInput('/', DIST);
+  writeFileSync(TEMPLATE_PATH, stampHtml(homeInput, '/', homeMeta), 'utf8');
 
   let written = 1; // homepage counted
   for (const path of urls) {
@@ -214,7 +229,8 @@ function main(): void {
     };
     const outDir = join(DIST, ...path.split('/').filter(Boolean));
     mkdirSync(outDir, { recursive: true });
-    writeFileSync(join(outDir, 'index.html'), stampHtml(template, path, meta), 'utf8');
+    const routeInput = readRouteInput(path, outDir);
+    writeFileSync(join(outDir, 'index.html'), stampHtml(routeInput, path, meta), 'utf8');
     written++;
   }
 
