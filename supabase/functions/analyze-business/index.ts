@@ -4741,11 +4741,15 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // Purely observational: not awaited before the response below, wrapped so
     // it can never throw into this request, and has zero ability to change
     // wirePayload or any header the user actually receives. Its only effect
-    // is a best-effort row in qoc_audit_envelopes when it succeeds. Only
-    // fires for authenticated requests (anonymous callers have no bearer
-    // token for qoc-orchestrate to authenticate — that's fine, coverage
-    // starts with the logged-in tiers and is intentionally partial in this
-    // stage). A failed or skipped shadow call is invisible to the caller.
+    // is a best-effort row in `qoc_audit` when it succeeds (verified against
+    // qoc-orchestrate/adapters.ts 2026-07-05 -- this comment previously said
+    // qoc_audit_envelopes, a separate, currently-unused table from an earlier
+    // schema iteration; querying that table for shadow-mode results finds
+    // nothing even when shadow mode is working correctly). Only fires for
+    // authenticated requests (anonymous callers have no bearer token for
+    // qoc-orchestrate to authenticate -- that's fine, coverage starts with
+    // the logged-in tiers and is intentionally partial in this stage). A
+    // failed or skipped shadow call is invisible to the caller.
     try {
       const authHeader = req.headers.get('Authorization');
       if (authHeader && idea_clean) {
