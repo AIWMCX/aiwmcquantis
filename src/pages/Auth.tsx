@@ -10,8 +10,9 @@ import { useSubscription } from '@/hooks/useSubscription';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import { SignupForm, LoginForm, ForgotPasswordForm } from '@/components/auth';
-import { trackPageView, trackEvent } from '@/lib/analytics';
+import { trackPageView, trackEvent, recordFunnelEvent } from '@/lib/analytics';
 import { sendWelcomeEmail, isNewUser, wasWelcomeEmailSent, markWelcomeEmailSent } from '@/lib/welcomeEmail';
+import { consumeShareOrigin } from '@/lib/shareOrigin';
 import { PageSEO } from '@/components/seo/PageSEO';
 
 import { logger } from '@/lib/logger';
@@ -54,6 +55,18 @@ export default function Auth() {
       // Get user info for checkout and welcome email
       supabase.auth.getUser().then(async ({ data: { user } }) => {
         if (user) {
+          // Share-loop attribution (MP2 WS-5) — independent of the welcome-email
+          // dedup below (that's about not re-sending an email; this is about
+          // logging a genuinely new account, once, regardless of signup method).
+          // consumeShareOrigin() is read-and-clear, so this can only fire once
+          // per marked share visit even if this effect re-runs.
+          if (isNewUser(user.created_at)) {
+            const shareToken = consumeShareOrigin();
+            if (shareToken) {
+              recordFunnelEvent('share_originated_signup', { source_token: shareToken });
+            }
+          }
+
           // Check if this is a new OAuth user (created within last 60 seconds)
           // and we haven't already sent them a welcome email
           if (isNewUser(user.created_at) && !wasWelcomeEmailSent(user.id)) {

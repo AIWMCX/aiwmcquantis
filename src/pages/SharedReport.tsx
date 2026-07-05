@@ -4,6 +4,7 @@ import { Loader2, AlertCircle, ArrowLeft, ExternalLink, Calendar, Eye } from 'lu
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { supabase } from '@/integrations/supabase/client';
+import { markShareOrigin } from '@/lib/shareOrigin';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { FinancialSummary } from '@/components/analysis/FinancialSummary';
 import { BusinessPlanSection } from '@/components/analysis/BusinessPlanSection';
@@ -156,7 +157,7 @@ export default function SharedReport() {
                 <Eye className="w-3 h-3" />
                 Shared Report
               </Badge>
-              <Link to="/app">
+              <Link to="/app" onClick={() => token && markShareOrigin(token)}>
                 <Button size="sm" className="gap-2">
                   Try It Free
                   <ExternalLink className="w-3 h-3" />
@@ -257,15 +258,15 @@ export default function SharedReport() {
             </div>
           </div>
 
-          {/* CTA */}
+          {/* CTA — recipient view always ends here (MP2 WS-5) */}
           <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">
-              Want to analyze your own business idea?
+              Stress-test your own business idea
             </h3>
             <p className="text-muted-foreground mb-4">
               Get your own financial projections, business plan, and marketing strategy in under 2 minutes.
             </p>
-            <Link to="/app">
+            <Link to="/app" onClick={() => token && markShareOrigin(token)}>
               <Button size="lg" className="gap-2">
                 Try It Free
                 <ExternalLink className="w-4 h-4" />

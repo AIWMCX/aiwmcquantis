@@ -1,6 +1,7 @@
 import { useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import { recordFunnelEvent } from '@/lib/analytics';
 
 import { logger } from '@/lib/logger';
 interface ShareResult {
@@ -48,6 +49,13 @@ export function useShareReport(): UseShareReportReturn {
 
       setShareUrl(data.share_url);
       setShareToken(data.token);
+
+      // Distinct from the recipient's eventual visit/signup -- this is the
+      // "someone chose to share a report" moment (MP2 WS-5).
+      recordFunnelEvent('share_link_created', {
+        analysis_id: analysisId,
+        is_existing: !!data.is_existing,
+      });
 
       // Copy to clipboard
       await navigator.clipboard.writeText(data.share_url);

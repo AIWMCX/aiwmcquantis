@@ -198,7 +198,12 @@ export type SowFunnelEvent =
   | 'verdict_viewed'
   | 'upgrade_cta_seen'
   | 'subscription_started'
-  | 'vs_page_view';
+  | 'vs_page_view'
+  // Share loop (MP2 WS-5) — distinct from each other so the funnel can
+  // distinguish "people share reports" from "sharing actually brings in
+  // new signups", not just a combined vanity share-click count.
+  | 'share_link_created'
+  | 'share_originated_signup';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
