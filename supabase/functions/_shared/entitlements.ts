@@ -10,7 +10,11 @@
  *   const tier = await requireFeature(supabaseAdmin, userId, 'depthFull', '/analyze-business');
  *   const quota = await requireUsage(supabaseAdmin, userId, 'analysesPerMonth', '/analyze-business');
  *
- * Both throw EntitlementError on denial. Catch at route boundary → return 403.
+ * Both throw EntitlementError on denial. Catch at route boundary → return 402.
+ * (402 Payment Required — matches _shared/tier-gate.ts's convention, the
+ * other gating path used by invoice-capacity-check and others. Standardized
+ * 2026-07-05: this file previously said 403 here, tier-gate.ts already used
+ * 402 in production, and the two paths had silently drifted apart.)
  *
  * RULES:
  * - Fail CLOSED: unknown tier / no subscription → 'free'.
@@ -72,7 +76,7 @@ export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
 // ---------- Errors ----------
 
 export class EntitlementError extends Error {
-  public readonly statusCode = 403;
+  public readonly statusCode = 402;
   public readonly code: string;
   constructor(
     public readonly feature: FeatureKey | LimitKey,
@@ -94,7 +98,7 @@ export class EntitlementError extends Error {
         reason: this.reason,
         ...this.meta,
       }),
-      { status: 403, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 }
