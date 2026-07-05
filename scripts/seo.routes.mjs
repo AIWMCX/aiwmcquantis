@@ -41,6 +41,9 @@ export const PUBLIC_ROUTES = [
   { path: "/vs/liveplan",     title: "Quantis vs LivePlan" },
   { path: "/vs/upmetrics",    title: "Quantis vs Upmetrics" },
   { path: "/vs/bizplanr",     title: "Quantis vs Bizplanr" },
+  { path: "/vs/foundra",      title: "Quantis vs Foundra" },
+  { path: "/vs/aicofounder",  title: "Quantis vs AI Co-Founder" },
+  { path: "/vs/chatgpt",      title: "Quantis vs ChatGPT" },
 
   // ---- 51 worked examples ---------------------------------------------------
   ...[

@@ -28,7 +28,7 @@ export interface VsRow {
 }
 
 export interface VsPage {
-  slug: 'liveplan' | 'upmetrics' | 'bizplanr';
+  slug: 'liveplan' | 'upmetrics' | 'bizplanr' | 'foundra' | 'aicofounder' | 'chatgpt';
   competitor: string;
   competitorUrl: string;
   competitorTagline: string;
@@ -203,6 +203,147 @@ export const VS_PAGES: VsPage[] = [
       {
         q: 'Can I use Quantis Free indefinitely?',
         a: `Yes — Free is a perpetual tier, ${TIERS.free.limits.analysesPerMonth} analyses per month, no card required. Plus exists for founders running enough scenarios to need unlimited.`,
+      },
+    ],
+  },
+
+  {
+    slug: 'foundra',
+    competitor: 'Foundra',
+    competitorUrl: 'https://www.foundra.ai',
+    competitorTagline: 'AI co-founder that produces 15 strategy cards through conversation.',
+    competitorPrice: '~$39/mo, 3-day free trial (publicly reported — verify current pricing before relying on it).',
+    competitorClaim: {
+      quote: 'Validate your startup idea before you build.',
+      source: 'https://www.foundra.ai/best',
+    },
+    wedge: `Foundra runs a 3-phase conversation and hands you 15 strategy cards — target customer, objection map, MVP scope. That's real, useful work. It is not a financial model. Quantis starts where that conversation ends: a deterministic engine computes 12 financial variables, runs a ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo around them, and cites a source for every number. If you need the strategic narrative, Foundra's cards are a reasonable place to start. If you need the number an investor will actually ask about, that's a different kind of tool.`,
+    rows: [
+      ...QUANTIS_DIFFERENTIATORS,
+      {
+        feature: 'Core output',
+        quantis: `Audit-grade financial verdict: viability score, P10/P50/P90 across 12 variables, prioritized risk map.`,
+        competitor: '15 strategy cards (Idea Snapshot, Target Customer Profile, Objection Map, MVP Scope, Launch Checklist, etc.) from a guided conversation.',
+        competitorSource: 'https://www.foundra.ai/best',
+      },
+      {
+        feature: 'Monthly price (entry tier)',
+        quantis: `$${TIERS.plus.priceMonthly}/mo (Plus, unlimited analyses).`,
+        competitor: '~$39/mo, 3-day free trial (publicly reported).',
+        competitorSource: 'https://www.foundra.ai',
+      },
+      {
+        feature: 'Free tier',
+        quantis: `${TIERS.free.limits.analysesPerMonth} full analyses/month, no card required.`,
+        competitor: '11 free standalone tools (idea validator, pitch generator, financial calculators) — not the full 3-phase system.',
+        competitorSource: 'https://www.foundra.ai',
+      },
+      {
+        feature: 'Financial modeling',
+        quantis: `Deterministic engine → ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo → ${PIPELINE_LAYERS_LABEL} validation.`,
+        competitor: 'Not described as a feature — the product is conversation and strategy-card generation, not quantitative modeling.',
+        competitorSource: 'https://www.foundra.ai/best',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Is Foundra a Quantis competitor or a complement?',
+        a: 'Both, depending on what you need. Foundra is strong at the qualitative strategy layer — customer profile, positioning, launch checklist. Quantis is the quantitative layer — the actual financial model with cited sources. Some founders reasonably use both: Foundra to think through the strategy, Quantis to pressure-test the numbers.',
+      },
+      {
+        q: 'Which is cheaper?',
+        a: `Foundra is reported at roughly $39/mo; Quantis Plus is $${TIERS.plus.priceMonthly}/mo. Quantis Free also runs ${TIERS.free.limits.analysesPerMonth} full analyses per month at no cost, which Foundra's paid 3-phase system does not offer.`,
+      },
+    ],
+  },
+
+  {
+    slug: 'aicofounder',
+    competitor: 'AI Co-Founder',
+    competitorUrl: 'https://aicofounder.com',
+    competitorTagline: 'Conversational AI that guides founders through building, phase by phase.',
+    competitorPrice: 'Not publicly listed on their homepage — see their pricing page.',
+    competitorClaim: {
+      quote: 'Trusted by 90,000+ founders building real products.',
+      source: 'https://aicofounder.com',
+    },
+    wedge: `AI Co-Founder talks you through building — research, planning, identifying your single biggest blocker — with a real user base behind it. It's a genuinely different tool than Quantis, not a worse one: it's conversational guidance for the building process, while Quantis is a deterministic financial verdict for the validation decision. Founders already using AI Co-Founder to build often still want an independent, numbers-first answer to "will this actually make money" — that's the gap Quantis fills, not a replacement for what AI Co-Founder already does well.`,
+    rows: [
+      ...QUANTIS_DIFFERENTIATORS,
+      {
+        feature: 'Core output',
+        quantis: 'Audit-grade financial verdict with cited sources — a validation decision.',
+        competitor: 'Guided planning, market research via AI agents, task lists, and a visual canvas — a building companion.',
+        competitorSource: 'https://aicofounder.com',
+      },
+      {
+        feature: 'Financial modeling',
+        quantis: `Deterministic engine, ${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration Monte Carlo, 12 variables, cited sources.`,
+        competitor: 'Not described as a feature — purely conversational and qualitative guidance, no quantitative financial output.',
+        competitorSource: 'https://aicofounder.com',
+      },
+      {
+        feature: 'User base',
+        quantis: 'See our own numbers on the homepage — no fabricated review counts, ever.',
+        competitor: '"Trusted by 90,000+ founders" per their own homepage.',
+        competitorSource: 'https://aicofounder.com',
+      },
+    ],
+    faqs: [
+      {
+        q: 'Should I switch from AI Co-Founder to Quantis?',
+        a: 'Probably not "switch" — the tools do different jobs. AI Co-Founder helps you build and plan through conversation. Quantis gives you a deterministic, cited financial verdict on whether the idea is worth building at all. Many founders reasonably use Quantis first to decide, then a building companion like AI Co-Founder to execute.',
+      },
+      {
+        q: 'Does AI Co-Founder do financial projections?',
+        a: 'Not as a described feature — it focuses on research, planning, and identifying blockers conversationally. If you need P10/P50/P90 financial projections with a source cited for every number, that is specifically what Quantis is built for.',
+      },
+    ],
+  },
+
+  {
+    slug: 'chatgpt',
+    competitor: 'ChatGPT',
+    competitorUrl: 'https://chatgpt.com',
+    competitorTagline: 'General-purpose AI assistant — not a dedicated validation product.',
+    competitorPrice: 'Free (GPT-3.5-class) or ~$20/mo (Plus) — see OpenAI\'s pricing page.',
+    competitorClaim: {
+      quote: 'ChatGPT can answer questions about anything, including your business idea.',
+      source: 'https://openai.com/chatgpt/pricing',
+    },
+    wedge: `You can absolutely ask ChatGPT to validate your business idea. It will produce a confident-sounding answer, with financial figures it invented in the moment, no benchmark data behind them, no memory of the last analysis you ran, and no way to check its work. Quantis was built specifically because that gap is dangerous: the deterministic engine computes numbers first, matches them against ${BENCHMARK_COUNT_DISPLAY} real benchmarks, then only lets AI narrate — never originate — a financial figure.`,
+    rows: [
+      ...QUANTIS_DIFFERENTIATORS,
+      {
+        feature: 'Where do the numbers come from?',
+        quantis: `Deterministic engine computes first; AI never originates a financial number (constitutional invariant). Every metric traces to a source.`,
+        competitor: 'The language model generates numbers as text, based on patterns in its training data — not a calculation against real benchmark data.',
+      },
+      {
+        feature: 'Consistency across runs',
+        quantis: `Deterministic — the same inputs produce the same core numbers every time, byte-for-byte (build-time regression tested).`,
+        competitor: 'Non-deterministic — re-running the same prompt can produce materially different numbers.',
+      },
+      {
+        feature: 'Cost',
+        quantis: `Free tier: ${TIERS.free.limits.analysesPerMonth} full analyses/month, no card required. Plus: $${TIERS.plus.priceMonthly}/mo.`,
+        competitor: 'Free with GPT-3.5-class models, or ~$20/mo for Plus — see OpenAI pricing.',
+        competitorSource: 'https://openai.com/chatgpt/pricing',
+      },
+      {
+        feature: 'Benchmark data behind the answer',
+        quantis: `${BENCHMARK_COUNT_DISPLAY} rows across ${BENCHMARK_SECTORS} sectors — SBA / IBISWorld / Census / BLS / OECD.`,
+        competitor: 'None specific to business benchmarks — general training-data knowledge only, with a documented knowledge cutoff.',
+      },
+    ],
+    faqs: [
+      {
+        q: "Isn't Quantis just ChatGPT with extra steps?",
+        a: `No — the deterministic engine is the core difference. ChatGPT (and every general LLM) generates financial numbers as plausible-sounding text. Quantis computes them with a deterministic math engine first, matches against ${BENCHMARK_COUNT_DISPLAY} real benchmark rows, and only then lets AI narrate the result. If the AI layer fails entirely, Quantis still returns the deterministic numbers — degraded, never fabricated.`,
+      },
+      {
+        q: 'Can I trust the financial numbers ChatGPT gives me for a business idea?',
+        a: "Treat them as a starting conversation, not a verdict. A general LLM has no persistent benchmark database and no requirement to cite a source for a number it generates — it can sound equally confident whether the figure is accurate or invented. That's the specific gap a deterministic, source-cited engine like Quantis's is designed to close.",
       },
     ],
   },

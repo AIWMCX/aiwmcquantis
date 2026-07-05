@@ -51,17 +51,25 @@ function titleOf(html) {
   const m = html && html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
   return m ? m[1] : "";
 }
+// Bug (2026-07-05): the previous [^"']+ capture treated an apostrophe as a
+// valid attribute delimiter even inside a double-quoted value, truncating
+// any content="...Quantis's..." string at the apostrophe. Two different
+// /vs/* descriptions that both happened to start "Side-by-side: Quantis's"
+// were silently truncated to the identical prefix "Side-by-side: Quantis"
+// and falsely flagged as DUPLICATE_DESC. Fixed with a backreference so the
+// capture only stops at whichever quote character actually opened the
+// attribute, never the other one appearing inside the content.
 function canonicalOf(html) {
-  const m = html && html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
-  return m ? m[1] : "";
+  const m = html && html.match(/<link[^>]+rel=["']canonical["'][^>]+href=(["'])((?:(?!\1)[\s\S])*)\1/i);
+  return m ? m[2] : "";
 }
 function descriptionOf(html) {
-  const m = html && html.match(/<meta[^>]+name=["']description["'][^>]+content=["']([^"']+)["']/i);
-  return m ? m[1] : "";
+  const m = html && html.match(/<meta[^>]+name=["']description["'][^>]+content=(["'])((?:(?!\1)[\s\S])*)\1/i);
+  return m ? m[2] : "";
 }
 function ogUrlOf(html) {
-  const m = html && html.match(/<meta[^>]+property=["']og:url["'][^>]+content=["']([^"']+)["']/i);
-  return m ? m[1] : "";
+  const m = html && html.match(/<meta[^>]+property=["']og:url["'][^>]+content=(["'])((?:(?!\1)[\s\S])*)\1/i);
+  return m ? m[2] : "";
 }
 
 // --- 1 & 4: every route emitted, with correct unique title -------------------

@@ -589,6 +589,9 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
         <li><Link to="/examples/saas-fintech-lagos" className="text-primary hover:underline">SaaS Fintech Lagos — worked example</Link></li>
         <li><Link to="/vs/bizplanr" className="text-primary hover:underline">Quantis vs Bizplanr — deterministic engine vs AI plan writer</Link></li>
         <li><Link to="/examples/accounting-firm-zurich" className="text-primary hover:underline">Accounting Firm Zurich — worked example</Link></li>
+        <li><Link to="/vs/foundra" className="text-primary hover:underline">Quantis vs Foundra — strategy cards vs a deterministic financial verdict</Link></li>
+        <li><Link to="/vs/aicofounder" className="text-primary hover:underline">Quantis vs AI Co-Founder — building companion vs validation verdict</Link></li>
+        <li><Link to="/vs/chatgpt" className="text-primary hover:underline">Quantis vs ChatGPT — why a general LLM can't cite its own numbers</Link></li>
       </ul>
     </>
   ),

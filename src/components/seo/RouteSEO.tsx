@@ -113,6 +113,18 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Quantis vs Bizplanr — Deterministic engine vs AI plan writer',
     description: 'Side-by-side: Quantis (deterministic engine + Monte Carlo + RVCE) vs Bizplanr for pre-launch financial validation.',
   },
+  '/vs/foundra': {
+    title: 'Quantis vs Foundra — Strategy cards vs a deterministic financial verdict',
+    description: "Side-by-side: Quantis (deterministic engine + Monte Carlo + cited benchmarks) vs Foundra's conversational strategy-card system.",
+  },
+  '/vs/aicofounder': {
+    title: 'Quantis vs AI Co-Founder — Building companion vs validation verdict',
+    description: "Side-by-side: Quantis's cited financial verdict vs AI Co-Founder's conversational planning and research guidance.",
+  },
+  '/vs/chatgpt': {
+    title: "Quantis vs ChatGPT — Why a general LLM can't cite its own numbers",
+    description: "Side-by-side: Quantis's deterministic, source-cited engine vs asking ChatGPT to validate a business idea directly.",
+  },
   // Auth / transactional — noIndex
   '/auth': { title: 'Sign In', description: 'Sign in or create your AIWMC Quantis account.', noIndex: true },
   '/reset-password': { title: 'Reset Password', description: 'Reset your AIWMC Quantis password.', noIndex: true },

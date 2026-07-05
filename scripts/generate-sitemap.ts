@@ -63,6 +63,9 @@ const staticEntries: Entry[] = [
   { path: '/vs/liveplan', changefreq: 'monthly', priority: '0.7' },
   { path: '/vs/upmetrics', changefreq: 'monthly', priority: '0.7' },
   { path: '/vs/bizplanr', changefreq: 'monthly', priority: '0.7' },
+  { path: '/vs/foundra', changefreq: 'monthly', priority: '0.7' },
+  { path: '/vs/aicofounder', changefreq: 'monthly', priority: '0.7' },
+  { path: '/vs/chatgpt', changefreq: 'monthly', priority: '0.7' },
 ];
 
 const blogEntries: Entry[] = BLOG_SLUGS.map((slug) => ({
