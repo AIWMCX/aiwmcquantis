@@ -58,3 +58,21 @@ export const VERDICT_SECONDS = 90;
 export const DOC_TEMPLATE_COUNT = 10;
 /** Formatted variant for display: "10". */
 export const DOC_TEMPLATE_COUNT_DISPLAY = '10';
+
+/**
+ * Boutique-consultant cost anchor used across pricing/marketing copy.
+ * Established convention across 30+ files (ValueAnchor.tsx, HeroVariants.tsx,
+ * PricingCard.tsx, Pricing.tsx, sampleReport.ts, Methodology.tsx, tests, etc.)
+ * -- added here as the first proper SSOT reference after finding 2 live,
+ * user-facing surfaces (ConsultantComparison.tsx, shown on every analysis
+ * results page, and index.html's noscript fallback) had drifted to a
+ * different, unrelated figure ($1,500-$25,000) not used anywhere else on
+ * the site. Corrected 2026-07-05.
+ */
+export const CONSULTANT_FLAT_COST = 3_000;
+/** Formatted variant for display: "$3,000". */
+export const CONSULTANT_FLAT_COST_DISPLAY = '$3,000';
+/** CFO/consultant hourly rate anchor, used alongside the flat-engagement figure. */
+export const CONSULTANT_HOURLY_RATE = 250;
+/** Formatted variant for display: "$250/hr". */
+export const CONSULTANT_HOURLY_RATE_DISPLAY = '$250/hr';
