@@ -280,7 +280,7 @@ export function hasFeatureSync(tier: TierId, feature: FeatureKey): boolean {
 /**
  * Coerce a requested analysis depth down to what the tier allows.
  * Free user sending depth='full' → coerced to 'quick' (no error, just downgrade).
- * Use this when you want graceful degradation; use requireFeature() when you want a hard 403.
+ * Use this when you want graceful degradation; use requireFeature() when you want a hard 402.
  */
 export function coerceDepth(tier: TierId, requested: string | undefined): 'quick' | 'full' | 'pro' {
   const req = (requested ?? 'quick').toLowerCase();
