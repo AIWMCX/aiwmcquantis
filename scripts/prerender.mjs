@@ -6,15 +6,53 @@
 // headless browser, WAITS for the content to render, and writes the fully
 // rendered DOM to dist/<route>/index.html. Crawlers now see what users see.
 //
-// Run AFTER `vite build`. Requires: puppeteer (devDependency).
+// RUNTIME: dual-path. On CI/serverless (Vercel build container, VERCEL=1)
+// we use puppeteer-core + @sparticuz/chromium — the serverless-optimized
+// Chromium build that ships all necessary system libs bundled in. On local
+// dev (a normal workstation) we use the full puppeteer package whose
+// bundled Chromium is already downloaded to node_modules. Both code paths
+// end at the exact same page.content() capture, so output is identical.
+// This is the standard Vercel-safe pattern for Puppeteer-in-build-step and
+// avoids the "shared library missing" failure mode that kills puppeteer's
+// bundled Chromium on serverless containers by default.
 // =============================================================================
 
 import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import puppeteer from "puppeteer";
 import { PUBLIC_ROUTES } from "./seo.routes.mjs";
+
+const IS_SERVERLESS =
+  !!process.env.VERCEL || !!process.env.CI || !!process.env.AWS_LAMBDA_FUNCTION_NAME;
+
+async function loadPuppeteer() {
+  if (IS_SERVERLESS) {
+    // Serverless path: puppeteer-core + @sparticuz/chromium.
+    const [{ default: chromium }, { default: puppeteerCore }] = await Promise.all([
+      import("@sparticuz/chromium"),
+      import("puppeteer-core"),
+    ]);
+    return {
+      launch: async () =>
+        puppeteerCore.launch({
+          args: chromium.args,
+          defaultViewport: chromium.defaultViewport,
+          executablePath: await chromium.executablePath(),
+          headless: chromium.headless,
+        }),
+    };
+  }
+  // Local path: full puppeteer with its bundled Chromium.
+  const { default: puppeteer } = await import("puppeteer");
+  return {
+    launch: async () =>
+      puppeteer.launch({
+        headless: "new",
+        args: ["--no-sandbox", "--disable-setuid-sandbox"],
+      }),
+  };
+}
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const DIST = path.resolve(__dirname, "..", "dist");
@@ -57,10 +95,9 @@ async function run() {
     process.exit(1);
   }
   const server = await startServer();
-  const browser = await puppeteer.launch({
-    headless: "new",
-    args: ["--no-sandbox", "--disable-setuid-sandbox"],
-  });
+  console.log(`▶ prerender: environment = ${IS_SERVERLESS ? "serverless (puppeteer-core + @sparticuz/chromium)" : "local (puppeteer bundled Chromium)"}`);
+  const puppeteer = await loadPuppeteer();
+  const browser = await puppeteer.launch();
 
   let ok = 0;
   const failed = [];
