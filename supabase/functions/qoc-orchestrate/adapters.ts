@@ -41,20 +41,20 @@ export function makeStore(sb: SupabaseClient): AuditStore {
   return {
     async getByFingerprint(fp: string) {
       const { data, error } = await sb
-        .from("qoc_audit")
-        .select("report_id")
+        .from("qoc_audit_envelopes")
+        .select("request_id")
         .eq("fingerprint", fp)
         .eq("overall_verdict", "PASS")
         .order("created_at", { ascending: false })
         .limit(1)
         .maybeSingle();
       if (error) throw error;
-      return data ? { report_id: data.report_id } : null;
+      return data ? { report_id: data.request_id } : null;
     },
     async recentCountForUser(userId: string, windowMs: number) {
       const since = new Date(Date.now() - windowMs).toISOString();
       const { count, error } = await sb
-        .from("qoc_audit")
+        .from("qoc_audit_envelopes")
         .select("*", { count: "exact", head: true })
         .eq("user_id", userId)
         .gte("created_at", since);
@@ -62,9 +62,9 @@ export function makeStore(sb: SupabaseClient): AuditStore {
       return count ?? 0;
     },
     async putEnvelope(env: AuditEnvelope) {
-      const { error } = await sb.from("qoc_audit").insert({
+      const { error } = await sb.from("qoc_audit_envelopes").insert({
         request_id: env.request_id,
-        report_id: env.request_id, // 1:1 for now; engine may override
+        qoc_version: env.qoc_version,
         fingerprint:
           // deno-lint-ignore no-explicit-any
           (env.traces.find((t) => t.stage === "dedupe")?.detail as any)?.result
@@ -75,6 +75,7 @@ export function makeStore(sb: SupabaseClient): AuditStore {
         total_cost_usd: env.total_cost_usd,
         total_duration_ms: env.total_duration_ms,
         traces: env.traces,
+        report: env.report ?? null,
         short_circuit: env.short_circuit ?? null,
       });
       if (error) throw error;
