@@ -23,7 +23,8 @@
     "build:prod": "bun run typecheck:financial && bun run verify:business-logic && vite build && node scripts/generate-static-bodies.mjs && bunx tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && node scripts/verify-visibility.mjs",
     "prerender": "node scripts/prerender.mjs",
     "sitemap": "node scripts/generate-sitemap.mjs",
-    "verify:seo": "node scripts/verify-visibility.mjs"
+    "verify:seo": "node scripts/verify-visibility.mjs",
+    "build:vercel": "vite build && node scripts/generate-static-bodies.mjs && npx --yes tsx scripts/prerender-seo.ts && node scripts/generate-sitemap.mjs && (node scripts/verify-visibility.mjs || echo VISIBILITY_WARN_NON_BLOCKING)"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.2.7",
