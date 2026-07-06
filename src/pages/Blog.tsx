@@ -1,9 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar, Clock, ArrowLeft } from 'lucide-react';
+import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { Footer } from '@/components/layout/Footer';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 export interface BlogArticle {
   slug: string;
@@ -128,122 +131,109 @@ export const BLOG_ARTICLES: BlogArticle[] = [
 
 export default function Blog() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell active="blog" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Startup Validation Blog — ​AIWMC™ Quantis Insights"
         description="Practical guides on validating startup ideas, financial stress-testing, and AI-powered business analysis. Written for founders, consultants, and builders."
         canonical="/blog"
       />
 
-      {/* Header */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-bold text-foreground">​AIWMC™ Quantis</span>
-            </Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-              <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-              <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
-              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-              <Link to="/methodology" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Methodology</Link>
-              <Link to="/blog" className="text-sm font-medium text-foreground">Blog</Link>
-            </div>
-            <Link to="/app">
-              <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Start Free <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      <section aria-labelledby="blog-hero-heading" className="aiwmc-section-wash py-12 md:py-16">
+        <SectionHeader
+          eyebrow="Validation Insights for Founders"
+          title="Practical guides for pre-launch and pre-scale decisions."
+          subtitle="Financial structuring, unit economics, and using AI to de-risk your next venture."
+          align="left"
+        />
+      </section>
 
-      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-12 md:py-16">
-        <div className="mb-12">
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-4 transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to home
-          </Link>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-3">
-            Validation Insights for Founders
-          </h1>
-          <p className="text-lg text-muted-foreground">
-            Practical guides on business validation, financial structuring, and using AI to de-risk your next venture.
-          </p>
-        </div>
-
-        <div className="space-y-6">
-          {BLOG_ARTICLES.map((article) => (
-            <Link
-              key={article.slug}
-              to={`/blog/${article.slug}`}
-              className="block group"
-            >
-              <article className="p-6 rounded-2xl border border-border bg-card hover:border-primary/30 hover:shadow-lg transition-all duration-300">
-                <div className="flex items-center gap-3 mb-3">
-                  <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                    {article.category}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Calendar className="w-3 h-3" />
-                    {new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                  </span>
-                  <span className="flex items-center gap-1 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    {article.readTime}
-                  </span>
-                </div>
-                <h2 className="text-xl font-bold text-foreground group-hover:text-primary transition-colors mb-2">
-                  {article.title}
-                </h2>
-                <p className="text-muted-foreground text-sm leading-relaxed">
-                  {article.description}
-                </p>
-                <span className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-3 group-hover:gap-2 transition-all">
-                  Read article <ArrowRight className="w-4 h-4" />
+      <section className="pb-4 space-y-4 md:space-y-5">
+        {BLOG_ARTICLES.map((article, i) => (
+          <Link key={article.slug} to={`/blog/${article.slug}`} className="block group">
+            <GlassCard glow={i % 3 === 0 ? 'cyan' : i % 3 === 1 ? 'violet' : 'brand'} revealDelay={Math.min(i, 6) * 40} className="p-6">
+              <div className="flex items-center gap-3 mb-3 flex-wrap">
+                <span
+                  className="px-2.5 py-1 rounded-full text-[11px] font-semibold uppercase tracking-[0.14em]"
+                  style={{ ...MONO, background: 'rgba(103,232,249,0.10)', color: 'var(--aiwmc-grad-cyan)' }}
+                >
+                  {article.category}
                 </span>
-              </article>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground" style={MONO}>
+                  <Calendar className="w-3 h-3" />
+                  {new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </span>
+                <span className="flex items-center gap-1 text-xs text-muted-foreground" style={MONO}>
+                  <Clock className="w-3 h-3" />
+                  {article.readTime}
+                </span>
+              </div>
+              <h2 className="text-xl font-bold mb-2 transition-colors group-hover:text-[color:var(--aiwmc-grad-cyan)]" style={{ color: 'hsl(var(--foreground))' }}>
+                {article.title}
+              </h2>
+              <p className="text-muted-foreground text-sm leading-relaxed">{article.description}</p>
+              <span
+                className="inline-flex items-center gap-1 text-sm font-medium mt-3 group-hover:gap-2 transition-all"
+                style={{ color: 'var(--aiwmc-grad-cyan)' }}
+              >
+                Read article <ArrowRight className="w-4 h-4" />
+              </span>
+            </GlassCard>
+          </Link>
+        ))}
+      </section>
+
+      {/* Related examples */}
+      <section className="mt-14 mb-10">
+        <SectionHeader
+          eyebrow="Related"
+          title="See real business analyses"
+          subtitle="Complete financial reports with revenue projections, risk flags, and action plans."
+          align="left"
+        />
+        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-8">
+          {[
+            { slug: 'coffee-shop-denver', title: 'Coffee Shop in Denver', profit: '$4,200/mo' },
+            { slug: 'saas-project-management', title: 'SaaS Project Management', profit: '$3,800/mo' },
+            { slug: 'restaurant-miami', title: 'Restaurant in Miami', profit: '$8,900/mo' },
+            { slug: 'fitness-studio-los-angeles', title: 'Fitness Studio in LA', profit: '$7,800/mo' },
+            { slug: 'food-truck-austin', title: 'Food Truck in Austin', profit: '$5,400/mo' },
+            { slug: 'tutoring-service-boston', title: 'Tutoring Service in Boston', profit: '$9,500/mo' },
+          ].map((ex, i) => (
+            <Link key={ex.slug} to={`/examples/${ex.slug}`} className="block">
+              <GlassCard glow={i % 2 === 0 ? 'cyan' : 'violet'} reveal={false} className="p-4">
+                <h3 className="font-semibold text-sm" style={{ color: 'hsl(var(--foreground))' }}>{ex.title}</h3>
+                <p className="text-xs font-medium mt-1" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                  {ex.profit} profit →
+                </p>
+              </GlassCard>
             </Link>
           ))}
         </div>
+        <Link
+          to="/examples"
+          className="inline-flex items-center gap-1 text-sm font-medium mt-4 hover:gap-2 transition-all"
+          style={{ color: 'var(--aiwmc-grad-cyan)' }}
+        >
+          View all examples <ArrowRight className="w-4 h-4" />
+        </Link>
+      </section>
 
-        {/* Example Analyses Cross-Links */}
-        <section className="mt-16 mb-10">
-          <h2 className="text-2xl font-bold text-foreground mb-3">See Real Business Analyses</h2>
-          <p className="text-muted-foreground mb-6">Explore complete financial reports with revenue projections, risk assessments, and action plans for real business ideas.</p>
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[
-              { slug: 'coffee-shop-denver', title: 'Coffee Shop in Denver', profit: '$4,200/mo' },
-              { slug: 'saas-project-management', title: 'SaaS Project Management', profit: '$3,800/mo' },
-              { slug: 'restaurant-miami', title: 'Restaurant in Miami', profit: '$8,900/mo' },
-              { slug: 'fitness-studio-los-angeles', title: 'Fitness Studio in LA', profit: '$7,800/mo' },
-              { slug: 'food-truck-austin', title: 'Food Truck in Austin', profit: '$5,400/mo' },
-              { slug: 'tutoring-service-boston', title: 'Tutoring Service in Boston', profit: '$9,500/mo' },
-            ].map((ex) => (
-              <Link key={ex.slug} to={`/examples/${ex.slug}`} className="block p-4 rounded-xl border border-border hover:border-primary/30 hover:shadow-md transition-all bg-card">
-                <h3 className="font-semibold text-foreground text-sm">{ex.title}</h3>
-                <p className="text-xs text-primary font-medium mt-1">{ex.profit} profit →</p>
-              </Link>
-            ))}
-          </div>
-          <Link to="/examples" className="inline-flex items-center gap-1 text-sm font-medium text-primary mt-4 hover:gap-2 transition-all">
-            View all 15 examples <ArrowRight className="w-4 h-4" />
-          </Link>
-        </section>
-
-        {/* CTA */}
-        <div className="mt-8 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
-          <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
+      {/* Closing CTA — glass, matches Landing pattern */}
+      <section className="py-8 md:py-12">
+        <GlassCard glow="brand" className="p-8 md:p-10 text-center">
+          <h2 className="text-2xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
+            Ready to validate your idea?
+          </h2>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.
+          </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
-              See My Numbers — Free <ArrowRight className="w-5 h-5" />
+              See my numbers — free <ArrowRight className="w-5 h-5" />
             </Button>
           </Link>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+        </GlassCard>
+      </section>
+    </PublicPageShell>
   );
 }
