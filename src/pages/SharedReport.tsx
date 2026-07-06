@@ -15,6 +15,7 @@ import { ActionableInsights } from '@/components/analysis/ActionableInsights';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 import { PageMeta } from '@/components/seo/PageMeta';
+import { GlassCard } from '@/components/ui/glass-card';
 
 import { logger } from '@/lib/logger';
 interface SharedReportData {
@@ -105,7 +106,7 @@ export default function SharedReport() {
   if (error || !data) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="text-center max-w-md">
+        <GlassCard glow="none" className="text-center max-w-md p-8">
           <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8 text-destructive" />
           </div>
@@ -119,7 +120,7 @@ export default function SharedReport() {
               Go to Homepage
             </Button>
           </Link>
-        </div>
+        </GlassCard>
       </div>
     );
   }
@@ -259,7 +260,7 @@ export default function SharedReport() {
           </div>
 
           {/* CTA — recipient view always ends here (MP2 WS-5) */}
-          <div className="p-6 rounded-2xl bg-primary/5 border border-primary/20 text-center">
+          <GlassCard glow="brand" className="p-6 text-center">
             <h3 className="text-lg font-semibold text-foreground mb-2">
               Stress-test your own business idea
             </h3>
@@ -272,7 +273,7 @@ export default function SharedReport() {
                 <ExternalLink className="w-4 h-4" />
               </Button>
             </Link>
-          </div>
+          </GlassCard>
         </div>
       </main>
 

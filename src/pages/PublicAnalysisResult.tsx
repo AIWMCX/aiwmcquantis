@@ -14,6 +14,7 @@ import { AnalysisResultsSkeleton } from '@/components/analysis/AnalysisResultsSk
 import { PostAnalysisEmailCapture } from '@/components/analysis/PostAnalysisEmailCapture';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { toast } from 'sonner';
+import { GlassCard } from '@/components/ui/glass-card';
 
 const AccuracyTransparentResults = lazy(() =>
   import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
@@ -112,14 +113,14 @@ export default function PublicAnalysisResult() {
   if (error || !data || !verdict) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background px-4">
-        <div className="text-center max-w-md">
+        <GlassCard glow="none" className="text-center max-w-md p-8">
           <AlertTriangle className="w-10 h-10 text-amber-500 mx-auto mb-3" />
           <h1 className="text-xl font-bold text-foreground mb-2">Analysis not found</h1>
           <p className="text-sm text-muted-foreground mb-6">{error || 'This analysis link is invalid.'}</p>
           <Link to="/">
             <Button>Run a new analysis</Button>
           </Link>
-        </div>
+        </GlassCard>
       </div>
     );
   }
@@ -189,15 +190,12 @@ export default function PublicAnalysisResult() {
 
         {/* Conversion rail — anonymous nudge */}
         {!isAuthenticated && (
-          <section
-            className="mb-8 md:mb-10 p-5 md:p-6 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
-            style={{
-              background: 'var(--q-bg-elevated, hsl(var(--muted) / 0.4))',
-              border: '1px solid var(--q-border-default, hsl(var(--border)))',
-            }}
+          <GlassCard
+            glow="cyan"
+            className="mb-8 md:mb-10 p-5 md:p-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
           >
             <div className="flex items-start gap-3">
-              <Lock className="w-5 h-5 mt-0.5 text-primary shrink-0" />
+              <Lock className="w-5 h-5 mt-0.5 shrink-0" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
               <div>
                 <p className="text-sm md:text-base font-semibold text-foreground">
                   This page disappears when you close the tab.
@@ -217,7 +215,7 @@ export default function PublicAnalysisResult() {
               isCreatingShareLink={isSharing}
               className="w-full sm:w-auto"
             />
-          </section>
+          </GlassCard>
         )}
 
         {/* Full report — assumption graph, scenarios, financials */}
