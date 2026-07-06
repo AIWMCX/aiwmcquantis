@@ -153,28 +153,11 @@ export default function Landing() {
           )}
         </div>
 
-        {/* 10. Bottom CTA */}
-        <section className="py-16 md:py-24">
-          <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-            <div className="relative overflow-hidden rounded-2xl md:rounded-3xl bg-primary p-8 md:p-16 text-center">
-              <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
-              <div className="relative">
-                <h2 className="text-2xl md:text-4xl font-bold text-primary-foreground mb-4">
-                  Run a Pre-Mortem on Your Business Model — Free
-                </h2>
-                <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
-                  See fatal assumptions, stress-test scenarios, and get a clear
-                  proceed/pivot/kill verdict. Multi-model verified, no credit card.
-                </p>
-                <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
-                  <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">
-                    Start Free Analysis →
-                  </Button>
-                </Link>
-              </div>
-            </div>
-          </div>
-        </section>
+        {/* 10. Bottom CTA — DELETED per MP2-DESIGN-01 SoW Screen 8.
+                Duplicate of hero CTA + Screen 4 closer; solid-blue block broke
+                the dark aesthetic and had contrast issues. Pricing (Section 8
+                above) is the real closer, not a third "start free" repeat. */}
+
         {/* 11. Social Community Panel */}
         <SocialPanel />
       </main>
