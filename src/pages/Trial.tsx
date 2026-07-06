@@ -21,16 +21,18 @@ import { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, CheckCircle2, Sparkles, Lock, Clock, BarChart3, FileText, Brain, Zap } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { useSubscription } from '@/hooks/useSubscription';
 import { usePromoStatus, FOUNDER_PROMO_ENABLED } from '@/hooks/usePromoStatus';
 import { recordFunnelEvent } from '@/lib/analytics';
-import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard } from '@/components/ui/glass-card';
 import { TIERS } from '@/config/tiers';
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 /**
  * Marketing-tracked promo codes. Keep this small — each code corresponds
@@ -101,17 +103,17 @@ export default function Trial() {
   // while that's being fixed. See FOUNDER_PROMO_ENABLED in usePromoStatus.ts.
   if (!FOUNDER_PROMO_ENABLED) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+      <PublicPageShell maxWidth="sm">
         <PageSEO
           title="Founder trial — back shortly | AIWMC Quantis"
           description="The founder trial invitation is temporarily paused while we finish a checkout fix. Check back soon, or start free today."
           canonical="/trial"
           noindex
         />
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-6 text-center">
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <GlassCard glow="none" className="max-w-md w-full p-8 text-center">
             <Clock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <h1 className="text-xl font-bold text-foreground mb-2">This invitation is paused for a moment</h1>
+            <h1 className="text-xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>This invitation is paused for a moment</h1>
             <p className="text-sm text-muted-foreground mb-6">
               We're finishing a checkout fix for the founder trial. Your invitation code is still reserved —
               check back shortly, or start free right now with no card required.
@@ -122,35 +124,35 @@ export default function Trial() {
                 Try Free <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </GlassCard>
+        </div>
+      </PublicPageShell>
     );
   }
 
   // ─── Already a paid subscriber ──────────────────────────────────────────
   if (!authLoading && isAuthenticated && (isPlus || isPro)) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+      <PublicPageShell maxWidth="sm">
         <PageSEO
           title="You're already on Plus — AIWMC Quantis"
           description="You already have access to Plus features. Head to your dashboard to keep running analyses."
           canonical="/trial"
           noindex
         />
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
-            <h1 className="text-2xl font-bold text-foreground mb-2">You're already on Plus</h1>
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <GlassCard glow="cyan" className="max-w-md w-full p-8 text-center">
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#4ade80' }} />
+            <h1 className="text-2xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>You're already on Plus</h1>
             <p className="text-muted-foreground mb-6">
               No need to redeem — your subscription is active. Head to your dashboard to keep validating ideas.
             </p>
             <Button size="lg" onClick={() => navigate('/app')} className="gap-2">
               Go to Dashboard <ArrowRight className="w-4 h-4" />
             </Button>
-          </CardContent>
-        </Card>
-      </div>
+          </GlassCard>
+        </div>
+      </PublicPageShell>
     );
   }
 
@@ -159,17 +161,17 @@ export default function Trial() {
   // survives cancellation, cleared cookies, and a different browser/device.
   if (!authLoading && isAuthenticated && !promoStatusLoading && alreadyRedeemed) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+      <PublicPageShell maxWidth="sm">
         <PageSEO
           title="Promotion already redeemed — AIWMC Quantis"
           description="You've already used this founder trial promotion."
           canonical="/trial"
           noindex
         />
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-6 text-center">
-            <CheckCircle2 className="w-12 h-12 text-success mx-auto mb-3" />
-            <h1 className="text-2xl font-bold text-foreground mb-2">You've already claimed this offer</h1>
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <GlassCard glow="cyan" className="max-w-md w-full p-8 text-center">
+            <CheckCircle2 className="w-12 h-12 mx-auto mb-3" style={{ color: '#4ade80' }} />
+            <h1 className="text-2xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>You've already claimed this offer</h1>
             <p className="text-muted-foreground mb-6">
               Code {promoCode || 'AIWMCQJULY17'} was already redeemed on this account. Each founder invite is one-time only —
               head to Pricing to see current plans, or your dashboard if you're still subscribed.
@@ -180,26 +182,26 @@ export default function Trial() {
                 Go to Dashboard <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </GlassCard>
+        </div>
+      </PublicPageShell>
     );
   }
 
   // ─── Unrecognized or missing code ───────────────────────────────────────
   if (!isRecognized) {
     return (
-      <div className="min-h-screen bg-background text-foreground flex items-center justify-center px-4">
+      <PublicPageShell maxWidth="sm">
         <PageSEO
           title="Trial invitation — AIWMC Quantis"
           description="This trial page is for invited founders only. Visit aiwmcquantis.com to start with the free tier."
           canonical="/trial"
           noindex
         />
-        <Card className="max-w-md w-full">
-          <CardContent className="pt-8 pb-6 text-center">
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <GlassCard glow="none" className="max-w-md w-full p-8 text-center">
             <Lock className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-            <h1 className="text-xl font-bold text-foreground mb-2">
+            <h1 className="text-xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
               {promoCode ? 'This invitation code isn’t recognized' : 'This page is for invited founders'}
             </h1>
             <p className="text-sm text-muted-foreground mb-6">
@@ -213,15 +215,15 @@ export default function Trial() {
                 Try Free <ArrowRight className="w-4 h-4" />
               </Button>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          </GlassCard>
+        </div>
+      </PublicPageShell>
     );
   }
 
   // ─── Main trial offer ───────────────────────────────────────────────────
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell maxWidth="lg">
       <PageSEO
         title="Plus — Free for 1 Month | Founder Trial | AIWMC Quantis"
         description={`Personal invitation for 50 founders. Get Plus capabilities free for 1 month with code ${promoCode}. No card charged for 14 days. Cancel anytime.`}
@@ -232,21 +234,21 @@ export default function Trial() {
         <meta name="robots" content="noindex, nofollow" />
       </Helmet>
 
-      <main className="container max-w-4xl mx-auto px-4 sm:px-6 py-10 md:py-16">
+      <div className="py-10 md:py-16">
         {/* Code banner */}
         <div className="flex flex-col sm:flex-row items-center justify-center gap-3 mb-8">
-          <Badge className="gap-1.5 px-3 py-1.5 text-sm bg-primary/15 text-primary border-primary/30">
+          <Badge className="gap-1.5 px-3 py-1.5 text-sm" style={{ background: 'rgba(79,70,229,0.14)', color: 'var(--aiwmc-grad-cyan)', border: 'none' }}>
             <Sparkles className="w-3.5 h-3.5" /> Personal invitation
           </Badge>
-          <div className="font-mono text-base bg-muted/50 border border-border rounded-md px-3 py-1.5 tracking-wider">
+          <div className="text-base rounded-md px-3 py-1.5 tracking-wider" style={{ ...MONO, background: 'rgba(148,163,255,0.08)', border: '1px solid rgba(148,163,255,0.16)', color: 'hsl(var(--foreground))' }}>
             {promoCode}
           </div>
         </div>
 
         {/* Hero */}
         <div className="text-center mb-10 md:mb-14">
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-foreground mb-5 leading-tight">
-            One month of <span className="text-primary">Plus</span>.<br />
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-5 leading-tight" style={{ color: 'hsl(var(--foreground))' }}>
+            One month of <span style={{ color: 'var(--aiwmc-grad-cyan)' }}>Plus</span>.<br />
             On the house.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed mb-2">
@@ -254,7 +256,7 @@ export default function Trial() {
             Run as many financial pre-mortems as you want for the next month — no card charged for 14 days, cancel anytime.
           </p>
           <p className="text-sm text-muted-foreground">
-            Limited to 50 founders. Auto-applies <span className="font-mono font-medium text-foreground">{promoCode}</span> at checkout.
+            Limited to 50 founders. Auto-applies <span className="font-medium" style={{ ...MONO, color: 'hsl(var(--foreground))' }}>{promoCode}</span> at checkout.
           </p>
         </div>
 
@@ -276,7 +278,8 @@ export default function Trial() {
               You'll need a free Quantis account first. Your invitation code will be preserved through sign-in.{' '}
               <button
                 onClick={() => navigate(`/auth?redirect=/trial%3Fcode%3D${promoCode}`)}
-                className="text-primary hover:underline font-medium"
+                className="font-medium hover:underline"
+                style={{ color: 'var(--aiwmc-grad-cyan)' }}
               >
                 Create account or sign in →
               </button>
@@ -291,7 +294,7 @@ export default function Trial() {
 
         {/* What you unlock */}
         <section className="mb-12" aria-labelledby="unlock-heading">
-          <h2 id="unlock-heading" className="text-xl md:text-2xl font-bold text-foreground mb-5 text-center">
+          <h2 id="unlock-heading" className="text-xl md:text-2xl font-bold mb-5 text-center" style={{ color: 'hsl(var(--foreground))' }}>
             What's in Plus
           </h2>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -303,61 +306,60 @@ export default function Trial() {
               { icon: CheckCircle2, title: 'Watermark-free PDF export', body: 'Investor-ready, branded reports you can actually send.' },
               { icon: Sparkles, title: 'Custom branding', body: 'Your logo and color on every export.' },
             ].map((f, i) => (
-              <Card key={i}>
-                <CardContent className="pt-5 pb-5">
-                  <div className="flex items-start gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <f.icon className="w-4.5 h-4.5 text-primary" />
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground mb-1">{f.title}</h3>
-                      <p className="text-sm text-foreground/70 leading-relaxed">{f.body}</p>
-                    </div>
+              <GlassCard key={i} glow={i % 2 === 0 ? 'cyan' : 'violet'} revealDelay={i * 40} className="p-5">
+                <div className="flex items-start gap-3">
+                  <div className="w-9 h-9 rounded-lg flex items-center justify-center shrink-0" style={{ background: 'rgba(148,163,255,0.10)' }}>
+                    <f.icon className="w-4.5 h-4.5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
                   </div>
-                </CardContent>
-              </Card>
+                  <div>
+                    <h3 className="font-semibold mb-1" style={{ color: 'hsl(var(--foreground))' }}>{f.title}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{f.body}</p>
+                  </div>
+                </div>
+              </GlassCard>
             ))}
           </div>
         </section>
 
         {/* Honest mechanics */}
         <section className="mb-12" aria-labelledby="mechanics-heading">
-          <h2 id="mechanics-heading" className="text-xl md:text-2xl font-bold text-foreground mb-5 text-center">
+          <h2 id="mechanics-heading" className="text-xl md:text-2xl font-bold mb-5 text-center" style={{ color: 'hsl(var(--foreground))' }}>
             How this works (so there are no surprises)
           </h2>
-          <Card>
-            <CardContent className="pt-6 pb-6">
-              <ol className="space-y-4">
-                {[
-                  { t: 'You hit Start', d: 'We open Stripe Checkout with your invitation code pre-applied. No card charged.' },
-                  { t: 'Days 1–14: Free trial', d: 'Full Plus access. Run analyses, generate documents, export PDFs.' },
-                  { t: 'Day 15: Promo applies', d: `Your trial ends and Stripe generates your first invoice. Code ${promoCode} gives 100% off that invoice — Stripe shows $0.00, covering a full month of Plus.` },
-                  { t: 'The following month: Standard billing begins', d: `$${TIERS.plus.priceMonthly}/mo unless you cancel beforehand. You can cancel in 1 click from the billing portal.` },
-                ].map((step, i) => (
-                  <li key={i} className="flex items-start gap-4">
-                    <div className="flex items-center justify-center w-7 h-7 rounded-full bg-primary text-primary-foreground text-sm font-bold shrink-0">
-                      {i + 1}
-                    </div>
-                    <div>
-                      <h3 className="font-semibold text-foreground">{step.t}</h3>
-                      <p className="text-sm text-foreground/70 leading-relaxed">{step.d}</p>
-                    </div>
-                  </li>
-                ))}
-              </ol>
-              <div className="mt-6 pt-5 border-t border-border/40 flex items-start gap-2.5 text-sm text-muted-foreground">
-                <Clock className="w-4 h-4 mt-0.5 shrink-0" />
-                <p>
-                  Limited to <span className="font-medium text-foreground">50 founders</span>.
-                  When seats run out, the code stops working — Stripe enforces this on their side.
-                </p>
-              </div>
-            </CardContent>
-          </Card>
+          <GlassCard glow="brand" className="p-6">
+            <ol className="space-y-4">
+              {[
+                { t: 'You hit Start', d: 'We open Stripe Checkout with your invitation code pre-applied. No card charged.' },
+                { t: 'Days 1–14: Free trial', d: 'Full Plus access. Run analyses, generate documents, export PDFs.' },
+                { t: 'Day 15: Promo applies', d: `Your trial ends and Stripe generates your first invoice. Code ${promoCode} gives 100% off that invoice — Stripe shows $0.00, covering a full month of Plus.` },
+                { t: 'The following month: Standard billing begins', d: `$${TIERS.plus.priceMonthly}/mo unless you cancel beforehand. You can cancel in 1 click from the billing portal.` },
+              ].map((step, i) => (
+                <li key={i} className="flex items-start gap-4">
+                  <div
+                    className="flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold shrink-0"
+                    style={{ background: 'var(--aiwmc-grad-brand)', color: '#ffffff' }}
+                  >
+                    {i + 1}
+                  </div>
+                  <div>
+                    <h3 className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>{step.t}</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{step.d}</p>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-6 pt-5 flex items-start gap-2.5 text-sm text-muted-foreground" style={{ borderTop: '1px solid rgba(148,163,255,0.14)' }}>
+              <Clock className="w-4 h-4 mt-0.5 shrink-0" />
+              <p>
+                Limited to <span className="font-medium" style={{ color: 'hsl(var(--foreground))' }}>50 founders</span>.
+                When seats run out, the code stops working — Stripe enforces this on their side.
+              </p>
+            </div>
+          </GlassCard>
         </section>
 
         {/* Bottom CTA */}
-        <section className="text-center pb-8">
+        <section className="text-center pb-4">
           <Button
             size="lg"
             onClick={handleRedeem}
@@ -369,9 +371,7 @@ export default function Trial() {
              <>Claim your free month <ArrowRight className="w-5 h-5" /></>}
           </Button>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PublicPageShell>
   );
 }

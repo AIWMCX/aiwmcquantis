@@ -14,6 +14,7 @@ import { trackEvent, trackPageView } from '@/lib/analytics';
 import { PasswordStrengthMeter, checkPasswordStrength } from '@/components/auth/PasswordStrengthMeter';
 import { cn } from '@/lib/utils';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
 
 import { logger } from '@/lib/logger';
 const resetPasswordSchema = z.object({
@@ -135,68 +136,72 @@ export default function ResetPassword() {
   // Invalid or expired token
   if (isValidToken === false) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
-                <AlertCircle className="w-8 h-8 text-destructive" />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-foreground">Invalid or Expired Link</h3>
-                <p className="text-muted-foreground">
-                  This password reset link is invalid or has expired. 
-                  Please request a new password reset.
-                </p>
-              </div>
+      <PublicPageShell maxWidth="sm">
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-destructive/10">
+                  <AlertCircle className="w-8 h-8 text-destructive" />
+                </div>
 
-              <Button onClick={() => navigate('/auth')} className="w-full">
-                Back to Sign In
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-foreground">Invalid or Expired Link</h3>
+                  <p className="text-muted-foreground">
+                    This password reset link is invalid or has expired.
+                    Please request a new password reset.
+                  </p>
+                </div>
+
+                <Button onClick={() => navigate('/auth')} className="w-full">
+                  Back to Sign In
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </PublicPageShell>
     );
   }
 
   // Success state
   if (isSuccess) {
     return (
-      <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4">
-        <Card className="w-full max-w-md">
-          <CardContent className="pt-6">
-            <div className="text-center space-y-6">
-              <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
-                <CheckCircle2 className="w-8 h-8 text-primary" />
-              </div>
-              
-              <div className="space-y-2">
-                <h3 className="text-xl font-semibold text-foreground">Password Updated!</h3>
-                <p className="text-muted-foreground">
-                  Your password has been successfully updated. 
-                  Redirecting to sign in...
-                </p>
-              </div>
+      <PublicPageShell maxWidth="sm">
+        <div className="min-h-[60vh] flex items-center justify-center px-4">
+          <Card className="w-full max-w-md">
+            <CardContent className="pt-6">
+              <div className="text-center space-y-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10">
+                  <CheckCircle2 className="w-8 h-8 text-primary" />
+                </div>
 
-              <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+                <div className="space-y-2">
+                  <h3 className="text-xl font-semibold text-foreground">Password Updated!</h3>
+                  <p className="text-muted-foreground">
+                    Your password has been successfully updated.
+                    Redirecting to sign in...
+                  </p>
+                </div>
+
+                <Loader2 className="w-6 h-6 animate-spin mx-auto text-primary" />
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </PublicPageShell>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
+    <PublicPageShell maxWidth="sm">
       <PageSEO
         title="Reset Password | AIWMC Quantis"
         description="Set a new password for your AIWMC Quantis account."
         canonical="/reset-password"
         noindex={true}
       />
-      <div className="container max-w-lg mx-auto flex-1 flex flex-col items-center justify-center px-4 py-8">
+      <div className="flex-1 flex flex-col items-center justify-center px-4 py-8 min-h-[60vh]">
         <div className="flex items-center gap-3 mb-8">
           <div className="p-2 rounded-lg bg-primary/10">
             <Brain className="w-8 h-8 text-primary" />
@@ -293,6 +298,6 @@ export default function ResetPassword() {
           </CardContent>
         </Card>
       </div>
-    </div>
+    </PublicPageShell>
   );
 }
