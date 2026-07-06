@@ -151,7 +151,7 @@ export default function Auth() {
 
       <div className="flex-1 flex flex-col lg:flex-row">
         {/* Left — Brand panel (hidden on mobile) */}
-        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: 'var(--q-gradient-hero)' }}>
+        <div className="hidden lg:flex lg:w-1/2 flex-col justify-center items-center px-12 py-16" style={{ background: '#0a0e1f' }}>
           <div className="max-w-md space-y-8">
             <div className="mb-6">
               <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-12 w-auto object-contain dark:invert" />
@@ -159,14 +159,23 @@ export default function Auth() {
             <p className="text-lg text-muted-foreground leading-relaxed">
               AI-powered business validation. Stress-test your startup idea before you commit capital.
             </p>
-            <div className="space-y-4 pt-4">
+            <div className="space-y-3 pt-4">
               {[
                 { metric: '12', label: 'Financial variables stress-tested' },
                 { metric: '95,500', label: 'Industry benchmarks' },
                 { metric: '90s', label: 'Time to full analysis' },
               ].map((stat) => (
-                <div key={stat.label} className="flex items-center gap-4">
-                  <span className="text-2xl font-bold text-primary" style={{ fontFamily: "'JetBrains Mono', monospace" }}>{stat.metric}</span>
+                <div
+                  key={stat.label}
+                  className="flex items-center gap-4 px-4 py-3 rounded-lg"
+                  style={{ background: 'rgba(148,163,255,0.05)', border: '1px solid rgba(148,163,255,0.10)' }}
+                >
+                  <span
+                    className="text-xl font-semibold tabular-nums"
+                    style={{ fontFamily: "'JetBrains Mono', monospace", color: 'var(--aiwmc-grad-cyan)' }}
+                  >
+                    {stat.metric}
+                  </span>
                   <span className="text-sm text-muted-foreground">{stat.label}</span>
                 </div>
               ))}
