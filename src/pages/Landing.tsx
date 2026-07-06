@@ -27,7 +27,8 @@ import { RmgHeader } from '@/components/landing/RmgHeader';
 import { TIERS } from '@/config/tiers';
 
 // Lazy-load below-fold sections
-const Testimonials = lazy(() => import('@/components/landing/Testimonials').then(m => ({ default: m.Testimonials })));
+// Testimonials removed (2026-07-06): replaced by TrustStrip until real linkable founder profiles are verified.
+import { TrustStrip } from '@/components/landing/TrustStrip';
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection').then(m => ({ default: m.HowItWorksSection })));
 const OpenTheHood = lazy(() => import('@/components/landing/OpenTheHood').then(m => ({ default: m.OpenTheHood })));
 const FounderStory = lazy(() => import('@/components/landing/FounderStory').then(m => ({ default: m.FounderStory })));
@@ -108,7 +109,7 @@ export default function Landing() {
         <div ref={belowFoldSection.ref} style={{ minHeight: belowFoldSection.isVisible ? undefined : '600px' }}>
           {belowFoldSection.isVisible ? (
             <Suspense fallback={<SectionSkeleton height={600} />}>
-              <Testimonials />
+              <TrustStrip />
               <HowItWorksSection />
               <OpenTheHood />
               <FounderStory />
