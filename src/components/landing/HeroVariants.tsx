@@ -25,7 +25,7 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   },
   action_focused: {
     title: 'Every number in your business plan is a guess. Stress-test them against 95,500 real benchmarks — free.',
-    subtitle: 'Dual-AI consensus on financial, market, and operational risk. Get a proceed/pivot/kill verdict with a saveable PDF in 90 seconds.',
+    subtitle: 'Multi-model consensus on financial, market, and operational risk. Get a proceed/pivot/kill verdict with a saveable PDF in 90 seconds.',
     ctaText: 'Run my free stress-test',
   },
 };

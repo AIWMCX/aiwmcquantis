@@ -749,7 +749,7 @@ export function ReportFirstHero() {
                       <span aria-hidden="true">·</span>
                       <span>Confidence {COVER.confidence}</span>
                       <span aria-hidden="true">·</span>
-                      <span>Dual-AI verified</span>
+                      <span>Multi-model verified</span>
                     </div>
                   </div>
                 </section>
@@ -900,7 +900,7 @@ export function ReportFirstHero() {
                   <span>·</span>
                   <span>95,500 benchmarks</span>
                   <span>·</span>
-                  <span>Dual-AI verified</span>
+                  <span>Multi-model verified</span>
                 </div>
               </div>
             </form>

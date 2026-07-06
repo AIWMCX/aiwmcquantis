@@ -44,7 +44,7 @@ export const optimizedDescriptions: Record<string, { label: string; text: string
   },
   indieHackers: {
     label: 'IndieHackers (founder voice)',
-    text: 'I built AIWMC Quantis because I lost 8 months and $40K on a startup that a good validation process would\'ve flagged in week 1. The tool is a dual-AI validation engine that gives founders a structured, data-backed answer to \'should I build this.\' Would love feedback from other builders.',
+    text: 'I built AIWMC Quantis because I lost 8 months and $40K on a startup that a good validation process would\'ve flagged in week 1. The tool is a multi-model validation engine that gives founders a structured, data-backed answer to \'should I build this.\' Would love feedback from other builders.',
   },
 };
 

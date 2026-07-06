@@ -40,7 +40,7 @@ export default function Methodology() {
     <AppLayout title="Methodology & Safety">
       <PageSEO
         title="Quantis Methodology — Deterministic Financial Engine"
-        description={`How Quantis calculates projections: deterministic math engine, ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, dual-AI consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
+        description={`How Quantis calculates projections: deterministic math engine, ${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, multi-model consensus validation, and ${PIPELINE_LAYERS_LABEL} safety architecture.`}
         canonical="/methodology"
       />
       
@@ -206,7 +206,7 @@ export default function Methodology() {
                   Activation (A)
                 </div>
                 <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
-                <p className="text-xs text-muted-foreground flex-1">Dual-AI Consensus measures how strongly both GPT and Gemini "activate" on the same conclusion. High agreement = high A.</p>
+                <p className="text-xs text-muted-foreground flex-1">Multi-Model Consensus measures how strongly both GPT and Gemini "activate" on the same conclusion. High agreement = high A.</p>
                 <Badge variant="outline" className="text-xs w-fit mt-auto">Consensus Agreement Score</Badge>
               </div>
               <div className="p-4 bg-muted/50 rounded-lg border border-border/50 space-y-2 flex flex-col">
@@ -360,7 +360,7 @@ export default function Methodology() {
                 <li><strong>Location calibration:</strong> Base US metrics are multiplied by location-specific factors (salary, rent, utility, marketing) derived from World Bank + cost-of-living indices for 50+ global hubs.</li>
                 <li><strong>Deterministic calculation:</strong> Revenue = average check × orders/month. Expenses = rent + payroll + COGS + marketing + utilities + insurance. All from the benchmark P50 (median). Net profit, margins, CAC, LTV, payback — all computed from these inputs via standard financial formulas.</li>
                 <li><strong>Monte Carlo stress test (Plus/Pro):</strong> {MONTE_CARLO_ITERATIONS_DISPLAY} iterations sample from the P25–P75 range with realistic variance (JPMorgan volatility coefficients). Output: pessimistic (P10), base (P50), optimistic (P90) bands.</li>
-                <li><strong>Reconciliation gate:</strong> The dual-AI Reconciliation Engine cross-checks every output against Golden Test Vectors (±15% tolerance). Outputs that fail are auto-corrected or flagged QSL-1.</li>
+                <li><strong>Reconciliation gate:</strong> The multi-model Reconciliation Engine cross-checks every output against Golden Test Vectors (±15% tolerance). Outputs that fail are auto-corrected or flagged QSL-1.</li>
                 <li><strong>Confidence assignment:</strong> Each metric gets a QSL badge (4 = deterministic certainty, 3 = benchmark-aligned, 2 = extrapolated, 1 = speculative) based on how close the user's inputs are to the benchmark IQR.</li>
               </ol>
             </div>

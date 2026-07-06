@@ -60,7 +60,7 @@ const TIER_CONFIG: Record<
 > = {
   verified: {
     icon: ShieldCheck,
-    label: 'DeepSeek AI Verified',
+    label: 'AI Verified',
     emoji: '',
     bgClass: 'bg-emerald-500/10',
     borderClass: 'border-emerald-500/30',

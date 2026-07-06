@@ -66,7 +66,7 @@ const CHANGELOG: ChangeEntry[] = [
   {
     date: 'March 25, 2026',
     version: '2.0.0',
-    title: 'Dual-AI Consensus & Forensic Suite',
+    title: 'Multi-Model Consensus & Forensic Suite',
     type: 'feature',
     changes: [
       'Parallel calls to GPT-5-mini and Gemini 3 Flash with consensus scoring.',

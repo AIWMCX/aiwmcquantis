@@ -117,7 +117,7 @@ export function StructuredData({
         'Sensitivity & Tornado Analysis',
         'Document Studio (Business Plans, Pitch Decks, NDAs)',
         'PDF Export with Custom Branding',
-        'Dual-AI Consensus Validation',
+        'Multi-Model Consensus Validation',
         'Real-Time Risk Flags & Anomaly Detection',
         'Collaborative Team Workspaces'
       ]

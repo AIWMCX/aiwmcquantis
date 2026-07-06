@@ -183,7 +183,7 @@ export function ResultsHeroStrip({
         <span className="w-1 h-1 rounded-full bg-[var(--q-border-default)]" />
         <span className="flex items-center gap-1 text-xs text-[var(--q-text-secondary)]">
           <CheckCircle2 className="w-3 h-3 text-[var(--q-status-green)]" />
-          Dual-AI Verified
+          Multi-Model Verified
         </span>
       </div>
     </div>

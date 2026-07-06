@@ -493,7 +493,7 @@ export const TEMPLATE_REGISTRY: Record<string, string> = {
   {{/each}}
 
   <div class="badge-footer">
-    Validated with AIWMC Quantis &middot; Dual AI Engine &middot; {{format.percent(report.metadata.overallConfidence)}} Confidence
+    Validated with AIWMC Quantis &middot; Multi-Model Engine &middot; {{format.percent(report.metadata.overallConfidence)}} Confidence
   </div>
 </div>
 </body>

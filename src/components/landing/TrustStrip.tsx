@@ -1,6 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Database, Cpu, Lock } from 'lucide-react';
 import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /**
  * TrustStrip — replaces the Testimonials section on landing until real
@@ -18,8 +19,8 @@ const SOURCES = [
 ];
 
 const METRICS = [
-  { icon: Database,    value: '95,500+', label: 'verified benchmarks',      glow: 'indigo' as const },
-  { icon: Cpu,         value: 'Dual-AI', label: 'consensus cross-check',    glow: 'violet' as const },
+  { icon: Database,    value: `${BENCHMARK_COUNT_DISPLAY}+`, label: 'verified benchmarks',      glow: 'indigo' as const },
+  { icon: Cpu,         value: 'Multi-Model', label: 'consensus cross-check',    glow: 'violet' as const },
   { icon: ShieldCheck, value: 'SOC 2',   label: 'security posture in prep', glow: 'cyan'   as const },
   { icon: Lock,        value: 'GDPR',    label: '& CCPA compliant',         glow: 'brand'  as const },
 ];

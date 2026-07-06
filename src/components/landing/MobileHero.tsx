@@ -115,7 +115,7 @@ export function MobileHero() {
             <div className="flex justify-center lg:justify-start animate-fade-in" style={{ animationFillMode: 'both' }}>
               <span className="inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full text-[11px] font-semibold uppercase tracking-wider" style={{ background: 'var(--q-status-ai-bg)', border: '1px solid var(--q-status-ai-border)', color: 'var(--q-status-ai)' }}>
                 <Zap className="w-3.5 h-3.5" />
-                Financial Pre-Mortem Engine &middot; Dual-AI Verified
+                Financial Pre-Mortem Engine &middot; Multi-Model Verified
               </span>
             </div>
 

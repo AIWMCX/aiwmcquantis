@@ -202,7 +202,7 @@ export function HeroSingleInput() {
               <span>·</span>
               <span>95,500 verified benchmarks</span>
               <span>·</span>
-              <span>Dual-AI cross-checked</span>
+              <span>Multi-model cross-checked</span>
             </div>
           )}
         </form>

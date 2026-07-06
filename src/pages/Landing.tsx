@@ -69,7 +69,7 @@ export default function Landing() {
           { question: 'Is Quantis free to use?', answer: `Yes — every founder gets 1 free analysis with the headline viability score, top-3 risks, and basic revenue projection. The full report (Monte Carlo, 36-month P&L, unit economics, action plan, Pre-Mortem Stress Test, Invoice & Capacity Check) and unlimited analyses unlock with Plus at $${TIERS.plus.priceMonthly}/mo. No credit card required for the free analysis.` },
           { question: 'How accurate are the financial projections?', answer: 'Quantis uses a deterministic financial engine calibrated against 95,500 industry benchmarks from public datasets (BLS, Census, IBISWorld). Every projection includes a confidence score and assumption transparency so you know exactly what drives each number. Our business plan risk analysis tools are trusted by founders worldwide.' },
           { question: 'What does a "financial pre-mortem" mean?', answer: 'A pre-mortem identifies how your business could fail before you launch. Our financial stress test tool stress-tests revenue assumptions, cost structures, and unit economics to surface fatal flaws — like a rent-to-revenue ratio that guarantees losses.' },
-          { question: 'How is Quantis different from ChatGPT or a spreadsheet?', answer: 'ChatGPT gives qualitative opinions. Spreadsheets require you to know the right formulas. Quantis combines a deterministic math engine with an AI narrator layer — giving you both precise, reproducible numbers and strategic context, cross-checked by a dual-AI consensus pass.' },
+          { question: 'How is Quantis different from ChatGPT or a spreadsheet?', answer: 'ChatGPT gives qualitative opinions. Spreadsheets require you to know the right formulas. Quantis combines a deterministic math engine with an AI narrator layer — giving you both precise, reproducible numbers and strategic context, cross-checked by a multi-model consensus pass.' },
         ]}
       />
       
@@ -164,7 +164,7 @@ export default function Landing() {
                 </h2>
                 <p className="text-base md:text-lg text-primary-foreground/80 max-w-2xl mx-auto mb-6 md:mb-8">
                   See fatal assumptions, stress-test scenarios, and get a clear
-                  proceed/pivot/kill verdict. Dual AI-verified, no credit card.
+                  proceed/pivot/kill verdict. Multi-model verified, no credit card.
                 </p>
                 <Link to="/app" onClick={() => trackCtaClick('run_pre_mortem', 'bottom_cta')}>
                   <Button size="lg" variant="secondary" className="gap-2 text-base md:text-lg px-6 md:px-8 py-6 min-h-[56px] hover:scale-[1.02] transition-transform">

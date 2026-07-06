@@ -218,7 +218,7 @@ export default function Research() {
                   <p className="text-sm font-semibold flex items-center gap-1.5">
                     <ArrowRight className="w-3 h-3 text-primary" /> Activation (A)
                   </p>
-                  <p className="text-xs text-muted-foreground">Dual-AI Consensus scoring measures agreement magnitude between GPT and Gemini — a proxy for activation strength.</p>
+                  <p className="text-xs text-muted-foreground">Multi-Model Consensus scoring measures agreement magnitude between GPT and Gemini — a proxy for activation strength.</p>
                 </div>
                 <div className="p-4 bg-muted/50 rounded-lg border border-border/50 space-y-2">
                   <p className="text-sm font-semibold flex items-center gap-1.5">

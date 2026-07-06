@@ -77,7 +77,7 @@ export default function SecurityPage() {
               <p className="text-sm text-muted-foreground mb-3">
                 Our analysis engine runs through an <strong className="text-foreground">8-layer safety architecture (incl. RVCE)</strong>:
                 input sanitization, prompt-injection detection, output schema validation, financial sanity
-                checks (the Anti-BS layer), reconciliation rules, dual-AI consensus scoring, RVCE cross-validation,
+                checks (the Anti-BS layer), reconciliation rules, multi-model consensus scoring, RVCE cross-validation,
                 and a deterministic fallback engine if any AI provider returns unsafe output.
               </p>
               <p className="text-sm text-muted-foreground">

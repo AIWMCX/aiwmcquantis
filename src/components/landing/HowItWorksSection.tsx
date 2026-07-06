@@ -14,8 +14,8 @@ const steps = [
     num: '02',
     icon: Cpu,
     title: 'Quantis simulates 1,000 futures',
-    body: 'Dual-AI checks, risk stress-tests, and pre-mortem engine run in the background.',
-    badges: ['DeepSeek AI', 'Quantis Engine'],
+    body: 'Multi-model checks, risk stress-tests, and pre-mortem engine run in the background.',
+    badges: ['Quantis Engine'],
   },
   {
     num: '03',
