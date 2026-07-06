@@ -1,72 +1,125 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowRight, ArrowLeft, Lightbulb, Briefcase, Building2, CheckCircle2, Target, TrendingUp, Shield } from 'lucide-react';
+import {
+  ArrowRight,
+  ArrowLeft,
+  Lightbulb,
+  Briefcase,
+  Building2,
+  Handshake,
+  GraduationCap,
+  Target,
+  TrendingUp,
+  Shield,
+  CheckCircle2,
+} from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { Footer } from '@/components/layout/Footer';
+import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
 
-const PERSONAS = [
-  {
-    id: 'founders',
-    icon: Lightbulb,
-    title: 'For Early-Stage Founders',
-    subtitle: 'Validate before you build',
-    description: 'You have an idea and limited runway. Before writing code or signing a lease, you need to know: Can this business actually make money? What are the real risks? How long until profitability?',
-    benefits: [
-      'Test multiple ideas in minutes — not weeks',
-      'Get realistic revenue projections based on industry benchmarks',
-      'Identify deal-breaking risks before investing time and money',
-      'Build confidence with data, not guesswork',
-    ],
-    example: { slug: 'coffee-shop-denver', label: 'Coffee Shop in Denver', profit: '$4,200/mo' },
-    cta: 'Validate My Idea',
-  },
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
+
+/**
+ * 5 ICP tiers from Juno lead-gen segmentation. Uses composite personas
+ * clearly labelled `illustrative` — no fabricated names or dollar
+ * outcomes. Each ICP links to a real example report already in
+ * src/pages/examples/exampleData.ts so the "See a real report" link
+ * always resolves.
+ */
+const TIERS = [
   {
     id: 'consultants',
+    tier: 'T1',
     icon: Briefcase,
-    title: 'For Business Consultants',
-    subtitle: 'Scale your client analysis',
-    description: 'Your clients need financial clarity fast. Instead of spending 20+ hours on each feasibility study, generate comprehensive analyses in minutes — then add your strategic expertise on top.',
-    benefits: [
-      'Serve more clients per week without adding headcount',
-      'White-label reports with your branding (Plus plan)',
-      'Professional PDF exports ready for client presentations',
-      'Industry benchmarks that strengthen your recommendations',
-    ],
-    example: { slug: 'consulting-firm-new-york', label: 'Consulting Firm in NYC', profit: '$18,500/mo' },
-    cta: 'Scale My Practice',
+    title: 'Consultants & Fractional CFOs',
+    uses: 'client intake · projections · white-label PDF',
+    detail:
+      'Trade 20+ hours per feasibility study for a first-pass model in minutes, then layer your judgment on top. Plus/Pro branding removes the Quantis logo for client-facing deliverables.',
+    exampleSlug: 'consulting-firm-new-york',
+    exampleLabel: 'Consulting firm · New York',
+    glow: 'cyan' as const,
+  },
+  {
+    id: 'ma',
+    tier: 'T2',
+    icon: Handshake,
+    title: 'M&A Advisors',
+    uses: 'target diligence · sensitivity analysis · deal-book support',
+    detail:
+      'Stress-test target financials against sector benchmarks before committing IOI/LOI cycles. Distribution curves and P10/P50/P90 bands land straight into your CIM.',
+    exampleSlug: 'saas-project-management',
+    exampleLabel: 'SaaS · project management',
+    glow: 'violet' as const,
+  },
+  {
+    id: 'founders',
+    tier: 'T3',
+    icon: Lightbulb,
+    title: 'Early Founders',
+    uses: 'idea validation · runway math · pivot decisions',
+    detail:
+      'Before writing code or signing a lease, run the numbers against 95,500 real benchmarks. Get a proceed / pivot / kill verdict in 90 seconds with cited sources on every line.',
+    exampleSlug: 'coffee-shop-denver',
+    exampleLabel: 'Coffee shop · Denver',
+    glow: 'brand' as const,
   },
   {
     id: 'operators',
+    tier: 'T4',
     icon: Building2,
-    title: 'For Operators & Franchisees',
-    subtitle: 'Stress-test expansion plans',
-    description: 'You run an existing business and are considering expansion — new locations, new product lines, or new markets. You need to know if the numbers work before committing capital.',
-    benefits: [
-      'Compare new locations side-by-side with cost-adjusted projections',
-      'Stress-test scenarios: What if costs spike 20%? Revenue drops 30%?',
-      'Get location-specific data for 50+ cities worldwide',
-      'Make data-driven expansion decisions — not gut-feel ones',
-    ],
-    example: { slug: 'restaurant-miami', label: 'Restaurant in Miami', profit: '$8,900/mo' },
-    cta: 'Stress-Test My Plan',
+    title: 'SMB Owners & Operators',
+    uses: 'expansion sanity check · location comparison · pricing scenarios',
+    detail:
+      "You already run a business and are considering another location, product line, or price change. Model the downside before you commit capital — location-adjusted for 50+ cities.",
+    exampleSlug: 'restaurant-miami',
+    exampleLabel: 'Restaurant · Miami',
+    glow: 'cyan' as const,
   },
-];
+  {
+    id: 'accelerators',
+    tier: 'T5',
+    icon: GraduationCap,
+    title: 'Accelerators & University Directors',
+    uses: 'cohort screening · curriculum · office-hours prep',
+    detail:
+      'Screen inbound applications with a deterministic first-pass check. Give your cohort a shared vocabulary for unit economics and pre-mortem thinking — with a Doc Studio for pitch decks and business plans included.',
+    exampleSlug: 'mobile-app-startup-san-francisco',
+    exampleLabel: 'Mobile-app startup · San Francisco',
+    glow: 'violet' as const,
+  },
+] as const;
 
 const WHAT_YOU_GET = [
-  { icon: TrendingUp, label: '3-Scenario Projections', desc: 'Conservative, realistic, and optimistic financial models' },
-  { icon: Shield, label: 'Risk Assessment', desc: 'Identified vulnerabilities and mitigation strategies' },
-  { icon: Target, label: 'Unit Economics', desc: 'CAC, LTV, payback period, and margin analysis' },
-  { icon: CheckCircle2, label: 'Action Plan', desc: 'What to cut, where to invest, whether to proceed' },
+  {
+    icon: TrendingUp,
+    label: '3-Scenario Projections',
+    desc: 'Conservative, base, optimistic — bands drawn from the P10/P50/P90 of Monte Carlo output.',
+  },
+  {
+    icon: Shield,
+    label: 'Risk Matrix',
+    desc: 'Fatal assumptions surfaced up front, with mitigation steps and severity ranking.',
+  },
+  {
+    icon: Target,
+    label: 'Unit Economics',
+    desc: 'CAC, LTV, payback period, contribution margin — computed, not narrated.',
+  },
+  {
+    icon: CheckCircle2,
+    label: 'Action Plan',
+    desc: 'What to cut, where to invest, whether to proceed — with a launch timeline.',
+  },
 ];
 
 export default function UseCases() {
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <div className="min-h-screen rmg-surface dark text-[var(--rmg-text)]">
       <PageSEO
         title="Who Uses Quantis — Founders, Consultants & Builders"
-        description="Quantis helps founders validate ideas, consultants scale client analysis, and operators stress-test expansion plans. See how it serves your role."
+        description="Quantis helps founders validate ideas, consultants scale client analysis, M&A advisors stress-test targets, operators plan expansion, and accelerators screen cohorts. See how it serves your role."
         canonical="/use-cases"
       />
       <StructuredData
@@ -78,13 +131,14 @@ export default function UseCases() {
       />
 
       {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
+      <nav className="sticky top-0 z-50 border-b border-border/40 backdrop-blur-lg" style={{ background: 'rgba(11,14,26,0.72)' }}>
         <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
           <div className="flex items-center justify-between">
             <Link to="/" className="text-lg sm:text-xl font-bold text-foreground font-sans">AIWMC™ Quantis</Link>
             <div className="hidden md:flex items-center gap-8">
               <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
               <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
+              <Link to="/methodology" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Methodology</Link>
               <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
               <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
               <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
@@ -98,7 +152,7 @@ export default function UseCases() {
         </div>
       </nav>
 
-      <main className="container max-w-5xl mx-auto px-4 sm:px-6">
+      <main className="container max-w-6xl mx-auto px-4 sm:px-6">
         <div className="pt-6 pb-2">
           <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="w-4 h-4" /> Back to home
@@ -106,95 +160,186 @@ export default function UseCases() {
         </div>
 
         {/* Hero */}
-        <section className="py-12 md:py-20 text-center">
-          <h1 className="text-3xl md:text-5xl font-bold text-foreground mb-4 leading-tight">
-            Who Uses AIWMC Quantis
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground max-w-3xl mx-auto">
-            Whether you're validating your first idea or stress-testing an expansion plan, Quantis gives you the financial clarity to decide with confidence.
-          </p>
+        <section aria-labelledby="usecases-hero" className="aiwmc-section-wash py-12 md:py-20">
+          <SectionHeader
+            eyebrow="Who Uses Quantis"
+            title={
+              <>
+                Five roles. <span style={{ color: 'var(--aiwmc-grad-cyan)' }}>One deterministic engine.</span>
+              </>
+            }
+            subtitle="Whether you're validating a first idea, screening a deal, or stress-testing an expansion, Quantis runs the same 8-layer pipeline and gives you a cited, saveable verdict in 90 seconds."
+          />
+
+          {/* ICP × outcome matrix — visual signal instead of a generic paragraph block. */}
+          <Reveal delay={200}>
+            <div className="mt-12 grid grid-cols-2 md:grid-cols-5 gap-3 max-w-4xl mx-auto">
+              {TIERS.map((t) => (
+                <a
+                  key={t.id}
+                  href={`#${t.id}`}
+                  className="rounded-xl px-3 py-3 text-center transition-all hover:-translate-y-0.5"
+                  style={{
+                    background: 'rgba(148,163,255,0.06)',
+                    border: '1px solid rgba(148,163,255,0.14)',
+                  }}
+                >
+                  <span
+                    className="block text-[10px] font-semibold uppercase tracking-[0.16em] mb-1"
+                    style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}
+                  >
+                    {t.tier}
+                  </span>
+                  <span className="block text-xs text-muted-foreground leading-tight">
+                    {t.title.replace(/ &.*/, '').replace(/s$/, '')}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </Reveal>
         </section>
 
-        {/* Persona Cards */}
-        <section className="py-8 space-y-12">
-          {PERSONAS.map((persona, idx) => (
-            <div
-              key={persona.id}
-              id={persona.id}
-              className={`rounded-2xl border border-border bg-card p-6 md:p-10 ${idx === 0 ? 'border-primary/30' : ''}`}
-            >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 rounded-xl bg-primary/10">
-                  <persona.icon className="w-6 h-6 text-primary" />
-                </div>
+        {/* Tier cards */}
+        <section className="py-4 md:py-8 space-y-6 md:space-y-8">
+          {TIERS.map((t, i) => (
+            <GlassCard key={t.id} glow={t.glow} revealDelay={i * 60} className="p-6 md:p-10 scroll-mt-24" as="div">
+              <div id={t.id} />
+              <div className="grid md:grid-cols-[minmax(0,1fr)_320px] gap-8 md:gap-10 items-start">
+                {/* Left: role narrative */}
                 <div>
-                  <h2 className="text-2xl font-bold text-foreground">{persona.title}</h2>
-                  <p className="text-sm text-muted-foreground">{persona.subtitle}</p>
+                  <div className="flex items-center gap-3 mb-3">
+                    <span
+                      className="text-[10px] font-bold uppercase tracking-[0.16em] px-2 py-1 rounded-md"
+                      style={{ ...MONO, background: 'rgba(103,232,249,0.10)', color: 'var(--aiwmc-grad-cyan)' }}
+                    >
+                      {t.tier}
+                    </span>
+                    <div className="p-2 rounded-xl" style={{ background: 'rgba(148,163,255,0.10)' }}>
+                      <t.icon className="w-5 h-5" style={{ color: 'var(--aiwmc-grad-violet)' }} />
+                    </div>
+                  </div>
+
+                  <h2 className="text-2xl md:text-3xl font-bold mb-2" style={{ color: 'hsl(var(--foreground))' }}>
+                    {t.title}
+                  </h2>
+                  <p className="text-xs uppercase tracking-[0.14em] mb-4" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                    Uses Quantis for: {t.uses}
+                  </p>
+
+                  <p className="text-sm md:text-base text-muted-foreground leading-relaxed mb-6 max-w-2xl">{t.detail}</p>
+
+                  <div className="flex flex-wrap items-center gap-4">
+                    <Link to="/app">
+                      <Button className="gap-2 min-h-[48px]">
+                        Run my first analysis <ArrowRight className="w-4 h-4" />
+                      </Button>
+                    </Link>
+                    <Link
+                      to={`/examples/${t.exampleSlug}`}
+                      className="text-sm font-medium hover:underline inline-flex items-center gap-1"
+                      style={{ color: 'var(--aiwmc-grad-cyan)' }}
+                    >
+                      See a real report → {t.exampleLabel}
+                    </Link>
+                  </div>
+                </div>
+
+                {/* Right: composite profile + report thumbnail */}
+                <div className="space-y-4">
+                  <div
+                    className="rounded-xl p-4"
+                    style={{ background: 'rgba(12,16,32,0.55)', border: '1px solid rgba(148,163,255,0.14)' }}
+                  >
+                    <p className="text-[10px] uppercase tracking-[0.16em] mb-3" style={{ ...MONO, color: 'var(--aiwmc-grad-violet)' }}>
+                      Illustrative profile
+                    </p>
+                    <div className="flex items-center gap-3 mb-3">
+                      <div
+                        className="w-11 h-11 rounded-full flex items-center justify-center text-sm font-bold"
+                        style={{
+                          background: 'linear-gradient(135deg, rgba(79,70,229,0.35), rgba(103,232,249,0.20))',
+                          color: 'hsl(var(--foreground))',
+                          border: '1px solid rgba(148,163,255,0.24)',
+                        }}
+                        aria-hidden="true"
+                      >
+                        {t.tier}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                          Composite persona
+                        </p>
+                        <p className="text-[11px] text-muted-foreground">
+                          Named case studies land when a real user opts in.
+                        </p>
+                      </div>
+                    </div>
+                    <Link
+                      to={`/examples/${t.exampleSlug}`}
+                      className="block rounded-lg p-3 hover:opacity-90 transition-opacity"
+                      style={{
+                        background: 'rgba(148,163,255,0.06)',
+                        border: '1px solid rgba(148,163,255,0.14)',
+                      }}
+                    >
+                      <p className="text-[10px] uppercase tracking-[0.16em] mb-1" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                        Report preview
+                      </p>
+                      <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+                        {t.exampleLabel}
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1 inline-flex items-center gap-1">
+                        Open example report <ArrowRight className="w-3 h-3" />
+                      </p>
+                    </Link>
+                  </div>
                 </div>
               </div>
-
-              <p className="text-muted-foreground mb-6 max-w-2xl">{persona.description}</p>
-
-              <ul className="space-y-3 mb-6">
-                {persona.benefits.map((b) => (
-                  <li key={b} className="flex items-start gap-2 text-sm text-foreground">
-                    <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 flex-shrink-0" />
-                    {b}
-                  </li>
-                ))}
-              </ul>
-
-              <div className="flex flex-wrap items-center gap-4">
-                <Link to="/app">
-                  <Button className="gap-2 min-h-[48px]">
-                    {persona.cta} <ArrowRight className="w-4 h-4" />
-                  </Button>
-                </Link>
-                <Link
-                  to={`/examples/${persona.example.slug}`}
-                  className="text-sm font-medium text-primary hover:underline inline-flex items-center gap-1"
-                >
-                  See example: {persona.example.label} ({persona.example.profit}) <ArrowRight className="w-3 h-3" />
-                </Link>
-              </div>
-            </div>
+            </GlassCard>
           ))}
         </section>
 
         {/* What You Get */}
-        <section className="py-12 md:py-16">
-          <h2 className="text-2xl md:text-3xl font-bold text-foreground text-center mb-10">
-            What You Get
-          </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-            {WHAT_YOU_GET.map(({ icon: Icon, label, desc }) => (
-              <div key={label} className="p-5 rounded-xl border border-border bg-card">
-                <Icon className="w-5 h-5 text-primary mb-2" />
-                <h3 className="font-semibold text-foreground mb-1">{label}</h3>
-                <p className="text-sm text-muted-foreground">{desc}</p>
-              </div>
+        <section aria-labelledby="what-you-get" className="aiwmc-section-wash py-16 md:py-20 mt-8">
+          <SectionHeader
+            eyebrow="What you get"
+            title="Every report ships with the same four deliverables"
+            subtitle="Regardless of your role — every analysis returns the same structured artifact."
+          />
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-5 mt-12">
+            {WHAT_YOU_GET.map(({ icon: Icon, label, desc }, i) => (
+              <GlassCard key={label} glow={i % 2 === 0 ? 'cyan' : 'violet'} revealDelay={i * 60} className="p-5">
+                <div className="p-2 rounded-xl w-fit mb-3" style={{ background: 'rgba(148,163,255,0.10)' }}>
+                  <Icon className="w-5 h-5" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
+                </div>
+                <h3 className="font-semibold mb-1" style={{ color: 'hsl(var(--foreground))' }}>
+                  {label}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{desc}</p>
+              </GlassCard>
             ))}
           </div>
         </section>
 
-        {/* Bottom CTA */}
-        <section className="py-12 md:py-16">
-          <div className="rounded-2xl bg-primary p-8 md:p-12 text-center relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-primary to-primary/80" />
-            <div className="relative">
-              <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-3">
-                Your Idea Deserves Real Numbers
-              </h2>
-              <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
-                Free, no credit card, results in about 90 seconds.
-              </p>
+        {/* Closing CTA — glass treatment, no gradient block */}
+        <section className="py-16 md:py-20">
+          <GlassCard glow="brand" className="p-8 md:p-12 text-center">
+            <SectionHeader
+              eyebrow="Ready?"
+              title="Your idea deserves real numbers."
+              subtitle="Free, no credit card, results in about 90 seconds."
+            />
+            <div className="mt-8 flex flex-col items-center gap-3">
               <Link to="/app">
-                <Button size="lg" variant="secondary" className="gap-2 py-6 px-8">
-                  Start Free Analysis → <ArrowRight className="w-5 h-5" />
+                <Button size="lg" className="gap-2 h-[52px] px-8 text-base font-semibold">
+                  Start free analysis <ArrowRight className="w-5 h-5" />
                 </Button>
               </Link>
+              <span className="text-xs uppercase tracking-[0.14em]" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                &lt; 90 sec · no signup
+              </span>
             </div>
-          </div>
+          </GlassCard>
         </section>
       </main>
 
