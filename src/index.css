@@ -1598,85 +1598,67 @@
 .rmg-corner > .rmg-corner-br { bottom: -1px; right: -1px; border-bottom: 1px solid var(--rmg-cyan); border-right: 1px solid var(--rmg-cyan); }
 
 /* ============================================================
- * AIWMC Quantis — Framer-inspired Glass System (v3, 2026-07-06)
+ * AIWMC Quantis — Instrument-Grade System (v4, 2026-07-06)
  * Used by <GlassCard/>, <Reveal/>, <SectionHeader/>.
- * Tokens are semantic; never hardcode these hexes in components.
+ * Dark-theme adaptation of the Instrument-Grade spec (navy /
+ * electric-blue / off-white, McKinsey-Palantir register): one
+ * disciplined accent, flat surfaces, no blur, no glow, no
+ * multi-hue gradients. Every page built against v3's
+ * --aiwmc-grad-* variables inherits this restyle with zero
+ * per-page edits — that's the point of routing through tokens.
  * ============================================================ */
 :root {
-  --aiwmc-glass-bg: rgba(12, 16, 32, 0.62);
-  --aiwmc-glass-bg-strong: rgba(14, 20, 40, 0.78);
-  --aiwmc-glass-ring: rgba(148, 163, 255, 0.14);
-  --aiwmc-glass-ring-hover: rgba(167, 139, 250, 0.42);
-  --aiwmc-glass-shadow: 0 20px 60px -20px rgba(2, 6, 23, 0.65), 0 1px 0 rgba(255,255,255,0.03) inset;
+  --aiwmc-card-bg: rgba(17, 22, 38, 0.92);
+  --aiwmc-card-bg-hover: rgba(20, 26, 44, 0.96);
+  --aiwmc-card-border: rgba(148, 163, 255, 0.12);
+  --aiwmc-card-border-hover: rgba(74, 144, 255, 0.32);
+  --aiwmc-card-shadow: 0 1px 2px rgba(0,0,0,0.35);
+  --aiwmc-card-shadow-hover: 0 4px 16px -4px rgba(0,0,0,0.45);
 
-  --aiwmc-grad-indigo: #4f46e5;
-  --aiwmc-grad-violet: #a78bfa;
-  --aiwmc-grad-cyan:   #67e8f9;
-  --aiwmc-grad-brand:  #8FFF2A;
-
-  --aiwmc-edge-indigo: linear-gradient(135deg, rgba(79,70,229,0.55), rgba(167,139,250,0.35) 40%, rgba(103,232,249,0.35) 80%, transparent);
-  --aiwmc-edge-violet: linear-gradient(135deg, rgba(167,139,250,0.55), rgba(103,232,249,0.35) 60%, transparent);
-  --aiwmc-edge-cyan:   linear-gradient(135deg, rgba(103,232,249,0.55), rgba(79,70,229,0.30) 70%, transparent);
-  --aiwmc-edge-brand:  linear-gradient(135deg, rgba(143,255,42,0.45), rgba(103,232,249,0.30) 70%, transparent);
+  /* One accent family (electric blue), not a rainbow. Kept as 4
+     variables so existing per-page glow props still resolve, but
+     they now converge on the same hue instead of cyan/violet/green. */
+  --aiwmc-grad-indigo: #2f5fd6;
+  --aiwmc-grad-violet: #3b7cf0;
+  --aiwmc-grad-cyan:   #4a90ff;
+  --aiwmc-grad-brand:  #0b5fff;
 }
 
 /* Reveal — fade + 8px rise, honors prefers-reduced-motion via useReveal. */
-.aiwmc-reveal { opacity: 0; transform: translateY(8px); transition: opacity .6s ease-out, transform .6s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
+.aiwmc-reveal { opacity: 0; transform: translateY(8px); transition: opacity .5s ease-out, transform .5s cubic-bezier(.2,.7,.2,1); will-change: opacity, transform; }
 .aiwmc-reveal-in { opacity: 1; transform: translateY(0); }
 
-/* GlassCard */
+/* GlassCard — flat instrument-panel surface. No blur, no gradient glow. */
 .aiwmc-glass-card {
   position: relative;
-  border-radius: 20px;
-  background: var(--aiwmc-glass-bg);
-  backdrop-filter: blur(18px) saturate(140%);
-  -webkit-backdrop-filter: blur(18px) saturate(140%);
-  box-shadow: var(--aiwmc-glass-shadow);
+  border-radius: 10px;
+  background: var(--aiwmc-card-bg);
+  box-shadow: var(--aiwmc-card-shadow), 0 0 0 1px var(--aiwmc-card-border) inset;
   overflow: hidden;
   isolation: isolate;
-  transition: transform .35s cubic-bezier(.2,.7,.2,1), box-shadow .35s ease, background .35s ease;
+  transition: box-shadow .2s ease, background .2s ease;
+  border-top: 2px solid transparent;
 }
+.aiwmc-glass-card[data-glow="cyan"], .aiwmc-glass-card[data-glow="violet"], .aiwmc-glass-card[data-glow="indigo"], .aiwmc-glass-card[data-glow="brand"] {
+  border-top-color: var(--aiwmc-grad-cyan);
+}
+.aiwmc-glass-card[data-glow="none"] { border-top-color: transparent; }
 .aiwmc-glass-card[data-interactive="true"]:hover {
-  transform: translateY(-2px);
-  background: var(--aiwmc-glass-bg-strong);
-  box-shadow: 0 30px 80px -24px rgba(79, 70, 229, 0.35), 0 0 0 1px var(--aiwmc-glass-ring-hover) inset;
+  background: var(--aiwmc-card-bg-hover);
+  box-shadow: var(--aiwmc-card-shadow-hover), 0 0 0 1px var(--aiwmc-card-border-hover) inset;
 }
-/* Hairline inner ring */
-.aiwmc-glass-card::after {
-  content: ''; position: absolute; inset: 0; border-radius: inherit; pointer-events: none;
-  box-shadow: 0 0 0 1px var(--aiwmc-glass-ring) inset;
-}
-/* Gradient edge (animated on hover) */
-.aiwmc-glass-card__edge {
-  position: absolute; inset: 0; border-radius: inherit; padding: 1px; pointer-events: none;
-  background: var(--aiwmc-edge-indigo);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-          mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor; mask-composite: exclude;
-  opacity: 0; transition: opacity .4s ease;
-}
-.aiwmc-glass-card[data-glow="violet"] .aiwmc-glass-card__edge { background: var(--aiwmc-edge-violet); }
-.aiwmc-glass-card[data-glow="cyan"]   .aiwmc-glass-card__edge { background: var(--aiwmc-edge-cyan); }
-.aiwmc-glass-card[data-glow="brand"]  .aiwmc-glass-card__edge { background: var(--aiwmc-edge-brand); }
-.aiwmc-glass-card[data-glow="none"]   .aiwmc-glass-card__edge { display: none; }
-.aiwmc-glass-card[data-interactive="true"]:hover .aiwmc-glass-card__edge { opacity: 1; }
-
-/* Subtle grain (film-like) */
-.aiwmc-glass-card__grain {
-  position: absolute; inset: 0; border-radius: inherit; pointer-events: none; opacity: .05; mix-blend-mode: overlay;
-  background-image: radial-gradient(rgba(255,255,255,.5) 1px, transparent 1px);
-  background-size: 3px 3px;
-}
+/* Edge + grain elements are kept as no-op containers so GlassCard's
+   markup doesn't need to change — Instrument-Grade renders no glow. */
+.aiwmc-glass-card__edge { display: none; }
+.aiwmc-glass-card__grain { display: none; }
 .aiwmc-glass-card__content { position: relative; z-index: 1; }
 
 /* Section header rhythm */
 .aiwmc-section-header { display: flex; flex-direction: column; gap: 12px; max-width: 780px; margin-left: auto; margin-right: auto; }
 .aiwmc-eyebrow {
   display: inline-block; font-family: 'JetBrains Mono', ui-monospace, monospace;
-  font-size: 11px; font-weight: 600; letter-spacing: .18em; text-transform: uppercase;
+  font-size: 11px; font-weight: 600; letter-spacing: .16em; text-transform: uppercase;
   color: var(--aiwmc-grad-cyan);
-  background: linear-gradient(90deg, var(--aiwmc-grad-cyan), var(--aiwmc-grad-violet));
-  -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
 }
 .aiwmc-section-title {
   font-family: 'Cabinet Grotesk', var(--font-heading, inherit);
@@ -1687,20 +1669,15 @@
   color: hsl(var(--muted-foreground)); font-size: clamp(0.95rem, 1.2vw, 1.05rem); line-height: 1.55;
 }
 
-/* Ambient gradient wash for full sections that want the Framer glow.
-   Covers the FULL section (not a partial-height band) with very soft,
-   low-opacity radials so stacked sections blend continuously — no hard
-   seam where one section's glow cuts off and the next begins. */
+/* Ambient section wash — Instrument-Grade drops the colorful blurred
+   radial bath (the exact "AI-generic SaaS glow" pattern being removed)
+   in favor of a near-invisible single-hue vignette for depth only. */
 .aiwmc-section-wash {
   position: relative; overflow: hidden;
 }
 .aiwmc-section-wash::before {
   content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(55% 65% at 20% 15%, rgba(79,70,229,0.07), transparent 70%),
-    radial-gradient(50% 60% at 80% 10%, rgba(103,232,249,0.05), transparent 70%),
-    radial-gradient(45% 55% at 50% 95%, rgba(167,139,250,0.045), transparent 70%);
-  filter: blur(60px);
+  background: radial-gradient(60% 60% at 50% 0%, rgba(74,144,255,0.05), transparent 70%);
 }
 .aiwmc-section-wash > * { position: relative; z-index: 1; }
 
