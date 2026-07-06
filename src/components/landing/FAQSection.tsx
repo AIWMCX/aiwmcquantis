@@ -6,6 +6,7 @@ import {
 } from '@/components/ui/accordion';
 import { StructuredData } from '@/components/seo/StructuredData';
 import { TIERS } from '@/config/tiers';
+import { SectionHeader } from '@/components/ui/glass-card';
 
 const faqItems = [
   {
@@ -52,24 +53,25 @@ const faqItems = [
 
 export function FAQSection() {
   return (
-    <section id="faq" className="py-20 md:py-32">
+    <section id="faq" aria-labelledby="faq-heading" className="aiwmc-section-wash py-20 md:py-28">
       <StructuredData includeFAQ faqItems={faqItems} />
       <div className="container max-w-4xl mx-auto px-4 sm:px-6">
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4">
-            Frequently Asked Questions
-          </h2>
-          <p className="text-lg text-muted-foreground">
-            Everything you need to know about AIWMC Quantis
-          </p>
-        </div>
-        
-        <Accordion type="single" collapsible className="w-full space-y-4">
+        <SectionHeader
+          eyebrow="FAQ"
+          title="Frequently asked questions"
+          subtitle="Everything you need to know about AIWMC Quantis."
+        />
+
+        <Accordion type="single" collapsible className="w-full space-y-3 mt-12">
           {faqItems.map((item, index) => (
-            <AccordionItem 
-              key={index} 
+            <AccordionItem
+              key={index}
               value={`item-${index}`}
-              className="border border-border rounded-xl px-6 bg-card data-[state=open]:bg-accent/30 transition-colors"
+              className="rounded-xl px-6 transition-colors"
+              style={{
+                background: 'rgba(12,16,32,0.55)',
+                border: '1px solid rgba(148,163,255,0.14)',
+              }}
             >
               <AccordionTrigger className="text-left text-foreground hover:no-underline py-5">
                 <span className="font-semibold text-base md:text-lg pr-4">

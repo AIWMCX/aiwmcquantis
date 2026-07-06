@@ -29,6 +29,7 @@ import { TIERS } from '@/config/tiers';
 // Lazy-load below-fold sections
 // Testimonials removed (2026-07-06): replaced by TrustStrip until real linkable founder profiles are verified.
 import { TrustStrip } from '@/components/landing/TrustStrip';
+import { SectionHeader } from '@/components/ui/glass-card';
 const HowItWorksSection = lazy(() => import('@/components/landing/HowItWorksSection').then(m => ({ default: m.HowItWorksSection })));
 const OpenTheHood = lazy(() => import('@/components/landing/OpenTheHood').then(m => ({ default: m.OpenTheHood })));
 const FounderStory = lazy(() => import('@/components/landing/FounderStory').then(m => ({ default: m.FounderStory })));
@@ -119,17 +120,15 @@ export default function Landing() {
           )}
         </div>
 
-        {/* 7. Lead Capture */}
-        <section className="py-12 md:py-16 bg-muted/30">
-          <div className="container max-w-3xl mx-auto px-4 sm:px-6 text-center">
-            <p className="text-sm font-semibold text-primary uppercase tracking-wider mb-3">Not ready to analyze yet?</p>
-            <h2 className="text-2xl md:text-3xl font-bold text-foreground mb-3">
-              Download the Founder Validation Starter Kit
-            </h2>
-            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free.
-            </p>
-            <div className="max-w-md mx-auto">
+        {/* 7. Lead Capture — glass wrapper for visual continuity (MP2-DESIGN-01) */}
+        <section aria-labelledby="starter-kit-heading" className="aiwmc-section-wash py-16 md:py-20">
+          <div className="container max-w-3xl mx-auto px-4 sm:px-6">
+            <SectionHeader
+              eyebrow="Not ready to analyze yet?"
+              title="Download the Founder Validation Starter Kit"
+              subtitle="Business Model Canvas, Financial Projection Template, 20 AI Prompts, and a Risk Checklist — free."
+            />
+            <div className="mt-10 max-w-md mx-auto">
               <LeadCaptureInline />
             </div>
           </div>

@@ -12,6 +12,7 @@ import { TIERS } from '@/config/tiers';
 import { DOC_TEMPLATE_COUNT } from '@/config/canonical-facts';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { SectionHeader } from '@/components/ui/glass-card';
 
 type BillingPeriod = 'monthly' | 'annual';
 
@@ -206,17 +207,14 @@ export function PricingSection() {
   // previously made the Monthly toggle un-clickable.
 
   return (
-    <section id="pricing" className="py-16 md:py-24 bg-muted/30">
+    <section id="pricing" aria-labelledby="pricing-heading" className="aiwmc-section-wash py-16 md:py-24">
       <div className="container max-w-7xl mx-auto px-4 sm:px-6">
-        {/* Section Header */}
-        <div className="text-center max-w-3xl mx-auto mb-8">
-          <h2 className="text-2xl md:text-4xl font-bold text-foreground mb-4">
-            Know Exactly What You're Getting
-          </h2>
-          <p className="text-base md:text-lg text-muted-foreground">
-            Business analysis that costs less than a single consultant hour
-          </p>
-        </div>
+        <SectionHeader
+          eyebrow="Pricing"
+          title="Know exactly what you're getting"
+          subtitle="Business analysis that costs less than a single consultant hour."
+        />
+        <div className="mt-8" />
 
         {/* Value Anchor - Consultant Cost Comparison */}
         {showValueAnchor && <ValueAnchor />}

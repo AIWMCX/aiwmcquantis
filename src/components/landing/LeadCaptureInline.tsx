@@ -4,6 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { useLeadCapture } from '@/hooks/useLeadCapture';
 import { trackEvent } from '@/lib/analytics';
+import { GlassCard } from '@/components/ui/glass-card';
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 const KIT_FEATURES = [
   { icon: FileText, label: 'Business Model Canvas' },
@@ -31,28 +34,34 @@ export function LeadCaptureInline() {
 
   if (isSuccess) {
     return (
-      <div className="text-center py-6 space-y-2">
-        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 mb-2">
+      <GlassCard glow="brand" className="text-center py-8 px-6">
+        <div className="inline-flex items-center justify-center w-12 h-12 rounded-full bg-emerald-500/10 mb-3">
           <CheckCircle2 className="h-6 w-6 text-emerald-500" />
         </div>
-        <p className="text-base font-semibold text-foreground">Check your inbox</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-base font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Check your inbox</p>
+        <p className="text-sm text-muted-foreground mt-1">
           Your Founder Validation Starter Kit is on its way.
         </p>
-      </div>
+      </GlassCard>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Feature chips */}
-      <div className="flex flex-wrap justify-center gap-3">
+    <GlassCard glow="cyan" className="p-6 md:p-8 space-y-6">
+      {/* Feature chips — mono, hairline, no pill fill */}
+      <div className="flex flex-wrap justify-center gap-2">
         {KIT_FEATURES.map(({ icon: Icon, label }) => (
           <div
             key={label}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-muted/50 border border-border text-xs text-muted-foreground"
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px]"
+            style={{
+              ...MONO,
+              background: 'rgba(148,163,255,0.06)',
+              border: '1px solid rgba(148,163,255,0.14)',
+              color: 'hsl(var(--foreground))',
+            }}
           >
-            <Icon className="w-3.5 h-3.5" />
+            <Icon className="w-3 h-3" style={{ color: 'var(--aiwmc-grad-cyan)' }} />
             {label}
           </div>
         ))}
@@ -64,8 +73,13 @@ export function LeadCaptureInline() {
           type="email"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="Enter your email"
-          className="h-12 flex-1 bg-background"
+          placeholder="you@company.com"
+          className="h-12 flex-1"
+          style={{
+            background: 'rgba(12,16,32,0.55)',
+            border: '1px solid rgba(148,163,255,0.18)',
+            color: 'hsl(var(--foreground))',
+          }}
           disabled={isSubmitting}
           required
         />
@@ -79,16 +93,16 @@ export function LeadCaptureInline() {
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : (
             <>
-              Download Free Kit
+              Download free kit
               <ArrowRight className="h-4 w-4" />
             </>
           )}
         </Button>
       </form>
 
-      <p className="text-xs text-center text-muted-foreground">
-        No spam. Unsubscribe anytime.
+      <p className="text-xs text-center uppercase tracking-[0.14em]" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+        2 emails / month · unsubscribe anytime · no upsell
       </p>
-    </div>
+    </GlassCard>
   );
 }
