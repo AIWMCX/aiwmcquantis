@@ -1,82 +1,69 @@
-# Quantis Forensic Audit — Execution Plan
 
-**Output:** `docs/AUDIT_2026-06-20.md` (committed to repo)
-**Mode:** Evidence-first. Every finding carries a proof artifact (curl, SQL result, file:line, bundle grep, web citation) or is labeled `UNVERIFIED — probe X`.
-**Severity ranking:** `(Severity × Leverage) ÷ Effort` on every finding.
+# AIWMC Quantis — Visual & Distribution Roadmap (Jul 6 → Aug 17, 2026)
 
-## Phase 1 — Evidence collection (parallel where possible)
+## Design north star (locked)
+**Framer-lead glassmorphism + motion + gradients**, grafted onto the existing Space Black / #8FFF2A brand.
+- Palette additions: deep indigo `#0a0a1a`, electric `#4f46e5`, violet mist `#a78bfa`, cyan glow `#67e8f9` — used as **gradient washes and edge glows only**, never as flat fills that would kill the terminal feel.
+- Motion: on-scroll reveal (fade+8px rise), pointer-follow gradient on hero cards, subtle noise/grain overlay on glass panels, sticky section headers with backdrop-blur.
+- Typography stays Cabinet Grotesk / DM Sans / JetBrains Mono. Framer influence = layout & light, not fonts.
+- Card system: single `<GlassCard>` primitive — `bg: rgba(10,10,26,0.55) + backdrop-blur-xl + 1px inner ring + gradient edge glow on hover`. Every rebuilt section consumes this one primitive.
 
-### A. Live product reality (Dim 1, 6)
-- `curl` homepage, `/pricing`, `/examples/*`, `/cases`, `/refund-policy`, a blog post on `aiwmcquantis.com`. Capture `<title>`, meta, body-pre-hydration content, JSON-LD. Confirm/refute SPA-shell issue per URL.
-- `curl` `sitemap.xml`, `robots.txt`. `site:aiwmcquantis.com` indexed-page count via web search.
-- Run one Free analysis end-to-end via `supabase--curl_edge_functions` against `analyze-business`; capture verdict, 12 variables, P10/P50/P90, latency, RVCE observation count.
-- `/health` curl across all ~35 edge functions → live-version table.
+## Per-screen decisions (landing)
 
-### B. Deploy chain & CI (Dim 2)
-- Read `.github/workflows/production-deploy.yml`, `vercel-production-deploy.yml`, `seo-deploy.yml`, `staging-deploy.yml`, `deploy-smoke-test.yml`. Audit for `secrets.*` in `if:`, post-deploy version assertion, smoke-test rigor.
-- Count tests: `rg "^(it|test)\(" src/__tests__ supabase/functions` — confirm 672/27 file claim or note drift.
-- `EXPLAIN ANALYZE` on `analyses(identity_key, created_at)`, `idempotency_key`, benchmark-match query via `supabase--read_query` / `supabase--slow_queries`. PITR check via `supabase--db_health`.
+| # | Section | Verdict | Why |
+|---|---|---|---|
+| 1 | Three Engines / Outputs | **Redesign** | Content is right; execution is 2D-flat. Rebuild with GlassCard + animated engine icons + live-looking micro-metrics. |
+| 2 | See It In Action | **Redesign** | Two-card layout is fine; make left card the hero (bigger, embedded PDF thumbnail preview, motion). |
+| 3 | Testimonials | **REMOVE** (user decision) | Delete `Testimonials.tsx` from landing until real linkable profiles arrive. Replace with a **"Vetted by the numbers"** strip: 95,500 benchmarks · dual-AI · SOC 2 posture · SBA/BLS/Census/OECD/IBISWorld source logos. |
+| 4 | How It Works | **Redesign** | Same GlassCard treatment; add a connecting animated gradient line between 01→02→03. |
+| 5 | Featured Directories | **KEEP + polish** (user override) | Convert flat chips to hoverable glass pills with favicon + rank badge; add subtle marquee on mobile. |
+| 6 | Open the Hood | **Full redesign** | Currently looks like a 2D game menu. Rebuild as a **split terminal**: left = live-scrolling P&L rows in JetBrains Mono, right = risk bars that fill on view + real "Download example PDF" CTA. |
+| 7 | Founder Story | **KEEP, restage** | Trust asset for a solo-founder SaaS. Restage as a magazine-style pull-quote with founder portrait, engraved wordmark background, single CTA. |
+| 8 | Lead Capture Kit | **DEMOTE, don't delete** | Distribution matters. Shrink from full section → inline row inside footer newsletter block. Frees vertical space. |
+| 9→10 | Bottom CTA | **Redesign + add nav** | Replace pale-blue billboard with dark glass CTA. **At max scroll, inject a "Explore Quantis" nav grid** (Use Cases · Examples · Risk Gallery · Pricing · Who Uses · Blog · Methodology · Status) — 4×2 icon+label tiles above the footer. |
 
-### C. Paywall & entitlements (Dim 3)
-- Bundle build → `rg` for hardcoded `$17`, `$49`, `unlimited`, `5 analyses` outside `src/config/tiers.ts`.
-- Forge Free→Pro tier-claim body, curl `pdf-export`, `location-comparison`, `document-studio`, `analyze-business` (Pro path). Capture server response — does it block on line one or leak compute?
-- Trace tier resolution: client claim vs DB truth.
+## Task list (dated, 15 items)
 
-### D. Stripe lifecycle (Dim 4)
-- Read `stripe-webhook` source. Verify `stripe_webhook_events` idempotent INSERT … ON CONFLICT.
-- Query `stripe_webhook_events` + `subscription_audit_log` for replay handling, double-provision evidence.
-- Map handled events vs the 20-scenario matrix; mark each scenario PASS / FAIL / UNVERIFIED with the probe.
+**Phase 1 — Foundation (Jul 6 – Jul 12)**
+1. **Jul 6–7** · Build `GlassCard`, `GradientEdge`, `SectionHeader`, `Reveal` primitives + tokens in `index.css` and `tailwind.config.ts`. Add scroll-reveal hook (`useReveal`). *Blocks everything else.*
+2. **Jul 8** · Delete `Testimonials` import + section from `Landing.tsx`. Build `TrustStrip.tsx` replacement (source logos + counters).
+3. **Jul 9** · Redesign screen 1 (`QuantisOutputs.tsx`) with GlassCard + animated icons.
+4. **Jul 10** · Redesign screen 2 (`ProgressiveEngagementCTA.tsx` / See It In Action).
+5. **Jul 11** · Redesign screen 4 (`HowItWorksSection.tsx`) + gradient connector line.
+6. **Jul 12** · Redesign screen 5 (`FeaturedDirectories.tsx`) — glass pills, favicons.
 
-### E. Engine correctness (Dim 5)
-- Run 5 analyses (coffee shop, SaaS, barbershop, e-commerce, consulting). For each: assert deterministic-first invariant, MC P50 == deterministic, every number has a source string, LLM prose contains no computed numbers.
-- Cross-check benchmark count claim (95,500 / 46 sectors) against `benchmark_master_*` row counts.
-- Hunt validator/QA layer — does `r3-validator` actually gate output?
+**Phase 2 — High-impact rebuilds (Jul 13 – Jul 19)**
+7. **Jul 13–14** · Rebuild screen 6 (`OpenTheHood.tsx`) as split terminal (biggest visual win).
+8. **Jul 15** · Restage screen 7 (`FounderStory.tsx`) magazine-style.
+9. **Jul 16** · Demote screen 8 lead capture → merge into footer newsletter. Update `Footer.tsx`.
+10. **Jul 17** · Redesign screen 9 bottom CTA + build screen 10 "Explore Quantis" nav grid.
+11. **Jul 18–19** · Landing regression pass: mobile, dark/light, motion-reduced, Lighthouse ≥ 90, CLS ≤ 0.05.
 
-### F. RVCE (Dim 6)
-- For each test analysis, count observations rendered. Check `TAVILY_API_KEY` presence via `secrets--fetch_secrets`. Query `analyses` for `tavily_query_success_ratio` if logged.
-- Confirm tier budgets (20/40/100) and NO_DATA fallback behavior.
+**Phase 3 — Inner pages (Jul 20 – Aug 3)**
+12. **Jul 20–22** · **Who Uses Quantis** page — restructure into 3 personas (Founders / Consultants / Builders) with glass persona cards, per-persona proof, per-persona CTA. Applies global primitives.
+13. **Jul 23–26** · **Use Cases / Examples** pages — kill the LLM-wrapper look. Each example becomes a case-study card with: verdict badge, key metric tiles, embedded chart, "Read full case" link. Same GlassCard system.
+14. **Jul 27 – Aug 3** · **Blog pipeline overhaul** — audit all posts, flag AI-slop / missing images / missing sources; add cover-image requirement, source-links block, author box, category taxonomy; ship new `BlogIndex` + `BlogPost` templates with reading time, share bar, related posts. Add editorial checklist doc so future AI-drafted posts don't ship raw.
 
-### G. Observability & unit economics (Dim 7)
-- Query `analyses`, `ai_calls`, `funnel_events`, `activation_events` for the last 30 days: ok-rate, degraded-rate, p50/p95 latency, cost/analysis by tier, signup→activated→repeat→paid funnel.
-- Compute Plus $17 / Pro $49 gross margin at observed cost/analysis.
-- Repeat-usage distribution (analyses per user) to test the one-shot-vs-subscription mismatch.
+**Phase 4 — Global polish (Aug 4 – Aug 17)**
+15. **Aug 4–17** · **Global visual layer pass**: apply GlassCard/Reveal/GradientEdge to every remaining page (Pricing, FAQ, Auth, Settings, Admin, Dashboard, Results, Docs Studio). Founder-review checkpoint at Aug 10 and Aug 17.
 
-### H. Frontend (Dim 8)
-- `rg "ErrorBoundary"` across `src/`. Dangling-import audit on routes in `src/App.tsx`.
-- Token-conformance grep: Cabinet Grotesk / DM Sans / DM Mono presence; acid green `#8FFF2A` must be zero hits on Quantis surfaces.
-- Mobile a11y: 375px aha-moment block, contrast, focus-visible — code-level scan.
+## Kept / removed / deferred summary
+- **Removed now:** Testimonials section (task 2).
+- **Kept per user override:** Featured Directories (redesigned, task 6).
+- **Kept, restaged:** Founder Story (task 8).
+- **Demoted:** Lead Capture Kit → footer row (task 9).
+- **Added:** Trust Strip, Explore Quantis nav grid, Blog editorial checklist.
+- **Deferred to a future round:** real linkable testimonials (waiting on user-supplied profile URLs); real Framer-style WebGL hero (out of scope for this pass).
 
-### I. Security (Dim 9)
-- `supabase--linter` for RLS gaps. Cross-identity RLS attempt via `supabase--curl_edge_functions` with two different auth tokens.
-- Bundle grep for `sk_live_`, `price_`, `VITE_*` secret-leak surface.
-- `securityheaders.com` grade via `code--fetch_website`. `npm audit` via `code--dependency_scan`.
+## Technical notes (for the implementer)
+- All new tokens land in `src/index.css` under `:root` and dark class — no hardcoded hex in components.
+- Motion via CSS + `useReveal` (IntersectionObserver); no new dependencies. If Framer-Motion is later requested, add in a separate task.
+- `PageSEO` canonicals must be re-verified after any route/section rename.
+- No changes to `financial-engine.ts`, `quantis-math.ts`, RLS, or edge functions in this roadmap — presentation only.
+- Each phase ends with a build + Playwright screenshot pass at 1440 and 390 widths, saved to `/tmp/browser/` for founder review.
 
-### J. Competition (Dim 10)
-- `websearch--web_search` for LivePlan, Bizplan, IdeaBuddy, "AI business validation 2026" — pricing, promise, gap vs Quantis.
-- `semrush--competitive_analysis` on `aiwmcquantis.com` to surface buyer-intent gap keywords.
+## What I need from you to unblock Phase 3
+- Task 12: 3 real founder/consultant/builder quotes (or approve placeholder personas without names).
+- Task 14: confirm which existing blog posts to keep vs archive vs rewrite.
 
-### K. Tech debt + R&D (Dim 11), Business model (Dim 12)
-- Synthesized from B/E/G evidence; no separate probes.
-
-## Phase 2 — Verdict & synthesis
-
-Per dimension: findings table (`Severity | Leverage | Effort | Score | Proof | Fix`), then top-3 ranked fixes as concrete commands/prompts.
-
-Final synthesis sections (per the master prompt):
-1. **The Critical List** — every Critical finding + one-line proof + one-line fix.
-2. **Ranked Remediation Map** — top 15 fixes by score, tagged `stabilize-now` / `handbook-prerequisite` / `post-handbook` / `growth`.
-3. **Contradiction Register** — every site-vs-engine, pricing-vs-data mismatch.
-4. **One-Day Triage** — ordered 8-hour list.
-5. **30-Day Bet** — single highest-leverage program with success metric + kill condition.
-
-## Phase 3 — Deliverable
-
-Write `docs/AUDIT_2026-06-20.md` (the audit report — no code changes).
-Update `mem://index.md` with a pointer to it for future runs.
-
-## Technical notes
-
-- Tool budget: ~40–60 calls. Parallelized: curls in batches, DB queries in batches, web searches in batches.
-- No fabrication: any number not directly observed in a tool call is labeled `UNVERIFIED`.
-- No code/migrations modified in this run — fixes are *prescribed in the doc*, executed in a follow-up build-mode session you approve separately.
-- Re-runnable: same prompt against the same repo later produces a regression-delta.
+Approve this plan and I'll start Phase 1 task 1 (design primitives) immediately.
