@@ -16,23 +16,39 @@ function hostOf(url: string): string {
   }
 }
 
-// Google's s2/favicons service returns a transparent 1x1 for domains it
-// doesn't have — which "loads" but renders invisibly, indistinguishable
-// from a broken image. DuckDuckGo's ip3 favicon service is more permissive
-// and consistently returns a real 32x32 with an opaque background. Chain:
-// try DDG first, fall back to Google, fall back to a stylized letter chip.
+// Multi-provider favicon fallback chain. Empirically, no single provider
+// works for every domain from every browser + network:
+//   - Google's s2/favicons returns transparent 1x1s for domains it doesn't
+//     index, which "load" but render invisibly.
+//   - DuckDuckGo's ip3 is more permissive but occasionally slow or 4xx.
+//   - Self-hosted /favicon.ico works ~90% of the time but is often 16x16
+//     (blurry when upscaled) and some sites redirect to HTML pages.
+// So we chain all three, in order of image-quality-first, and finally fall
+// back to a stylized letter chip if every provider fails.
 function icoSources(url: string): string[] {
   const host = hostOf(url);
   if (!host) return [];
   return [
     `https://icons.duckduckgo.com/ip3/${host}.ico`,
     `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+    `https://${host}/favicon.ico`,
   ];
 }
 
 function DirectoryIcon({ d }: { d: DirectoryEntry }) {
   const sources = icoSources(d.url);
   const [srcIdx, setSrcIdx] = useState(0);
+
+  const onError = () => {
+    // Log which URL failed so devtools can pinpoint any future provider
+    // issue without needing a code round-trip. Silent in production for
+    // users, useful for us when we open the site with the console open.
+    if (typeof console !== 'undefined' && sources[srcIdx]) {
+      // eslint-disable-next-line no-console
+      console.warn('[FeaturedDirectories] favicon load failed:', sources[srcIdx]);
+    }
+    setSrcIdx((i) => i + 1);
+  };
 
   if (srcIdx >= sources.length) {
     // Final fallback — every entry gets a distinctive chip so the strip
@@ -63,13 +79,16 @@ function DirectoryIcon({ d }: { d: DirectoryEntry }) {
       }}
     >
       <img
+        // key= forces a fresh mount on each provider swap, so the browser
+        // actually re-fetches instead of reusing the cached failed state.
+        key={sources[srcIdx]}
         src={sources[srcIdx]}
         alt=""
         width={16}
         height={16}
-        loading="lazy"
-        className="h-4 w-4 rounded-[2px]"
-        onError={() => setSrcIdx((i) => i + 1)}
+        referrerPolicy="no-referrer"
+        className="h-4 w-4 rounded-[2px] object-contain"
+        onError={onError}
       />
     </span>
   );
