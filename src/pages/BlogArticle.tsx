@@ -1,10 +1,13 @@
 import React from 'react';
 import { Link, useParams, Navigate } from 'react-router-dom';
-import { ArrowLeft, ArrowRight, Calendar, Clock } from 'lucide-react';
+import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
-import { Footer } from '@/components/layout/Footer';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard } from '@/components/ui/glass-card';
 import { BLOG_ARTICLES } from './Blog';
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 // Article content map
 const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
@@ -607,7 +610,7 @@ export default function BlogArticle() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell active="blog" backTo={{ href: '/blog', label: 'Back to blog' }} maxWidth="sm">
       <PageSEO
         title={article.title.length > 60 ? article.title.slice(0, 57) + '…' : article.title}
         description={article.description}
@@ -629,72 +632,53 @@ export default function BlogArticle() {
         }}
       />
 
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="flex items-center gap-2">
-              <span className="text-lg sm:text-xl font-bold text-foreground">AIWMC Quantis</span>
-            </Link>
-            <Link to="/app">
-              <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Start Free <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
+      <article className="pt-6 pb-4">
+        <div className="flex items-center gap-3 mb-4 flex-wrap">
+          <span
+            className="px-2.5 py-1 rounded-full text-xs font-semibold uppercase tracking-[0.1em]"
+            style={{ ...MONO, background: 'rgba(103,232,249,0.10)', color: 'var(--aiwmc-grad-cyan)' }}
+          >
+            {article.category}
+          </span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground" style={MONO}>
+            <Calendar className="w-3 h-3" />
+            {new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+          </span>
+          <span className="flex items-center gap-1 text-xs text-muted-foreground" style={MONO}>
+            <Clock className="w-3 h-3" />
+            {article.readTime}
+          </span>
         </div>
-      </nav>
 
-      <main className="container max-w-3xl mx-auto px-4 sm:px-6 py-12">
-        <Link to="/blog" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground mb-6 transition-colors">
-          <ArrowLeft className="w-4 h-4" /> Back to blog
+        <h1 className="text-3xl md:text-4xl font-bold mb-4 leading-tight" style={{ color: 'hsl(var(--foreground))' }}>
+          {article.title}
+        </h1>
+        <p className="text-lg text-muted-foreground mb-8">
+          {article.description}
+        </p>
+
+        <div className="prose prose-neutral dark:prose-invert max-w-none
+          [&>h2]:text-xl [&>h2]:font-bold [&>h2]:text-foreground [&>h2]:mt-8 [&>h2]:mb-3
+          [&>h3]:text-foreground
+          [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p]:mb-4
+          [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2 [&>ul]:mb-4
+          [&>ul>li]:text-muted-foreground
+          [&_strong]:text-foreground
+        ">
+          {content}
+        </div>
+      </article>
+
+      {/* CTA */}
+      <GlassCard glow="brand" className="mt-8 mb-8 p-8 text-center">
+        <h2 className="text-2xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>Ready to validate your idea?</h2>
+        <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
+        <Link to="/app">
+          <Button size="lg" className="gap-2 py-6 px-8">
+            See my numbers — free <ArrowRight className="w-5 h-5" />
+          </Button>
         </Link>
-
-        <article>
-          <div className="flex items-center gap-3 mb-4">
-            <span className="px-2.5 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-              {article.category}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Calendar className="w-3 h-3" />
-              {new Date(article.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-            </span>
-            <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <Clock className="w-3 h-3" />
-              {article.readTime}
-            </span>
-          </div>
-
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4 leading-tight">
-            {article.title}
-          </h1>
-          <p className="text-lg text-muted-foreground mb-8">
-            {article.description}
-          </p>
-
-          <div className="prose prose-neutral dark:prose-invert max-w-none
-            [&>h2]:text-xl [&>h2]:font-bold [&>h2]:text-foreground [&>h2]:mt-8 [&>h2]:mb-3
-            [&>p]:text-muted-foreground [&>p]:leading-relaxed [&>p]:mb-4
-            [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:space-y-2 [&>ul]:mb-4
-            [&>ul>li]:text-muted-foreground
-            [&_strong]:text-foreground
-          ">
-            {content}
-          </div>
-        </article>
-
-        {/* CTA */}
-        <div className="mt-16 text-center p-8 rounded-2xl bg-primary/5 border border-primary/20">
-          <h2 className="text-2xl font-bold text-foreground mb-3">Ready to validate your idea?</h2>
-          <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
-          <Link to="/app">
-            <Button size="lg" className="gap-2 py-6 px-8">
-              See My Numbers — Free <ArrowRight className="w-5 h-5" />
-            </Button>
-          </Link>
-        </div>
-      </main>
-
-      <Footer />
-    </div>
+      </GlassCard>
+    </PublicPageShell>
   );
 }
