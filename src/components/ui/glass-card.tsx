@@ -60,23 +60,20 @@ export function Reveal({
   children,
   delay = 0,
   className,
-  as: Tag = 'div',
 }: {
   children: React.ReactNode;
   delay?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
 }) {
   const { ref, visible } = useReveal<HTMLDivElement>();
   return (
-    // @ts-expect-error - dynamic tag
-    <Tag
+    <div
       ref={ref}
       className={cn('aiwmc-reveal', visible && 'aiwmc-reveal-in', className)}
       style={{ transitionDelay: delay ? `${delay}ms` : undefined }}
     >
       {children}
-    </Tag>
+    </div>
   );
 }
 
