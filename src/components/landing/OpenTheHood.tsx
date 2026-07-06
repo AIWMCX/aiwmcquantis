@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Clock, AlertTriangle, ListChecks, ArrowRight } from 'lucide-react';
+import { recordFunnelEvent } from '@/lib/analytics';
 
 const questions = [
   {
@@ -108,8 +109,40 @@ function ReportPreview() {
 }
 
 export function OpenTheHood() {
+  const sectionRef = useRef<HTMLElement>(null);
+  const viewFired = useRef(false);
+  const scrollFired = useRef(false);
+
+  // View + scroll-depth instrumentation (SoW Screen 5): fires once per
+  // mount, not per pixel — cheap enough to leave on permanently.
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          if (!viewFired.current && entry.intersectionRatio >= 0.25) {
+            viewFired.current = true;
+            recordFunnelEvent('open_the_hood_view');
+          }
+          if (!scrollFired.current && entry.intersectionRatio >= 0.75) {
+            scrollFired.current = true;
+            recordFunnelEvent('open_the_hood_scroll_75');
+          }
+        }
+      },
+      { threshold: [0.25, 0.75] },
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  const handleCtaClick = () => recordFunnelEvent('open_the_hood_cta_click');
+
   return (
-    <section className="py-20 md:py-28" style={{ background: 'var(--q-bg-base)' }}>
+    <section ref={sectionRef} className="py-20 md:py-28" style={{ background: 'var(--q-bg-base)' }}>
       <div className="container max-w-6xl mx-auto px-4 sm:px-6">
         <div className="text-center max-w-2xl mx-auto mb-14">
           <p className="text-sm font-semibold tracking-wider uppercase mb-3" style={{ color: 'var(--q-accent-primary)' }}>
@@ -151,7 +184,7 @@ export function OpenTheHood() {
               </div>
             ))}
 
-            <Link to="/examples">
+            <Link to="/examples" onClick={handleCtaClick}>
               <Button
                 size="lg"
                 className="gap-2 mt-4 text-base font-semibold px-7 h-[52px]"

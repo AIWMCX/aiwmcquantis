@@ -203,7 +203,12 @@ export type SowFunnelEvent =
   // distinguish "people share reports" from "sharing actually brings in
   // new signups", not just a combined vanity share-click count.
   | 'share_link_created'
-  | 'share_originated_signup';
+  | 'share_originated_signup'
+  // Screen 5 ("Open the Hood") engagement instrumentation — view/scroll/CTA
+  // so a real removal-vs-redesign call can be made once enough data exists.
+  | 'open_the_hood_view'
+  | 'open_the_hood_scroll_75'
+  | 'open_the_hood_cta_click';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 
