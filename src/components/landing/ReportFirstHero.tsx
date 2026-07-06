@@ -271,38 +271,45 @@ export function ReportFirstHero() {
   return (
     <section
       aria-label="See a real Quantis report, then generate yours"
-      className="relative w-full overflow-hidden"
-      style={{
-        background:
-          'radial-gradient(80% 60% at 50% 0%, hsl(var(--primary) / 0.08), transparent 60%), hsl(var(--background))',
-        borderBottom: '1px solid hsl(var(--border))',
-      }}
+      className="aiwmc-section-wash relative w-full overflow-hidden"
+      style={{ background: 'hsl(var(--background))' }}
     >
-      <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-10 md:py-16">
-        {/* Eyebrow */}
+      <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-12 md:py-20">
+        {/* Eyebrow — Instrument-Grade: plain DM Mono uppercase, no pill container */}
         <div className="flex flex-col items-center text-center mb-8 md:mb-10">
-          <span
-            className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider mb-4 border"
+          <div
+            className="flex items-center gap-3 mb-6 text-[11px] font-semibold uppercase"
             style={{
-              background: 'hsl(var(--primary) / 0.08)',
-              color: 'hsl(var(--primary))',
-              borderColor: 'hsl(var(--primary) / 0.25)',
+              fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+              letterSpacing: '0.18em',
+              color: 'hsl(var(--foreground) / 0.72)',
             }}
           >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            Deterministic engine · Sources cited on every number
-          </span>
+            <span
+              className="inline-block w-1.5 h-1.5 rounded-full"
+              style={{ background: 'var(--aiwmc-grad-brand, hsl(var(--primary)))' }}
+              aria-hidden="true"
+            />
+            Deterministic Business Validation
+            <span
+              className="inline-block w-8 h-px"
+              style={{ background: 'hsl(var(--foreground) / 0.18)' }}
+              aria-hidden="true"
+            />
+            Sources Cited on Every Number
+          </div>
           <h1
-            className="font-bold leading-[1.05] tracking-tight max-w-4xl"
+            className="font-bold leading-[1.02] tracking-tight max-w-4xl"
             style={{
-              fontSize: 'clamp(2rem, 5vw, 3.5rem)',
+              fontFamily: "'Cabinet Grotesk', 'Sora', var(--font-heading, inherit)",
+              fontSize: 'clamp(2.25rem, 5.5vw, 4rem)',
               color: 'hsl(var(--foreground))',
-              letterSpacing: '-0.03em',
+              letterSpacing: '-0.035em',
             }}
           >
             Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
           </h1>
-          <p className="mt-4 text-base md:text-lg max-w-2xl" style={{ color: 'hsl(var(--muted-foreground))' }}>
+          <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Quantis stress-tests your idea against <strong>95,500 verified benchmarks</strong> from SBA,
             BLS, U.S. Census, IBISWorld, and OECD — and returns a proceed / pivot / kill verdict with
             a saveable PDF. No credit card. First analysis free.

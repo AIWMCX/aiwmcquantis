@@ -8,48 +8,68 @@ import { Link } from 'react-router-dom';
 // AI tool directories, then SaaS comparison sites.
 const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41];
 
-function faviconFor(url: string): string {
+function hostOf(url: string): string {
   try {
-    const host = new URL(url).hostname;
-    return `https://www.google.com/s2/favicons?domain=${host}&sz=64`;
+    return new URL(url).hostname.replace(/^www\./, '');
   } catch {
     return '';
   }
 }
 
-// Favicons are fetched from Google's service and vary wildly in their own
-// background (many are transparent or white-on-transparent). Rendered
-// directly against this section's dark card background, a white/transparent
-// icon becomes invisible — indistinguishable from a failed load. Every icon
-// gets a small white rounded backing so it reads clearly regardless of its
-// own colors, on both light and dark themes.
-function DirectoryIcon({ d }: { d: DirectoryEntry }) {
-  const [failed, setFailed] = useState(false);
-  const src = faviconFor(d.url);
+// Google's s2/favicons service returns a transparent 1x1 for domains it
+// doesn't have — which "loads" but renders invisibly, indistinguishable
+// from a broken image. DuckDuckGo's ip3 favicon service is more permissive
+// and consistently returns a real 32x32 with an opaque background. Chain:
+// try DDG first, fall back to Google, fall back to a stylized letter chip.
+function icoSources(url: string): string[] {
+  const host = hostOf(url);
+  if (!host) return [];
+  return [
+    `https://icons.duckduckgo.com/ip3/${host}.ico`,
+    `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+  ];
+}
 
-  if (failed || !src) {
-    // Fallback: colored initial avatar — never leave an invisible gap where
-    // a logo should be.
+function DirectoryIcon({ d }: { d: DirectoryEntry }) {
+  const sources = icoSources(d.url);
+  const [srcIdx, setSrcIdx] = useState(0);
+
+  if (srcIdx >= sources.length) {
+    // Final fallback — every entry gets a distinctive chip so the strip
+    // stays visually readable when a domain has no fetchable favicon at all.
+    const initial = d.name.charAt(0).toUpperCase();
     return (
       <span
         aria-hidden="true"
-        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-primary/15 text-[10px] font-bold text-primary"
+        className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-[11px] font-bold"
+        style={{
+          fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+          background: 'hsl(var(--foreground) / 0.08)',
+          color: 'hsl(var(--foreground) / 0.75)',
+          border: '1px solid hsl(var(--foreground) / 0.10)',
+        }}
       >
-        {d.name.charAt(0).toUpperCase()}
+        {initial}
       </span>
     );
   }
 
   return (
-    <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-sm bg-white p-0.5">
+    <span
+      className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md p-1"
+      style={{
+        background: 'white',
+        border: '1px solid hsl(var(--foreground) / 0.08)',
+      }}
+    >
       <img
-        src={src}
+        src={sources[srcIdx]}
         alt=""
         width={16}
         height={16}
         loading="lazy"
         className="h-4 w-4 rounded-[2px]"
-        onError={() => setFailed(true)}
+        onError={() => setSrcIdx((i) => i + 1)}
       />
     </span>
   );
