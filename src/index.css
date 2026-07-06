@@ -1687,17 +1687,20 @@
   color: hsl(var(--muted-foreground)); font-size: clamp(0.95rem, 1.2vw, 1.05rem); line-height: 1.55;
 }
 
-/* Ambient gradient wash for full sections that want the Framer glow */
+/* Ambient gradient wash for full sections that want the Framer glow.
+   Covers the FULL section (not a partial-height band) with very soft,
+   low-opacity radials so stacked sections blend continuously — no hard
+   seam where one section's glow cuts off and the next begins. */
 .aiwmc-section-wash {
   position: relative; overflow: hidden;
 }
 .aiwmc-section-wash::before {
-  content: ''; position: absolute; inset: -20% -10% auto -10%; height: 60%; pointer-events: none; z-index: 0;
+  content: ''; position: absolute; inset: 0; pointer-events: none; z-index: 0;
   background:
-    radial-gradient(60% 60% at 20% 30%, rgba(79,70,229,0.18), transparent 60%),
-    radial-gradient(50% 50% at 80% 20%, rgba(103,232,249,0.12), transparent 60%),
-    radial-gradient(40% 40% at 50% 80%, rgba(167,139,250,0.10), transparent 60%);
-  filter: blur(20px);
+    radial-gradient(55% 65% at 20% 15%, rgba(79,70,229,0.07), transparent 70%),
+    radial-gradient(50% 60% at 80% 10%, rgba(103,232,249,0.05), transparent 70%),
+    radial-gradient(45% 55% at 50% 95%, rgba(167,139,250,0.045), transparent 70%);
+  filter: blur(60px);
 }
 .aiwmc-section-wash > * { position: relative; z-index: 1; }
 

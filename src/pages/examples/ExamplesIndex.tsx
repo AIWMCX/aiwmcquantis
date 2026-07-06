@@ -1,11 +1,14 @@
 import { useState, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { ArrowRight, Zap, TrendingUp, Target, Play, Search } from 'lucide-react';
+import { ArrowRight, TrendingUp, Target, Play, Search } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { EXAMPLE_LIST, EXAMPLE_ANALYSES } from './exampleData';
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 export default function ExamplesIndex() {
   const navigate = useNavigate();
@@ -43,7 +46,7 @@ export default function ExamplesIndex() {
   };
 
   return (
-    <div className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
+    <PublicPageShell active="examples" maxWidth="xl">
       <PageSEO
         title="50+ Business Analysis Examples — Real AI Reports by City & Industry"
         description="See complete deterministic-engine financial reports for coffee shops, gyms, SaaS, restaurants, dental clinics and more across 50+ cities. Revenue projections, risk flags, and action plans."
@@ -58,145 +61,132 @@ export default function ExamplesIndex() {
         }}
       />
 
-      <header className="border-b border-[var(--q-border-subtle)] bg-[var(--q-bg-surface)]/80 backdrop-blur-lg">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold font-display text-[var(--q-text-primary)]">AIWMC™ Quantis</Link>
-          <Link to="/app">
-            <Button size="sm" className="gap-2">
-              <Zap className="w-4 h-4" /> Analyze Your Idea
-            </Button>
-          </Link>
-        </div>
-      </header>
+      <section aria-labelledby="examples-hero-heading" className="aiwmc-section-wash py-10 md:py-14">
+        <SectionHeader
+          eyebrow={`${EXAMPLE_LIST.length}+ Sample Reports`}
+          title="Business Analysis Examples"
+          subtitle={`Real financial reports across ${industries.length}+ industries and 50+ cities. Each page is a full analysis — see what you'll get before analyzing your own idea.`}
+        />
+      </section>
 
-      <main className="container max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12">
-        <div className="text-center mb-10 md:mb-14">
-          <span className="inline-flex items-center rounded-full border px-3 py-1 text-xs font-semibold mb-3 bg-[var(--q-status-ai-bg)] text-[var(--q-status-ai)] border-[var(--q-status-ai-border)]">
-            {EXAMPLE_LIST.length}+ Sample Reports
-          </span>
-          <h1 className="text-display-sm md:text-display text-[var(--q-text-primary)] mb-4">
-            Business Analysis Examples
-          </h1>
-          <p className="text-body text-[var(--q-text-secondary)] max-w-2xl mx-auto">
-            Real financial reports across {industries.length}+ industries and 50+ cities. Each page is a full analysis — see what you'll get before analyzing your own idea.
-          </p>
+      {/* Search & filter bar */}
+      <div className="flex flex-col sm:flex-row gap-3 mb-8">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <input
+            type="text"
+            placeholder="Search city, industry, or business type..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm text-foreground placeholder:text-muted-foreground focus:outline-none"
+            style={{ background: 'rgba(12,16,32,0.55)', border: '1px solid rgba(148,163,255,0.18)' }}
+          />
         </div>
-
-        {/* Search & filter bar */}
-        <div className="flex flex-col sm:flex-row gap-3 mb-8">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--q-text-tertiary)]" />
-            <input
-              type="text"
-              placeholder="Search city, industry, or business type..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="w-full pl-9 pr-4 py-2.5 rounded-lg text-sm bg-[var(--q-bg-surface)] border border-[var(--q-border-subtle)] text-[var(--q-text-primary)] placeholder:text-[var(--q-text-tertiary)] focus:outline-none focus:border-[var(--q-accent-primary)]"
-            />
-          </div>
-          <div className="flex flex-wrap gap-1.5">
+        <div className="flex flex-wrap gap-1.5">
+          <button
+            onClick={() => setSelectedIndustry(null)}
+            className={cn('px-3 py-1.5 rounded-full text-xs font-medium transition-colors border')}
+            style={
+              !selectedIndustry
+                ? { background: 'var(--aiwmc-grad-indigo)', color: 'white', borderColor: 'var(--aiwmc-grad-indigo)' }
+                : { background: 'rgba(148,163,255,0.06)', color: 'hsl(var(--muted-foreground))', borderColor: 'rgba(148,163,255,0.14)' }
+            }
+          >
+            All ({EXAMPLE_LIST.length})
+          </button>
+          {industries.slice(0, 8).map(ind => (
             <button
-              onClick={() => setSelectedIndustry(null)}
-              className={cn(
-                "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                !selectedIndustry
-                  ? "bg-[var(--q-accent-primary)] text-white border-[var(--q-accent-primary)]"
-                  : "bg-[var(--q-bg-surface)] text-[var(--q-text-secondary)] border-[var(--q-border-subtle)] hover:border-[var(--q-accent-primary)]"
-              )}
+              key={ind}
+              onClick={() => setSelectedIndustry(selectedIndustry === ind ? null : ind)}
+              className="px-3 py-1.5 rounded-full text-xs font-medium transition-colors border"
+              style={
+                selectedIndustry === ind
+                  ? { background: 'var(--aiwmc-grad-indigo)', color: 'white', borderColor: 'var(--aiwmc-grad-indigo)' }
+                  : { background: 'rgba(148,163,255,0.06)', color: 'hsl(var(--muted-foreground))', borderColor: 'rgba(148,163,255,0.14)' }
+              }
             >
-              All ({EXAMPLE_LIST.length})
+              {ind}
             </button>
-            {industries.slice(0, 8).map(ind => (
-              <button
-                key={ind}
-                onClick={() => setSelectedIndustry(selectedIndustry === ind ? null : ind)}
-                className={cn(
-                  "px-3 py-1.5 rounded-full text-xs font-medium transition-colors border",
-                  selectedIndustry === ind
-                    ? "bg-[var(--q-accent-primary)] text-white border-[var(--q-accent-primary)]"
-                    : "bg-[var(--q-bg-surface)] text-[var(--q-text-secondary)] border-[var(--q-border-subtle)] hover:border-[var(--q-accent-primary)]"
-                )}
-              >
-                {ind}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        <p className="text-xs text-[var(--q-text-tertiary)] mb-4">
-          Showing {filtered.length} of {EXAMPLE_LIST.length} examples
-        </p>
-
-        <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12 items-stretch">
-          {filtered.map((ex, index) => (
-            <Link key={ex.slug} to={`/examples/${ex.slug}`}>
-              <div
-                className={cn(
-                  "q-card q-card-hover q-gradient-card q-stagger h-full group border-l-[3px]",
-                  ex.score && ex.score >= 8 ? 'q-score-excellent' :
-                  ex.score && ex.score >= 6 ? 'q-score-good' : 'q-score-caution'
-                )}
-                style={{ '--index': index } as React.CSSProperties}
-              >
-                <div className="p-6 flex flex-col h-full">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium border-[var(--q-border-subtle)] bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)]">
-                      {ex.industry}
-                    </span>
-                    <span className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium border-[var(--q-border-subtle)] bg-[var(--q-bg-elevated)] text-[var(--q-text-secondary)]">
-                      {ex.location}
-                    </span>
-                    {ex.score && (
-                      <span className="ml-auto text-metric-sm text-[var(--q-accent-primary)]">
-                        {ex.score}/10
-                      </span>
-                    )}
-                  </div>
-                  <h2 className="text-h3 text-[var(--q-text-primary)] mb-2 group-hover:text-[var(--q-accent-primary)] transition-colors">
-                    {ex.title}
-                  </h2>
-                  <p className="text-body-sm text-[var(--q-text-secondary)] line-clamp-2 mb-4">{ex.description}</p>
-                  <div className="flex items-center gap-4 mt-auto pt-3 border-t border-[var(--q-border-subtle)]">
-                    <span className="flex items-center gap-1 text-metric-sm text-[var(--q-status-green)]">
-                      <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
-                    </span>
-                    <span className="flex items-center gap-1 text-metric-sm text-[var(--q-accent-primary)]">
-                      <Target className="w-4 h-4" /> {ex.roi} ROI
-                    </span>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      className="ml-auto gap-1 text-[11px] h-7 px-2 text-[var(--q-accent-primary)] hover:bg-[var(--q-accent-glow)]"
-                      onClick={(e) => handleLoadTemplate(ex.slug, e)}
-                    >
-                      <Play className="w-3 h-3" /> Load in Quantis
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            </Link>
           ))}
         </div>
+      </div>
 
-        {/* CTA */}
-        <section className="text-center py-12">
-          <div className="rounded-2xl p-8 md:p-12" style={{ background: 'var(--q-gradient-accent)' }}>
-            <h2 className="text-h1 text-white mb-3">
-              Ready to Analyze Your Own Idea?
-            </h2>
-            <p className="text-body text-white/80 mb-6 max-w-xl mx-auto">
-              Get the same CFO-level analysis — free, no credit card, results in under 90 seconds.
-            </p>
-            <Link to="/app">
-              <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
-                Start Free Analysis → <ArrowRight className="w-5 h-5" />
-              </Button>
-            </Link>
-          </div>
-        </section>
-      </main>
+      <p className="text-xs uppercase tracking-[0.14em] mb-4" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+        Showing {filtered.length} of {EXAMPLE_LIST.length} examples
+      </p>
 
-      <Footer />
-    </div>
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12 items-stretch">
+        {filtered.map((ex, index) => (
+          <Link key={ex.slug} to={`/examples/${ex.slug}`} className="block h-full">
+            <GlassCard
+              glow={index % 3 === 0 ? 'cyan' : index % 3 === 1 ? 'violet' : 'brand'}
+              reveal={false}
+              className="p-6 flex flex-col h-full"
+            >
+              <div className="flex items-center gap-2 mb-3 flex-wrap">
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: 'rgba(148,163,255,0.08)', border: '1px solid rgba(148,163,255,0.16)', color: 'hsl(var(--muted-foreground))' }}
+                >
+                  {ex.industry}
+                </span>
+                <span
+                  className="inline-flex items-center rounded-full px-2 py-0.5 text-[10px] font-medium"
+                  style={{ background: 'rgba(148,163,255,0.08)', border: '1px solid rgba(148,163,255,0.16)', color: 'hsl(var(--muted-foreground))' }}
+                >
+                  {ex.location}
+                </span>
+                {ex.score && (
+                  <span className="ml-auto text-sm font-bold" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                    {ex.score}/10
+                  </span>
+                )}
+              </div>
+              <h2
+                className="text-lg font-bold mb-2 transition-colors"
+                style={{ color: 'hsl(var(--foreground))' }}
+              >
+                {ex.title}
+              </h2>
+              <p className="text-sm text-muted-foreground line-clamp-2 mb-4">{ex.description}</p>
+              <div className="flex items-center gap-4 mt-auto pt-3" style={{ borderTop: '1px solid rgba(148,163,255,0.14)' }}>
+                <span className="flex items-center gap-1 text-sm font-semibold" style={{ ...MONO, color: '#4ade80' }}>
+                  <TrendingUp className="w-4 h-4" /> {ex.profit}/mo
+                </span>
+                <span className="flex items-center gap-1 text-sm font-semibold" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                  <Target className="w-4 h-4" /> {ex.roi} ROI
+                </span>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="ml-auto gap-1 text-[11px] h-7 px-2"
+                  style={{ color: 'var(--aiwmc-grad-cyan)' }}
+                  onClick={(e) => handleLoadTemplate(ex.slug, e)}
+                >
+                  <Play className="w-3 h-3" /> Load in Quantis
+                </Button>
+              </div>
+            </GlassCard>
+          </Link>
+        ))}
+      </div>
+
+      {/* Closing CTA — glass, matches site-wide pattern */}
+      <section className="py-8 md:py-12">
+        <GlassCard glow="brand" className="p-8 md:p-12 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>
+            Ready to analyze your own idea?
+          </h2>
+          <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
+            Get the same CFO-level analysis — free, no credit card, results in under 90 seconds.
+          </p>
+          <Link to="/app">
+            <Button size="lg" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
+              Start free analysis <ArrowRight className="w-5 h-5" />
+            </Button>
+          </Link>
+        </GlassCard>
+      </section>
+    </PublicPageShell>
   );
 }
