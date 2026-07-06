@@ -13,7 +13,8 @@ import {
   type AnalysisCaseGrid,
 } from '@/services/analysis-case-grid';
 import { CaseGridDisplay } from '@/components/cases/CaseGridDisplay';
-import { cn } from '@/lib/utils';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard } from '@/components/ui/glass-card';
 
 interface CaseRow { case_id: string; business_idea: string; industry: string; city: string }
 
@@ -53,103 +54,101 @@ export default function CaseBrowser() {
   const selected = cases.find((c) => c.case_id === selectedId);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell maxWidth="xl">
       <Helmet>
         <title>Reference Case Library — AIWMC Quantis</title>
         <meta name="description" content="Browse 40 reference business cases with all 11 analysis blocks: unit economics, Monte Carlo, DCF, DSCR, break-even, cash flow, and pre-mortem." />
       </Helmet>
 
-      <header className="border-b border-[var(--q-border-default)] bg-[var(--q-bg-surface)]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-5 flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-xl font-semibold">Reference Case Library</h1>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              40 representative business cases · 11 analysis blocks each · backed by 95,500 benchmark datapoints
-            </p>
-          </div>
-          {selectedId && (
-            <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
-              <ArrowLeft className="w-4 h-4 mr-1" /> Back to list
-            </Button>
-          )}
+      <div className="pt-8 pb-5 flex items-center justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-xl font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Reference Case Library</h1>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            40 representative business cases · 11 analysis blocks each · backed by 95,500 benchmark datapoints
+          </p>
         </div>
-      </header>
+        {selectedId && (
+          <Button variant="ghost" size="sm" onClick={() => setSelectedId(null)}>
+            <ArrowLeft className="w-4 h-4 mr-1" /> Back to list
+          </Button>
+        )}
+      </div>
 
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
-        {!selectedId && (
-          <>
-            <div className="relative max-w-md mb-5">
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name, industry, or city…"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                className="pl-9"
-                aria-label="Search reference cases"
-              />
+      {!selectedId && (
+        <>
+          <div className="relative max-w-md mb-6">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, industry, or city…"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="pl-9"
+              aria-label="Search reference cases"
+            />
+          </div>
+
+          {loadingList ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading 40 cases…
             </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
+              {filtered.map((c, i) => (
+                <GlassCard
+                  key={c.case_id}
+                  glow={i % 3 === 0 ? 'cyan' : i % 3 === 1 ? 'violet' : 'brand'}
+                  reveal={false}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => setSelectedId(c.case_id)}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); setSelectedId(c.case_id); } }}
+                  className="p-4 text-left cursor-pointer"
+                >
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(148,163,255,0.10)', color: 'hsl(var(--muted-foreground))' }}>
+                      #{c.case_id}
+                    </span>
+                    <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+                      {c.industry || 'Other'}
+                    </span>
+                  </div>
+                  <h3 className="font-semibold text-sm leading-tight mb-1" style={{ color: 'hsl(var(--foreground))' }}>{c.business_idea}</h3>
+                  <p className="text-xs text-muted-foreground">{c.city}</p>
+                </GlassCard>
+              ))}
+              {filtered.length === 0 && (
+                <p className="text-sm text-muted-foreground col-span-full">
+                  No cases match "{query}".
+                </p>
+              )}
+            </div>
+          )}
+        </>
+      )}
 
-            {loadingList ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading 40 cases…
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                {filtered.map((c) => (
-                  <button
-                    key={c.case_id}
-                    onClick={() => setSelectedId(c.case_id)}
-                    className={cn(
-                      'q-card p-4 text-left transition hover:border-[var(--q-accent-primary)]',
-                      'focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]'
-                    )}
-                  >
-                    <div className="flex items-center gap-2 mb-1.5">
-                      <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--q-bg-elevated)] text-[var(--q-text-tertiary)]">
-                        #{c.case_id}
-                      </span>
-                      <span className="text-[10px] uppercase tracking-wide text-[var(--q-accent-primary)] font-semibold">
-                        {c.industry || 'Other'}
-                      </span>
-                    </div>
-                    <h3 className="font-semibold text-sm leading-tight mb-1">{c.business_idea}</h3>
-                    <p className="text-xs text-muted-foreground">{c.city}</p>
-                  </button>
-                ))}
-                {filtered.length === 0 && (
-                  <p className="text-sm text-muted-foreground col-span-full">
-                    No cases match "{query}".
-                  </p>
-                )}
-              </div>
-            )}
-          </>
-        )}
+      {selectedId && selected && (
+        <article className="space-y-5 pb-8">
+          <GlassCard glow="cyan" className="p-5">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[10px] font-mono px-1.5 py-0.5 rounded" style={{ background: 'rgba(148,163,255,0.10)', color: 'hsl(var(--muted-foreground))' }}>
+                #{selected.case_id}
+              </span>
+              <span className="text-[10px] uppercase tracking-wide font-semibold" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+                {selected.industry}
+              </span>
+            </div>
+            <h2 className="text-2xl font-semibold" style={{ color: 'hsl(var(--foreground))' }}>{selected.business_idea}</h2>
+            <p className="text-sm text-muted-foreground mt-1">{selected.city}</p>
+          </GlassCard>
 
-        {selectedId && selected && (
-          <article className="space-y-5">
-            <header className="q-card p-5">
-              <div className="flex items-center gap-2 mb-2">
-                <span className="text-[10px] font-mono px-1.5 py-0.5 rounded bg-[var(--q-bg-elevated)] text-[var(--q-text-tertiary)]">
-                  #{selected.case_id}
-                </span>
-                <span className="text-[10px] uppercase tracking-wide text-[var(--q-accent-primary)] font-semibold">
-                  {selected.industry}
-                </span>
-              </div>
-              <h2 className="text-2xl font-semibold">{selected.business_idea}</h2>
-              <p className="text-sm text-muted-foreground mt-1">{selected.city}</p>
-            </header>
-
-            {loadingGrid && (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <Loader2 className="w-4 h-4 animate-spin" /> Loading 11 analysis blocks…
-              </div>
-            )}
-            {grid && <CaseGridDisplay grid={grid} />}
-          </article>
-        )}
-      </main>
-    </div>
+          {loadingGrid && (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading 11 analysis blocks…
+            </div>
+          )}
+          {grid && <CaseGridDisplay grid={grid} />}
+        </article>
+      )}
+    </PublicPageShell>
   );
 }

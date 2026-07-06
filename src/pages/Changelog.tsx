@@ -1,7 +1,8 @@
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Sparkles, Shield, Zap, Bug } from 'lucide-react';
+import { Sparkles, Shield, Zap, Bug } from 'lucide-react';
 import { PageMeta } from '@/components/seo/PageMeta';
-import { Footer } from '@/components/layout/Footer';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 
 type ChangeType = 'feature' | 'security' | 'improvement' | 'fix';
 
@@ -78,85 +79,77 @@ const CHANGELOG: ChangeEntry[] = [
 ];
 
 const TYPE_META: Record<ChangeType, { label: string; icon: typeof Sparkles; color: string }> = {
-  feature: { label: 'New', icon: Sparkles, color: 'text-primary bg-primary/10 border-primary/30' },
-  security: { label: 'Security', icon: Shield, color: 'text-green-600 bg-green-500/10 border-green-500/30' },
-  improvement: { label: 'Improved', icon: Zap, color: 'text-blue-600 bg-blue-500/10 border-blue-500/30' },
-  fix: { label: 'Fix', icon: Bug, color: 'text-yellow-600 bg-yellow-500/10 border-yellow-500/30' },
+  feature: { label: 'New', icon: Sparkles, color: 'var(--aiwmc-grad-cyan)' },
+  security: { label: 'Security', icon: Shield, color: '#4ade80' },
+  improvement: { label: 'Improved', icon: Zap, color: 'var(--aiwmc-grad-violet)' },
+  fix: { label: 'Fix', icon: Bug, color: '#facc15' },
 };
+
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
 export default function ChangelogPage() {
   return (
-    <>
+    <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="sm">
       <PageMeta
         title="Changelog"
         description="Public release notes for AIWMC Quantis: every shipped feature, security improvement, and bug fix, dated and versioned."
         path="/changelog"
       />
-      <div className="min-h-screen bg-background">
-        <header className="border-b border-border">
-          <div className="container max-w-3xl mx-auto px-4 py-4 flex items-center gap-3">
-            <Link to="/" className="text-muted-foreground hover:text-foreground transition-colors">
-              <ArrowLeft className="w-5 h-5" />
-            </Link>
-            <h1 className="text-lg font-semibold">Changelog</h1>
-          </div>
-        </header>
 
-        <main className="container max-w-3xl mx-auto px-4 py-12">
-          <div className="mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-3">What's New</h2>
-            <p className="text-muted-foreground">
-              Every feature, security improvement, and bug fix we ship — dated, versioned, and explained.
-            </p>
-          </div>
+      <section aria-labelledby="changelog-hero-heading" className="aiwmc-section-wash py-10 md:py-14">
+        <SectionHeader
+          title="What's new"
+          subtitle="Every feature, security improvement, and bug fix we ship — dated, versioned, and explained."
+        />
+      </section>
 
-          <div className="space-y-10">
-            {CHANGELOG.map((entry) => {
-              const meta = TYPE_META[entry.type];
-              const Icon = meta.icon;
-              return (
-                <article key={entry.version} className="relative pl-6 border-l-2 border-border">
-                  <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary" />
-                  <div className="flex flex-wrap items-center gap-2 mb-2 text-xs">
-                    <span className="text-muted-foreground">{entry.date}</span>
-                    <span className="text-muted-foreground">·</span>
-                    <code className="px-1.5 py-0.5 rounded bg-muted text-foreground font-mono">v{entry.version}</code>
-                    <span
-                      className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full border text-[10px] font-semibold uppercase tracking-wide ${meta.color}`}
-                    >
-                      <Icon className="w-3 h-3" />
-                      {meta.label}
-                    </span>
-                  </div>
-                  <h3 className="text-xl font-semibold mb-3">{entry.title}</h3>
-                  <ul className="space-y-2 text-sm text-muted-foreground">
-                    {entry.changes.map((change, i) => (
-                      <li key={i} className="flex gap-2">
-                        <span className="text-primary mt-1.5 shrink-0 w-1 h-1 rounded-full bg-current" />
-                        <span>{change}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </article>
-              );
-            })}
-          </div>
-
-          <section className="mt-16 p-6 rounded-2xl border border-border bg-muted/20 text-center">
-            <h3 className="text-base font-semibold mb-2">Want to be notified of new releases?</h3>
-            <p className="text-sm text-muted-foreground mb-3">
-              We send a brief email when we ship anything notable. Maximum once a week, often less.
-            </p>
-            <Link
-              to="/"
-              className="inline-block text-sm text-primary hover:underline font-medium"
+      <div className="space-y-6 py-4">
+        {CHANGELOG.map((entry, i) => {
+          const meta = TYPE_META[entry.type];
+          const Icon = meta.icon;
+          return (
+            <GlassCard
+              key={entry.version}
+              glow={entry.type === 'security' ? 'cyan' : entry.type === 'feature' ? 'brand' : 'violet'}
+              revealDelay={i * 40}
+              className="p-6"
             >
-              Subscribe via the lead magnet on the homepage →
-            </Link>
-          </section>
-        </main>
-        <Footer />
+              <div className="flex flex-wrap items-center gap-2 mb-3 text-xs">
+                <span className="text-muted-foreground">{entry.date}</span>
+                <span className="text-muted-foreground">·</span>
+                <code className="px-1.5 py-0.5 rounded font-mono" style={{ background: 'rgba(148,163,255,0.10)', color: 'hsl(var(--foreground))' }}>
+                  v{entry.version}
+                </code>
+                <span
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide"
+                  style={{ ...MONO, color: meta.color, background: 'rgba(148,163,255,0.08)', border: '1px solid rgba(148,163,255,0.16)' }}
+                >
+                  <Icon className="w-3 h-3" /> {meta.label}
+                </span>
+              </div>
+              <h3 className="text-xl font-semibold mb-3" style={{ color: 'hsl(var(--foreground))' }}>{entry.title}</h3>
+              <ul className="space-y-2 text-sm text-muted-foreground">
+                {entry.changes.map((change, ci) => (
+                  <li key={ci} className="flex gap-2">
+                    <span className="mt-1.5 shrink-0 w-1 h-1 rounded-full" style={{ background: 'var(--aiwmc-grad-cyan)' }} />
+                    <span>{change}</span>
+                  </li>
+                ))}
+              </ul>
+            </GlassCard>
+          );
+        })}
       </div>
-    </>
+
+      <GlassCard glow="brand" className="mt-6 mb-8 p-6 text-center">
+        <h3 className="text-base font-semibold mb-2" style={{ color: 'hsl(var(--foreground))' }}>Want to be notified of new releases?</h3>
+        <p className="text-sm text-muted-foreground mb-3">
+          We send a brief email when we ship anything notable. Maximum once a week, often less.
+        </p>
+        <Link to="/" className="inline-block text-sm font-medium hover:underline" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+          Subscribe via the lead magnet on the homepage →
+        </Link>
+      </GlassCard>
+    </PublicPageShell>
   );
 }
