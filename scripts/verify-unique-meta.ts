@@ -33,13 +33,20 @@ function readHtml(route: string): string | null {
   return readFileSync(candidate, 'utf8');
 }
 
-function extract(html: string, re: RegExp): string {
+function extract(html: string, re: RegExp, group = 1): string {
   const m = html.match(re);
-  return m ? m[1].trim() : '';
+  return m ? m[group].trim() : '';
 }
 
 const TITLE_RE = /<title>([^<]*)<\/title>/i;
-const DESC_RE = /<meta\s+name=["']description["']\s+content=["']([^"']*)["']/i;
+// Bug (2026-07-05, same fix as verify-visibility.mjs): [^"']* treats an
+// apostrophe as a valid delimiter even inside a double-quoted attribute,
+// truncating content="...Quantis's..." at the apostrophe. Two /vs/* pages
+// sharing the prefix "Side-by-side: Quantis's" were falsely flagged as
+// duplicate descriptions. Fixed with a quote-type backreference so the
+// capture only stops at whichever quote character actually opened the
+// attribute.
+const DESC_RE = /<meta\s+name=["']description["']\s+content=(["'])((?:(?!\1)[\s\S])*)\1/i;
 
 const byTitle = new Map<string, string[]>();
 const byDesc = new Map<string, string[]>();
@@ -52,7 +59,7 @@ for (const route of routes) {
     continue;
   }
   const title = extract(html, TITLE_RE);
-  const desc = extract(html, DESC_RE);
+  const desc = extract(html, DESC_RE, 2);
   if (!title || !desc) {
     missing.push(`${route} (title="${title}" desc="${desc.slice(0, 40)}")`);
     continue;
