@@ -143,8 +143,8 @@ export function RmgHeader() {
                   fontSize: '11px',
                   letterSpacing: '0.12em',
                   textTransform: 'uppercase',
-                  background: 'var(--aiwmc-teal, #2DD4BF)',
-                  color: '#060C18',
+                  background: 'var(--aiwmc-grad-brand, #0b5fff)',
+                  color: '#ffffff',
                   padding: '9px 16px',
                   borderRadius: '4px',
                 }}

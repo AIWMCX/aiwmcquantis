@@ -3,6 +3,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { ArrowRight, ArrowLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Footer } from '@/components/layout/Footer';
+import { ExploreMoreGrid } from '@/components/layout/ExploreMoreGrid';
 
 /**
  * PublicPageShell — the single consistent shell every public,
@@ -115,6 +116,7 @@ export function PublicPageShell({
         {children}
       </main>
 
+      <ExploreMoreGrid />
       <Footer />
     </div>
   );
