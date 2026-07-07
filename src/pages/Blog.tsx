@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowRight, Calendar, Clock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -130,6 +130,25 @@ export const BLOG_ARTICLES: BlogArticle[] = [
 ];
 
 export default function Blog() {
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
+
+  // Real categories from BLOG_ARTICLES — deliberately not using the
+  // MP2-DESIGN-LAYOUT-02 spec's imagined "Methodology / Industry /
+  // Benchmark / Technical" list, which doesn't match what's actually
+  // written. Categories are derived from real posts so filtering is honest.
+  const categories = useMemo(() => {
+    const set = new Set(BLOG_ARTICLES.map((a) => a.category));
+    return Array.from(set).sort();
+  }, []);
+
+  const visibleArticles = useMemo(
+    () =>
+      selectedCategory === null
+        ? BLOG_ARTICLES
+        : BLOG_ARTICLES.filter((a) => a.category === selectedCategory),
+    [selectedCategory],
+  );
+
   return (
     <PublicPageShell active="blog" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
@@ -147,8 +166,47 @@ export default function Blog() {
         />
       </section>
 
+      {/* Tag filter */}
+      <div className="flex flex-wrap items-center gap-2 mb-6" role="tablist" aria-label="Filter posts by category">
+        <button
+          type="button"
+          role="tab"
+          aria-selected={selectedCategory === null}
+          onClick={() => setSelectedCategory(null)}
+          className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.14em] transition-colors border"
+          style={
+            selectedCategory === null
+              ? { ...MONO, background: 'var(--aiwmc-grad-brand)', color: '#ffffff', borderColor: 'var(--aiwmc-grad-brand)' }
+              : { ...MONO, background: 'rgba(148,163,255,0.06)', color: 'hsl(var(--muted-foreground))', borderColor: 'rgba(148,163,255,0.14)' }
+          }
+        >
+          All ({BLOG_ARTICLES.length})
+        </button>
+        {categories.map((cat) => {
+          const count = BLOG_ARTICLES.filter((a) => a.category === cat).length;
+          const active = selectedCategory === cat;
+          return (
+            <button
+              key={cat}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setSelectedCategory(active ? null : cat)}
+              className="px-3 py-1.5 rounded-full text-xs font-semibold uppercase tracking-[0.14em] transition-colors border"
+              style={
+                active
+                  ? { ...MONO, background: 'var(--aiwmc-grad-brand)', color: '#ffffff', borderColor: 'var(--aiwmc-grad-brand)' }
+                  : { ...MONO, background: 'rgba(148,163,255,0.06)', color: 'hsl(var(--muted-foreground))', borderColor: 'rgba(148,163,255,0.14)' }
+              }
+            >
+              {cat} ({count})
+            </button>
+          );
+        })}
+      </div>
+
       <section className="pb-4 space-y-4 md:space-y-5">
-        {BLOG_ARTICLES.map((article, i) => (
+        {visibleArticles.map((article, i) => (
           <Link key={article.slug} to={`/blog/${article.slug}`} className="block group">
             <GlassCard glow={i % 3 === 0 ? 'cyan' : i % 3 === 1 ? 'violet' : 'brand'} revealDelay={Math.min(i, 6) * 40} className="p-6">
               <div className="flex items-center gap-3 mb-3 flex-wrap">
