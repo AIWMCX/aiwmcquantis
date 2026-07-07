@@ -669,8 +669,40 @@ export default function BlogArticle() {
         </div>
       </article>
 
+      {/* Author card — real name, no fabricated social handles */}
+      <GlassCard glow="cyan" className="mt-8 mb-6 p-5 md:p-6">
+        <div className="flex items-center gap-4">
+          <div
+            className="w-14 h-14 rounded-full flex items-center justify-center text-sm font-bold shrink-0"
+            style={{
+              background: 'linear-gradient(135deg, rgba(79,70,229,0.35), rgba(103,232,249,0.20))',
+              color: 'hsl(var(--foreground))',
+              border: '1px solid rgba(148,163,255,0.24)',
+              ...MONO,
+            }}
+            aria-hidden="true"
+          >
+            BJ
+          </div>
+          <div className="min-w-0">
+            <p className="text-[10px] uppercase tracking-[0.16em] mb-1" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+              Written by
+            </p>
+            <p className="text-sm font-semibold" style={{ color: 'hsl(var(--foreground))' }}>
+              Bogdan Jeltov
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Founder, AIWMC Quantis ·{' '}
+              <Link to="/methodology" className="hover:underline" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+                Why I built this
+              </Link>
+            </p>
+          </div>
+        </div>
+      </GlassCard>
+
       {/* CTA */}
-      <GlassCard glow="brand" className="mt-8 mb-8 p-8 text-center">
+      <GlassCard glow="brand" className="mb-8 p-8 text-center">
         <h2 className="text-2xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>Ready to validate your idea?</h2>
         <p className="text-muted-foreground mb-6">Revenue projections, risk flags, and a clear action plan — free, in under 90 seconds.</p>
         <Link to="/app">
