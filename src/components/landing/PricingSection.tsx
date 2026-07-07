@@ -9,7 +9,7 @@ import { ValueAnchor } from './ValueAnchor';
 import { PricingCard } from './PricingCard';
 import { GuaranteeBanner } from './GuaranteeBanner';
 import { TIERS } from '@/config/tiers';
-import { DOC_TEMPLATE_COUNT } from '@/config/canonical-facts';
+import { DOC_TEMPLATE_COUNT, MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 import { PricingFAQ } from './PricingFAQ';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
 import { SectionHeader } from '@/components/ui/glass-card';
@@ -301,8 +301,10 @@ export function PricingSection() {
         {/* Money-Back Guarantee */}
         <GuaranteeBanner />
 
-        {/* Feature Comparison Table (for comparison_table variant) */}
-        {pricingVariant === 'comparison_table' && <FeatureComparisonTable />}
+        {/* Feature Comparison Table — permanent per MP2-DESIGN-LAYOUT-02 (was
+            previously gated behind the pricing_display A/B experiment;
+            promoted to always-visible for every /pricing visitor 2026-07-07) */}
+        <FeatureComparisonTable />
 
         {/* Pricing FAQ */}
         <PricingFAQ />
@@ -311,49 +313,69 @@ export function PricingSection() {
   );
 }
 
+const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
+
 function FeatureComparisonTable() {
+  // Kept in lockstep with the tier breakdowns already documented on
+  // /how-it-works (REPORT_SECTIONS / TOOLS) and /pricing's tier cards —
+  // no feature claimed here that isn't already live elsewhere on the site.
   const features = [
-    { name: 'Monthly analyses', free: '5', plus: 'Unlimited' },
-    { name: 'Financial projections', free: 'Basic', plus: 'Advanced 12-variable' },
-    { name: 'Business plan', free: 'Outline only', plus: 'Complete with milestones' },
-    { name: 'Marketing strategy', free: 'no', plus: 'yes' },
-    { name: 'Document Intelligence', free: 'no', plus: 'yes' },
-    { name: 'PDF export', free: 'no', plus: 'yes' },
-    { name: 'Custom branding', free: 'no', plus: 'yes' },
-    { name: 'Support', free: 'Email', plus: 'Priority' },
+    { name: 'Monthly analyses', free: '5', plus: 'Unlimited', pro: 'Unlimited' },
+    { name: 'Financial projections', free: 'Basic', plus: '36-month, 12-variable', pro: '60-month, 12-variable' },
+    { name: 'Monte Carlo simulation', free: 'no', plus: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration`, pro: `${MONTE_CARLO_ITERATIONS_DISPLAY}-iteration` },
+    { name: 'Pre-Mortem Stress Test', free: 'no', plus: 'yes', pro: 'yes' },
+    { name: 'Document Studio', free: 'no', plus: `${DOC_TEMPLATE_COUNT} templates`, pro: `${DOC_TEMPLATE_COUNT} templates` },
+    { name: 'Invoice & Capacity Check', free: 'no', plus: 'yes', pro: 'yes' },
+    { name: 'RVCE external validation', free: 'no', plus: 'yes', pro: 'yes' },
+    { name: 'TAM / SAM / SOM + pitch deck data', free: 'no', plus: 'TAM/SAM/SOM only', pro: '+ pitch deck data' },
+    { name: 'Strategic roadmap', free: 'no', plus: 'no', pro: 'yes' },
+    { name: 'White-label PDF export', free: 'no', plus: 'no', pro: 'yes' },
+    { name: 'API access', free: 'no', plus: 'no', pro: 'yes' },
+    { name: 'Team seats', free: '1', plus: '1', pro: '3' },
+    { name: 'Support', free: 'Email', plus: 'Priority', pro: 'Priority' },
   ];
 
+  const renderCell = (value: string) => {
+    if (value === 'no') return <Minus className="w-4 h-4 mx-auto" style={{ color: 'hsl(var(--muted-foreground) / 0.4)' }} />;
+    if (value === 'yes') return <CheckCircle2 className="w-4 h-4 mx-auto" style={{ color: '#4ade80' }} />;
+    return value;
+  };
+
   return (
-    <div className="mt-12 max-w-2xl mx-auto">
-      <h3 className="text-xl font-semibold text-center text-foreground mb-6">Feature Comparison</h3>
-      <div className="rounded-xl border border-border overflow-hidden bg-card">
+    <div className="mt-12 max-w-4xl mx-auto">
+      <h3
+        className="text-center mb-6 text-[11px] font-semibold uppercase"
+        style={{ ...MONO, letterSpacing: '0.14em', color: 'var(--aiwmc-grad-cyan)' }}
+      >
+        Feature Comparison
+      </h3>
+      <div className="rounded-lg overflow-hidden" style={{ border: '1px solid rgba(148,163,255,0.14)', background: 'rgba(12,16,32,0.55)' }}>
         <table className="w-full">
           <thead>
-            <tr className="border-b border-border bg-muted/50">
-              <th className="text-left p-4 text-sm font-medium text-muted-foreground">Feature</th>
-              <th className="text-center p-4 text-sm font-medium text-muted-foreground">Free</th>
-              <th className="text-center p-4 text-sm font-medium text-foreground bg-primary/5">
+            <tr style={{ borderBottom: '1px solid rgba(148,163,255,0.14)' }}>
+              <th className="text-left p-4 text-xs font-semibold uppercase text-muted-foreground" style={MONO}>Feature</th>
+              <th className="text-center p-4 text-xs font-semibold uppercase text-muted-foreground" style={MONO}>Free</th>
+              <th
+                className="text-center p-4 text-xs font-semibold uppercase"
+                style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)', background: 'rgba(79,70,229,0.08)' }}
+              >
                 Plus
+              </th>
+              <th className="text-center p-4 text-xs font-semibold uppercase" style={{ ...MONO, color: 'var(--aiwmc-grad-violet)' }}>
+                Pro
               </th>
             </tr>
           </thead>
           <tbody>
             {features.map((feature, idx) => (
-              <tr key={feature.name} className={idx % 2 === 0 ? 'bg-background' : 'bg-muted/20'}>
-                <td className="p-4 text-sm text-foreground">{feature.name}</td>
-                <td className="p-4 text-sm text-center text-muted-foreground">
-                  {feature.free === 'no' ? (
-                    <Minus className="w-4 h-4 mx-auto text-muted-foreground/50" />
-                  ) : (
-                    feature.free
-                  )}
+              <tr key={feature.name} style={idx % 2 === 1 ? { background: 'rgba(148,163,255,0.03)' } : undefined}>
+                <td className="p-4 text-sm" style={{ color: 'hsl(var(--foreground))' }}>{feature.name}</td>
+                <td className="p-4 text-sm text-center text-muted-foreground">{renderCell(feature.free)}</td>
+                <td className="p-4 text-sm text-center font-medium" style={{ color: 'hsl(var(--foreground))', background: 'rgba(79,70,229,0.05)' }}>
+                  {renderCell(feature.plus)}
                 </td>
-                <td className="p-4 text-sm text-center text-foreground font-medium bg-primary/5">
-                  {feature.plus === 'yes' ? (
-                    <CheckCircle2 className="w-4 h-4 mx-auto text-success" />
-                  ) : (
-                    feature.plus
-                  )}
+                <td className="p-4 text-sm text-center font-medium" style={{ color: 'hsl(var(--foreground))' }}>
+                  {renderCell(feature.pro)}
                 </td>
               </tr>
             ))}
