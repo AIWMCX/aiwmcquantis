@@ -15,6 +15,7 @@ import {
   BENCHMARK_SECTORS,
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS_LABEL,
+  FINANCIAL_VARIABLES,
 } from '@/config/canonical-facts';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
@@ -25,6 +26,20 @@ const QSL_LEVELS = [
   { level: 'QSL-3', name: 'Golden Benchmark Aligned', glow: 'violet' as const, desc: 'High confidence. The model\'s assumptions fall well within the P25-P75 interquartile range of verified industry data.' },
   { level: 'QSL-2', name: 'Plausible Extrapolation', glow: 'brand' as const, desc: 'Moderate confidence. Some inputs deviate from typical benchmarks, triggering stress tests. Manual review is recommended.' },
   { level: 'QSL-1', name: 'Speculative Warning', glow: 'none' as const, desc: 'Low confidence. Assumptions break physical or economic constraints (e.g., negative CAC, >100% market capture). Hard warnings apply.' },
+];
+
+// Titles mirror /how-it-works ENGINE_LAYERS exactly — same 8 layers, same
+// order, kept as short labels here since this page links out for detail
+// rather than duplicating the full descriptions on two pages.
+const ENGINE_LAYER_LABELS = [
+  { layer: 1, title: 'Benchmark Calibration' },
+  { layer: 2, title: 'Location Intelligence' },
+  { layer: 3, title: 'Sub-Industry Detection' },
+  { layer: 4, title: 'Financial Engine' },
+  { layer: 5, title: 'Market Prior & Anomaly Detection' },
+  { layer: 6, title: 'Quantis Logic Engine' },
+  { layer: 7, title: 'AI Narrative & Safety Guardrails' },
+  { layer: 8, title: 'RVCE — Reality Validation Engine' },
 ];
 
 const PIPELINE_STAGES = [
@@ -84,6 +99,30 @@ export default function Methodology() {
         </div>
       </section>
 
+      {/* The 8-Layer Engine — compact L1-L8 diagram */}
+      <section className="py-10 space-y-6">
+        <SectionHeader
+          eyebrow="Architecture"
+          title="The 8-layer analysis engine"
+          subtitle="Every analysis passes through 8 sequential layers, in order. Nothing is skipped."
+        />
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-8">
+          {ENGINE_LAYER_LABELS.map(({ layer, title }) => (
+            <div key={layer} className="p-3 rounded-lg text-center" style={PANEL}>
+              <p className="text-xs font-bold uppercase mb-1" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
+                L{layer}
+              </p>
+              <p className="text-xs text-muted-foreground leading-tight">{title}</p>
+            </div>
+          ))}
+        </div>
+        <p className="text-center">
+          <Link to="/how-it-works" className="text-sm font-medium hover:underline inline-flex items-center gap-1" style={{ color: 'var(--aiwmc-grad-cyan)' }}>
+            See what each layer actually computes →
+          </Link>
+        </p>
+      </section>
+
       {/* QSL levels */}
       <section className="py-10 space-y-6">
         <SectionHeader eyebrow="Confidence framework" title="Quantis Safety Levels (QSL)" />
@@ -103,7 +142,23 @@ export default function Methodology() {
       {/* Data provenance */}
       <section className="py-10 space-y-6">
         <SectionHeader eyebrow="Sources" title="Data provenance & sources" />
-        <GlassCard glow="cyan" className="p-6 space-y-4 mt-8">
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8">
+          <GlassCard glow="cyan" className="p-5 text-center">
+            <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_COUNT_DISPLAY}</p>
+            <p className="text-xs text-muted-foreground">Industry benchmarks</p>
+          </GlassCard>
+          <GlassCard glow="violet" revealDelay={60} className="p-5 text-center">
+            <p className="text-2xl font-bold mb-1" style={MONO}>{BENCHMARK_SECTORS}</p>
+            <p className="text-xs text-muted-foreground">Sectors covered</p>
+          </GlassCard>
+          <GlassCard glow="brand" revealDelay={120} className="p-5 text-center">
+            <p className="text-2xl font-bold mb-1" style={MONO}>{FINANCIAL_VARIABLES}</p>
+            <p className="text-xs text-muted-foreground">Financial variables per analysis, projected 36–60 months by tier</p>
+          </GlassCard>
+        </div>
+
+        <GlassCard glow="cyan" className="p-6 space-y-4">
           <p className="text-muted-foreground leading-relaxed">
             Our financial baseline is built on multiple verified data sources. Every dataset is tracked with license type, allowed uses, and freshness indicators for full audit compliance.
           </p>
