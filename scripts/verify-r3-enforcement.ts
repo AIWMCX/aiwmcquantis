@@ -42,7 +42,7 @@ function listDeployed(): string[] {
   if (!existsSync(DEPLOY_WORKFLOW)) return [];
   const text = readFileSync(DEPLOY_WORKFLOW, 'utf8');
   // Match `FUNCTIONS=(` … and the first line that is whitespace-then-`)`.
-  const m = text.match(/FUNCTIONS=\(\n([\s\S]*?)\n\s*\)/);
+  const m = text.match(/FUNCTIONS=\(\r?\n([\s\S]*?)\r?\n\s*\)/);
   if (!m) return [];
   return m[1]
     .split('\n')

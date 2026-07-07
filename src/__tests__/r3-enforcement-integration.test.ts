@@ -21,7 +21,7 @@ const ENFORCEMENT_SCRIPT = 'scripts/verify-r3-enforcement.ts';
 
 function listDeployed(): string[] {
   if (!existsSync(DEPLOY_WORKFLOW)) return [];
-  const m = readFileSync(DEPLOY_WORKFLOW, 'utf8').match(/FUNCTIONS=\(\n([\s\S]*?)\n\s*\)/);
+  const m = readFileSync(DEPLOY_WORKFLOW, 'utf8').match(/FUNCTIONS=\(\r?\n([\s\S]*?)\r?\n\s*\)/);
   if (!m) return [];
   return m[1]
     .split('\n')

@@ -20,8 +20,13 @@ const TARGETS = [
   "public/docs/QUANTIS_BUSINESS_LOGIC.md",
 ];
 
+// Hash content, not bytes: a developer's local `core.autocrlf` setting can
+// check this file out with CRLF line endings, which would otherwise change
+// the MD5 despite zero actual content change. Normalize CRLF->LF first so
+// this gate reflects real drift, not a checkout artifact.
 function md5(buf: Buffer): string {
-  return createHash("md5").update(buf).digest("hex");
+  const normalized = buf.toString("utf8").replace(/\r\n/g, "\n");
+  return createHash("md5").update(normalized, "utf8").digest("hex");
 }
 
 let failed = false;
