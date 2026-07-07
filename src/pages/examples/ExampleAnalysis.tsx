@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { ArrowRight, TrendingUp, DollarSign, Clock, Target, AlertTriangle, CheckCircle2, BarChart3, Zap, MapPin, Calculator, Users, HelpCircle, BookOpen } from 'lucide-react';
-import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
+import { GlassCard } from '@/components/ui/glass-card';
 import { EXAMPLE_ANALYSES, type ExampleData } from './exampleData';
 
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: React.ElementType; color: string }) {
@@ -35,12 +36,12 @@ export default function ExampleAnalysis() {
 
   if (!data) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
+      <PublicPageShell active="examples" maxWidth="md">
+        <section className="py-24 text-center">
           <h1 className="text-2xl font-bold text-foreground mb-4">Example not found</h1>
-          <Link to="/"><Button>Back to Home</Button></Link>
-        </div>
-      </div>
+          <Link to="/examples"><Button>Browse all examples</Button></Link>
+        </section>
+      </PublicPageShell>
     );
   }
 
@@ -80,27 +81,14 @@ export default function ExampleAnalysis() {
   }
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell active="examples" backTo={{ href: '/examples', label: 'All examples' }} maxWidth="lg">
       <PageSEO
         title={data.seo.title}
         description={data.seo.description}
         canonical={`/examples/${slug}`}
         jsonLd={jsonLd}
       />
-
-      {/* Header */}
-      <header className="border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-6xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
-          <Link to="/" className="text-lg font-bold text-foreground">AIWMC Quantis</Link>
-          <Link to="/app">
-            <Button size="sm" className="gap-2">
-              <Zap className="w-4 h-4" /> Analyze Your Idea
-            </Button>
-          </Link>
-        </div>
-      </header>
-
-      <main className="container max-w-6xl mx-auto px-4 sm:px-6 py-8 md:py-12">
+      <div className="py-4 md:py-8">
         {/* TOP CTA BANNER */}
         <Link to="/app" className="block mb-6">
           <div className="rounded-xl border-2 border-primary/30 bg-primary/5 px-5 py-4 flex items-center justify-between gap-4 hover:bg-primary/10 transition-colors group">
@@ -368,21 +356,21 @@ export default function ExampleAnalysis() {
           </>
         )}
 
-        {/* BOTTOM CTA */}
-        <section className="text-center py-12 md:py-16">
-          <div className="bg-primary rounded-2xl p-8 md:p-12">
-            <h2 className="text-2xl md:text-3xl font-bold text-primary-foreground mb-3">
+        {/* BOTTOM CTA — glass-card treatment, matches Landing / examples index */}
+        <section className="py-8 md:py-12">
+          <GlassCard glow="brand" className="p-8 md:p-12 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3" style={{ color: 'hsl(var(--foreground))' }}>
               Get your own custom report
             </h2>
-            <p className="text-primary-foreground/80 mb-6 max-w-xl mx-auto">
+            <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
               Takes 90 seconds. Uses 95,500 real benchmarks. Free.
             </p>
             <Link to="/app">
-              <Button size="lg" variant="secondary" className="gap-2 text-lg px-8 py-6 hover:scale-[1.02] transition-transform">
-                Validate My Business Idea → <ArrowRight className="w-5 h-5" />
+              <Button size="lg" className="gap-2 text-base px-8 py-6 hover:scale-[1.02] transition-transform">
+                Validate my business idea <ArrowRight className="w-5 h-5" />
               </Button>
             </Link>
-          </div>
+          </GlassCard>
         </section>
 
         {/* Related Examples — prioritize same city or industry */}
@@ -411,9 +399,7 @@ export default function ExampleAnalysis() {
               ))}
           </div>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PublicPageShell>
   );
 }
