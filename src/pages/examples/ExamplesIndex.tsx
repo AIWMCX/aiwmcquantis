@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, TrendingUp, Target, Play, Search } from 'lucide-react';
@@ -10,10 +10,14 @@ import { EXAMPLE_LIST, EXAMPLE_ANALYSES } from './exampleData';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
+const INITIAL_VISIBLE = 12;
+const PAGE_STEP = 12;
+
 export default function ExamplesIndex() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
   const [selectedIndustry, setSelectedIndustry] = useState<string | null>(null);
+  const [visibleCount, setVisibleCount] = useState<number>(INITIAL_VISIBLE);
 
   const industries = useMemo(() => {
     const set = new Set(EXAMPLE_LIST.map(e => e.industry));
@@ -30,6 +34,15 @@ export default function ExamplesIndex() {
       return matchesSearch && matchesIndustry;
     });
   }, [search, selectedIndustry]);
+
+  // Reset pagination whenever the filter/search inputs change — otherwise a
+  // narrowed result set gets stuck showing a stale "Showing 24 of 6" line.
+  useEffect(() => {
+    setVisibleCount(INITIAL_VISIBLE);
+  }, [search, selectedIndustry]);
+
+  const visibleSlice = useMemo(() => filtered.slice(0, visibleCount), [filtered, visibleCount]);
+  const hasMore = visibleCount < filtered.length;
 
   const handleLoadTemplate = (slug: string, e: React.MouseEvent) => {
     e.preventDefault();
@@ -112,11 +125,12 @@ export default function ExamplesIndex() {
       </div>
 
       <p className="text-xs uppercase tracking-[0.14em] mb-4" style={{ ...MONO, color: 'var(--aiwmc-grad-cyan)' }}>
-        Showing {filtered.length} of {EXAMPLE_LIST.length} examples
+        Showing {visibleSlice.length} of {filtered.length} examples
+        {filtered.length !== EXAMPLE_LIST.length && ` (filtered from ${EXAMPLE_LIST.length})`}
       </p>
 
-      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-12 items-stretch">
-        {filtered.map((ex, index) => (
+      <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5 mb-8 items-stretch">
+        {visibleSlice.map((ex, index) => (
           <Link key={ex.slug} to={`/examples/${ex.slug}`} className="block h-full">
             <GlassCard
               glow={index % 3 === 0 ? 'cyan' : index % 3 === 1 ? 'violet' : 'brand'}
@@ -170,6 +184,19 @@ export default function ExamplesIndex() {
           </Link>
         ))}
       </div>
+
+      {hasMore && (
+        <div className="flex justify-center mb-12">
+          <Button
+            variant="ghost"
+            onClick={() => setVisibleCount((n) => n + PAGE_STEP)}
+            className="gap-2 px-6"
+            style={{ color: 'var(--aiwmc-grad-cyan)' }}
+          >
+            Load more examples ({filtered.length - visibleCount} remaining)
+          </Button>
+        </div>
+      )}
 
       {/* Closing CTA — glass, matches site-wide pattern */}
       <section className="py-8 md:py-12">
