@@ -2,13 +2,14 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { directories, optimizedDescriptions, type DirectoryWave, type DirectoryStatus } from "@/data/directorySubmissions";
 import { PageSEO } from "@/components/seo/PageSEO";
+import { PublicPageShell } from "@/components/layout/PublicPageShell";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ArrowLeft, ExternalLink, Copy, Check, ShieldCheck } from "lucide-react";
+import { ExternalLink, Copy, Check, ShieldCheck } from "lucide-react";
 import { toast } from "sonner";
 
 const statusConfig: Record<DirectoryStatus, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
@@ -52,19 +53,16 @@ export default function DirectoryTracker() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--q-bg-base)] text-[var(--q-text-primary)]">
+    <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="xl">
       <PageSEO
         title="Quantis Directory Proof Signals"
         description="Public directory and SEO proof signals where AIWMC Quantis has been submitted, indexed, or verified live."
         canonical="/directory-tracker"
         noindex
       />
-      <div className="container max-w-7xl mx-auto py-8 px-4 space-y-6">
+      <div className="py-4 md:py-8 space-y-6">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
           <div>
-            <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 gap-2">
-              <Link to="/app"><ArrowLeft className="h-4 w-4" />Back to app</Link>
-            </Button>
             <h1 className="text-3xl font-bold text-foreground">Directory Proof Signals</h1>
             <p className="text-muted-foreground mt-1">Connected listings, submission targets, and live proof links for Quantis visibility.</p>
           </div>
@@ -211,6 +209,6 @@ export default function DirectoryTracker() {
           </TabsContent>
         </Tabs>
       </div>
-    </main>
+    </PublicPageShell>
   );
 }

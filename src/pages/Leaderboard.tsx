@@ -4,16 +4,14 @@ import { supabase } from '@/integrations/supabase/client';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Footer } from '@/components/layout/Footer';
 import { PageSEO } from '@/components/seo/PageSEO';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { logger } from '@/lib/logger';
-import { 
-  Trophy, TrendingUp, ArrowRight, MapPin, 
-  DollarSign, Clock, RefreshCw, Share2, Moon, Sun
+import {
+  Trophy, TrendingUp, ArrowRight, MapPin,
+  DollarSign, Clock, Share2
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useTheme } from 'next-themes';
-import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 
 interface LeaderboardEntry {
   rank_position: number;
@@ -79,7 +77,6 @@ export default function Leaderboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(new Date());
-  const { theme, setTheme } = useTheme();
 
   const loadLeaderboard = async () => {
     setLoading(true);
@@ -116,36 +113,13 @@ export default function Leaderboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-background text-foreground">
+    <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Quantis Leaderboard — Top-scoring validated business ideas"
         description="Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against 95,500 real benchmarks."
         canonical="/leaderboard"
       />
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border bg-background/80 backdrop-blur-lg">
-        <div className="container max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
-          <Link to="/">
-            <img src={aiwmcLogoText} alt="AIWMC Quantis" className="h-8 w-auto dark:invert" />
-          </Link>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-              className="p-2 rounded-lg hover:bg-accent transition-colors"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-            </button>
-            <Link to="/app">
-              <Button size="sm" className="gap-2">
-                Validate My Idea <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <main className="container max-w-5xl mx-auto px-4 sm:px-6 py-12">
+      <div className="py-4 md:py-8">
         {/* Header */}
         <div className="text-center mb-10">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
@@ -289,9 +263,7 @@ export default function Leaderboard() {
             Share Leaderboard on Twitter
           </Button>
         </div>
-      </main>
-
-      <Footer />
-    </div>
+      </div>
+    </PublicPageShell>
   );
 }
