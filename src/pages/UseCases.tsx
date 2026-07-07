@@ -2,7 +2,6 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight,
-  ArrowLeft,
   Lightbulb,
   Briefcase,
   Building2,
@@ -16,7 +15,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { StructuredData } from '@/components/seo/StructuredData';
-import { Footer } from '@/components/layout/Footer';
+import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
@@ -116,7 +115,7 @@ const WHAT_YOU_GET = [
 
 export default function UseCases() {
   return (
-    <div className="min-h-screen rmg-surface dark text-[var(--rmg-text)]">
+    <PublicPageShell active="use-cases" backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Who Uses Quantis — Founders, Consultants & Builders"
         description="Quantis helps founders validate ideas, consultants scale client analysis, M&A advisors stress-test targets, operators plan expansion, and accelerators screen cohorts. See how it serves your role."
@@ -129,35 +128,6 @@ export default function UseCases() {
           { name: 'Use Cases', url: '/use-cases' },
         ]}
       />
-
-      {/* Nav */}
-      <nav className="sticky top-0 z-50 border-b border-border/40 backdrop-blur-lg" style={{ background: 'rgba(11,14,26,0.72)' }}>
-        <div className="container max-w-7xl mx-auto px-4 sm:px-6 py-3 sm:py-4">
-          <div className="flex items-center justify-between">
-            <Link to="/" className="text-lg sm:text-xl font-bold text-foreground font-sans">AIWMC™ Quantis</Link>
-            <div className="hidden md:flex items-center gap-8">
-              <Link to="/" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Home</Link>
-              <Link to="/how-it-works" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">How It Works</Link>
-              <Link to="/methodology" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Methodology</Link>
-              <Link to="/examples" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Examples</Link>
-              <Link to="/pricing" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Pricing</Link>
-              <Link to="/blog" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
-            </div>
-            <Link to="/app">
-              <Button size="sm" className="gap-2 min-h-[48px] px-5 text-sm font-semibold">
-                Start Free Analysis → <ArrowRight className="w-4 h-4" />
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
-
-      <main className="container max-w-6xl mx-auto px-4 sm:px-6">
-        <div className="pt-6 pb-2">
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-            <ArrowLeft className="w-4 h-4" /> Back to home
-          </Link>
-        </div>
 
         {/* Hero */}
         <section aria-labelledby="usecases-hero" className="aiwmc-section-wash py-12 md:py-20">
@@ -199,10 +169,26 @@ export default function UseCases() {
           </Reveal>
         </section>
 
-        {/* Tier cards */}
-        <section className="py-4 md:py-8 space-y-6 md:space-y-8">
-          {TIERS.map((t, i) => (
-            <GlassCard key={t.id} glow={t.glow} revealDelay={i * 60} className="p-6 md:p-10 scroll-mt-24" as="div">
+        {/* Tier cards — alternating rhythm per MP2-DESIGN-LAYOUT-02 Page 3
+             spec. Odd-indexed tiers (T2, T4) get more vertical breathing
+             room and a subtle section-wash background hint, so scrolling
+             through the five tiers has editorial cadence instead of five
+             identical cards in a stack. Kept in the dark-mode surface
+             family — swapping to off-white mid-page would break the site
+             consistency the rest of the migration enforces. */}
+        <section className="py-4 md:py-8 space-y-8 md:space-y-12">
+          {TIERS.map((t, i) => {
+            const isBreathing = i % 2 === 1; // T2, T4
+            return (
+            <div
+              key={t.id}
+              className={
+                isBreathing
+                  ? 'aiwmc-section-wash rounded-2xl px-2 md:px-6 py-6 md:py-10'
+                  : ''
+              }
+            >
+            <GlassCard glow={t.glow} revealDelay={i * 60} className={isBreathing ? 'p-8 md:p-14 scroll-mt-24' : 'p-6 md:p-10 scroll-mt-24'} as="div">
               <div id={t.id} />
               <div className="grid md:grid-cols-[minmax(0,1fr)_320px] gap-8 md:gap-10 items-start">
                 {/* Left: role narrative */}
@@ -296,7 +282,9 @@ export default function UseCases() {
                 </div>
               </div>
             </GlassCard>
-          ))}
+            </div>
+            );
+          })}
         </section>
 
         {/* What You Get */}
@@ -341,9 +329,6 @@ export default function UseCases() {
             </div>
           </GlassCard>
         </section>
-      </main>
-
-      <Footer />
-    </div>
+    </PublicPageShell>
   );
 }
