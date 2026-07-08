@@ -55,7 +55,7 @@ export default function Pricing() {
                 Boutique Consultant
               </p>
               <p className="text-3xl md:text-4xl font-bold line-through decoration-red-400/70 decoration-[3px]" style={{ color: 'hsl(var(--foreground))' }}>
-                $3,000
+                $1,500
               </p>
               <p className="text-xs text-muted-foreground mt-2">3-day engagement, 1 report, no live updates</p>
             </div>
@@ -64,7 +64,7 @@ export default function Pricing() {
                 CFO Hourly
               </p>
               <p className="text-3xl md:text-4xl font-bold line-through decoration-red-400/70 decoration-[3px]" style={{ color: 'hsl(var(--foreground))' }}>
-                $250 / hr
+                $350 / hr
               </p>
               <p className="text-xs text-muted-foreground mt-2">10-15 hours per scenario, you brief them</p>
             </div>

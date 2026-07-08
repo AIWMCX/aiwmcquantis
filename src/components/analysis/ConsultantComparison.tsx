@@ -1,6 +1,6 @@
 import React from 'react';
 import { Clock, DollarSign } from 'lucide-react';
-import { CONSULTANT_FLAT_COST_DISPLAY } from '@/config/canonical-facts';
+import { CONSULTANT_COST_RANGE_DISPLAY } from '@/config/canonical-facts';
 
 interface ConsultantComparisonProps {
   analysisSeconds?: number;
@@ -22,7 +22,7 @@ export function ConsultantComparison({ analysisSeconds }: ConsultantComparisonPr
       </div>
       <p className="text-xs text-[var(--q-text-secondary)] leading-relaxed">
         <span className="text-[var(--q-text-primary)] font-medium">
-          This analysis would cost {CONSULTANT_FLAT_COST_DISPLAY}+
+          This analysis would cost {CONSULTANT_COST_RANGE_DISPLAY}
         </span>
         {' '}from a financial consultant.{' '}
         <span className="text-[var(--q-accent-primary)] font-medium">
