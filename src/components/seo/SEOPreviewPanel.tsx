@@ -34,7 +34,7 @@ function readHead(): Snapshot {
 
 function Gauge({ value, min, max, label }: { value: number; min: number; max: number; label: string }) {
   const inRange = value >= min && value <= max;
-  const color = inRange ? '#8FFF2A' : value === 0 ? '#94a3b8' : value < min ? '#f59e0b' : '#ef4444';
+  const color = inRange ? '#4ade80' : value === 0 ? '#94a3b8' : value < min ? '#f59e0b' : '#ef4444';
   return (
     <div className="flex items-center gap-2 text-[11px] font-mono">
       <span style={{ color }}>{value}</span>
@@ -96,7 +96,7 @@ export function SEOPreviewPanel() {
     >
       <header className="sticky top-0 flex items-center justify-between gap-2 border-b border-slate-800 bg-slate-950/95 px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="inline-block h-2 w-2 rounded-full" style={{ background: '#8FFF2A' }} />
+          <span className="inline-block h-2 w-2 rounded-full" style={{ background: '#4ade80' }} />
           <span className="text-xs font-semibold tracking-wide">SEO PREVIEW</span>
           {snap.noindex && (
             <span className="rounded bg-red-500/20 px-1.5 py-0.5 text-[10px] font-mono uppercase text-red-300">
@@ -138,7 +138,7 @@ export function SEOPreviewPanel() {
           {snap.canonical && (
             <div className="text-[11px] font-mono">
               {canonicalMatchesPath ? (
-                <span style={{ color: '#8FFF2A' }}>✓ self-references current path</span>
+                <span style={{ color: '#4ade80' }}>✓ self-references current path</span>
               ) : (
                 <span className="text-amber-400">
                   ⚠ points elsewhere — crawlers will consolidate this page into that URL
