@@ -417,9 +417,9 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'San Francisco, CA',
     seo: {
       title: 'Mobile App Startup Analysis — San Francisco | AIWMC Quantis',
-      description: 'Business analysis for a fintech mobile app startup in San Francisco. $15,200/mo MRR projection, $180K startup cost, 11.8-month payback.',
+      description: 'Business analysis for a fintech mobile app startup in San Francisco. $15,200/mo MRR projection, $180K startup cost, 39.1-month payback.',
     },
-    metrics: { monthlyRevenue: '$15,200', monthlyProfit: '$4,600', paybackMonths: '11.8 months', roi: '102%', startupCost: '$180,000' },
+    metrics: { monthlyRevenue: '$15,200', monthlyProfit: '$4,600', paybackMonths: '39.1 months', roi: '102%', startupCost: '$180,000' },
     costBreakdown: [
       { label: 'App development (6 months)', value: '$90,000' },
       { label: 'Compliance & legal (fintech)', value: '$25,000' },
