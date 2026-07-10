@@ -340,17 +340,7 @@
 
   <body>
     <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
-      <!-- FIXED 2026-07-11: this was a real <h1> with homepage-specific copy
-           ("Before you invest $50K...") shared verbatim across the raw HTML of
-           ALL public routes (this index.html is the shared build template for
-           every route emitted by generate-static-bodies.mjs/prerender-seo.ts).
-           CSS-hidden via clip:rect(0,0,0,0), which hides visually but is still
-           exposed to the accessibility tree — a screen reader on /pricing,
-           /methodology, etc. would announce the HOMEPAGE headline as that
-           page's H1. Downgraded to a non-heading, aria-hidden placeholder:
-           still present at first byte for any pre-hydration snapshot tool,
-           but no longer a semantic <h1> and no longer exposed to assistive
-           tech on non-homepage routes. -->
+      <!-- Non-heading on purpose: shared across all routes, must not leak a homepage H1 to a11y tree on other pages. -->
       <div aria-hidden="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
         Loading your analysis…
       </div>
