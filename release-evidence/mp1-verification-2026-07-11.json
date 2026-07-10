@@ -1,0 +1,61 @@
+{
+  "evidence_id": "EVD-MP1-20260711-001",
+  "gate": "MP1",
+  "method": "PowerShell HTTP fetch with Googlebot User-Agent, no-cache headers, cache-busting query param, against live production. Bash on this machine has no network access, so PowerShell is the verification tool of record (see [[quantis_deploy_verify_mechanism]]).",
+  "observed_at": "2026-07-11T00:00:00Z",
+  "canonical_host": "https://www.aiwmcquantis.com",
+  "verdict": "PASS",
+  "checks": {
+    "routes_return_200": {
+      "pricing": { "status": 200, "bytes": 18370 },
+      "methodology": { "status": 200, "bytes": 18832 },
+      "examples": { "status": 200, "bytes": 18611 },
+      "privacy": { "status": 200, "bytes": 18284, "title": "Privacy Policy" },
+      "terms": { "status": 200, "bytes": 18186, "title": "Terms of Service" }
+    },
+    "distinct_body_hashes_sha256": {
+      "pricing": "729D5BB20CC0F78EA12835698FDD0FF4C002402838C395A75712DA83691458B6",
+      "methodology": "30E8786CF202AE6FCD4E0FA24BFA9862AAD5743A0D14B1C65112C38152A01EE9",
+      "examples": "9AAFB49863F101A706731D60CC9B05D0B54E5034DF411C197D7B1BE0192DF4DF"
+    },
+    "duplicate_body_check": {
+      "pricing_eq_methodology": false,
+      "pricing_eq_examples": false,
+      "methodology_eq_examples": false
+    },
+    "distinct_titles": {
+      "pricing": "Pricing — AIWMC Quantis",
+      "methodology": "Methodology — How Quantis Calculates Risk",
+      "examples": "Example Analyses — See Quantis in Action"
+    },
+    "canonical_constants_scan": {
+      "pricing": { "8_layer_present": true, "7_layer_present": false, "pro_49_present": true, "under_90s_present": true },
+      "methodology": { "8_layer_present": true, "7_layer_present": false, "pro_49_present": false, "under_90s_present": true },
+      "examples": { "8_layer_present": true, "7_layer_present": false, "pro_49_present": false, "under_90s_present": true }
+    },
+    "apex_redirect": {
+      "request": "https://aiwmcquantis.com/pricing",
+      "status": 308,
+      "location": "https://www.aiwmcquantis.com/pricing",
+      "path_preserving": true,
+      "redirects_to_homepage": false
+    }
+  },
+  "pass_criteria_from_MP1-ACTIVE-GATE-PRERENDER-VERIFICATION.md": {
+    "all_three_routes_return_successfully": true,
+    "each_route_has_distinct_body_hash_and_title": true,
+    "pricing_exposes_pro_and_49_in_crawlable_html": true,
+    "eight_layer_language_present_where_architecture_described": true,
+    "retired_seven_layer_language_absent": true,
+    "routes_do_not_return_homepage_boilerplate": true
+  },
+  "additional_checks_beyond_original_script": {
+    "apex_to_www_path_preserving_redirect": "PASS",
+    "privacy_terms_distinct_route_specific_bodies": "PASS"
+  },
+  "notes": "This is not the first time these checks passed live this session — ad-hoc verification with identical results was run earlier (before this formal record existed). This file makes that verification permanent and citable, per the gate's own requirement for an evidence record rather than a chat claim. Note the benchmark-count scan intentionally found 95,500 still present on all three routes: MP1's own pass criteria do not require its removal (that is a separate, still-open item tracked as the 95,500 reconciliation, gated on DB access, not on MP1).",
+  "superseded_claims": [
+    "AIWMC_QUANTIS_PRODUCTION_STABILIZATION_MASTER_PLAN.md section 2.1-2.4 describes apex/www divergence and legal-page homepage-fallback as current state — this evidence record shows that state no longer holds as of 2026-07-11.",
+    "MP1-ACTIVE-GATE-PRERENDER-VERIFICATION.md's own header states 'Current status: UNVERIFIED' — this evidence record supersedes that status to PASS."
+  ]
+}

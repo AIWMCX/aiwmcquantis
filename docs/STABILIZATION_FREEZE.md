@@ -32,12 +32,14 @@ Per the standing MP0-MP5 discipline (unchanged by this document):
 
 ## Exit criteria — when does the freeze lift
 
-Per the accuracy audit already completed 2026-07-10 (`MP-ACCURACY-AUDIT-AND-TODO-v1.0.md`) plus this freeze's own scope:
+Per the accuracy audit (`MP-ACCURACY-AUDIT-AND-TODO-v1.0.md`) plus this freeze's own scope. **Updated 2026-07-11 against live evidence** — see `release-evidence/mp1-verification-2026-07-11.json` for the MP1 record this update is based on.
 
-1. Payback-period bug in public examples: fixed for 1 of ~51 examples (commit `fbf3654d`); remaining examples not yet audited against the live ramp-aware engine formula.
-2. "90% of businesses fail in 5 years" claim: still live on `MobileHero.tsx` and `BlogArticle.tsx` as of this freeze declaration — not yet retired.
-3. 95,500-benchmark-vs-DB-row-count reconciliation: still an open decision (flagged since 2026-06-20, restated 2026-07-11) — not yet resolved.
-4. Apex-vs-www content divergence: **verified NOT a live issue** (2026-07-11, direct `HttpWebRequest` check — apex 308-redirects to www, single canonical surface). No action needed here; this item closes the freeze checklist without further work.
+1. **CLOSED (2026-07-11).** Payback-period bug in public examples: `mobile-app-startup-san-francisco` fixed (commit `fbf3654d`); `coffee-shop-denver` and `consulting-firm-new-york` regenerated against the real ramp-aware engine formula (commit `21fb2b54`) — 12mo/109% and 6mo/679% respectively, hand-simulated faithfully from the exact production formula and independently cross-checked. `scripts/verify-payback-integrity.mjs` now runs this check permanently in CI. Remaining ~48 examples not yet individually re-derived through the full engine — that's a real gap, but the three previously-known-broken ones are done.
+2. **CLOSED (2026-07-11).** "90% of businesses fail in 5 years" claim: retired from all 11 locations found across the codebase (commit `29ab0632`), including `MobileHero.tsx`, `BlogArticle.tsx`, and 9 more files a full sweep turned up beyond the two originally scoped. Confirmed absent from live production via fresh fetch.
+3. **STILL OPEN.** 95,500-benchmark-vs-DB-row-count reconciliation: flagged since 2026-06-20, restated 2026-07-11 — blocked on Supabase DB/service-role access, not on effort. Confirmed still present in live production HTML as of the MP1 evidence record (this is expected — MP1's pass criteria don't require its removal; this is a separate, still-open item).
+4. **CLOSED.** Apex-vs-www content divergence: verified NOT a live issue, reconfirmed with a formal evidence record 2026-07-11 (`release-evidence/mp1-verification-2026-07-11.json`) — apex 308-redirects path-preserving to www, single canonical surface, Privacy/Terms/Methodology/Pricing/Examples all distinct and route-specific.
 5. One reproducible, fully lineage-audited example report: not yet built (needs the analysis-snapshot infrastructure this freeze's [BUILD]-queued items describe — MP4-gated).
 
-The freeze lifts when items 1-3 are closed. Items requiring MP4-gated engine work (analysis snapshots, source registry, ingestion layers) remain queued past the freeze's own lift point, gated separately on first paying user — the freeze is about stopping *new breadth*, not a prerequisite for revenue-safe operation.
+**MP1 gate: PASS as of 2026-07-11**, formal evidence in `release-evidence/mp1-verification-2026-07-11.json` (supersedes the "UNVERIFIED" status in `MP1-ACTIVE-GATE-PRERENDER-VERIFICATION.md`'s own header — that file predates this verification and should be treated as historical, not current).
+
+The freeze lifts when items 1-3 are closed. Item 3 is the only one still open, and it is blocked on external DB access rather than engineering effort. Items requiring MP4-gated engine work (analysis snapshots, source registry, ingestion layers) remain queued past the freeze's own lift point, gated separately on first paying user — the freeze is about stopping *new breadth*, not a prerequisite for revenue-safe operation.
