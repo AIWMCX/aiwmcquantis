@@ -1,0 +1,51 @@
+{
+  "evidence_id": "EVD-PERF-20260711-001",
+  "kind": "TEST_REPORT",
+  "captured_at": "2026-07-11T00:00:00Z",
+  "method": "npx lighthouse (v13.4.0), headless Chrome, --only-categories=performance, against live production, no throttling override (Lighthouse default simulated throttling).",
+  "canonical_host": "https://www.aiwmcquantis.com",
+  "verdict": "FAIL against the internal budget documented in AIWMC_QUANTIS_PRODUCTION_STABILIZATION_MASTER_PLAN.md section 20.3 (LCP <= 2.5s target)",
+  "results": {
+    "/": {
+      "performance_score": 40,
+      "lcp_ms": 6385,
+      "cls": 0,
+      "tbt_ms": 1640,
+      "fcp_ms": 3700,
+      "ttfb_ms": 200,
+      "speed_index_ms": 5200,
+      "total_byte_weight_kib": 959,
+      "unused_js_est_savings_kib": 182
+    },
+    "/pricing": {
+      "performance_score": 60,
+      "lcp_ms": 6294,
+      "cls": 0,
+      "tbt_ms": 390,
+      "fcp_ms": 3600,
+      "ttfb_ms": 50,
+      "speed_index_ms": 3900,
+      "total_byte_weight_kib": 779,
+      "unused_js_est_savings_kib": 223
+    },
+    "/examples": {
+      "performance_score": 68,
+      "lcp_ms": 6061,
+      "cls": 0,
+      "tbt_ms": 160,
+      "fcp_ms": 3600,
+      "ttfb_ms": 50,
+      "speed_index_ms": 3800,
+      "total_byte_weight_kib": 741,
+      "unused_js_est_savings_kib": 210
+    }
+  },
+  "root_cause_analysis": {
+    "finding": "TTFB is fast (50-200ms) on every route -- the server/CDN is not the bottleneck. LCP is delayed 6+ seconds by main-thread JS execution before the page can paint, not by network or server latency.",
+    "evidence": "Lighthouse bootup-time audit on '/': ui-vendor-BuUXtMtA.js alone consumes 4494ms total main-thread time (2339ms pure scripting); index-fqbGfqma.js consumes 1846ms. Combined script evaluation across all main-thread work: 2924ms.",
+    "consistent_with": "Vite's own build-time warning (observed during 'bun run build' earlier this session): 'Some chunks are larger than 500 kB after minification... Consider dynamic import() / manualChunks' -- flagged for ui-vendor (262.60 kB min), DocumentEditor (638.13 kB), index (901.84 kB), and pdf (1,470.08 kB) chunks. This performance audit is the first time that build-time warning has been connected to a measured live-production symptom.",
+    "cls_note": "CLS is 0 across all three routes -- no layout-shift problem. This is specifically a JS-bootup/hydration blocking issue, not a rendering-stability issue."
+  },
+  "not_yet_done": "No code changes made this pass. Fixing this requires a code-splitting/manualChunks strategy (vite.config.ts) plus dynamic import() conversions for heavy, non-critical-path modules (DocumentEditor, pdf export). That is a build-configuration change with real regression risk (chunk-loading order, lazy-load fallbacks) and belongs in its own scoped slice with its own build+test+live-verify cycle, not bundled into a measurement pass.",
+  "sha256": "not-applicable-see-method"
+}

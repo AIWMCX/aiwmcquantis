@@ -262,6 +262,13 @@
       "blocking": false,
       "details": "No Stripe access this session; TIERS config read from repo (CODE_VERIFIED) but not cross-checked against live Stripe products/prices.",
       "evidence_ids": []
+    },
+    {
+      "gate_id": "performance_lcp_budget",
+      "result": "BLOCK",
+      "blocking": false,
+      "details": "LCP 6.06-6.39s on /, /pricing, /examples vs. the documented 2.5s internal budget. TTFB is fast (50-200ms); the delay is main-thread JS execution (ui-vendor chunk alone: 4.5s) blocking paint, not network/server latency. CLS is 0 (no layout-shift problem). Not yet fixed -- requires a separate code-splitting slice.",
+      "evidence_ids": ["EVD-PERF-20260711-001"]
     }
   ],
   "evidence": [
