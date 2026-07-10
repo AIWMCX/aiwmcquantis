@@ -1,0 +1,277 @@
+{
+  "generated_at": "2026-07-11T00:00:00Z",
+  "release_id": "QNT-STATE-20260711-001",
+  "deployed_git_sha": "91db42beba6b08f49ff0e919e8aa74fb48da9785",
+  "canonical_host": "www.aiwmcquantis.com",
+  "status_vocabulary": [
+    "PROD_VERIFIED",
+    "CODE_VERIFIED",
+    "DISABLED",
+    "SHADOW",
+    "PLANNED",
+    "BROKEN",
+    "DEPRECATED",
+    "UNVERIFIED"
+  ],
+  "deployments": {
+    "frontend": {
+      "component": "vercel-frontend",
+      "version": "91db42be",
+      "deployed_at": null,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    "edge_functions": [
+      {
+        "component": "analyze-business",
+        "version": null,
+        "deployed_at": null,
+        "status": "UNVERIFIED",
+        "evidence_ids": []
+      }
+    ],
+    "database": {
+      "component": "supabase-postgres",
+      "version": null,
+      "deployed_at": null,
+      "status": "UNVERIFIED",
+      "evidence_ids": []
+    }
+  },
+  "product": {
+    "legal_entity": "AIWMC™ LLC",
+    "pipeline_version": "8-layer (incl. RVCE)",
+    "speed_claim_p95_ms": null,
+    "plan_ids": ["free", "plus", "pro"],
+    "public_example_count": 51
+  },
+  "features": [
+    {
+      "feature_id": "prerender_route_uniqueness",
+      "status": "PROD_VERIFIED",
+      "enabled_in_production": true,
+      "feature_flag": null,
+      "route_or_endpoint": "/pricing,/methodology,/examples,/privacy,/terms",
+      "owner": null,
+      "last_verified_at": "2026-07-11T00:00:00Z",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "feature_id": "apex_to_www_redirect",
+      "status": "PROD_VERIFIED",
+      "enabled_in_production": true,
+      "feature_flag": null,
+      "route_or_endpoint": "aiwmcquantis.com/* -> www.aiwmcquantis.com/*",
+      "owner": null,
+      "last_verified_at": "2026-07-11T00:00:00Z",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "feature_id": "payback_integrity_gate",
+      "status": "CODE_VERIFIED",
+      "enabled_in_production": true,
+      "feature_flag": null,
+      "route_or_endpoint": "scripts/verify-payback-integrity.mjs",
+      "owner": null,
+      "last_verified_at": "2026-07-11T00:00:00Z",
+      "evidence_ids": []
+    },
+    {
+      "feature_id": "route_body_ci_gate",
+      "status": "CODE_VERIFIED",
+      "enabled_in_production": true,
+      "feature_flag": null,
+      "route_or_endpoint": "scripts/verify-visibility.mjs",
+      "owner": null,
+      "last_verified_at": "2026-07-11T00:00:00Z",
+      "evidence_ids": []
+    },
+    {
+      "feature_id": "rvce_live_crosscheck",
+      "status": "UNVERIFIED",
+      "enabled_in_production": null,
+      "feature_flag": "VITE_RVCE_ENABLED",
+      "route_or_endpoint": "supabase/functions/analyze-business",
+      "owner": null,
+      "last_verified_at": null,
+      "evidence_ids": []
+    },
+    {
+      "feature_id": "reportable_horizons_12_24_48",
+      "status": "PLANNED",
+      "enabled_in_production": false,
+      "feature_flag": null,
+      "route_or_endpoint": null,
+      "owner": null,
+      "last_verified_at": null,
+      "evidence_ids": []
+    },
+    {
+      "feature_id": "pro_api_access",
+      "status": "PLANNED",
+      "enabled_in_production": false,
+      "feature_flag": null,
+      "route_or_endpoint": null,
+      "owner": null,
+      "last_verified_at": null,
+      "evidence_ids": []
+    },
+    {
+      "feature_id": "benchmark_count_public_claim",
+      "status": "UNVERIFIED",
+      "enabled_in_production": true,
+      "feature_flag": null,
+      "route_or_endpoint": "src/config/canonical-facts.ts:BENCHMARK_COUNT",
+      "owner": null,
+      "last_verified_at": null,
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    }
+  ],
+  "data": {
+    "dataset_version": null,
+    "dataset_hash": null,
+    "benchmark_definition": null,
+    "benchmark_count": 95500,
+    "benchmark_count_status": "UNVERIFIED",
+    "canonical_view": null,
+    "refresh_mode": "UNVERIFIED",
+    "last_successful_ingestion_at": null,
+    "source_count": null,
+    "quality_report_uri": null
+  },
+  "engine": {
+    "engine_version": null,
+    "formula_registry_version": null,
+    "simulation_version": null,
+    "variable_count": null,
+    "monthly_horizon": 60,
+    "reportable_horizons": [36, 60],
+    "deterministic_first_status": "CODE_VERIFIED",
+    "numeric_firewall_status": "UNVERIFIED",
+    "reproducibility_status": "UNVERIFIED"
+  },
+  "routes": [
+    {
+      "path": "/pricing",
+      "http_status": 200,
+      "canonical_url": "https://www.aiwmcquantis.com/pricing",
+      "body_hash": "729D5BB20CC0F78EA12835698FDD0FF4C002402838C395A75712DA83691458B6",
+      "body_marker": null,
+      "crawler_verified": true,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "path": "/methodology",
+      "http_status": 200,
+      "canonical_url": "https://www.aiwmcquantis.com/methodology",
+      "body_hash": "30E8786CF202AE6FCD4E0FA24BFA9862AAD5743A0D14B1C65112C38152A01EE9",
+      "body_marker": null,
+      "crawler_verified": true,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "path": "/examples",
+      "http_status": 200,
+      "canonical_url": "https://www.aiwmcquantis.com/examples",
+      "body_hash": "9AAFB49863F101A706731D60CC9B05D0B54E5034DF411C197D7B1BE0192DF4DF",
+      "body_marker": null,
+      "crawler_verified": true,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "path": "/privacy",
+      "http_status": 200,
+      "canonical_url": "https://www.aiwmcquantis.com/privacy",
+      "body_hash": null,
+      "body_marker": null,
+      "crawler_verified": true,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "path": "/terms",
+      "http_status": 200,
+      "canonical_url": "https://www.aiwmcquantis.com/terms",
+      "body_hash": null,
+      "body_marker": null,
+      "crawler_verified": true,
+      "status": "PROD_VERIFIED",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    }
+  ],
+  "billing": {
+    "mode": "unverified",
+    "plans": [
+      {
+        "plan_id": "free",
+        "price_monthly": 0,
+        "stripe_price_id": null,
+        "quota": 5,
+        "projection_months": 0,
+        "status": "CODE_VERIFIED"
+      },
+      {
+        "plan_id": "plus",
+        "price_monthly": 17,
+        "stripe_price_id": null,
+        "quota": null,
+        "projection_months": 36,
+        "status": "CODE_VERIFIED"
+      },
+      {
+        "plan_id": "pro",
+        "price_monthly": 49,
+        "stripe_price_id": null,
+        "quota": null,
+        "projection_months": 60,
+        "status": "CODE_VERIFIED"
+      }
+    ],
+    "entitlement_contract_status": "UNVERIFIED",
+    "webhook_signature_status": "UNVERIFIED",
+    "idempotency_status": "UNVERIFIED"
+  },
+  "quality_gates": [
+    {
+      "gate_id": "mp1_route_uniqueness",
+      "result": "PASS",
+      "blocking": true,
+      "details": "Distinct body hashes/titles for pricing, methodology, examples, privacy, terms; Pro $49 crawlable; 8-Layer present, 7-Layer absent; apex->www path-preserving redirect confirmed.",
+      "evidence_ids": ["EVD-MP1-20260711-001"]
+    },
+    {
+      "gate_id": "payback_integrity",
+      "result": "PASS",
+      "blocking": true,
+      "details": "51 examples scanned, 0 confirmed revenue-divisor bugs. 2 examples (coffee-shop-denver, consulting-firm-new-york) WARN against naive divisors -- expected, since both were regenerated against the real ramp-aware formula which legitimately differs from a naive divisor.",
+      "evidence_ids": []
+    },
+    {
+      "gate_id": "benchmark_inventory_resolved",
+      "result": "UNVERIFIED",
+      "blocking": false,
+      "details": "Blocked on Supabase DB/service-role access. Public claim (95,500) unchanged pending resolution.",
+      "evidence_ids": []
+    },
+    {
+      "gate_id": "billing_entitlement_reconciliation",
+      "result": "UNVERIFIED",
+      "blocking": false,
+      "details": "No Stripe access this session; TIERS config read from repo (CODE_VERIFIED) but not cross-checked against live Stripe products/prices.",
+      "evidence_ids": []
+    }
+  ],
+  "evidence": [
+    {
+      "evidence_id": "EVD-MP1-20260711-001",
+      "kind": "HTTP_RESPONSE",
+      "captured_at": "2026-07-11T00:00:00Z",
+      "uri_or_path": "release-evidence/mp1-verification-2026-07-11.json",
+      "sha256": "see-file-for-per-route-hashes",
+      "notes": "MP1 gate PASS record: PowerShell HTTP fetch with Googlebot UA, no-cache, cache-busting param, against live www.aiwmcquantis.com."
+    }
+  ]
+}
