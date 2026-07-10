@@ -80,3 +80,39 @@ export const CONSULTANT_COST_RANGE_DISPLAY = '$1,500-$25,000';
 export const CONSULTANT_HOURLY_RATE = 350;
 /** Formatted variant for display: "$350/hr". */
 export const CONSULTANT_HOURLY_RATE_DISPLAY = '$350/hr';
+
+/**
+ * IDENTITY CONSTANTS — added 2026-07-11 per docs/STABILIZATION_FREEZE.md.
+ * These close the two "which surface is authoritative" contradictions an
+ * external audit flagged: legal entity name and canonical host. Both are
+ * already enforced elsewhere (Footer.tsx hardcodes "AIWMC™ LLC"; the apex
+ * domain 308-redirects to www — confirmed live 2026-07-11 via a direct
+ * HttpWebRequest with AllowAutoRedirect=false). These constants exist so
+ * future surfaces reference one source instead of re-typing the string.
+ */
+export const LEGAL_ENTITY_NAME = 'AIWMC™ LLC';
+/** The one canonical, indexable host. Apex aiwmcquantis.com 308s here. */
+export const CANONICAL_HOST = 'https://www.aiwmcquantis.com';
+
+/**
+ * PROCESSING TIME CLAIM — single source for the "under 90 seconds" /
+ * "90-second" claim family. VERDICT_SECONDS above is the numeric value;
+ * this is the one canonical phrasing. An external audit (2026-07-11) found
+ * three different speed claims across surfaces ("under 60 seconds", "90
+ * seconds", "three minutes") on what turned out to be a stale, pre-redirect
+ * crawl of the apex domain — live verification the same day found only this
+ * phrasing on the canonical host. Kept here so it can't drift again.
+ */
+export const PROCESSING_TIME_CLAIM = 'under 90 seconds';
+
+/**
+ * BENCHMARK DEFINITION — precise wording for what BENCHMARK_COUNT actually
+ * counts, so "benchmarks" and "data points" stop being used interchangeably
+ * (a real, unresolved contradiction flagged by an external audit 2026-07-11,
+ * on top of the pre-existing 2026-06-20 reconciliation note above). This is
+ * a STATED DEFINITION, not a verified one — the DB audit query needed to
+ * actually prove this against production data has not been run. Do not
+ * treat this string as closing the open reconciliation note above; it only
+ * standardizes the *wording* until the number itself is reconciled.
+ */
+export const BENCHMARK_DEFINITION = 'industry and location benchmark observations from public, licensed, and proprietary datasets';
