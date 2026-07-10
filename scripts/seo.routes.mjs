@@ -21,6 +21,8 @@ export const PUBLIC_ROUTES = [
     must: ["analysis"] },
   { path: "/how-it-works",    title: "Quantis" },
   { path: "/use-cases",       title: "Use Cases" },
+  { path: "/consultants",     title: "Consultants",
+    must: ["client pre-screen", "8-Layer"] },
   { path: "/pricing",         title: "Pricing",
     must: ["Free", "$17", "Plus", "$49", "Pro"] },
   { path: "/methodology",     title: "Methodology" },

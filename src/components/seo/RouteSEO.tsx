@@ -35,6 +35,10 @@ const ROUTE_META: Record<string, RouteMeta> = {
     title: 'Use Cases — Founders, Investors, Consultants',
     description: 'Quantis use cases for solo founders, angel investors, and finance consultants validating business models pre-launch.',
   },
+  '/consultants': {
+    title: 'Quantis for Consultants — Client Pre-Screening in 90 Seconds',
+    description: 'A client pre-screen under 90 seconds, under your own brand. 95,500 benchmarks and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.',
+  },
   '/examples': {
     title: 'Example Analyses — See Quantis in Action',
     description: 'Browse real Quantis analyses across industries. See risk flags, scenarios, and unit economics on actual business ideas.',

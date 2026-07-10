@@ -41,6 +41,7 @@ const ExamplesIndex = lazy(() => import("./pages/examples/ExamplesIndex"));
 const ExampleAnalysis = lazy(() => import("./pages/examples/ExampleAnalysis"));
 const HowItWorks = lazy(() => import("./pages/HowItWorks"));
 const UseCases = lazy(() => import("./pages/UseCases"));
+const Consultants = lazy(() => import("./pages/Consultants"));
 const PricingPage = lazy(() => import("./pages/Pricing"));
 const TrialPage = lazy(() => import("./pages/Trial"));
 const RiskGallery = lazy(() => import("./pages/RiskGallery"));
@@ -148,6 +149,7 @@ const App = () => {
                 <Route path="/examples/:slug" element={<ExampleAnalysis />} />
                 <Route path="/how-it-works" element={<HowItWorks />} />
                 <Route path="/use-cases" element={<UseCases />} />
+                <Route path="/consultants" element={<Consultants />} />
                 <Route path="/methodology" element={<Methodology />} />
                 <Route path="/vs/:slug" element={<VsComparePage />} />
                 <Route path="/research" element={<Research />} />
