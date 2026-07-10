@@ -187,7 +187,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p>Most founders plan for success. Very few plan for pressure. Stress-testing your business model before launch means asking: "What happens when things go wrong?" — and having real numbers to answer with.</p>
 
       <h2>Why Most Founders Skip Stress Testing (And Pay For It)</h2>
-      <p>90% of startups fail, and the #1 reason is running out of money. Not because the idea was bad — but because the financial model couldn't survive reality. Revenue came slower than expected. Costs were higher. The market shifted.</p>
+      <p>Roughly half of new businesses don't reach their fifth year, and running out of money is a leading cause. Not because the idea was bad — but because the financial model couldn't survive reality. Revenue came slower than expected. Costs were higher. The market shifted.</p>
       <p>Stress testing exposes these vulnerabilities <strong>before</strong> you invest time and money. It's the difference between launching with confidence and launching with hope.</p>
 
       <h2>The 3 Scenarios Every Business Model Needs</h2>
@@ -351,7 +351,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       </ul>
 
       <h2>Run Your Own Coffee Shop Analysis</h2>
-      <p>AIWMC Quantis calculates location-adjusted projections for coffee shops in 50+ cities. Enter your concept and city, and get startup costs, monthly P&L, break-even timeline, and risk flags — all benchmarked against 95,500 real business scenarios.</p>
+      <p>AIWMC Quantis calculates location-adjusted projections for coffee shops in 50+ cities. Enter your concept and city, and get startup costs, monthly P&L, break-even timeline, and risk flags — all benchmarked against 95,500 industry benchmark observations.</p>
     </>
   ),
   'food-truck-profit-calculator': (

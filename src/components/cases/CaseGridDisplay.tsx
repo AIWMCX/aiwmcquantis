@@ -1,6 +1,6 @@
 /**
  * CaseGridDisplay — renders all 11 analysis blocks for a single reference case.
- * Source: AIWMC Quantis 2026 Complete Analysis Dataset (95,500 datapoints).
+ * Source: AIWMC Quantis 2026 Complete Analysis Dataset (95,500 benchmarks).
  */
 import React from 'react';
 import { Database } from 'lucide-react';

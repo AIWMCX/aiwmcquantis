@@ -87,7 +87,7 @@ export const QUANTIS_CONTENT_PLAN: ContentPlanEntry[] = [
       "instagram"
     ],
     "post_type": "Fear Hook",
-    "hook": "90% of businesses fail. Most of them had a plan.",
+    "hook": "Roughly half of new businesses don't reach year 5. Most of them had a plan.",
     "content_brief": "Scroll-stopping stat post. Expand on why having a plan isn't the same as having validation. Pose the question: 'When was the last time someone stress-tested your numbers?' Lead to Quantis as the answer.",
     "visual_type": "Dark background + white stat text",
     "cta": "Link in bio → /app",
@@ -234,7 +234,7 @@ export const QUANTIS_CONTENT_PLAN: ContentPlanEntry[] = [
       "instagram"
     ],
     "post_type": "Fear",
-    "hook": "The #1 reason 90% of businesses fail (it's not what you think)",
+    "hook": "The #1 reason new businesses run out of money (it's not what you think)",
     "content_brief": "Hook post. Most people think businesses fail from bad ideas. The real reason: no pre-launch financial validation. Walk through 3 businesses that failed from solvable problems. End: 'Quantis would have caught all 3 in 90 seconds.'",
     "visual_type": "Infographic: 3 failure reasons",
     "cta": "Click to validate your idea",
@@ -721,7 +721,7 @@ export const QUANTIS_CONTENT_PLAN: ContentPlanEntry[] = [
     ],
     "post_type": "Before/After",
     "hook": "Before Quantis: 1 spreadsheet. After Quantis: 3 scenarios, 1,000 simulations, 95,500 benchmarks.",
-    "content_brief": "Simple before/after comparison. Make the contrast visceral. The spreadsheet is one person's guess. Quantis is 95,500 data points. One decision with wrong numbers costs more than a year of Plus.",
+    "content_brief": "Simple before/after comparison. Make the contrast visceral. The spreadsheet is one person's guess. Quantis is 95,500 benchmarks. One decision with wrong numbers costs more than a year of Plus.",
     "visual_type": "Split screen before/after",
     "cta": "Switch to real data → link",
     "hashtags": [

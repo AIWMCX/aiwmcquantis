@@ -64,7 +64,7 @@ export default function CaseBrowser() {
         <div>
           <h1 className="text-xl font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Reference Case Library</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            40 representative business cases · 11 analysis blocks each · backed by 95,500 benchmark datapoints
+            40 representative business cases · 11 analysis blocks each · backed by 95,500 benchmarks
           </p>
         </div>
         {selectedId && (

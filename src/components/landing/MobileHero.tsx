@@ -130,10 +130,10 @@ export function MobileHero() {
               className="animate-fade-in leading-[1.0]"
               style={{ fontSize: 'var(--q-fs-hero, clamp(2rem,5.5vw,4.5rem))', fontFamily: 'var(--q-font-heading)', fontWeight: 900, letterSpacing: '-0.04em', color: 'var(--q-text-primary)', animationDelay: '80ms', animationFillMode: 'both' }}
             >
-              90% of businesses fail in 5 years.
+              Roughly half of new businesses don't reach year 5.
               <br />
               <span style={{ color: 'var(--q-accent-primary)' }}>
-                Most had a plan. None had validation.
+                Quantis tests which side of that your model lands on.
               </span>
             </p>
 

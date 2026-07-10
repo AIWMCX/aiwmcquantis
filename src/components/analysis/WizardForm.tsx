@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { cn } from '@/lib/utils';
+import { MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
 import { AdvancedFinancialInputs } from './AdvancedFinancialInputs';
 import { IndustrySelector } from './IndustrySelector';
 import { FileUploader } from './FileUploader';
@@ -609,7 +610,7 @@ export function WizardForm({
               {([
                 { value: 'quick' as const, label: 'Quick Check', time: '30s', desc: '3 vital signs — instant go/no-go', badge: 'Gut check', color: 'var(--q-chart-1)', bg: 'rgba(79,142,247,0.08)', borderColor: 'rgba(79,142,247,0.3)', tags: ['Break-even', 'Revenue M12', 'Risk score'], requiresPlus: false },
                 { value: 'full' as const, label: 'Full Analysis', time: '90s', desc: '12-variable investor-grade model', badge: 'Recommended', color: 'var(--q-accent-primary)', bg: 'var(--q-accent-glow)', borderColor: 'var(--q-accent-primary)', tags: ['All metrics', 'Revenue chart', 'Risk breakdown', 'Insights'], requiresPlus: false },
-                { value: 'deep' as const, label: 'Deep Audit', time: '3 min', desc: '95,500 Monte Carlo scenarios', badge: 'CFO-grade', color: 'var(--q-status-ai)', bg: 'rgba(129,140,248,0.08)', borderColor: 'rgba(129,140,248,0.35)', tags: ['Monte Carlo', '5-yr projection', 'PDF export'], requiresPlus: true },
+                { value: 'deep' as const, label: 'Deep Audit', time: '3 min', desc: `${MONTE_CARLO_ITERATIONS_DISPLAY} Monte Carlo scenarios`, badge: 'CFO-grade', color: 'var(--q-status-ai)', bg: 'rgba(129,140,248,0.08)', borderColor: 'rgba(129,140,248,0.35)', tags: ['Monte Carlo', '5-yr projection', 'PDF export'], requiresPlus: true },
               ])
                 // FREE tier: hide Deep Audit entirely (no Monte Carlo). Plus/Pro see all three.
                 .filter(opt => !opt.requiresPlus || canRunDeep)

@@ -480,7 +480,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Benchmark Engine</span>
-                      <span className="font-mono text-foreground">V2 (95,500 pts)</span>
+                      <span className="font-mono text-foreground">V2 (95,500 benchmarks)</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Geo Calibration</span>
