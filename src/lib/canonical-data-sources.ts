@@ -3,7 +3,7 @@
  * Mirrors the public.data_provenance table so the UI and PDF always
  * surface the real ingested datasets, even on emergency fallback.
  *
- * Aggregate footprint: 95,500+ benchmarks (live in DB) +
+ * Aggregate footprint: 97,500+ benchmarks (live in DB) +
  * 690,074 underlying records across financial filings, SME surveys,
  * and SMB benchmark studies.
  */

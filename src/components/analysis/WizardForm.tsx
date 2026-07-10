@@ -317,7 +317,7 @@ export function WizardForm({
             className="mt-2 text-base text-[var(--q-text-secondary)]"
             style={{ fontFamily: 'var(--q-font-body)' }}
           >
-            Two AI engines. 95,500 benchmarks. Your numbers in 90 seconds.
+            Two AI engines. 97,500 benchmarks. Your numbers in 90 seconds.
           </p>
         </div>
       </div>

@@ -118,21 +118,21 @@
     },
     {
       "feature_id": "benchmark_count_public_claim",
-      "status": "UNVERIFIED",
+      "status": "PROD_VERIFIED",
       "enabled_in_production": true,
       "feature_flag": null,
       "route_or_endpoint": "src/config/canonical-facts.ts:BENCHMARK_COUNT",
       "owner": null,
-      "last_verified_at": null,
-      "evidence_ids": ["EVD-MP1-20260711-001"]
+      "last_verified_at": "2026-07-11T00:00:00Z",
+      "evidence_ids": ["EVD-BENCHMARK-20260711-001"]
     }
   ],
   "data": {
     "dataset_version": null,
     "dataset_hash": null,
-    "benchmark_definition": null,
-    "benchmark_count": 95500,
-    "benchmark_count_status": "UNVERIFIED",
+    "benchmark_definition": "Sum of 5 master benchmark tables (benchmark_master_core/geo/invoice/risk/unit_econ, 19,500 rows each = 97,500). Excludes the separate industry_benchmarks table (39 rows, a taxonomy/reference table, not a benchmark-observation corpus).",
+    "benchmark_count": 97500,
+    "benchmark_count_status": "PROD_VERIFIED",
     "canonical_view": null,
     "refresh_mode": "UNVERIFIED",
     "last_successful_ingestion_at": null,
@@ -251,10 +251,10 @@
     },
     {
       "gate_id": "benchmark_inventory_resolved",
-      "result": "UNVERIFIED",
+      "result": "PASS",
       "blocking": false,
-      "details": "Blocked on Supabase DB/service-role access. Public claim (95,500) unchanged pending resolution.",
-      "evidence_ids": []
+      "details": "Resolved 2026-07-11: user ran the discovery + count queries directly in the Supabase SQL Editor (production). 5 canonical tables (benchmark_master_core/geo/invoice/risk/unit_econ) at 19,500 rows each = 97,500. industry_benchmarks (39 rows) confirmed separate/excluded. Public claim corrected from 95,500 to 97,500 across canonical-facts.ts and every hardcoded call site found.",
+      "evidence_ids": ["EVD-BENCHMARK-20260711-001"]
     },
     {
       "gate_id": "billing_entitlement_reconciliation",
@@ -279,6 +279,14 @@
       "uri_or_path": "release-evidence/mp1-verification-2026-07-11.json",
       "sha256": "see-file-for-per-route-hashes",
       "notes": "MP1 gate PASS record: PowerShell HTTP fetch with Googlebot UA, no-cache, cache-busting param, against live www.aiwmcquantis.com."
+    },
+    {
+      "evidence_id": "EVD-BENCHMARK-20260711-001",
+      "kind": "SQL_RESULT",
+      "captured_at": "2026-07-11T00:00:00Z",
+      "uri_or_path": "user-run query, Supabase SQL Editor, production project (screenshot provided in chat)",
+      "sha256": "not-applicable-screenshot-evidence",
+      "notes": "Query 1: information_schema.tables discovery, table_name ilike '%benchmark%' -> 6 rows (5 benchmark_master_* tables + industry_benchmarks). Query 2: per-table count(*) via UNION ALL -> benchmark_master_core/geo/invoice/risk/unit_econ = 19,500 each (97,500 total), industry_benchmarks = 39. Run directly against the production Supabase project by the user, not by this assistant (no Supabase connector available this session)."
     }
   ]
 }

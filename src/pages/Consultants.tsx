@@ -233,7 +233,7 @@ const FAQ_ITEMS = [
   },
   {
     q: 'AI tools give different answers every time. I can\'t defend that to a board.',
-    a: 'Invariant I-1 is the answer here. The deterministic engine runs first — 95,500 benchmarks, 1,000 Monte Carlo iterations, reproducible bit-for-bit. Re-running the same inputs produces the same numbers. The AI layer sits on top and narrates; it cannot originate or override a financial figure. This is the whole point of the platform.',
+    a: 'Invariant I-1 is the answer here. The deterministic engine runs first — 97,500 benchmarks, 1,000 Monte Carlo iterations, reproducible bit-for-bit. Re-running the same inputs produces the same numbers. The AI layer sits on top and narrates; it cannot originate or override a financial figure. This is the whole point of the platform.',
   },
   {
     q: '$49/month for something I might use twice a year — is this really recurring?',

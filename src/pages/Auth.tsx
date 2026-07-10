@@ -162,7 +162,7 @@ export default function Auth() {
             <div className="space-y-3 pt-4">
               {[
                 { metric: '12', label: 'Financial variables stress-tested' },
-                { metric: '95,500', label: 'Industry benchmarks' },
+                { metric: '97,500', label: 'Industry benchmarks' },
                 { metric: '90s', label: 'Time to full analysis' },
               ].map((stat) => (
                 <div

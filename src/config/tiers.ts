@@ -214,7 +214,7 @@ export const UPGRADE_COPY: Record<
   depthFull: {
     title: 'Full Report Mode',
     bullets: [
-      `${MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}-iteration Monte Carlo across 95,500 benchmarks`,
+      `${MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}-iteration Monte Carlo across 97,500 benchmarks`,
       '36-month P&L with variance bands',
       'Prioritized action plan',
     ],

@@ -37,7 +37,7 @@ const ZOOM_STEP = 0.1;
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
-  { t: 8,  label: 'Matching against 95,500 industry benchmarks…' },
+  { t: 8,  label: 'Matching against 97,500 industry benchmarks…' },
   { t: 22, label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
   { t: 38, label: 'Running 12-variable Monte Carlo on cash flow…' },
   { t: 55, label: 'Cross-validating with second AI model…' },
@@ -310,7 +310,7 @@ export function ReportFirstHero() {
             Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
           </h1>
           <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Quantis stress-tests your idea against <strong>95,500 verified benchmarks</strong> from SBA,
+            Quantis stress-tests your idea against <strong>97,500 verified benchmarks</strong> from SBA,
             BLS, U.S. Census, IBISWorld, and OECD — and returns a proceed / pivot / kill verdict with
             a saveable PDF. No credit card. First analysis free.
           </p>
@@ -905,7 +905,7 @@ export function ReportFirstHero() {
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 pt-1 text-[10px]" style={{ color: 'hsl(var(--muted-foreground))' }}>
                   <span className="inline-flex items-center gap-1"><Lock className="w-3 h-3" /> Idea not stored publicly</span>
                   <span>·</span>
-                  <span>95,500 benchmarks</span>
+                  <span>97,500 benchmarks</span>
                   <span>·</span>
                   <span>Multi-model verified</span>
                 </div>

@@ -146,7 +146,7 @@ export function MobileHero() {
               <span className="font-semibold" style={{ color: 'var(--q-text-primary)' }}>
                 or cost you everything.
               </span>
-              {' '}95,500 real benchmarks. Free. No signup required.
+              {' '}97,500 real benchmarks. Free. No signup required.
             </p>
 
             {/* CTA Row */}
@@ -200,7 +200,7 @@ export function MobileHero() {
             >
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
                 <TrendingUp className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />
-                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>95,500 benchmarks</span>
+                <span className="text-xs font-medium" style={{ color: 'var(--q-text-primary)' }}>97,500 benchmarks</span>
               </div>
               <div className="flex items-center gap-2 px-3 py-2 rounded-lg" style={{ background: 'var(--q-bg-elevated)', border: '1px solid var(--q-border-default)' }}>
                 <Clock className="w-4 h-4 shrink-0" style={{ color: 'var(--q-accent-primary)' }} />

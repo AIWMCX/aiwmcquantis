@@ -1374,7 +1374,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks · 95,500 benchmarks'),
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks · 97,500 benchmarks'),
       React.createElement(Text, { style: styles.paragraph }, 'Every numeric metric in this report is matched against the AIWMC Quantis Benchmark Master library. When a direct row matches your sector, geography, and stage we cite P25–P75 ranges, source, sample size, and dataset date. When no direct match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.'),
       React.createElement(
         View,

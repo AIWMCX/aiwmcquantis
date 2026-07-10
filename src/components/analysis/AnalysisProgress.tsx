@@ -382,7 +382,7 @@ const EDUCATIONAL_TIPS = [
   '💡 Customer acquisition cost drops 60% with referral programs.',
   '💡 We analyze costs across 50+ cities with real cost indices.',
   '💡 Average payback period for small businesses is 6-18 months.',
-  '💡 Our engine cross-checks your numbers against 95,500 benchmarks.',
+  '💡 Our engine cross-checks your numbers against 97,500 benchmarks.',
   '💡 Businesses with a clear financial plan are 2.5x more likely to get funded.',
 ];
 

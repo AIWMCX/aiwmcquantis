@@ -236,7 +236,7 @@ export function CompactAnalysisForm({
             Stress-test your business idea
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
-            Fill in what you know. We validate with 95,500 benchmarks.
+            Fill in what you know. We validate with 97,500 benchmarks.
           </p>
         </div>
       </div>

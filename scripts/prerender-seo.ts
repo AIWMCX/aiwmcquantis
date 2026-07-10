@@ -42,7 +42,7 @@ const TEMPLATE_PATH = join(DIST, 'index.html');
 // routes (caught by scripts/verify-unique-meta.ts, 2026-06-30).
 const DEFAULT_TITLE = 'AIWMC Quantis — Audit-grade business validation';
 const DEFAULT_DESC =
-  'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 95,500 real benchmarks. Free to start.';
+  'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 real benchmarks. Free to start.';
 
 interface RouteMeta {
   title: string;
@@ -91,9 +91,9 @@ function slugDescription(path: string): string {
     return `${human.charAt(0).toUpperCase() + human.slice(1)} — a Quantis guide for founders. Real benchmarks, brutal honesty, zero filler. Read free at AIWMC Quantis.`;
   }
   if (section === 'examples') {
-    return `Worked example: ${human}. See the unit economics, break-even, and verdict Quantis produced from 95,500 real benchmarks. Free to inspect.`;
+    return `Worked example: ${human}. See the unit economics, break-even, and verdict Quantis produced from 97,500 real benchmarks. Free to inspect.`;
   }
-  return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, backed by 95,500 real benchmarks.`;
+  return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, backed by 97,500 real benchmarks.`;
 }
 
 function htmlEscape(s: string): string {

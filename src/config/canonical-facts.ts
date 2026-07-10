@@ -11,19 +11,25 @@
  * hardcode `95,500`, `46 sectors`, `1,000 iterations`, `8-layer`, or `5 free`
  * in a component, copy file, JSON-LD, or marketing post. Import from here.
  *
- * RECONCILIATION NOTE (open audit item):
- * - `BENCHMARK_COUNT = 95_500` is the public claim made historically and
- *   currently rendered on every marketing surface. The audit's DB probe shows
- *   the master benchmark tables contain 5 × 19,500 = 97,500 rows (or 19,511 in
- *   `benchmarks_v2_core` alone, depending on which table is canonical). The
- *   number here is the public claim; reconciling it to the DB truth is a
- *   separate decision (raise the corpus or correct the copy).
+ * RECONCILIATION NOTE (resolved 2026-07-11):
+ * - `BENCHMARK_COUNT` was `95_500` (a historical marketing claim) for ~3 weeks
+ *   while the real number sat unresolved. Resolved by running
+ *   `select table_name from information_schema.tables where table_schema =
+ *   'public' and table_name ilike '%benchmark%'` then a per-table `count(*)`
+ *   directly against production Supabase (2026-07-11): five canonical tables
+ *   — `benchmark_master_core`, `_geo`, `_invoice`, `_risk`, `_unit_econ` —
+ *   each hold exactly 19,500 rows = 97,500 total. A sixth table,
+ *   `industry_benchmarks` (39 rows), is a small separate taxonomy/reference
+ *   table, not part of the benchmark-observation corpus, and is excluded.
+ *   97,500 is now the real, DB-verified number — not 95,500, not 19,511.
  */
 
-/** Benchmark corpus size — number of rows across the master benchmark tables. */
-export const BENCHMARK_COUNT = 95_500;
-/** Formatted variant for display: "95,500". */
-export const BENCHMARK_COUNT_DISPLAY = '95,500';
+/** Benchmark corpus size — number of rows across the 5 master benchmark tables
+ *  (benchmark_master_core/geo/invoice/risk/unit_econ, 19,500 rows each),
+ *  DB-verified 2026-07-11. Excludes the separate industry_benchmarks table. */
+export const BENCHMARK_COUNT = 97_500;
+/** Formatted variant for display: "97,500". */
+export const BENCHMARK_COUNT_DISPLAY = '97,500';
 
 /** Number of industry sectors the corpus covers. */
 export const BENCHMARK_SECTORS = 46;

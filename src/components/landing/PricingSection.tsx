@@ -66,7 +66,7 @@ const PLUS_FEATURES = [
   {
     text: 'Full report — Monte Carlo, 36-mo P&L, action plan',
     highlight: true,
-    subtext: '95,500 scenario stress-tests per analysis',
+    subtext: '97,500 scenario stress-tests per analysis',
   },
   {
     text: 'Pre-Mortem Stress Test ✓',

@@ -1,6 +1,6 @@
 /**
  * CaseGridDisplay — renders all 11 analysis blocks for a single reference case.
- * Source: AIWMC Quantis 2026 Complete Analysis Dataset (95,500 benchmarks).
+ * Source: AIWMC Quantis 2026 Complete Analysis Dataset (97,500 benchmarks).
  */
 import React from 'react';
 import { Database } from 'lucide-react';
@@ -75,7 +75,7 @@ export function CaseGridDisplay({ grid }: { grid: AnalysisCaseGrid }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2 text-[11px] text-muted-foreground font-mono">
         <Database className="w-3 h-3 text-[var(--q-accent-primary)]" />
-        <span>AIWMC Quantis 2026 Complete Analysis Dataset · n=95,500 · v2026.1 · 2026-01-01</span>
+        <span>AIWMC Quantis 2026 Complete Analysis Dataset · n=97,500 · v2026.1 · 2026-01-01</span>
       </div>
       <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
         {BLOCKS.map((b) => (
