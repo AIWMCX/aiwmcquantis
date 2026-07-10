@@ -340,14 +340,20 @@
 
   <body>
     <div id="root"><!-- Pre-hydration LCP placeholder. React replaces this on mount. Matches UrgencyBanner styling 1:1 to avoid CLS. -->
-      <!-- Real, crawlable <h1> present from first byte — matches ReportFirstHero's
-           hydrated <h1> content exactly. Some SEO tools/basic crawlers snapshot
-           before React hydrates; without this, they see zero <h1> anywhere
-           (this placeholder had only a <span>) and flag "Missing H1 Tag" even
-           though the hydrated page has one. Visually hidden, not CLS-affecting. -->
-      <h1 style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
-        Before you invest $50K, spend 90 seconds finding out if you'll get it back.
-      </h1>
+      <!-- FIXED 2026-07-11: this was a real <h1> with homepage-specific copy
+           ("Before you invest $50K...") shared verbatim across the raw HTML of
+           ALL public routes (this index.html is the shared build template for
+           every route emitted by generate-static-bodies.mjs/prerender-seo.ts).
+           CSS-hidden via clip:rect(0,0,0,0), which hides visually but is still
+           exposed to the accessibility tree — a screen reader on /pricing,
+           /methodology, etc. would announce the HOMEPAGE headline as that
+           page's H1. Downgraded to a non-heading, aria-hidden placeholder:
+           still present at first byte for any pre-hydration snapshot tool,
+           but no longer a semantic <h1> and no longer exposed to assistive
+           tech on non-homepage routes. -->
+      <div aria-hidden="true" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">
+        Loading your analysis…
+      </div>
       <div id="lcp-banner-placeholder" style="background:#1F6FEB;color:#FFFFFF;padding:10px 16px;text-align:center;font-family:'DM Sans',system-ui,sans-serif;font-size:14px;font-weight:500;line-height:20px">
         <span>Financial stress-test for founders — risk map, scenarios, and projections in under 90 seconds</span>
       </div>
@@ -357,7 +363,7 @@
     <noscript>
       <div style="max-width:800px;margin:40px auto;padding:0 20px;font-family:system-ui,sans-serif;color:#1a1a1a">
         <h1>AIWMC™ Quantis — AI Business Validation & Risk Stress-Testing</h1>
-        <p>90% of businesses fail in 5 years. Most had a plan — none had validation. A financial consultant charges $1,500-$25,000 (or $350/hr) to stress-test your model. Quantis does it in 90 seconds with 95,500 real benchmarks. Free.</p>
+        <p>Roughly half of new businesses don't reach year 5. Most had a plan — none had validation. A financial consultant charges $1,500-$25,000 (or $350/hr) to stress-test your model. Quantis does it in 90 seconds with 95,500 real benchmarks. Free.</p>
 
         <!-- ===== /how-it-works ===== -->
         <section id="how-it-works">
