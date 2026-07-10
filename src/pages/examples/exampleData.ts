@@ -61,9 +61,9 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
     location: 'Denver, CO',
     seo: {
       title: 'Coffee Shop Business Analysis — Denver, CO | AIWMC Quantis',
-      description: 'Full financial analysis of opening a coffee shop in Denver. Revenue projections, startup costs, risk assessment, and action plan. $4,200/mo profit, 7.1 month payback.',
+      description: 'Full financial analysis of opening a coffee shop in Denver. Revenue projections, startup costs, risk assessment, and action plan. $4,200/mo profit, 12 month payback.',
     },
-    metrics: { monthlyRevenue: '$18,500', monthlyProfit: '$4,200', paybackMonths: '7.1 months', roi: '168%', startupCost: '$35,000' },
+    metrics: { monthlyRevenue: '$18,500', monthlyProfit: '$4,200', paybackMonths: '12 months', roi: '109%', startupCost: '$35,000' },
     costBreakdown: [
       { label: 'Equipment & buildout', value: '$18,000' },
       { label: 'Initial inventory', value: '$4,000' },
@@ -155,7 +155,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
         },
         {
           q: 'How long does it take to break even on a Denver coffee shop?',
-          a: 'The base case in this analysis projects 7.1 months — that assumes hitting ~110 transactions per day from month 2 onward and stable lease terms. A pessimistic case (slow ramp, higher rent, summer-only tourism uplift) extends payback to 10–13 months. Operators who do not hit 85 transactions per day by month 4 typically do not reach breakeven before working capital exhausts.',
+          a: 'The base case in this analysis projects 12 months — that assumes hitting ~110 transactions per day from month 2 onward and stable lease terms, modeled through a 6-month revenue ramp rather than assuming full profit from day one. A pessimistic case (slow ramp, higher rent, summer-only tourism uplift) extends payback further. Operators who do not hit 85 transactions per day by month 4 typically do not reach breakeven before working capital exhausts.',
         },
         {
           q: 'What is the biggest hidden cost of opening a coffee shop?',
@@ -284,7 +284,7 @@ export const EXAMPLE_ANALYSES: Record<string, ExampleData> = {
       title: 'Management Consulting Firm Analysis — NYC | AIWMC Quantis',
       description: 'Financial analysis for a boutique management consulting firm in New York. $18,500/mo profit, 68% gross margin, low startup costs.',
     },
-    metrics: { monthlyRevenue: '$45,000', monthlyProfit: '$18,500', paybackMonths: '4.3 months', roi: '280%', startupCost: '$28,000' },
+    metrics: { monthlyRevenue: '$45,000', monthlyProfit: '$18,500', paybackMonths: '6 months', roi: '679%', startupCost: '$28,000' },
     costBreakdown: [
       { label: 'Office space (WeWork/coworking)', value: '$8,000' },
       { label: 'Legal & professional licenses', value: '$5,000' },
