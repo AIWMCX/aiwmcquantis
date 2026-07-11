@@ -13,6 +13,10 @@
     "src/lib/financial-engine.ts",
     "src/lib/reconciliation-engine.ts",
     "src/lib/formula-registry.ts",
-    "src/lib/geo-calibrator.ts"
+    "src/lib/geo-calibrator.ts",
+    "src/financial/result.ts",
+    "src/financial/payback.ts",
+    "src/financial/cac-payback.ts",
+    "src/financial/reconcile.ts"
   ]
 }
