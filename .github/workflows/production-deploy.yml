@@ -171,6 +171,8 @@ jobs:
           STRIPE_WEBHOOK_SECRET: ${{ secrets.STRIPE_WEBHOOK_SECRET }}
           STRIPE_PRO_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PRO_MONTHLY_PRICE_ID }}
           STRIPE_PRO_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_PRO_ANNUAL_PRICE_ID }}
+          STRIPE_PLUS_MONTHLY_PRICE_ID: ${{ secrets.STRIPE_PLUS_MONTHLY_PRICE_ID }}
+          STRIPE_PLUS_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_PLUS_ANNUAL_PRICE_ID }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
@@ -205,6 +207,12 @@ jobs:
           # of every red Production Deploy from #162 onward (TAVILY_API_KEY).
           if [ -n "$STRIPE_PRO_MONTHLY_PRICE_ID" ]; then npx supabase secrets set STRIPE_PRO_MONTHLY_PRICE_ID="$STRIPE_PRO_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
           if [ -n "$STRIPE_PRO_ANNUAL_PRICE_ID" ]; then npx supabase secrets set STRIPE_PRO_ANNUAL_PRICE_ID="$STRIPE_PRO_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          # Handbook CFO audit (2026-07-11): STRIPE_PLUS_*_PRICE_ID had no CI sync
+          # path at all — create-checkout-session.ts's Plus lookup depended on
+          # whatever was manually set in Supabase once, with zero automated
+          # protection against loss on secret rotation or project rebuild.
+          if [ -n "$STRIPE_PLUS_MONTHLY_PRICE_ID" ]; then npx supabase secrets set STRIPE_PLUS_MONTHLY_PRICE_ID="$STRIPE_PLUS_MONTHLY_PRICE_ID" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$STRIPE_PLUS_ANNUAL_PRICE_ID" ]; then npx supabase secrets set STRIPE_PLUS_ANNUAL_PRICE_ID="$STRIPE_PLUS_ANNUAL_PRICE_ID" --project-ref "$PROJECT_REF"; fi
           # LOVABLE_API_KEY: optional legacy gateway (DeepSeek is primary since Lovable migration)
           if [ -n "$LOVABLE_API_KEY" ]; then npx supabase secrets set LOVABLE_API_KEY="$LOVABLE_API_KEY" --project-ref "$PROJECT_REF"; fi
           # ANTHROPIC_API_KEY: hard fallback for aiCall() when DeepSeek/Lovable fail (RVCE excluded — DeepSeek-only by policy)
