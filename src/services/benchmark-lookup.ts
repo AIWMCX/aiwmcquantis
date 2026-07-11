@@ -55,8 +55,25 @@ export interface BenchmarkResult {
 /**
  * Normalize the sector name from analyze-business (e.g. "SaaS / Software")
  * to the sector_level1 used in benchmark_master tables (e.g. "SaaS").
+ *
+ * Handbook §19 Wave 4 — this map previously only covered an older "/"-style
+ * label set (e.g. "SaaS / Software") that does not match what the engine
+ * actually sends. result.metadata.industry_detected is calc.industryDetected,
+ * which traces back to embedded-benchmarks.ts's `industry_name` field (e.g.
+ * "SaaS Startup", "Restaurant", "Digital Agency") — only 3 of those 37 values
+ * (Fintech, Manufacturing, Real Estate) happened to already match a
+ * sector_level1 value verbatim. The other 34 fell through `?? s` unchanged
+ * and were sent to the benchmark_lookup RPC as an unrecognized sector
+ * string, which cannot match any row even at the loosest tier — this is very
+ * likely the actual mechanism behind the corpus's near-universal "Engine
+ * fallback" / "100% fallback benchmarks" finding: not a data-coverage gap or
+ * a missing disclosure UI (BenchmarkCitations already renders per-metric
+ * matched/fallback status honestly), but a sector-name mismatch between two
+ * independently-evolved parts of the codebase. Server-side ground truth for
+ * sector_level1 is benchmark-engine-v2.ts's SECTOR_KEYWORDS map.
  */
 const SECTOR_MAP: Record<string, string> = {
+  // Legacy "/"-style labels (older dropdown source, kept for compatibility)
   'SaaS / Software': 'SaaS',
   'E-commerce / Retail': 'Retail',
   'Consulting / Professional Services': 'Services',
@@ -68,6 +85,43 @@ const SECTOR_MAP: Record<string, string> = {
   'Real Estate / Property': 'Real Estate',
   'Logistics / Delivery': 'Logistics',
   'General Business': 'Services',
+  // embedded-benchmarks.ts industry_name values (what calc.industryDetected /
+  // result.metadata.industry_detected actually contains in production)
+  'AgriTech': 'Agriculture',
+  'B2B SaaS': 'SaaS',
+  'Cafe & Bakery': 'Food & Beverage',
+  'Cleaning Services': 'Services',
+  'Coaching & Mentoring': 'Services',
+  'Consulting': 'Services',
+  'Content Creator': 'Media',
+  'D2C Brand': 'Retail',
+  'Dental Clinic': 'Healthcare',
+  'Digital Agency': 'Services',
+  'Dropshipping': 'Retail',
+  'E-commerce Retail': 'Retail',
+  'Event Planning': 'Services',
+  'Food Delivery': 'Food & Beverage',
+  'Freelance Services': 'Services',
+  'Gaming': 'Media',
+  'Gym & Fitness': 'Beauty & Wellness',
+  'Hotel & Hospitality': 'Services',
+  'HR & Recruiting': 'Services',
+  'InsurTech': 'Fintech',
+  'Legal Services': 'Services',
+  'Logistics & Delivery': 'Logistics',
+  'Newsletter Business': 'Media',
+  'Online Education': 'Education',
+  'Online Marketplace': 'Marketplace',
+  'Pet Services': 'Services',
+  'Photography': 'Services',
+  'PropTech': 'Real Estate',
+  'Restaurant': 'Food & Beverage',
+  'SaaS Startup': 'SaaS',
+  'Security Services': 'Services',
+  'Spa & Beauty': 'Beauty & Wellness',
+  'Telehealth': 'Healthcare',
+  'Travel & Booking': 'Services',
+  'Yoga & Pilates Studio': 'Beauty & Wellness',
 };
 
 function normalizeSector(s: string | null | undefined): string | null {
