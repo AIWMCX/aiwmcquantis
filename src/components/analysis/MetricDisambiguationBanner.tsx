@@ -27,13 +27,18 @@ export function MetricDisambiguationBanner({
       ? "not recoverable at current net profit"
       : `${projectPaybackYears.toFixed(1)} years`;
 
+  const cacPaybackDisplay =
+    cacPaybackMonths >= 999
+      ? "not recoverable at current unit economics"
+      : `${cacPaybackMonths.toFixed(1)} months`;
+
   return (
     <div className="mb-6 rounded-md border border-border bg-muted/40 p-3 text-sm text-muted-foreground">
       <div className="flex items-start gap-2">
         <Info className="mt-0.5 h-4 w-4 shrink-0 text-primary" aria-hidden="true" />
         <p className="leading-relaxed">
           <strong className="text-foreground">Metric disambiguation:</strong>{" "}
-          <strong className="text-foreground">CAC Payback</strong> ({cacPaybackMonths.toFixed(1)} months)
+          <strong className="text-foreground">CAC Payback</strong> ({cacPaybackDisplay})
           measures how long to recover the cost of acquiring{" "}
           <em>one customer</em>.{" "}
           <strong className="text-foreground">Project Payback</strong> ({projectPaybackDisplay})

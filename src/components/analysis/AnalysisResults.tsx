@@ -394,7 +394,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
                   <MetricMini label="LTV" value={`$${(result.financial_analysis.unit_economics.ltv ?? 0).toLocaleString()}`} positive={true} />
                   <MetricMini label="CAC" value={`$${(result.financial_analysis.unit_economics.cac ?? 0).toLocaleString()}`} positive={true} />
                   <MetricMini label="LTV:CAC" value={`${(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0).toFixed(1)}×`} positive={(result.financial_analysis.unit_economics.ltv_cac_ratio ?? 0) >= 3} />
-                  <MetricMini label="CAC Payback" value={`${(result.financial_analysis.unit_economics.cac_payback_months ?? 0).toFixed(1)}mo`} positive={(result.financial_analysis.unit_economics.cac_payback_months ?? 99) <= 6} />
+                  <MetricMini label="CAC Payback" value={(result.financial_analysis.unit_economics.cac_payback_months ?? 0) >= 999 ? 'N/A' : `${(result.financial_analysis.unit_economics.cac_payback_months ?? 0).toFixed(1)}mo`} positive={(result.financial_analysis.unit_economics.cac_payback_months ?? 99) <= 6} />
                 </div>
               </div>
             ) : undefined

@@ -367,7 +367,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-sm text-muted-foreground">CAC Payback</span>
-                      <span className="font-bold">{formatNumber(financial.unit_economics?.cac_payback_months ?? 0)} mo.</span>
+                      <span className="font-bold">{(financial.unit_economics?.cac_payback_months ?? 0) >= 999 ? 'N/A (unprofitable)' : `${formatNumber(financial.unit_economics?.cac_payback_months ?? 0)} mo.`}</span>
                     </div>
                   </div>
                 </div>

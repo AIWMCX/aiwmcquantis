@@ -1111,7 +1111,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
             View,
             { style: styles.metricCard },
             React.createElement(Text, { style: styles.metricCardLabel }, 'CAC Payback'),
-            React.createElement(Text, { style: styles.metricCardValue }, `${formatNumber(financial.unit_economics.cac_payback_months)} months`)
+            React.createElement(Text, { style: styles.metricCardValue }, financial.unit_economics.cac_payback_months >= 999 ? 'N/A (unprofitable)' : `${formatNumber(financial.unit_economics.cac_payback_months)} months`)
           )
         )
       ),

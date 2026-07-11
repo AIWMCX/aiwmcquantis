@@ -416,6 +416,54 @@ describe('T8: Pro/Plus toast, free-quota copy, and refund-guarantee days never d
 });
 
 // ============================================================================
+// T9 — Sentinel 999 must never reach a customer-facing surface as literal
+// "999 months"/"999mo". 2026-07-11 corpus audit of 20 real production PDFs
+// found the internal "unprofitable" sentinel (999) leaking as literal text
+// in 16/20 reports, specifically the CAC Payback metric — while the
+// sibling Project Payback metric right next to it (MetricDisambiguationBanner.tsx)
+// already had the correct guard. Root cause: cac_payback_months render sites
+// were copy-pasted without the >=999 guard applied to payback_period_months
+// elsewhere. Fixed in 6 places: the two PDF renderers (usePdfExport.ts,
+// ReportFinancials.tsx), three live-UI metric displays (AnalysisResults.tsx,
+// FinancialSummary.tsx, MetricDisambiguationBanner.tsx), and the public
+// social-share text (ShareSuccessModal.tsx), which would otherwise have
+// posted "999mo payback" to a user's own Twitter/LinkedIn share.
+// ============================================================================
+describe('T9: sentinel 999 never reaches a customer-facing surface as literal months', () => {
+  it('usePdfExport.ts CAC Payback PDF metric is guarded', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain("cac_payback_months >= 999 ? 'N/A (unprofitable)'");
+  });
+
+  it('ReportFinancials.tsx CAC Payback PDF metric is guarded', () => {
+    const src = readFileSync(join(ROOT, 'src/components/pdf/ReportFinancials.tsx'), 'utf8');
+    expect(src).toContain("unitEconomics.cac_payback_months >= 999 ? 'N/A (unprofitable)'");
+  });
+
+  it('AnalysisResults.tsx CAC Payback live-UI metric is guarded', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    expect(src).toMatch(/cac_payback_months\s*\?\?\s*0\)\s*>=\s*999\s*\?\s*'N\/A'/);
+  });
+
+  it('FinancialSummary.tsx CAC Payback live-UI metric is guarded', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/FinancialSummary.tsx'), 'utf8');
+    expect(src).toMatch(/cac_payback_months\s*\?\?\s*0\)\s*>=\s*999\s*\?\s*'N\/A \(unprofitable\)'/);
+  });
+
+  it('MetricDisambiguationBanner.tsx CAC Payback metric is guarded (mirrors the Project Payback sibling)', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/MetricDisambiguationBanner.tsx'), 'utf8');
+    expect(src).toMatch(/cacPaybackMonths\s*>=\s*999/);
+    expect(src).toContain('cacPaybackDisplay');
+  });
+
+  it('ShareSuccessModal.tsx never posts an unprofitable payback to public share text', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/ShareSuccessModal.tsx'), 'utf8');
+    expect(src).toContain('shareablePaybackMonths');
+    expect(src).toMatch(/paybackMonths\s*<\s*999/);
+  });
+});
+
+// ============================================================================
 // T6 — QOC shadow-mode guard (docs/QOC_MIGRATION_PLAN.md, Stage 1)
 // analyze-business fires a parallel, non-blocking call to qoc-orchestrate so
 // real production data accumulates for the QOC migration's parity analysis.

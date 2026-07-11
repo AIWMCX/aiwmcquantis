@@ -243,7 +243,7 @@ export function ReportFinancials({ result }: ReportFinancialsProps) {
               </div>
               <div style={pdfStyles.metricCard}>
                 <div style={pdfStyles.metricCardLabel}>CAC Payback</div>
-                <div style={pdfStyles.metricCardValue}>{formatNumber(unitEconomics.cac_payback_months)} months</div>
+                <div style={pdfStyles.metricCardValue}>{unitEconomics.cac_payback_months >= 999 ? 'N/A (unprofitable)' : `${formatNumber(unitEconomics.cac_payback_months)} months`}</div>
               </div>
             </div>
           </>
