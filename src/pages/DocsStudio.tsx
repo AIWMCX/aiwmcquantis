@@ -205,7 +205,7 @@ export default function DocsStudio() {
   const isMobile = useIsMobile();
   
   // CRITICAL: Check subscription status
-  const { isPlus, loading: subscriptionLoading, createCheckout } = useSubscription();
+  const { isPlus, isPro, loading: subscriptionLoading, createCheckout } = useSubscription();
   
   // Get current user
   const { user, isLoading: authLoading } = useAuth();
@@ -683,7 +683,7 @@ export default function DocsStudio() {
               {isPlus && userDocuments && userDocuments.length > 0 ? (
                 <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{userDocuments.length}</Badge>
               ) : isPlus ? (
-                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">Plus</Badge>
+                <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">{isPro ? 'Pro' : 'Plus'}</Badge>
               ) : null}
             </TabsTrigger>
             <TabsTrigger value="invoices" className="gap-2" onClick={() => navigate('/app/invoices')}>

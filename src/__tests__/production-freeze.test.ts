@@ -355,6 +355,11 @@ describe('T5: test suite floor', () => {
 //       2026-07-10 (isPro-aware toast title; FREE_ANALYSES_PER_MONTH
 //       constant; 14-day copy). This guard prevents any of the three from
 //       silently reintroducing on a future edit.
+//   (d) A same-day follow-up sweep for the same "isPlus is true for Pro too"
+//       bug class found a fourth instance: DocsStudio.tsx's "My Documents"
+//       tab badge rendered a hardcoded "Plus" label whenever isPlus was true
+//       and the user had zero documents yet — so a Pro user with no
+//       documents saw a "Plus" badge. Fixed by branching on isPro like (a).
 // ============================================================================
 describe('T8: Pro/Plus toast, free-quota copy, and refund-guarantee days never drift', () => {
   function walkSrc(dir: string, out: string[] = []): string[] {
@@ -401,6 +406,12 @@ describe('T8: Pro/Plus toast, free-quota copy, and refund-guarantee days never d
       /7-day\s+money-back/i.test(readFileSync(join(ROOT, f), 'utf8')),
     );
     expect(offenders, `Stale "7-day money-back" guarantee found in:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('DocsStudio "My Documents" tab badge is tier-aware (no unconditional "Plus" label)', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/DocsStudio.tsx'), 'utf8');
+    expect(src, 'DocsStudio must destructure isPro to distinguish Pro from Plus').toMatch(/isPlus,\s*isPro\b/);
+    expect(src.includes("{isPro ? 'Pro' : 'Plus'}"), 'the "My Documents" badge must branch on isPro so a Pro user never sees a bare "Plus" label').toBe(true);
   });
 });
 
