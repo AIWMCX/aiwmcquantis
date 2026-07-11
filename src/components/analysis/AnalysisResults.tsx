@@ -1,5 +1,5 @@
 import React, { useRef, useMemo, useState, useEffect, useCallback } from 'react';
-import { CheckCircle2, AlertCircle, Loader2, Share2, Twitter, Linkedin, Copy, Trophy, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, Shield, Lightbulb, Download, Upload } from 'lucide-react';
+import { CheckCircle2, AlertCircle, Loader2, Share2, Twitter, Linkedin, Copy, Trophy, ShieldAlert, TrendingUp, FileText, ArrowRight, MapPin, Shield, Lightbulb, Download, Upload, TriangleAlert } from 'lucide-react';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import { Link } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -237,6 +237,18 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       <div className="max-w-7xl mx-auto px-4 py-6 space-y-6">
         {/* Consultant Comparison Banner */}
         <ConsultantComparison />
+        {/* Accuracy Notice */}
+        <div className="rounded-lg border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600 p-4">
+          <div className="flex gap-3">
+            <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Accuracy Notice</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                This analysis uses deterministic financial calculations with AI-assisted narrative. Scenario projections, benchmark comparisons, and confidence scores are under active accuracy improvements. Cross-section reconciliation is partially implemented. Independently verify all material assumptions before making investment decisions.
+              </p>
+            </div>
+          </div>
+        </div>
         {/* Hero KPI Strip — t=0 with count-up at t=200 */}
         <ResultsHeroStrip
           breakEvenMonths={breakEvenMonths}

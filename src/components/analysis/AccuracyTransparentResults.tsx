@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
-import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ShieldAlert, Rocket, ShieldCheck } from 'lucide-react';
+import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ShieldAlert, Rocket, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { PersistentResultsHeader } from './PersistentResultsHeader';
 import { StressMap, calculateStressScores } from './StressMap';
@@ -255,6 +255,20 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           />
         </div>
       )}
+      {/* Accuracy Notice */}
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+        <div className="rounded-lg border-2 border-amber-400 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-600 p-4">
+          <div className="flex gap-3">
+            <TriangleAlert className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+            <div className="space-y-1">
+              <p className="text-sm font-semibold text-amber-800 dark:text-amber-300">Accuracy Notice</p>
+              <p className="text-xs text-amber-700 dark:text-amber-400 leading-relaxed">
+                This analysis uses deterministic financial calculations with AI-assisted narrative. Scenario projections, benchmark comparisons, and confidence scores are under active accuracy improvements. Cross-section reconciliation is partially implemented. Independently verify all material assumptions before making investment decisions.
+              </p>
+            </div>
+          </div>
+        </div>
+      </div>
       {/* Persistent Header with KPIs and Tabs */}
       <PersistentResultsHeader
         result={result}

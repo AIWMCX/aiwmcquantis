@@ -560,3 +560,28 @@ describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
     expect(block).toMatch(/\.catch\(/);
   });
 });
+
+// ============================================================================
+// T11 — Accuracy Notice (soft gate) on all report surfaces
+// ============================================================================
+describe('T11 — accuracy notice banner exists on all report surfaces', () => {
+  it('PDF report includes an Accuracy Notice page', () => {
+    const pdfSrc = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(pdfSrc).toContain('ACCURACY NOTICE');
+    expect(pdfSrc).toContain('Cross-section reconciliation');
+    expect(pdfSrc).toContain('partially implemented');
+    expect(pdfSrc).toContain('independently verify all material');
+  });
+
+  it('live AnalysisResults view includes an accuracy notice', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    expect(src).toContain('Accuracy Notice');
+    expect(src).toContain('Cross-section reconciliation is partially implemented');
+  });
+
+  it('public AccuracyTransparentResults view includes an accuracy notice', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AccuracyTransparentResults.tsx'), 'utf8');
+    expect(src).toContain('Accuracy Notice');
+    expect(src).toContain('Cross-section reconciliation is partially implemented');
+  });
+});
