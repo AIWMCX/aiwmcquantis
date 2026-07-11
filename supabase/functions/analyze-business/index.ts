@@ -1,6 +1,11 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { maybeHealthResponse } from '../_shared/health.ts';
+import {
+  calculateInvestmentPayback,
+  checkScenarioMonotonicity,
+  type MonthsMetricResult,
+} from './payback-contract.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -1003,6 +1008,7 @@ interface StrictFinancialResult {
   newClientsNeeded: number;
   startupInvestment: number;
   paybackMonths: number;
+  paybackResult: MonthsMetricResult | null;
   roiYear1Percent: number;
   breakEvenRevenue: number;
   revenueFor45kProfit: number;
@@ -1365,6 +1371,7 @@ function calculateStrictFinancials(
   // RAMP-UP AWARE PAYBACK: Uses 6-month ramp schedule (30%→100% of revenue)
   // instead of assuming full Month 1 profit. This fixes the "1 month payback" template artifact.
   let paybackMonths = 0;
+  let paybackResult: MonthsMetricResult | null = null;
   if (startupInvestment > 0) {
     if (finalNetProfit > 0) {
       // Simulate ramp-up cash flow to find true payback month
@@ -1373,11 +1380,12 @@ function calculateStrictFinancials(
       const variableCostPortion = finalTotalExpenses * 0.4;
       let cumulative = 0;
       let foundPayback = false;
-      
+      const monthlyFcf: number[] = [];
+
       for (let m = 1; m <= 60; m++) {
         let monthRevenue: number;
         let monthCosts: number;
-        
+
         if (m <= RAMP.length) {
           monthRevenue = mrr * RAMP[m - 1];
           monthCosts = fixedCostPortion + variableCostPortion * RAMP[m - 1];
@@ -1386,21 +1394,52 @@ function calculateStrictFinancials(
           monthRevenue = mrr * growth;
           monthCosts = finalTotalExpenses * Math.pow(1.025, m - RAMP.length);
         }
-        
-        cumulative += monthRevenue - monthCosts;
+
+        const fcf = monthRevenue - monthCosts;
+        monthlyFcf.push(fcf);
+        cumulative += fcf;
         if (cumulative >= startupInvestment) {
           paybackMonths = m;
           foundPayback = true;
           break;
         }
       }
-      
+
       if (!foundPayback) paybackMonths = 999;
+
+      // Handbook §19 Wave 2 — cross-validate the ramp loop above against the
+      // typed, tested calculator from payback-contract.ts using the exact
+      // same monthly FCF series. Detection-only: does not alter paybackMonths
+      // (20+ call sites downstream depend on its existing integer/999
+      // contract). A material disagreement means the ramp loop and the
+      // tested formula have drifted apart and needs investigation.
+      try {
+        paybackResult = calculateInvestmentPayback(
+          String(startupInvestment),
+          monthlyFcf.map((v) => String(v)),
+        );
+        const typedMonths = paybackResult.status === "VALUE" ? Math.ceil(Number(paybackResult.months)) : null;
+        const legacyMonths = foundPayback ? paybackMonths : null;
+        if (typedMonths !== legacyMonths && Math.abs((typedMonths ?? 999) - (legacyMonths ?? 999)) > 1) {
+          log.warn(
+            `⚠️ Payback engine drift: ramp loop=${legacyMonths ?? "NOT_ACHIEVED"}, typed calculator=${typedMonths ?? paybackResult.reasonCode}`,
+          );
+        }
+      } catch (paybackContractErr) {
+        log.warn(`Payback contract cross-check failed (non-fatal): ${String(paybackContractErr)}`);
+      }
     } else {
       paybackMonths = 999;
+      paybackResult = {
+        status: "NOT_APPLICABLE",
+        months: null,
+        horizonMonths: 60,
+        formulaId: "investment_payback.cumulative_fcf.v1",
+        reasonCode: "NEGATIVE_STEADY_STATE_PROFIT",
+      };
     }
   }
-  
+
   audit.push({
     formula: 'Payback = Ramp-Up Cash Flow Model (30%→100% over 6 months)',
     inputs: { 'Investment': startupInvestment, 'Steady-State Profit/mo': finalNetProfit },
@@ -1513,6 +1552,7 @@ function calculateStrictFinancials(
     newClientsNeeded,
     startupInvestment,
     paybackMonths,
+    paybackResult,
     roiYear1Percent,
     npv3Years,
     breakEvenRevenue,
@@ -2374,7 +2414,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         const optNetMargin = optRevenue > 0 ? Math.round((optNetProfit / optRevenue) * 100) : 0;
         const optGrossMargin = optRevenue > 0 ? Math.round((optGrossProfit / optRevenue) * 100) : 0;
         
-        return {
+        const builtScenarios = {
           pessimistic: {
             revenue: pessRevenue,
             variable_costs: pessCogs + pessMarketing,
@@ -2403,6 +2443,24 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
             net_margin: optNetMargin
           }
         };
+
+        // Handbook §19 Wave 2 (item 5) — detect a scenario where revenue moves
+        // one direction but net profit moves the other, with no driver
+        // explanation attached. Logged only: does not block the request or
+        // alter the numbers. Hard-blocking would need a documented driver
+        // explanation per scenario (Handbook §9.1), which is a narrative-
+        // generation feature, not an engine-level change — deferred pending
+        // that scope and product sign-off on rejecting live user requests.
+        try {
+          const monotonicityIssues = checkScenarioMonotonicity(builtScenarios);
+          for (const issue of monotonicityIssues) {
+            log.warn(`⚠️ Scenario monotonicity [${issue.code}]: ${issue.message}`);
+          }
+        } catch (monotonicityErr) {
+          log.warn(`Scenario monotonicity check failed (non-fatal): ${String(monotonicityErr)}`);
+        }
+
+        return builtScenarios;
       })(),
       unit_economics: {
         contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
@@ -2419,6 +2477,11 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       },
       returns: {
         payback_period_months: calc.paybackMonths,
+        // Handbook §19 Wave 2 — additive typed contract alongside the legacy
+        // numeric field above. New consumers should prefer this; the numeric
+        // field keeps its existing 999-sentinel wire contract unchanged for
+        // the 20+ existing call sites that already guard against it.
+        investment_payback_result: calc.paybackResult,
         roi_year_1: calc.roiYear1Percent,
         roi_year_3: Math.round((calc.netProfit * 36 / Math.max(calc.startupInvestment, 1)) * 100),
         // BUG FIX: True DCF NPV at 10% annual WACC — not cumulative profit
