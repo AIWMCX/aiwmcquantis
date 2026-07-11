@@ -131,6 +131,18 @@ jobs:
         run: |
           echo "::error title=TypeScript failed::Financial-surface typecheck failed. Run 'bun run typecheck:financial' locally."
 
+      # ── Financial sentinel scan (Handbook §19 Wave 1b) ──────────────────────
+      # Guards src/financial/** against reintroducing raw 999/Infinity/NaN
+      # sentinel literals in customer-facing payback output.
+      - name: Sentinel scan (financial)
+        id: sentinel-scan
+        run: bun run scan:sentinels
+
+      - name: Sentinel scan failure hint
+        if: failure() && steps.sentinel-scan.outcome == 'failure'
+        run: |
+          echo "::error title=Sentinel leak::src/financial/** contains a raw 999/Infinity/NaN literal outside an allowed sentinel-scan-ignore line. Run 'bun run scan:sentinels' locally."
+
       # ── Business-logic hash verification ────────────────────────────────────
       - name: Verify business-logic spec hash
         id: verify
@@ -277,6 +289,7 @@ jobs:
             echo "| Lint | ${{ steps.lint.outcome }} |"
             echo "| Format (prettier) | ${{ steps.format.outcome }} |"
             echo "| Typecheck (financial) | ${{ steps.typecheck.outcome }} |"
+            echo "| Sentinel scan (financial) | ${{ steps.sentinel-scan.outcome }} |"
             echo "| Supabase ref guard | ${{ steps.ref-guard.outcome }} |"
             echo "| Business-logic hash | ${{ steps.verify.outcome }} |"
             echo "| Tests | ${{ steps.tests.outcome }} |"

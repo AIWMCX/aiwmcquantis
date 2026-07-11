@@ -1,0 +1,26 @@
+{
+  "version": "1.0.0",
+  "effectiveDate": "2026-07-10",
+  "metrics": [
+    {
+      "metricCode": "investment_payback_months",
+      "formulaId": "investment_payback.cumulative_fcf.v1",
+      "definition": "First fractional month in which cumulative free cash flow, including the month-zero initial investment outflow, reaches zero.",
+      "inputs": ["initial_investment", "monthly_free_cash_flow"],
+      "unit": "months",
+      "frequency": "monthly-series",
+      "fallbackBehavior": "Return typed NOT_ACHIEVED_WITHIN_HORIZON; never return 999, Infinity, or a fabricated month count.",
+      "testSuites": ["unit", "property", "golden", "mutation", "report-artifact"]
+    },
+    {
+      "metricCode": "cac_payback_months",
+      "formulaId": "cac_payback.cumulative_contribution_margin.v1",
+      "definition": "First fractional month in which cumulative contribution margin from the acquired customer or cohort recovers eligible acquisition cost.",
+      "inputs": ["eligible_acquisition_spend", "monthly_customer_contribution_margin"],
+      "unit": "months",
+      "frequency": "cohort-monthly-series",
+      "fallbackBehavior": "Return typed unavailable state with reason code when contribution series is absent or payback is outside the horizon.",
+      "testSuites": ["unit", "property", "golden", "mutation", "report-artifact"]
+    }
+  ]
+}

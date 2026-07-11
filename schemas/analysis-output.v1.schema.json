@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://www.aiwmcquantis.com/schemas/analysis-output.v1.json",
+  "title": "AIWMC Quantis Analysis Output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "analysisRunId",
+    "engineVersion",
+    "datasetVersion",
+    "formulaRegistryVersion",
+    "inputHash",
+    "numericOutputHash",
+    "investmentPayback",
+    "validation"
+  ],
+  "properties": {
+    "analysisRunId": { "type": "string", "minLength": 1 },
+    "engineVersion": { "type": "string", "minLength": 1 },
+    "datasetVersion": { "type": "string", "minLength": 1 },
+    "formulaRegistryVersion": { "type": "string", "minLength": 1 },
+    "inputHash": { "type": "string", "minLength": 32 },
+    "numericOutputHash": { "type": "string", "minLength": 32 },
+    "investmentPayback": { "$ref": "#/$defs/monthsMetric" },
+    "cacPayback": { "$ref": "#/$defs/monthsMetric" },
+    "validation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "issues"],
+      "properties": {
+        "status": { "enum": ["PASS", "WARN", "BLOCK"] },
+        "issues": { "type": "array", "items": { "type": "object" } }
+      }
+    }
+  },
+  "$defs": {
+    "monthsMetric": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "months", "horizonMonths", "formulaId", "reasonCode"],
+          "properties": {
+            "status": { "const": "VALUE" },
+            "months": { "type": "string", "pattern": "^[0-9]+(?:\\.[0-9]+)?$", "not": { "const": "999" } },
+            "horizonMonths": { "type": "integer", "minimum": 1, "maximum": 120 },
+            "formulaId": { "type": "string", "minLength": 1 },
+            "reasonCode": { "type": "null" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["status", "months", "horizonMonths", "formulaId", "reasonCode"],
+          "properties": {
+            "status": {
+              "enum": [
+                "NOT_ACHIEVED_WITHIN_HORIZON",
+                "NOT_APPLICABLE",
+                "INSUFFICIENT_INPUTS",
+                "INVALID_INPUTS",
+                "MODEL_UNSUPPORTED"
+              ]
+            },
+            "months": { "type": "null" },
+            "horizonMonths": { "type": "integer", "minimum": 0, "maximum": 120 },
+            "formulaId": { "type": "string", "minLength": 1 },
+            "reasonCode": { "type": "string", "minLength": 1 }
+          }
+        }
+      ]
+    }
+  }
+}

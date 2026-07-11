@@ -20,7 +20,8 @@ export type MonthsMetricResult =
     };
 
 export function assertNoNumericSentinel(result: MonthsMetricResult): void {
-  if (result.months === "999" || result.months === "Infinity" || result.months === "NaN") {
+  const forbidden = ["999", "Infinity", "NaN"]; // sentinel-scan-ignore
+  if (forbidden.includes(result.months as string)) {
     throw new Error(`Forbidden customer-facing sentinel: ${result.months}`);
   }
 }
