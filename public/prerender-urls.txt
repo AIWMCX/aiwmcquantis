@@ -4,6 +4,7 @@
 /how-it-works
 /methodology
 /use-cases
+/consultants
 /examples
 /blog
 /leaderboard
