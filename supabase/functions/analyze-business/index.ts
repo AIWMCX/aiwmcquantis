@@ -52,6 +52,7 @@ import {
   estimateRequestCost,
   checkKillSwitch,
   createSecurityAuditLog,
+  enforceNarrativeIntegrity,
   AI_COST_LIMITS,
   type InputValidationResult,
   type OutputValidationResult,
@@ -2548,7 +2549,13 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       industry_detected: calc.industryDetected
     },
     business_plan: {
-      executive_summary: bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
+      executive_summary: enforceNarrativeIntegrity(
+        bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
+        calc,
+        benchmarks.name,
+        location,
+        log,
+      ).executiveSummary,
       product_description: bp.product_description || "Product/service details being analyzed.",
       target_audience: bp.target_audience || `Target customers in ${location} market.`,
       competitive_advantages: bp.competitive_advantages || "Differentiation analysis in progress.",

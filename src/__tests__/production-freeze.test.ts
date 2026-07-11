@@ -416,6 +416,46 @@ describe('T8: Pro/Plus toast, free-quota copy, and refund-guarantee days never d
 });
 
 // ============================================================================
+// T10 — Narrative numeric firewall is actually wired in, not just defined.
+// 2026-07-11 accuracy-handbook audit (NARRATIVE_KPI_CONTRADICTION, 10/20 real
+// reports): validateAIOutput/validateNarratorNumbers in ai-safety-guardrails.ts
+// already implemented AI-narrative-vs-computed-metrics reconciliation
+// correctly, but were imported into analyze-business/index.ts and never
+// called anywhere — a dead guardrail with zero effect in production. Root
+// cause reproduced: 5 other safety-guardrail imports in the same block
+// (validateAndSanitizeInput, generateTruthLabels, estimateRequestCost,
+// checkKillSwitch, createSecurityAuditLog) are STILL dead as of this fix —
+// flagged as a follow-up, not fixed here, since each needs its own integration
+// point and test coverage, not a blanket wire-in.
+//
+// This fix added a narrower, purpose-built enforceNarrativeIntegrity function
+// (real functional tests in narrative-integrity.test.ts) and wired it into
+// the exact point where executive_summary is assembled. This guard is the
+// "is it actually called" check — the functional correctness is covered by
+// narrative-integrity.test.ts, not repeated here.
+// ============================================================================
+describe('T10: narrative numeric firewall is wired into the request flow, not dead', () => {
+  it('enforceNarrativeIntegrity is imported in analyze-business/index.ts', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toMatch(/import\s*\{[^}]*enforceNarrativeIntegrity[^}]*\}\s*from\s*["']\.\/ai-safety-guardrails\.ts["']/);
+  });
+
+  it('enforceNarrativeIntegrity is actually called (not just imported)', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    const callSites = (src.match(/enforceNarrativeIntegrity\(/g) || []).length;
+    expect(callSites, 'enforceNarrativeIntegrity must be called at least once — an import with zero calls is exactly the dead-guardrail bug this fix addresses').toBeGreaterThan(0);
+  });
+
+  it('the executive_summary assembly point passes it through enforceNarrativeIntegrity', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    const idx = src.indexOf('business_plan: {');
+    expect(idx, 'business_plan assembly block not found').toBeGreaterThan(-1);
+    const window = src.slice(idx, idx + 400);
+    expect(window).toContain('executive_summary: enforceNarrativeIntegrity(');
+  });
+});
+
+// ============================================================================
 // T9 — Sentinel 999 must never reach a customer-facing surface as literal
 // "999 months"/"999mo". 2026-07-11 corpus audit of 20 real production PDFs
 // found the internal "unprofitable" sentinel (999) leaking as literal text

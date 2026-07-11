@@ -423,6 +423,136 @@ function sanitizeNarratorOutput(output: NarratorOutput): NarratorOutput {
   };
 }
 
+// ========== NARRATIVE NUMERIC FIREWALL ==========
+//
+// P0 fix (2026-07-11, corpus audit NARRATIVE_KPI_CONTRADICTION — 10/20 reports
+// affected, e.g. SubBase: narrative cited CAC $100/LTV $3,278/LTV:CAC 32.8x while
+// the unit-economics page reported CAC $9,396/LTV $6,389/0.7x).
+//
+// validateAIOutput/validateNarratorNumbers above implement this detection for a
+// fully-nested NarratorOutput shape (business_plan.*, marketing_plan.*, etc.),
+// but were imported into the real request handler (analyze-business/index.ts)
+// and never called — a dead guardrail. Wiring the full validator in directly
+// isn't safe: the real AI payload at the point calc becomes available is a set
+// of separately-parsed JSON fragments (financial_json/business_json/etc.), not
+// one NarratorOutput object, and does not populate every nested field
+// validateNarratorNumbers indexes into without optional chaining (e.g.
+// key_takeaways is never populated on this path) — forcing the mismatched
+// shape through would trade one bug for a request-crashing one.
+//
+// This is a narrower, purpose-built check scoped to what's actually available
+// at the real integration point (a single executive_summary string plus the
+// calc object), reusing the same detection technique (extract $ amounts,
+// check against a tolerance-widened set of computed anchors). On a genuine
+// mismatch it replaces ONLY executive_summary with a deterministic template
+// built entirely from calc — the same technique already used correctly in the
+// AI-down fallback path — so the customer never sees a narrative contradicting
+// the KPI card. It does not try to surgically edit the AI's prose; per the
+// fail-closed doctrine, an untrustworthy sentence is discarded, not patched.
+// Never throws: any error in the check itself is caught and the original
+// text is returned unmodified (fail-open on the CHECK, fail-closed on a
+// DETECTED contradiction) — mirrors the QOC shadow-mode principle used
+// elsewhere in this codebase: a safety check must never break the response
+// it is trying to protect.
+
+export interface NarrativeIntegrityCalc {
+  mrr: number;
+  netProfit: number;
+  cac: number;
+  ltv: number;
+  ltvCacRatio: number;
+  startupInvestment: number;
+  paybackMonths: number;
+  breakEvenRevenue: number;
+  npv3Years?: number;
+  isProfitable: boolean;
+  expenses: {
+    cogs: number;
+    salaries: number;
+    rent: number;
+    utilities: number;
+    marketing: number;
+    other: number;
+  };
+}
+
+const DOLLAR_PATTERN = /\$[\d,]+(?:\.\d{1,2})?/g;
+
+function buildAnchorSet(calc: NarrativeIntegrityCalc): number[] {
+  return [
+    calc.mrr,
+    calc.netProfit,
+    calc.cac,
+    calc.ltv,
+    calc.startupInvestment,
+    calc.breakEvenRevenue,
+    calc.npv3Years ?? 0,
+    calc.expenses.cogs,
+    calc.expenses.salaries,
+    calc.expenses.rent,
+    calc.expenses.utilities,
+    calc.expenses.marketing,
+    calc.expenses.other,
+  ].filter((v) => v !== 0 && Number.isFinite(v));
+}
+
+/** Returns true if every dollar figure in text is within 10% of some computed
+ *  anchor (small figures under $100 are ignored — those are never the subject
+ *  of a payback/profit/CAC-style contradiction). */
+function narrativeReconciles(text: string, calc: NarrativeIntegrityCalc): boolean {
+  const anchors = buildAnchorSet(calc);
+  const matches = text.match(DOLLAR_PATTERN) || [];
+  for (const match of matches) {
+    const value = parseFloat(match.replace(/[$,]/g, ''));
+    if (!Number.isFinite(value) || value <= 100) continue;
+    const isAnchored = anchors.some((anchor) => Math.abs(value - anchor) / Math.abs(anchor) < 0.1);
+    if (!isAnchored) return false;
+  }
+  return true;
+}
+
+/** Deterministic, always-consistent replacement for executive_summary — built
+ *  only from computed metrics, so it can never contradict the KPI card. */
+export function buildSafeExecutiveSummary(calc: NarrativeIntegrityCalc, industryLabel: string, location: string): string {
+  const profitStatus = calc.isProfitable ? 'profitable' : 'not yet profitable at current assumptions';
+  const paybackText = calc.paybackMonths >= 999
+    ? 'indeterminate until profitability is achieved'
+    : `${calc.paybackMonths} months`;
+  return `This analysis evaluates ${industryLabel} in ${location}. Based on our deterministic financial engine, the business is ${profitStatus}, with a monthly net profit of $${Math.round(calc.netProfit).toLocaleString()} against $${Math.round(calc.mrr).toLocaleString()} in monthly revenue. The LTV:CAC ratio of ${calc.ltvCacRatio}x ${calc.ltvCacRatio >= 3 ? 'indicates healthy unit economics' : 'suggests customer acquisition costs need optimization'}. With an initial investment of $${Math.round(calc.startupInvestment).toLocaleString()}, the projected payback period is ${paybackText}.\n\nNote: this summary was regenerated from verified computed figures after an automated integrity check found the AI-authored narrative did not reconcile with them.`;
+}
+
+export interface NarrativeIntegrityResult {
+  executiveSummary: string;
+  wasModified: boolean;
+}
+
+/** Safe, non-throwing entry point: call with the AI-authored executive_summary
+ *  and the same request's calc object, right after both become available. */
+export function enforceNarrativeIntegrity(
+  executiveSummary: string,
+  calc: NarrativeIntegrityCalc,
+  industryLabel: string,
+  location: string,
+  log: { warn: (msg: string) => void },
+): NarrativeIntegrityResult {
+  try {
+    if (typeof executiveSummary !== 'string' || executiveSummary.length === 0) {
+      return { executiveSummary, wasModified: false };
+    }
+    if (narrativeReconciles(executiveSummary, calc)) {
+      return { executiveSummary, wasModified: false };
+    }
+    log.warn('Narrative integrity check: executive_summary contained a dollar figure not reconciling with computed metrics within 10% tolerance — regenerating from calc');
+    return {
+      executiveSummary: buildSafeExecutiveSummary(calc, industryLabel, location),
+      wasModified: true,
+    };
+  } catch (err) {
+    log.warn(`Narrative integrity check failed; shipping original AI narrative unchanged: ${err instanceof Error ? err.message : String(err)}`);
+    return { executiveSummary, wasModified: false };
+  }
+}
+
 // ========== TRUTH LABELING ==========
 
 export interface TruthLabel {
