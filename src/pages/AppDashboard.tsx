@@ -295,12 +295,12 @@ export default function Index() {
       setCheckoutPolling(false);
       setCheckoutActivated(true);
       toast({
-        title: '🎉 Welcome to Plus!',
+        title: `🎉 Welcome to ${isPro ? 'Pro' : 'Plus'}!`,
         description: 'Your 14-day free trial is active. Enjoy unlimited analyses!',
       });
       setTimeout(() => setCheckoutActivated(false), 5000);
     }
-  }, [checkoutPolling, isPlus, toast]);
+  }, [checkoutPolling, isPlus, isPro, toast]);
 
   useEffect(() => {
     const prefill =

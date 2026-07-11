@@ -85,7 +85,7 @@ export default function Pricing() {
             <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>Same depth.</span> 1/200th the price.
             <span className="hidden md:inline"> · </span>
             <span className="block md:inline mt-1 md:mt-0">
-              <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>7-day money-back guarantee</span> — no questions asked.
+              <span className="font-semibold" style={{ color: 'hsl(var(--foreground))' }}>14-day money-back guarantee</span> — no questions asked.
             </span>
           </div>
         </GlassCard>

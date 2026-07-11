@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { ArrowRight, BookmarkCheck, FileDown, History, Clock, Star, Shield, TrendingUp } from 'lucide-react';
 import { FreeVsProMatrix } from '@/components/FreeVsProMatrix';
+import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
 
 interface SignupPromptProps {
   ideaScore?: number;
@@ -86,7 +87,7 @@ export function SignupPrompt({ ideaScore }: SignupPromptProps) {
           </div>
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
             <TrendingUp className="w-4 h-4 text-primary shrink-0" />
-            3 free analyses / month
+            {FREE_ANALYSES_PER_MONTH} free analyses / month
           </div>
         </div>
 

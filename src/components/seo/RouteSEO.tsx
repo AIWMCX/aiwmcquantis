@@ -89,7 +89,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/refund-policy': {
     title: 'Refund Policy',
-    description: 'Quantis refund policy: 7-day money-back guarantee on Plus subscriptions, no questions asked.',
+    description: 'Quantis refund policy: 14-day money-back guarantee on all paid plans, no questions asked.',
   },
   '/changelog': {
     title: 'Changelog — What\'s New in Quantis',

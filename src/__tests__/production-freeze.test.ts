@@ -340,6 +340,71 @@ describe('T5: test suite floor', () => {
 });
 
 // ============================================================================
+// T8 — Pro/Plus activation toast, free-quota copy, and refund-guarantee days:
+// 2026-07-10 audit found three drifted-copy defects live simultaneously:
+//   (a) AppDashboard.tsx's post-checkout toast hardcoded "Welcome to Plus!"
+//       even when the buyer purchased Pro (isPlus is true for both tiers,
+//       so a Pro buyer never saw their actual tier name).
+//   (b) SignupPrompt.tsx and PersonalizedEmptyState.tsx hardcoded "3 free
+//       analyses" while the real server-side gate (analyze-business/
+//       index.ts FREE_TIER_LIMIT) and canonical-facts.ts both say 5.
+//   (c) Pricing.tsx's hero banner and RouteSEO.tsx's /refund-policy SEO
+//       description said "7-day money-back guarantee" while FAQSection.tsx,
+//       RefundPolicy.tsx, and the pricing cards on the same page all say
+//       14-day (the canonical value, confirmed in tier spec). Fixed
+//       2026-07-10 (isPro-aware toast title; FREE_ANALYSES_PER_MONTH
+//       constant; 14-day copy). This guard prevents any of the three from
+//       silently reintroducing on a future edit.
+// ============================================================================
+describe('T8: Pro/Plus toast, free-quota copy, and refund-guarantee days never drift', () => {
+  function walkSrc(dir: string, out: string[] = []): string[] {
+    for (const entry of readdirSync(join(ROOT, dir), { withFileTypes: true })) {
+      const rel = join(dir, entry.name);
+      if (entry.isDirectory()) {
+        if (/__tests__|node_modules|\.git/.test(entry.name)) continue;
+        walkSrc(rel, out);
+      } else if (/\.(tsx?|json)$/.test(entry.name) && !/\.test\.|\.spec\./.test(entry.name)) {
+        out.push(rel);
+      }
+    }
+    return out;
+  }
+
+  it('AppDashboard post-checkout toast is tier-aware (no unconditional "Welcome to Plus")', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/AppDashboard.tsx'), 'utf8');
+    expect(src, 'toast must not hardcode "Welcome to Plus" — a Pro buyer would see the wrong tier').not.toMatch(/Welcome to Plus!?['"`]/);
+    expect(src.includes("isPro ? 'Pro' : 'Plus'"), 'toast title must branch on isPro so Pro buyers see "Welcome to Pro!"').toBe(true);
+  });
+
+  it('FREE_ANALYSES_PER_MONTH canonical constant is 5', () => {
+    const facts = readFileSync(join(ROOT, 'src/config/canonical-facts.ts'), 'utf8');
+    expect(facts).toMatch(/FREE_ANALYSES_PER_MONTH\s*=\s*5\b/);
+  });
+
+  it('server-side FREE_TIER_LIMIT matches the canonical 5 (no drift between gate and copy)', () => {
+    const analyzeBusiness = readFileSync(
+      join(ROOT, 'supabase/functions/analyze-business/index.ts'),
+      'utf8',
+    );
+    expect(analyzeBusiness).toMatch(/FREE_TIER_LIMIT\s*=\s*5\b/);
+  });
+
+  it('no source file hardcodes "3 free analyses" (must read FREE_ANALYSES_PER_MONTH instead)', () => {
+    const offenders = walkSrc('src').filter((f) =>
+      /\b3\s+free\s+analyses\b/i.test(readFileSync(join(ROOT, f), 'utf8')),
+    );
+    expect(offenders, `Stale "3 free analyses" found in:\n${offenders.join('\n')}`).toEqual([]);
+  });
+
+  it('no source file claims a "7-day money-back guarantee" (canonical is 14-day)', () => {
+    const offenders = walkSrc('src').filter((f) =>
+      /7-day\s+money-back/i.test(readFileSync(join(ROOT, f), 'utf8')),
+    );
+    expect(offenders, `Stale "7-day money-back" guarantee found in:\n${offenders.join('\n')}`).toEqual([]);
+  });
+});
+
+// ============================================================================
 // T6 — QOC shadow-mode guard (docs/QOC_MIGRATION_PLAN.md, Stage 1)
 // analyze-business fires a parallel, non-blocking call to qoc-orchestrate so
 // real production data accumulates for the QOC migration's parity analysis.

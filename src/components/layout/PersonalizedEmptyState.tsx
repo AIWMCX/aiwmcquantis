@@ -9,6 +9,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { trackEvent } from '@/lib/analytics';
+import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
 
 interface PersonalizedEmptyStateProps {
   analysisCount: number;
@@ -110,7 +111,7 @@ export const PersonalizedEmptyState = React.memo(function PersonalizedEmptyState
         <div className="mt-8 flex flex-wrap justify-center gap-x-6 gap-y-2 text-xs text-muted-foreground">
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
-            3 free analyses
+            {FREE_ANALYSES_PER_MONTH} free analyses
           </span>
           <span className="flex items-center gap-1.5">
             <CheckCircle2 className="w-3.5 h-3.5 text-primary" />
