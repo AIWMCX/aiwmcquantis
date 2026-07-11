@@ -67,8 +67,12 @@ describe('enforceNarrativeIntegrity', () => {
   });
 
   it('does not crash on non-string input (defensive against a malformed AI payload)', () => {
-    // @ts-expect-error — intentionally testing runtime defensiveness against bad input shape
-    const result = enforceNarrativeIntegrity(undefined, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
+    // Not a real type error under this project's tsconfig.app.json (strict:
+    // false), so no @ts-expect-error is needed here — undefined is
+    // assignable to `string` without strictNullChecks. The runtime
+    // defensiveness this test exercises is still real and still needed
+    // (the production caller can hand this a malformed AI payload).
+    const result = enforceNarrativeIntegrity(undefined as unknown as string, baseCalc, 'B2B SaaS', 'Austin, TX', noOpLog);
     expect(result.wasModified).toBe(false);
   });
 
