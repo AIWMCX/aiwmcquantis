@@ -6,6 +6,7 @@ import {
   calculateStrictFinancials,
   type StrictFinancialResult,
 } from './financial-calculator.ts';
+import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -3274,6 +3275,30 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.warn(`Narrative sanitizer failed (non-fatal): ${String(sanitizeErr)}`);
     }
 
+    // ========== IMMUTABLE ANALYSIS SNAPSHOT (Handbook §19 item 9) ==========
+    // Fire-and-forget: never blocks or fails the response. See migration
+    // 20260711180000_analysis_snapshots.sql for why analysis_id is nullable
+    // and correlationId is the anchor at write time (analyze-business never
+    // inserts into public.analyses itself — that happens later, client-side).
+    const analysisCorrelationId = crypto.randomUUID();
+    (result as Record<string, unknown>).analysis_correlation_id = analysisCorrelationId;
+    if (calc.paybackResult) {
+      emitAnalysisSnapshot({
+        correlationId: analysisCorrelationId,
+        userId,
+        normalizedInput: { idea: idea_clean, location: location.trim(), financialInputs: mergedFinancialInputs ?? null },
+        numericOutput: {
+          mrr: calc.mrr, totalExpenses: calc.totalExpenses, netProfit: calc.netProfit,
+          netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent,
+          cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths,
+          roiYear1Percent: calc.roiYear1Percent, npv3Years: calc.npv3Years,
+          breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: calc.revenueFor45kProfit,
+        },
+        investmentPayback: calc.paybackResult,
+        validationStatus: calc.corrections.length > 0 ? 'WARN' : 'PASS',
+        validationIssues: calc.corrections,
+      }).catch((snapshotErr) => log.warn(`Analysis snapshot emit failed (non-fatal): ${String(snapshotErr)}`));
+    }
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========
     // ── WS2: Wrapped — quantisOutput failure degrades but never kills ──
