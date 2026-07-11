@@ -562,6 +562,38 @@ describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
 });
 
 // ============================================================================
+// T12 — Cross-section reconciliation (handbook §19 item 4)
+// ============================================================================
+describe('T12 — cross-section reconciliation flags in PDF', () => {
+  it('detectPdfContradictions is defined in usePdfExport.ts', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('function detectPdfContradictions');
+    expect(src).toContain('reconciliationFlags');
+  });
+
+  it('flags optimistic-revenue-higher / optimistic-profit-lower (corpus pattern: 12/20 reports)', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('optimistic scenario shows higher revenue than base but lower profit');
+  });
+
+  it('flags base-revenue-higher / base-profit-lower-than-pessimistic (corpus pattern: 11/20 reports)', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('base scenario shows higher revenue than pessimistic but lower profit');
+  });
+
+  it('flags KPI-card vs base-scenario profit divergence >10%', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('monthly profit on KPI card differs from scenario base profit by more than 10%');
+  });
+
+  it('reconciliationFlags are rendered onto the Accuracy Notice page', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('Contradictions detected in this report:');
+    expect(src).toContain('reconciliationFlags.length > 0');
+  });
+});
+
+// ============================================================================
 // T11 — Accuracy Notice (soft gate) on all report surfaces
 // ============================================================================
 describe('T11 — accuracy notice banner exists on all report surfaces', () => {

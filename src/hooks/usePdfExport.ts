@@ -727,13 +727,57 @@ function prepareSafeResult(result: BusinessAnalysisResult): SafeResult {
 // CREATE EXECUTIVE REPORT
 // ============================================
 
+// ============================================
+// CROSS-SECTION RECONCILIATION (Handbook §19 item 4)
+// ============================================
+// Read-only pre-render check. Never modifies values — only produces a list of
+// detected contradictions that are surfaced on the Accuracy Notice page.
+function detectPdfContradictions(financial: any): string[] {
+  const flags: string[] = [];
+  try {
+    const s = financial?.scenarios;
+    if (!s) return flags;
+
+    const baseRevenue  = s.base?.revenue  ?? 0;
+    const baseProfit   = s.base?.net_profit ?? 0;
+    const optRevenue   = s.optimistic?.revenue  ?? 0;
+    const optProfit    = s.optimistic?.net_profit ?? 0;
+    const pessRevenue  = s.pessimistic?.revenue  ?? 0;
+    const pessProfit   = s.pessimistic?.net_profit ?? 0;
+
+    // Scenario monotonicity: optimistic revenue higher but profit lower
+    if (optRevenue > baseRevenue && optProfit < baseProfit) {
+      flags.push('Detected: optimistic scenario shows higher revenue than base but lower profit — scenario driver logic may be inconsistent.');
+    }
+    // Scenario monotonicity: base revenue higher but profit lower than pessimistic
+    if (baseRevenue > pessRevenue && baseProfit < pessProfit) {
+      flags.push('Detected: base scenario shows higher revenue than pessimistic but lower profit — scenario driver logic may be inconsistent.');
+    }
+
+    // KPI card vs base scenario cross-check (>10% relative divergence triggers flag)
+    const displayProfit = financial.monthly_profit ?? 0;
+    if (Math.abs(baseProfit) > 100 && Math.abs(displayProfit) > 100) {
+      const relDiff = Math.abs(baseProfit - displayProfit) / Math.max(Math.abs(baseProfit), Math.abs(displayProfit));
+      if (relDiff > 0.10) {
+        flags.push('Detected: monthly profit on KPI card differs from scenario base profit by more than 10% — cross-section mismatch present in this report.');
+      }
+    }
+  } catch {
+    // never crash PDF generation
+  }
+  return flags;
+}
+
 const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
-  
+
+  // Cross-section reconciliation check (handbook §19 item 4) — read-only, surfaces contradictions in Accuracy Notice
+  const reconciliationFlags = detectPdfContradictions(result.financial_analysis);
+
   // Create branded colors
   const brandedColors = createColors(branding);
-  
+
   const financial = result.financial_analysis;
   const monthlyProfit = financial.scenarios?.base?.net_profit ?? financial.monthly_profit ?? 0;
   const paybackMonths = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
@@ -864,7 +908,17 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         ),
         React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', lineHeight: 1.6, color: '#78350f' } },
           'Users should independently verify all material financial assumptions before making investment or operational decisions. This report is a structured pre-mortem, not a guarantee of future results.'
-        )
+        ),
+        reconciliationFlags.length > 0
+          ? React.createElement(
+              View,
+              { style: { marginTop: 16, borderTopWidth: 1, borderTopColor: '#f59e0b', paddingTop: 12 } },
+              React.createElement(Text, { style: { fontSize: 10, fontFamily: 'Helvetica-Bold', color: '#92400e', marginBottom: 6 } }, 'Contradictions detected in this report:'),
+              ...reconciliationFlags.map((flag) =>
+                React.createElement(Text, { style: { fontSize: 10, lineHeight: 1.6, color: '#78350f', marginBottom: 4 }, key: flag }, `⚠  ${flag}`)
+              )
+            )
+          : null
       ),
       React.createElement(
         View,
