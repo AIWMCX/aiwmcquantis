@@ -28,8 +28,14 @@ Deno.serve(async (req) => {
   }
   const url = new URL(req.url);
 
-  // INITIATE
+  // INITIATE — admin-only. Requires CRON_SECRET via header or ?secret= query param.
+  // Prevents anonymous attackers from hijacking the shared autoposter account.
   if (url.searchParams.get('init') === '1') {
+    const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
+    const provided = req.headers.get('x-cron-secret') ?? url.searchParams.get('secret') ?? '';
+    if (!CRON_SECRET || provided !== CRON_SECRET) {
+      return html('<h2>Unauthorized</h2><p>Admin secret required to initiate LinkedIn OAuth.</p>', 401);
+    }
     const state = crypto.randomUUID();
     await supa.from('autoposter_oauth_state').insert({
       state, platform: 'linkedin', redirect_uri: REDIRECT_URI,
@@ -40,6 +46,7 @@ Deno.serve(async (req) => {
       `&scope=${scope}&state=${state}`;
     return Response.redirect(authUrl, 302);
   }
+
 
   // CALLBACK
   const code = url.searchParams.get('code');
