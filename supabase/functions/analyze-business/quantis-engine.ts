@@ -453,7 +453,18 @@ export function processQuantisAnalysis(
       inputCompleteness: validationResult.healthScores.breakdown.schemaCompleteness,
       dataQuality: validationResult.healthScores.breakdown.dataConsistency,
       validationScore: 100 - (validationResult.errors.length * 15) - (validationResult.warnings.length * 5),
-      industryRelevance: 80, // Base score, can be enhanced
+      // Handbook §19 Wave 3 (item 7) — this was a flat 80 regardless of match
+      // specificity, which collapsed the displayed breakdown toward the same
+      // value across dissimilar businesses (root cause of the corpus's
+      // repeated 76/79/83% bucketed scores). Computed from the same
+      // industry/sub-industry/location match signals already in scope.
+      industryRelevance: (() => {
+        let score = 40; // generic industry, no location match
+        if (benchmarks.id !== 'general') score += 25; // matched a specific industry
+        if (subIndustry && subIndustry.confidence > 50) score += 20; // sub-industry detected
+        if (locationMultipliers.matched) score += 15; // location-adjusted costs
+        return Math.min(100, score);
+      })(),
       details: [
         `Industry: ${benchmarks.name}`,
         `Location: ${locationMultipliers.matchedCity || input.location}`,

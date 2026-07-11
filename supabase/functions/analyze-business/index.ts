@@ -4190,7 +4190,17 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       improvementSuggestions.push('Upload business documents (invoices, revenue statements) for more accurate analysis');
     }
     
-    result.confidence_score = reliabilityScore;
+    // Handbook §19 Wave 3 (item 7) — result.confidence_score is the single
+    // canonical field read by 20+ frontend/PDF/DB consumers, but the
+    // expandable breakdown UI (ConfidenceIndicator) reads from
+    // quantisOutput.validation.confidence_breakdown, computed by a fully
+    // independent formula (quantis-engine.ts). The two could disagree —
+    // the headline badge and the breakdown shown beneath it could show
+    // inconsistent numbers for the same report. Prefer the Quantis 2.0
+    // score here so the canonical field always matches what the breakdown
+    // actually justifies; fall back to the local calc only when the
+    // Quantis 2.0 engine did not run.
+    result.confidence_score = quantisOutput ? quantisOutput.validation.reliabilityScore : reliabilityScore;
     
     log.info(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
