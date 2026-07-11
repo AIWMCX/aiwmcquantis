@@ -42,6 +42,13 @@ Deno.serve(async (req) => {
   const url = new URL(req.url);
 
   if (url.searchParams.get('init') === '1') {
+    // Admin-only. Requires CRON_SECRET via header or ?secret= query param.
+    // Prevents anonymous attackers from hijacking the shared autoposter account.
+    const CRON_SECRET = Deno.env.get('CRON_SECRET') ?? '';
+    const provided = req.headers.get('x-cron-secret') ?? url.searchParams.get('secret') ?? '';
+    if (!CRON_SECRET || provided !== CRON_SECRET) {
+      return html('<h2>Unauthorized</h2><p>Admin secret required to initiate X/Twitter OAuth.</p>', 401);
+    }
     const state = crypto.randomUUID();
     const verifier = randomVerifier();
     const challenge = await sha256base64url(verifier);
@@ -55,6 +62,7 @@ Deno.serve(async (req) => {
       `&state=${state}&code_challenge=${challenge}&code_challenge_method=S256`;
     return Response.redirect(authUrl, 302);
   }
+
 
   const code = url.searchParams.get('code');
   const state = url.searchParams.get('state');
