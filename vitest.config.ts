@@ -19,6 +19,15 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: { "@": path.resolve(__dirname, "./src") },
+    alias: {
+      "@": path.resolve(__dirname, "./src"),
+      // Deno edge functions (supabase/functions/**) import decimal.js via an
+      // esm.sh URL specifier, which Node/Vitest can't resolve on its own.
+      // Golden-case tests (Handbook §19 item 8) import the real engine
+      // directly from those files, so redirect the URL to the same
+      // decimal.js already in package.json — same library, same version
+      // family, resolved the way Node actually resolves packages.
+      "https://esm.sh/decimal.js@10.4.3": "decimal.js",
+    },
   },
 });
