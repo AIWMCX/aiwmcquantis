@@ -3,6 +3,8 @@ import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { setUser as setSentryUser, clearUser as clearSentryUser } from '@/lib/sentry';
 
+const getEmailConfirmationRedirect = () => `${window.location.origin}/auth?verified=1`;
+
 export function useAuth() {
   const [user, setUser] = useState<User | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -79,17 +81,26 @@ export function useAuth() {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, fullName?: string, phone?: string) => {
-    const redirectUrl = `${window.location.origin}/`;
-    
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
-        emailRedirectTo: redirectUrl,
+        emailRedirectTo: getEmailConfirmationRedirect(),
         data: {
           full_name: fullName,
           phone: phone,
         },
+      },
+    });
+    return { data, error };
+  }, []);
+
+  const resendSignupConfirmation = useCallback(async (email: string) => {
+    const { data, error } = await supabase.auth.resend({
+      type: 'signup',
+      email,
+      options: {
+        emailRedirectTo: getEmailConfirmationRedirect(),
       },
     });
     return { data, error };
@@ -108,6 +119,7 @@ export function useAuth() {
     isAuthenticated: !!session,
     signIn,
     signUp,
+    resendSignupConfirmation,
     signOut,
   };
 }
