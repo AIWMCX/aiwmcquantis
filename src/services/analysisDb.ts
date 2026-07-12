@@ -77,6 +77,9 @@ export async function saveAnalysis(
       payback_months: getPaybackMonths(result.financial_analysis),
       depth,
       idempotency_key: idempotencyKey,
+      // Handbook §19 item 9 follow-up — joins to analysis_snapshots.correlation_id
+      // without ever mutating the immutable snapshot row.
+      analysis_correlation_id: result.analysis_correlation_id ?? null,
     } as any)
     .select('id')
     .single();

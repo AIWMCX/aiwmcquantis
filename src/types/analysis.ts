@@ -318,6 +318,11 @@ export interface SCORECompliance {
 
 // Complete Analysis Response
 export interface BusinessAnalysisResult {
+  // Server-generated at analyze-business time (Handbook §19 item 9 follow-up).
+  // Threaded into the analyses insert so analysis_snapshots.correlation_id
+  // can be joined to analyses.analysis_correlation_id without ever mutating
+  // the immutable snapshot row.
+  analysis_correlation_id?: string;
   financial_analysis: FinancialAnalysis;
   business_plan: BusinessPlan;
   marketing_plan: MarketingPlan;
