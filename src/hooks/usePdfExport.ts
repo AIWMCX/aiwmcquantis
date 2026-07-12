@@ -2,6 +2,7 @@ import { useCallback, useRef, useState, useEffect } from 'react';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { logger } from '@/lib/logger';
 import { trackActivationEvent } from '@/lib/activationTracking';
+import { logExportStart, logExportComplete } from '@/lib/exportJobs';
 import {
   Document,
   Page,
@@ -1651,7 +1652,8 @@ export function usePdfExport() {
 
   const generatePdf = useCallback(async (result: BusinessAnalysisResult, customBranding?: BrandingConfig) => {
     setIsGenerating(true);
-    
+    let exportJobId: string | null = null;
+
     try {
       // Validate result object has minimum required data
       if (!result) {
@@ -1678,6 +1680,20 @@ export function usePdfExport() {
         .substring(0, 30);
       const date = new Date().toISOString().split('T')[0];
       const filename = `${brandPrefix}_Executive_Report_${sanitizedIdea}_${date}.pdf`;
+
+      // Persist a "My Documents" row so the user has a visible history of
+      // this download even before Supabase Storage upload lands (Wave 2 of
+      // this feature). Best-effort — never blocks the download itself.
+      const analysisIdForJob =
+        (result.metadata as { analysis_id?: string; id?: string } | undefined)?.analysis_id ??
+        (result.metadata as { analysis_id?: string; id?: string } | undefined)?.id ??
+        (result as unknown as { id?: string }).id ??
+        null;
+      exportJobId = await logExportStart({
+        analysisId: analysisIdForJob,
+        filename,
+        kind: 'pdf_report',
+      });
 
       // Pre-fetch benchmark citations so the PDF can render P25–P75, source, n, date
       const meta: any = result.metadata || {};
@@ -1760,10 +1776,12 @@ export function usePdfExport() {
       void trackActivationEvent('pdf_exported', {
         idea: result.metadata?.idea?.slice(0, 50),
       });
+      void logExportComplete(exportJobId, 'succeeded');
 
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error';
       logger.error('PDF generation failed:', errorMessage, error);
+      void logExportComplete(exportJobId, 'failed', errorMessage);
       throw error;
     } finally {
       setIsGenerating(false);

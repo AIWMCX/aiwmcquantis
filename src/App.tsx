@@ -64,6 +64,7 @@ const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
 const Changelog = lazy(() => import("./pages/Changelog"));
 const AdminDenials = lazy(() => import("./pages/admin/Denials"));
 const MyStats = lazy(() => import("./pages/MyStats"));
+const MyDocuments = lazy(() => import("./pages/MyDocuments"));
 const CaseBrowser = lazy(() => import("./pages/CaseBrowser"));
 const EngineInfo = lazy(() => import("./pages/admin/EngineInfo"));
 const SearchConsole = lazy(() => import("./pages/admin/SearchConsole"));
@@ -178,6 +179,11 @@ const App = () => {
                 <Route path="/app/stats" element={
                   <ProtectedRoute>
                     <MyStats />
+                  </ProtectedRoute>
+                } />
+                <Route path="/app/documents" element={
+                  <ProtectedRoute>
+                    <MyDocuments />
                   </ProtectedRoute>
                 } />
                 <Route path="/plus-settings" element={
