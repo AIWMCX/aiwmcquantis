@@ -1889,6 +1889,16 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         return builtScenarios;
       })(),
       unit_economics: {
+        // NOTE (Handbook §19 Wave 1, 2026-07-12): this contribution_margin
+        // uses only benchmark cogs_percent against averageCheck — it is
+        // actually gross margin per unit under an industry-typical COGS
+        // assumption, not real contribution margin (no variable OPEX like
+        // marketing is netted out). Left unchanged here — unknown how many
+        // consumers already read this exact field/shape — but the correctly
+        // computed contribution margin (variable costs = actual cogs +
+        // actual marketing, not a benchmark COGS%) now lives at
+        // financial_analysis.cvp.contributionMarginRatio. Do not treat
+        // these two fields as interchangeable.
         contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
         contribution_margin_ratio: (100 - benchmarks.cogs_percent) / 100,
         cac: calc.cac,
@@ -1896,6 +1906,13 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         ltv: calc.ltv,
         ltv_cac_ratio: calc.ltvCacRatio
       },
+      // Handbook §19 Wave 1 — Contribution Margin & CVP
+      // (docs/WAVE1_CONTRIBUTION_MARGIN_CVP_FORMULA_CONTRACTS_2026-07-12.md).
+      // The correctly computed family: real contribution margin (actual
+      // variable costs, not a benchmark COGS%), break-even, margin of
+      // safety, degree of operating leverage — every field typed, no
+      // sentinels, no silent floor-guards hiding an unachievable break-even.
+      cvp: calc.cvp,
       breakeven: {
         breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
         breakeven_revenue: calc.breakEvenRevenue,

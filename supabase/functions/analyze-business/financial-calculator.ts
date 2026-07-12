@@ -16,6 +16,7 @@ import type { LocationMultiplierResult } from "./location-intelligence.ts";
 import { QMath } from "./quantis-math-server.ts";
 import { createLogger } from "../_shared/logger.ts";
 import { calculateInvestmentPayback, type MonthsMetricResult } from "./payback-contract.ts";
+import { calculateCvp, type CvpResult } from "./contribution-margin.ts";
 import type { IndustryBenchmarks } from "./index.ts";
 
 const log = createLogger('analyze-business', 'financial-calculator');
@@ -56,6 +57,7 @@ export interface StrictFinancialResult {
   roiYear1Percent: number;
   breakEvenRevenue: number;
   revenueFor45kProfit: number;
+  cvp: CvpResult;
   npv3Years?: number;
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
@@ -608,6 +610,38 @@ export function calculateStrictFinancials(
     notes: `($${fixedCosts} + $${targetProfit}) / (1 - ${Math.round(variableCostRatio * 100)}%) = $${revenueFor45kProfit}/mo`
   });
 
+  // Handbook §19 Wave 1 — Contribution Margin & CVP (docs/WAVE1_CONTRIBUTION_
+  // MARGIN_CVP_FORMULA_CONTRACTS_2026-07-12.md). Computed in parallel with
+  // the legacy breakEvenRevenue/revenueFor45kProfit above, not replacing
+  // them — 20+ existing call sites depend on those exact numeric fields.
+  // The legacy formula also floor-guards contribution margin to a minimum
+  // 1% ("prevent zero or negative") rather than reporting an honest
+  // NOT_ACHIEVABLE state — exactly the silent-instead-of-typed pattern
+  // fixed elsewhere today. Cross-validated below via a drift-detection log
+  // rather than silently trusting either one exclusively.
+  const cvpUnitsSold = Math.round(mrr / Math.max(avgCheck, 1));
+  const cvpResult: CvpResult = calculateCvp({
+    revenue: String(mrr),
+    fixedCosts: String(fixedCosts),
+    variableCosts: String(cogs + reconciledMarketing),
+    unitsSold: String(cvpUnitsSold),
+    pricePerUnit: String(avgCheck),
+    operatingIncome: String(finalNetProfit),
+    targetOperatingProfit: String(targetProfit),
+  });
+  if (cvpResult.breakEven.status === 'VALUE' && cvpResult.breakEven.breakEvenRevenue !== null) {
+    const cvpBreakEven = Number(cvpResult.breakEven.breakEvenRevenue);
+    if (Math.abs(cvpBreakEven - breakEvenRevenue) > Math.max(1, breakEvenRevenue * 0.05)) {
+      log.warn(
+        `⚠️ Break-even drift: legacy formula (floor-guarded)=$${breakEvenRevenue}, CVP contract (typed)=$${cvpBreakEven}`,
+      );
+    }
+  } else if (cvpResult.breakEven.status === 'NOT_ACHIEVABLE') {
+    log.warn(
+      `⚠️ CVP contract reports break-even NOT_ACHIEVABLE (non-positive contribution margin) while the legacy formula silently floor-guarded to a 1% minimum and produced $${breakEvenRevenue}/mo — the legacy figure may be misleadingly optimistic.`,
+    );
+  }
+
   return {
     mrr,
     totalExpenses: finalTotalExpenses,
@@ -637,6 +671,7 @@ export function calculateStrictFinancials(
     npv3Years,
     breakEvenRevenue,
     revenueFor45kProfit,
+    cvp: cvpResult,
     isProfitable: finalNetProfit > 0,
     corrections,
     audit,
