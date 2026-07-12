@@ -18,6 +18,7 @@ import { createLogger } from "../_shared/logger.ts";
 import { calculateInvestmentPayback, type MonthsMetricResult } from "./payback-contract.ts";
 import { calculateCvp, type CvpResult } from "./contribution-margin.ts";
 import { calculateProfitabilityMargins, type ProfitabilityMarginsResult } from "./profitability-margins.ts";
+import { calculateLeverageRatios, type LeverageRatiosResult } from "./leverage-ratios.ts";
 import type { IndustryBenchmarks } from "./index.ts";
 
 const log = createLogger('analyze-business', 'financial-calculator');
@@ -60,6 +61,7 @@ export interface StrictFinancialResult {
   revenueFor45kProfit: number;
   cvp: CvpResult;
   profitabilityMargins: ProfitabilityMarginsResult;
+  leverageRatios: LeverageRatiosResult;
   npv3Years?: number;
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
@@ -657,6 +659,11 @@ export function calculateStrictFinancials(
     netIncome: String(finalNetProfit),
   });
 
+  // Handbook §19 Wave 3 — leverage ratios. Engine collects no debt schedule
+  // today; every metric returns INSUFFICIENT_INPUTS with a specific reasonCode.
+  // See docs/WAVE3_LEVERAGE_RATIOS_FORMULA_CONTRACT_2026-07-12.md.
+  const leverageRatiosResult: LeverageRatiosResult = calculateLeverageRatios();
+
   return {
     mrr,
     totalExpenses: finalTotalExpenses,
@@ -688,6 +695,7 @@ export function calculateStrictFinancials(
     revenueFor45kProfit,
     cvp: cvpResult,
     profitabilityMargins: profitabilityMarginsResult,
+    leverageRatios: leverageRatiosResult,
     isProfitable: finalNetProfit > 0,
     corrections,
     audit,

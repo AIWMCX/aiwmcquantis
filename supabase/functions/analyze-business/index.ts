@@ -1916,6 +1916,12 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       // Handbook §19 Wave 2 — Profitability Margins
       // (docs/WAVE2_PROFITABILITY_RATIOS_FORMULA_CONTRACT_2026-07-12.md).
       profitability_margins: calc.profitabilityMargins,
+      // Handbook §19 Wave 3 — Leverage Ratios. All six metrics type as
+      // INSUFFICIENT_INPUTS with specific reasonCodes (no debt schedule
+      // collected). Exposed on the payload so future code cannot silently
+      // fabricate a leverage value; see
+      // docs/WAVE3_LEVERAGE_RATIOS_FORMULA_CONTRACT_2026-07-12.md.
+      leverage_ratios: calc.leverageRatios,
       breakeven: {
         breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
         breakeven_revenue: calc.breakEvenRevenue,
