@@ -6304,6 +6304,14 @@ export type Database = {
         Args: { p_analysis_id: string; p_anonymous_session_id: string }
         Returns: Json
       }
+      claim_pending_plan_grant: {
+        Args: never
+        Returns: {
+          applied: boolean
+          current_period_end: string
+          plan_id: string
+        }[]
+      }
       cleanup_expired_invitations: { Args: never; Returns: undefined }
       cleanup_expired_shares: { Args: never; Returns: undefined }
       cleanup_old_analysis_jobs: { Args: never; Returns: undefined }
