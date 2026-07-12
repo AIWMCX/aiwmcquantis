@@ -24,6 +24,9 @@ export function useAuth() {
           });
 
           // Wave 2 — claim any anonymous analysis the visitor ran before signing up.
+          // Also claim any pre-granted plan (e.g. manual Plus grant) — runs on
+          // BOTH signup and every login, so the tier is guaranteed to apply
+          // no matter how the user got in.
           // Defer (setTimeout 0) so we don't block other auth subscribers.
           if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
             setTimeout(() => {
@@ -38,6 +41,8 @@ export function useAuth() {
                     localStorage.removeItem('quantis_claim_analysis_id');
                   });
                 }
+                // Idempotent: no-op if there's no pending grant for this user.
+                void supabase.rpc('claim_pending_plan_grant' as any);
               } catch { /* non-fatal */ }
             }, 0);
           }
