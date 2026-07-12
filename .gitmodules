@@ -1,0 +1,3 @@
+[submodule ".claude/plugins/caveman"]
+	path = .claude/plugins/caveman
+	url = https://github.com/JuliusBrussee/caveman.git
