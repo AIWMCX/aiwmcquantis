@@ -104,7 +104,15 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     if (typeof ue?.ltv === 'number') metrics.ltv = ue.ltv;
     if (typeof ue?.cac === 'number') metrics.cac = ue.cac;
     if (typeof ue?.ltv_cac_ratio === 'number') metrics.ltv_cac_ratio = ue.ltv_cac_ratio;
-    if (typeof ue?.cac_payback_months === 'number') metrics.cac_payback_months = ue.cac_payback_months;
+    // 999 is the engine's internal "not achieved within horizon" sentinel —
+    // never a real month count. aggregator.ts's calibrateMetric() is metric-
+    // name-agnostic (it never sees "cac_payback_months", just a number), so
+    // it cannot filter this itself; comparing 999 against a real benchmark
+    // median produces a nonsensical "101.1σ above" outlier. Filter here,
+    // the one place that knows what the number means.
+    if (typeof ue?.cac_payback_months === 'number' && ue.cac_payback_months < 999) {
+      metrics.cac_payback_months = ue.cac_payback_months;
+    }
 
     if (typeof fa.startup_investment?.total === 'number') metrics.startup_investment_total = fa.startup_investment.total;
     if (typeof rev === 'number' && Number.isFinite(rev)) metrics.som_year1_revenue = rev * 12;

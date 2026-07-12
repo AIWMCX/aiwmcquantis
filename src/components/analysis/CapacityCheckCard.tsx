@@ -14,6 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCapacityCheck } from '@/hooks/useSpecTier';
 import type { CapacityCheckInput } from '@/services/specTierApi';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 
 const DEFAULTS: CapacityCheckInput = {
   current_monthly_revenue_usd: 25000,
@@ -153,7 +154,10 @@ export function CapacityCheckCard({ parentAnalysisId }: Props) {
             <div>
               <dt className="text-muted-foreground">Payback</dt>
               <dd className="font-mono text-foreground">
-                {result.engagement_economics.payback_period_months.toFixed(1)} mo
+                {formatPaybackDisplay(
+                  result.engagement_economics.payback_period_months,
+                  result.engagement_economics.net_margin_pct,
+                )}
               </dd>
             </div>
           </dl>

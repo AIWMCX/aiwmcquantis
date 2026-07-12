@@ -6,6 +6,11 @@ import { cn } from '@/lib/utils';
 
 function fmt(metric: string, value: number | null): string {
   if (value === null || value === undefined || !Number.isFinite(value)) return '—';
+  // 999 is the engine's internal "not achieved within horizon" sentinel for
+  // any *_months metric (payback/cac_payback) — never a literal month count.
+  // Must never render as a number here, same convention as every other
+  // customer-facing surface (see src/financial/result.ts, BenchmarkCitations.tsx).
+  if (metric.includes('months') && value >= 999) return 'N/A';
   if (metric.includes('pct')) return `${value.toFixed(1)}%`;
   if (metric.includes('ratio')) return `${value.toFixed(2)}x`;
   if (metric.includes('months')) return `${value.toFixed(1)} mo`;
