@@ -249,6 +249,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   // Project payback = months for net profit to recover total startup investment.
   const cacPaybackMonths: number | undefined = result.financial_analysis?.unit_economics?.cac_payback_months;
   const projectPaybackMonths: number = result.financial_analysis?.payback_period_months ?? 99;
+  // Handbook §19 Wave 1 — Contribution Margin & CVP (additive; absent on
+  // older stored analyses generated before this field existed).
+  const cvp = (result.financial_analysis as any)?.cvp as
+    | {
+        contributionMarginRatio: string | null;
+        breakEven: { status: string; breakEvenRevenue: string | null };
+      }
+    | undefined;
   const netProfitForPayback = scenarioMetrics.profit;
 
   return (
@@ -484,8 +492,8 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     explanation="Months for cumulative net profit to recover your full startup investment. Different from CAC payback."
                     numericValue={projectPaybackMonths}
                   />
-                  <SimpleMetricCard 
-                    title="Cash Runway" 
+                  <SimpleMetricCard
+                    title="Cash Runway"
                     value={`${metrics.runway} mo`}
                     variant={metrics.runway >= 12 ? 'success' : metrics.runway >= 6 ? 'warning' : 'danger'}
                     chip={metrics.runway >= 12 ? `${metrics.runway} mo — safe buffer` : `${metrics.runway} mo — tight`}
@@ -494,6 +502,45 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     benchmarkContext={benchmarkContext}
                     numericValue={metrics.runway / 12}
                   />
+                  {/* Handbook §19 Wave 1 — Contribution Margin & CVP.
+                      Every typed status is guarded explicitly: NOT_MEANINGFUL,
+                      NOT_ACHIEVABLE, and INSUFFICIENT_INPUTS all render a
+                      real explanation, never a fabricated number. */}
+                  {cvp && (
+                    <SimpleMetricCard
+                      title="Contribution Margin"
+                      value={cvp.contributionMarginRatio !== null ? `${(Number(cvp.contributionMarginRatio) * 100).toFixed(1)}%` : 'N/A'}
+                      variant={
+                        cvp.contributionMarginRatio === null ? 'standard'
+                          : Number(cvp.contributionMarginRatio) >= 0.4 ? 'success'
+                          : Number(cvp.contributionMarginRatio) >= 0.15 ? 'warning' : 'danger'
+                      }
+                      chip="Before fixed-cost allocation"
+                      explanation="The share of revenue left after variable costs (COGS + marketing), before fixed costs are covered. Not the same as gross margin or net margin."
+                    />
+                  )}
+                  {cvp && cvp.breakEven.status === 'VALUE' && cvp.breakEven.breakEvenRevenue !== null && (
+                    <SimpleMetricCard
+                      title="Break-Even Revenue"
+                      value={`$${Math.round(Number(cvp.breakEven.breakEvenRevenue)).toLocaleString()}/mo`}
+                      variant={metrics.monthlyRevenue >= Number(cvp.breakEven.breakEvenRevenue) ? 'success' : 'warning'}
+                      chip={
+                        metrics.monthlyRevenue >= Number(cvp.breakEven.breakEvenRevenue)
+                          ? `${Math.round((1 - Number(cvp.breakEven.breakEvenRevenue) / Math.max(metrics.monthlyRevenue, 1)) * 100)}% margin of safety`
+                          : 'Below break-even'
+                      }
+                      explanation="Monthly revenue needed to cover all fixed and variable costs at the current cost structure — the point where operating profit is exactly zero."
+                    />
+                  )}
+                  {cvp && cvp.breakEven.status === 'NOT_ACHIEVABLE' && (
+                    <SimpleMetricCard
+                      title="Break-Even Revenue"
+                      value="Not achievable"
+                      variant="danger"
+                      chip="Non-positive contribution margin"
+                      explanation="At the current price and variable-cost structure, contribution margin is zero or negative — no volume of sales would reach break-even without changing price or variable costs first."
+                    />
+                  )}
                 </div>
 
                 {/* Audit Trail Mini-Section */}
@@ -502,7 +549,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   <div className="space-y-2 text-xs text-muted-foreground">
                     <div className="flex justify-between">
                       <span>Benchmark Engine</span>
-                      <span className="font-mono text-foreground">V2 (97,500 benchmarks)</span>
+                      <span className="font-mono text-foreground">V2</span>
                     </div>
                     <div className="flex justify-between">
                       <span>Geo Calibration</span>
@@ -510,14 +557,22 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     </div>
                     <div className="flex justify-between">
                       <span>Reconciliation</span>
-                      <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                      {/* Handbook §19 P0-6/P0-7 (2026-07-12): this was
+                          hardcoded to "✓ Passed" regardless of the actual
+                          report_integrity status — the exact class of bug
+                          fixed everywhere else today. Now reflects it. */}
+                      {(result as any)?.report_integrity === 'BLOCK' ? (
+                        <span className="text-[var(--q-status-red)] font-medium">⚠ Contradiction detected</span>
+                      ) : (
+                        <span className="text-[var(--q-status-green)] font-medium">✓ Passed</span>
+                      )}
                     </div>
                   </div>
                   {/* Benchmark Verification Badge */}
                   <div className="mt-3 p-2.5 rounded-lg border border-primary/20 bg-primary/5 flex items-center gap-2">
                     <ShieldCheck className="w-4 h-4 text-primary shrink-0" />
                     <div>
-                      <p className="text-[11px] font-semibold text-foreground">Verified by 97,500 Benchmarks</p>
+                      <p className="text-[11px] font-semibold text-foreground">Benchmark-matched analysis</p>
                       <p className="text-[10px] text-muted-foreground">V2 engine • 5 tables • real-time calibration</p>
                     </div>
                   </div>
