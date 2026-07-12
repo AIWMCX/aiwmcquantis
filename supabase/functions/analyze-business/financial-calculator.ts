@@ -331,11 +331,42 @@ export function calculateStrictFinancials(
   // 2.4 Total expenses - CRITICAL: Use user-provided costs if available
   let totalExpenses: number;
   let expenseSource: 'user' | 'calculated' = 'calculated';
+  // Reconciled marketing figure used in the returned expense breakdown.
+  // Bug found via Handbook §19 five-analysis audit (2026-07-12): when
+  // userProvidedCosts overrides totalExpenses, the individual `marketing`
+  // sub-component above (computed from newClientsNeeded × cac,
+  // independent of any user override) stayed as-is and was returned
+  // unchanged in `expenses.marketing`. Every downstream consumer that
+  // rebuilds "total expenses" from the breakdown (the scenarios{} block
+  // and the Monthly Operating Expenses PDF table both do, deliberately,
+  // per the "CRITICAL FIX: Calculate expenses from breakdown" comment a
+  // few hundred lines below) then produced a wildly different net profit
+  // than calc.netProfit itself — the exact KPI-card-vs-narrative
+  // contradiction (-$435,944 vs -$8,965) found in the 2026-07-12 audit's
+  // real production report.
+  let reconciledMarketing = marketing;
 
   if (userProvidedCosts && userProvidedCosts > 0) {
     // User provided their own monthly costs - use them directly
     totalExpenses = userProvidedCosts;
     expenseSource = 'user';
+
+    // Reconcile the breakdown to the user-provided total: hold COGS and
+    // fixed costs as-is (both are revenue/location-driven, not
+    // discretionary), and let marketing — the component demonstrably
+    // prone to running away independent of the user's stated total —
+    // absorb the difference. Never negative.
+    const impliedMarketing = userProvidedCosts - cogs - fixedCosts;
+    if (impliedMarketing !== marketing) {
+      reconciledMarketing = Math.max(0, Math.round(impliedMarketing));
+      audit.push({
+        formula: 'Marketing (reconciled) = User_Provided_Costs - COGS - Fixed_Costs',
+        inputs: { 'User Monthly Costs': userProvidedCosts, COGS: cogs, 'Fixed Costs': fixedCosts, 'Engine-computed marketing (unused)': marketing },
+        result: reconciledMarketing,
+        isValid: true,
+        notes: `Engine-computed marketing ($${marketing.toLocaleString()}) was reconciled to $${reconciledMarketing.toLocaleString()} so the expense breakdown sums exactly to the user-provided total, instead of leaking the unreconciled figure into scenarios and reports elsewhere.`
+      });
+    }
 
     audit.push({
       formula: 'Total_Expenses = User_Provided_Costs',
@@ -589,7 +620,7 @@ export function calculateStrictFinancials(
       salaries,
       rent,
       utilities,
-      marketing,
+      marketing: reconciledMarketing,
       other
     },
     cac,

@@ -536,6 +536,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             <section className="q-card p-5 mt-5">
               <BenchmarkCitations
                 context={benchmarkContext}
+                serverRecords={(result.metadata as any)?.benchmarks}
                 metrics={[
                   { label: 'Gross Margin', metric: 'gross_margin', userValue: metrics.grossMargin / 100 },
                   { label: 'Operating Margin', metric: 'operating_margin', userValue: metrics.monthlyRevenue > 0 ? metrics.netProfit / metrics.monthlyRevenue : undefined },

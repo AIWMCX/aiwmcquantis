@@ -21,6 +21,11 @@ import {
   type BenchmarkMetric,
   type BenchmarkResult,
 } from '@/services/benchmark-lookup';
+import {
+  CLIENT_TO_SERVER_METRIC,
+  serverRecordToResult,
+  type ServerBenchmarkRecord,
+} from '@/components/analysis/BenchmarkCitations';
 
 interface PdfBenchmarkRow {
   label: string;
@@ -1706,9 +1711,24 @@ export function usePdfExport() {
         { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
         { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPaybackMonths === 'number' && cacPaybackMonths < 999 ? cacPaybackMonths : undefined },
       ];
+      // P0-5 (Handbook §19, 2026-07-12 audit): prefer the server's own
+      // benchmark match (result.metadata.benchmarks — the same data "Live
+      // Benchmark Block" renders) over a fresh client-side RPC lookup, for
+      // any metric the server covers. Before this fix, the PDF's "Verified
+      // Benchmarks" table always re-queried a separate client-side table
+      // with a different row count, independent of the server's own match
+      // for the same metric — the exact static-vs-live contradiction found
+      // in the July 11 landlord-tenant report.
+      const serverBenchmarks = (meta.benchmarks as ServerBenchmarkRecord[] | undefined) ?? [];
       // Fail-soft benchmark lookups — never let a benchmark network error kill PDF generation
       const benchSettled = await Promise.allSettled(
-        desired.map((d) => lookupBenchmark(d.metric, benchContext))
+        desired.map((d) => {
+          const serverKey = CLIENT_TO_SERVER_METRIC[d.metric] ?? d.metric;
+          const serverRec = serverBenchmarks.find((r) => r.metric === serverKey);
+          return serverRec
+            ? Promise.resolve(serverRecordToResult(serverRec, d.metric))
+            : lookupBenchmark(d.metric, benchContext);
+        })
       );
       const benchmarkRows: PdfBenchmarkRow[] = desired.map((d, i) => ({
         ...d,
