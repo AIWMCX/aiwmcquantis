@@ -24,9 +24,19 @@ interface ConfidenceIndicatorProps {
   score: number;
   breakdown?: ConfidenceBreakdown;
   suggestions?: string[];
+  /**
+   * Handbook §19 P0-6/P0-7 (2026-07-12 CTO-verdict audit): distinct from
+   * `score` (input-coverage grading) on purpose — a report can have decent
+   * input coverage yet still fail internal reconciliation (e.g. a
+   * scenario where revenue rises but profit falls with no driver
+   * explanation). `score` alone cannot express that; this can. Must
+   * always render alongside score, never be concealed by it.
+   */
+  reportIntegrity?: 'PASS' | 'BLOCK';
+  reportIntegrityIssues?: Array<{ code: string; message: string }>;
 }
 
-export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ score, breakdown, suggestions }: ConfidenceIndicatorProps) {
+export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ score, breakdown, suggestions, reportIntegrity, reportIntegrityIssues }: ConfidenceIndicatorProps) {
   const [showBreakdown, setShowBreakdown] = useState(false);
 
   const getScoreConfig = (s: number) => {
@@ -83,13 +93,26 @@ export const ConfidenceIndicator = React.memo(function ConfidenceIndicator({ sco
               <Icon className={cn("w-5 h-5", config.color)} />
             </div>
             <div className="flex-1">
-              <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <CardTitle className="text-base font-semibold flex items-center gap-2 flex-wrap">
                 Analysis Reliability
                 <Badge variant="outline" className={cn("text-sm font-bold", config.border, config.color)}>
                   {score}%
                 </Badge>
+                {reportIntegrity === 'BLOCK' && (
+                  <Badge variant="outline" className="text-sm font-bold border-destructive/50 text-destructive bg-destructive/10">
+                    <AlertCircle className="w-3.5 h-3.5 mr-1" />
+                    Report Integrity: BLOCK
+                  </Badge>
+                )}
               </CardTitle>
               <p className="text-sm text-muted-foreground mt-1">{config.description}</p>
+              {reportIntegrity === 'BLOCK' && reportIntegrityIssues && reportIntegrityIssues.length > 0 && (
+                <p className="text-sm text-destructive mt-1">
+                  {reportIntegrityIssues.length === 1
+                    ? reportIntegrityIssues[0].message
+                    : `${reportIntegrityIssues.length} internal contradictions detected — see scenario analysis for details.`}
+                </p>
+              )}
             </div>
           </div>
 

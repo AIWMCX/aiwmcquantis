@@ -505,7 +505,13 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               <AnomalyCard anomalyCard={result.market_prior.anomaly_card} peerGroupLabel={result.market_prior.peer_group_label} />
             )}
             <SCOREComplianceBadge compliance={result.score_compliance} />
-            <ConfidenceIndicator score={result.confidence_score} breakdown={result.validation?.confidence_breakdown} suggestions={result.validation?.improvement_suggestions} />
+            <ConfidenceIndicator
+              score={result.confidence_score}
+              breakdown={result.validation?.confidence_breakdown}
+              suggestions={result.validation?.improvement_suggestions}
+              reportIntegrity={(result as any).report_integrity}
+              reportIntegrityIssues={(result as any).report_integrity_issues}
+            />
             {result.validation && <ValidationSection validation={result.validation} />}
             {result.sanity_flags && result.sanity_flags.length > 0 && (
               <div className="space-y-2">

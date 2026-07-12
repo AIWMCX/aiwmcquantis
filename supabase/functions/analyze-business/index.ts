@@ -1678,6 +1678,14 @@ function transformResponse(
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
+  // Handbook §19 P0-6/P0-7 (2026-07-12 CTO-verdict audit): scenario
+  // contradictions were detected and logged (server console only) but
+  // never surfaced on the report itself, and confidence_score had no
+  // awareness of them at all — the exact "95% confidence next to a
+  // detected contradiction" finding from the July 11 report. Set inside
+  // the scenarios{} IIFE below; read here at confidence-scoring time,
+  // both within this same transformResponse() function scope.
+  let scenarioContradictions: Array<{ code: string; message: string }> = [];
   const sources = Array.isArray(raw.sources)
     ? raw.sources.map((s: unknown) => String(s).trim()).filter(Boolean)
     : (typeof raw.sources === 'string' && raw.sources.trim().length > 0)
@@ -1861,13 +1869,16 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
 
         // Handbook §19 Wave 2 (item 5) — detect a scenario where revenue moves
         // one direction but net profit moves the other, with no driver
-        // explanation attached. Logged only: does not block the request or
-        // alter the numbers. Hard-blocking would need a documented driver
-        // explanation per scenario (Handbook §9.1), which is a narrative-
-        // generation feature, not an engine-level change — deferred pending
-        // that scope and product sign-off on rejecting live user requests.
+        // explanation attached. Does not block the request or alter the
+        // numbers (a documented driver explanation per scenario, Handbook
+        // §9.1, is a narrative-generation feature, not an engine-level
+        // change — deferred pending that scope and product sign-off on
+        // rejecting live user requests). But per P0-6/P0-7, it must no
+        // longer be silent: it's now surfaced on the report itself and
+        // caps the confidence score below.
         try {
           const monotonicityIssues = checkScenarioMonotonicity(builtScenarios);
+          scenarioContradictions = monotonicityIssues;
           for (const issue of monotonicityIssues) {
             log.warn(`⚠️ Scenario monotonicity [${issue.code}]: ${issue.message}`);
           }
@@ -3640,7 +3651,21 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // actually justifies; fall back to the local calc only when the
     // Quantis 2.0 engine did not run.
     result.confidence_score = quantisOutput ? quantisOutput.validation.reliabilityScore : reliabilityScore;
-    
+
+    // Handbook §19 P0-6/P0-7 (2026-07-12 CTO-verdict audit): "A report with
+    // a BLOCK contradiction may not display a green confidence score
+    // without an equally prominent integrity failure." report_integrity is
+    // a status distinct from confidence_score (input-coverage grading) —
+    // one can never visually conceal the other. When a contradiction is
+    // detected, confidence_score is also capped so the headline number
+    // itself can't imply false precision on a report with a known internal
+    // disagreement.
+    (result as Record<string, unknown>).report_integrity = scenarioContradictions.length > 0 ? 'BLOCK' : 'PASS';
+    (result as Record<string, unknown>).report_integrity_issues = scenarioContradictions;
+    if (scenarioContradictions.length > 0) {
+      result.confidence_score = Math.min(result.confidence_score, 50);
+    }
+
     log.info(`Done. Profit: $${calc.netProfit}. Industry: ${calc.industryDetected}. Corrections: ${calc.corrections.length}. Reliability: ${reliabilityScore}%`);
 
     // ========== RECORD USAGE ==========
