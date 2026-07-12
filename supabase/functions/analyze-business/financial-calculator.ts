@@ -93,7 +93,10 @@ export function calculateStrictFinancials(
 
   // ===== ENHANCED: Apply sub-industry modifiers to benchmarks =====
   let effectiveBenchmarks = { ...benchmarks };
-  let effectiveChurnRate = userProvidedChurnRate || 0.08; // Default 8% monthly
+  // Bug found via Handbook §19 five-analysis audit (2026-07-12): `|| 0.08`
+  // treats an explicit churn rate of exactly 0 as falsy and silently
+  // overrides it with the 8% default. `??` only falls back on null/undefined.
+  let effectiveChurnRate = userProvidedChurnRate ?? 0.08; // Default 8% monthly
 
   if (subIndustry && subIndustry.confidence > 50) {
     const modified = applySubIndustryModifiers(
@@ -118,8 +121,10 @@ export function calculateStrictFinancials(
       net_margin_max: modified.net_margin_max,
     };
 
-    // Use sub-industry churn rate if user didn't provide one
-    if (!userProvidedChurnRate) {
+    // Use sub-industry churn rate if user didn't provide one. Same `||` bug
+    // as above would apply here too: `!0` is true, so an explicit 0 churn
+    // rate must be checked with typeof, not falsy-coercion.
+    if (typeof userProvidedChurnRate !== 'number') {
       effectiveChurnRate = getSubIndustryChurnRate(subIndustry);
     }
 

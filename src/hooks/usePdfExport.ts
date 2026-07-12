@@ -1691,12 +1691,20 @@ export function usePdfExport() {
       const netProfit = fin?.scenarios?.base?.net_profit ?? fin?.monthly_profit ?? 0;
       const grossMargin = fin?.scenarios?.base?.gross_margin;
       const ltvCac = fin?.unit_economics?.ltv_cac_ratio;
-      const cacPayback = fin?.payback_period_months ?? fin?.returns?.payback_period_months;
+      // Bug found via Handbook §19 five-analysis audit (2026-07-12): this was
+      // reading fin.payback_period_months (INVESTMENT payback) into a
+      // variable named cacPayback, then labeling it "CAC Payback" for the
+      // benchmark lookup below — the wrong metric under the wrong label.
+      // Also had no guard against the 999 sentinel, so an unavailable
+      // investment payback rendered as "999 mo · Engine fallback" in the
+      // Benchmark Citations PDF page even though the Unit Economics section
+      // on the same report correctly showed "N/A (unprofitable)".
+      const cacPaybackMonths = fin?.unit_economics?.cac_payback_months;
       const desired: Array<{ label: string; metric: BenchmarkMetric; userValue?: number }> = [
         { label: 'Gross Margin', metric: 'gross_margin', userValue: typeof grossMargin === 'number' ? (grossMargin > 1 ? grossMargin / 100 : grossMargin) : undefined },
         { label: 'Operating Margin', metric: 'operating_margin', userValue: monthlyRev > 0 ? netProfit / monthlyRev : undefined },
         { label: 'LTV : CAC', metric: 'ltv_cac_ratio', userValue: typeof ltvCac === 'number' ? ltvCac : undefined },
-        { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPayback === 'number' ? cacPayback : undefined },
+        { label: 'CAC Payback', metric: 'cac_payback', userValue: typeof cacPaybackMonths === 'number' && cacPaybackMonths < 999 ? cacPaybackMonths : undefined },
       ];
       // Fail-soft benchmark lookups — never let a benchmark network error kill PDF generation
       const benchSettled = await Promise.allSettled(

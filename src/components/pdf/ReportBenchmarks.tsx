@@ -50,6 +50,10 @@ const LABELS: Record<string, string> = {
 
 function fmt(v: number | null, unit: Rec['unit']): string {
   if (v === null || !Number.isFinite(v)) return '—';
+  // Same class of leak found and fixed elsewhere in the Handbook §19
+  // five-analysis audit (2026-07-12): 999 is the engine's internal
+  // "not achieved within horizon" sentinel, never a real month count.
+  if (unit === 'months' && v >= 999) return 'N/A';
   if (unit === 'percent')
     return Math.abs(v) <= 1.5 ? `${(v * 100).toFixed(1)}%` : `${v.toFixed(1)}%`;
   if (unit === 'months') return `${v.toFixed(1)} mo`;
