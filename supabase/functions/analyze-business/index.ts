@@ -1913,6 +1913,9 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       // safety, degree of operating leverage — every field typed, no
       // sentinels, no silent floor-guards hiding an unachievable break-even.
       cvp: calc.cvp,
+      // Handbook §19 Wave 2 — Profitability Margins
+      // (docs/WAVE2_PROFITABILITY_RATIOS_FORMULA_CONTRACT_2026-07-12.md).
+      profitability_margins: calc.profitabilityMargins,
       breakeven: {
         breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
         breakeven_revenue: calc.breakEvenRevenue,

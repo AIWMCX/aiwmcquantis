@@ -17,6 +17,7 @@ import { QMath } from "./quantis-math-server.ts";
 import { createLogger } from "../_shared/logger.ts";
 import { calculateInvestmentPayback, type MonthsMetricResult } from "./payback-contract.ts";
 import { calculateCvp, type CvpResult } from "./contribution-margin.ts";
+import { calculateProfitabilityMargins, type ProfitabilityMarginsResult } from "./profitability-margins.ts";
 import type { IndustryBenchmarks } from "./index.ts";
 
 const log = createLogger('analyze-business', 'financial-calculator');
@@ -58,6 +59,7 @@ export interface StrictFinancialResult {
   breakEvenRevenue: number;
   revenueFor45kProfit: number;
   cvp: CvpResult;
+  profitabilityMargins: ProfitabilityMarginsResult;
   npv3Years?: number;
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
@@ -642,6 +644,19 @@ export function calculateStrictFinancials(
     );
   }
 
+  // Handbook §19 Wave 2 — Profitability Margins (docs/WAVE2_PROFITABILITY_
+  // RATIOS_FORMULA_CONTRACT_2026-07-12.md). operatingIncome/netIncome are
+  // both finalNetProfit today — this engine has no separate D&A/interest/
+  // tax layer yet, documented explicitly in the contract rather than
+  // silently presenting two independently-computed numbers that happen to
+  // coincide.
+  const profitabilityMarginsResult: ProfitabilityMarginsResult = calculateProfitabilityMargins({
+    revenue: String(mrr),
+    cogs: String(cogs),
+    operatingIncome: String(finalNetProfit),
+    netIncome: String(finalNetProfit),
+  });
+
   return {
     mrr,
     totalExpenses: finalTotalExpenses,
@@ -672,6 +687,7 @@ export function calculateStrictFinancials(
     breakEvenRevenue,
     revenueFor45kProfit,
     cvp: cvpResult,
+    profitabilityMargins: profitabilityMarginsResult,
     isProfitable: finalNetProfit > 0,
     corrections,
     audit,

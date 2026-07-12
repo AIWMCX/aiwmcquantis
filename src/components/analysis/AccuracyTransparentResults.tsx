@@ -257,6 +257,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
         breakEven: { status: string; breakEvenRevenue: string | null };
       }
     | undefined;
+  // Handbook §19 Wave 2 — Profitability Margins (additive; absent on older
+  // stored analyses generated before this field existed).
+  const profitabilityMargins = (result.financial_analysis as any)?.profitability_margins as
+    | {
+        operatingEqualsNetIncome: boolean;
+        netMargin: { status: string; value: string | null };
+      }
+    | undefined;
   const netProfitForPayback = scenarioMetrics.profit;
 
   return (
@@ -539,6 +547,20 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                       variant="danger"
                       chip="Non-positive contribution margin"
                       explanation="At the current price and variable-cost structure, contribution margin is zero or negative — no volume of sales would reach break-even without changing price or variable costs first."
+                    />
+                  )}
+                  {/* Handbook §19 Wave 2 — Profitability Margins. */}
+                  {profitabilityMargins && profitabilityMargins.netMargin.status === 'VALUE' && profitabilityMargins.netMargin.value !== null && (
+                    <SimpleMetricCard
+                      title="Net Margin"
+                      value={`${(Number(profitabilityMargins.netMargin.value) * 100).toFixed(1)}%`}
+                      variant={Number(profitabilityMargins.netMargin.value) >= 0.1 ? 'success' : Number(profitabilityMargins.netMargin.value) >= 0 ? 'warning' : 'danger'}
+                      chip={
+                        profitabilityMargins.operatingEqualsNetIncome
+                          ? 'Same as operating margin (no D&A/interest modeled yet)'
+                          : undefined
+                      }
+                      explanation="Net income as a share of revenue — what's left after every cost, at every level of the P&L."
                     />
                   )}
                 </div>
