@@ -4187,6 +4187,39 @@ export type Database = {
           },
         ]
       }
+      pending_plan_grants: {
+        Row: {
+          created_at: string
+          duration_days: number
+          email: string
+          granted_at: string | null
+          granted_user_id: string | null
+          id: string
+          note: string | null
+          plan_id: string
+        }
+        Insert: {
+          created_at?: string
+          duration_days?: number
+          email: string
+          granted_at?: string | null
+          granted_user_id?: string | null
+          id?: string
+          note?: string | null
+          plan_id: string
+        }
+        Update: {
+          created_at?: string
+          duration_days?: number
+          email?: string
+          granted_at?: string | null
+          granted_user_id?: string | null
+          id?: string
+          note?: string | null
+          plan_id?: string
+        }
+        Relationships: []
+      }
       plan_entitlements: {
         Row: {
           features: Json
