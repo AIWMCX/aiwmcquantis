@@ -335,12 +335,27 @@ serve(async (req) => {
       ].filter(Boolean) as string[]
     );
 
-    function planFromSubscription(sub: Stripe.Subscription): "plus" | "pro" {
+    // QNT-P0-008: an unrecognized price must never silently provision a paid
+    // tier. Only prices we can explicitly attribute to Plus are accepted;
+    // everything else (including a genuinely unknown/future price) returns
+    // null so the caller fails closed instead of defaulting to "plus".
+    const PLUS_PRICE_IDS = new Set<string>(
+      [
+        Deno.env.get("STRIPE_PLUS_MONTHLY_PRICE_ID"),
+        Deno.env.get("STRIPE_PLUS_PRICE_ID"),
+        Deno.env.get("STRIPE_PLUS_ANNUAL_PRICE_ID"),
+      ].filter(Boolean) as string[]
+    );
+
+    function planFromSubscription(sub: Stripe.Subscription): "plus" | "pro" | null {
       const priceId = sub.items?.data?.[0]?.price?.id;
       if (priceId && PRO_PRICE_IDS.has(priceId)) {
         return "pro";
       }
-      return "plus"; // default for legacy + Plus prices
+      if (priceId && PLUS_PRICE_IDS.has(priceId)) {
+        return "plus";
+      }
+      return null; // unrecognized price — fail closed, never grant a tier
     }
 
     switch (event.type) {
@@ -394,7 +409,16 @@ serve(async (req) => {
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
-        log.info(`[${requestId}] Determined plan: ${plan} (price: ${(subscription as any).items?.data?.[0]?.price?.id})`);
+        const checkoutPriceId = (subscription as any).items?.data?.[0]?.price?.id;
+        log.info(`[${requestId}] Determined plan: ${plan} (price: ${checkoutPriceId})`);
+
+        if (!plan) {
+          log.error(`[${requestId}] QNT-P0-008: unrecognized Stripe price "${checkoutPriceId}" on checkout.session.completed for subscription ${subscriptionId} — refusing to provision any tier. Incident logged, no entitlement granted.`);
+          return new Response(
+            JSON.stringify({ received: true, error: "unrecognized_price_no_provision", event_id: event.id }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
         // Map status
         let status = "active";
@@ -478,6 +502,14 @@ serve(async (req) => {
 
         // Map Stripe Price ID → correct plan (plus or pro)
         const plan = planFromSubscription(subscription);
+        if (!plan) {
+          const updatePriceId = (subscription as any).items?.data?.[0]?.price?.id;
+          log.error(`[${requestId}] QNT-P0-008: unrecognized Stripe price "${updatePriceId}" on customer.subscription.updated for subscription ${(subscription as any).id} — refusing to change plan_id. Incident logged, entitlement left untouched.`);
+          return new Response(
+            JSON.stringify({ received: true, error: "unrecognized_price_no_provision", event_id: event.id }),
+            { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+          );
+        }
 
         let status = "active";
         if ((subscription as any).status === "canceled") {
@@ -692,6 +724,14 @@ serve(async (req) => {
           
           // Map Stripe Price ID → correct plan (plus or pro)
           const plan = planFromSubscription(subscription);
+          if (!plan) {
+            const invoicePriceId = (subscription as any).items?.data?.[0]?.price?.id;
+            log.error(`[${requestId}] QNT-P0-008: unrecognized Stripe price "${invoicePriceId}" on invoice.paid for subscription ${(subscription as any).id} — payment succeeded but refusing to provision any tier. Incident logged, requires manual review.`);
+            return new Response(
+              JSON.stringify({ received: true, error: "unrecognized_price_no_provision", event_id: event.id }),
+              { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+            );
+          }
           const status = (subscription as any).status === "active" || (subscription as any).status === "trialing" ? "active" : (subscription as any).status;
 
           log.info(`[${requestId}] 💰 PAID INVOICE - Ensuring Plus access for subscription ${(subscription as any).id}`);
