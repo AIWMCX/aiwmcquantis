@@ -1,0 +1,4 @@
+
+ALTER TABLE public.export_jobs
+  ADD COLUMN IF NOT EXISTS filename TEXT,
+  ADD COLUMN IF NOT EXISTS kind TEXT;

@@ -3415,8 +3415,10 @@ export type Database = {
           created_at: string | null
           error_message: string | null
           file_url: string | null
+          filename: string | null
           id: string
           idempotency_key: string | null
+          kind: string | null
           status: string
           user_id: string
         }
@@ -3426,8 +3428,10 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           file_url?: string | null
+          filename?: string | null
           id?: string
           idempotency_key?: string | null
+          kind?: string | null
           status?: string
           user_id: string
         }
@@ -3437,8 +3441,10 @@ export type Database = {
           created_at?: string | null
           error_message?: string | null
           file_url?: string | null
+          filename?: string | null
           id?: string
           idempotency_key?: string | null
+          kind?: string | null
           status?: string
           user_id?: string
         }
