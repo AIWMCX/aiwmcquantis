@@ -1,17 +1,56 @@
 // AIWMC Quantis — Content Studio (admin-only)
 // ---------------------------------------------------------------------------
-// Generates viral, human-natural, platform-optimized social posts using
-// Lovable AI Gateway. Admin-only (verified via JWT + has_role).
+// Generates viral, human-natural, platform-optimized social posts.
 //
-// Returns one variant per requested platform, plus optional image prompts.
-// Persists to `content_studio_generations` when save=true.
+// Provider priority: DeepSeek (free-tier, primary) -> Anthropic (hard
+// fallback, only if DeepSeek fails AND ANTHROPIC_API_KEY is set) -> Lovable
+// AI Gateway (legacy, last resort, only if neither of the above is
+// configured). This was previously hardcoded to Lovable-only — the one
+// generation path in the repo not already DeepSeek-first (analyze-business
+// and ai-narrator both prioritize DeepSeek via _shared/llm-call.ts).
+//
+// Deliberately self-contained rather than importing _shared/llm-call.ts:
+// that module also pulls in tier-spec.ts/prompts.ts (~900 lines) built for
+// the tiered customer-analysis flow, which this admin tool doesn't need.
+//
+// To add a new free-tier provider (e.g. GLM/Zhipu) tomorrow: add its base
+// URL + key lookup to PROVIDERS below, ahead of 'lovable' — same shape,
+// same fetch pattern, no other changes needed.
 // ---------------------------------------------------------------------------
 import { corsHeaders } from 'npm:@supabase/supabase-js@2/cors';
 import { createClient } from 'npm:@supabase/supabase-js@2';
 
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SERVICE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-const LOVABLE_API_KEY = Deno.env.get('LOVABLE_API_KEY')!;
+
+interface Provider {
+  name: string;
+  url: string;
+  apiKey: string;
+  /** Model name to send. Provider-native model names don't transfer across
+   *  providers (e.g. "gpt-5" is meaningless to DeepSeek), so each provider
+   *  gets its own default rather than passing the frontend's choice through. */
+  defaultModel: string;
+}
+
+function resolveProvider(): Provider | null {
+  const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (deepseekKey) {
+    return { name: 'deepseek', url: 'https://api.deepseek.com/v1/chat/completions', apiKey: deepseekKey, defaultModel: 'deepseek-v4-flash' };
+  }
+  // GLM/Zhipu slot — add here tomorrow:
+  // const glmKey = Deno.env.get('GLM_API_KEY');
+  // if (glmKey) return { name: 'glm', url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', apiKey: glmKey, defaultModel: 'glm-4-flash' };
+  const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
+  if (anthropicKey) {
+    return { name: 'anthropic', url: 'https://api.anthropic.com/v1/messages', apiKey: anthropicKey, defaultModel: 'claude-haiku-4-5-20251001' };
+  }
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+  if (lovableKey) {
+    return { name: 'lovable', url: 'https://ai.gateway.lovable.dev/v1/chat/completions', apiKey: lovableKey, defaultModel: 'google/gemini-3-flash-preview' };
+  }
+  return null;
+}
 
 const PLATFORMS = ['linkedin', 'twitter', 'facebook', 'instagram', 'threads', 'reddit'] as const;
 type Platform = typeof PLATFORMS[number];
@@ -84,75 +123,16 @@ function buildUserPrompt(opts: {
   ].filter(Boolean).join('\n');
 }
 
-async function callGatewayOnce(model: string, system: string, user: string, useJsonFormat: boolean) {
-  const body: Record<string, unknown> = {
-    model,
-    messages: [
-      { role: 'system', content: system },
-      { role: 'user', content: user },
-    ],
-    temperature: 0.85,
-  };
-  if (useJsonFormat) body.response_format = { type: 'json_object' };
-  const res = await fetch('https://ai.gateway.lovable.dev/v1/chat/completions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${LOVABLE_API_KEY}` },
-    body: JSON.stringify(body),
-  });
-  if (res.status === 429) throw new Error('RATE_LIMIT: AI gateway rate-limited. Try again in a moment.');
-  if (res.status === 402) throw new Error('CREDITS: AI credits exhausted. Add credits in workspace settings.');
-  if (!res.ok) throw new Error(`Gateway ${res.status}: ${(await res.text()).slice(0, 400)}`);
-  const json = await res.json();
-  const choice = json?.choices?.[0];
-  const content: string = choice?.message?.content ?? '';
-  const finish = choice?.finish_reason ?? 'unknown';
-  return { content, finish };
-}
-
 function extractJson(text: string): unknown | null {
   if (!text) return null;
   const cleaned = text.replace(/```json\s*|```\s*/g, '').trim();
-  try { return JSON.parse(cleaned); } catch {}
+  try { return JSON.parse(cleaned); } catch { /* fall through */ }
   const start = cleaned.indexOf('{');
   const end = cleaned.lastIndexOf('}');
   if (start >= 0 && end > start) {
-    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch {}
+    try { return JSON.parse(cleaned.slice(start, end + 1)); } catch { /* fall through */ }
   }
   return null;
-}
-
-async function callGateway(model: string, system: string, user: string) {
-  // Attempt 1: requested model with json_object format
-  let last: { content: string; finish: string } = { content: '', finish: 'none' };
-  try {
-    last = await callGatewayOnce(model, system, user, true);
-    const parsed = extractJson(last.content);
-    if (parsed) return parsed;
-  } catch (e) {
-    // If non-credits/rate error, fall through to retry
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.startsWith('RATE_LIMIT') || msg.startsWith('CREDITS')) throw e;
-    console.error('[content-studio] primary call failed:', msg);
-  }
-
-  // Attempt 2: same model without response_format (some models reject it / return empty)
-  try {
-    last = await callGatewayOnce(model, system, user + '\n\nReturn ONLY raw JSON, no fences, no prose.', false);
-    const parsed = extractJson(last.content);
-    if (parsed) return parsed;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    if (msg.startsWith('RATE_LIMIT') || msg.startsWith('CREDITS')) throw e;
-    console.error('[content-studio] retry-no-format failed:', msg);
-  }
-
-  // Attempt 3: stable fallback model
-  const fallback = 'google/gemini-2.5-flash';
-  last = await callGatewayOnce(fallback, system, user + '\n\nReturn ONLY raw JSON.', true);
-  const parsed = extractJson(last.content);
-  if (parsed) return parsed;
-
-  throw new Error(`Empty model response (finish_reason=${last.finish}). Try a shorter topic or fewer platforms.`);
 }
 
 Deno.serve(async (req) => {
@@ -192,7 +172,11 @@ Deno.serve(async (req) => {
       language: String(body.language ?? 'en'),
     };
 
-    const model = String(body.model ?? 'google/gemini-3-flash-preview');
+    const provider = resolveProvider();
+    if (!provider) {
+      return j({ error: 'No AI provider configured. Set DEEPSEEK_API_KEY in Supabase secrets.' }, 500);
+    }
+
     const system = buildSystemPrompt(opts);
     const userPrompt = buildUserPrompt({
       topic,
@@ -203,10 +187,71 @@ Deno.serve(async (req) => {
     });
 
     const t0 = Date.now();
-    const result = await callGateway(model, system, userPrompt);
+    let rawContent: string;
+    try {
+      if (provider.name === 'anthropic') {
+        const res = await fetch(provider.url, {
+          method: 'POST',
+          headers: {
+            'x-api-key': provider.apiKey,
+            'anthropic-version': '2023-06-01',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: provider.defaultModel,
+            max_tokens: 2048,
+            system: `${system}\n\nRespond with ONLY a single valid JSON object. No markdown, no commentary, no code fences.`,
+            messages: [{ role: 'user', content: userPrompt }],
+            temperature: 0.85,
+          }),
+        });
+        if (!res.ok) return j({ error: `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}` }, 502);
+        const data = await res.json();
+        const parts = (data?.content as Array<{ type: string; text?: string }> | undefined) ?? [];
+        rawContent = parts.filter((p) => p.type === 'text').map((p) => p.text ?? '').join('');
+      } else {
+        // OpenAI-compatible shape (DeepSeek, GLM, Lovable gateway).
+        const res = await fetch(provider.url, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${provider.apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: provider.defaultModel,
+            messages: [
+              { role: 'system', content: system },
+              { role: 'user', content: userPrompt },
+            ],
+            temperature: 0.85,
+            response_format: { type: 'json_object' },
+          }),
+        });
+        if (res.status === 429) return j({ error: `${provider.name} rate-limited. Try again in a moment.` }, 429);
+        if (!res.ok) return j({ error: `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}` }, 502);
+        const data = await res.json();
+        rawContent = data?.choices?.[0]?.message?.content ?? '';
+      }
+    } catch (e) {
+      return j({ error: `${provider.name} unreachable: ${e instanceof Error ? e.message : String(e)}` }, 502);
+    }
     const elapsed_ms = Date.now() - t0;
 
-    const variants = result?.variants ?? {};
+    const parsed = extractJson(rawContent) as { variants?: unknown } | null;
+    if (!parsed) {
+      return j({ error: 'Model returned invalid JSON. Try a shorter topic or fewer platforms.' }, 502);
+    }
+
+    const variants = parsed.variants ?? {};
+    const modelUsed = `${provider.name}:${provider.defaultModel}`;
+
+    // Best-effort cost/provider telemetry — never blocks generation on failure.
+    void supaSvc.from('ai_calls').insert({
+      user_id: user.id,
+      task: 'content-studio-generate',
+      provider: provider.name === 'lovable' ? 'lovable_gateway' : provider.name,
+      model: modelUsed,
+      latency_ms: Math.round(elapsed_ms),
+      ok: true,
+    }).then(undefined, () => {});
+
     if (body.save !== false) {
       await supaSvc.from('content_studio_generations').insert({
         created_by: user.id,
@@ -220,16 +265,15 @@ Deno.serve(async (req) => {
         hashtags_enabled: opts.hashtags,
         emoji_enabled: opts.emoji,
         language: opts.language,
-        model,
+        model: modelUsed,
         variants,
         meta: { elapsed_ms },
       });
     }
 
-    return j({ ok: true, variants, model, elapsed_ms });
+    return j({ ok: true, variants, model: modelUsed, elapsed_ms });
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
-    const status = msg.startsWith('RATE_LIMIT') ? 429 : msg.startsWith('CREDITS') ? 402 : 500;
-    return j({ error: msg }, status);
+    return j({ error: msg }, 500);
   }
 });

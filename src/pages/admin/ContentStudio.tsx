@@ -76,7 +76,7 @@ export default function ContentStudio() {
   ]);
   const [hashtagsEnabled, setHashtagsEnabled] = useState(true);
   const [emojiEnabled, setEmojiEnabled] = useState(true);
-  const [model, setModel] = useState('google/gemini-3-flash-preview');
+  const [model, setModel] = useState('deepseek-v4-flash');
 
   const [generating, setGenerating] = useState(false);
   const [variants, setVariants] = useState<Record<string, Variant> | null>(null);
@@ -260,10 +260,7 @@ export default function ContentStudio() {
               <Select value={model} onValueChange={setModel}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="google/gemini-3-flash-preview">Gemini 3 Flash (default, fast)</SelectItem>
-                  <SelectItem value="google/gemini-2.5-pro">Gemini 2.5 Pro (deepest)</SelectItem>
-                  <SelectItem value="openai/gpt-5">GPT-5 (alternative voice)</SelectItem>
-                  <SelectItem value="openai/gpt-5-mini">GPT-5 mini (cheap)</SelectItem>
+                  <SelectItem value="deepseek-v4-flash">DeepSeek v4 Flash (default, free-tier)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

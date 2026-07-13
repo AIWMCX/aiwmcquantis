@@ -373,13 +373,23 @@ interface RecordArgs {
   skip?: boolean;
 }
 
+/** Derives the actual provider used from the model string, for accurate cost
+ *  telemetry. Previously this was hardcoded to 'lovable_gateway' regardless
+ *  of which backend actually served the request — meaning every DeepSeek
+ *  call (the primary path since the Lovable migration) was mislabeled. */
+function providerFromModel(model: string): 'deepseek' | 'anthropic' | 'lovable_gateway' {
+  if (model.startsWith('anthropic:') || model.startsWith('claude-')) return 'anthropic';
+  if (model.startsWith('deepseek')) return 'deepseek';
+  return 'lovable_gateway';
+}
+
 async function recordAiCall(args: RecordArgs): Promise<void> {
   if (args.skip) return;
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
   try {
     const row = {
       task: args.task,
-      provider: 'lovable_gateway',
+      provider: providerFromModel(args.model),
       model: args.model,
       input_tokens: args.inputTokens,
       output_tokens: args.outputTokens,
