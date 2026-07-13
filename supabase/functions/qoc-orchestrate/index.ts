@@ -11,6 +11,7 @@ import { orchestrate } from "./qoc/orchestrator.ts";
 import { httpStatusFor } from "./qoc/policies.ts";
 import { makeDeps } from "./adapters.ts";
 import type { AnalysisRequest, Plan } from "./qoc/types.ts";
+import { corsHeadersFor } from "../_shared/cors.ts";
 
 // deno-lint-ignore no-explicit-any
 const Deno: any = (globalThis as any).Deno;
@@ -22,16 +23,17 @@ const FUNCTION_NAME = "qoc-orchestrate";
 const FUNCTION_VERSION = "1.1.0";
 const BUILD_DEPLOYED_AT = new Date().toISOString();
 
-const cors = {
-  "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+// QNT security: origin-scoped CORS, not a wildcard. Every function in this
+// repo should call corsHeadersFor(req) — this one previously hardcoded
+// Access-Control-Allow-Origin: "*", inconsistent with the rest of the codebase.
+const STATIC_METHOD_HEADERS = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-function json(body: unknown, status = 200) {
+function json(body: unknown, status = 200, corsHeaders: Record<string, string> = {}) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: { ...cors, "content-type": "application/json" },
+    headers: { ...corsHeaders, ...STATIC_METHOD_HEADERS, "content-type": "application/json" },
   });
 }
 
@@ -61,14 +63,16 @@ async function resolveCallerPlan(
 
 // deno-lint-ignore no-explicit-any
 (globalThis as any).Deno?.serve?.(async (httpReq: Request) => {
-  if (httpReq.method === "OPTIONS") return new Response("ok", { headers: cors });
+  const dynamicCors = { ...corsHeadersFor(httpReq), ...STATIC_METHOD_HEADERS };
+  const respond = (body: unknown, status = 200) => json(body, status, dynamicCors);
+  if (httpReq.method === "OPTIONS") return new Response("ok", { headers: dynamicCors });
 
   // Health/version probe — GET ?health=1 returns deploy metadata that
   // scripts/verify-deploy.sh compares against source. Auth-free so an
   // unauthenticated curl can verify the live deployment.
   const url = new URL(httpReq.url);
   if (httpReq.method === "GET" && url.searchParams.get("health") === "1") {
-    return json({
+    return respond({
       function: FUNCTION_NAME,
       version: FUNCTION_VERSION,
       deployed_at: BUILD_DEPLOYED_AT,
@@ -76,13 +80,13 @@ async function resolveCallerPlan(
     });
   }
 
-  if (httpReq.method !== "POST") return json({ error: "method_not_allowed" }, 405);
+  if (httpReq.method !== "POST") return respond({ error: "method_not_allowed" }, 405);
 
   let body: Partial<AnalysisRequest>;
   try {
     body = await httpReq.json();
   } catch {
-    return json({ error: "invalid_json" }, 400);
+    return respond({ error: "invalid_json" }, 400);
   }
 
   // --- Auth: resolve the user from the bearer token (RLS-safe) --------------
@@ -94,7 +98,7 @@ async function resolveCallerPlan(
   );
   const { data: userData } = await sb.auth.getUser();
   const user_id = userData?.user?.id;
-  if (!user_id) return json({ error: "unauthorized" }, 401);
+  if (!user_id) return respond({ error: "unauthorized" }, 401);
 
   // Plan is DB-truth, never client-truth. This closes the F11 tier-leak:
   // a forged {plan:"pro"} in the request body used to reach the narrate
@@ -125,7 +129,7 @@ async function resolveCallerPlan(
     const field = ideaLen > 20_000 ? "idea" : "location";
     const limit = field === "idea" ? 20_000 : 200;
     const actual = field === "idea" ? ideaLen : locLen;
-    return json({
+    return respond({
       error: "input_too_long",
       field,
       limit,
@@ -146,8 +150,8 @@ async function resolveCallerPlan(
 
   try {
     const envelope = await orchestrate(req, patchedDeps);
-    return json(envelope, httpStatusFor(envelope));
+    return respond(envelope, httpStatusFor(envelope));
   } catch (e) {
-    return json({ error: "orchestrator_error", detail: String((e as Error)?.message ?? e) }, 500);
+    return respond({ error: "orchestrator_error", detail: String((e as Error)?.message ?? e) }, 500);
   }
 });

@@ -12,6 +12,17 @@ const FUNCTION_VERSION = '1.0.0';
 
 const log = createLogger('stripe-webhook', 'module');
 
+// QNT-P1-016: never write a raw customer email to ordinary function logs.
+// Masks to first-char + domain (e.g. "j***@example.com") — enough to
+// eyeball-correlate a support ticket without exposing the full address in
+// Supabase function logs / Sentry breadcrumbs.
+function maskEmail(email: string | null | undefined): string {
+  if (!email) return '(none)';
+  const at = email.indexOf('@');
+  if (at <= 1) return `***${email.slice(at)}`;
+  return `${email[0]}***${email.slice(at)}`;
+}
+
 
 // Security headers for all responses
 const securityHeaders = {
@@ -243,7 +254,7 @@ serve(async (req) => {
 
     // Helper function to find user by email (with retry)
     async function findUserByEmail(email: string): Promise<string | null> {
-      log.info(`[${requestId}] Looking up user by email: ${email}`);
+      log.info(`[${requestId}] Looking up user by email: ${maskEmail(email)}`);
       try {
         return await withRetry(
           async () => {
@@ -254,7 +265,7 @@ serve(async (req) => {
               log.info(`[${requestId}] Found user by email: ${matchedUser.id}`);
               return matchedUser.id;
             }
-            log.info(`[${requestId}] No user found for email: ${email}`);
+            log.info(`[${requestId}] No user found for email: ${maskEmail(email)}`);
             return null;
           },
           "Find user by email",
@@ -273,7 +284,7 @@ serve(async (req) => {
           async () => {
             const customer = await stripe.customers.retrieve(customerId);
             if (customer && !customer.deleted && customer.email) {
-              log.info(`[${requestId}] Customer email from Stripe: ${customer.email}`);
+              log.info(`[${requestId}] Customer email from Stripe: ${maskEmail(customer.email)}`);
               return customer.email;
             }
             return null;
@@ -366,7 +377,7 @@ serve(async (req) => {
         log.info(`[${requestId}] Client Reference ID: ${session.client_reference_id}`);
         log.info(`[${requestId}] Session metadata: ${JSON.stringify(session.metadata)}`);
         log.info(`[${requestId}] Customer: ${session.customer}`);
-        log.info(`[${requestId}] Customer Email: ${session.customer_email}`);
+        log.info(`[${requestId}] Customer Email: ${maskEmail(session.customer_email)}`);
         log.info(`[${requestId}] Subscription: ${session.subscription}`);
 
         const customerId = session.customer as string;
@@ -392,7 +403,7 @@ serve(async (req) => {
           log.error(`[${requestId}] NO USER ID FOUND - cannot create subscription`);
           log.error(`[${requestId}] client_reference_id: ${session.client_reference_id}`);
           log.error(`[${requestId}] metadata: ${JSON.stringify(session.metadata)}`);
-          log.error(`[${requestId}] customer_email: ${session.customer_email}`);
+          log.error(`[${requestId}] customer_email: ${maskEmail(session.customer_email)}`);
           break;
         }
 
@@ -607,7 +618,7 @@ serve(async (req) => {
                   log.error(`[${requestId}] Upsert fallback error:`, result.error);
                 }
               } else {
-                log.error(`[${requestId}] Could not find user for email ${customerEmail}`);
+                log.error(`[${requestId}] Could not find user for email ${maskEmail(customerEmail)}`);
               }
             } else {
               log.error(`[${requestId}] Could not get customer email for fallback`);
@@ -783,7 +794,7 @@ serve(async (req) => {
                   log.error(`[${requestId}] Invoice upsert fallback error:`, result.error);
                 }
               } else {
-                log.error(`[${requestId}] CRITICAL: Paid invoice but cannot find user for email ${customerEmail}`);
+                log.error(`[${requestId}] CRITICAL: Paid invoice but cannot find user for email ${maskEmail(customerEmail)}`);
               }
             } else {
               log.error(`[${requestId}] CRITICAL: Paid invoice but cannot get customer email`);

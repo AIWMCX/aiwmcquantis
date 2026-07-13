@@ -22,8 +22,10 @@ const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '
 const DEEPSEEK_API_KEY       = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
 const DEEPSEEK_URL           = 'https://api.deepseek.com/v1/chat/completions';
 
+// Cron/workflow_dispatch-only endpoint (gated by x-cron-secret, never called
+// from a browser) — no legitimate cross-origin caller exists, so no
+// Access-Control-Allow-Origin is set at all rather than wildcarding it.
 const CORS_HEADERS = {
-  'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
