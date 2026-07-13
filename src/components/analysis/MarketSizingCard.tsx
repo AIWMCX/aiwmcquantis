@@ -101,7 +101,13 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
       )}
 
       {sizing && (
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <>
+          <p className="text-[11px] text-muted-foreground/80 -mt-1">
+            AI-modeled estimate — not derived from the deterministic financial
+            engine or a direct market-data benchmark. Treat as a starting
+            hypothesis to validate, not a verified figure.
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
           {TIERS.map((tier) => {
             const block = sizing[tier.key];
             const pct =
@@ -135,7 +141,8 @@ export function MarketSizingCard({ plusAnalysis }: Props) {
               </article>
             );
           })}
-        </div>
+          </div>
+        </>
       )}
     </section>
   );
