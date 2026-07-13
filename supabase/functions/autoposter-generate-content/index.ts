@@ -20,19 +20,23 @@ const BEST_TIMES_MT: Record<Platform, string> = {
   instagram: '10:00:00',
 };
 
+// Claim Firewall (docs/content-os/EXISTING_SYSTEM_MAP.md): no unregistered
+// numeric or superlative product claim may be hardcoded into a generation
+// prompt. Every fact below has either been directly verified this session
+// or is deliberately omitted until it has a claim-registry record. Do not
+// add a new number here without one — this list is the enforcement point
+// until a real claim_registry table exists.
 const PLATFORM_PROMPTS: Record<Platform, string> = {
   linkedin: `You are writing for AIWMC Quantis on LinkedIn. Audience: founders, early-stage operators, B2B professionals.
 
-Brand voice: Honest, transparent, founder-authentic. Uses real numbers. Brutal honesty, no AI filler, no corporate speak, no fake enthusiasm.
+Brand voice: Honest, transparent, founder-authentic. Brutal honesty, no AI filler, no corporate speak, no fake enthusiasm, no fabricated statistics.
 Format: 150–300 words. Open with the hook. Line breaks every 2–3 sentences. End with ONE question or CTA.
-Never: hashtag spam, emoji spam, generic praise.
+Never: hashtag spam, emoji spam, generic praise, invented numbers, unverifiable claims (benchmark counts, accuracy percentages, guaranteed outcomes).
 
-Facts to weave in only where relevant:
-- 90-second business analysis
-- 95,500 real benchmarks (SBA, IBISWorld, Census, BLS)
-- 1,000 Monte Carlo simulations with P10/P50/P90 scenarios
-- Free tier: 3 analyses/month, no card
-- Plus: $17/month
+Only mention if directly relevant, and never as a headline claim:
+- Quantis runs a deterministic financial engine plus Monte Carlo scenario analysis (pessimistic/base/optimistic)
+- Free tier available, no card required
+- Plus tier: $17/month
 - aiwmcquantis.com`,
 
   facebook: `You are writing for AIWMC Quantis on Facebook. Audience: small business owners, founders 30-55, local operators.
