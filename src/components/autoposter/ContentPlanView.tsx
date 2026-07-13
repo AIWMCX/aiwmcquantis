@@ -6,6 +6,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from '@/components/ui/dialog';
+import {
   QUANTIS_CONTENT_PLAN,
   CONTENT_PLAN_VERSION,
   CONTENT_PLAN_WINDOW,
@@ -28,6 +35,7 @@ export function ContentPlanView() {
   const seed = useSeedContentPlan();
   const [q, setQ] = useState('');
   const [week, setWeek] = useState<number | 'all'>('all');
+  const [openEntry, setOpenEntry] = useState<ContentPlanEntry | null>(null);
 
   const weeks = useMemo(
     () => Array.from(new Set(QUANTIS_CONTENT_PLAN.map((p) => p.week_number))).sort((a, b) => a - b),
@@ -163,7 +171,17 @@ export function ContentPlanView() {
               {items.map((p) => (
                 <div
                   key={`${p.week_number}-${p.day_number}`}
-                  className="grid grid-cols-[80px_1fr_auto] gap-3 items-start py-2 border-t border-[var(--q-border-subtle)] first:border-t-0"
+                  role="button"
+                  tabIndex={0}
+                  aria-haspopup="dialog"
+                  onClick={() => setOpenEntry(p)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      setOpenEntry(p);
+                    }
+                  }}
+                  className="grid grid-cols-[80px_1fr_auto] gap-3 items-start py-2 border-t border-[var(--q-border-subtle)] first:border-t-0 cursor-pointer rounded-md -mx-2 px-2 transition hover:bg-[var(--q-accent-glow)]/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--q-accent-primary)]"
                 >
                   <div className="text-[10px] font-mono text-[var(--q-text-secondary)] pt-1">
                     <div>D{p.day_number}</div>
@@ -206,6 +224,90 @@ export function ContentPlanView() {
           </Card>
         ))}
       </div>
+
+      <Dialog open={openEntry !== null} onOpenChange={(open) => !open && setOpenEntry(null)}>
+        <DialogContent className="max-w-lg max-h-[80vh] overflow-y-auto">
+          {openEntry && (
+            <>
+              <DialogHeader>
+                <div className="flex flex-wrap gap-1.5 mb-2">
+                  <Badge variant="outline" className="text-[10px]">
+                    {openEntry.post_type}
+                  </Badge>
+                  {openEntry.platforms.map((pl) => (
+                    <span
+                      key={pl}
+                      className={`text-[10px] font-mono px-1.5 py-0.5 rounded border ${
+                        PLATFORM_BADGE[pl] ?? 'bg-muted'
+                      }`}
+                    >
+                      {pl}
+                    </span>
+                  ))}
+                </div>
+                <DialogTitle className="text-left">{openEntry.hook}</DialogTitle>
+                <DialogDescription className="text-left">
+                  Week {openEntry.week_number}, Day {openEntry.day_number} · {openEntry.post_date} ·{' '}
+                  {openEntry.best_time_mt}
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-3 text-sm">
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
+                    Content brief
+                  </div>
+                  <p className="text-[var(--q-text-primary)] whitespace-pre-wrap">
+                    {openEntry.content_brief}
+                  </p>
+                </div>
+
+                {openEntry.cta && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
+                      CTA
+                    </div>
+                    <p className="text-[var(--q-text-primary)]">{openEntry.cta}</p>
+                  </div>
+                )}
+
+                {openEntry.visual_type && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
+                      Visual type
+                    </div>
+                    <p className="text-[var(--q-text-primary)]">{openEntry.visual_type}</p>
+                  </div>
+                )}
+
+                {openEntry.hashtags.length > 0 && (
+                  <div>
+                    <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
+                      Hashtags
+                    </div>
+                    <p className="text-[var(--q-text-primary)] font-mono text-xs">
+                      {openEntry.hashtags.join(' ')}
+                    </p>
+                  </div>
+                )}
+
+                <div>
+                  <div className="text-[10px] uppercase tracking-wider text-[var(--q-text-secondary)] font-mono mb-1">
+                    Expected reach
+                  </div>
+                  <p className="text-[var(--q-text-primary)]">{openEntry.expected_reach}</p>
+                </div>
+              </div>
+
+              <p className="text-xs text-[var(--q-text-secondary)] pt-2 border-t border-[var(--q-border-subtle)]">
+                This is the static plan preview. Click "Seed / refresh to queue" above to bring
+                this post into the editable Queue tab, where you can generate platform copy,
+                edit, approve, and schedule it.
+              </p>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
