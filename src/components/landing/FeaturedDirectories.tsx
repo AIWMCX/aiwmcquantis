@@ -28,9 +28,13 @@ function hostOf(url: string): string {
 function icoSources(url: string): string[] {
   const host = hostOf(url);
   if (!host) return [];
+  // Google's s2 endpoint is the most reliable across strict CSP + nosniff
+  // headers we ship in prod — it always returns a correct image/* content-type
+  // and a real 16–64px icon. DDG is second because it's more permissive when
+  // Google returns a generic globe. Self-hosted /favicon.ico is last resort.
   return [
-    `https://icons.duckduckgo.com/ip3/${host}.ico`,
     `https://www.google.com/s2/favicons?domain=${host}&sz=64`,
+    `https://icons.duckduckgo.com/ip3/${host}.ico`,
     `https://${host}/favicon.ico`,
   ];
 }
