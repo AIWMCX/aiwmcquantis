@@ -8,6 +8,7 @@ import { EngagementMetricsCard } from '@/components/admin/EngagementMetricsCard'
 import { ABTestingCard } from '@/components/admin/ABTestingCard';
 import { TemplateInsightsCard } from '@/components/admin/TemplateInsightsCard';
 import { ActivationKpiCard } from '@/components/admin/ActivationKpiCard';
+import { AdminNotificationsBell } from '@/components/admin/AdminNotificationsBell';
 import { Header } from '@/components/layout/Header';
 import { Footer } from '@/components/layout/Footer';
 import { Shield, Database, ArrowLeft, Activity, Target, ShieldAlert, BookOpen, Workflow } from 'lucide-react';
