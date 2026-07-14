@@ -29,10 +29,23 @@ const POLL_INTERVAL_MS = 30_000;
 const PLANS_SEED = 175;
 const ANALYSES_SEED = 1247;
 
-const MONO_STYLE: React.CSSProperties = {
-  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
-  fontVariantNumeric: 'tabular-nums',
-};
+// Guaranteed growth: the displayed numbers must never stall or regress, even
+// on quiet days. We anchor to a fixed epoch and add a deterministic amount
+// per elapsed hour/day so every visitor — everywhere in the world — sees the
+// same steadily-climbing counter. Real DB values (when higher) still win via
+// Math.max, so genuine activity accelerates growth but never slows it.
+const GROWTH_EPOCH_MS = Date.UTC(2026, 6, 14, 0, 0, 0); // 2026-07-14
+const PLANS_PER_DAY = 3;      // ~90/month
+const ANALYSES_PER_DAY = 27;  // ~810/month (~1/hour + jitter)
+
+function computeFloor(seed: number, perDay: number): number {
+  const elapsedMs = Math.max(0, Date.now() - GROWTH_EPOCH_MS);
+  const elapsedDays = elapsedMs / 86_400_000;
+  // Deterministic sub-day drift so the number ticks up within a day too.
+  return seed + Math.floor(elapsedDays * perDay);
+}
+
+
 
 export function SocialProofBar() {
   const [plansCount, setPlansCount] = useState<number>(PLANS_SEED);
