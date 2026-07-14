@@ -45,11 +45,19 @@ function computeFloor(seed: number, perDay: number): number {
   return seed + Math.floor(elapsedDays * perDay);
 }
 
-
+const MONO_STYLE: React.CSSProperties = {
+  fontFamily: "'JetBrains Mono', ui-monospace, monospace",
+  fontVariantNumeric: 'tabular-nums',
+};
 
 export function SocialProofBar() {
-  const [plansCount, setPlansCount] = useState<number>(PLANS_SEED);
-  const [analysesTotal, setAnalysesTotal] = useState<number>(ANALYSES_SEED);
+  const [plansCount, setPlansCount] = useState<number>(() =>
+    computeFloor(PLANS_SEED, PLANS_PER_DAY),
+  );
+  const [analysesTotal, setAnalysesTotal] = useState<number>(() =>
+    computeFloor(ANALYSES_SEED, ANALYSES_PER_DAY),
+  );
+
 
   useEffect(() => {
     let cancelled = false;
