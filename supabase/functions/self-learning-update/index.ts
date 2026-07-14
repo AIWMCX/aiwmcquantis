@@ -19,8 +19,13 @@ const FUNCTION_VERSION = '1.0.0';
 
 const SUPABASE_URL           = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
+const DAHL_API_KEY           = Deno.env.get('DAHL_API_KEY') ?? '';
 const DEEPSEEK_API_KEY       = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
-const DEEPSEEK_URL           = 'https://api.deepseek.com/v1/chat/completions';
+const INFERENCE_API_KEY      = DAHL_API_KEY || DEEPSEEK_API_KEY;
+const INFERENCE_URL          = DAHL_API_KEY
+  ? 'https://inference.dahl.global/v1/chat/completions'
+  : 'https://api.deepseek.com/v1/chat/completions';
+const INFERENCE_MODEL        = DAHL_API_KEY ? 'MiniMaxAI/MiniMax-M2.7' : 'deepseek-v4-flash';
 
 // Cron/workflow_dispatch-only endpoint (gated by x-cron-secret, never called
 // from a browser) — no legitimate cross-origin caller exists, so no
@@ -138,19 +143,19 @@ serve(async (req) => {
 
       // Use DeepSeek to compute a quality score for the priors (optional — skip if no key)
       let priorQualityScore = 0.7; // default
-      if (DEEPSEEK_API_KEY && Object.keys(metricPriors).length >= 3) {
+      if (INFERENCE_API_KEY && Object.keys(metricPriors).length >= 3) {
         try {
           const prompt = `Rate the quality of these business benchmark priors on a scale 0-1.
 Industry: ${industry}, Model: ${business_model}, Sample size: ${groupAnalyses.length}
 Priors: ${JSON.stringify(metricPriors)}
 Return ONLY a JSON: {"quality_score": 0.85, "notes": "brief reason"}`;
-          const resp = await fetch(DEEPSEEK_URL, {
+          const resp = await fetch(INFERENCE_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${DEEPSEEK_API_KEY}` },
+            headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${INFERENCE_API_KEY}` },
             body: JSON.stringify({
-              model: 'deepseek-v4-flash',
+              model: INFERENCE_MODEL,
               // V4 defaults to thinking mode — disable so content carries the JSON.
-              thinking: { type: 'disabled' },
+              ...(DAHL_API_KEY ? {} : { thinking: { type: 'disabled' } }),
               messages: [{ role: 'user', content: prompt }],
               max_tokens: 100,
               temperature: 0.1,

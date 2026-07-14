@@ -4147,7 +4147,11 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         industry_id: detectedIndustry.id,
         location_cost_multiplier: locationMultiplier,
         generated_at: new Date().toISOString(),
-        model: usedFallback ? "deterministic-engine" : "deepseek-v4-flash",
+        model: usedFallback
+          ? "deterministic-engine"
+          : Deno.env.get("DAHL_API_KEY")
+            ? "dahl:MiniMaxAI/MiniMax-M2.7"
+            : "deepseek-v4-flash",
         version: "9.2-benchmark-first",
         analysis_depth: depthLevel,
         // ── NEW: canonical benchmarks block ──

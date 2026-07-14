@@ -37,11 +37,12 @@ declare -a REQUIRED=(
   "STRIPE_SECRET_KEY|GitHub → Settings → Secrets → Actions|sk_live_… key from dashboard.stripe.com/apikeys."
   "STRIPE_WEBHOOK_SECRET|GitHub → Settings → Secrets → Actions|whsec_… from the Stripe webhook endpoint config."
   # ── AI runtime ───────────────────────────────────────────────────────
-  "DEEPSEEK_API_KEY|GitHub → Settings → Secrets → Actions|DeepSeek API key. Primary LLM for RVCE/analysis."
+  "DAHL_API_KEY|GitHub → Settings → Secrets → Actions|Dahl Bearer token with the 100M-token allowance. Primary LLM for RVCE/analysis."
 )
 
 # Optional but recommended — warn only.
 declare -a OPTIONAL=(
+  "DEEPSEEK_API_KEY|Configuration fallback when Dahl is not set"
   "ANTHROPIC_API_KEY|Claude fallback when DeepSeek fails"
   "TAVILY_API_KEY|RVCE web-search enhancement"
   "STRIPE_PRO_MONTHLY_PRICE_ID|Pro monthly checkout price ID"

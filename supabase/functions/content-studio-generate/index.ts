@@ -2,7 +2,7 @@
 // ---------------------------------------------------------------------------
 // Generates viral, human-natural, platform-optimized social posts.
 //
-// Provider priority: DeepSeek (free-tier, primary) -> Anthropic (hard
+// Provider priority: Dahl (100M-token key, primary) -> DeepSeek -> Anthropic
 // fallback, only if DeepSeek fails AND ANTHROPIC_API_KEY is set) -> Lovable
 // AI Gateway (legacy, last resort, only if neither of the above is
 // configured). This was previously hardcoded to Lovable-only — the one
@@ -33,23 +33,36 @@ interface Provider {
   defaultModel: string;
 }
 
-function resolveProvider(): Provider | null {
+const DAHL_MODELS = new Set([
+  'MiniMaxAI/MiniMax-M2.7',
+  'moonshotai/Kimi-K2.6',
+]);
+
+function resolveProviders(requestedModel?: string): Provider[] {
+  const providers: Provider[] = [];
+  const dahlKey = Deno.env.get('DAHL_API_KEY');
+  if (dahlKey) {
+    const model = requestedModel && DAHL_MODELS.has(requestedModel)
+      ? requestedModel
+      : 'MiniMaxAI/MiniMax-M2.7';
+    providers.push({ name: 'dahl', url: 'https://inference.dahl.global/v1/chat/completions', apiKey: dahlKey, defaultModel: model });
+  }
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
   if (deepseekKey) {
-    return { name: 'deepseek', url: 'https://api.deepseek.com/v1/chat/completions', apiKey: deepseekKey, defaultModel: 'deepseek-v4-flash' };
+    providers.push({ name: 'deepseek', url: 'https://api.deepseek.com/v1/chat/completions', apiKey: deepseekKey, defaultModel: 'deepseek-v4-flash' });
   }
   // GLM/Zhipu slot — add here tomorrow:
   // const glmKey = Deno.env.get('GLM_API_KEY');
   // if (glmKey) return { name: 'glm', url: 'https://open.bigmodel.cn/api/paas/v4/chat/completions', apiKey: glmKey, defaultModel: 'glm-4-flash' };
   const anthropicKey = Deno.env.get('ANTHROPIC_API_KEY');
   if (anthropicKey) {
-    return { name: 'anthropic', url: 'https://api.anthropic.com/v1/messages', apiKey: anthropicKey, defaultModel: 'claude-haiku-4-5-20251001' };
+    providers.push({ name: 'anthropic', url: 'https://api.anthropic.com/v1/messages', apiKey: anthropicKey, defaultModel: 'claude-haiku-4-5-20251001' });
   }
   const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-  if (lovableKey) {
-    return { name: 'lovable', url: 'https://ai.gateway.lovable.dev/v1/chat/completions', apiKey: lovableKey, defaultModel: 'google/gemini-3-flash-preview' };
+  if (providers.length === 0 && lovableKey) {
+    providers.push({ name: 'lovable', url: 'https://ai.gateway.lovable.dev/v1/chat/completions', apiKey: lovableKey, defaultModel: 'google/gemini-3-flash-preview' });
   }
-  return null;
+  return providers;
 }
 
 const PLATFORMS = ['linkedin', 'twitter', 'facebook', 'instagram', 'threads', 'reddit'] as const;
@@ -172,9 +185,9 @@ Deno.serve(async (req) => {
       language: String(body.language ?? 'en'),
     };
 
-    const provider = resolveProvider();
-    if (!provider) {
-      return j({ error: 'No AI provider configured. Set DEEPSEEK_API_KEY in Supabase secrets.' }, 500);
+    const providers = resolveProviders(typeof body.model === 'string' ? body.model : undefined);
+    if (providers.length === 0) {
+      return j({ error: 'No AI provider configured. Set DAHL_API_KEY (preferred) or DEEPSEEK_API_KEY in Supabase secrets.' }, 500);
     }
 
     const system = buildSystemPrompt(opts);
@@ -187,8 +200,12 @@ Deno.serve(async (req) => {
     });
 
     const t0 = Date.now();
-    let rawContent: string;
-    try {
+    let rawContent = '';
+    let provider: Provider | null = null;
+    let lastProviderError = '';
+    for (const candidate of providers) {
+      provider = candidate;
+      try {
       if (provider.name === 'anthropic') {
         const res = await fetch(provider.url, {
           method: 'POST',
@@ -205,12 +222,15 @@ Deno.serve(async (req) => {
             temperature: 0.85,
           }),
         });
-        if (!res.ok) return j({ error: `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}` }, 502);
+        if (!res.ok) {
+          lastProviderError = `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}`;
+          continue;
+        }
         const data = await res.json();
         const parts = (data?.content as Array<{ type: string; text?: string }> | undefined) ?? [];
         rawContent = parts.filter((p) => p.type === 'text').map((p) => p.text ?? '').join('');
       } else {
-        // OpenAI-compatible shape (DeepSeek, GLM, Lovable gateway).
+        // OpenAI-compatible shape (Dahl, DeepSeek, GLM, Lovable gateway).
         const res = await fetch(provider.url, {
           method: 'POST',
           headers: { Authorization: `Bearer ${provider.apiKey}`, 'Content-Type': 'application/json' },
@@ -222,15 +242,25 @@ Deno.serve(async (req) => {
             ],
             temperature: 0.85,
             response_format: { type: 'json_object' },
+            ...(provider.name === 'deepseek' ? { thinking: { type: 'disabled' } } : {}),
           }),
         });
-        if (res.status === 429) return j({ error: `${provider.name} rate-limited. Try again in a moment.` }, 429);
-        if (!res.ok) return j({ error: `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}` }, 502);
+        if (!res.ok) {
+          lastProviderError = `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}`;
+          continue;
+        }
         const data = await res.json();
         rawContent = data?.choices?.[0]?.message?.content ?? '';
       }
+      if (rawContent) break;
+      lastProviderError = `${provider.name} returned empty content`;
     } catch (e) {
-      return j({ error: `${provider.name} unreachable: ${e instanceof Error ? e.message : String(e)}` }, 502);
+      lastProviderError = `${provider.name} unreachable: ${e instanceof Error ? e.message : String(e)}`;
+      continue;
+    }
+    }
+    if (!rawContent || !provider) {
+      return j({ error: lastProviderError || 'All AI providers failed.' }, 502);
     }
     const elapsed_ms = Date.now() - t0;
 

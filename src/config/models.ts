@@ -13,6 +13,9 @@
  */
 
 export const MODELS = {
+  DAHL_MINIMAX: 'MiniMaxAI/MiniMax-M2.7',
+  DAHL_KIMI: 'moonshotai/Kimi-K2.6',
+
   // Free tier — DeepSeek direct (api.deepseek.com)
   DEEPSEEK_FLASH: 'deepseek-v4-flash',
   DEEPSEEK_PRO: 'deepseek-v4-pro',

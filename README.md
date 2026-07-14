@@ -80,7 +80,7 @@ Server-side entitlement enforcement via `_shared/entitlements.ts:requireFeature(
 | **Hosting** | Vercel (Git integration auto-deploys on push to `main`) |
 | **Backend** | Supabase — Postgres + Auth + 65 Deno Edge Functions |
 | **Database** | 167 migrations; RLS on every user table; SECURITY DEFINER RPCs for cross-table writes |
-| **AI providers** | DeepSeek (`deepseek-v4-flash`) primary; Anthropic Claude (`claude-haiku-4-5`) safety fallback; Gemini/GPT-5-mini for consensus verification |
+| **AI providers** | Dahl (`MiniMaxAI/MiniMax-M2.7`, `moonshotai/Kimi-K2.6`) primary; DeepSeek configuration fallback; Anthropic Claude safety fallback |
 | **External validation** | Tavily web search (RVCE / Layer 8); DuckDuckGo as zero-cost fallback |
 | **Payments** | Stripe (subscriptions, webhooks, customer portal) |
 | **Email** | Resend (transactional, lifecycle, double opt-in) |

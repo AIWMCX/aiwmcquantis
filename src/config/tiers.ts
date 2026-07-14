@@ -147,6 +147,29 @@ export type FeatureKey = keyof typeof TIERS.pro.features;
 export type LimitKey = keyof typeof TIERS.pro.limits;
 export type BillingCycle = 'monthly' | 'annual';
 
+export const DAHL_TOKEN_RUNWAY = {
+  tokenPool: 100_000_000,
+  runwayBands: {
+    nineMonths: { monthlyBurn: 11_100_000, label: 'Conservative 9-month burn' },
+    sixMonths: { monthlyBurn: 16_700_000, label: 'Base 6-month burn' },
+    threeMonths: { monthlyBurn: 33_300_000, label: 'High 3-month burn' },
+  },
+  tierMonthlyPlanning: {
+    free: {
+      tokenGuardrailPerUser: 125_000,
+      note: '5 quick analyses/month; keep prompts compact and prioritize deterministic calculations.',
+    },
+    plus: {
+      tokenGuardrailPerUser: 1_500_000,
+      note: 'Unlimited full analysis UX; monitor monthly cohort burn against the 6-9 month runway bands.',
+    },
+    pro: {
+      tokenGuardrailPerUser: 5_000_000,
+      note: 'Investor-grade workflows and API access; watch heavy users against the 3-6 month runway bands.',
+    },
+  },
+} as const;
+
 /**
  * Stripe price ID → tier mapping. Used by webhook + checkout.
  *

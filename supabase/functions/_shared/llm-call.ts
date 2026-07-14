@@ -35,19 +35,23 @@ import {
   UNIVERSAL_RULES,
 } from './prompts.ts';
 
-// Primary AI backend: DeepSeek (self-hosted key, always available).
+// Primary AI backend: Dahl's OpenAI-compatible inference API. Dahl keys carry
+// their own token allowance and stay server-side in Supabase secrets.
+// Secondary backend: DeepSeek (runtime fallback when Dahl is missing or has a
+// retryable outage/limit error, so production keeps serving AI calls).
 // Legacy fallback: Lovable AI gateway (only if LOVABLE_API_KEY is set — kept
 // for compatibility but the gateway is no longer the primary path after the
 // Supabase project migration away from Lovable).
-// Hard fallback: Anthropic Claude — used ONLY when DeepSeek (and Lovable, if
-// configured) fail with a retryable error (429/502/504/fetch failure).
-// Callers that must NEVER touch Anthropic (e.g. RVCE) bypass this module
-// entirely and call DeepSeek directly — see rvce-validate/index.ts.
+// Hard fallback: Anthropic Claude, used only after Dahl and DeepSeek fail with
+// a retryable error (429/402/5xx/fetch failure).
+const DAHL_AI_URL       = 'https://inference.dahl.global/v1/chat/completions';
 const DEEPSEEK_AI_URL   = 'https://api.deepseek.com/v1/chat/completions';
 const LOVABLE_AI_URL    = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const ANTHROPIC_AI_URL  = 'https://api.anthropic.com/v1/messages';
 const ANTHROPIC_VERSION = '2023-06-01';
 const ANTHROPIC_FALLBACK_MODEL = 'claude-haiku-4-5-20251001';
+const DAHL_DEFAULT_MODEL = 'MiniMaxAI/MiniMax-M2.7';
+const DAHL_KIMI_MODEL = 'moonshotai/Kimi-K2.6';
 // Mega prompt I-6 + Fix #3: legacy deepseek aliases (chat / reasoner)
 // aliases retire 2026-07-24 15:59 UTC. Use the current model id directly.
 const DEFAULT_MODEL     = 'deepseek-v4-flash';
@@ -140,17 +144,20 @@ export async function aiCall(
   const timeoutMs = opts.timeoutMs ?? DEFAULT_TIMEOUT_MS;
   const inject = opts.injectUniversalRules !== false;
 
-  // Resolve AI backend: DeepSeek primary, Lovable gateway optional fallback.
+  // Resolve AI backend: Dahl primary, then the existing DeepSeek/Lovable path.
+  const dahlKey     = Deno.env.get('DAHL_API_KEY');
   const deepseekKey = Deno.env.get('DEEPSEEK_API_KEY');
   const lovableKey  = Deno.env.get('LOVABLE_API_KEY');
-  const aiUrl  = deepseekKey ? DEEPSEEK_AI_URL : LOVABLE_AI_URL;
-  const apiKey = deepseekKey ?? lovableKey;
+  const aiUrl  = dahlKey ? DAHL_AI_URL : deepseekKey ? DEEPSEEK_AI_URL : LOVABLE_AI_URL;
+  const apiKey = dahlKey ?? deepseekKey ?? lovableKey;
+  const primaryProvider: 'dahl' | 'deepseek' | 'lovable_gateway' =
+    dahlKey ? 'dahl' : deepseekKey ? 'deepseek' : 'lovable_gateway';
   if (!apiKey) {
     return {
       ok: false,
       status: 500,
       error: 'CONFIG',
-      message: 'No AI key configured. Set DEEPSEEK_API_KEY in Supabase secrets.',
+      message: 'No AI key configured. Set DAHL_API_KEY (preferred) or DEEPSEEK_API_KEY in Supabase secrets.',
       latencyMs: 0,
     };
   }
@@ -158,6 +165,13 @@ export async function aiCall(
   // Map Lovable-gateway model names to DeepSeek equivalents when using DeepSeek.
   function resolveModel(requested: string | undefined): string {
     const m = requested ?? DEFAULT_MODEL;
+    if (dahlKey) {
+      // Only send IDs confirmed by Dahl's live catalog. Existing DeepSeek,
+      // Lovable, OpenAI, and Anthropic model names map to Dahl's recommended
+      // default so callers require no changes during provider rollout.
+      if (m === DAHL_DEFAULT_MODEL || m === DAHL_KIMI_MODEL) return m;
+      return DAHL_DEFAULT_MODEL;
+    }
     if (!deepseekKey) return m; // Lovable gateway: pass through as-is
     // Gemini/OpenAI/Claude model names are not valid on DeepSeek — normalise to current flash model.
     if (m.startsWith('google/') || m.startsWith('gpt-') || m.startsWith('claude-') || m === LEGACY_CHAT || m === LEGACY_REASONER) {
@@ -236,8 +250,10 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
-    const fallback = await tryAnthropicFallback(requestBody, opts);
-    if (fallback) return fallback;
+    const deepseekFallback = await tryDeepSeekFallback(requestBody, opts, primaryProvider);
+    if (deepseekFallback) return deepseekFallback;
+    const anthropicFallback = await tryAnthropicFallback(requestBody, opts);
+    if (anthropicFallback) return anthropicFallback;
     if (isAbort) {
       return { ok: false, status: 504, error: 'AI_TIMEOUT', message: `AI gateway timed out after ${timeoutMs}ms.`, latencyMs };
     }
@@ -262,8 +278,10 @@ export async function aiCall(
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
     });
-    const fallback = await tryAnthropicFallback(requestBody, opts);
-    if (fallback) return fallback;
+    const deepseekFallback = await tryDeepSeekFallback(requestBody, opts, primaryProvider);
+    if (deepseekFallback) return deepseekFallback;
+    const anthropicFallback = await tryAnthropicFallback(requestBody, opts);
+    if (anthropicFallback) return anthropicFallback;
     return { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', message: 'AI gateway rate-limited. Please retry shortly.', latencyMs };
   }
   if (resp.status === 402) {
@@ -283,8 +301,10 @@ export async function aiCall(
       skip: opts.skipTelemetry,
     });
     {
-      const fallback = await tryAnthropicFallback(requestBody, opts);
-      if (fallback) return fallback;
+      const deepseekFallback = await tryDeepSeekFallback(requestBody, opts, primaryProvider);
+      if (deepseekFallback) return deepseekFallback;
+      const anthropicFallback = await tryAnthropicFallback(requestBody, opts);
+      if (anthropicFallback) return anthropicFallback;
     }
     return { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED', message: 'AI workspace credits exhausted.', latencyMs };
   }
@@ -305,8 +325,10 @@ export async function aiCall(
       skip: opts.skipTelemetry,
     });
     if (resp.status >= 500) {
-      const fallback = await tryAnthropicFallback(requestBody, opts);
-      if (fallback) return fallback;
+      const deepseekFallback = await tryDeepSeekFallback(requestBody, opts, primaryProvider);
+      if (deepseekFallback) return deepseekFallback;
+      const anthropicFallback = await tryAnthropicFallback(requestBody, opts);
+      if (anthropicFallback) return anthropicFallback;
     }
     return { ok: false, status: 502, error: 'AI_ERROR', message: `AI gateway error ${resp.status}.`, detail, latencyMs };
   }
@@ -377,7 +399,8 @@ interface RecordArgs {
  *  telemetry. Previously this was hardcoded to 'lovable_gateway' regardless
  *  of which backend actually served the request — meaning every DeepSeek
  *  call (the primary path since the Lovable migration) was mislabeled. */
-function providerFromModel(model: string): 'deepseek' | 'anthropic' | 'lovable_gateway' {
+function providerFromModel(model: string): 'dahl' | 'deepseek' | 'anthropic' | 'lovable_gateway' {
+  if (model === DAHL_DEFAULT_MODEL || model === DAHL_KIMI_MODEL || model.startsWith('dahl:')) return 'dahl';
   if (model.startsWith('anthropic:') || model.startsWith('claude-')) return 'anthropic';
   if (model.startsWith('deepseek')) return 'deepseek';
   return 'lovable_gateway';
@@ -427,6 +450,105 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
  * or the Anthropic call itself fails — in all those cases the caller returns
  * the original DeepSeek error untouched.
  */
+async function tryDeepSeekFallback(
+  requestBody: GatewayRequestBody,
+  opts: AiCallOptions,
+  primaryProvider: 'dahl' | 'deepseek' | 'lovable_gateway',
+): Promise<AiCallResult | null> {
+  if (primaryProvider === 'deepseek') return null;
+  const apiKey = Deno.env.get('DEEPSEEK_API_KEY');
+  if (!apiKey) return null;
+
+  const start = Date.now();
+  const requestedModel = String(requestBody.model ?? DEFAULT_MODEL);
+  const model =
+    requestedModel.startsWith('deepseek') &&
+    requestedModel !== LEGACY_CHAT &&
+    requestedModel !== LEGACY_REASONER
+      ? requestedModel
+      : DEFAULT_MODEL;
+
+  const fallbackBody: GatewayRequestBody = { ...requestBody, model };
+  if (model.startsWith('deepseek-v4') && fallbackBody.thinking === undefined) {
+    fallbackBody.thinking = { type: 'disabled' };
+  }
+
+  let resp: Response;
+  try {
+    resp = await fetch(DEEPSEEK_AI_URL, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(fallbackBody),
+      signal: AbortSignal.timeout(opts.timeoutMs ?? DEFAULT_TIMEOUT_MS),
+    });
+  } catch (err) {
+    const latencyMs = Date.now() - start;
+    const message = err instanceof Error ? err.message : 'fetch failed';
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: `AI_FETCH:${message.slice(0, 200)}`,
+      metadata: { ...(opts.metadata ?? {}), fallback: 'deepseek', from: primaryProvider },
+      skip: opts.skipTelemetry,
+    });
+    return null;
+  }
+
+  const latencyMs = Date.now() - start;
+  if (!resp.ok) {
+    const detail = await resp.text().catch(() => '');
+    void recordAiCall({
+      ok: false,
+      task: opts.task,
+      model,
+      latencyMs,
+      inputTokens: 0,
+      outputTokens: 0,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      error: `AI_${resp.status}:${detail.slice(0, 200)}`,
+      metadata: { ...(opts.metadata ?? {}), fallback: 'deepseek', from: primaryProvider },
+      skip: opts.skipTelemetry,
+    });
+    return null;
+  }
+
+  const data = (await resp.json().catch(() => null)) as Record<string, unknown> | null;
+  if (!data) return null;
+
+  const usage = (data.usage ?? {}) as { prompt_tokens?: number; completion_tokens?: number };
+  const inputTokens = usage.prompt_tokens ?? 0;
+  const outputTokens = usage.completion_tokens ?? 0;
+  const echoedModel = (data.model as string | undefined) ?? model;
+
+  void recordAiCall({
+    ok: true,
+    task: opts.task,
+    model: echoedModel,
+    latencyMs,
+    inputTokens,
+    outputTokens,
+    analysisId: opts.analysisId ?? null,
+    userId: opts.userId ?? null,
+    requestId: opts.requestId ?? null,
+    metadata: { ...(opts.metadata ?? {}), fallback: 'deepseek', from: primaryProvider },
+    skip: opts.skipTelemetry,
+  });
+
+  return { ok: true, status: 200, data, latencyMs, inputTokens, outputTokens };
+}
+
 async function tryAnthropicFallback(
   requestBody: GatewayRequestBody,
   opts: AiCallOptions,

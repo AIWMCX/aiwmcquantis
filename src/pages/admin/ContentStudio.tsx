@@ -76,7 +76,7 @@ export default function ContentStudio() {
   ]);
   const [hashtagsEnabled, setHashtagsEnabled] = useState(true);
   const [emojiEnabled, setEmojiEnabled] = useState(true);
-  const [model, setModel] = useState('deepseek-v4-flash');
+  const [model, setModel] = useState('MiniMaxAI/MiniMax-M2.7');
 
   const [generating, setGenerating] = useState(false);
   const [variants, setVariants] = useState<Record<string, Variant> | null>(null);
@@ -260,7 +260,8 @@ export default function ContentStudio() {
               <Select value={model} onValueChange={setModel}>
                 <SelectTrigger className="mt-1"><SelectValue /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="deepseek-v4-flash">DeepSeek v4 Flash (default, free-tier)</SelectItem>
+                  <SelectItem value="MiniMaxAI/MiniMax-M2.7">Dahl · MiniMax M2.7 (default)</SelectItem>
+                  <SelectItem value="moonshotai/Kimi-K2.6">Dahl · Kimi K2.6 (long context)</SelectItem>
                 </SelectContent>
               </Select>
             </div>

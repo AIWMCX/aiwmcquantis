@@ -164,6 +164,7 @@ jobs:
         env:
           SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
           PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
           DEEPSEEK_API_KEY: ${{ secrets.DEEPSEEK_API_KEY }}
           LOVABLE_API_KEY: ${{ secrets.LOVABLE_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
@@ -181,12 +182,19 @@ jobs:
           fi
           npm install -g supabase@2.20.5 2>/dev/null || true
           # Push runtime secrets that edge functions read at invocation time.
+          # DAHL_API_KEY: primary LLM provider; each key currently carries a 100M-token allowance.
+          if [ -n "$DAHL_API_KEY" ]; then
+            npx supabase secrets set DAHL_API_KEY="$DAHL_API_KEY" --project-ref "$PROJECT_REF"
+            echo "✓ DAHL_API_KEY synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "::warning title=Missing secret::DAHL_API_KEY not in GitHub secrets — falling back to DeepSeek"
+          fi
           # DEEPSEEK_API_KEY: used by rvce-validate, generate-idea, analyze-* (DeepSeek LLM calls)
           if [ -n "$DEEPSEEK_API_KEY" ]; then
             npx supabase secrets set DEEPSEEK_API_KEY="$DEEPSEEK_API_KEY" --project-ref "$PROJECT_REF"
             echo "✓ DEEPSEEK_API_KEY synced to Supabase" >> "$GITHUB_STEP_SUMMARY"
           else
-            echo "::warning title=Missing secret::DEEPSEEK_API_KEY not in GitHub secrets — RVCE and analysis functions will fail"
+            echo "::warning title=Missing secret::DEEPSEEK_API_KEY not in GitHub secrets — no DeepSeek fallback"
           fi
           # STRIPE secrets: required by stripe-webhook, create-checkout-session, create-portal-session
           if [ -n "$STRIPE_SECRET_KEY" ]; then

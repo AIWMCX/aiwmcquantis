@@ -20,13 +20,18 @@ const FUNCTION_NAME = 'rvce-validate';
 const FUNCTION_VERSION = '0.5.0';
 
 
+const DAHL_API_KEY      = Deno.env.get('DAHL_API_KEY') ?? '';
 const DEEPSEEK_API_KEY  = Deno.env.get('DEEPSEEK_API_KEY') ?? '';
 const TAVILY_API_KEY    = Deno.env.get('TAVILY_API_KEY') ?? '';
 const SUPABASE_URL      = Deno.env.get('SUPABASE_URL') ?? '';
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '';
 const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') ?? '';
-const DEEPSEEK_URL      = 'https://api.deepseek.com/v1/chat/completions';
-const RVCE_VERSION      = 'rvce-0.5.0-deepseek';
+const INFERENCE_API_KEY = DAHL_API_KEY || DEEPSEEK_API_KEY;
+const INFERENCE_URL     = DAHL_API_KEY
+  ? 'https://inference.dahl.global/v1/chat/completions'
+  : 'https://api.deepseek.com/v1/chat/completions';
+const INFERENCE_MODEL   = DAHL_API_KEY ? 'MiniMaxAI/MiniMax-M2.7' : 'deepseek-v4-flash';
+const RVCE_VERSION      = DAHL_API_KEY ? 'rvce-0.6.0-dahl' : 'rvce-0.6.0-deepseek';
 
 // Tier → max total observations collected across all metrics.
 // Canonical spec (2026-06-20, locked): Free 20 / Plus 40 / Pro 100.
@@ -288,7 +293,7 @@ async function extractObservations(
   profile: { industry: string; city: string; business_model: string },
 ): Promise<Observation[]> {
   if (searchResults.length === 0) return [];
-  if (!DEEPSEEK_API_KEY) return extractNumericFallback(metric, searchResults);
+  if (!INFERENCE_API_KEY) return extractNumericFallback(metric, searchResults);
 
   const isPercentage = metric.includes('pct');
   const isRatio      = metric.includes('ratio');
@@ -317,17 +322,17 @@ Rules:
 - If nothing found: {"observations":[]}`;
 
   try {
-    const resp = await fetch(DEEPSEEK_URL, {
+    const resp = await fetch(INFERENCE_URL, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`,
+        'Authorization': `Bearer ${INFERENCE_API_KEY}`,
       },
       body: JSON.stringify({
-        model: 'deepseek-v4-flash',
+        model: INFERENCE_MODEL,
         // V4 defaults to thinking mode (empty content + reasoning_content),
         // which breaks the JSON extraction below — disable explicitly.
-        thinking: { type: 'disabled' },
+        ...(DAHL_API_KEY ? {} : { thinking: { type: 'disabled' } }),
         messages: [
           {
             role: 'system',

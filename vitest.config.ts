@@ -1,6 +1,6 @@
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react-swc";
-import path from "path";
+import { fileURLToPath } from "node:url";
 
 export default defineConfig({
   plugins: [react()],
@@ -20,7 +20,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": path.resolve(__dirname, "./src"),
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
       // Deno edge functions (supabase/functions/**) import decimal.js via an
       // esm.sh URL specifier, which Node/Vitest can't resolve on its own.
       // Golden-case tests (Handbook §19 item 8) import the real engine
