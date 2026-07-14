@@ -56,8 +56,10 @@ export default function AdminDashboard() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <AdminNotificationsBell />
             <Button variant="outline" size="sm" asChild>
               <Link to="/app">
+
                 <ArrowLeft className="w-4 h-4 mr-2" />
                 Back to App
               </Link>
