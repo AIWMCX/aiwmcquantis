@@ -13,6 +13,7 @@ const AccuracyTransparentResults = lazy(() =>
 import { AnalysisHistory } from '@/components/analysis/AnalysisHistory';
 import { AnalysisTopBar } from '@/components/analysis/AnalysisTopBar';
 import { UpgradePrompt } from '@/components/UpgradePrompt';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 import { RateLimitBanner } from '@/components/analysis/RateLimitBanner';
 import { QuickStartWizard } from '@/components/onboarding/QuickStartWizard';
 import { FirstAnalysisCelebration } from '@/components/onboarding/FirstAnalysisCelebration';
@@ -358,7 +359,7 @@ export default function Index() {
     <AppLayout title="Dashboard">
       <PageSEO
         title="Run a free business idea analysis in 90 seconds | AIWMC Quantis"
-        description="Stress-test any business idea against 97,500 verified benchmarks (SBA, BLS, Census, IBISWorld, OECD). Free first analysis — no credit card. Get a proceed/pivot/kill verdict with Monte Carlo projections."
+        description={`Stress-test any business idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY}. Free first analysis — no credit card. Get a proceed/pivot/kill verdict with Monte Carlo projections.`}
         canonical="/app"
       />
 

@@ -31,6 +31,25 @@ export const BENCHMARK_COUNT = 97_500;
 /** Formatted variant for display: "97,500". */
 export const BENCHMARK_COUNT_DISPLAY = '97,500';
 
+/**
+ * Benchmark source attribution — the count above was centralized 2026-07-11,
+ * but the *institution names* attached to it never were: five separate
+ * files hardcoded "SBA, BLS, U.S. Census, IBISWorld, OECD" independently,
+ * bypassing this file's own rule.
+ *
+ * Corrected 2026-07-16: those five institutions do not appear anywhere in
+ * `src/lib/canonical-data-sources.ts`, the actual source-of-truth list for
+ * what's ingested. The real sources are SEC XBRL filings, World Bank
+ * Enterprise Surveys, and the JPMorgan Chase Institute SME dataset — plus
+ * an internally-derived proprietary layer that accounts for the majority
+ * of the 97,500 rows (labeled "Proprietary derived" in that same file, not
+ * raw government data). Never hardcode source-institution names in a
+ * component; import from here.
+ */
+export const BENCHMARK_SOURCES_DISPLAY =
+  'SEC filings, World Bank enterprise surveys, and proprietary industry modeling';
+export const BENCHMARK_SOURCES_LIST = ['SEC XBRL', 'World Bank', 'JPMorgan Chase Institute', 'Proprietary modeling'];
+
 /** Number of industry sectors the corpus covers. */
 export const BENCHMARK_SECTORS = 46;
 

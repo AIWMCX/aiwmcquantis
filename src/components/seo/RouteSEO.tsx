@@ -1,6 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { PageMeta } from './PageMeta';
 import { TIERS } from '@/config/tiers';
+import { LEGAL_ENTITY_NAME } from '@/config/canonical-facts';
 
 /**
  * RouteSEO — drop-in component that auto-resolves title/description/canonical
@@ -81,11 +82,11 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/privacy': {
     title: 'Privacy Policy',
-    description: 'How AIWMC LLC collects, uses, and protects your personal information when you use Quantis.',
+    description: `How ${LEGAL_ENTITY_NAME} collects, uses, and protects your personal information when you use Quantis.`,
   },
   '/terms': {
     title: 'Terms of Service',
-    description: 'Terms governing use of the Quantis platform operated by AIWMC LLC.',
+    description: `Terms governing use of the Quantis platform operated by ${LEGAL_ENTITY_NAME}.`,
   },
   '/refund-policy': {
     title: 'Refund Policy',

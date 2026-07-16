@@ -7,6 +7,7 @@ import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
 import { SampleReportPages, type Density } from './SampleReportPages';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY, BENCHMARK_SOURCES_LIST } from '@/config/canonical-facts';
 
 const SAMPLE_URL = '/sample-report/quantis-sample-report.pdf';
 const PAGE_COUNT = SAMPLE_REPORT.pages.length;
@@ -310,8 +311,8 @@ export function ReportFirstHero() {
             Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
           </h1>
           <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Quantis stress-tests your idea against <strong>97,500 verified benchmarks</strong> from SBA,
-            BLS, U.S. Census, IBISWorld, and OECD — and returns a proceed / pivot / kill verdict with
+            Quantis stress-tests your idea against <strong>{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong> derived
+            from {BENCHMARK_SOURCES_DISPLAY} — and returns a proceed / pivot / kill verdict with
             a saveable PDF. No credit card. First analysis free.
           </p>
           {/* Data-source attribution row — real trust signals replacing fabricated review counts */}
@@ -320,7 +321,7 @@ export function ReportFirstHero() {
             className="mt-5 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-[11px] font-mono uppercase tracking-wider"
             style={{ color: 'hsl(var(--muted-foreground))' }}
           >
-            {['SBA', 'BLS', 'U.S. Census', 'IBISWorld', 'OECD'].map((src) => (
+            {BENCHMARK_SOURCES_LIST.map((src) => (
               <li key={src} className="inline-flex items-center gap-1.5">
                 <span
                   className="inline-block w-1 h-1 rounded-full"

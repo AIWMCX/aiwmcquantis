@@ -1,6 +1,7 @@
 import React from 'react';
 import { useExperiment, HERO_HEADLINES, trackExperimentConversion } from '@/lib/abTesting';
 import { trackEvent } from '@/lib/analytics';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 
 // Hero headline variants for A/B testing
 export interface HeroContent {
@@ -15,12 +16,12 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   // bridges directly to outcome. Replaces the old "90% fail" stat headline (no urgency, no bridge).
   control: {
     title: 'Before you invest $50K, spend 90 seconds finding out if you’ll get it back.',
-    subtitle: 'Quantis stress-tests your idea against 97,500 verified benchmarks (SBA · BLS · Census · IBISWorld · OECD) and returns a proceed / pivot / kill verdict. No credit card. First analysis free.',
+    subtitle: `Quantis stress-tests your idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY} and returns a proceed / pivot / kill verdict. No credit card. First analysis free.`,
     ctaText: 'Stress-test my idea — free (90s)',
   },
   numbers_first: {
     title: 'Your business idea has 3 fatal assumptions. We’ll find them in 90 seconds.',
-    subtitle: 'Deterministic engine. 12 financial variables. 1,000 Monte Carlo runs. Every number sourced — see exactly where your model breaks before you spend a dollar.',
+    subtitle: 'Deterministic engine. 12 financial variables. 1,000 Monte Carlo runs. Full assumption transparency — see exactly where your model breaks before you spend a dollar.',
     ctaText: 'Find my 3 fatal assumptions — free',
   },
   action_focused: {

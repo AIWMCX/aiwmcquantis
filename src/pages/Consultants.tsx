@@ -15,6 +15,7 @@ import {
   CONSULTANT_HOURLY_RATE_DISPLAY,
   VERDICT_SECONDS,
   FREE_ANALYSES_PER_MONTH,
+  LEGAL_ENTITY_NAME,
 } from '@/config/canonical-facts';
 
 /**
@@ -256,7 +257,7 @@ export default function Consultants() {
           serviceType: 'Business feasibility and pre-mortem analysis',
           provider: {
             '@type': 'Organization',
-            name: 'AIWMC LLC',
+            name: LEGAL_ENTITY_NAME,
             url: 'https://www.aiwmcquantis.com',
           },
           areaServed: 'US',
