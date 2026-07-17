@@ -78,13 +78,17 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
           </span>
         )}
       </div>
-      {/* Smart advisor hint on focus */}
-      {focused && advisorHint && !hasValue && (
+      {/* Industry-specific unit/range hint (e.g. "Most SaaS: $29-$299/mo") —
+          this is the one thing that disambiguates what the number means, so
+          it must stay visible after the user enters a value, not just while
+          the field is focused and empty. Previously vanished the instant a
+          value was typed, which meant most users never saw it at all. */}
+      {advisorHint && (
         <span className="text-[12px] mt-1 px-2 py-0.5 rounded-md inline-block w-fit" style={{ background: 'var(--q-status-ai-bg)', color: 'var(--q-status-ai)', border: '1px solid var(--q-status-ai-border)' }}>
           {advisorHint}
         </span>
       )}
-      {!hasValue && !focused && hint && (
+      {!advisorHint && !hasValue && !focused && hint && (
         <span className="q-form-hint mt-1">{hint}</span>
       )}
       {benchmarkMin !== undefined && benchmarkMax !== undefined && hasValue && (

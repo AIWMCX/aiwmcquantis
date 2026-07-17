@@ -18,6 +18,7 @@ import { FinancialsStep } from './steps/FinancialsStep';
 import { ConfidenceSidebar } from './steps/ConfidenceSidebar';
 import type { OptionalFinancialInputs } from '@/types/analysis';
 import type { UploadedFile } from '@/hooks/useFileUpload';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /* ─── OUTPUT TYPES ─── */
 const OUTPUT_TYPES = [
@@ -236,7 +237,7 @@ export function CompactAnalysisForm({
             Stress-test your business idea
           </h1>
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
-            Fill in what you know. We validate with 97,500 benchmarks.
+            Fill in what you know. We validate with {BENCHMARK_COUNT_DISPLAY} benchmark data points.
           </p>
         </div>
       </div>
