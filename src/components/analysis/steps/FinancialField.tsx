@@ -91,6 +91,22 @@ export function FinancialField({ label, prefix, suffix, placeholder, value, onCh
       {!advisorHint && !hasValue && !focused && hint && (
         <span className="q-form-hint mt-1">{hint}</span>
       )}
+      {/* Uncertainty affordance: the engine already substitutes an industry
+          benchmark for any field left empty — that fallback existed but was
+          never stated, so a user unsure of the real number had no honest way
+          to say "I don't know" short of guessing a fake-precise value. This
+          makes leaving it blank a stated, deliberate choice instead of a
+          silent default. No engine change — purely explains existing behavior.
+          Deliberately omits the range itself when advisorHint is present
+          (same line above already states it) to avoid printing the same
+          number twice in two different phrasings. */}
+      {!hasValue && benchmarkMin !== undefined && benchmarkMax !== undefined && (
+        <span className="text-[11px] mt-1" style={{ color: 'var(--q-text-disabled)' }}>
+          {advisorHint
+            ? "Not sure? Leave it blank — we'll use the typical value above."
+            : `Not sure? Leave it blank — we'll use ${fmtK(benchmarkMin)}–${fmtK(benchmarkMax)} (typical for your industry).`}
+        </span>
+      )}
       {benchmarkMin !== undefined && benchmarkMax !== undefined && hasValue && (
         <div className="mt-1.5">
           <div className="flex justify-between items-center mb-0.5">

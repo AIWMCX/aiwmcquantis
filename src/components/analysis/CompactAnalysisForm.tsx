@@ -239,6 +239,15 @@ export function CompactAnalysisForm({
           <p className="text-[14px] mt-1" style={{ color: 'var(--q-text-secondary)' }}>
             Fill in what you know. We validate with {BENCHMARK_COUNT_DISPLAY} benchmark data points.
           </p>
+          {/* Domain 4 audit (Q40): nothing in this form previously named the
+              decision or the capital behind it — every field below fed
+              straight into the payback/verdict math with no framing that
+              this represents a real decision. Kept to a fact we can stand
+              behind (the numbers are load-bearing for the verdict) rather
+              than inventing positioning copy that isn't ours to decide. */}
+          <p className="text-[12px] mt-1" style={{ color: 'var(--q-text-tertiary)' }}>
+            Every number below feeds directly into your payback period and verdict — this is the real math behind the decision, not a preview.
+          </p>
         </div>
       </div>
 
