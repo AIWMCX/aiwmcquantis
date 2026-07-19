@@ -251,8 +251,15 @@ serve(async (req) => {
       success_url: `${returnOrigin}/app?checkout=success`,
       cancel_url: `${returnOrigin}/app?checkout=canceled${promoCodeRaw ? `&promo=${promoCodeRaw}` : ''}`,
       // Canonical Master Spec: both Plus AND Pro ship with 14-day free trial.
+      // QNT: explicit end-behavior — if the trial ends with no usable payment
+      // method on file, cancel the subscription outright rather than leaving
+      // Stripe to fall back on undocumented default retry behavior. This
+      // stops trials from lingering in an undefined state indefinitely.
       subscription_data: {
         trial_period_days: 14,
+        trial_settings: {
+          end_behavior: { missing_payment_method: "cancel" },
+        },
         metadata: {
           supabase_user_id: userId,
           plan,

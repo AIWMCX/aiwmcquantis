@@ -856,11 +856,57 @@ serve(async (req) => {
         }
 
         try {
-          const { data: subRow } = await supabase
+          let { data: subRow } = await supabase
             .from("subscriptions")
             .select("user_id, payment_failed_at, status")
             .eq("stripe_subscription_id", subId)
             .maybeSingle();
+
+          // QNT: self-heal a missing row instead of silently no-op'ing.
+          // Root cause (confirmed 2026-07-16 reconciliation): at least 4 real
+          // customers who completed checkout and started a trial have zero
+          // rows in this table — checkout.session.completed either never
+          // fired or its user-resolution fallbacks failed at the time. Prior
+          // to this fix, a missing row meant `payment_failed_at` could never
+          // persist (UPDATE on a non-existent row is a silent no-op), so the
+          // grace timer reset to zero on every retry and the downgrade branch
+          // below could never fire — invoices stayed "open" indefinitely.
+          if (!subRow) {
+            log.warn(`[${requestId}] No subscriptions row for ${subId} — attempting to resolve and create one`);
+            const subscription = await withRetry(
+              () => stripe.subscriptions.retrieve(subId),
+              "Retrieve subscription (payment_failed recovery)",
+              requestId
+            );
+            const customerId = (subscription as any).customer as string;
+            let userId = (subscription as any).metadata?.supabase_user_id as string | undefined;
+            if (!userId && customerId) {
+              const email = await getCustomerEmail(customerId);
+              if (email) userId = (await findUserByEmail(email)) ?? undefined;
+            }
+
+            if (userId) {
+              const plan = planFromSubscription(subscription as any);
+              const recovered = await upsertSubscription({
+                user_id: userId,
+                stripe_customer_id: customerId,
+                stripe_subscription_id: subId,
+                plan_id: plan ?? "free",
+                status: "past_due",
+                payment_failed_at: new Date().toISOString(),
+                current_period_start: new Date((subscription as any).current_period_start * 1000).toISOString(),
+                current_period_end: new Date((subscription as any).current_period_end * 1000).toISOString(),
+              });
+              if (recovered.success) {
+                log.info(`[${requestId}] Recovered missing subscription row for user ${userId}, sub ${subId}`);
+                subRow = { user_id: userId, payment_failed_at: null, status: "past_due" } as any;
+              } else {
+                log.error(`[${requestId}] Failed to recover missing subscription row for sub ${subId}:`, recovered.error);
+              }
+            } else {
+              log.error(`[${requestId}] Could not resolve user_id for orphaned subscription ${subId} — cannot self-heal. Customer: ${maskEmail(await getCustomerEmail(customerId))}`);
+            }
+          }
 
           const nowIso = new Date().toISOString();
           const firstFailureIso = subRow?.payment_failed_at ?? nowIso;
@@ -869,7 +915,7 @@ serve(async (req) => {
           // status. If this is the first failure we set payment_failed_at=now;
           // subsequent failures keep the original timestamp so the grace
           // window doesn't reset on every retry.
-          if (!subRow?.payment_failed_at) {
+          if (subRow && !subRow.payment_failed_at) {
             await supabase
               .from("subscriptions")
               .update({ payment_failed_at: nowIso, status: "past_due" })
