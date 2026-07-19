@@ -657,7 +657,18 @@ export function generate12MonthProjections(
       costs: QMath.round(costs),
       profit: QMath.round(profit),
       cumulativeProfit: QMath.round(cumulativeProfit),
-      cash: QMath.round(Math.max(0, cash)),
+      // Domain 6 audit: previously `Math.max(0, cash)` floored a negative
+      // cash position to 0 in the displayed value while the internal `cash`
+      // variable carried the true (possibly negative) number forward to the
+      // next month's calculation. That meant the displayed series could
+      // violate its own identity — cash[t+1] != cash[t] + profit[t+1] —
+      // exactly the defect src/financial/reconcile.ts's test suite exists to
+      // catch, and silently hid the true size of a cash shortfall from
+      // anyone reading the report. This function currently has no call
+      // sites in the live pipeline, so this fix has zero production blast
+      // radius today — it exists so the bug can't ship the moment someone
+      // wires this up.
+      cash: QMath.round(cash),
     });
   }
   
