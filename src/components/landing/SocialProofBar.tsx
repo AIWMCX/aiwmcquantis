@@ -29,34 +29,24 @@ const POLL_INTERVAL_MS = 30_000;
 const PLANS_SEED = 175;
 const ANALYSES_SEED = 1247;
 
-// Guaranteed growth: the displayed numbers must never stall or regress, even
-// on quiet days. We anchor to a fixed epoch and add a deterministic amount
-// per elapsed hour/day so every visitor — everywhere in the world — sees the
-// same steadily-climbing counter. Real DB values (when higher) still win via
-// Math.max, so genuine activity accelerates growth but never slows it.
-const GROWTH_EPOCH_MS = Date.UTC(2026, 6, 14, 0, 0, 0); // 2026-07-14
-const PLANS_PER_DAY = 3;      // ~90/month
-const ANALYSES_PER_DAY = 27;  // ~810/month (~1/hour + jitter)
-
-function computeFloor(seed: number, perDay: number): number {
-  const elapsedMs = Math.max(0, Date.now() - GROWTH_EPOCH_MS);
-  const elapsedDays = elapsedMs / 86_400_000;
-  // Deterministic sub-day drift so the number ticks up within a day too.
-  return seed + Math.floor(elapsedDays * perDay);
-}
-
+// Domain audit fix: this file previously had a `computeFloor()` function
+// that added a deterministic amount per elapsed hour/day to the displayed
+// count, completely independent of real usage — every visitor saw a number
+// engineered to always be climbing, regardless of whether anyone had
+// actually used the product that day. Confirmed live in the deployed
+// bundle. Removed entirely. The seeds below are the same honest floor the
+// DB was originally seeded with (see migration referenced in the docblock
+// above) — they render for the ~800ms before the real fetchAll() below
+// returns actual public_metrics values, which is the only thing allowed
+// to move these numbers from here on.
 const MONO_STYLE: React.CSSProperties = {
   fontFamily: "'JetBrains Mono', ui-monospace, monospace",
   fontVariantNumeric: 'tabular-nums',
 };
 
 export function SocialProofBar() {
-  const [plansCount, setPlansCount] = useState<number>(() =>
-    computeFloor(PLANS_SEED, PLANS_PER_DAY),
-  );
-  const [analysesTotal, setAnalysesTotal] = useState<number>(() =>
-    computeFloor(ANALYSES_SEED, ANALYSES_PER_DAY),
-  );
+  const [plansCount, setPlansCount] = useState<number>(PLANS_SEED);
+  const [analysesTotal, setAnalysesTotal] = useState<number>(ANALYSES_SEED);
 
 
   useEffect(() => {
