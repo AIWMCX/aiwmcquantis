@@ -3313,14 +3313,22 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
 
     // ========== IMMUTABLE ANALYSIS SNAPSHOT (Handbook §19 item 9) ==========
-    // Fire-and-forget: never blocks or fails the response. See migration
-    // 20260711180000_analysis_snapshots.sql for why analysis_id is nullable
-    // and correlationId is the anchor at write time (analyze-business never
-    // inserts into public.analyses itself — that happens later, client-side).
+    // Domain 7 audit: this was fire-and-forget (no `await`) — never fails the
+    // response, but that's also true of an unawaited promise that the Deno
+    // Edge Function runtime kills mid-flight when the handler returns and the
+    // isolate tears down. Unlike a long-running Node server, there was no
+    // guarantee this write ever actually completed. Now awaited so the write
+    // finishes before the response is sent; the catch below keeps the exact
+    // same non-fatal behavior on a genuine write failure — this only closes
+    // the "response returned before the write even started" race.
+    // See migration 20260711180000_analysis_snapshots.sql for why analysis_id
+    // is nullable and correlationId is the anchor at write time
+    // (analyze-business never inserts into public.analyses itself — that
+    // happens later, client-side).
     const analysisCorrelationId = crypto.randomUUID();
     (result as Record<string, unknown>).analysis_correlation_id = analysisCorrelationId;
     if (calc.paybackResult) {
-      emitAnalysisSnapshot({
+      await emitAnalysisSnapshot({
         correlationId: analysisCorrelationId,
         userId,
         normalizedInput: { idea: idea_clean, location: location.trim(), financialInputs: mergedFinancialInputs ?? null },
