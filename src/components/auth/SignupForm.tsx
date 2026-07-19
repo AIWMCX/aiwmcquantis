@@ -134,7 +134,19 @@ export function SignupForm({ onSuccess, className }: SignupFormProps) {
         });
       }
 
-      trackSignup('email');
+      // Domain 9 audit: signUp() can return a non-error response for a retry
+      // against an already-pending, unconfirmed email — it just resends the
+      // confirmation email rather than creating a new account. Confirmed
+      // directly: one real session fired free_signup_complete 3 times over
+      // 15 minutes with no account ever created (three resubmits while
+      // waiting for the confirmation email). This guard fires the event at
+      // most once per email per browser session, regardless of how many
+      // times the form is resubmitted for the same address.
+      const signupTrackedKey = `aiwmc_signup_tracked_${data.email.toLowerCase()}`;
+      if (!sessionStorage.getItem(signupTrackedKey)) {
+        sessionStorage.setItem(signupTrackedKey, '1');
+        trackSignup('email');
+      }
       trackSimplifiedFormConversion('verified_email_v1', timeToSubmit);
 
       if (isMobile && timeToSubmit) {
