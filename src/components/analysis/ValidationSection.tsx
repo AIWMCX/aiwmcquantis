@@ -192,6 +192,34 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
             </AccordionContent>
           </AccordionItem>
         )}
+
+        {/* Domain 5 audit: `canImprove` was computed above but never rendered
+            anywhere in this file — the one signal that would tell a user
+            their industry was auto-guessed (keyword-matched, not selected)
+            and to pick the real one for better benchmarks was silently
+            discarded. `TrendingUp` was already imported and unused, which is
+            itself evidence this section existed before and was lost, not
+            omitted deliberately. Restoring it in the same accordion pattern
+            as Warnings/Corrections/Audit above. */}
+        {canImprove && (
+          <AccordionItem value="improvements" className="border-border">
+            <AccordionTrigger className="hover:no-underline">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-primary" />
+                <span>Ways to Improve Accuracy ({validation.improvement_suggestions.length})</span>
+              </div>
+            </AccordionTrigger>
+            <AccordionContent>
+              <div className="space-y-2">
+                {validation.improvement_suggestions.map((suggestion, i) => (
+                  <div key={i} className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-sm text-foreground">
+                    {suggestion}
+                  </div>
+                ))}
+              </div>
+            </AccordionContent>
+          </AccordionItem>
+        )}
       </Accordion>
     </div>
   );
