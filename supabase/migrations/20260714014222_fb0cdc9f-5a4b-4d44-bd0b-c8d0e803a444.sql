@@ -52,6 +52,10 @@ BEGIN
     jsonb_build_object('profile_id', NEW.id)
   );
   RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Never let a notification-row failure roll back a real signup.
+  RAISE WARNING 'notify_admin_new_user failed: %', SQLERRM;
+  RETURN NEW;
 END;
 $$;
 
@@ -82,6 +86,12 @@ BEGIN
     v_email,
     jsonb_build_object('analysis_id', NEW.id)
   );
+  RETURN NEW;
+EXCEPTION WHEN OTHERS THEN
+  -- Never let a notification-row failure roll back a real analysis save —
+  -- this table exists precisely because saveAnalysis() inserts were
+  -- silently lost to unrelated schema drift for over a week (2026-07-19).
+  RAISE WARNING 'notify_admin_new_analysis failed: %', SQLERRM;
   RETURN NEW;
 END;
 $$;

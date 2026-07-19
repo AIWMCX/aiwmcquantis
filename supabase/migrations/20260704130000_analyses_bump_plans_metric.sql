@@ -1,4 +1,19 @@
 -- ============================================================================
+-- SUPERSEDED — DO NOT APPLY (reconciled 2026-07-19).
+--
+-- This file was never applied to production (part of the Jul 4-14 migration
+-- backlog discovered and reconciled on 2026-07-19). By the time that backlog
+-- was cleared, 20260706170000_analyses_total_counter.sql had already shipped
+-- a different mechanism for the same counter: an AFTER INSERT trigger on
+-- funnel_events (analysis_complete) that bumps plans_stress_tested via
+-- bump_plans_stress_tested_on_analysis_complete(), applied and verified live.
+--
+-- Applying this file now would install a SECOND trigger that bumps
+-- plans_stress_tested directly on every public.analyses insert, double-
+-- counting every real analysis against the funnel_events-driven trigger.
+-- Left in place only for historical record. Kept out of the applied set
+-- intentionally — do not run this migration.
+-- ============================================================================
 -- Auto-increment the public plans_stress_tested counter on every new
 -- analyses row insert. Bypass-proof: works regardless of which edge
 -- function creates the row, survives any TypeScript regeneration, and
