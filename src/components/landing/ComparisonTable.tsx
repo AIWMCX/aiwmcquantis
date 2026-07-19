@@ -1,5 +1,6 @@
 import React from 'react';
 import { CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 const comparisons = [
   {
@@ -12,7 +13,7 @@ const comparisons = [
   {
     aspect: 'Data Source',
     generic: 'Training data only',
-    quantis: '97,500 industry benchmarks',
+    quantis: `${BENCHMARK_COUNT_DISPLAY} benchmark data points`,
     genericStatus: 'poor',
     quantisStatus: 'good',
   },

@@ -38,7 +38,7 @@ const ZOOM_STEP = 0.1;
 
 const NARRATION = [
   { t: 0,  label: 'Reading your idea…' },
-  { t: 8,  label: 'Matching against 97,500 industry benchmarks…' },
+  { t: 8,  label: `Matching against ${BENCHMARK_COUNT_DISPLAY} benchmark data points…` },
   { t: 22, label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
   { t: 38, label: 'Running 12-variable Monte Carlo on cash flow…' },
   { t: 55, label: 'Cross-validating with second AI model…' },
@@ -312,8 +312,8 @@ export function ReportFirstHero() {
           </h1>
           <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
             Quantis stress-tests your idea against <strong>{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong> derived
-            from {BENCHMARK_SOURCES_DISPLAY} — and returns a proceed / pivot / kill verdict with
-            a saveable PDF. No credit card. First analysis free.
+            from {BENCHMARK_SOURCES_DISPLAY} — and returns a profitability verdict and reliability
+            score with a saveable PDF. No credit card. First analysis free.
           </p>
           {/* Data-source attribution row — real trust signals replacing fabricated review counts */}
           <ul

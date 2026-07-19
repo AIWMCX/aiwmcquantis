@@ -6,6 +6,7 @@ import { trackCtaClick, trackAnalysisFunnel } from '@/lib/analytics';
 import { QuantisHeroDemo } from './QuantisHeroDemo';
 import { LiveCounter } from './LiveCounter';
 import { supabase } from '@/integrations/supabase/client';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /* ── Animated counter for instrument panel ── */
 function AnimatedMetric({ end, prefix = '', suffix = '', duration = 2000 }: { end: number; prefix?: string; suffix?: string; duration?: number }) {
@@ -146,7 +147,7 @@ export function MobileHero() {
               <span className="font-semibold" style={{ color: 'var(--q-text-primary)' }}>
                 or cost you everything.
               </span>
-              {' '}97,500 real benchmarks. Free. No signup required.
+              {' '}{BENCHMARK_COUNT_DISPLAY} benchmark data points. Free. No signup required.
             </p>
 
             {/* CTA Row */}

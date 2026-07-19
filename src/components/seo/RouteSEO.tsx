@@ -26,7 +26,7 @@ interface RouteMeta {
 const ROUTE_META: Record<string, RouteMeta> = {
   '/': {
     title: 'AIWMC Quantis — AI Business Idea Validator',
-    description: 'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 real benchmarks. Free to start.',
+    description: `Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Free to start.`,
   },
   '/how-it-works': {
     title: 'How Quantis Works — 3 Steps to Financial Clarity',
@@ -38,7 +38,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/consultants': {
     title: 'Quantis for Consultants — Client Pre-Screening in 90 Seconds',
-    description: 'A client pre-screen under 90 seconds, under your own brand. 97,500 benchmarks and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.',
+    description: `A client pre-screen under 90 seconds, under your own brand. ${BENCHMARK_COUNT_DISPLAY} benchmark data points and 1,000 Monte Carlo iterations behind every deliverable. For consultants, fractional CFOs, and M&A advisors.`,
   },
   '/examples': {
     title: 'Example Analyses — See Quantis in Action',
@@ -58,7 +58,7 @@ const ROUTE_META: Record<string, RouteMeta> = {
   },
   '/research': {
     title: 'Research — Data Behind Quantis',
-    description: 'Research and primary sources powering Quantis: 97,500 industry benchmarks, location indices, and validation studies.',
+    description: `Research and primary sources powering Quantis: ${BENCHMARK_COUNT_DISPLAY} benchmark data points, location indices, and validation studies.`,
   },
   '/blog': {
     title: 'Blog — Founder Lessons & Validation Tactics',
@@ -153,7 +153,7 @@ export function RouteSEO({ path, titleOverride, descriptionOverride, noIndex }: 
   const description =
     descriptionOverride ??
     meta?.description ??
-    'Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with 97,500 real benchmarks.';
+    `Stress-test your business idea in 90 seconds. AI-powered financial pre-mortem with ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`;
   const shouldNoIndex = noIndex ?? meta?.noIndex ?? false;
 
   return <PageMeta title={title} description={description} path={resolvedPath} noIndex={shouldNoIndex} />;

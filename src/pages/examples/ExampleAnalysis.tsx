@@ -7,6 +7,7 @@ import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { GlassCard } from '@/components/ui/glass-card';
 import { EXAMPLE_ANALYSES, type ExampleData } from './exampleData';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 function MetricCard({ label, value, icon: Icon, color }: { label: string; value: string; icon: React.ElementType; color: string }) {
   return (
@@ -363,7 +364,7 @@ export default function ExampleAnalysis() {
               Get your own custom report
             </h2>
             <p className="text-muted-foreground mb-6 max-w-xl mx-auto">
-              Takes 90 seconds. Uses 97,500 real benchmarks. Free.
+              Takes 90 seconds. Uses {BENCHMARK_COUNT_DISPLAY} benchmark data points. Free.
             </p>
             <Link to="/app">
               <Button size="lg" className="gap-2 text-base px-8 py-6 hover:scale-[1.02] transition-transform">

@@ -359,7 +359,7 @@ export default function Index() {
     <AppLayout title="Dashboard">
       <PageSEO
         title="Run a free business idea analysis in 90 seconds | AIWMC Quantis"
-        description={`Stress-test any business idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY}. Free first analysis — no credit card. Get a proceed/pivot/kill verdict with Monte Carlo projections.`}
+        description={`Stress-test any business idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY}. Free first analysis — no credit card. Get a profitability verdict and reliability score with Monte Carlo projections.`}
         canonical="/app"
       />
 

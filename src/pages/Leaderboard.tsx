@@ -7,6 +7,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { PublicPageShell } from '@/components/layout/PublicPageShell';
 import { logger } from '@/lib/logger';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import {
   Trophy, TrendingUp, ArrowRight, MapPin,
   DollarSign, Clock, Share2
@@ -116,7 +117,7 @@ export default function Leaderboard() {
     <PublicPageShell backTo={{ href: '/', label: 'Back to home' }} maxWidth="lg">
       <PageSEO
         title="Quantis Leaderboard — Top-scoring validated business ideas"
-        description="Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against 97,500 real benchmarks."
+        description={`Live rankings of business ideas validated through Quantis. See the highest-scoring models stress-tested against ${BENCHMARK_COUNT_DISPLAY} benchmark data points.`}
         canonical="/leaderboard"
       />
       <div className="py-4 md:py-8">

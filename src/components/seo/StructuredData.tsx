@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { useLocation } from 'react-router-dom';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 const SITE_URL = 'https://www.aiwmcquantis.com';
 
@@ -81,7 +82,7 @@ export function StructuredData({
       operatingSystem: 'Web',
       browserRequirements: 'Requires JavaScript. Works in Chrome, Firefox, Safari, Edge.',
       softwareVersion: '2.0',
-      description: 'AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using 97,500 industry benchmarks in 90 seconds.',
+      description: `AI-powered business validation platform that stress-tests startup ideas across 12 financial variables using ${BENCHMARK_COUNT_DISPLAY} benchmark data points in 90 seconds.`,
       url: SITE_URL,
       screenshot: `${SITE_URL}/og-image.png`,
       datePublished: '2024-06-01',

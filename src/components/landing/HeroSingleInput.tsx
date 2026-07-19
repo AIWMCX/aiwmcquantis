@@ -4,10 +4,11 @@ import { Loader2, ArrowRight, Sparkles, Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 const NARRATION = [
   { t: 0,    label: 'Reading your idea…' },
-  { t: 8,    label: 'Matching against 97,500 industry benchmarks…' },
+  { t: 8,    label: `Matching against ${BENCHMARK_COUNT_DISPLAY} benchmark data points…` },
   { t: 22,   label: 'Stress-testing unit economics (CAC, LTV, churn)…' },
   { t: 38,   label: 'Running 12-variable Monte Carlo on cash flow…' },
   { t: 55,   label: 'Cross-validating with second AI model…' },
@@ -115,7 +116,7 @@ export function HeroSingleInput() {
             Type your business idea. Get a verdict.
           </h2>
           <p className="text-sm md:text-base max-w-xl mx-auto" style={{ color: 'var(--q-text-secondary, hsl(var(--muted-foreground)))' }}>
-            One sentence is enough. We stress-test it against 97,500 real benchmarks and tell you, brutally, if the math holds.
+            One sentence is enough. We stress-test it against {BENCHMARK_COUNT_DISPLAY} benchmark data points and tell you, brutally, if the math holds.
           </p>
         </div>
 
@@ -200,7 +201,7 @@ export function HeroSingleInput() {
                 We don't store your idea publicly.
               </span>
               <span>·</span>
-              <span>97,500 verified benchmarks</span>
+              <span>{BENCHMARK_COUNT_DISPLAY} benchmark data points</span>
               <span>·</span>
               <span>Multi-model cross-checked</span>
             </div>

@@ -16,7 +16,7 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
   // bridges directly to outcome. Replaces the old "90% fail" stat headline (no urgency, no bridge).
   control: {
     title: 'Before you invest $50K, spend 90 seconds finding out if you’ll get it back.',
-    subtitle: `Quantis stress-tests your idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY} and returns a proceed / pivot / kill verdict. No credit card. First analysis free.`,
+    subtitle: `Quantis stress-tests your idea against ${BENCHMARK_COUNT_DISPLAY} benchmark data points derived from ${BENCHMARK_SOURCES_DISPLAY} and returns a profitability verdict and reliability score. No credit card. First analysis free.`,
     ctaText: 'Stress-test my idea — free (90s)',
   },
   numbers_first: {
@@ -25,8 +25,8 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
     ctaText: 'Find my 3 fatal assumptions — free',
   },
   action_focused: {
-    title: 'Every number in your business plan is a guess. Stress-test them against 97,500 real benchmarks — free.',
-    subtitle: 'Multi-model consensus on financial, market, and operational risk. Get a proceed/pivot/kill verdict with a saveable PDF in 90 seconds.',
+    title: `Every number in your business plan is a guess. Stress-test them against ${BENCHMARK_COUNT_DISPLAY} real benchmarks — free.`,
+    subtitle: 'Multi-model consensus on financial, market, and operational risk. Get a profitability verdict and reliability score with a saveable PDF in 90 seconds.',
     ctaText: 'Run my free stress-test',
   },
 };

@@ -3,6 +3,7 @@ import { XCircle, CheckCircle2, ArrowRight } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { trackCtaClick } from '@/lib/analytics';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 const WITHOUT_ITEMS = [
 'Commit $30k+ based on gut feeling',
@@ -13,8 +14,8 @@ const WITHOUT_ITEMS = [
 
 const WITH_ITEMS = [
 'Know your 3 fatal assumptions before spending $1',
-'Stress-test against 97,500 industry benchmarks',
-'Get a clear proceed / pivot / kill verdict',
+`Stress-test against ${BENCHMARK_COUNT_DISPLAY} industry benchmarks`,
+'Get a profitability verdict and reliability score',
 'See exactly which number will break your model'];
 
 

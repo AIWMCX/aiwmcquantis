@@ -61,7 +61,7 @@ export default function Landing() {
     <div className="min-h-screen rmg-surface dark text-[var(--rmg-text)]">
       <PageSEO
         title="AIWMC Quantis — Audit-grade business validation"
-        description="Deterministic financial engine + 97,500 verified benchmarks. Stress-test any business idea before the first dollar is spent. Free to start."
+        description={`Deterministic financial engine + ${BENCHMARK_COUNT_DISPLAY} benchmark data points. Stress-test any business idea before the first dollar is spent. Free to start.`}
         canonical="/"
       />
       <StructuredData 

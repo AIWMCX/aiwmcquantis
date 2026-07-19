@@ -7,23 +7,24 @@ import {
 import { StructuredData } from '@/components/seo/StructuredData';
 import { TIERS } from '@/config/tiers';
 import { SectionHeader } from '@/components/ui/glass-card';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCES_DISPLAY } from '@/config/canonical-facts';
 
 const faqItems = [
   {
     question: 'What is AIWMC Quantis?',
-    answer: 'AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using 97,500 industry benchmarks — in about 90 seconds.'
+    answer: `AIWMC Quantis is a deterministic financial stress-testing engine with an AI narrator layer. Enter your business idea and location, and the engine calculates revenue projections, risk flags, and an action plan using ${BENCHMARK_COUNT_DISPLAY} benchmark data points — in about 90 seconds.`
   },
   {
     question: 'How is this different from ChatGPT?',
-    answer: 'Quantis uses a deterministic financial engine with real industry benchmarks — not generative text. Every number is calculated from verified data, not hallucinated. ChatGPT gives opinions; Quantis gives math. Every metric is tagged as "computed", "benchmark", or "estimated" for full transparency.'
+    answer: 'Quantis uses a deterministic financial engine with industry benchmark data — not generative text. Every number is calculated from a locked payload, not hallucinated. ChatGPT gives opinions; Quantis gives math. Every metric is tagged as "computed", "benchmark", or "estimated" for full transparency.'
   },
   {
     question: 'What data do you use?',
-    answer: '97,500 industry benchmarks covering 50+ sectors, real CAC/LTV/churn data, and cost indices for 50+ global cities. No synthetic or made-up data. The engine uses the same financial frameworks that VCs and accelerators rely on.'
+    answer: `${BENCHMARK_COUNT_DISPLAY} benchmark data points covering 50+ sectors — derived from ${BENCHMARK_SOURCES_DISPLAY} — plus cost indices for 50+ global cities. Every value is labeled by source (sourced, derived, or modeled) so you can see what's real market data versus a structured estimate. The engine uses the same financial frameworks that VCs and accelerators rely on.`
   },
   {
     question: 'How accurate are the financial projections?',
-    answer: 'Our projections are based on 97,500 industry benchmarks and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.'
+    answer: `Our projections are based on ${BENCHMARK_COUNT_DISPLAY} benchmark data points and real market data. We provide 3 scenarios (conservative, realistic, optimistic) using 12 financial variables to give you a comprehensive view. Projections are estimates — we include confidence scores so you can calibrate.`
   },
   {
     question: 'Can I try AIWMC Quantis for free?',

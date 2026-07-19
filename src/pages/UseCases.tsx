@@ -1,5 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import {
   ArrowRight,
   Lightbulb,
@@ -59,7 +60,7 @@ const TIERS = [
     title: 'Early Founders',
     uses: 'idea validation · runway math · pivot decisions',
     detail:
-      'Before writing code or signing a lease, run the numbers against 97,500 real benchmarks. Get a proceed / pivot / kill verdict in 90 seconds with cited sources on every line.',
+      `Before writing code or signing a lease, run the numbers against ${BENCHMARK_COUNT_DISPLAY} real benchmarks. Get a profitability verdict and reliability score in 90 seconds with cited sources on every line.`,
     exampleSlug: 'coffee-shop-denver',
     exampleLabel: 'Coffee shop · Denver',
     glow: 'brand' as const,
