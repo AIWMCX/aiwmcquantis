@@ -1660,10 +1660,6 @@ export function usePdfExport() {
         throw new Error('VALIDATION_ERROR: No analysis result provided');
       }
       
-      if (!result.metadata) {
-        throw new Error('VALIDATION_ERROR: Analysis result missing metadata');
-      }
-
       if (!result.financial_analysis) {
         throw new Error('VALIDATION_ERROR: Analysis result missing financial data');
       }
