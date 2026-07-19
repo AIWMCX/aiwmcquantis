@@ -130,7 +130,12 @@ export const TIERS = {
       whiteLabel: true,
       unlimitedHistory: true,
       watermarkFree: true,
-      apiAccess: true, // Schema/keys exist; UI ships in v2 (Q2 2026)
+      // Domain 10 audit: this comment previously read "Schema/keys exist; UI
+      // ships in v2 (Q2 2026)" — stale. Confirmed shipped: /settings/api-keys
+      // is routed (App.tsx), and create-api-key (139-line edge function,
+      // real SHA-256 key hashing, server-side Pro-tier enforcement) is a
+      // genuine implementation, not a stub.
+      apiAccess: true,
       tamSamSom: true,
       pitchDeck: true,
       strategicRoadmap: true,
