@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { useSubscription } from '@/hooks/useSubscription';
 import { ArrowRight, ArrowLeft, ChevronDown, ChevronUp, AlertTriangle, CheckCircle2, ShieldAlert, Rocket, ShieldCheck, TriangleAlert } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -32,6 +32,7 @@ import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
+import { trackVerdictViewed } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -217,6 +218,27 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const risks = result.validation?.warnings || [];
   const insights = result.actionable_insights?.insights || [];
   const actionItems = result.actionable_insights?.summary?.quick_wins || [];
+
+  // Domain 9/14 audit (Q83/Q86/Q131): verdict_viewed has been an allowed
+  // funnel_events name and a fully-implemented tracker (trackVerdictViewed)
+  // since at least the June audit, but had zero call sites -- there was no
+  // way to see whether anyone who completes an analysis ever looks at the
+  // verdict. Mirrors the Step-1 verdict-tier logic (fast-track/caution/stop)
+  // read-only, purely for tracking -- does not affect what's rendered.
+  const verdictLevelForTracking = useMemo(() => {
+    const confidence = result.confidence_score || 70;
+    const criticalRisks = insights.filter((i: any) => i.status === 'danger' || i.status === 'warning').length;
+    if (confidence >= 80 && criticalRisks === 0) return 'fast-track';
+    if (confidence >= 60 && criticalRisks <= 2) return 'caution';
+    return 'stop';
+  }, [result.confidence_score, insights]);
+
+  const verdictViewedFired = useRef(false);
+  useEffect(() => {
+    if (verdictViewedFired.current) return;
+    verdictViewedFired.current = true;
+    trackVerdictViewed(verdictLevelForTracking);
+  }, [verdictLevelForTracking]);
 
   // Metric values for Step 1 grid
   const metrics = useMemo(() => {
