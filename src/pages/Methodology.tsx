@@ -165,7 +165,7 @@ export default function Methodology() {
           <ul className="space-y-3">
             <li className="flex items-start gap-3 text-sm">
               <FileCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#4ade80' }} />
-              <span><strong>Continuous Audits:</strong> Benchmarks are programmatically verified. Any data point older than 180 days is flagged as stale by our Research Agent.</span>
+              <span><strong>Staleness-Aware Confidence:</strong> Every benchmark's age discounts its weight in the confidence score automatically — full weight under 6 months, decaying steadily, and flagged stale after 18 months.</span>
             </li>
             <li className="flex items-start gap-3 text-sm">
               <FileCheck className="w-5 h-5 shrink-0 mt-0.5" style={{ color: '#4ade80' }} />
