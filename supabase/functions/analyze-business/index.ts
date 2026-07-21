@@ -8,6 +8,7 @@ import {
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
+import { detectArchetype } from '../_shared/business-archetypes.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -2761,16 +2762,23 @@ serve(async (req) => {
 
     log.info(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
 
-    // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): narrow, high-precision
-    // fail-closed check on revenue-shape mismatches. Engine assumes steady
-    // monthly-transaction revenue; contingency-fee / project-based / lumpy
-    // transaction shapes get an honest degraded banner in the frontend
-    // instead of a polished false-confidence report. WARN, not BLOCK -- the
-    // engine still runs, but the response carries a metadata warning the
-    // frontend surfaces prominently. False positives are cheap here (a
-    // banner), false negatives are the audit's exact original complaint.
+    // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): classify the business's
+    // operating archetype from the canonical registry (informational --
+    // does not change which formulas run) and, if that archetype has
+    // 'poor' engine fit, surface an honest degraded banner in the
+    // frontend instead of a polished false-confidence report. WARN, not
+    // BLOCK -- the engine still runs, but the response carries the
+    // classification (and, when applicable, a warning) the frontend
+    // surfaces prominently. False positives are cheap here (a banner),
+    // false negatives are the audit's exact original complaint.
+    const detectedArchetype = detectArchetype(idea_clean);
     const modelApplicabilityWarning: ModelApplicabilityWarning | null =
       detectRevenueShapeMismatch(idea_clean);
+    if (detectedArchetype) {
+      log.info(
+        `Business archetype detected: id=${detectedArchetype.id} engineFit=${detectedArchetype.engineFit}`,
+      );
+    }
     if (modelApplicabilityWarning) {
       log.info(
         `Revenue shape mismatch detected: shape=${modelApplicabilityWarning.detected_shape} phrase="${modelApplicabilityWarning.matched_phrase}"`,
@@ -3349,6 +3357,13 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // (still-computed) report. See _shared/revenue-shape-detector.ts.
     if (modelApplicabilityWarning) {
       (result as Record<string, unknown>).model_applicability_warning = modelApplicabilityWarning;
+    }
+    // Informational archetype tag (may be null if unclassified) -- does not
+    // change which formulas ran. Lets future analytics see the full
+    // distribution of detected archetypes, not just the 'poor'-fit ones
+    // that trigger a warning above.
+    if (detectedArchetype) {
+      (result as Record<string, unknown>).detected_archetype = detectedArchetype.id;
     }
     if (calc.paybackResult) {
       await emitAnalysisSnapshot({

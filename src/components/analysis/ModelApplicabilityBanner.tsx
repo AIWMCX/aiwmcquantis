@@ -2,10 +2,11 @@
  * ModelApplicabilityBanner — Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179).
  *
  * The financial engine assumes a steady monthly-transaction revenue shape.
- * Some business ideas describe revenue shapes the engine cannot model
- * correctly (contingency fee, project-based, transaction-percentage). A
- * server-side detector flags these at ingestion time and populates
- * `result.model_applicability_warning`.
+ * Some business archetypes (see src/config/business-archetypes.ts --
+ * currently: capacity-constrained service, project-based services,
+ * contingency fee, transaction percentage) have 'poor' fit against that
+ * shape. A server-side detector flags these at ingestion time and
+ * populates `result.model_applicability_warning`.
  *
  * This banner surfaces that warning honestly, next to the report, so a
  * professional reader can see that the numbers below are indicative rather
@@ -16,19 +17,11 @@
  */
 import { AlertTriangle } from "lucide-react";
 import type { BusinessAnalysisResult } from "@/types/analysis";
+import { BUSINESS_ARCHETYPES } from "@/config/business-archetypes";
 
 interface ModelApplicabilityBannerProps {
   warning: NonNullable<BusinessAnalysisResult["model_applicability_warning"]>;
 }
-
-const SHAPE_LABELS: Record<
-  NonNullable<BusinessAnalysisResult["model_applicability_warning"]>["detected_shape"],
-  string
-> = {
-  contingency_fee: "Contingency-fee revenue",
-  project_based: "Project-based revenue",
-  transaction_percentage: "Transaction-percentage revenue",
-};
 
 export function ModelApplicabilityBanner({ warning }: ModelApplicabilityBannerProps) {
   return (
@@ -48,7 +41,7 @@ export function ModelApplicabilityBanner({ warning }: ModelApplicabilityBannerPr
             Revenue shape may not match this engine's model
           </p>
           <p className="leading-relaxed text-muted-foreground">
-            Detected in your description: <strong className="text-foreground">{SHAPE_LABELS[warning.detected_shape]}</strong>
+            Detected in your description: <strong className="text-foreground">{BUSINESS_ARCHETYPES[warning.detected_shape].label}</strong>
             {" "}(matched phrase &ldquo;{warning.matched_phrase}&rdquo;). This engine
             assumes steady monthly-transaction revenue.
           </p>

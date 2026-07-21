@@ -2,6 +2,8 @@
 // UNIVERSAL BUSINESS FINANCIAL ANALYSIS SYSTEM
 // ============================================
 
+import type { ArchetypeId } from '@/config/business-archetypes';
+
 // Validation Result Interface
 export interface ValidationCorrection {
   field: string;
@@ -324,12 +326,16 @@ export interface BusinessAnalysisResult {
   // the immutable snapshot row.
   analysis_correlation_id?: string;
   // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): server-side detector flags
-  // when the free-text idea describes a revenue shape (contingency fee,
-  // project-based, transaction-percentage) the MRR-shaped engine cannot
-  // model correctly. Frontend renders a prominent honest banner when set.
-  // See supabase/functions/_shared/revenue-shape-detector.ts.
+  // when the free-text idea's detected business archetype (see
+  // src/config/business-archetypes.ts) has 'poor' fit against the
+  // MRR-shaped engine. Frontend renders a prominent honest banner when
+  // set. See supabase/functions/_shared/revenue-shape-detector.ts.
+  // Informational business-archetype classification (may be absent if
+  // unclassified) -- does not change which formulas ran. See
+  // src/config/business-archetypes.ts.
+  detected_archetype?: ArchetypeId;
   model_applicability_warning?: {
-    detected_shape: 'contingency_fee' | 'project_based' | 'transaction_percentage';
+    detected_shape: ArchetypeId;
     engine_assumes: 'steady_monthly_transactions';
     severity: 'warn';
     matched_phrase: string;
