@@ -13,7 +13,7 @@ export const EXPANDED_EXAMPLES: Record<string, ExampleData> = {
     location: 'Paris, France',
     seo: {
       title: 'Bakery Business Analysis — Paris, France | AIWMC Quantis',
-      description: 'Financial analysis for opening an artisan bakery in Paris. €5,800/mo profit, €75K startup, 12.9-month payback. Real benchmark data.',
+      description: 'Financial analysis for opening an artisan bakery in Paris. €5,800/mo profit, €75K startup, 12.9-month payback. Modeled benchmark data.',
     },
     metrics: { monthlyRevenue: '€22,000', monthlyProfit: '€5,800', paybackMonths: '12.9 months', roi: '93%', startupCost: '€75,000' },
     costBreakdown: [

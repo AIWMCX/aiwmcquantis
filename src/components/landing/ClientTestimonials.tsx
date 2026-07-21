@@ -1,5 +1,6 @@
 import React from 'react';
 import { Brain, Shield, Zap, Calculator, TrendingUp, Target } from 'lucide-react';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /**
  * ClientTestimonials - Replaced with verifiable feature highlights
@@ -25,8 +26,8 @@ const verifiableFeatures: Feature[] = [
   {
     icon: TrendingUp,
     title: 'Industry Benchmarks',
-    description: 'Analysis powered by real industry data across multiple sectors and regions.',
-    metric: '97,500 benchmarks',
+    description: 'Analysis powered by a modeled industry benchmark corpus across multiple sectors and regions.',
+    metric: `${BENCHMARK_COUNT_DISPLAY} benchmarks`,
   },
   {
     icon: Zap,

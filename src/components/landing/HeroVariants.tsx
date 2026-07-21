@@ -25,7 +25,7 @@ export const HERO_CTA_VARIANTS: Record<string, HeroContent> = {
     ctaText: 'Find my 3 fatal assumptions — free',
   },
   action_focused: {
-    title: `Every number in your business plan is a guess. Stress-test them against ${BENCHMARK_COUNT_DISPLAY} real benchmarks — free.`,
+    title: `Every number in your business plan is a guess. Stress-test them against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks — free.`,
     subtitle: 'Multi-model consensus on financial, market, and operational risk. Get a profitability verdict and reliability score with a saveable PDF in 90 seconds.',
     ctaText: 'Run my free stress-test',
   },

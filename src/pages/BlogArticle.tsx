@@ -85,7 +85,7 @@ const ARTICLE_CONTENT: Record<string, React.ReactNode> = {
       <p><strong>Cons:</strong> Expensive ($5,000-$50,000 for consultants), slow (4-12 weeks), often biased toward the conclusion the founder wants to hear.</p>
       
       <h2>AI-Powered Validation</h2>
-      <p><strong>Pros:</strong> Fast (minutes, not weeks), data-driven (based on real benchmarks), objective (no emotional bias), affordable.</p>
+      <p><strong>Pros:</strong> Fast (minutes, not weeks), data-driven (based on modeled industry benchmarks), objective (no emotional bias), affordable.</p>
       <p><strong>Cons:</strong> Less nuance on highly unique business models, can't replace deep industry expertise for complex ventures.</p>
       
       <h2>When to Use AI Validation</h2>

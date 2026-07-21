@@ -122,7 +122,7 @@ export const VS_PAGES: VsPage[] = [
       quote: 'Create investor-ready business plans with AI assistance, financial forecasts, and pitch decks.',
       source: 'https://upmetrics.co',
     },
-    wedge: `Upmetrics generates a plan by writing prose with an LLM. Quantis runs a deterministic engine first, then validates every number against ${BENCHMARK_COUNT_DISPLAY} real benchmarks and live web evidence. If your investor asks "where did this number come from?" — only one of these tools has an answer that isn't "the model produced it."`,
+    wedge: `Upmetrics generates a plan by writing prose with an LLM. Quantis runs a deterministic engine first, then validates every number against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks and live web evidence. If your investor asks "where did this number come from?" — only one of these tools has an answer that isn't "the model produced it."`,
     rows: [
       ...QUANTIS_DIFFERENTIATORS,
       {
@@ -311,13 +311,13 @@ export const VS_PAGES: VsPage[] = [
       quote: 'ChatGPT can answer questions about anything, including your business idea.',
       source: 'https://openai.com/chatgpt/pricing',
     },
-    wedge: `You can absolutely ask ChatGPT to validate your business idea. It will produce a confident-sounding answer, with financial figures it invented in the moment, no benchmark data behind them, no memory of the last analysis you ran, and no way to check its work. Quantis was built specifically because that gap is dangerous: the deterministic engine computes numbers first, matches them against ${BENCHMARK_COUNT_DISPLAY} real benchmarks, then only lets AI narrate — never originate — a financial figure.`,
+    wedge: `You can absolutely ask ChatGPT to validate your business idea. It will produce a confident-sounding answer, with financial figures it invented in the moment, no benchmark data behind them, no memory of the last analysis you ran, and no way to check its work. Quantis was built specifically because that gap is dangerous: the deterministic engine computes numbers first, matches them against ${BENCHMARK_COUNT_DISPLAY} modeled benchmarks, then only lets AI narrate — never originate — a financial figure.`,
     rows: [
       ...QUANTIS_DIFFERENTIATORS,
       {
         feature: 'Where do the numbers come from?',
         quantis: `Deterministic engine computes first; AI never originates a financial number (constitutional invariant). Every metric traces to a source.`,
-        competitor: 'The language model generates numbers as text, based on patterns in its training data — not a calculation against real benchmark data.',
+        competitor: 'The language model generates numbers as text, based on patterns in its training data — not a calculation against benchmark data.',
       },
       {
         feature: 'Consistency across runs',
@@ -339,7 +339,7 @@ export const VS_PAGES: VsPage[] = [
     faqs: [
       {
         q: "Isn't Quantis just ChatGPT with extra steps?",
-        a: `No — the deterministic engine is the core difference. ChatGPT (and every general LLM) generates financial numbers as plausible-sounding text. Quantis computes them with a deterministic math engine first, matches against ${BENCHMARK_COUNT_DISPLAY} real benchmark rows, and only then lets AI narrate the result. If the AI layer fails entirely, Quantis still returns the deterministic numbers — degraded, never fabricated.`,
+        a: `No — the deterministic engine is the core difference. ChatGPT (and every general LLM) generates financial numbers as plausible-sounding text. Quantis computes them with a deterministic math engine first, matches against ${BENCHMARK_COUNT_DISPLAY} modeled benchmark rows, and only then lets AI narrate the result. If the AI layer fails entirely, Quantis still returns the deterministic numbers — degraded, never fabricated.`,
       },
       {
         q: 'Can I trust the financial numbers ChatGPT gives me for a business idea?',

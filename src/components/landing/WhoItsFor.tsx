@@ -9,7 +9,7 @@ const PERSONAS = [
     bullets: [
       'Know if your model survives revenue shocks before you build.',
       'See which assumptions are fragile before talking to investors.',
-      'Get a clear go / no-go signal based on real benchmarks.',
+      'Get a clear go / no-go signal based on modeled industry benchmarks.',
     ],
   },
   {
