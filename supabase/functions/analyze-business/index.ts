@@ -7,6 +7,7 @@ import {
   type StrictFinancialResult,
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
+import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -2760,6 +2761,22 @@ serve(async (req) => {
 
     log.info(`Processing analysis: idea=${idea_clean.substring(0, 50)}... location=${location_clean}`);
 
+    // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): narrow, high-precision
+    // fail-closed check on revenue-shape mismatches. Engine assumes steady
+    // monthly-transaction revenue; contingency-fee / project-based / lumpy
+    // transaction shapes get an honest degraded banner in the frontend
+    // instead of a polished false-confidence report. WARN, not BLOCK -- the
+    // engine still runs, but the response carries a metadata warning the
+    // frontend surfaces prominently. False positives are cheap here (a
+    // banner), false negatives are the audit's exact original complaint.
+    const modelApplicabilityWarning: ModelApplicabilityWarning | null =
+      detectRevenueShapeMismatch(idea_clean);
+    if (modelApplicabilityWarning) {
+      log.info(
+        `Revenue shape mismatch detected: shape=${modelApplicabilityWarning.detected_shape} phrase="${modelApplicabilityWarning.matched_phrase}"`,
+      );
+    }
+
     // Build document context if files were uploaded
     let documentContext = '';
     let documentExtractedFinancials: ExtractedDocumentFinancials[] = [];
@@ -3327,6 +3344,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // happens later, client-side).
     const analysisCorrelationId = crypto.randomUUID();
     (result as Record<string, unknown>).analysis_correlation_id = analysisCorrelationId;
+    // Attach the revenue-shape mismatch warning (may be null) to the response
+    // so the frontend can render the honest degraded banner alongside the
+    // (still-computed) report. See _shared/revenue-shape-detector.ts.
+    if (modelApplicabilityWarning) {
+      (result as Record<string, unknown>).model_applicability_warning = modelApplicabilityWarning;
+    }
     if (calc.paybackResult) {
       await emitAnalysisSnapshot({
         correlationId: analysisCorrelationId,

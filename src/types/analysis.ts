@@ -323,6 +323,18 @@ export interface BusinessAnalysisResult {
   // can be joined to analyses.analysis_correlation_id without ever mutating
   // the immutable snapshot row.
   analysis_correlation_id?: string;
+  // Domain 5/12 audit (Q41/Q45/Q119/Q165/Q179): server-side detector flags
+  // when the free-text idea describes a revenue shape (contingency fee,
+  // project-based, transaction-percentage) the MRR-shaped engine cannot
+  // model correctly. Frontend renders a prominent honest banner when set.
+  // See supabase/functions/_shared/revenue-shape-detector.ts.
+  model_applicability_warning?: {
+    detected_shape: 'contingency_fee' | 'project_based' | 'transaction_percentage';
+    engine_assumes: 'steady_monthly_transactions';
+    severity: 'warn';
+    matched_phrase: string;
+    explanation: string;
+  };
   financial_analysis: FinancialAnalysis;
   business_plan: BusinessPlan;
   marketing_plan: MarketingPlan;

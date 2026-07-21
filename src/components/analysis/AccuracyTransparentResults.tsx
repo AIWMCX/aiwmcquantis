@@ -26,6 +26,7 @@ import { BenchmarkCitations, type CitedMetric } from './BenchmarkCitations';
 import { BenchmarkRecordsBlock, type BenchmarkRecord } from './BenchmarkRecordsBlock';
 import { FallbackModeBanner } from './FallbackModeBanner';
 import { MetricDisambiguationBanner } from './MetricDisambiguationBanner';
+import { ModelApplicabilityBanner } from './ModelApplicabilityBanner';
 import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
@@ -277,6 +278,14 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
             aiCallsSucceeded={aiCallsSucceeded}
             onRetry={onReset}
           />
+        </div>
+      )}
+      {/* Model applicability warning (revenue-shape mismatch). Rendered
+          above the Accuracy Notice so a professional reader sees it before
+          the report's numbers. See Domain 5/12 audit, Q41/Q45/Q119. */}
+      {result.model_applicability_warning && (
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-4">
+          <ModelApplicabilityBanner warning={result.model_applicability_warning} />
         </div>
       )}
       {/* Accuracy Notice */}
