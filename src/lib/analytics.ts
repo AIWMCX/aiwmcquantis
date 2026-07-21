@@ -208,7 +208,13 @@ export type SowFunnelEvent =
   // so a real removal-vs-redesign call can be made once enough data exists.
   | 'open_the_hood_view'
   | 'open_the_hood_scroll_75'
-  | 'open_the_hood_cta_click';
+  | 'open_the_hood_cta_click'
+  // Domain 14 activation ladder (2026-07-21 profitability audit): the gap
+  // between verdict_viewed and paid_checkout_start had no staged events at
+  // all -- no way to see whether someone actually engages with scenario
+  // comparison or edits an assumption before converting or churning.
+  | 'scenario_compared'
+  | 'assumption_changed';
 
 const SESSION_KEY = 'aiwmc_funnel_session_id';
 

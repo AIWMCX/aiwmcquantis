@@ -32,7 +32,7 @@ import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
 import { useShareReport } from '@/hooks/useShareReport';
-import { trackVerdictViewed } from '@/lib/analytics';
+import { trackVerdictViewed, recordFunnelEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 
@@ -58,6 +58,40 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
   const [activeScenario, setActiveScenario] = useState<ScenarioId>('base');
   const [overrides, setOverrides] = useState<{cac?: number; rent?: number; ticketSize?: number}>({});
   const [expandedRisks, setExpandedRisks] = useState<Set<number>>(new Set());
+
+  // Domain 14 activation ladder (Q131/Q140, 2026-07-21 profitability audit):
+  // scenario_compared / assumption_changed had no funnel events at all --
+  // wrapping the existing setters rather than adding new ones, so behavior
+  // is unchanged and only a real value change fires (guards against
+  // overcounting a re-select of the same value, e.g. two rapid clicks on
+  // an already-active tab). Reads current state from closure (not the
+  // setState functional-updater form) deliberately -- an updater callback
+  // can be invoked twice under React 18 StrictMode, which would double-fire
+  // the very overcounting bug this event exists to avoid.
+  const handleScenarioSelectorChange = useCallback((next: ScenarioType) => {
+    if (selectedScenario !== next) {
+      recordFunnelEvent('scenario_compared', { source: 'selector', from: selectedScenario, to: next });
+    }
+    setSelectedScenario(next);
+  }, [selectedScenario]);
+
+  const handleActiveScenarioChange = useCallback((next: ScenarioId) => {
+    if (activeScenario !== next) {
+      recordFunnelEvent('scenario_compared', { source: 'bar', from: activeScenario, to: next });
+    }
+    setActiveScenario(next);
+  }, [activeScenario]);
+
+  const handleAssumptionRecalculate = useCallback(
+    (next: { cac?: number; rent?: number; ticketSize?: number }) => {
+      const changedFields = (['cac', 'rent', 'ticketSize'] as const).filter((k) => overrides[k] !== next[k]);
+      if (changedFields.length > 0) {
+        recordFunnelEvent('assumption_changed', { changed_fields: changedFields, values: next });
+      }
+      setOverrides(next);
+    },
+    [overrides],
+  );
 
   // Extract business type and location from metadata for feedback widget
   const businessType = result.metadata?.idea || (result.metadata as any)?.business_type || undefined;
@@ -701,11 +735,11 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 <div className="q-card p-6 space-y-4">
                   <div className="flex justify-between items-center mb-2">
                     <h3 className="font-semibold">36-Month Revenue Projection</h3>
-                    <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={setSelectedScenario} />
+                    <ScenarioSelector selectedScenario={selectedScenario} onScenarioChange={handleScenarioSelectorChange} />
                   </div>
                   <RevenueChart baseRevenue={safeRevenue} margin={safeMargin} activeScenario={activeScenario} />
                   <div className="pt-4 border-t border-border">
-                    <ScenarioBar activeScenario={activeScenario} onScenarioChange={setActiveScenario} />
+                    <ScenarioBar activeScenario={activeScenario} onScenarioChange={handleActiveScenarioChange} />
                   </div>
                 </div>
                 <FinancialSummary financial={result.financial_analysis} selectedScenario={selectedScenario} />
@@ -739,7 +773,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                   initialCac={initialCac}
                   initialRent={initialRent}
                   initialTicketSize={initialTicket}
-                  onRecalculate={(newOverrides) => setOverrides(newOverrides)}
+                  onRecalculate={handleAssumptionRecalculate}
                 />
                 
                 {/* Impact Snapshot */}
