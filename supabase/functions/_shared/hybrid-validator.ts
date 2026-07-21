@@ -376,7 +376,12 @@ Decide.`;
       model: 'google/gemini-2.5-flash-lite',
       input_tokens: aiResult.inputTokens,
       output_tokens: aiResult.outputTokens,
-      cost_usd: 0.002,
+      // Real per-call cost from actual token counts, not the flat "~$0.002
+      // average" this previously hardcoded regardless of prompt/response size
+      // (gemini-2.5-flash-lite: $0.10/1M in, $0.40/1M out -- public pricing,
+      // not independently reconfirmed this session; verify before relying on
+      // it financially).
+      cost_usd: Math.round(((aiResult.inputTokens / 1_000_000) * 0.10 + (aiResult.outputTokens / 1_000_000) * 0.40) * 1_000_000) / 1_000_000,
       latency_ms: latency,
       ok: true,
     });

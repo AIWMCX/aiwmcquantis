@@ -383,6 +383,33 @@ function providerFromModel(model: string): 'deepseek' | 'anthropic' | 'lovable_g
   return 'lovable_gateway';
 }
 
+/** Pricing snapshot (USD per 1M tokens, cache-miss input rate). Publicly
+ *  published provider rates as of this session -- not independently
+ *  reconfirmed against each provider's live pricing page. Verify before
+ *  relying on this for financial reporting; update here if a provider
+ *  changes pricing. Matched by substring since `model` strings vary
+ *  (e.g. "deepseek-v4-flash" vs "deepseek:deepseek-v4-flash").
+ *  Previously this ledger hardcoded cost_usd: 0 unconditionally even though
+ *  inputTokens/outputTokens were already being captured correctly -- gross
+ *  margin (Domain 11 Q108, 2026-07-20 profitability audit) was uncomputable
+ *  purely because this multiplication was never done. */
+const COST_PRICING: Array<{ match: string; in: number; out: number }> = [
+  { match: 'deepseek', in: 0.27, out: 1.10 },
+  { match: 'claude-haiku', in: 1, out: 5 },
+  { match: 'claude-sonnet', in: 3, out: 15 },
+  { match: 'claude-opus', in: 15, out: 75 },
+  { match: 'gemini-2.5-flash-lite', in: 0.1, out: 0.4 },
+  { match: 'gemini', in: 1.25, out: 10 },
+];
+
+function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
+  const lower = model.toLowerCase();
+  const rate = COST_PRICING.find((p) => lower.includes(p.match));
+  if (!rate) return 0;
+  const cost = (inputTokens / 1_000_000) * rate.in + (outputTokens / 1_000_000) * rate.out;
+  return Math.round(cost * 1_000_000) / 1_000_000;
+}
+
 async function recordAiCall(args: RecordArgs): Promise<void> {
   if (args.skip) return;
   if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
@@ -393,7 +420,7 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
       model: args.model,
       input_tokens: args.inputTokens,
       output_tokens: args.outputTokens,
-      cost_usd: 0,
+      cost_usd: estimateCostUsd(args.model, args.inputTokens, args.outputTokens),
       latency_ms: Math.round(args.latencyMs),
       ok: args.ok,
       error: args.error ?? null,
