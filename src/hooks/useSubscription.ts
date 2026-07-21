@@ -4,9 +4,11 @@ import { useAuth } from './useAuth';
 import { useToast } from './use-toast';
 
 import { logger } from '@/lib/logger';
+import { trackCheckoutStart } from '@/lib/analytics';
 import {
   planToTier,
   FEATURE_MANIFEST,
+  TIER_PRICES,
   type Tier,
   type FeatureManifest,
 } from '@/lib/tier-spec';
@@ -272,6 +274,19 @@ export function useSubscription(): SubscriptionData {
       const trimmedCode = (promotionCode ?? '').trim().toUpperCase();
       const period = billingPeriod === 'annual' ? 'annual' : 'monthly';
       logger.info(`[Checkout] Starting checkout for plan: ${plan} ${period}${trimmedCode ? ` (promo: ${trimmedCode})` : ''}`);
+
+      // Domain 9/16 audit: paid_checkout_start had zero call sites in the
+      // codebase despite existing as a fully-implemented tracker and a
+      // canonical funnel_events name -- confirmed 2026-07-16, still true
+      // 2026-07-21. This is the single shared checkout-initiation choke
+      // point every "Upgrade" CTA in the app routes through, so one call
+      // site here covers all of them.
+      // TIER_PRICES.annual is the monthly-EQUIVALENT rate (e.g. 14 for
+      // Plus), not the real transaction amount (168) -- multiply by 12 to
+      // track the actual dollar value of this checkout attempt.
+      const checkoutValue =
+        period === 'annual' ? TIER_PRICES[plan].annual * 12 : TIER_PRICES[plan].monthly;
+      trackCheckoutStart(plan, checkoutValue);
 
       toast({
         title: 'Starting checkout...',
