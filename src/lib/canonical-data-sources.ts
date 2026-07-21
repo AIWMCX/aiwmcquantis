@@ -1,12 +1,17 @@
 /**
  * Canonical Data Sources used by EVERY AIWMC Quantis analysis.
- * Mirrors the public.data_provenance table so the UI and PDF always
- * surface the real ingested datasets, even on emergency fallback.
+ * This IS the source of truth `public.data_provenance` is seeded from
+ * (migration 20260721000000_seed_data_provenance.sql) -- found 2026-07-21
+ * that the table this file's docblock claimed to "mirror" had never
+ * actually been created, so the Methodology page's "Verified Data
+ * Sources" section was silently rendering nothing in production.
  *
- * Aggregate footprint: 97,500+ benchmarks (live in DB) +
+ * Aggregate footprint: 97,500+ benchmarks (live in DB, BENCHMARK_COUNT) +
  * 690,074 underlying records across financial filings, SME surveys,
  * and SMB benchmark studies.
  */
+
+import { BENCHMARK_COUNT } from '@/config/canonical-facts';
 
 export interface CanonicalDataSource {
   name: string;
@@ -63,7 +68,7 @@ export const CANONICAL_DATA_SOURCES: CanonicalDataSource[] = [
     name: 'AIWMC Quantis Benchmark Library',
     license: 'Proprietary derived',
     dataset_type: 'Industry benchmark',
-    records: 95_500,
+    records: BENCHMARK_COUNT,
     period: 'Continuously refreshed',
     usage: 'P25/Median/P75 ranges per industry × geography × metric used in every metric badge.',
   },
