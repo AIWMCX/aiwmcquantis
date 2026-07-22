@@ -7,6 +7,7 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { MONTE_CARLO_ITERATIONS_DISPLAY } from '../_shared/canonical-facts.ts';
 const FUNCTION_NAME = 'send-lifecycle-email';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -199,7 +200,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           What you'll lose at ${data.period_end_human || 'period end'}:
         </p>
         <ul style="color: #4a4a4a; font-size: 15px; line-height: 1.8;">
-          <li>95,500-scenario Monte Carlo simulation</li>
+          <li>${MONTE_CARLO_ITERATIONS_DISPLAY}-scenario Monte Carlo simulation</li>
           <li>36-month P&L projections with variance bands</li>
           <li>Pre-Mortem Stress Test + Invoice & Capacity Check</li>
           <li>Document Studio (10 branded templates)</li>
@@ -384,12 +385,12 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
     `,
   },
   nurture_day_6: {
-    subject: "95,500 scenarios — what could go wrong (and right)",
+    subject: `${MONTE_CARLO_ITERATIONS_DISPLAY} scenarios — what could go wrong (and right)`,
     html: (data) => `
       <div style="font-family: system-ui, -apple-system, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
         <h1 style="color: #1a1a1a; font-size: 24px;">What if you could stress-test your business before spending a dollar?</h1>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          That's exactly what our Monte Carlo simulation does. It runs <strong>95,500 different scenarios</strong> to show you the range of outcomes for your business — best case, worst case, and everything in between.
+          That's exactly what our Monte Carlo simulation does. It runs <strong>${MONTE_CARLO_ITERATIONS_DISPLAY} different scenarios</strong> to show you the range of outcomes for your business — best case, worst case, and everything in between.
         </p>
         <div style="background: #faf5ff; border-left: 4px solid #8b5cf6; padding: 16px; margin: 24px 0; border-radius: 4px;">
           <p style="color: #6d28d9; margin: 0; font-size: 15px; font-weight: 600;">How Monte Carlo works:</p>

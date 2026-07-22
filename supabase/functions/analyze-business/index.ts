@@ -9,6 +9,7 @@ import {
 import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
+import { MONTE_CARLO_ITERATIONS_DISPLAY } from '../_shared/canonical-facts.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -4308,7 +4309,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           message: 'Unlock the full report',
           features_locked: [
             '36-month P&L projections with variance bands',
-            '95,500-scenario Monte Carlo simulation',
+            `${MONTE_CARLO_ITERATIONS_DISPLAY}-scenario Monte Carlo simulation`,
             'Pre-Mortem stress testing',
             'Invoice & capacity check',
             'Document Studio (10 branded templates)',

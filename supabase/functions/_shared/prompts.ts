@@ -8,6 +8,7 @@
  */
 
 import { LLM_BUDGET, type Tier, type LlmBudget } from './tier-spec.ts';
+import { MONTE_CARLO_ITERATIONS } from './canonical-facts.ts';
 
 // ─── §02 Universal Rules — prepend to EVERY tier prompt ─────────────────────
 export const UNIVERSAL_RULES = `=== QUANTIS UNIVERSAL RULES — PREPEND TO ALL TIER PROMPTS ===
@@ -150,7 +151,7 @@ rigour. You have been provided with pre-computed Monte Carlo output
 in the MONTE_CARLO_DATA context block below — reference it precisely.
 
 INPUT CONTEXT YOU WILL RECEIVE (in addition to user's idea):
-MONTE_CARLO_DATA: {JSON object — 95,500 scenario outputs, pre-computed}
+MONTE_CARLO_DATA: {JSON object — ${MONTE_CARLO_ITERATIONS} scenario outputs, pre-computed}
 USER_INDUSTRY: {string — from onboarding or inferred}
 USER_STAGE: {IDEA | EARLY | GROWTH | ESTABLISHED}
 
@@ -201,7 +202,7 @@ OUTPUT SCHEMA — PLUS TIER (strict JSON):
    { "variable_id": <1-12>, "variable_name": "<name>", "rating": "STRONG|ADEQUATE|WEAK|CRITICAL", "score": <0-10>, "analysis": "<2-4 sentences>", "data_point": "<benchmark stat or [ASSUMPTION]>" }
  ],
  "monte_carlo": {
-   "scenarios_run": 95500,
+   "scenarios_run": ${MONTE_CARLO_ITERATIONS},
    "p10_annual_revenue_usd": <float>,
    "p50_annual_revenue_usd": <float>,
    "p90_annual_revenue_usd": <float>,
