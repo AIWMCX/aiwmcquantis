@@ -1,7 +1,27 @@
 # AIWMC Quantis — Accuracy Program State Ledger
 Maintained per Master Prompt v3 §7. Read this first at the start of every accuracy session.
 
-## Session: 2026-07-21 (this session) — ACTIVATE: DISCOVERY
+## Session: 2026-07-21 (continued) — ACTIVATE: P0_STABILIZATION
+
+### P0-2 CLOSED: Monte Carlo claim/implementation mismatch
+Commit `857e5777` (local, not pushed). Root cause: `src/config/canonical-facts.ts` already existed with the correct `MONTE_CARLO_ITERATIONS = 1_000` but was never Deno-ported, so edge functions kept hardcoding the historical "95,500" claim. Fixed:
+- New `supabase/functions/_shared/canonical-facts.ts` (Deno mirror, matches this repo's dual-port convention).
+- `_shared/prompts.ts`: PLUS-tier system prompt no longer tells the LLM it received "95,500 scenario outputs" or shows `"scenarios_run": 95500` as the expected schema value.
+- `analyze-business/index.ts`: Free-tier upgrade-CTA payload no longer advertises "95,500-scenario Monte Carlo simulation".
+- `send-lifecycle-email/index.ts`: cancellation-prevention email + nurture-day-6 email (subject + body) no longer claim 95,500 scenarios.
+
+**Deliberately deferred, not part of this fix**: ~10 other files still say "95,500" referring to *benchmark row count* (true value 97,500 per the same canonical-facts.ts) — a distinct defect (wrong count, not MC/benchmark conflation). Locations: `analyze-business/index.ts` (comments + `benchmark_v2_datapoints: 95500` field + prompt text), `benchmark-engine-v2.ts`, `benchmark-records.ts`, `quantis-master-prompt.ts`, `analyze-plus/index.ts`, `analyze-pro-extension/index.ts`, `send-lifecycle-email/index.ts` (2 more lines), `public/docs/QUANTIS_BUSINESS_LOGIC.md`, `public/llms.txt`. Candidate for a follow-up P0-2b pass — same fix pattern (import `BENCHMARK_COUNT_DISPLAY` from the now-existing Deno canonical-facts.ts), lower urgency since 95,500 vs true 97,500 is a ~2% understatement, not a fabricated capability claim.
+
+**Gap noted, not fixed**: `supabase/functions/**` is excluded from this repo's ESLint/typecheck (`eslint.config` ignores it) — this is *why* the drift went undetected. No test currently guards against hardcoded canonical numbers in edge functions the way `tiers-drift.test.ts`/`tier-matrix-server-parity.test.ts` guard the frontend. Worth a P1 test-infrastructure item: a Deno-side or grep-based CI check banning bare `95,500`/`95500` outside `canonical-facts.ts` and migration files.
+
+**Verification performed**: manual (no local Deno CLI available to typecheck directly); confirmed all 4 edits are syntactically valid template-literal interpolations via re-read; confirmed `supabase/functions/**` is outside frontend lint/typecheck scope so no CI regression risk from that angle; confirmed zero historical/persisted data affected (copy-only change, no formula touched). Not independently confirmed by running the actual edge function — recommend a staged/preview deploy smoke test before this goes to production.
+
+**Not pushed** — repo's CI auto-deploys to production on push to `main`; holding for explicit "DEPLOY APPROVED" per Master Prompt v3 §33.
+
+### P0-1 NOT STARTED this session
+Legacy `999` payback sentinel wiring — larger, riskier change (touches the return contract of `financial-calculator.ts`, a core, widely-consumed module) than P0-2's copy-only fix. Stopped here to checkpoint with the user before starting a change of that size, per "efficiently, carefully, professionally."
+
+## Session: 2026-07-21 (original) — ACTIVATE: DISCOVERY
 
 ### Work completed
 - Read Master Prompt v3 in full; confirmed it supersedes/extends the same-day v2.0 accuracy package already committed at `752c8c13`.
