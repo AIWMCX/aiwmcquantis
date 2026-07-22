@@ -171,6 +171,8 @@ interface SearchDiagnostics {
   fallback_used: boolean;
   source_urls: string[];
   error: string | null;
+  /** Counts by normalization_status across all extracted observations for this metric — no raw text, counts only. */
+  normalization_counts: Record<string, number>;
 }
 
 // ── Web Search ──────────────────────────────────────────────────────────────
@@ -280,40 +282,87 @@ async function webSearch(query: string): Promise<SearchResult[]> {
   return duckDuckGoSearch(query);
 }
 
+// ── Unit-safety layer ───────────────────────────────────────────────────────
+// See unit-normalization.ts for the full contract and rationale. Every raw
+// extracted number is classified by unit and run through normalizeObservation
+// before it can reach calibration — accepted, converted, quarantined (missing
+// conversion context), or rejected, never silently guessed or dropped.
+import {
+  normalizeObservation,
+  classifyRawUnitFromContext,
+  type NormalizedObservation,
+  type RawUnit,
+} from './unit-normalization.ts';
+
+interface ExtractionResult {
+  accepted: Observation[];
+  normalized: NormalizedObservation[];
+}
+
+function splitNormalized(normalized: NormalizedObservation[]): ExtractionResult {
+  const accepted: Observation[] = [];
+  for (const n of normalized) {
+    if (
+      (n.normalization_status === 'accepted_exact' || n.normalization_status === 'accepted_converted') &&
+      n.normalized_value !== null
+    ) {
+      accepted.push({
+        value: n.normalized_value,
+        source: n.source_title || 'web search',
+        url: n.source_url,
+        confidence: n.extraction_method === 'deepseek' ? 0.78 : 0.52,
+      });
+    }
+  }
+  return { accepted, normalized };
+}
+
+function summarizeNormalization(normalized: NormalizedObservation[]): string {
+  const counts: Record<string, number> = {};
+  for (const n of normalized) counts[n.normalization_status] = (counts[n.normalization_status] ?? 0) + 1;
+  return Object.entries(counts).map(([k, v]) => `${k}=${v}`).join(', ');
+}
+
 // ── DeepSeek Observation Extraction ────────────────────────────────────────
 
 async function extractObservations(
   metric: string,
   searchResults: SearchResult[],
   profile: { industry: string; city: string; business_model: string },
-): Promise<Observation[]> {
-  if (searchResults.length === 0) return [];
+): Promise<ExtractionResult> {
+  if (searchResults.length === 0) return { accepted: [], normalized: [] };
   if (!DEEPSEEK_API_KEY) return extractNumericFallback(metric, searchResults);
 
   const isPercentage = metric.includes('pct');
   const isRatio      = metric.includes('ratio');
   const isMonths     = metric.includes('months');
   const unit = isPercentage ? '%' : isRatio ? 'x' : isMonths ? 'months' : 'USD';
-  const monthlyNote = (!isPercentage && !isRatio && !isMonths && metric.includes('monthly'))
-    ? ' Convert annual figures to monthly (÷12).' : '';
 
   const searchText = searchResults
     .map((r, i) => `[${i + 1}] ${r.title}\n${r.snippet}\nURL: ${r.url}`)
     .join('\n\n');
 
+  const rawUnitList = 'monthly_usd, annual_usd, weekly_usd, daily_usd, per_sqft_monthly, per_sqft_annual, ' +
+    'per_hour, per_transaction, per_customer, per_unit, percentage, ratio_x, months, total_usd, unknown';
+
   const userPrompt =
 `Extract every numeric ${metric.replace(/_/g, ' ')} benchmark from these web results.
 Context: ${profile.industry} business, ${profile.city}, model=${profile.business_model}.
-Unit: ${unit}.${monthlyNote}
+Target unit: ${unit}.
 
 ${searchText}
 
+For EACH number found, report its unit EXACTLY as stated in the source text —
+do NOT convert or assume it matches the target unit. raw_unit must be one of:
+${rawUnitList}
+raw_currency should be a 3-letter code (USD if unmarked or a $ sign is used).
+
 Return ONLY valid JSON:
-{"observations":[{"value":12000,"source":"site name or brief description","url":"https://..."}]}
+{"observations":[{"value":12000,"raw_unit":"monthly_usd","raw_currency":"USD","source":"site name or brief description","url":"https://..."}]}
 Rules:
 - Only real numbers from the text — no fabrication
 - Max 8 observations
-- For % metrics use the raw number (62 not 0.62)
+- Report the unit as written in the source (e.g. "$3/sq ft" -> raw_unit "per_sqft_monthly", value 3) — never silently convert it yourself
 - If nothing found: {"observations":[]}`;
 
   try {
@@ -331,11 +380,11 @@ Rules:
         messages: [
           {
             role: 'system',
-            content: 'You are a financial benchmark extractor. Extract numeric values only from provided text. Return only valid JSON.',
+            content: 'You are a financial benchmark extractor. Extract numeric values and their stated units only from provided text. Never convert units yourself. Return only valid JSON.',
           },
           { role: 'user', content: userPrompt },
         ],
-        max_tokens: 600,
+        max_tokens: 700,
         temperature: 0.1,
         response_format: { type: 'json_object' },
       }),
@@ -348,24 +397,40 @@ Rules:
     const content: string = data.choices?.[0]?.message?.content ?? '{}';
     const parsed = JSON.parse(content);
 
-    return ((parsed.observations ?? []) as any[])
-      .filter((o) => typeof o.value === 'number' && isFinite(o.value) && o.value > 0)
-      .map((o) => ({
-        value: o.value as number,
-        source: (o.source as string) || 'web search',
-        url:    (o.url    as string) || '',
-        confidence: 0.78,
-      }));
+    const raw = (parsed.observations ?? []) as any[];
+    const normalized = raw
+      .filter((o) => typeof o.value === 'number' && Number.isFinite(o.value) && o.value > 0)
+      .map((o) => normalizeObservation(
+        metric,
+        o.value as number,
+        (VALID_RAW_UNITS.has(o.raw_unit) ? o.raw_unit : 'unknown') as RawUnit,
+        { url: (o.url as string) || '', title: (o.source as string) || 'web search' },
+        'deepseek',
+        typeof o.raw_currency === 'string' && o.raw_currency.length === 3 ? o.raw_currency.toUpperCase() : 'USD',
+      ));
+
+    if (normalized.length > 0) {
+      console.log(`[RVCE] ${metric} (deepseek): ${summarizeNormalization(normalized)}`);
+    }
+    return splitNormalized(normalized);
   } catch {
     return extractNumericFallback(metric, searchResults);
   }
 }
 
-function extractNumericFallback(metric: string, searchResults: SearchResult[]): Observation[] {
-  const observations: Observation[] = [];
+const VALID_RAW_UNITS = new Set<string>([
+  'monthly_usd', 'annual_usd', 'weekly_usd', 'daily_usd', 'per_sqft_monthly', 'per_sqft_annual',
+  'per_hour', 'per_transaction', 'per_customer', 'per_unit', 'percentage', 'ratio_x', 'months',
+  'total_usd', 'unknown',
+]);
+
+function extractNumericFallback(metric: string, searchResults: SearchResult[]): ExtractionResult {
+  const normalized: NormalizedObservation[] = [];
   const isPercentage = metric.includes('pct') || metric.includes('margin') || metric.includes('rate');
   const numberRegex = /(?:\$\s*)?(\d{1,3}(?:,\d{3})+|\d+(?:\.\d+)?)(\s?%|\s?percent|\s?x|\s?months?)?/gi;
+  const CONTEXT_WINDOW = 40;
 
+  let acceptedCount = 0;
   for (const result of searchResults) {
     const text = `${result.title} ${result.snippet}`;
     const matches = [...text.matchAll(numberRegex)].slice(0, 4);
@@ -376,17 +441,37 @@ function extractNumericFallback(metric: string, searchResults: SearchResult[]): 
       if (!Number.isFinite(value) || value <= 0) continue;
       if (isPercentage && value > 100) continue;
       if (!isPercentage && suffix.includes('%')) continue;
-      observations.push({
-        value,
-        source: result.title || 'web search numeric extraction',
-        url: result.url || '',
-        confidence: 0.52,
-      });
-      if (observations.length >= 4) return observations;
+
+      const matchIndex = match.index ?? 0;
+      const contextStart = Math.max(0, matchIndex - CONTEXT_WINDOW);
+      const contextEnd = Math.min(text.length, matchIndex + (match[0]?.length ?? 0) + CONTEXT_WINDOW);
+      // The suffix regex group already caught inline "%/x/months" markers;
+      // fall back to the surrounding window for "/sq ft", "/hour", "annual", etc.
+      const rawUnit = suffix.includes('%') ? 'percentage'
+        : suffix.includes('x') ? 'ratio_x'
+        : suffix.includes('month') ? 'months'
+        : classifyRawUnitFromContext(text.slice(contextStart, contextEnd));
+
+      const n = normalizeObservation(
+        metric, value, rawUnit,
+        { url: result.url || '', title: result.title || 'web search numeric extraction' },
+        'regex_fallback',
+      );
+      normalized.push(n);
+      if (n.normalization_status === 'accepted_exact' || n.normalization_status === 'accepted_converted') {
+        acceptedCount += 1;
+      }
+      if (acceptedCount >= 4) {
+        console.log(`[RVCE] ${metric} (regex_fallback): ${summarizeNormalization(normalized)}`);
+        return splitNormalized(normalized);
+      }
     }
   }
 
-  return observations;
+  if (normalized.length > 0) {
+    console.log(`[RVCE] ${metric} (regex_fallback): ${summarizeNormalization(normalized)}`);
+  }
+  return splitNormalized(normalized);
 }
 
 // ── Per-metric validation ───────────────────────────────────────────────────
@@ -421,6 +506,13 @@ async function validateMetric(
     fallback_used: false,
     source_urls: [],
     error: null,
+    normalization_counts: {},
+  };
+
+  const addNormalizationCounts = (normalized: NormalizedObservation[]) => {
+    for (const n of normalized) {
+      diag.normalization_counts[n.normalization_status] = (diag.normalization_counts[n.normalization_status] ?? 0) + 1;
+    }
   };
 
   let observations: Observation[] = [];
@@ -439,7 +531,8 @@ async function validateMetric(
         diag.results_found += results.length;
         diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
         const extracted = await extractObservations(metric, results, profile);
-        observations.push(...extracted);
+        observations.push(...extracted.accepted);
+        addNormalizationCounts(extracted.normalized);
       }
     } catch (e) {
       diag.error = `Primary query "${q}" failed: ${(e as Error).message}`;
@@ -463,7 +556,8 @@ async function validateMetric(
           diag.results_found += results.length;
           diag.source_urls.push(...results.map(r => r.url).filter(Boolean));
           const extracted = await extractObservations(metric, results, profile);
-          observations.push(...extracted);
+          observations.push(...extracted.accepted);
+          addNormalizationCounts(extracted.normalized);
         }
       } catch { /* best-effort */ }
       if (observations.length >= 4) break;
