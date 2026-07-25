@@ -118,6 +118,35 @@ Read the real form components directly: `FinancialField.tsx` (the shared input p
 
 **Net Domain 4 outcome:** 1 upgrade to PASS on strong evidence (Q35), 1 new distinct PASS finding (Q37, previously conflated with Q36), 1 confirmed FAIL with root-cause link to P0-01/02 (Q36), 1 real but founder-scoped gap surfaced (Q34's ambiguous per-customer pricing unit). No code shipped this domain — every finding here is either already correct, or is a product/UX decision that shouldn't be made unilaterally.
 
+### NEW FINDING — P0-25: three tested reconciliation engines exist, none wired into the live production path (Domain 6, Q54)
+
+Ran the reconciliation test suites directly rather than trusting prior "TEST_VERIFIED" status at face value: `financial-reconciliation.test.ts` + `reconciliation-engine.test.ts`, **23/23 green**. Real, correct logic — `reconciliation-engine.ts`'s `reconcileFinancialOutput()` genuinely mutates `PLStatement`s in-place to enforce `cogs + grossProfit === netRevenue` and itemized-OpEx-sum identities (confirmed by reading the source, not just the tests), and `src/financial/reconcile.ts`'s `reconcileMonthlyRow()` recomputes the full revenue→...→ending-cash waterfall.
+
+**But grepping for real callers found none.** `reconcileFinancialOutput`, `reconcileMonthlyRow`, and `r3Validate`/`defaultFinancialReconciler` (`src/lib/r3-validator.ts`) are each referenced **only by their own test file** — zero imports from any live component, page, hook, or the Deno edge functions (which can't import from `src/` at all — dual-port pattern, same constraint that governs every other shared module in this codebase). This is the exact "tested-but-unreachable" class of defect P0-23 (`calculate-financials`) already surfaced once this session, now found a second time in a much more sensitive place: the modules that are supposed to answer Domain 6's central question ("do the financial identities actually reconcile in production") don't run in production at all.
+
+What **does** run live: `analyze-business/financial-calculator.ts` has its own narrower, ad-hoc reconciliation — a real fix from a real 2026-07-12 production audit (`reconciledMarketing`, ~line 362-383) that holds COGS and fixed costs constant and reconciles marketing to make the expense breakdown sum exactly to a user-provided total, with the reasoning documented inline. This is genuine and load-bearing, but it covers **one identity** (expense-breakdown-sums-to-total), not the full set Q54 asks about — grepped the same live file for any cash-roll-forward check (`endingCash`, `cumulativeCash`, etc.) and found **none**. Cash[t] = Cash[t-1] + FCF[t] is not verified anywhere in the live path.
+
+**Conclusion**: Q54 was marked "CODE_VERIFIED (partial)" on the assumption that `reconcile.ts`'s existence + a green test suite meant the identity is enforced in production. It is not — for the comprehensive identity set, only for the one narrow case a real bug forced a live fix for. This is well-engineered dead weight: three correct, tested, unreachable modules, doing the exact thing MP7 calls "≥11 competing truths."
+
+**Not fixed this session** — wiring any of the three existing modules (or consolidating them into one) into the live Deno path is a real architectural decision (which module becomes canonical, how it interacts with the already-shipped P0-01/02 no-silent-overwrite rule, whether it needs a Deno port) — not a safe same-session patch. **Severity: Medium-High** (the specific identities it would catch — COGS/GP/Revenue drift, cash roll-forward errors — are exactly the kind of error a fractional-CFO client would notice immediately). **Flagged for founder scoping**, similar treatment to P0-14/P0-24.
+
+### Domain 6 re-audit summary (Financial Engine & Numeric Integrity, Q51-Q60) — this session
+
+| Q | Prior status | Re-audit result |
+|---|---|---|
+| Q51 (one canonical monthly engine) | PASS | **Reconfirmed**, unchanged. |
+| Q52 (12-60mo aggregate from same series) | PASS (test-verified) | **Reconfirmed**, unchanged. |
+| Q53 (decimal-safe arithmetic) | PASS | **Reconfirmed**, unchanged. |
+| Q54 (Revenue/Net-Income and cash-roll identities reconcile every month) | UNVERIFIED (partial) | **DOWNGRADED to WARN — see P0-25 above.** Tests pass, but the tested modules aren't live; only a single narrow identity is actually enforced in production. |
+| Q55 (AI cannot originate/repair canonical numbers) | PASS | **Reconfirmed**, unchanged — consistent with this session's own numeric-firewall work. |
+| Q56 (fallback fabrication) | WARN | **Unchanged** — `ai-narrator`'s fallback still correctly tags `source: 'benchmark_placeholder'`; frontend surfacing not re-checked this pass. |
+| Q57 (typed unavailable-results vs. 999/-1/NaN) | WARN | **Reconfirmed, unchanged** — directly consistent with this session's own P0-09 investigation (999 sentinel is detection-only, migrating 20+ call sites is deliberately not attempted; documented via migration `20260725070205`). |
+| Q58 (payback from cumulative FCF) | PASS | **Reconfirmed**, unchanged. |
+| Q59 (CAC payback from contribution margin) | PASS | **Reconfirmed**, unchanged. |
+| Q60 (property/golden/differential/mutation test coverage) | PASS | **Reconfirmed the tests exist and are green (23/23 on the reconciliation suites alone, 1222/1222 full suite this session) — but per P0-25, green tests on unreachable code shouldn't be read as evidence the *behavior* is covered in production.** Nuance added, status unchanged since the question is narrowly about test existence, not live wiring (that's Q54's job). |
+
+**Net Domain 6 outcome:** 1 real downgrade with a significant new finding (Q54/P0-25), 8 items reconfirmed unchanged on direct re-verification (not just carried forward), 1 nuance added to Q60. No code changes shipped — P0-25 is a real architectural gap requiring a founder-scoped decision on which reconciliation module (if any) becomes canonical, not a same-session fix.
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
