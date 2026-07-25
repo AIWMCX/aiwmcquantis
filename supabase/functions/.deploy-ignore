@@ -48,3 +48,15 @@ api-analyze-main
 # ── Dev / QA harnesses (never deploy to prod) ──
 run-accuracy-harness
 run-tier-qa-harness
+
+# ── Decommissioned (P0-23, 2026-07-25) ──
+# Duplicate financial-calculation microservice with zero callers in src/ (only
+# warm-functions/admin-health-sweep pinged it) and two defects the live engine
+# (analyze-business/financial-calculator.ts) had already fixed: undiscounted
+# NPV and a margin-ceiling clamp that silently rewrote user-reported expenses.
+# Deployed manually as an inert 410-Gone stub with verify_jwt now required
+# (closing the previous unauthenticated-access gap immediately). No delete-
+# edge-function API is available via the Supabase MCP deploy tool, so full
+# removal of the function object needs one manual step in the Supabase
+# Dashboard; this repo will never redeploy real logic to it again.
+calculate-financials
