@@ -307,6 +307,36 @@ Most of this domain is genuinely sales-ops/customer-research territory (Q152-156
 
 **Net Domain 16 outcome:** 1 precise reconfirmation (Q151: 99.4% unattributed, exact not approximate), 1 nuanced partial-improvement finding (Q157: primary hero CTAs are single-motion, not exhaustively verified site-wide), 2 reconfirmed unchanged with direct evidence (Q159 route table, Q160 grep), 5 correctly left to sales-ops/research. No code shipped — this domain's real gaps (dedicated landing page, kill rules, CRM integration) are GTM infrastructure decisions, not same-session patches.
 
+### NEW FINDING — P0-27: live homepage social-proof counters are fabricated, contradicting their own code's honesty claim (Domain 17, Q163)
+
+`SocialProofBar.tsx`'s own docblock states its two counters ("Plans stress-tested," "Analyses (total)") are "honest, never fabricated, only bumped by real events," reading from `public_metrics` rows seeded once (175 / 1,247) that should thereafter only move via a real `analysis_complete` funnel-event trigger. Checked this against the actual data this session rather than trusting the comment:
+
+- **Current live values**: `analyses_total` = 1,252, `plans_stress_tested` = 180.
+- **Real ground truth**: `public.analyses` has 93 rows, ever. Even the most generous real signal — total `analysis_complete`/`analysis_completed` funnel events, which would capture anonymous sessions the `analyses` table misses — is only **119**.
+- **The displayed counter is ~10.5x the real funnel-event count and ~13.5x the real analyses-table count.**
+- Both metrics carry the **exact same `updated_at` timestamp** and both increased by **exactly +5** since their original seeds (1,247→1,252, 175→180). Two counters driven by independent real-world events (people submitting analyses vs. people viewing plans) would not move by the same round increment at the same instant — this is the signature of a single manual/batch update, not organic per-event growth from real `analysis_complete` triggers as the code claims.
+
+**Conclusion: the "honest floor, never fabricated" claim in the code's own comment is false as currently operating.** This is a live, current, user-facing defect — visitors to the homepage see "1,252 analyses" as social proof when the real number of analyses ever run, across the whole product's history, is 93. This is the same class of defect as P0-01/02 (a number presented as fact that isn't what it claims to be) but in the trust/marketing surface rather than the financial engine, and unlike P0-24/P0-26 this isn't a softening-language question — the numbers are not defensible under any honest reading found this session.
+
+**Not fixed this session** — the correct remediation (reset the seed to a real number, remove the counters entirely, or genuinely wire them to `analysis_complete` as the code already claims to do) is a founder-scoped decision about what the honest number should say and how much it undercuts the "growth" narrative the counter is designed to convey. Flagged as the **highest-severity live finding of the entire Domain 17 re-audit** — this is a currently-active piece of misleading public-facing copy, not a documentation gap or an unverifiable claim.
+
+### Domain 17 re-audit summary (Trust, Evidence & Decision Defensibility, Q161-Q170) — this session
+
+| Q | Prior status | Re-audit result |
+|---|---|---|
+| Q161 (what does "97,500" count) | FAIL (conflicting meanings) | **Resolved by direct cross-reference to Domain 7's hard proof this session**: it is 97,500 rows of a fully-enumerated, mathematically-proven combinatorial grid — not observations, not scenarios in the Monte Carlo sense, not independently sourced data points. |
+| Q162 (does live HTML still say "97,500 real benchmarks") | FAIL | **RESOLVED — reconfirmed clean.** Grepped current `src/` for "real benchmark"/"97,500 real" — zero user-facing matches (one hit is a code comment, not copy). Task #13's fix (this project's history) has held; no regression. |
+| Q163 (are seeded social-proof counters labeled/removed) | FAIL risk | **CONFIRMED FAIL, with hard evidence — see P0-27 above.** The single most important finding of this domain. |
+| Q164 (public numbers traceable to owner/source/method/date) | FAIL (no registry) | **Unchanged** — no claim registry exists, consistent with Domain 2's Q15/Q17 finding. |
+| Q165 (prove result appropriate for business model) | BLOCK/FAIL | **Resolved by cross-reference to Domain 5/14's archetype work this session** — upgraded to WARN: real for the 4 detected 'poor'-fit archetypes (`ModelApplicabilityBanner`), still a gap for genuinely novel ideas matching no known archetype. |
+| Q166 (separate observed/user-entered/modeled/derived/imputed) | UNVERIFIED | **Resolved by cross-reference — CONFIRMED FAIL**, same root cause as Domain 4's Q36 and Domain 8's Q76 (no field-level provenance tag anywhere in the pipeline). |
+| Q167 (benchmark source age/geo fit visible) | UNVERIFIED | **Resolved by cross-reference to Domain 7 — CONFIRMED FAIL.** The raw benchmark seed data has zero `period`/`source`/`quality_grade` columns of any kind; there is nothing to display because nothing is captured. |
+| Q168 (professional can defend result without hidden assumptions) | UNVERIFIED | **Unchanged** — genuinely needs real consultant presentation tests, not fabricated from code. |
+| Q169 (examples reproducible from immutable snapshots) | WARN | **Unchanged** — checked `ExampleAnalysis.tsx` for a snapshot-linkage pattern, found none conclusive either way; not enough evidence to move off WARN in either direction this pass. |
+| Q170 (which claims must be deleted until proof exists) | FAIL (several remain) | **Sharpened, not resolved** — P0-24 (this session) addressed the specific SEC/World Bank/JPMorgan attribution claim; P0-27 (this session) identifies a second, more severe active claim (the social-proof counters) that still needs deletion or correction. The list is shorter than before this session but not empty. |
+
+**Net Domain 17 outcome:** 1 major new finding with hard, decisive proof (P0-27 — arguably the most consequential single finding across the whole re-audit series, since it's live, current, and quantifiably false, not just unverifiable), 4 items resolved cleanly via honest cross-reference to evidence already gathered this session (Q161, Q165, Q166, Q167) rather than being re-investigated from scratch, 1 reconfirmed clean (Q162), 3 correctly left unchanged (Q164, Q168, Q169). No code shipped — P0-27 requires a founder decision on the correct honest number, not a same-session guess.
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
