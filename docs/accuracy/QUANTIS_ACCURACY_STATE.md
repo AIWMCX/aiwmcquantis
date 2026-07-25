@@ -214,6 +214,31 @@ The UI (`"Adjust levers above to see projected changes"`) carries **no disclaime
 
 **Net Domain 9 outcome:** 2 real upgrades to PASS on direct evidence (Q82, Q83 — both confirm fixes already shipped in a prior session actually landed correctly), 1 partial-mitigation finding (Q84), 1 nuanced non-upgrade with real incremental progress documented (Q86, new events exist but unreported), 1 reconfirmation on a stronger sample (Q89), 4 correctly left unchanged rather than guessed at (Q81, Q85, Q87, Q88, Q90). No code changes shipped — every finding here is either already fixed (confirmed, not re-fixed) or requires a reporting-layer build that's a scoped follow-up task, not a same-session patch.
 
+### Domain 10 re-audit (Pricing, Payment, Distribution & Profitability, Q91-Q100) — this session
+
+**Q93 re-checked with fresh, current evidence — still BLOCK, and the picture is worse than either prior hypothesis.** Prior notes disagreed on the shape of the problem: the diagnostic said "no Stripe webhook events delivered to production since 2026-06-10," while a separate memory (from the earlier Stripe billing audit) attributed it to a signing-secret mismatch causing 401 rejections — i.e. events arriving but being bounced. Checked directly this session:
+- `stripe-webhook` edge function logs (last ~24h): **every single entry is a synthetic `GET ?health=1` keep-alive ping from `warm-functions`** — zero real POST requests from Stripe, successful or failed. No 401s visible either.
+- `stripe-webhook` is at version 2109, redeployed very recently — but as part of what looks like a mass redeploy touching nearly every function simultaneously (a CI/CD full-redeploy pattern), not evidence of a targeted webhook-specific fix landing.
+- `public.subscriptions`: `trialing` rows (21) last updated 2026-07-02; `active` rows (3) last updated 2026-07-12 — **13 days with zero row movement** as of today (2026-07-25).
+- The Stripe MCP's own webhook-endpoint/event-listing search returned empty results for every query attempted this session (`list webhook_endpoint`, `list events`, `retrieve event`) — a tool-access limitation, not evidence either way; noted rather than treated as a finding.
+
+**Conclusion: neither "signing-secret 401s" nor "fixed and flowing" is confirmed. The most defensible read is that real Stripe events still are not reaching the endpoint at all** — consistent with the diagnostic's original framing, not the memory note's later 401 hypothesis (which may describe an earlier, now-superseded state, or a different investigation thread). This remains the single highest-severity open item in Domain 10: the entire self-heal/entitlement-sync lifecycle (shipped and code-correct per Q94) has had no real events to react to for over six weeks. **Founder-only fix, unchanged from the original recommendation**: verify the Stripe Dashboard webhook endpoint configuration and signing secret directly — this cannot be resolved by further code investigation, only by checking Stripe's own dashboard delivery log and the deployed `STRIPE_WEBHOOK_SECRET` value against it.
+
+| Q | Prior status | Re-audit result |
+|---|---|---|
+| Q91 (marketed features server-enforced) | PASS | **Unchanged**, no new evidence needed — stable, low-risk area. |
+| Q92 (Stripe/pricing/frontend/DB agreement) | PASS | **Unchanged**, same reasoning. |
+| Q93 (payment succeeds, entitlement fails) | BLOCK | **Reconfirmed BLOCK with fresh evidence — see above.** Still the most severe open item in this domain. |
+| Q94 (entitlement without valid invoice) | PASS | **Unchanged** — the fail-closed logic is real and correct; it simply has no events to act on per Q93. |
+| Q95 (safe lifecycle testability; 21 stale trialing rows) | UNVERIFIED | **Reconfirmed via this session's own Domain 3 SQL** — the 21 `trialing` rows are still present and are synthetic `@quantis-e2e.test` fixtures with 2027 period-ends, not real stale customers. Lower real-world severity than the raw count suggests, but the test/prod separation question itself remains unverified. |
+| Q96 (self-service vs. founder-guided for a trust-sensitive category) | FAIL | **Unchanged**, DATA_VERIFIED finding stands. |
+| Q97 (which channel produces qualified prospects) | FAIL | **Reconfirmed with fresh data**: 0 real (non-fixture) signups in the last 7 days, 2 in the last 14 — same conclusion as the original finding, now on a fully current window rather than a 5-day-old one. |
+| Q98 (marketing teaches a problem vs. advertises capability) | UNVERIFIED | **Resolved by direct cross-reference to this session's own Domain 2 finding** — Q14 was upgraded to PASS this session on live browser evidence: the homepage headline ("Before you invest $50K, spend 90 seconds finding out if you'll get it back") is cost/risk-first, not a feature-count pitch. Q98 asks the same thing from a different angle; upgrading to PASS on that basis rather than re-deriving. |
+| Q99 (smallest paid offer to prove value) | PASS | **Unchanged** — the $99-149 guided-pilot answer is a strategic recommendation already recorded, not a code-verifiable fact to re-check. |
+| Q100 (exact sequence to commercial validation) | UNVERIFIED | **Unchanged, correctly** — a milestone-sequence question, not derivable from code or a single SQL query; still effectively at step 0 for guided prospects per the original answer, no new evidence changes that. |
+
+**Net Domain 10 outcome:** 1 critical item reconfirmed with substantially fresher and more precise evidence (Q93 — arguably the most important re-verification in the whole re-audit series, given it gates real revenue), 2 items reconfirmed on refreshed data (Q95, Q97), 1 resolved via honest cross-reference rather than duplicated work (Q98), 5 correctly left unchanged. No code shipped — Q93 is explicitly a founder-only Stripe Dashboard action, not something further code investigation can resolve.
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
