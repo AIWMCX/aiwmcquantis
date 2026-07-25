@@ -5,16 +5,26 @@ import { supabase } from '@/integrations/supabase/client';
 /**
  * SocialProofBar — Social-proof strip shown below the hero.
  *
- * Both "Plans stress-tested" and "Analyses (total)" are now backed by the
+ * Both "Plans stress-tested" and "Analyses (total)" are backed by the
  * public_metrics table, each with the BEFORE UPDATE monotonic-guard trigger
- * (see 20260704120000). The values are seeded once (175 and 1,247) and grow
- * only when a real analysis_complete funnel event fires, via the AFTER
- * INSERT trigger on funnel_events (see 20260706170000).
+ * (see 20260704120000), and grow only when a real analysis_complete funnel
+ * event fires, via the AFTER INSERT trigger on funnel_events (see
+ * 20260706170000).
+ *
+ * CORRECTED 2026-07-25 (Domain 17 audit, P0-27): the original seeds (175 /
+ * 1,247, chosen 2026-07-04/06) had no basis in real historical volume — the
+ * entire project has only ever recorded 88 real analysis_complete events.
+ * The trigger mechanism itself was confirmed working correctly (organic
+ * increments, not fabricated), but was compounding on a false floor the
+ * whole time, so the displayed number stayed ~14x overstated. Both DB rows
+ * and these frontend seeds reset to 88 — the real, directly-verifiable
+ * count of the exact event this trigger tracks. See migration
+ * correct_public_metrics_fabricated_seed.
  *
  * Removed the previous "Analyses in last 24h" ticker — it read as a dead
- * product signal during quiet periods (showed "0"). The new cumulative
- * counter is honest (never fabricated, only bumped by real events) AND
- * always trending upward, which is what a visitor needs to see.
+ * product signal during quiet periods (showed "0"). The cumulative counter
+ * is honest (only bumped by real events) AND always trending upward, which
+ * is what a visitor needs to see.
  *
  * Uniform for every visitor: no localStorage, no per-browser divergence,
  * no client-side "chance of +1" fake ticker.
@@ -24,21 +34,16 @@ const PLANS_METRIC_KEY = 'plans_stress_tested';
 const ANALYSES_METRIC_KEY = 'analyses_total';
 const POLL_INTERVAL_MS = 30_000;
 
-// Initial floors — mirror the DB seeds so we render sensible values even
-// during the first fetch round-trip (avoids a "175 → real value" flicker).
-const PLANS_SEED = 175;
-const ANALYSES_SEED = 1247;
-
-// Domain audit fix: this file previously had a `computeFloor()` function
-// that added a deterministic amount per elapsed hour/day to the displayed
-// count, completely independent of real usage — every visitor saw a number
-// engineered to always be climbing, regardless of whether anyone had
-// actually used the product that day. Confirmed live in the deployed
-// bundle. Removed entirely. The seeds below are the same honest floor the
-// DB was originally seeded with (see migration referenced in the docblock
-// above) — they render for the ~800ms before the real fetchAll() below
-// returns actual public_metrics values, which is the only thing allowed
-// to move these numbers from here on.
+// Initial floors — mirror the corrected DB values so we render sensible
+// numbers during the first fetch round-trip (avoids a flicker on load).
+// IMPORTANT: these must never be set higher than the true current DB value
+// — the fetch below uses Math.max(prev, real) as a monotonic guard against
+// a *lower* real value ever regressing what's shown, which means a
+// hardcoded seed above the real value would permanently mask it and this
+// exact class of bug (P0-27) would recur silently. Update these only to
+// match a deliberate, verified DB correction, never to an arbitrary number.
+const PLANS_SEED = 88;
+const ANALYSES_SEED = 88;
 const MONO_STYLE: React.CSSProperties = {
   fontFamily: "'JetBrains Mono', ui-monospace, monospace",
   fontVariantNumeric: 'tabular-nums',
