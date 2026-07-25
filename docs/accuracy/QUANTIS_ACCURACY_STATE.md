@@ -3,6 +3,21 @@ Maintained per MP7-ACCURACY v3.1 §0 rule 5 and §22. **Read this first at the s
 
 ---
 
+## Session: 2026-07-25 — REMEDIATION PASS on the "needs attention, ranked" list
+
+Founder approved a ranked punch-list from the Domain 2-20 re-audit above and asked for direct fixes where safe, with clarifying questions first on anything touching public trust copy or financial-engine scope (all four judgment calls confirmed via AskUserQuestion before any code was written).
+
+| # | Item | Commit | Outcome |
+|---|---|---|---|
+| 1 | Lifecycle-email cron jobs (Domain 15) | `06d1c413` | `check-lifecycle-emails` (hourly) and `send-weekly-insights` (Mon 13:00 UTC) scheduled via pg_cron, reusing the exact `x-cron-secret`/`CRON_SECRET` literal already authenticating `warm-functions`. Verified live: jobids 4/5 active in `cron.job`. |
+| 2 | P0-28 (AI cost ledger always zero) | `06fed953` | Root cause found: `content-studio-generate/index.ts` did its own raw `ai_calls` insert, bypassing both shared cost-logging modules and never reading the token-usage field the provider responses already return — the only function currently writing to `ai_calls` in production (7/7 existing rows). Fixed to capture real usage and compute `cost_usd` from the same rate table already established in `_shared/llm-call.ts`. Deployed v487. |
+| 3 | P0-27 (fabricated social-proof counters) | `c168f63d` | **Corrected my own earlier root-cause claim before fixing it**: the triggers were confirmed working correctly and firing organically (the "+5, same timestamp" signature was 5 real `analysis_complete` events, not a manual edit). The real, still-valid defect was narrower — both counters seeded (2026-07-04/06) at numbers with no basis in real historical volume (175/1,247 vs. 88 real events, ever). Reset both DB rows and the frontend's own seed constants to 88, the real, directly-verifiable count — including the frontend fix, since a stale higher hardcoded seed would have silently masked the DB correction via its own `Math.max()` guard. |
+| 4-9 | P0-26, P0-25, attribution, second-case proposal, guided-pilot proposal | — | In progress, tracked as tasks #29-33. |
+
+**Discipline note**: item 3 is a real example of catching and correcting my own prior analysis before acting on it, rather than executing a "fix" for a mechanism that was actually already working — verified via direct timestamp cross-referencing (funnel_events vs. public_metrics.updated_at) before writing any migration.
+
+---
+
 ## Session: 2026-07-25 — ACTIVATE: P0_STABILIZATION (continued)
 
 **Environment:** PRODUCTION (deploys executed, founder-authorized). Deployed commit `fd863042`, verified live via `analyze-business?health=1` → `commit_sha: fd8630424167564736de8fd453f59e26ad2e6b5c`.
