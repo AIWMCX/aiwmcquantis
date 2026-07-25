@@ -188,6 +188,8 @@ Deno.serve(async (req) => {
 
     const t0 = Date.now();
     let rawContent: string;
+    let usageInputTokens = 0;
+    let usageOutputTokens = 0;
     try {
       if (provider.name === 'anthropic') {
         const res = await fetch(provider.url, {
@@ -209,6 +211,8 @@ Deno.serve(async (req) => {
         const data = await res.json();
         const parts = (data?.content as Array<{ type: string; text?: string }> | undefined) ?? [];
         rawContent = parts.filter((p) => p.type === 'text').map((p) => p.text ?? '').join('');
+        usageInputTokens = data?.usage?.input_tokens ?? 0;
+        usageOutputTokens = data?.usage?.output_tokens ?? 0;
       } else {
         // OpenAI-compatible shape (DeepSeek, GLM, Lovable gateway).
         const res = await fetch(provider.url, {
@@ -228,6 +232,8 @@ Deno.serve(async (req) => {
         if (!res.ok) return j({ error: `${provider.name} ${res.status}: ${(await res.text()).slice(0, 300)}` }, 502);
         const data = await res.json();
         rawContent = data?.choices?.[0]?.message?.content ?? '';
+        usageInputTokens = data?.usage?.prompt_tokens ?? 0;
+        usageOutputTokens = data?.usage?.completion_tokens ?? 0;
       }
     } catch (e) {
       return j({ error: `${provider.name} unreachable: ${e instanceof Error ? e.message : String(e)}` }, 502);
@@ -243,11 +249,27 @@ Deno.serve(async (req) => {
     const modelUsed = `${provider.name}:${provider.defaultModel}`;
 
     // Best-effort cost/provider telemetry — never blocks generation on failure.
+    //
+    // Domain 18 audit (2026-07-25, P0-28): this insert previously omitted
+    // input_tokens/output_tokens/cost_usd entirely (DB defaults filled in
+    // 0/0/0.000000 for every row), even though the provider responses above
+    // already return real usage data -- it was simply never read. Same rate
+    // table as _shared/llm-call.ts's COST_PRICING (not imported directly;
+    // this file is deliberately self-contained, see docblock above) --
+    // publicly published provider rates, not independently reconfirmed this
+    // session; verify before relying on this for financial reporting.
+    const rate = provider.name === 'deepseek' ? { in: 0.27, out: 1.10 } : { in: 15, out: 75 };
+    const costUsd = Math.round(
+      ((usageInputTokens / 1_000_000) * rate.in + (usageOutputTokens / 1_000_000) * rate.out) * 1_000_000,
+    ) / 1_000_000;
     void supaSvc.from('ai_calls').insert({
       user_id: user.id,
       task: 'content-studio-generate',
       provider: provider.name === 'lovable' ? 'lovable_gateway' : provider.name,
       model: modelUsed,
+      input_tokens: usageInputTokens,
+      output_tokens: usageOutputTokens,
+      cost_usd: costUsd,
       latency_ms: Math.round(elapsed_ms),
       ok: true,
     }).then(undefined, () => {});
