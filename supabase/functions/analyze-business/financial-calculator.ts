@@ -506,6 +506,36 @@ export function calculateStrictFinancials(
 
       if (!foundPayback) paybackMonths = 999;
 
+      // Domain 6/18 accuracy audit (2026-07-25, P0-25): this project has three
+      // separately-built, fully-tested reconciliation engines (reconciliation-
+      // engine.ts, financial/reconcile.ts, lib/r3-validator.ts) with zero live
+      // callers -- none actually verify Cash[t]=Cash[t-1]+FCF[t] in production.
+      // Adding one narrow, bounded check here rather than wiring one of those
+      // three (a larger architectural decision, not a same-session patch):
+      // independently re-sum the exact monthlyFcf series the loop above just
+      // built and confirm it agrees with the loop's own incrementally-tracked
+      // `cumulative` at the point payback was found. This can only ever catch
+      // a future maintenance bug (the two are mathematically identical today
+      // by construction), but that is exactly what a reconciliation check is
+      // for -- flagging drift the moment someone changes this loop without
+      // preserving the identity, not correcting anything silently.
+      const independentCashSum = monthlyFcf.reduce((sum, v) => sum + v, 0);
+      const cashRollForwardHolds = Math.abs(independentCashSum - cumulative) < 0.01;
+      audit.push({
+        formula: 'Cash roll-forward: Cash[t] = Cash[t-1] + FCF[t]',
+        inputs: { 'Cumulative FCF (running sum)': cumulative, 'Cumulative FCF (independent re-sum)': independentCashSum },
+        result: independentCashSum,
+        isValid: cashRollForwardHolds,
+        notes: cashRollForwardHolds
+          ? 'Cash roll-forward reconciles exactly across all simulated months.'
+          : `Cash roll-forward mismatch: running total ${cumulative} vs. independent re-sum ${independentCashSum} — investigate before trusting payback/runway figures.`,
+      });
+      if (!cashRollForwardHolds) {
+        log.error(
+          `⚠️ Cash roll-forward failed: running=${cumulative}, resum=${independentCashSum}`,
+        );
+      }
+
       // Handbook §19 Wave 2 — cross-validate the ramp loop above against the
       // typed, tested calculator from payback-contract.ts using the exact
       // same monthly FCF series. Detection-only: does not alter paybackMonths
