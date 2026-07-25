@@ -6,7 +6,14 @@ import { Link } from 'react-router-dom';
 // Curated set shown on the landing page as a proof-of-presence strip.
 // Order matches a "tech SaaS" aesthetic: launch platforms first, then
 // AI tool directories, then SaaS comparison sites.
-const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41];
+// 2026-07-25: added 5 of the strongest confirmed entries from that day's
+// verification batch (68 Fazier, 67 StackShare, 66 DodoPayments Index,
+// 65 Uneed, 61 Aura++) — picked by DR among the newly-live entries rather
+// than adding all 22, matching this list's existing curation discipline.
+// id 41 (IndieHackers) was already featured here despite being
+// status: "not_started" at the time — now genuinely live with proof
+// (see directorySubmissions.ts), so its presence here is honest again.
+const FEATURED_IDS = [11, 45, 46, 17, 16, 2, 5, 7, 8, 6, 9, 47, 48, 14, 19, 41, 68, 67, 66, 65, 61];
 
 function hostOf(url: string): string {
   try {
