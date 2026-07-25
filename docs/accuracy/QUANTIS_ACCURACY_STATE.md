@@ -1,65 +1,54 @@
 # AIWMC Quantis — Accuracy Program State Ledger
-Maintained per Master Prompt v3 §7. Read this first at the start of every accuracy session.
+Maintained per MP7-ACCURACY v3.1 §0 rule 5 and §22. **Read this first at the start of every accuracy session.**
 
-## Session: 2026-07-21 (continued) — ACTIVATE: P0_STABILIZATION
+---
 
-### P0-2 CLOSED: Monte Carlo claim/implementation mismatch
-Commit `857e5777` (local, not pushed). Root cause: `src/config/canonical-facts.ts` already existed with the correct `MONTE_CARLO_ITERATIONS = 1_000` but was never Deno-ported, so edge functions kept hardcoding the historical "95,500" claim. Fixed:
-- New `supabase/functions/_shared/canonical-facts.ts` (Deno mirror, matches this repo's dual-port convention).
-- `_shared/prompts.ts`: PLUS-tier system prompt no longer tells the LLM it received "95,500 scenario outputs" or shows `"scenarios_run": 95500` as the expected schema value.
-- `analyze-business/index.ts`: Free-tier upgrade-CTA payload no longer advertises "95,500-scenario Monte Carlo simulation".
-- `send-lifecycle-email/index.ts`: cancellation-prevention email + nurture-day-6 email (subject + body) no longer claim 95,500 scenarios.
+## Session: 2026-07-25 — ACTIVATE: P0_STABILIZATION (continued)
 
-**Deliberately deferred, not part of this fix**: ~10 other files still say "95,500" referring to *benchmark row count* (true value 97,500 per the same canonical-facts.ts) — a distinct defect (wrong count, not MC/benchmark conflation). Locations: `analyze-business/index.ts` (comments + `benchmark_v2_datapoints: 95500` field + prompt text), `benchmark-engine-v2.ts`, `benchmark-records.ts`, `quantis-master-prompt.ts`, `analyze-plus/index.ts`, `analyze-pro-extension/index.ts`, `send-lifecycle-email/index.ts` (2 more lines), `public/docs/QUANTIS_BUSINESS_LOGIC.md`, `public/llms.txt`. Candidate for a follow-up P0-2b pass — same fix pattern (import `BENCHMARK_COUNT_DISPLAY` from the now-existing Deno canonical-facts.ts), lower urgency since 95,500 vs true 97,500 is a ~2% understatement, not a fabricated capability claim.
+**Environment:** PRODUCTION (deploys executed, founder-authorized). Deployed commit `fd863042`, verified live via `analyze-business?health=1` → `commit_sha: fd8630424167564736de8fd453f59e26ad2e6b5c`.
 
-**Gap noted, not fixed**: `supabase/functions/**` is excluded from this repo's ESLint/typecheck (`eslint.config` ignores it) — this is *why* the drift went undetected. No test currently guards against hardcoded canonical numbers in edge functions the way `tiers-drift.test.ts`/`tier-matrix-server-parity.test.ts` guard the frontend. Worth a P1 test-infrastructure item: a Deno-side or grep-based CI check banning bare `95,500`/`95500` outside `canonical-facts.ts` and migration files.
+### Shipped to production this session
 
-**Verification performed**: manual (no local Deno CLI available to typecheck directly); confirmed all 4 edits are syntactically valid template-literal interpolations via re-read; confirmed `supabase/functions/**` is outside frontend lint/typecheck scope so no CI regression risk from that angle; confirmed zero historical/persisted data affected (copy-only change, no formula touched). Not independently confirmed by running the actual edge function — recommend a staged/preview deploy smoke test before this goes to production.
+| Item | Evidence |
+|---|---|
+| **Finding 16-1** (Stripe billing audit) — webhook handlers no longer default unknown Stripe statuses to `"active"` | Commit `fd863042`. `stripe-webhook` v1976 → **v1988**. CI ✅ qoc-gate ✅ Production Deploy ✅ Deploy Smoke Test ✅ |
+| **Migration** `20260725041725_expand_subscription_status_allowed_values` — `subscriptions.valid_status` CHECK widened 4 → 8 Stripe statuses | Verified live via `pg_constraint`. Applied to prod BEFORE code shipped (ordering deliberate: reversed, every new-status write would throw a constraint violation). Filename matches stamped version — no `schema_migrations` drift. |
+| **P0-11** — "95,500 Monte Carlo scenarios" removed from Deno edge functions | Commits `857e5777` + `f28ee008`, previously unpushed on local main, now on `origin/main` |
 
-**Not pushed** — repo's CI auto-deploys to production on push to `main`; holding for explicit "DEPLOY APPROVED" per Master Prompt v3 §33.
+### P0 register — reconciled against LIVE CODE this session (supersedes §6 status column)
 
-### P0-1 NOT STARTED this session
-Legacy `999` payback sentinel wiring — larger, riskier change (touches the return contract of `financial-calculator.ts`, a core, widely-consumed module) than P0-2's copy-only fix. Stopped here to checkpoint with the user before starting a change of that size, per "efficiently, carefully, professionally."
+**Critical correction to MP7 §5 baseline observation #9:** it attributes the undiscounted-NPV and silent-clamping defects to `calculate-financials`. That function is **dead code** — zero references in `src/`, only pinged by `warm-functions` (keep-alive) and `admin-health-sweep` (health check). The **live** calculator is `supabase/functions/analyze-business/financial-calculator.ts` (`calculateStrictFinancials`, called from `analyze-business/index.ts:1735`). Verify against the live file, not the microservice.
 
-## Session: 2026-07-21 (original) — ACTIVATE: DISCOVERY
+| P0 | Verified status | Evidence |
+|---|---|---|
+| **P0-01** | **CONFIRMED OPEN — live** | `financial-calculator.ts:194-206` silently rewrites B2B/enterprise CAC below $2,000 to `Math.max(benchmarks.cac_typical, 2000)`. Also `:586` floors MRR for break-even. |
+| **P0-02** | **CONFIRMED OPEN — live** | `financial-calculator.ts:419-439` — if margin > `benchmark_max + 5%`, **`totalExpenses` is rewritten** to `mrr × (1 − ceiling)`, a fabricated number the user never supplied. Disclosure exists (`corrections[]`, `was_auto_corrected`, −15 reliability per correction) but surfaces only in `ValidationSection.tsx`, a secondary panel — the primary report/PDF show the rewritten figures as plain fact. |
+| **P0-04** | **RESOLVED in live path** | `financial-calculator.ts:566-583` implements true DCF: `−I₀ + Σ(m=1..36) profit/(1+r)^m`, 10% annual WACC → monthly rate. Matches MP7 §10's NPV law. ⚠️ Uses flat monthly profit, not a dated/ramped series — a simplification, not the named defect. Dead twin `calculate-financials/index.ts:586` still has `netProfit * 36 - startupInvestment` (undiscounted) but is unreachable. |
+| **P0-09** | **CONFIRMED OPEN — live** | `financial-calculator.ts:494,518` still set `paybackMonths = 999`. Typed `MonthsMetricResult` (`paybackResult`) exists and cross-checks, but is **explicitly detection-only** — in-code comment: *"20+ call sites downstream depend on its existing integer/999 contract."* Making it load-bearing is the real work. |
+| **P0-11** | **RESOLVED** | Commit `857e5777`, pushed + deployed this session. |
+| **P0-14** | **CONFIRMED OPEN** | `qoc_audit_envelopes` = 0 rows (live query). QoC deployed but not load-bearing. |
 
-### Work completed
-- Read Master Prompt v3 in full; confirmed it supersedes/extends the same-day v2.0 accuracy package already committed at `752c8c13`.
-- **Key finding: do not re-run Session 1 (Reality Map) from scratch.** `docs/accuracy/AIWMC_QUANTIS_ACCURACY_PACKAGE_v2.0_2026-07-21.md` already is a rigorous, evidence-labeled (VERIFIED/DOCUMENTED/INFERRED/MISSING) production reality map with real DB row counts, deployed function versions, and a P0-P4 sequenced plan. Treat it as the current baseline; verify specific claims before acting on them, don't duplicate the whole exercise.
-- Verified 3 commits landed **after** the v2.0 package was written, same day:
-  - `2e43dfd5` — canonical business-archetype registry (`src/config/business-archetypes.ts` + Deno-ported twin). Classifies 6 revenue archetypes with an honest `engineFit` rating against the live MRR-shaped engine; explicitly documents that `capacity_constrained_service` has **no capacity-ceiling mechanism anywhere in the live engine** (verified by direct grep, not assumed). This is a **partial** step toward v2.0 package's P0-8 ("generic revenue model applicability") — the classifier/registry half is now real; the "per-archetype formulas" half is still open.
-  - `71e7c594` + `6cbbced6` — reconciled migration filenames against what Supabase's Management API actually stamped as their applied version (root cause: `apply_migration` assigns its own call-time version, ignoring the filename's intended version, so `supabase db push` saw "remote versions with no local file" and failed every time).
-- **Confirmed via `gh run list`: CI green, Production Deploy succeeded, Deploy Smoke Test succeeded**, all within hours of this session. Cross-referenced: `3cb71c55` "fix(ci): commit missing qoc-tracer.ts" — the exact file named as CI's root cause in the prior `quantis_deploy_freeze_incident` memory (dated 2026-07-01) — is now committed.
-- **This resolves the standing deploy-freeze incident.** Backend/migrations are no longer frozen at `af2ec01b`; the freeze is over as of this session. The `quantis_deploy_freeze_incident` and `quantis_accuracy_audit_charter` memories are stale on this point and have been corrected (see below).
-- Verified via grep: the "95,500 vs 97,500 vs actual Monte Carlo iteration count" claim conflict is **real and still open** (`VERIFIED—P0` in the v2.0 package itself, dated today) — this directly contradicts the `quantis_accuracy_audit_charter` memory's claim that "no 95,500 mismatch remains." That memory was wrong or based on stale evidence; corrected.
+### NEW FINDING — P0-23: unauthenticated duplicate financial engine deployed in production
 
-### Evidence created
-- This state ledger file (new).
-- Corrected two persistent memory files (see "Memory corrections" below).
+`calculate-financials` is **ACTIVE, deployed, and `verify_jwt: false`** (no auth required) while containing two known-defective implementations the live engine has already fixed:
+- undiscounted NPV (`netProfit * 36 - startupInvestment`, line 586)
+- the same margin-ceiling clamp that rewrites `totalExpenses` (lines 462-478)
 
-### Files changed
-- None yet (read-only discovery session so far, per ACTIVATE: DISCOVERY mode).
+Nothing in `src/` calls it. It is MP7's "≥11 competing truths" made concrete: a second, worse financial engine sitting publicly reachable on the internet, serving math the primary path has already corrected. Per MP7 §11 ("deprecate duplicate calculation paths **only after differential tests prove the migration**") — here no migration is needed because there is no consumer to migrate.
 
-### Unresolved defects (per v2.0 package, still open as of this session — re-verify before acting)
-All P0-1 through P0-8 in `AIWMC_QUANTIS_ACCURACY_PACKAGE_v2.0_2026-07-21.md` §7 remain open except where noted above. Highest-leverage open items, in the package's own priority order:
-1. P0-1: legacy `999` payback sentinel still load-bearing in the returned contract (typed result exists but is non-fatal cross-check only).
-2. P0-2: Monte Carlo claim/implementation mismatch (10,000 browser cap vs "95,500" in tier spec/prompts/copy) — still unresolved after today's commits.
-3. P0-3: RVCE not proven in saved analyses (0/90 analyses have `rvce_status`).
-4. P0-4: QOC not load-bearing (0 rows in `qoc_audit_envelopes`).
-5. P0-5: accuracy harness broken (`golden_test_vectors`/`accuracy_runs` tables absent) — `docs/accuracy/quantis_accuracy_migration_proposal.sql` already drafted, not yet applied.
-6. P0-6: benchmark sample sizes (230/180/95) and dates are hardcoded in the renderer, not derived from the actual selected row set.
-7. P0-7: zero outcome rows — no calibration possible yet.
-8. P0-8: generic revenue model — registry/classifier now real (this session's finding), per-archetype formulas still absent.
+**Recommended:** remove from the deploy set / delete. **Blocked on founder approval** (§148: production change).
+**Severity: High** (duplicate-truth surface + unauthenticated). **Not yet exploited** — no evidence of external calls.
 
-### Decisions requiring founder approval
-- None triggered this session (pure read-only discovery; no destructive/deploy/claim-change actions taken).
+### Founder decisions outstanding (§148)
 
-### Rollback instructions
-- N/A — no code changes made this session.
+1. **P0-01/02 fix** — stop silent clamping. Proposed: preserve the user's real values; replace the rewrite with a **visible inline flag** on the primary surface ("margin unusually high for this industry — verify inputs"). This is a material formula-policy change altering displayed numbers → requires approval.
+2. **P0-23** — delete/undeploy `calculate-financials`.
+3. **Stale row repair** — `sub_1TotZjLKMhSmZURCEpzsCh7M`: Stripe (live) says `past_due`, invoice `in_1TtyGJLKMhSmZURCKGuiKkcP` $0 paid / 4 failed attempts; our row still reads `active`/`payment_failed_at: null`, untouched since 2026-07-02. Options: (A) fix the card → natural resync + proves recovery path; (B) SQL sync to `past_due` → truthful, account loses Pro until paid; (C) Resend a `customer.subscription.updated` event → proves the newly-deployed handler self-corrects. **Recommended: C then A.**
+4. **RVCE unit-safety branch** `fix/rvce-unit-safety-normalization` — 30 tests + full suite green, not merged/deployed.
+
+### Rollback
+- Finding 16-1 code: `git revert fd863042`. Migration is additive (widened CHECK) — safe to leave; reverting it requires no rows hold the new statuses.
+- P0-11: `git revert 857e5777 f28ee008`.
 
 ### Next activation command
-**`ACTIVATE: P0_STABILIZATION`**, scoped first to P0-2 (the benchmark/Monte-Carlo claim conflict) — it's the cheapest to close (a copy/config change, not a new engine) and it's the exact item both the charter memory and this fresh evidence disagree about, so closing it converts an open question into a verified fact. P0-1 (999 sentinel) is the next-highest-leverage item after that, since the typed replacement already exists and "wiring" is smaller than the P0-3/4/5 items which need new persistence/tables.
-
-## Memory corrections made this session
-- `quantis_deploy_freeze_incident`: superseded — freeze resolved, `qoc-tracer.ts` committed (`3cb71c55`), CI/deploy/smoke all green as of 2026-07-21.
-- `quantis_accuracy_audit_charter`: "No 95,500 mismatch remains" claim corrected — the conflict is real and still open per today's own v2.0 accuracy package.
+**`ACTIVATE: P0_STABILIZATION`**, scoped to P0-01/02 once decision #1 lands — it is the single most trust-destroying defect for the Aug 15 first-paid client (a fractional CFO seeing their own reported expenses silently inflated). P0-09 (`999`) is the next-largest lift and should follow, not precede, it.
