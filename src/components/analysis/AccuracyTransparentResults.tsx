@@ -777,9 +777,19 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                 />
                 
                 {/* Impact Snapshot */}
+                {/* P0-26 (Domain 8 audit, 2026-07-25): scenarioMetrics below applies
+                    the slider overrides with a simple linear heuristic (see the
+                    "Apply local overrides linearly for demo purposes" comment at
+                    this section's calculation above) -- it is not a re-run of the
+                    deterministic engine (calculateStrictFinancials). For the same
+                    overridden inputs, the real engine could produce a materially
+                    different number. Labeling this plainly rather than letting it
+                    carry the same visual authority as the canonical report figures
+                    elsewhere on this page. */}
                 <div className="q-card p-5 border-l-4 border-l-[var(--q-accent-primary)]">
                   <h4 className="text-label mb-3">Impact Snapshot</h4>
-                  <p className="text-xs text-[var(--q-text-tertiary)] mb-3">Adjust levers above to see projected changes.</p>
+                  <p className="text-xs text-[var(--q-text-tertiary)] mb-1">Adjust levers above to see projected changes.</p>
+                  <p className="text-[11px] text-[var(--q-text-tertiary)] mb-3 italic">Rough directional estimate, not a full recalculation of your report.</p>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Mo.12 Revenue</span>
