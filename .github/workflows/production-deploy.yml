@@ -257,7 +257,10 @@ jobs:
             analyze-pro-extension
             analyze-pro-worker
             ai-narrator
-            calculate-financials
+            # calculate-financials removed 2026-07-25 (P0-23) -- decommissioned
+            # duplicate engine, stub deployed manually, deliberately not
+            # redeployed by CI. Delete supabase/functions/calculate-financials/
+            # from Supabase Dashboard when convenient; nothing here recreates it.
             # ── User-facing widgets ───────────────────────────────────────
             invoice-capacity-check
             benchmarks-query
