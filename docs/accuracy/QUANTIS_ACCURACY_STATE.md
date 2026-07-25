@@ -72,6 +72,21 @@ Live homepage (`get_page_text` against `https://www.aiwmcquantis.com/`, 2026-07-
 
 **Severity: High** (public trust/marketing-accuracy claim, directly adjacent to the platform's core "sources cited on every number" promise). **Blocked on founder decision** (§148).
 
+**UPDATE — SHIPPED same session.** Founder approved softening the claim (option 1) while option 2 (real per-row lineage) remains open for later. Changed the verb "derived from" → "informed by" everywhere `BENCHMARK_SOURCES_DISPLAY` is consumed (`HeroVariants.tsx`, `Landing.tsx` FAQ, `ReportFirstHero.tsx`, `FAQSection.tsx`, `AppDashboard.tsx` meta description) — commit `97ca804b`. Also dropped `FAQSection.tsx`'s separate unverifiable claim "every value is labeled by source (sourced/derived/modeled)" (no such per-value labeling exists in the UI). While re-auditing Domain 2 Q16 (outcome-guarantee language), found a **second, worse instance of the same defect class**: `HowItWorks.tsx`'s FAQ hardcoded a *third*, different, stale institution list ("BLS, Census Bureau ACS, SBA Office of Advocacy, CoStar, and public filings") plus a false "No synthetic or made-up data" claim — bypassing the canonical-facts.ts rule the file otherwise follows for its other constants. Fixed to import and use `BENCHMARK_SOURCES_DISPLAY` — commit `6d43320c`. Both commits: full suite 1222/1222 green, `tsc --noEmit` clean, pushed with `git fetch` confirming up-to-date first. **Live-verified** via direct browser read of `https://www.aiwmcquantis.com/` post-deploy: hero now reads "...97,500 benchmark data points informed by SEC filings, World Bank enterprise surveys, and proprietary industry modeling...". Vercel auto-deploy confirmed propagated (~3 min).
+
+### Domain 2 re-audit summary (this session, against live code + live browser evidence)
+
+| Q | Prior status | Re-audit result |
+|---|---|---|
+| Q11 (category description) | UNVERIFIED | **RESOLVED/PASS** — live title tag + hero eyebrow consistently say "Audit-grade business validation" / "Deterministic Business Validation." |
+| Q12/Q13 (5-second test) | UNVERIFIED | Still UNVERIFIED — genuinely requires real user testing, not derivable from code. |
+| Q14 (pain-first vs. feature-first hero) | WARN | **RESOLVED/PASS** — live headline is "Before you invest $50K, spend 90 seconds finding out if you'll get it back," a cost/risk-first framing, not feature-count language. |
+| Q15/Q17 (sourced claims) | FAIL | **PARTIALLY RESOLVED** — the specific unsubstantiated "derived from" claim is fixed (P0-24 above). A formal claim-registry (source + generation method + review date per public number) still does not exist — that infrastructure gap stays open. |
+| Q16 (outcome-guarantee language) | UNVERIFIED | **RESOLVED/PASS** — full-text grep for guarantee/predict-success language found zero outcome guarantees; all "guarantee" hits are the 14-day money-back guarantee (billing) or explicit disclaimers ("Projections are estimates, not guarantees" — `HowItWorks.tsx`). |
+| Q18 (assumptions inspectable) | UNVERIFIED | Still UNVERIFIED — not inspected this pass, deprioritized in favor of the two real defects found. |
+| Q19 (examples reproduce from real runs) | UNVERIFIED | Still UNVERIFIED, P2, deprioritized. |
+| Q20 (differentiation vs. Excel/ChatGPT) | UNVERIFIED | Still a founder-decision question; `Landing.tsx` FAQ does already answer "How is Quantis different from ChatGPT or a spreadsheet?" with a real comparison — partially addressed in copy, not formally re-graded. |
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
