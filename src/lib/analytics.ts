@@ -235,6 +235,20 @@ function getSessionId(): string {
   }
 }
 
+const UTM_KEY = 'aiwmc_funnel_utm';
+
+// Domain 16 audit (2026-07-25): this re-read window.location.search fresh on
+// every recordFunnelEvent call, with no persistence -- unlike session_id just
+// above, which is captured once and reused for the whole session. Since
+// almost every funnel event (signup, analysis complete, checkout) fires well
+// after the visitor has navigated away from the tagged landing URL, the
+// query string was already gone by the time these events fired, even when a
+// campaign link WAS correctly UTM-tagged. Confirmed live: 618 funnel_events
+// in the last 30 days, only 4 (0.6%) carried real utm_source. Fixed by
+// capturing UTM params once, on first read, into sessionStorage (mirroring
+// getSessionId()'s exact pattern) and reusing them for the rest of the
+// session -- landing on a tagged link now attributes every later event in
+// that session, not just the one that happened to land on it.
 function readUtm(): {
   utm_source?: string;
   utm_medium?: string;
@@ -243,11 +257,18 @@ function readUtm(): {
   if (typeof window === 'undefined') return {};
   try {
     const p = new URLSearchParams(window.location.search);
-    return {
+    const fromUrl = {
       utm_source: p.get('utm_source') || undefined,
       utm_medium: p.get('utm_medium') || undefined,
       utm_campaign: p.get('utm_campaign') || undefined,
     };
+    if (fromUrl.utm_source || fromUrl.utm_medium || fromUrl.utm_campaign) {
+      window.sessionStorage.setItem(UTM_KEY, JSON.stringify(fromUrl));
+      return fromUrl;
+    }
+    const stored = window.sessionStorage.getItem(UTM_KEY);
+    if (stored) return JSON.parse(stored);
+    return {};
   } catch {
     return {};
   }
