@@ -431,11 +431,12 @@ serve(async (req) => {
           );
         }
 
-        // Map status
-        let status = "active";
-        if ((subscription as any).status === "trialing") {
-          status = "trialing";
-        }
+        // Map status. Pass through anything that isn't active/trialing as-is
+        // (incomplete/incomplete_expired/unpaid/paused must never silently
+        // become "active" — Finding 16-1, Stripe billing audit 2026-07-22).
+        const status = (subscription as any).status === "active" || (subscription as any).status === "trialing"
+          ? "active"
+          : (subscription as any).status;
         log.info(`[${requestId}] Status: ${status}`);
 
         // Upsert subscription with retry
@@ -522,14 +523,12 @@ serve(async (req) => {
           );
         }
 
-        let status = "active";
-        if ((subscription as any).status === "canceled") {
-          status = "canceled";
-        } else if ((subscription as any).status === "past_due") {
-          status = "past_due";
-        } else if ((subscription as any).status === "trialing") {
-          status = "trialing";
-        }
+        // Pass through anything that isn't active/trialing as-is — incomplete/
+        // incomplete_expired/unpaid/paused must never silently become "active"
+        // (Finding 16-1, Stripe billing audit 2026-07-22).
+        let status: string = (subscription as any).status === "active" || (subscription as any).status === "trialing"
+          ? "active"
+          : (subscription as any).status;
 
         log.info(`[${requestId}] Updating - Plan: ${plan}, Status: ${status}`);
 
