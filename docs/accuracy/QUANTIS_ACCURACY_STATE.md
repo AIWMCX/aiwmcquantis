@@ -291,6 +291,22 @@ Most of this domain cross-references findings already made with hard evidence in
 
 **Net Domain 15 outcome:** 1 real downgrade with hard new evidence (Q146: dormant, not just unproven), 2 reconfirmations anchored to specific real tables instead of general impressions (Q147, Q149), 1 precise resolution via cross-reference removing a prior hedge entirely (Q142: 0%, not "near zero/unmeasured"), 5 correctly left as customer-research/strategy questions. No code shipped — Q146's dormant scheduler is a real, cheap-to-fix gap (wire a cron job to an already-built function) worth flagging as a concrete follow-up, distinct from the harder product-strategy questions in this domain.
 
+### Domain 16 re-audit (Distribution, Attribution & Sales Execution, Q151-Q160) — this session
+
+Most of this domain is genuinely sales-ops/customer-research territory (Q152-156, Q158) that a CRM connection or real sales conversations would answer, not code — the sales/CRM connectors (`plugin:sales:apollo` etc.) are unauthenticated in this environment, so these correctly stay UNVERIFIED/FAIL rather than guessed at. Four items were checkable and re-verified with fresh evidence:
+
+**Q151 (UTM/post-level attribution) — reconfirmed with an exact figure.** Fresh SQL: of 618 `funnel_events` rows in the last 30 days, only **4 (0.6%)** carry real `utm_source` data — 99.4% unattributed, matching the diagnostic's "~99%" estimate almost exactly, now precise rather than approximate.
+
+**Q157 (does each CTA ask for one action) — partial evidence of a cleaner state than "mixes motions" suggested.** Checked the 3 A/B-tested hero variants (`HeroVariants.tsx`) — all three point at the same single action (run a free analysis): "Stress-test my idea — free (90s)," "Find my 3 fatal assumptions — free," "Run my free stress-test." These are copy variants for testing, not competing motions (no "book a call" mixed in on the primary landing surfaces). Grepped for "book a call"/"schedule a call"/"talk to sales" across `src/` — found only one hit, in `marketingPosts.ts` (social-post copy content, not a live page CTA). **Not upgraded to a full PASS** — this checks the homepage hero specifically, not every page (pricing tier CTAs naturally differ by tier, which is expected, not a defect; `/consultants` and other secondary pages weren't individually audited this pass). Leaning better than the diagnostic's characterization, not conclusively resolved site-wide.
+
+**Q159 (is the homepage the correct destination for outbound traffic) — reconfirmed unchanged.** Read the full route table in `App.tsx` — every route is either a generic marketing page (Landing, HowItWorks, UseCases, Consultants, Methodology) or a product/app route. **No dedicated ICP- or trigger-specific landing page exists** (e.g. nothing like `/pilot` or `/for-fractional-cfos`). Consistent with Domain 13's finding that the guided-pilot concept is entirely unbuilt — there's no page to send outbound traffic to even if a campaign wanted one. FAIL stands.
+
+**Q160 (predeclared kill rules for underperforming channels) — reconfirmed unchanged.** Grepped for any kill-rule/experiment-threshold/channel-pause mechanism — none exists anywhere in the codebase. FAIL stands, as expected for a purely process/governance question with no code counterpart to build.
+
+**Q152-Q156, Q158 — correctly left as sales-ops/customer-research questions**, consistent with the disconnected CRM/sales MCP tooling in this environment; not fabricated from code that has no bearing on them.
+
+**Net Domain 16 outcome:** 1 precise reconfirmation (Q151: 99.4% unattributed, exact not approximate), 1 nuanced partial-improvement finding (Q157: primary hero CTAs are single-motion, not exhaustively verified site-wide), 2 reconfirmed unchanged with direct evidence (Q159 route table, Q160 grep), 5 correctly left to sales-ops/research. No code shipped — this domain's real gaps (dedicated landing page, kill rules, CRM integration) are GTM infrastructure decisions, not same-session patches.
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
