@@ -43,8 +43,22 @@ export const BENCHMARK_COUNT_DISPLAY = '97,500';
  * Enterprise Surveys, and the JPMorgan Chase Institute SME dataset — plus
  * an internally-derived proprietary layer that accounts for the majority
  * of the 97,500 rows (labeled "Proprietary derived" in that same file, not
- * raw government data). Never hardcode source-institution names in a
- * component; import from here.
+ * raw government data).
+ *
+ * SOFTENED 2026-07-25 (P0-24, accuracy audit): the prior copy read as a
+ * direct 1:1 provenance claim ("derived from SEC filings, World Bank...").
+ * No per-row linkage exists between `benchmark_master_*` and
+ * `data_provenance` — no schema column joins a benchmark row back to a
+ * named source, and `data_provenance` itself is a static 6-row reference
+ * table seeded once (2026-07-21), not accumulated from real per-source
+ * ingestion events. The underlying raw datasets are real and license-
+ * verified (`canonical-data-sources.ts`), but the claim that the 97,500
+ * benchmark *values themselves* were statistically computed from those
+ * specific datasets is unverifiable in this codebase as it stands. Copy
+ * now describes the corpus as *informed by* / *calibrated against* these
+ * sources rather than *derived from* them, until real per-row lineage
+ * exists (see docs/accuracy/QUANTIS_ACCURACY_STATE.md P0-24). Never
+ * hardcode source-institution names in a component; import from here.
  */
 export const BENCHMARK_SOURCES_DISPLAY =
   'SEC filings, World Bank enterprise surveys, and proprietary industry modeling';

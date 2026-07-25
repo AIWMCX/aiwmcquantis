@@ -20,7 +20,7 @@ const faqItems = [
   },
   {
     question: 'What data do you use?',
-    answer: `${BENCHMARK_COUNT_DISPLAY} benchmark data points covering 50+ sectors — derived from ${BENCHMARK_SOURCES_DISPLAY} — plus cost indices for 50+ global cities. Every value is labeled by source (sourced, derived, or modeled) so you can see what's real market data versus a structured estimate. The engine uses the same financial frameworks that VCs and accelerators rely on.`
+    answer: `${BENCHMARK_COUNT_DISPLAY} benchmark data points covering 50+ sectors — informed by ${BENCHMARK_SOURCES_DISPLAY} — plus cost indices for 50+ global cities. The engine uses the same financial frameworks that VCs and accelerators rely on.`
   },
   {
     question: 'How accurate are the financial projections?',

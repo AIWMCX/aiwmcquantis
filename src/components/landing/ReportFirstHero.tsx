@@ -311,8 +311,8 @@ export function ReportFirstHero() {
             Before you invest $50K, spend 90 seconds finding out if you’ll get it back.
           </h1>
           <p className="mt-5 text-base md:text-lg max-w-2xl leading-relaxed" style={{ color: 'hsl(var(--muted-foreground))' }}>
-            Quantis stress-tests your idea against <strong>{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong> derived
-            from {BENCHMARK_SOURCES_DISPLAY} — and returns a profitability verdict and reliability
+            Quantis stress-tests your idea against <strong>{BENCHMARK_COUNT_DISPLAY} benchmark data points</strong> informed
+            by {BENCHMARK_SOURCES_DISPLAY} — and returns a profitability verdict and reliability
             score with a saveable PDF. No credit card. First analysis free.
           </p>
           {/* Data-source attribution row — real trust signals replacing fabricated review counts */}

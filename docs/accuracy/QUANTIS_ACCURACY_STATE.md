@@ -54,6 +54,24 @@ Founder approved all four outstanding items. Executed in dependency order, each 
 
 **All changes now live in production**, verified by commit SHA, not assumed.
 
+### NEW FINDING — P0-24: homepage's named-source attribution unverifiable at the data layer (Domain 2 re-audit)
+
+Live homepage (`get_page_text` against `https://www.aiwmcquantis.com/`, 2026-07-25) claims: *"Quantis stress-tests your idea against 97,500 benchmark data points derived from SEC filings, World Bank enterprise surveys, and proprietary industry modeling"*, with source badges `SEC XBRL / WORLD BANK / JPMORGAN CHASE INSTITUTE / PROPRIETARY MODELING`. This traces cleanly to `canonical-facts.ts`'s `BENCHMARK_SOURCES_LIST`/`_DISPLAY` (no stray hardcoding — the canonical-module discipline is intact), and `src/lib/canonical-data-sources.ts` gives a specific, footnoted breakdown: SEC XBRL 500,000 records, World Bank 180,000, JPMorgan Chase Institute SME Cash Flow 10,000, ProjectionHub 50, Kaggle Coffee Shop 24 — feeding a derived "AIWMC Quantis Benchmark Library" of 97,500 rows (`license: 'Proprietary derived'`), i.e. the claim's own structure is "97,500 benchmarks *computed from* 690,074 raw source records," not "97,500 rows *are* SEC/World Bank data" — a defensible framing IF the derivation actually happened against real source data.
+
+**It is not verifiable that it did.** Checked both ingestion paths:
+- `ingest-benchmark-data/index.ts` and `ingest-benchmark-v2/index.ts` are both generic admin-only bulk-upsert pipes — they insert whatever `rows`/`benchmarks` array is POSTed to them. Neither fetches, parses, or computes anything from SEC/World Bank/JPMorgan data itself; the actual percentile-derivation, if it happened, occurred entirely outside this repo (no ingestion script, ETL job, or migration touches raw external data).
+- Direct SQL confirms none of the 5 `benchmark_master_*` tables (core/geo/invoice/risk/unit_econ) has any provenance/source_id column — there is no schema mechanism to join a specific benchmark row back to a named source.
+- `public.data_provenance` (the table `canonical-data-sources.ts` claims to mirror) holds exactly 6 rows, all inserted in one batch at `2026-07-21 18:26:23` — static reference metadata seeded once, not accumulated from real per-source ingestion events.
+
+**Conclusion**: the specific institutional attribution on the live homepage (SEC XBRL, World Bank, JPMorgan Chase Institute) is internally consistent (correctly sourced from the canonical module) but **factually unsubstantiated at the data layer** — there is no evidence in the codebase or database proving the 97,500 benchmark values were actually statistically derived from those three named datasets, as opposed to being independently modeled/estimated and labeled with those sources afterward for credibility. This sits directly under the tagline "SOURCES CITED ON EVERY NUMBER," which raises the stakes: a fractional-CFO client (the Aug 15 ICP) who checks this claim against the actual data would find no traceable link.
+
+**Not fixed yet — this is a founder-scoped decision, not a safe unilateral edit**, because the three real remediation paths have very different cost/honesty tradeoffs:
+1. Soften the claim (e.g. "modeled using patterns informed by SEC filings, World Bank surveys, and proprietary industry data" — drops the implied 1:1 traceability) — cheap, immediate, but is a public-copy change.
+2. Do the real per-row linkage (schema + re-ingestion tying each benchmark row to its actual source basis) — the "real" fix, but a significant lift, not a same-session task.
+3. Leave as-is if the founder has independent evidence (outside this repo) that the derivation genuinely happened — possible; I have no way to see work done outside the codebase.
+
+**Severity: High** (public trust/marketing-accuracy claim, directly adjacent to the platform's core "sources cited on every number" promise). **Blocked on founder decision** (§148).
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
