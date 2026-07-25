@@ -169,6 +169,34 @@ Went further and checked the metric values themselves for a fixed sector/model/g
 
 **Net Domain 7 outcome:** the domain's central, previously-UNVERIFIED-for-weeks question (Q61-63: what is a benchmark, and is it real) is now answered with hard, reproducible, arithmetic proof rather than a plausibility argument — the strongest evidence produced in this entire audit series. No code shipped; this is a data-provenance/positioning finding that reinforces P0-24, for founder awareness rather than an engineering fix.
 
+### NEW FINDING — P0-26: "Adjust Your Levers" what-if widget recalculates with an arbitrary linear heuristic, not the canonical engine (Domain 8, Q77)
+
+Found `InlineAssumptionEditor.tsx` (CAC / ticket-size / rent sliders) genuinely wired into the live report (`AccuracyTransparentResults.tsx:772-777`) — real interactivity answering Q77's "can a user change one assumption and see the effect without rebuilding the whole analysis," which the diagnostic had marked UNVERIFIED/P0. But the recalculation itself (`scenarioMetrics`, `:186-198`) is explicitly commented **"Apply local overrides linearly for demo purposes"** and uses ad-hoc, seemingly-arbitrary arithmetic with no connection to the canonical `calculateStrictFinancials` engine:
+- CAC override: `baseProfit -= (overrides.cac - originalCac) × (totalMonthlyExpenses / 100)` — an arbitrary linear scaling, not the real CAC-payback/LTV formula.
+- Rent override: `baseProfit -= (overrides.rent - fixedCosts × 0.3)` — bakes in an unexplained "30% of fixed costs" assumption with no visible basis.
+- Ticket-size override: `baseRevenue *= ratio; baseProfit += baseRevenue × 0.5` — applies a flat, universal 50% margin regardless of the business's actual margin structure.
+
+The UI (`"Adjust levers above to see projected changes"`) carries **no disclaimer that this is an approximation**, not a real re-run of the deterministic engine. A user drags the rent slider and sees "Mo.12 Profit: $Xk" presented with the same visual authority as the canonical report figures — but for the same overridden inputs, the real engine (with its actual CVP/margin/DCF formulas) would very plausibly produce a materially different number. This directly threatens Q73/Q74 (locked-payload / no-contradictory-values guarantees) the moment a user interacts with this widget, even though the *static* report those questions were originally verified against is sound.
+
+**Severity: Medium** (not a silent data-integrity violation on the primary report — it's an opt-in interactive preview, correctly out of the PDF/export path per this file's structure — but it's a real instance of "polished, confident-looking numbers that aren't the real engine," the exact pattern flagged elsewhere this session, e.g. Q48/Domain 5). **Not fixed this session** — the right fix (wire this widget to actually re-run `calculateStrictFinancials` client-side, or clearly label it "rough estimate, not a full recalculation") is a real product/engineering decision, not a safe same-session patch. Flagged for founder scoping alongside P0-14/P0-24/P0-25.
+
+### Domain 8 re-audit summary (Report, Verdict & User Value, Q71-Q80) — this session
+
+| Q | Prior status | Re-audit result |
+|---|---|---|
+| Q71 (report answers the decision on first screen) | UNVERIFIED | **CONFIRMED PASS** — the live homepage's sample-report preview (captured via direct browser read this session for P0-24) shows Initial Investment, Payback Period, Monthly Profit Y2, and Confidence score immediately, front and center — exactly the "will I get my money back" decision, not buried. |
+| Q72 (risk/bottleneck/assumption clearly identified) | WARN | **Unchanged** — the previously-restored "Ways to Improve Accuracy" section (confirmed still present in `ValidationSection.tsx` per this session's Domain 4/P0-01 work) covers this; not re-verified further this pass. |
+| Q73 (one locked payload feeds every surface) | PASS | **Reaffirmed for the static report — new caveat found for the interactive layer, see P0-26.** |
+| Q74 (can two sections show different values) | WARN | **Reinforced with new evidence** — P0-26 is a second, concrete instance beyond the already-known Q57 dual-payback-contract issue. |
+| Q75 (narrative numbers linked to canonical metric ID) | UNVERIFIED | Left UNVERIFIED — no new evidence gathered this pass, correctly not guessed at. |
+| Q76 (can user distinguish value provenance types) | UNVERIFIED | **CONFIRMED FAIL by cross-reference** — same root cause as Domain 4's Q36 (no field-level provenance tag anywhere downstream) and Domain 7's findings (benchmark values are a synthetic grid with no per-row source metadata). No mechanism anywhere in the pipeline tags a displayed number as user-entered vs. benchmark-derived vs. modeled. |
+| Q77 (change one assumption, see effect without rebuilding) | UNVERIFIED | **CONFIRMED the capability exists and is live — see P0-26 for the fidelity caveat.** Real progress (a working interactive widget didn't exist before), but not a clean PASS given the arbitrary-heuristic finding. |
+| Q78 (clear next experiment/decision) | UNVERIFIED | **Leaning PASS** — the lever editor's explicit purpose is proposing "what if you changed X" experiments; tempered by P0-26 since the experiment's output isn't fully trustworthy math yet. |
+| Q79 (consultant brand/export/reuse) | WARN | **Unchanged**, consistent with Domain 3's Q29 finding (customBranding real, no client-workspace structure). |
+| Q80 (obvious reason to return for a 2nd analysis) | FAIL | **Reconfirmed via Domain 3's fresh usage-frequency data this session** (40/43 users, zero analyses). |
+
+**Net Domain 8 outcome:** 1 real new finding (P0-26) with direct evidence from reading the actual recalculation code, not just confirming the widget exists; 2 items upgraded from UNVERIFIED to confirmed (Q71 PASS, Q76 FAIL) using evidence already gathered honestly rather than re-deriving; 3 reconfirmed via cross-reference to other domains' fresh evidence rather than re-investigated from scratch, in the interest of efficiency. No code shipped — P0-26 needs a founder-scoped product decision (real recalculation vs. clear "rough estimate" labeling), not a unilateral fix.
+
 ### Founder decisions outstanding (§148)
 
 All four resolved this session (see UPDATE above). Remaining open items are the earlier-listed P0-04 dead-twin cleanup (low priority, unreachable code), P0-09 (999 sentinel, large lift — 20+ call sites depend on the contract), P0-14 (QoC not load-bearing), and the stale subscription row (self-resolves on Stripe's next retry, or founder can force it via Dashboard "Resend").
