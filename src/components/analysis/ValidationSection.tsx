@@ -69,7 +69,7 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
           </div>
         </div>
         <div className="p-3 rounded-lg bg-card border border-border">
-          <div className="text-xs text-muted-foreground mb-1">Corrections Made</div>
+          <div className="text-xs text-muted-foreground mb-1">Flagged for Review</div>
           <div className={cn(
             "text-sm font-semibold",
             validation.corrections.length > 0 ? "text-amber-600" : "text-emerald-600"
@@ -122,13 +122,17 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
           </AccordionItem>
         )}
 
-        {/* Corrections */}
+        {/* Flagged fields (P0-01/02, 2026-07-25): these values are NOT altered --
+            the engine no longer silently overwrites a user-declared value with a
+            benchmark-derived one. Every figure elsewhere in this report is the
+            real calculation from what was actually reported; this panel only
+            flags fields that sit outside the typical industry range for review. */}
         {validation.corrections.length > 0 && (
           <AccordionItem value="corrections" className="border-border">
             <AccordionTrigger className="hover:no-underline">
               <div className="flex items-center gap-2">
                 <Info className="w-4 h-4 text-blue-500" />
-                <span>Auto-Corrections ({validation.corrections.length})</span>
+                <span>Flagged for Review ({validation.corrections.length})</span>
               </div>
             </AccordionTrigger>
             <AccordionContent>
@@ -140,11 +144,11 @@ export function ValidationSection({ validation }: ValidationSectionProps) {
                     </div>
                     <div className="text-muted-foreground">{correction.reason}</div>
                     <div className="text-xs mt-1 flex gap-2">
-                      <span className="line-through text-destructive">
-                        Original: ${correction.original.toLocaleString()}
+                      <span className="text-foreground font-medium">
+                        Used in this report: ${correction.original.toLocaleString()}
                       </span>
-                      <span className="text-emerald-600">
-                        → Corrected: ${correction.corrected.toLocaleString()}
+                      <span className="text-muted-foreground">
+                        (industry typical: ~${correction.corrected.toLocaleString()})
                       </span>
                     </div>
                   </div>

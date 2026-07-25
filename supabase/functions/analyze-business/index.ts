@@ -4130,7 +4130,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ideaLength < 30 ? 'Brief business description — add more detail for improved accuracy' : null,
         locationMultiplier === 1.0 ? 'National average costs applied — specify a major city for location-adjusted estimates' : null,
         'Actual results depend on execution, market timing, and competitive dynamics',
-        calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) were adjusted to match realistic industry ranges` : null,
+        // P0-01/02: corrections are flags now, not silent overwrites (financial-calculator.ts) --
+        // wording must not claim values were changed when they weren't.
+        calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) fall outside typical industry ranges — flagged for your review, not altered` : null,
       ].filter(Boolean),
       reconciliation_status: (() => {
         const checks = [];

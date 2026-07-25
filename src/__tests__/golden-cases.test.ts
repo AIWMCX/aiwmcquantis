@@ -49,13 +49,17 @@ function benchmarks(overrides: Partial<IndustryBenchmarks> & { name: string }): 
 }
 
 describe('golden cases — five archetypal businesses vs. independently-derived expected output', () => {
-  it('SaaS B2B (healthy, exercises the B2B enterprise CAC floor)', () => {
-    // rawCac=800 is deliberately below the $2,000 B2B enterprise floor the
-    // real engine enforces once benchmarks.name contains "saas" (see
-    // financial-calculator.ts's B2B_CAC_FLOOR_KEYWORDS check) — this case
-    // intentionally exercises that correction rather than avoiding it.
-    // averageCheck is tuned high enough that the business is still healthy
-    // once CAC is corrected up to $2,000.
+  it('SaaS B2B (healthy, exercises the B2B enterprise CAC floor as a FLAG, not an overwrite)', () => {
+    // rawCac=800 is below the $2,000 B2B enterprise floor the engine
+    // recognizes once benchmarks.name contains "saas" (B2B_CAC_FLOOR_KEYWORDS
+    // check). Per P0-01 (Stripe/accuracy audit 2026-07-22/25), the engine no
+    // longer silently rewrites this to $2,000 -- it flags it via `corrections`
+    // and computes everything downstream from the real $800 the user reported.
+    // Expected values below are the engine's actual verified output at cac=800
+    // (captured directly from calculateStrictFinancials post-fix, cross-checked
+    // against its own audit trail for each formula -- not hand-derived, since
+    // hand-deriving the ramp-simulated payback and 36-month DCF NPV by hand
+    // carries real error risk).
     const b = benchmarks({
       name: 'saas_b2b', cogs_percent: 20, salaries_fixed: 12000, rent_fixed: 2000, utilities_fixed: 500, other_fixed: 1500,
       cac_min: 300, cac_max: 3000, cac_typical: 800, average_check_min: 50, average_check_max: 500,
@@ -66,21 +70,22 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
 
     expect(r.mrr).toBe(50000);
     expect(r.expenses.cogs).toBe(10000);
-    expect(r.cac).toBe(2000); // corrected up from rawCac=800 by the B2B floor
-    expect(r.corrections.some((c) => c.field === 'cac')).toBe(true);
-    expect(r.expenses.marketing).toBe(18000);
-    expect(r.totalExpenses).toBe(44000);
-    expect(r.netProfit).toBe(6000);
-    expect(r.netMarginPercent).toBe(12);
+    expect(r.cac).toBe(800); // P0-01: no longer overwritten to the $2,000 floor
+    expect(r.corrections.some((c) => c.field === 'cac')).toBe(true); // flag still fires
+    expect(r.corrections.some((c) => c.field === 'ltv_cac_ratio')).toBe(true); // 10.8x exceeds the 6x ceiling -- flagged
+    expect(r.expenses.marketing).toBe(7200);
+    expect(r.totalExpenses).toBe(33200);
+    expect(r.netProfit).toBe(16800);
+    expect(r.netMarginPercent).toBe(34);
     expect(r.grossProfit).toBe(40000);
     expect(r.grossMarginPercent).toBe(80);
     expect(r.ltv).toBe(8640);
-    expect(r.ltvCacRatio).toBe(4.3); // QMath.ltvCacRatio rounds to 1 decimal
-    expect(r.paybackMonths).toBe(17);
-    expect(r.roiYear1Percent).toBe(27);
-    expect(r.npv3Years).toBe(37119);
-    expect(r.breakEvenRevenue).toBe(36364);
-    expect(r.revenueFor45kProfit).toBe(138636);
+    expect(r.ltvCacRatio).toBe(10.8); // P0-01: no longer forced down to the 6x ceiling
+    expect(r.paybackMonths).toBe(12);
+    expect(r.roiYear1Percent).toBe(111);
+    expect(r.npv3Years).toBe(373933);
+    expect(r.breakEvenRevenue).toBe(24390);
+    expect(r.revenueFor45kProfit).toBe(92988);
     expect(r.isProfitable).toBe(true);
   });
 
@@ -93,17 +98,21 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     });
     const r = calculateStrictFinancials(50000, 80000, 2000, 40800, 4000, b, NO_LOCATION_ADJUSTMENT, null);
 
+    // P0-02: net margin (32%) exceeds the benchmark's typical max (25%) --
+    // flagged via `corrections`, no longer force-clamped to 30%. totalExpenses/
+    // netProfit/netMarginPercent below are the real, unaltered calculation.
+    expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(7500);
     expect(r.expenses.marketing).toBe(4000);
-    expect(r.totalExpenses).toBe(35000);
-    expect(r.netProfit).toBe(15000);
-    expect(r.netMarginPercent).toBe(30);
+    expect(r.totalExpenses).toBe(34000);
+    expect(r.netProfit).toBe(16000);
+    expect(r.netMarginPercent).toBe(32);
     expect(r.grossMarginPercent).toBe(85);
     expect(r.ltv).toBe(40800);
     expect(r.ltvCacRatio).toBe(20.4);
-    expect(r.paybackMonths).toBe(10);
-    expect(r.roiYear1Percent).toBe(182);
-    expect(r.npv3Years).toBe(387797);
+    expect(r.paybackMonths).toBe(9);
+    expect(r.roiYear1Percent).toBe(197);
+    expect(r.npv3Years).toBe(418983);
     expect(r.breakEvenRevenue).toBe(29221);
     expect(r.revenueFor45kProfit).toBe(87662);
     expect(r.isProfitable).toBe(true);
@@ -118,19 +127,22 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     });
     const r = calculateStrictFinancials(60000, 220000, 25, 1567, 32, b, NO_LOCATION_ADJUSTMENT, null);
 
+    // P0-02: net margin (23%) exceeds the benchmark's typical max (12%) --
+    // flagged, not clamped to 17% as it was before the fix.
+    expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(19200);
     expect(r.clientsActive).toBe(469);
     expect(r.newClientsNeeded).toBe(38);
     expect(r.expenses.marketing).toBe(950);
-    expect(r.totalExpenses).toBe(49800);
-    expect(r.netProfit).toBe(10200);
-    expect(r.netMarginPercent).toBe(17);
+    expect(r.totalExpenses).toBe(46150);
+    expect(r.netProfit).toBe(13850);
+    expect(r.netMarginPercent).toBe(23);
     expect(r.grossMarginPercent).toBe(68);
     expect(r.ltv).toBe(1567);
     expect(r.ltvCacRatio).toBe(62.7); // QMath.ltvCacRatio rounds to 1 decimal
-    expect(r.paybackMonths).toBe(17);
-    expect(r.roiYear1Percent).toBe(38);
-    expect(r.npv3Years).toBe(98102);
+    expect(r.paybackMonths).toBe(15);
+    expect(r.roiYear1Percent).toBe(57);
+    expect(r.npv3Years).toBe(211932);
     expect(r.breakEvenRevenue).toBe(39147);
     expect(r.revenueFor45kProfit).toBe(106901);
     expect(r.isProfitable).toBe(true);
@@ -145,19 +157,22 @@ describe('golden cases — five archetypal businesses vs. independently-derived 
     });
     const r = calculateStrictFinancials(50000, 100000, 35, 1609, 65, b, NO_LOCATION_ADJUSTMENT, null);
 
+    // P0-02: net margin (23%) exceeds the benchmark's typical max (15%) --
+    // flagged, not clamped to 20% as it was before the fix.
+    expect(r.corrections.some((c) => c.field === 'net_margin')).toBe(true);
     expect(r.expenses.cogs).toBe(22500);
     expect(r.clientsActive).toBe(257);
     expect(r.newClientsNeeded).toBe(21);
     expect(r.expenses.marketing).toBe(735);
-    expect(r.totalExpenses).toBe(40000);
-    expect(r.netProfit).toBe(10000);
-    expect(r.netMarginPercent).toBe(20);
+    expect(r.totalExpenses).toBe(38735);
+    expect(r.netProfit).toBe(11265);
+    expect(r.netMarginPercent).toBe(23);
     expect(r.grossMarginPercent).toBe(55);
     expect(r.ltv).toBe(1609);
     expect(r.ltvCacRatio).toBe(46); // QMath.ltvCacRatio rounds to 1 decimal
-    expect(r.paybackMonths).toBe(13);
-    expect(r.roiYear1Percent).toBe(87);
-    expect(r.npv3Years).toBe(211865);
+    expect(r.paybackMonths).toBe(12);
+    expect(r.roiYear1Percent).toBe(102);
+    expect(r.npv3Years).toBe(251315);
     expect(r.breakEvenRevenue).toBe(28956);
     expect(r.revenueFor45kProfit).toBe(113021);
     expect(r.isProfitable).toBe(true);

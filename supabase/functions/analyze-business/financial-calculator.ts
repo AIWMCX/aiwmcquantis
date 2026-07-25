@@ -157,6 +157,15 @@ export function calculateStrictFinancials(
 
   // 1.1 Average Check
   let avgCheck = rawAvgCheck;
+  // P0-01 (Stripe/accuracy audit 2026-07-22/25): previously this block
+  // REWROTE the user's declared average check to a benchmark-derived value
+  // whenever it fell outside the industry range -- a real user fact was
+  // silently replaced by a fabricated one, with only a buried `corrections`
+  // entry as evidence. Per MP7 "never silently clamp a user value to a
+  // benchmark": the flag stays (still lowers reliability score, still
+  // visible in ValidationSection), but avgCheck itself is no longer
+  // overwritten -- LTV and every downstream figure now derive from what
+  // the user actually reported.
   if (avgCheck < benchmarks.average_check_min || avgCheck > benchmarks.average_check_max) {
     const corrected = Math.round((benchmarks.average_check_min + benchmarks.average_check_max) / 2);
     if (avgCheck < benchmarks.average_check_min) {
@@ -174,7 +183,6 @@ export function calculateStrictFinancials(
         reason: `Average check $${avgCheck} exceeds market maximum $${benchmarks.average_check_max} for ${benchmarks.name}`
       });
     }
-    avgCheck = corrected;
   }
 
   // 1.2 CAC - Use effectiveBenchmarks for sub-industry adjusted ranges
@@ -193,6 +201,9 @@ export function calculateStrictFinancials(
   // B2B enterprise: minimum CAC of $2,000 (conservative for technical sales)
   const hardCacFloor = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_min, 2000) : effectiveBenchmarks.cac_min;
 
+  // P0-01: same principle as average_check above -- flag, never overwrite
+  // the user-reported CAC. `corrected` in the record still shows what the
+  // benchmark implies, for context; it no longer becomes the working value.
   let cac = rawCac;
   if (cac < hardCacFloor) {
     corrections.push({
@@ -200,18 +211,16 @@ export function calculateStrictFinancials(
       original: cac,
       corrected: isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical,
       reason: isB2BEnterprise
-        ? `CAC $${cac} is unrealistically low for B2B/enterprise sales. Enterprise customer acquisition typically costs $2,000-$50,000+ due to sales cycles, demos, and relationship-building. Adjusted to $${Math.max(effectiveBenchmarks.cac_typical, 2000)}.`
+        ? `CAC $${cac} is unrealistically low for B2B/enterprise sales. Enterprise customer acquisition typically costs $2,000-$50,000+ due to sales cycles, demos, and relationship-building. Flagged for review (benchmark implies ~$${Math.max(effectiveBenchmarks.cac_typical, 2000)}).`
         : `CAC $${cac} is unrealistically low. Minimum is $${effectiveBenchmarks.cac_min} for ${subIndustry?.subIndustryName || benchmarks.name}.`
     });
-    cac = isB2BEnterprise ? Math.max(effectiveBenchmarks.cac_typical, 2000) : effectiveBenchmarks.cac_typical;
   } else if (cac > effectiveBenchmarks.cac_max) {
     corrections.push({
       field: 'cac',
       original: cac,
       corrected: effectiveBenchmarks.cac_max,
-      reason: `CAC $${cac} is too high for ${subIndustry?.subIndustryName || benchmarks.name}. Adjusted to maximum $${effectiveBenchmarks.cac_max}`
+      reason: `CAC $${cac} is above the typical maximum of $${effectiveBenchmarks.cac_max} for ${subIndustry?.subIndustryName || benchmarks.name}. Flagged for review.`
     });
-    cac = effectiveBenchmarks.cac_max;
   }
 
   // Apply location marketing multiplier to CAC
@@ -274,16 +283,16 @@ export function calculateStrictFinancials(
     notes: `$${ltv} / $${cac} = ${ltvCacRatio}x (healthy: ${benchmarks.ltv_cac_min}-${benchmarks.ltv_cac_max}x)`
   });
 
+  // P0-01: previously this rewrote LTV itself to force the ratio down to a
+  // benchmark ceiling -- fabricating a lower LTV the calculation never
+  // produced. Flag only now; the calculated LTV and ratio stand.
   if (ltvCacRatio > benchmarks.ltv_cac_max) {
-    const targetLtv = cac * benchmarks.ltv_cac_max;
     corrections.push({
       field: 'ltv_cac_ratio',
       original: ltvCacRatio,
       corrected: benchmarks.ltv_cac_max,
-      reason: `LTV:CAC ${ltvCacRatio}x is unrealistically high (max ${benchmarks.ltv_cac_max}x). LTV adjusted to $${targetLtv}`
+      reason: `LTV:CAC ${ltvCacRatio}x is unusually high (typical max ${benchmarks.ltv_cac_max}x for this industry). Flagged for review -- verify average check, lifetime, and CAC inputs.`
     });
-    ltv = targetLtv;
-    ltvCacRatio = benchmarks.ltv_cac_max;
   }
 
   // ===== STEP 2: Calculate expense structure =====
@@ -424,19 +433,23 @@ export function calculateStrictFinancials(
   let finalNetMarginPercent = netMarginPercent;
   let finalTotalExpenses = totalExpenses;
 
+  // P0-02 (Stripe/accuracy audit 2026-07-22/25): this block used to REWRITE
+  // totalExpenses to a fabricated figure purely to force the margin down to
+  // a benchmark ceiling -- a real customer's own reported costs were
+  // replaced by a number they never supplied, disclosed only in a
+  // secondary validation panel while the primary report/PDF showed the
+  // fabricated expense as plain fact. Per MP7 "never silently clamp a user
+  // value to a benchmark" / "zero silent replacement of user-declared
+  // material values": flag only now. netProfit, totalExpenses, and
+  // netMarginPercent all remain exactly what the user's own inputs produce.
   if (netMarginPercent > maxAllowedMargin && mrr > 0) {
-    const clampedMargin = maxAllowedMargin;
-    const targetExpenses = Math.round(mrr * (1 - clampedMargin / 100));
     corrections.push({
       field: 'net_margin',
       original: netMarginPercent,
-      corrected: clampedMargin,
-      reason: `Net margin ${netMarginPercent}% exceeds maximum realistic threshold of ${maxAllowedMargin}% for ${benchmarks.name}. Expenses adjusted upward to enforce realistic model.`
+      corrected: maxAllowedMargin,
+      reason: `Net margin ${netMarginPercent}% is unusually high -- typical maximum for ${benchmarks.name} is ${benchmarks.net_margin_max}%. Flagged for review; your reported revenue and expenses are shown as calculated, not adjusted.`
     });
-    finalTotalExpenses = targetExpenses;
-    finalNetProfit = mrr - targetExpenses;
-    finalNetMarginPercent = clampedMargin;
-    log.warn(`⚠️ Margin ceiling enforced: ${netMarginPercent}% → ${clampedMargin}% (max for ${benchmarks.name} = ${benchmarks.net_margin_max}%)`);
+    log.info(`Margin ceiling flagged (not enforced): ${netMarginPercent}% vs typical max ${benchmarks.net_margin_max}% for ${benchmarks.name}`);
   }
 
   audit.push({
