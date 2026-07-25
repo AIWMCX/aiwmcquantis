@@ -15,6 +15,7 @@ import { TIERS } from '@/config/tiers';
 import {
   BENCHMARK_COUNT_DISPLAY,
   BENCHMARK_SECTORS,
+  BENCHMARK_SOURCES_DISPLAY,
   MONTE_CARLO_ITERATIONS_DISPLAY,
   PIPELINE_LAYERS,
   FINANCIAL_VARIABLES,
@@ -117,7 +118,7 @@ const TWELVE_VARIABLES = [
 
 const FAQ_ITEMS = [
   { q: 'How is this different from ChatGPT?', a: 'ChatGPT generates text. Quantis runs a deterministic financial engine first — every number is calculated from verified benchmarks, not generated. The AI writes the narrative around the math, but the math is the source of truth. Every metric is tagged as "computed", "benchmark", or "estimated" so you know exactly what\'s proven and what\'s inferred.' },
-  { q: 'What data do you use for projections?', a: `${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors. Sources: BLS (Bureau of Labor Statistics), Census Bureau ACS, SBA Office of Advocacy, CoStar (commercial real estate), and public filings. City-level cost data covers 16 metros plus a US national baseline. No synthetic or made-up data.` },
+  { q: 'What data do you use for projections?', a: `${BENCHMARK_COUNT_DISPLAY} industry benchmarks across ${BENCHMARK_SECTORS} sectors, informed by ${BENCHMARK_SOURCES_DISPLAY}. City-level cost data covers 16 metros plus a US national baseline.` },
   { q: 'Can I trust the projections?', a: 'Projections are estimates, not guarantees — that\'s why we provide 3 scenarios and confidence scores. Every metric shows its source, and RVCE cross-checks your numbers against live web data. If something looks off, the engine flags it as an OUTLIER and suggests a correction. You always see the margin of uncertainty.' },
   { q: 'Do I need a business plan first?', a: 'No. Enter your idea and location in one sentence. The engine builds the complete financial model from benchmarks — revenue, costs, unit economics, P&L, cash flow, and risk flags. You get the equivalent of weeks of financial analysis in about 90 seconds.' },
   { q: 'What if my industry is niche?', a: `We cover ${BENCHMARK_SECTORS} industry sectors. For niche businesses, the AI maps your idea to the closest benchmark cluster and the engine flags the confidence level so you know the margin of uncertainty. The more specific your description, the better the match.` },
