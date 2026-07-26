@@ -1,0 +1,19 @@
+-- Daily production check (2026-07-26), P0-1: every pg_cron job has failed
+-- since 2026-06-08 (85,616 runs, 0 succeeded) with "schema net does not
+-- exist" -- pg_net was never installed on this project, even though
+-- pg_cron and all 5 scheduled jobs call net.http_post(). This is a
+-- standard, Supabase-maintained extension purpose-built for exactly this
+-- (async HTTP from Postgres), additive, and reversible (DROP EXTENSION).
+--
+-- pg_net's own install script creates its member functions in a schema
+-- literally named `net` regardless of the schema its catalog entry is
+-- filed under -- confirmed via pg_proc after applying this: net.http_get
+-- and net.http_post both exist and are callable. No further schema-move
+-- needed (a second attempt to ALTER EXTENSION ... SET SCHEMA net
+-- correctly errored: "cannot move extension into schema net because the
+-- extension contains the schema" -- pg_net already owns it).
+--
+-- Verified fixed in production: the every-minute autoposter-publish-due
+-- job failed at 22:56 UTC (before this landed) and succeeded twice in a
+-- row at 22:57 and 22:58 UTC (after).
+create extension if not exists pg_net;
