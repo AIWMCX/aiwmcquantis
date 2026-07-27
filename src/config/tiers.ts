@@ -200,13 +200,24 @@ export function getTrialDays(tier: TierId, cycle: BillingCycle): number {
 /**
  * Resolve a tier from a subscription record.
  * FAIL CLOSED: unknown / inactive → 'free'.
+ *
+ * Daily production check (2026-07-26): this read `sub.tier`, a field that
+ * does not exist on the `subscriptions` table -- the real column is
+ * `plan_id` (confirmed against the live schema and against
+ * supabase/functions/_shared/entitlements.ts's own resolveTier(), which
+ * already used the correct field). Because nothing in the app actually
+ * called this client-side copy with a real row (only self-referenced +
+ * one test), the bug never manifested in production -- the server gate
+ * and useSubscription.ts were never affected. Fixed here so this file
+ * matches its own "server entitlement checks MUST mirror this" rule
+ * instead of silently always resolving to 'free'.
  */
 export function resolveTier(
-  sub: { tier?: string | null; status?: string | null } | null | undefined
+  sub: { plan_id?: string | null; status?: string | null } | null | undefined
 ): TierId {
   if (!sub) return 'free';
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
-  if (sub.tier === 'plus' || sub.tier === 'pro') return sub.tier;
+  if (sub.plan_id === 'plus' || sub.plan_id === 'pro') return sub.plan_id;
   return 'free';
 }
 

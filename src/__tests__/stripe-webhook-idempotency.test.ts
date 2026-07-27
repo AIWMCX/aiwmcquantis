@@ -172,13 +172,13 @@ describe('Forged tier claim is ignored (scenario #7)', () => {
   it('resolveTier from a Free subscription record returns "free" regardless of any client-side claim', async () => {
     const { resolveTier } = await import('@/config/tiers');
     expect(resolveTier(null)).toBe('free');
-    expect(resolveTier({ tier: 'pro', status: 'canceled' })).toBe('free');
-    expect(resolveTier({ tier: 'plus', status: 'canceled' })).toBe('free');
+    expect(resolveTier({ plan_id: 'pro', status: 'canceled' })).toBe('free');
+    expect(resolveTier({ plan_id: 'plus', status: 'canceled' })).toBe('free');
     // Trusted-only path
-    expect(resolveTier({ tier: 'pro', status: 'active' })).toBe('pro');
-    expect(resolveTier({ tier: 'plus', status: 'trialing' })).toBe('plus');
+    expect(resolveTier({ plan_id: 'pro', status: 'active' })).toBe('pro');
+    expect(resolveTier({ plan_id: 'plus', status: 'trialing' })).toBe('plus');
     // Unknown tier from DB → fail closed
-    expect(resolveTier({ tier: 'enterprise', status: 'active' })).toBe('free');
+    expect(resolveTier({ plan_id: 'enterprise', status: 'active' })).toBe('free');
   });
 });
 
