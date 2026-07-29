@@ -87,6 +87,7 @@ import { analyzeSensitivity, type SensitivityResult } from "./sensitivity-analyz
 import { computeBenchmarkConfidence, getHedgingPrefix, type BenchmarkConfidenceResult } from "./benchmark-confidence.ts";
 import { computeAssumptionGraph, type AssumptionGraphResult } from "./assumption-graph.ts";
 import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
+import { runReconciliationCheck, type ReconciliationResult } from "./reconciliation-check.ts";
 import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
 
 // ========== MARKET PRIOR ENGINE ==========
@@ -3882,6 +3883,41 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.error('Anti-BS check failed:', abErr);
     }
 
+    // ========== RECONCILIATION CHECK ==========
+    let reconciliationResult: ReconciliationResult | null = null;
+    try {
+      // Same CAC-payback formula as the metadata builder below (contribution
+      // per order × gross margin fraction) -- null when unprofitable or
+      // contribution is non-positive, per that block's own coherence note.
+      const gmFracForPayback = calc.grossMarginPercent / 100;
+      const nmFracForPayback = calc.netMarginPercent / 100;
+      const contribPerOrderForPayback = calc.averageCheck * gmFracForPayback;
+      const cacPaybackForReconciliation =
+        nmFracForPayback < 0 || contribPerOrderForPayback <= 0
+          ? null
+          : Math.round((calc.cac / contribPerOrderForPayback) * 10) / 10;
+
+      reconciliationResult = runReconciliationCheck({
+        mrr: calc.mrr,
+        grossProfit: calc.grossProfit,
+        netProfit: calc.netProfit,
+        totalExpenses: calc.totalExpenses,
+        grossMarginPercent: calc.grossMarginPercent,
+        clientsActive: calc.clientsActive,
+        ltv: calc.ltv,
+        cacPaybackMonths: cacPaybackForReconciliation,
+        ltvCacRatio: calc.ltvCacRatio,
+        expenses: calc.expenses,
+        expenseSource: calc.expenseSource,
+        scenarioCoherent: scenarioContradictions.length === 0,
+      });
+      if (!reconciliationResult.all_passed) {
+        log.info(`Reconciliation: ${reconciliationResult.failed_count} check(s) failed of ${reconciliationResult.checks.length}`);
+      }
+    } catch (rcErr) {
+      log.error('Reconciliation check failed:', rcErr);
+    }
+
     // ========== ASSUMPTION GRAPH ==========
     let assumptionGraph: AssumptionGraphResult | undefined;
     try {
@@ -4134,29 +4170,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         // wording must not claim values were changed when they weren't.
         calc.corrections.length > 0 ? `${calc.corrections.length} input value(s) fall outside typical industry ranges — flagged for your review, not altered` : null,
       ].filter(Boolean),
-      reconciliation_status: (() => {
-        const checks = [];
-        const rev = quantisOutput?.metrics?.mrr ?? calc.mrr;
-        const cogs = calc.expenses.cogs || 0;
-        const grossProfit = quantisOutput?.metrics?.grossProfit ?? calc.grossProfit;
-        const totalExpenses = quantisOutput?.metrics?.totalExpenses ?? calc.totalExpenses;
-        const netProfit = quantisOutput?.metrics?.netProfit ?? calc.netProfit;
-        const netMarginPct = quantisOutput?.metrics?.netMarginPercent ?? calc.netMarginPercent;
-        const r001pass = Math.abs((cogs + grossProfit) - rev) <= 0.01 || cogs === 0;
-        checks.push({ rule: 'R-001', label: 'Sum Integrity', pass: r001pass });
-        checks.push({ rule: 'R-002', label: 'Sign Consistency', pass: rev >= 0 });
-        checks.push({ rule: 'R-004', label: 'Revenue Non-Negative', pass: rev >= 0 });
-        checks.push({ rule: 'R-005', label: 'Costs Non-Negative', pass: totalExpenses >= 0 });
-        const riskLevel = (quantisOutput?.validation?.healthScores as Record<string, unknown>)?.overall || 'medium';
-        const r006pass = !(netMarginPct < -10 && riskLevel === 'low');
-        checks.push({ rule: 'R-006', label: 'Margin–Risk Coherence', pass: r006pass });
-        const ltvCac = quantisOutput?.metrics?.ltvCacRatio ?? calc.ltvCacRatio;
-        checks.push({ rule: 'R-007', label: 'LTV:CAC Positive', pass: ltvCac > 0 });
-        const gmPct = (quantisOutput?.metrics?.grossMarginPercent ?? calc.grossMarginPercent) / 100;
-        checks.push({ rule: 'R-008', label: 'Gross Margin Range', pass: gmPct >= -1.0 && gmPct <= 1.0 });
-        const allPassed = checks.every(c => c.pass);
-        return { checks, all_passed: allPassed, engine_version: quantisOutput?.version ?? '2.0-degraded' };
-      })(),
+      reconciliation_status: reconciliationResult ?? undefined,
 
       metadata: (() => {
         // ── Canonical benchmark records (Step 2 of benchmark-first plan) ──

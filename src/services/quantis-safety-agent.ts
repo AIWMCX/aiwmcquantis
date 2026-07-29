@@ -78,11 +78,16 @@ export class QuantisSafetyAgent {
         passedChecks.push({ check: 'qmath_precision' });
       }
 
-      // Check reconciliation (the live 5-rule Anti-BS engine, bulletproof-validator.ts::runAntiBS —
-      // not the separate, untested-in-prod 10-rule reconciliation-engine.ts, which is not wired
-      // into any production request path as of the 2026-07-28 technical SEO audit)
-      if (result.reconciliation?.passed) {
-        passedChecks.push({ check: 'anti_bs_5_rules' });
+      // Check reconciliation. FIXED 2026-07-29: this previously read
+      // `result.reconciliation?.passed`, a field name that has never existed
+      // on the real response -- the live field is `reconciliation_status`
+      // with an `all_passed` boolean (see analyze-business/reconciliation-
+      // check.ts, wired via index.ts). That mismatch meant this check could
+      // never fire on a real analysis. (Separately, the live 5-rule Anti-BS
+      // engine -- bulletproof-validator.ts::runAntiBS -- surfaces as
+      // `result.sanity_flags`, not through this check at all.)
+      if (result.reconciliation_status?.all_passed) {
+        passedChecks.push({ check: 'reconciliation_checks' });
       }
 
       // Check dual-AI consensus

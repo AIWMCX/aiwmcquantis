@@ -63,6 +63,13 @@ export interface StrictFinancialResult {
   profitabilityMargins: ProfitabilityMarginsResult;
   leverageRatios: LeverageRatiosResult;
   npv3Years?: number;
+  /** Whether totalExpenses came from the user directly or was calculated
+   *  from the itemized breakdown. When 'user', expenses.marketing is
+   *  reconciled to absorb the difference (see above) but is floor-clamped
+   *  at 0 -- if the user's total is lower than COGS + fixed costs alone,
+   *  the itemized sum will legitimately fall short of totalExpenses. Callers
+   *  doing a sum-integrity check must skip (not fail) when this is 'user'. */
+  expenseSource: 'user' | 'calculated';
   isProfitable: boolean;
   corrections: Array<{ field: string; original: number; corrected: number; reason: string }>;
   audit: CalculationAudit[];
@@ -742,6 +749,7 @@ export function calculateStrictFinancials(
     isProfitable: finalNetProfit > 0,
     corrections,
     audit,
-    industryDetected: benchmarks.name
+    industryDetected: benchmarks.name,
+    expenseSource
   };
 }
