@@ -52,9 +52,9 @@ const PIPELINE_STAGES = [
 const LIMITATIONS = [
   { id: 'GOV-001', title: 'Safety Governance', desc: 'Research Agent lacks formal veto authority over deployments. QSL gates being implemented.', status: 'In Progress' },
   { id: 'UX-001', title: 'Confidence Theater', desc: 'Confidence badges now connected to systematic safety_evaluations pipeline as of v2.0.0.', status: 'Resolved' },
-  { id: 'DATA-001', title: 'Benchmark Staleness', desc: 'Implementing benchmark_versions freshness checks with 180-day staleness warnings.', status: 'In Progress' },
+  { id: 'DATA-001', title: 'Benchmark Staleness', desc: 'Staleness-decay scoring is live: full weight under 6 months, decaying through 12 and 18 months, flagged stale beyond 18 months.', status: 'Resolved' },
   { id: 'DATA-002', title: 'Multi-Source Provenance', desc: 'Data provenance registry now tracks 5+ open data sources with license compliance and freshness indicators.', status: 'Resolved' },
-  { id: 'TEST-001', title: 'Regression Coverage', desc: 'Golden test vector suite expanded to 3 canonical archetypes with weekly automated runs.', status: 'Active' },
+  { id: 'TEST-001', title: 'Regression Coverage', desc: `Golden test vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes, run on demand via the admin accuracy dashboard. No scheduled (cron/CI) automated run exists yet.`, status: 'Active' },
   { id: 'FB-001', title: 'User Feedback Loop', desc: 'Realism feedback widget now captures per-dimension scoring for model calibration.', status: 'Resolved' },
 ];
 
@@ -273,7 +273,7 @@ export default function Methodology() {
                 <Scale className="w-4 h-4" style={{ color: 'var(--aiwmc-grad-violet)' }} /> Causal Leverage (C)
               </div>
               <ArrowRight className="w-4 h-4 text-muted-foreground mx-auto hidden sm:block" />
-              <p className="text-xs text-muted-foreground flex-1">The 10-rule Anti-BS Reconciliation Engine tests whether each output actually influences the bottom line. Margins that don't affect P&L have near-zero C.</p>
+              <p className="text-xs text-muted-foreground flex-1">The 5-rule Anti-BS Sanity Check Engine tests whether each output actually influences the bottom line. Margins that don't affect P&L have near-zero C.</p>
               <Badge variant="outline" className="text-xs w-fit mt-auto">Reconciliation Rules</Badge>
             </div>
             <div className="p-4 rounded-lg space-y-2 flex flex-col" style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(148,163,255,0.18)' }}>

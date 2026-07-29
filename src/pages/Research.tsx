@@ -204,7 +204,7 @@ export default function Research() {
               <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'hsl(var(--foreground))' }}>
                 <ArrowRight className="w-3 h-3" style={{ color: 'var(--aiwmc-grad-violet)' }} /> Causal Leverage (C)
               </p>
-              <p className="text-xs text-muted-foreground">The 10-rule Anti-BS Reconciliation Engine verifies that outputs causally influence the P&L — filtering "causal dead zones."</p>
+              <p className="text-xs text-muted-foreground">The 5-rule Anti-BS Sanity Check Engine verifies that outputs causally influence the P&L — filtering "causal dead zones."</p>
             </div>
             <div className="p-4 rounded-lg space-y-2" style={{ background: 'rgba(79,70,229,0.08)', border: '1px solid rgba(148,163,255,0.18)' }}>
               <p className="text-sm font-semibold flex items-center gap-1.5" style={{ color: 'hsl(var(--foreground))' }}>

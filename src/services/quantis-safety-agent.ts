@@ -78,9 +78,11 @@ export class QuantisSafetyAgent {
         passedChecks.push({ check: 'qmath_precision' });
       }
 
-      // Check reconciliation
+      // Check reconciliation (the live 5-rule Anti-BS engine, bulletproof-validator.ts::runAntiBS —
+      // not the separate, untested-in-prod 10-rule reconciliation-engine.ts, which is not wired
+      // into any production request path as of the 2026-07-28 technical SEO audit)
       if (result.reconciliation?.passed) {
-        passedChecks.push({ check: 'reconciliation_10_rules' });
+        passedChecks.push({ check: 'anti_bs_5_rules' });
       }
 
       // Check dual-AI consensus
