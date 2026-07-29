@@ -1,7 +1,7 @@
 import React from 'react';
 import { ShieldCheck, Database, Cpu, Lock } from 'lucide-react';
 import { GlassCard, Reveal, SectionHeader } from '@/components/ui/glass-card';
-import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCE_DETAILS } from '@/config/canonical-facts';
 
 /**
  * TrustStrip — replaces the Testimonials section on landing until real
@@ -9,14 +9,7 @@ import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
  * verifiable numbers and named public data sources — not stock quotes.
  */
 
-const SOURCES = [
-  { name: 'SBA',       full: 'U.S. Small Business Administration' },
-  { name: 'BLS',       full: 'Bureau of Labor Statistics' },
-  { name: 'Census',    full: 'U.S. Census Bureau' },
-  { name: 'IBISWorld', full: 'IBISWorld Industry Reports' },
-  { name: 'OECD',      full: 'OECD Data' },
-  { name: 'XBRL',      full: 'SEC XBRL Financial Filings' },
-];
+const SOURCES = BENCHMARK_SOURCE_DETAILS;
 
 const METRICS = [
   { icon: Database,    value: `${BENCHMARK_COUNT_DISPLAY}+`, label: 'verified benchmarks',      glow: 'indigo' as const },

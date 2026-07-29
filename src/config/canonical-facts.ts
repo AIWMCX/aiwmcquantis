@@ -63,6 +63,18 @@ export const BENCHMARK_COUNT_DISPLAY = '97,500';
 export const BENCHMARK_SOURCES_DISPLAY =
   'SEC filings, World Bank enterprise surveys, and proprietary industry modeling';
 export const BENCHMARK_SOURCES_LIST = ['SEC XBRL', 'World Bank', 'JPMorgan Chase Institute', 'Proprietary modeling'];
+/** Short label + full name pairs for UI source strips (e.g. TrustStrip).
+ *  Same four sources as BENCHMARK_SOURCES_LIST -- never hardcode this pairing
+ *  in a component; a component-level copy of the old (wrong) SBA/BLS/Census/
+ *  IBISWorld/OECD list is exactly the class of drift this file exists to stop
+ *  (found live in TrustStrip.tsx during the 2026-07-28 technical SEO audit,
+ *  contradicting this file's own 2026-07-16 reconciliation). */
+export const BENCHMARK_SOURCE_DETAILS: { name: string; full: string }[] = [
+  { name: 'SEC XBRL', full: 'SEC XBRL Financial Filings' },
+  { name: 'World Bank', full: 'World Bank Enterprise Surveys' },
+  { name: 'JPMorgan Chase Institute', full: 'JPMorgan Chase Institute SME Dataset' },
+  { name: 'Proprietary', full: 'Proprietary Industry Modeling' },
+];
 
 /** Number of industry sectors the corpus covers. */
 export const BENCHMARK_SECTORS = 46;
