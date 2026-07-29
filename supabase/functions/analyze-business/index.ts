@@ -2210,6 +2210,22 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
     confidence_score: 0,
     data_sources: sources,
     limitations: limits,
+    // FIXED 2026-07-29 (production incident): serve()'s post-call code at
+    // ~report_integrity previously tried to read `scenarioContradictions`
+    // directly -- a local variable scoped to THIS function, transformResponse,
+    // not to serve()'s handler (they are two separate functions; serve()
+    // only calls transformResponse() and receives its return value). That
+    // was a ReferenceError on every single real request, caught by the
+    // outermost catch and silently degrading every live analysis to the
+    // fallback response (confirmed via git blame: pre-existing, not
+    // introduced by this session's reconciliation-engine work, which
+    // independently hit the exact same mistake and is what surfaced this
+    // during live-invocation verification). Attaching the real result here,
+    // computed with the correctly-scoped local variable, so serve() can
+    // read `result.report_integrity` / `result.report_integrity_issues`
+    // instead of reaching into a scope it never had access to.
+    report_integrity: scenarioContradictions.length > 0 ? 'BLOCK' : 'PASS',
+    report_integrity_issues: scenarioContradictions,
     _calc: calc
   };
 }
@@ -3734,9 +3750,15 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // detected, confidence_score is also capped so the headline number
     // itself can't imply false precision on a report with a known internal
     // disagreement.
-    (result as Record<string, unknown>).report_integrity = scenarioContradictions.length > 0 ? 'BLOCK' : 'PASS';
-    (result as Record<string, unknown>).report_integrity_issues = scenarioContradictions;
-    if (scenarioContradictions.length > 0) {
+    // FIXED 2026-07-29 (production incident): this read `scenarioContradictions`
+    // directly, a variable scoped to transformResponse(), not to this handler --
+    // a ReferenceError on every single real request, caught by the outermost
+    // catch and silently degrading every live analysis to the fallback response.
+    // transformResponse() now attaches report_integrity/report_integrity_issues
+    // to its own return value using its correctly-scoped local variable; read
+    // that here instead of reaching into a scope this function never had.
+    const reportIntegrityIssues = (result as Record<string, unknown>).report_integrity_issues as Array<{ code: string; message: string }> | undefined;
+    if (reportIntegrityIssues && reportIntegrityIssues.length > 0) {
       result.confidence_score = Math.min(result.confidence_score, 50);
     }
 
@@ -3909,7 +3931,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ltvCacRatio: calc.ltvCacRatio,
         expenses: calc.expenses,
         expenseSource: calc.expenseSource,
-        scenarioCoherent: scenarioContradictions.length === 0,
+        scenarioCoherent: !((result as Record<string, unknown>).report_integrity_issues as unknown[] | undefined)?.length,
       });
       if (!reconciliationResult.all_passed) {
         log.info(`Reconciliation: ${reconciliationResult.failed_count} check(s) failed of ${reconciliationResult.checks.length}`);
