@@ -1,6 +1,7 @@
-import { Sparkles, TrendingUp, AlertTriangle, Lock, RotateCcw } from 'lucide-react';
+import { Sparkles, TrendingUp, AlertTriangle, Lock, RotateCcw, Receipt } from 'lucide-react';
 import { TIERS } from '@/config/tiers';
 import type { FreeTierAnalysisSummary } from '@/types/analysis';
+import { detectQuoteGenTrade } from '@/lib/quotegen-eligibility';
 
 interface FreeTierResultCardProps {
   summary: FreeTierAnalysisSummary;
@@ -15,7 +16,8 @@ interface FreeTierResultCardProps {
  * into AccuracyTransparentResults, which assumes the full paid-tier shape.
  */
 export function FreeTierResultCard({ summary, onReset }: FreeTierResultCardProps) {
-  const { score, verdict, top_risks, base_revenue, currency, industry_detected, upgrade_cta } = summary;
+  const { score, verdict, top_risks, base_revenue, currency, industry_detected, idea, upgrade_cta } = summary;
+  const quoteTrade = detectQuoteGenTrade(idea, industry_detected);
 
   return (
     <div
@@ -112,6 +114,17 @@ export function FreeTierResultCard({ summary, onReset }: FreeTierResultCardProps
             Upgrade to Plus (${upgrade_cta.plus_price_monthly ?? TIERS.plus.priceMonthly}/mo, {upgrade_cta.plus_trial_days ?? 14}-day trial) →
           </a>
         </div>
+      )}
+
+      {quoteTrade && (
+        <a
+          href={quoteTrade === 'handyman' ? '/quote/new' : `/quote/new?trade=${quoteTrade}`}
+          className="inline-flex items-center gap-1.5 text-[13px] font-semibold px-4 py-2 rounded-lg"
+          style={{ border: '1px solid var(--q-border-subtle)', color: 'var(--q-text-primary)' }}
+        >
+          <Receipt className="w-3.5 h-3.5" style={{ color: 'var(--q-accent-primary)' }} />
+          Get a job quote for this business →
+        </a>
       )}
 
       <button

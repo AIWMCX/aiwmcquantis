@@ -5,6 +5,8 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
 import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
+import { detectQuoteGenTrade } from '@/lib/quotegen-eligibility';
+import { Receipt } from 'lucide-react';
 // Lazy: pulls @react-pdf/renderer (~1.5 MB). Keep off the dashboard entry bundle.
 const AccuracyTransparentResults = lazy(() =>
   import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
@@ -849,6 +851,22 @@ export default function Index() {
                             }}
                           />
                         )}
+                        {(() => {
+                          const quoteTrade = detectQuoteGenTrade(
+                            idea,
+                            result.metadata?.industry_detected
+                          );
+                          if (!quoteTrade) return null;
+                          return (
+                            <a
+                              href={quoteTrade === 'handyman' ? '/quote/new' : `/quote/new?trade=${quoteTrade}`}
+                              className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold px-4 py-2 rounded-lg border border-border hover:bg-accent/50 transition-colors"
+                            >
+                              <Receipt className="w-4 h-4 text-primary" />
+                              Get a job quote for this business →
+                            </a>
+                          );
+                        })()}
                         <PostAnalysisAuthPrompt
                           analysisId={currentAnalysisId ?? analysisId}
                           ideaTitle={idea}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { isEnabled } from '@/lib/flags';
@@ -57,8 +57,19 @@ function loadDraft(): Draft {
 export default function QuoteNew() {
   const enabled = isEnabled('service_job');
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [step, setStep] = useState(1);
-  const [draft, setDraft] = useState<Draft>(() => loadDraft());
+  const [draft, setDraft] = useState<Draft>(() => {
+    const loaded = loadDraft();
+    // Prefill trade from an industry-gated entry point (see
+    // src/lib/quotegen-eligibility.ts) — only when there's no in-progress
+    // job draft, so we never clobber a quote already being built.
+    const tradeParam = searchParams.get('trade');
+    if (!loaded.jobId && tradeParam && ['hvac', 'electrical', 'plumbing'].includes(tradeParam)) {
+      return { ...loaded, step1: { ...loaded.step1, trade_id: tradeParam } };
+    }
+    return loaded;
+  });
   const [submitting, setSubmitting] = useState(false);
   const dirtyRef = useRef(false);
   const { status: quoteGenStatus, loading: quotaLoading, refetch: refetchQuota } = useQuoteGenUsage();

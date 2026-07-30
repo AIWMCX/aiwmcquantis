@@ -21,7 +21,7 @@ interface Props {
 const TRADES = [
   { id: 'electrical', name: 'Electrical', enabled: true },
   { id: 'plumbing', name: 'Plumbing', enabled: true },
-  { id: 'hvac', name: 'HVAC', enabled: false },
+  { id: 'hvac', name: 'HVAC', enabled: true },
 ];
 
 const BUILDING_TYPES = ['Residential', 'Commercial', 'Industrial', 'Multifamily', 'Other'];
