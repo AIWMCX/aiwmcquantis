@@ -91,7 +91,11 @@ function slugDescription(path: string): string {
     return `${human.charAt(0).toUpperCase() + human.slice(1)} — a Quantis guide for founders. Data-informed benchmarks, brutal honesty, zero filler. Read free at AIWMC Quantis.`;
   }
   if (section === 'examples') {
-    return `Worked example: ${human}. See the unit economics, break-even, and verdict Quantis produced, informed by 97,500 benchmark data points. Free to inspect.`;
+    // Kept short even for the longest real slug (mobile-app-startup-san-
+    // francisco, 33 chars) -- technical SEO audit 2026-07-29 found the prior
+    // template ran 166-174 chars once combined with multi-word slugs,
+    // past Google's practical snippet-truncation length.
+    return `Worked example: ${human}. Revenue, costs, and verdict from 97,500 benchmark data points. Free to inspect.`;
   }
   return `${human.charAt(0).toUpperCase() + human.slice(1)} on AIWMC Quantis — AI-powered financial pre-mortem for founders, informed by 97,500 benchmark data points.`;
 }

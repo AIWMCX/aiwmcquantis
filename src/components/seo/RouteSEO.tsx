@@ -119,11 +119,11 @@ const ROUTE_META: Record<string, RouteMeta> = {
     description: 'Side-by-side: Quantis (deterministic engine + Monte Carlo + RVCE) vs Bizplanr for pre-launch financial validation.',
   },
   '/vs/foundra': {
-    title: 'Quantis vs Foundra — Strategy cards vs a deterministic financial verdict',
+    title: 'Quantis vs Foundra — Strategy cards vs a financial verdict',
     description: "Side-by-side: Quantis (deterministic engine + Monte Carlo + cited benchmarks) vs Foundra's conversational strategy-card system.",
   },
   '/vs/aicofounder': {
-    title: 'Quantis vs AI Co-Founder — Building companion vs validation verdict',
+    title: 'Quantis vs AI Co-Founder — Companion vs validation verdict',
     description: "Side-by-side: Quantis's cited financial verdict vs AI Co-Founder's conversational planning and research guidance.",
   },
   '/vs/chatgpt': {
