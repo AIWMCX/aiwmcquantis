@@ -43,6 +43,7 @@ export const TIERS = {
       monteCarloScenarios: 0,
       teamSeats: 0,
       templates: 0, // Doc Studio fully locked for Free (per CTO §2)
+      scenarioSetsPerAnalysis: 0, // Free: view + one unsaved preview only, no saved sets
     },
     features: {
       depthQuick: true,
@@ -62,6 +63,15 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: false,
+      // Scenario framework (Release 1) — mirrors plan_entitlements.features
+      // set by supabase/migrations/20260730084333_scenario_entitlement_keys.sql.
+      scenarioView: true,
+      scenarioCustom: true,
+      scenarioSave: false,
+      scenarioCompare: false,
+      scenarioPromote: false,
+      scenarioEvidenceRefresh: false,
+      scenarioDocument: false,
     },
     supportSla: 'best-effort',
     trialEligible: false,
@@ -80,6 +90,7 @@ export const TIERS = {
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 1,
       templates: DOC_TEMPLATE_COUNT,
+      scenarioSetsPerAnalysis: 10,
     },
     features: {
       depthQuick: true,
@@ -99,6 +110,13 @@ export const TIERS = {
       strategicRoadmap: false,
       fiveYearModel: false,
       actionPlan: true,
+      scenarioView: true,
+      scenarioCustom: true,
+      scenarioSave: true,
+      scenarioCompare: true,
+      scenarioPromote: true,
+      scenarioEvidenceRefresh: true,
+      scenarioDocument: true,
     },
     supportSla: '24h-target',
     trialEligible: { monthly: true, annual: true, days: 14 },
@@ -117,6 +135,7 @@ export const TIERS = {
       monteCarloScenarios: MONTE_CARLO_ITERATIONS,
       teamSeats: 3,
       templates: DOC_TEMPLATE_COUNT,
+      scenarioSetsPerAnalysis: 30,
     },
     features: {
       depthQuick: true,
@@ -130,6 +149,13 @@ export const TIERS = {
       whiteLabel: true,
       unlimitedHistory: true,
       watermarkFree: true,
+      scenarioView: true,
+      scenarioCustom: true,
+      scenarioSave: true,
+      scenarioCompare: true,
+      scenarioPromote: true,
+      scenarioEvidenceRefresh: true,
+      scenarioDocument: true,
       // Domain 10 audit: this comment previously read "Schema/keys exist; UI
       // ships in v2 (Q2 2026)" — stale. Confirmed shipped: /settings/api-keys
       // is routed (App.tsx), and create-api-key (139-line edge function,

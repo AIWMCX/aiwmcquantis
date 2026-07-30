@@ -35,8 +35,10 @@ export type FeatureKey =
   | 'preMortem' | 'invoiceCapacity' | 'documentStudio' | 'aiDocIntelligence'
   | 'customBranding' | 'whiteLabel' | 'unlimitedHistory' | 'watermarkFree'
   | 'apiAccess' | 'tamSamSom' | 'pitchDeck' | 'strategicRoadmap'
-  | 'fiveYearModel' | 'actionPlan';
-export type LimitKey = 'analysesPerMonth' | 'downloadsPerDay' | 'projectionMonths' | 'monteCarloScenarios' | 'teamSeats' | 'templates';
+  | 'fiveYearModel' | 'actionPlan'
+  | 'scenarioView' | 'scenarioCustom' | 'scenarioSave' | 'scenarioCompare'
+  | 'scenarioPromote' | 'scenarioEvidenceRefresh' | 'scenarioDocument';
+export type LimitKey = 'analysesPerMonth' | 'downloadsPerDay' | 'projectionMonths' | 'monteCarloScenarios' | 'teamSeats' | 'templates' | 'scenarioSetsPerAnalysis';
 
 export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
   free: {
@@ -45,6 +47,8 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
     customBranding: false, whiteLabel: false, unlimitedHistory: false, watermarkFree: false,
     apiAccess: false, tamSamSom: false, pitchDeck: false, strategicRoadmap: false,
     fiveYearModel: false, actionPlan: false,
+    scenarioView: true, scenarioCustom: true, scenarioSave: false, scenarioCompare: false,
+    scenarioPromote: false, scenarioEvidenceRefresh: false, scenarioDocument: false,
   },
   plus: {
     depthQuick: true, depthFull: true, depthPro: false,
@@ -52,6 +56,8 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
     customBranding: true, whiteLabel: false, unlimitedHistory: true, watermarkFree: true,
     apiAccess: false, tamSamSom: true, pitchDeck: false, strategicRoadmap: false,
     fiveYearModel: false, actionPlan: true,
+    scenarioView: true, scenarioCustom: true, scenarioSave: true, scenarioCompare: true,
+    scenarioPromote: true, scenarioEvidenceRefresh: true, scenarioDocument: true,
   },
   pro: {
     depthQuick: true, depthFull: true, depthPro: true,
@@ -59,18 +65,21 @@ export const FEATURES: Record<TierId, Record<FeatureKey, boolean>> = {
     customBranding: true, whiteLabel: true, unlimitedHistory: true, watermarkFree: true,
     apiAccess: true, tamSamSom: true, pitchDeck: true, strategicRoadmap: true,
     fiveYearModel: true, actionPlan: true,
+    scenarioView: true, scenarioCustom: true, scenarioSave: true, scenarioCompare: true,
+    scenarioPromote: true, scenarioEvidenceRefresh: true, scenarioDocument: true,
   },
 };
 
 export const LIMITS: Record<TierId, Record<LimitKey, number>> = {
-  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0 },
+  free: { analysesPerMonth: 5, downloadsPerDay: 5, projectionMonths: 0, monteCarloScenarios: 0, teamSeats: 0, templates: 0, scenarioSetsPerAnalysis: 0 },
   // monteCarloScenarios = MC iteration count (per src/config/canonical-facts.ts MONTE_CARLO_ITERATIONS).
   // Previously 95_500 — that was the BENCHMARK corpus size, not the iteration count.
   // Fixed per audit 2026-06-20 contradiction C-8.
   // templates = Doc Studio template count (per src/config/canonical-facts.ts DOC_TEMPLATE_COUNT).
   // Previously 12 — the real count of functional templates is 10; fixed 2026-06-30.
-  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 1, templates: 10 },
-  pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 1_000, teamSeats: 3, templates: 10 },
+  // scenarioSetsPerAnalysis: Release 1 scenario framework quota (10/analysis Plus, 30/analysis Pro).
+  plus: { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 36, monteCarloScenarios: 1_000, teamSeats: 1, templates: 10, scenarioSetsPerAnalysis: 10 },
+  pro:  { analysesPerMonth: Infinity, downloadsPerDay: Infinity, projectionMonths: 60, monteCarloScenarios: 1_000, teamSeats: 3, templates: 10, scenarioSetsPerAnalysis: 30 },
 };
 
 // ---------- Errors ----------

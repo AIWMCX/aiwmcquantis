@@ -40,16 +40,16 @@ INSERT INTO public.plan_entitlements
   (tier, label, price_monthly, price_annual, monthly_analyses, features, limits, stripe_price_ids)
 VALUES
   ('free', 'Free', 0, 0, 5,
-    '{"depthQuick":true,"depthFull":false,"depthPro":false,"preMortem":false,"invoiceCapacity":false,"documentStudio":false,"aiDocIntelligence":false,"customBranding":false,"whiteLabel":false,"unlimitedHistory":false,"watermarkFree":false,"apiAccess":false,"tamSamSom":false,"pitchDeck":false,"strategicRoadmap":false,"fiveYearModel":false,"actionPlan":false}'::jsonb,
-    '{"analysesPerMonth":5,"downloadsPerDay":5,"projectionMonths":0,"monteCarloScenarios":0,"teamSeats":0,"templates":0}'::jsonb,
+    '{"depthQuick":true,"depthFull":false,"depthPro":false,"preMortem":false,"invoiceCapacity":false,"documentStudio":false,"aiDocIntelligence":false,"customBranding":false,"whiteLabel":false,"unlimitedHistory":false,"watermarkFree":false,"apiAccess":false,"tamSamSom":false,"pitchDeck":false,"strategicRoadmap":false,"fiveYearModel":false,"actionPlan":false,"scenarioView":true,"scenarioCustom":true,"scenarioSave":false,"scenarioCompare":false,"scenarioPromote":false,"scenarioEvidenceRefresh":false,"scenarioDocument":false}'::jsonb,
+    '{"analysesPerMonth":5,"downloadsPerDay":5,"projectionMonths":0,"monteCarloScenarios":0,"teamSeats":0,"templates":0,"scenarioSetsPerAnalysis":0}'::jsonb,
     '[]'::jsonb),
   ('plus', 'Plus', 17, 168, -1,
-    '{"depthQuick":true,"depthFull":true,"depthPro":false,"preMortem":true,"invoiceCapacity":true,"documentStudio":true,"aiDocIntelligence":true,"customBranding":true,"whiteLabel":false,"unlimitedHistory":true,"watermarkFree":true,"apiAccess":false,"tamSamSom":true,"pitchDeck":false,"strategicRoadmap":false,"fiveYearModel":false,"actionPlan":true}'::jsonb,
-    '{"analysesPerMonth":-1,"downloadsPerDay":-1,"projectionMonths":36,"monteCarloScenarios":95500,"teamSeats":1,"templates":12}'::jsonb,
+    '{"depthQuick":true,"depthFull":true,"depthPro":false,"preMortem":true,"invoiceCapacity":true,"documentStudio":true,"aiDocIntelligence":true,"customBranding":true,"whiteLabel":false,"unlimitedHistory":true,"watermarkFree":true,"apiAccess":false,"tamSamSom":true,"pitchDeck":false,"strategicRoadmap":false,"fiveYearModel":false,"actionPlan":true,"scenarioView":true,"scenarioCustom":true,"scenarioSave":true,"scenarioCompare":true,"scenarioPromote":true,"scenarioEvidenceRefresh":true,"scenarioDocument":true}'::jsonb,
+    '{"analysesPerMonth":-1,"downloadsPerDay":-1,"projectionMonths":36,"monteCarloScenarios":95500,"teamSeats":1,"templates":12,"scenarioSetsPerAnalysis":10}'::jsonb,
     '["price_1TKemwLKMhSmZURCw1AwGYX2","price_1TKenYLKMhSmZURCEqUTfJDM"]'::jsonb),
   ('pro', 'Pro', 49, 492, -1,
-    '{"depthQuick":true,"depthFull":true,"depthPro":true,"preMortem":true,"invoiceCapacity":true,"documentStudio":true,"aiDocIntelligence":true,"customBranding":true,"whiteLabel":true,"unlimitedHistory":true,"watermarkFree":true,"apiAccess":true,"tamSamSom":true,"pitchDeck":true,"strategicRoadmap":true,"fiveYearModel":true,"actionPlan":true}'::jsonb,
-    '{"analysesPerMonth":-1,"downloadsPerDay":-1,"projectionMonths":60,"monteCarloScenarios":95500,"teamSeats":3,"templates":12}'::jsonb,
+    '{"depthQuick":true,"depthFull":true,"depthPro":true,"preMortem":true,"invoiceCapacity":true,"documentStudio":true,"aiDocIntelligence":true,"customBranding":true,"whiteLabel":true,"unlimitedHistory":true,"watermarkFree":true,"apiAccess":true,"tamSamSom":true,"pitchDeck":true,"strategicRoadmap":true,"fiveYearModel":true,"actionPlan":true,"scenarioView":true,"scenarioCustom":true,"scenarioSave":true,"scenarioCompare":true,"scenarioPromote":true,"scenarioEvidenceRefresh":true,"scenarioDocument":true}'::jsonb,
+    '{"analysesPerMonth":-1,"downloadsPerDay":-1,"projectionMonths":60,"monteCarloScenarios":95500,"teamSeats":3,"templates":12,"scenarioSetsPerAnalysis":30}'::jsonb,
     '["price_1TNnKkLKMhSmZURCWyQTblmg","price_1TNnUbLKMhSmZURC3DetuKsA"]'::jsonb)
 ON CONFLICT (tier) DO UPDATE SET
   label = EXCLUDED.label,
