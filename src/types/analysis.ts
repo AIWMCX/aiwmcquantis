@@ -406,12 +406,47 @@ export interface QueuedAnalysisJob {
   depth_requested: 'pro';
 }
 
-export type AnalysisGenerationResult = BusinessAnalysisResult | QueuedAnalysisJob;
+// Free/anonymous depth: the backend deliberately strips paid-tier fields
+// (compute-leakage prevention layer 3, analyze-business/index.ts ~4320) and
+// returns this slim shape instead of a full BusinessAnalysisResult. It has
+// no `financial_analysis`, so it must be recognized as its own success kind
+// rather than run through the full-report renderer or misread as a failure
+// (BUG: previously every free/anon analysis was treated as a client error,
+// silently retried 3x, then surfaced as ANALYSIS_UNAVAILABLE — fixed 2026-07-30).
+export interface FreeTierAnalysisSummary {
+  kind: 'free_tier_summary';
+  score: number | null;
+  verdict: string | null;
+  top_risks: unknown[];
+  base_revenue: number | null;
+  currency: string;
+  industry_detected?: string;
+  location: string;
+  idea: string;
+  upgrade_cta?: {
+    message: string;
+    features_locked: string[];
+    plus_price_monthly: number;
+    plus_trial_days: number;
+    pro_trial_days: number;
+  };
+}
+
+export type AnalysisGenerationResult =
+  | BusinessAnalysisResult
+  | QueuedAnalysisJob
+  | FreeTierAnalysisSummary;
 
 export function isQueuedAnalysisJob(
   v: AnalysisGenerationResult,
 ): v is QueuedAnalysisJob {
   return (v as QueuedAnalysisJob)?.kind === 'queued_job';
+}
+
+export function isFreeTierAnalysisSummary(
+  v: AnalysisGenerationResult,
+): v is FreeTierAnalysisSummary {
+  return (v as FreeTierAnalysisSummary)?.kind === 'free_tier_summary';
 }
 
 // History Entry for localStorage

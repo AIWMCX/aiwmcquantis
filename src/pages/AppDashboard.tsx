@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { EmptyState } from '@/components/layout/EmptyState';
 import { CompactAnalysisForm } from '@/components/analysis/CompactAnalysisForm';
+import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
 // Lazy: pulls @react-pdf/renderer (~1.5 MB). Keep off the dashboard entry bundle.
 const AccuracyTransparentResults = lazy(() =>
   import('@/components/analysis/AccuracyTransparentResults').then((m) => ({
@@ -139,6 +140,7 @@ export default function Index() {
     clearError,
     result,
     setResult,
+    freeTierSummary,
     analysisId,
     isLoading,
     isError,
@@ -216,19 +218,24 @@ export default function Index() {
     [markQuickStartComplete, setIdea, setLocation]
   );
 
+  // Either a full paid-tier result or a free-tier summary counts as "has a
+  // result to show" — the free tier never populates `result` (it lacks
+  // financial_analysis and is rendered by FreeTierResultCard instead).
+  const hasAnyResult = !!result || !!freeTierSummary;
+
   useEffect(() => {
-    if (result && shouldShowFirstAnalysisCelebration) {
+    if (hasAnyResult && shouldShowFirstAnalysisCelebration) {
       setShowCelebration(true);
       incrementAnalysisCount();
     }
-  }, [result, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
+  }, [hasAnyResult, shouldShowFirstAnalysisCelebration, incrementAnalysisCount]);
 
   // Auto-scroll & banner when result appears
   useEffect(() => {
     const hadResult = prevResultRef.current;
-    prevResultRef.current = !!result;
+    prevResultRef.current = hasAnyResult;
 
-    if (result && !hadResult) {
+    if (hasAnyResult && !hadResult) {
       setShowScrollBanner(true);
       // Auto-scroll after a short delay for render
       setTimeout(() => {
@@ -238,10 +245,10 @@ export default function Index() {
       const timer = setTimeout(() => setShowScrollBanner(false), 8000);
       return () => clearTimeout(timer);
     }
-    if (!result) {
+    if (!hasAnyResult) {
       setShowScrollBanner(false);
     }
-  }, [result]);
+  }, [hasAnyResult]);
 
   const scrollToResults = useCallback(() => {
     resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -552,7 +559,7 @@ export default function Index() {
             />
 
             {/* Try Sample Priority Panel — visible when no result and not loading */}
-            {!result && !isLoading && (
+            {!hasAnyResult && !isLoading && (
               <div className="mb-4 rounded-xl border border-[var(--q-border-default)] bg-[var(--q-bg-surface)] p-4 flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-lg bg-[var(--q-accent-glow)] flex items-center justify-center">
@@ -706,7 +713,7 @@ export default function Index() {
             </div>
 
             {/* Scroll-down banner */}
-            {showScrollBanner && result && (
+            {showScrollBanner && hasAnyResult && (
               <button
                 onClick={scrollToResults}
                 className="mt-4 w-full p-3 rounded-xl border-2 border-green-500/40 bg-green-500/10 dark:bg-green-500/5 flex items-center justify-center gap-3 animate-fade-in cursor-pointer hover:bg-green-500/15 transition-colors group"
@@ -763,7 +770,26 @@ export default function Index() {
                         />
                       </div>
                     )}
-                    {result ? (
+                    {!result && freeTierSummary ? (
+                      <SectionErrorBoundary
+                        section="your results"
+                        onBack={() => {
+                          reset();
+                          setCurrentAnalysisId(null);
+                          setHasPrefill(false);
+                        }}
+                      >
+                        <FreeTierResultCard
+                          summary={freeTierSummary}
+                          onReset={() => {
+                            reset();
+                            setCurrentAnalysisId(null);
+                            setHasPrefill(false);
+                            setShowNextSteps(false);
+                          }}
+                        />
+                      </SectionErrorBoundary>
+                    ) : result ? (
                       <SectionErrorBoundary
                         section="your results"
                         onBack={() => {

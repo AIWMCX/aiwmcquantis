@@ -29,6 +29,19 @@ function isCompletedAnalysisResponse(data: AnalysisAPIResponse): data is Complet
   return data.success === true && !!data.data && typeof data.data === 'object' && 'financial_analysis' in data.data;
 }
 
+// Free/anonymous depth response — the backend intentionally omits
+// `financial_analysis` for this tier (see analyze-business/index.ts
+// isFreeOrAnon wirePayload), so this is a genuine success, not the absence
+// of one. Must be checked before isCompletedAnalysisResponse rejects it.
+function isFreeTierResponse(data: AnalysisAPIResponse): boolean {
+  return (
+    data.success === true &&
+    !!data.data &&
+    typeof data.data === 'object' &&
+    (data.data as unknown as Record<string, unknown>)._tier === 'free'
+  );
+}
+
 function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): BusinessAnalysisResult {
   const f = request.financial_inputs ?? {};
   // Match the idea against the top-20 industry priors. If matched, we lift
@@ -285,6 +298,41 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         const message = (d.message as string) || 'Upgrade required to continue.';
         const upgradeUrl = (d.upgrade_url as string) || '/pricing';
         throw new Error(`TIER_GATE: ${message} | upgrade_url=${upgradeUrl}`);
+      }
+
+      // Free/anonymous depth — genuine success with the deliberately slim
+      // shape. Must be checked before the isCompletedAnalysisResponse gate
+      // below, which would otherwise reject it (no `financial_analysis`)
+      // and burn two more full backend retries before ultimately failing.
+      if (isFreeTierResponse(data)) {
+        const d = data.data as unknown as Record<string, unknown>;
+        logger.info('Free-tier analysis summary received', { metadata: { request_id: requestId } });
+        try {
+          trackAnalysisCompleted(0, 0, Number(d.score ?? 0) || 0);
+        } catch {
+          /* analytics must never break the analysis path */
+        }
+        const cta = d._upgrade_cta as Record<string, unknown> | undefined;
+        return {
+          kind: 'free_tier_summary',
+          score: (d.score as number | null) ?? null,
+          verdict: (d.verdict as string | null) ?? null,
+          top_risks: Array.isArray(d.top_risks) ? (d.top_risks as unknown[]) : [],
+          base_revenue: (d.base_revenue as number | null) ?? null,
+          currency: (d.currency as string) ?? 'USD',
+          industry_detected: d.industry_detected as string | undefined,
+          location: (d.location as string) ?? request.location.trim(),
+          idea: (d.idea as string) ?? request.idea.trim(),
+          ...(cta && {
+            upgrade_cta: {
+              message: (cta.message as string) ?? 'Unlock the full report',
+              features_locked: Array.isArray(cta.features_locked) ? (cta.features_locked as string[]) : [],
+              plus_price_monthly: (cta.plus_price_monthly as number) ?? 17,
+              plus_trial_days: (cta.plus_trial_days as number) ?? 14,
+              pro_trial_days: (cta.pro_trial_days as number) ?? 14,
+            },
+          }),
+        };
       }
 
       if (!isCompletedAnalysisResponse(data)) {

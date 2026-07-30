@@ -12,8 +12,9 @@ import type {
   BusinessAnalysisResult,
   OptionalFinancialInputs,
   AnalysisGenerationResult,
+  FreeTierAnalysisSummary,
 } from '@/types/analysis';
-import { isQueuedAnalysisJob } from '@/types/analysis';
+import { isQueuedAnalysisJob, isFreeTierAnalysisSummary } from '@/types/analysis';
 import { trackActivationEvent } from '@/lib/activationTracking';
 import { normalizeAnalysisResult } from '@/lib/analysis-normalizer';
 
@@ -51,6 +52,7 @@ export function useAnalysis() {
 
   const [errors, setErrors] = useState<FormErrors>({});
   const [result, setResult] = useState<BusinessAnalysisResult | null>(null);
+  const [freeTierSummary, setFreeTierSummary] = useState<FreeTierAnalysisSummary | null>(null);
   const [analysisId, setAnalysisId] = useState<string | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
@@ -180,6 +182,20 @@ export function useAnalysis() {
           description:
             'This is the deepest analysis we offer — Monte Carlo + scenario stress test. Typical run: 30–90 seconds. You can stay on this page; we’ll show progress in real time.',
           duration: 8000,
+        });
+        return;
+      }
+
+      // Free/anonymous depth — deliberately slim payload (no financial_analysis).
+      // Not persisted server-side by this call; the free tier doesn't get a
+      // saved analyses row from this path. Render the lightweight summary
+      // card instead of routing into the full-report renderer.
+      if (isFreeTierAnalysisSummary(data)) {
+        setFreeTierSummary(data);
+        void trackActivationEvent('calculation_completed', { idea_length: idea.length });
+        toast.success('Analysis complete! ✅', {
+          description: 'Sign in to save this result and unlock the full report.',
+          duration: 6000,
         });
         return;
       }
@@ -467,6 +483,7 @@ export function useAnalysis() {
     setFinancialInputs(EMPTY_FINANCIAL_INPUTS);
     setErrors({});
     setResult(null);
+    setFreeTierSummary(null);
     setAnalysisId(null);
     setRateLimitError(null);
     setProJobId(null);
@@ -503,6 +520,7 @@ export function useAnalysis() {
     // Analysis state
     result,
     setResult,
+    freeTierSummary,
     analysisId,
     isLoading,
     isError: mutation.isError,
