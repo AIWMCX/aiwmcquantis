@@ -251,10 +251,12 @@ export function PitchDeckForm({ template, onGenerate, onPreviewUpdate, isGenerat
 
   const handleAutoFill = useCallback((data: AutoFillData) => {
     if (data.company_name) form.setValue('company_name', data.company_name);
+    // current_revenue is a real annualization of actual monthly revenue.
+    // year1/year3_projection are deliberately left for the user to set —
+    // the engine doesn't produce multi-year projections, and this form
+    // previously invented them via hardcoded *3 / *10 growth multipliers.
     if (data.monthly_revenue) {
       form.setValue('current_revenue', data.monthly_revenue * 12);
-      form.setValue('year1_projection', data.monthly_revenue * 12 * 3);
-      form.setValue('year3_projection', data.monthly_revenue * 12 * 10);
     }
   }, [form]);
 

@@ -216,9 +216,11 @@ export function MarketAnalysisForm({ template, onGenerate, onPreviewUpdate, isGe
     if (data.company_name) setValue('company_name', String(data.company_name));
     if (data.industry) setValue('industry', String(data.industry));
     if (data.market_name) setValue('market_name', String(data.market_name));
-    if (data.tam) setValue('tam_value', Number(data.tam));
-    if (data.sam) setValue('sam_value', Number(data.sam));
-    if (data.som) setValue('som_value', Number(data.som));
+    // tam_value/sam_value/som_value are numeric dollar-figure fields, but
+    // the real analysis's TAM/SAM/SOM are analyst-written prose strings
+    // (e.g. "Requires benchmark refresh."), not numbers — `Number(...)` on
+    // that previously silently produced NaN. There's no valid number to
+    // auto-fill here, so these are deliberately left for the user to enter.
     if (data.growth_rate) setValue('market_growth_rate', Number(data.growth_rate));
   }, [setValue]);
 

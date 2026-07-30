@@ -109,14 +109,13 @@ interface AnalysisCardProps {
 }
 
 function AnalysisCard({ analysis, isFirst, onClick }: AnalysisCardProps) {
-  const businessName = analysis.result?.business_name || 
-    analysis.idea?.split(' ').slice(0, 4).join(' ') || 
-    'Business Analysis';
-  
-  const monthlyRevenue = analysis.result?.scenarios?.base?.monthly_revenue || 
-    analysis.monthly_profit || 0;
-  
-  const roi = analysis.result?.financial_metrics?.roi || 0;
+  const businessName =
+    analysis.idea?.split(' ').slice(0, 4).join(' ') || 'Business Analysis';
+
+  const monthlyRevenue =
+    analysis.result?.financial_analysis?.scenarios?.base?.revenue ?? analysis.monthly_profit ?? 0;
+
+  const roi = analysis.result?.financial_analysis?.returns?.roi_year_1 ?? 0;
   
   const createdDate = new Date(analysis.created_at).toLocaleDateString('en-US', {
     month: 'short',

@@ -3,38 +3,14 @@ import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
+import type { BusinessAnalysisResult } from '@/types/analysis';
 
 export interface AnalysisSummary {
   id: string;
   idea: string;
   location: string;
   created_at: string;
-  result: {
-    business_name?: string;
-    industry?: string;
-    scenarios?: {
-      base?: {
-        monthly_revenue?: number;
-        year_1_revenue?: number;
-        year_2_revenue?: number;
-        year_3_revenue?: number;
-      };
-    };
-    financial_metrics?: {
-      cac?: number;
-      ltv?: number;
-      roi?: number;
-      payback_period_months?: number;
-      startup_investment?: number;
-      gross_margin?: number;
-    };
-    market_data?: {
-      tam?: number;
-      sam?: number;
-      som?: number;
-    };
-    [key: string]: unknown;
-  };
+  result: Partial<BusinessAnalysisResult>;
   monthly_profit?: number;
   startup_investment?: number;
   payback_months?: number;
@@ -46,30 +22,37 @@ export interface AutoFillData {
   company_name?: string;
   company_city?: string;
   industry?: string;
-  
-  // Financial metrics
+
+  // Financial metrics — resolved from the real financial_analysis paths
+  // (see src/lib/canonical-document-mapper.ts's KEY_DEFS for the canonical
+  // source-of-truth version of this same resolution).
   monthly_revenue?: number;
   quarterly_revenue?: number;
   annual_revenue?: number;
   startup_investment?: number;
   monthly_profit?: number;
-  
+
   // Unit economics
   cac?: number;
   ltv?: number;
   roi?: number;
   payback_months?: number;
   gross_margin?: number;
-  
-  // Market data
-  tam?: number;
-  sam?: number;
-  som?: number;
-  
-  // Projections
-  year_1_revenue?: number;
-  year_2_revenue?: number;
-  year_3_revenue?: number;
+
+  // Market data — market_size.tam/sam/som are analyst-written prose
+  // strings on the real type (e.g. "Local opportunity in Austin, TX"),
+  // never numbers. Forms must render these as text, not currency/Number().
+  tam?: string;
+  sam?: string;
+  som?: string;
+
+  // Deliberately no year_1/2/3 revenue projection fields here — the
+  // deterministic engine doesn't produce multi-year projections today, and
+  // this hook must never fabricate one via a growth multiplier (previous
+  // versions did `monthly_revenue * 12 * 1.5` / `* 2`, and downstream forms
+  // separately invented their own `* 2.5` / `* 5` / `* 10` on top of that).
+  // Forms needing a Year 2/3 figure should leave the field for the user to
+  // fill, or wait for real scenario data once /app/scenarios ships.
 }
 
 /**
@@ -103,44 +86,45 @@ export function useAnalysisAutoFill() {
     staleTime: 5 * 60 * 1000, // Cache for 5 minutes
   });
 
-  // Map analysis data to template fields
+  // Map analysis data to template fields — reads the REAL BusinessAnalysisResult
+  // paths (financial_analysis.*, market_analysis.*), matching
+  // src/lib/canonical-document-mapper.ts's KEY_DEFS. Never fabricates a
+  // value: every field either has a real source or is left undefined so
+  // downstream forms' `if (data.field)` guards skip it.
   const mapAnalysisToAutoFill = useCallback((analysis: AnalysisSummary): AutoFillData => {
     const result = analysis.result || {};
-    const financialMetrics = result.financial_metrics || {};
-    const scenarios = result.scenarios?.base || {};
-    const marketData = result.market_data || {};
+    const fa = result.financial_analysis;
+    const base = fa?.scenarios?.base;
+    const marketSize = result.market_analysis?.market_size;
 
-    const monthlyRevenue = scenarios.monthly_revenue || analysis.monthly_profit || 0;
-    
+    const monthlyRevenue = base?.revenue ?? analysis.monthly_profit ?? undefined;
+
     return {
-      // Company info
-      company_name: result.business_name || analysis.idea?.split(' ').slice(0, 3).join(' ') || 'Your Business',
+      // Company info — BusinessAnalysisResult has no business_name field;
+      // deriving a display name from the idea text is the only real option.
+      company_name: analysis.idea?.split(' ').slice(0, 3).join(' ') || 'Your Business',
       company_city: analysis.location || '',
-      industry: result.industry || '',
-      
-      // Financial metrics
+      industry: result.metadata?.industry_detected || '',
+
+      // Financial metrics — quarterly/annual are legitimate arithmetic
+      // conversions of a single real monthly figure, not growth guesses.
       monthly_revenue: monthlyRevenue,
-      quarterly_revenue: monthlyRevenue * 3,
-      annual_revenue: monthlyRevenue * 12,
-      startup_investment: financialMetrics.startup_investment || analysis.startup_investment || 0,
-      monthly_profit: analysis.monthly_profit || 0,
-      
+      quarterly_revenue: monthlyRevenue !== undefined ? monthlyRevenue * 3 : undefined,
+      annual_revenue: monthlyRevenue !== undefined ? monthlyRevenue * 12 : undefined,
+      startup_investment: fa?.startup_investment?.total ?? analysis.startup_investment,
+      monthly_profit: analysis.monthly_profit,
+
       // Unit economics
-      cac: financialMetrics.cac || 0,
-      ltv: financialMetrics.ltv || 0,
-      roi: financialMetrics.roi || 0,
-      payback_months: financialMetrics.payback_period_months || analysis.payback_months || 0,
-      gross_margin: financialMetrics.gross_margin || 0,
-      
-      // Market data
-      tam: marketData.tam || 0,
-      sam: marketData.sam || 0,
-      som: marketData.som || 0,
-      
-      // Projections
-      year_1_revenue: scenarios.year_1_revenue || monthlyRevenue * 12,
-      year_2_revenue: scenarios.year_2_revenue || monthlyRevenue * 12 * 1.5,
-      year_3_revenue: scenarios.year_3_revenue || monthlyRevenue * 12 * 2,
+      cac: fa?.unit_economics?.cac,
+      ltv: fa?.unit_economics?.ltv,
+      roi: fa?.returns?.roi_year_1,
+      payback_months: fa?.returns?.payback_period_months ?? analysis.payback_months,
+      gross_margin: base?.gross_margin,
+
+      // Market data — prose strings, not numbers.
+      tam: marketSize?.tam,
+      sam: marketSize?.sam,
+      som: marketSize?.som,
     };
   }, []);
 

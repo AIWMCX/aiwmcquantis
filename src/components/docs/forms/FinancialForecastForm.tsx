@@ -223,11 +223,11 @@ export function FinancialForecastForm({ template, onGenerate, onPreviewUpdate, i
   const handleAutoFill = useCallback((data: AutoFillData) => {
     if (data.company_name) form.setValue('company_name', data.company_name);
     if (data.monthly_revenue) form.setValue('current_mrr', data.monthly_revenue);
-    if (data.cac) {
-      form.setValue('base_cac', data.cac);
-      form.setValue('pess_cac', data.cac * 1.5);
-      form.setValue('opt_cac', data.cac * 0.7);
-    }
+    // pess_cac/opt_cac are deliberately left for the user to set — the
+    // engine computes a single real CAC, not per-scenario CAC variants,
+    // and this form previously invented them via hardcoded *1.5 / *0.7
+    // multipliers on top of the one real value.
+    if (data.cac) form.setValue('base_cac', data.cac);
     if (data.ltv) form.setValue('ltv_target', data.ltv);
     if (data.payback_months) form.setValue('payback_months_target', data.payback_months);
   }, [form]);

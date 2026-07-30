@@ -242,10 +242,12 @@ export function BusinessPlanForm({ template, onGenerate, onPreviewUpdate, isGene
 
   const handleAutoFill = useCallback((data: AutoFillData) => {
     if (data.company_name) form.setValue('company_name', data.company_name);
+    // Year 1 is a real annualization of the actual monthly revenue figure.
+    // Year 2/3 are deliberately left for the user to fill — the engine
+    // doesn't produce multi-year projections, and this form previously
+    // guessed them via hardcoded *2.5 / *5 growth multipliers.
     if (data.monthly_revenue) {
       form.setValue('year1_revenue', data.monthly_revenue * 12);
-      form.setValue('year2_revenue', data.monthly_revenue * 12 * 2.5);
-      form.setValue('year3_revenue', data.monthly_revenue * 12 * 5);
     }
     if (data.startup_investment) form.setValue('startup_costs', data.startup_investment);
     if (data.payback_months) form.setValue('break_even_months', data.payback_months);
