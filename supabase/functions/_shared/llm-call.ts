@@ -429,7 +429,7 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
       request_id: args.requestId,
       metadata: args.metadata ?? null,
     };
-    await fetch(`${SUPABASE_URL}/rest/v1/ai_calls`, {
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/ai_calls`, {
       method: 'POST',
       headers: {
         apikey: SERVICE_ROLE_KEY,
@@ -439,6 +439,17 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
       },
       body: JSON.stringify(row),
     });
+    // FIXED (2026-08-01): this fetch's response was never checked, so a
+    // PostgREST 400 (e.g. PGRST204 "unknown column") silently discarded
+    // every single row -- exactly what happened for months when `row`
+    // included `request_id` before that column existed (see migration
+    // ai_calls_add_request_id_column). Telemetry still never throws or
+    // blocks the caller, but a schema-drift failure now at least surfaces
+    // in function logs instead of vanishing with zero trace.
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.warn(`[ai_calls] insert failed (${resp.status}): ${detail.slice(0, 300)}`);
+    }
   } catch {
     // Telemetry must never block or throw.
   }
