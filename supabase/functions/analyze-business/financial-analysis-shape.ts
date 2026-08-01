@@ -127,9 +127,6 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       // Base scenario: current values
       const baseVariableCosts = calc.expenses.cogs + calc.expenses.marketing;
       const baseTotalExpenses = fixedCosts + baseVariableCosts;
-      const baseNetProfit = calc.mrr - baseTotalExpenses;
-      const baseNetMargin = calc.mrr > 0 ? Math.round((baseNetProfit / calc.mrr) * 100) : 0;
-
       // Optimistic scenario: 25% more revenue + margin EXPANSION (-2% COGS ratio)
       const optRevenue = Math.round(calc.mrr * 1.25);
       const optCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01);
@@ -157,9 +154,20 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
           variable_costs: baseVariableCosts,
           fixed_costs: fixedCosts,
           gross_profit: calc.grossProfit,
-          net_profit: baseNetProfit,
+          // FIXED (P0, 2026-08-01): previously re-derived from the itemized
+          // breakdown (fixedCosts + variableCosts), which silently diverges
+          // from calc.netProfit/calc.totalExpenses whenever the itemized
+          // sum doesn't match the user-provided total monthly cost (the
+          // engine's own authoritative expense figure — see calc.expenseSource
+          // and the "Expense mismatch detected" warning elsewhere in this
+          // file). scenarios.base must report the SAME net profit the engine
+          // itself computed, matching how gross_profit/gross_margin already
+          // read straight from calc. Caught via a real production analysis
+          // where scenarios.base.net_profit and calc.netProfit disagreed
+          // ($-7,407 vs $-3,798) for the identical inputs.
+          net_profit: calc.netProfit,
           gross_margin: calc.grossMarginPercent,
-          net_margin: baseNetMargin
+          net_margin: calc.netMarginPercent
         },
         optimistic: {
           revenue: optRevenue,

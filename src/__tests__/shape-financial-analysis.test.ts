@@ -70,3 +70,32 @@ describe('shapeFinancialAnalysis → canonical mapper compatibility', () => {
     }
   });
 });
+
+describe('scenarios.base.net_profit never contradicts calc.netProfit (P0 regression)', () => {
+  it('reports the same net profit the engine itself computed, even when the itemized expense breakdown does not sum to the user-provided total', () => {
+    // Real production bundle (a real Pro-tier analysis, 2026-08-01) that
+    // exposed this bug live: itemized fixedCosts+variableCosts summed to
+    // $10,809 while the user-provided total monthly cost was $7,200 —
+    // scenarios.base.net_profit previously re-derived from the itemized sum
+    // ($-7,407) instead of the engine's own authoritative calc.netProfit
+    // ($-3,798), so the dashboard and the engine silently disagreed about
+    // the same analysis's headline profit.
+    const benchmarks: IndustryBenchmarks = {
+      id: 'saas', name: 'SaaS / Software',
+      cac_min: 1615, cac_max: 24762, cac_typical: 6210,
+      rent_fixed: 180, other_fixed: 1000, salaries_fixed: 8000, utilities_fixed: 200,
+      cogs_percent: 42, net_margin_min: -4, net_margin_max: -8,
+      average_check_min: 295, average_check_max: 687,
+      orders_per_client: 1, client_lifetime_months: 22, ltv_cac_min: 0.47, ltv_cac_max: 0.85,
+      keywords: [],
+    };
+    const calc = calculateStrictFinancials(3402, 47500, 100, 4158, 189, benchmarks, LOCATION, null, 7200, 2, 18);
+    const { financialAnalysis } = shapeFinancialAnalysis(calc, benchmarks);
+
+    expect(financialAnalysis.scenarios.base.net_profit).toBe(calc.netProfit);
+    expect(financialAnalysis.scenarios.base.net_margin).toBe(calc.netMarginPercent);
+    // Confirms the fixture actually reproduces the itemized/total mismatch
+    // this test guards against, not a coincidentally-matching fixture.
+    expect(calc.netProfit).toBe(-3798);
+  });
+});
