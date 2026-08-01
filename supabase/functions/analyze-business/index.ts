@@ -9,16 +9,16 @@ import {
 import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
-import { MONTE_CARLO_ITERATIONS_DISPLAY } from '../_shared/canonical-facts.ts';
+import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
 // Embedded benchmarks are now seeded via database migration - no import needed
 
 
-// ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
-import { 
-  getBenchmarkSummary, 
+// ========== BENCHMARK ENGINE V2 (97,500-row dataset) ==========
+import {
+  getBenchmarkSummary,
   buildQueryFromInput, 
   computePercentile,
   type BenchmarkSummaryForCase,
@@ -2980,7 +2980,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     const benchmarkSampleSize = benchmarkResult.sampleSize;
     const benchmarkMatchedRegion = benchmarkResult.matchedRegion;
     
-    // ========== BENCHMARK ENGINE V2 (95,500-row dataset) ==========
+    // ========== BENCHMARK ENGINE V2 (97,500-row dataset) ==========
     let v2BenchmarkSummary: BenchmarkSummaryForCase | null = null;
     try {
       const v2Query = buildQueryFromInput(idea_clean, location_clean);
@@ -2991,7 +2991,7 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     }
 
     // ========== V2 BENCHMARK → LEGACY OVERLAY ==========
-    // When the V2 95,500-row benchmark dataset returns data, overlay its percentile-based values onto
+    // When the V2 97,500-row benchmark dataset returns data, overlay its percentile-based values onto
     // the legacy detectedIndustry object so the DFE and Quantis engine use the most
     // accurate peer-group data for all deterministic calculations.
     if (v2BenchmarkSummary && v2BenchmarkSummary.overall_match_quality !== 'none') {
@@ -3104,7 +3104,7 @@ ${location_clean}
 
 ## DETECTED INDUSTRY: ${detectedIndustry.name}
 ${v2BenchmarkSummary ? `
-## V2 BENCHMARK DATA (95,500-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
+## V2 BENCHMARK DATA (${BENCHMARK_COUNT}-row dataset — ${v2BenchmarkSummary.sector_label} | ${v2BenchmarkSummary.geo_label} | match: ${v2BenchmarkSummary.overall_match_quality})
 ${v2BenchmarkSummary.core ? `### Core Benchmarks
 - Gross Margin: p25=${(v2BenchmarkSummary.core.gm_margin_p25*100).toFixed(1)}% | p50=${(v2BenchmarkSummary.core.gm_margin_p50*100).toFixed(1)}% | p75=${(v2BenchmarkSummary.core.gm_margin_p75*100).toFixed(1)}%
 - Op Margin p50: ${((v2BenchmarkSummary.core.op_margin_p50||0)*100).toFixed(1)}% | EBITDA p50: ${((v2BenchmarkSummary.core.ebitda_margin_p50||0)*100).toFixed(1)}%
@@ -4293,7 +4293,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         benchmark_v2_active: benchmarkMode === 'live',
         benchmark_v2_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         benchmark_v2_sector: v2BenchmarkSummary?.sector_label || null,
-        benchmark_v2_datapoints: 95500,
+        benchmark_v2_datapoints: BENCHMARK_COUNT,
         benchmark_v2_calibration: v2BenchmarkSummary?.calibration || null,
         benchmark_confidence_adjusted: typeof benchmarkConfidence === 'number' && v2BenchmarkSummary?.calibration
           ? Math.max(0, Math.min(100, benchmarkConfidence * v2BenchmarkSummary.calibration.confidence_adjustment))

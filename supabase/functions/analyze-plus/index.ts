@@ -7,8 +7,9 @@
  *   1. tierGate(ENDPOINTS.ANALYSE_MAIN) — enforce PLUS+ subscription.
  *   2. Validate + sanitize inputs (reuse analyze-business safety guardrails).
  *   3. Receive pre-computed MONTE_CARLO_DATA from the client (browser engine,
- *      src/lib/monte-carlo.ts). Spec calls for 95,500 scenarios; the client
- *      decides the actual count and the LLM only references what it sees.
+ *      src/lib/monte-carlo.ts). Spec calls for MONTE_CARLO_ITERATIONS (1,000)
+ *      scenarios; the client decides the actual count and the LLM only
+ *      references what it sees.
  *   4. Build PLUS system prompt via buildSystemPrompt('PLUS', 'main').
  *   5. Lovable AI Gateway call (google/gemini-2.5-pro by default).
  *   6. Strip non-PLUS fields per FEATURE_MANIFEST.allowed_output_fields.
@@ -30,6 +31,7 @@ import { aiCall } from '../_shared/llm-call.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { BENCHMARK_COUNT_DISPLAY } from '../_shared/canonical-facts.ts';
 const FUNCTION_NAME = 'analyze-plus';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -191,7 +193,7 @@ async function fetchLiveBenchmarks(
   if (!core && !ue) return '';
 
   const parts: string[] = [
-    `LIVE_BENCHMARK_DATA (from AIWMC Quantis Master Benchmark v2, 95,500 data points):`,
+    `LIVE_BENCHMARK_DATA (from AIWMC Quantis Master Benchmark v2, ${BENCHMARK_COUNT_DISPLAY} data points):`,
     `Sector: ${sector_level1}${sector_level2 ? ' > ' + sector_level2 : ''} | Model: ${business_model} | Geo: ${country} ${city_tier} | Stage: ${company_stage}`,
   ];
   if (core)
@@ -215,7 +217,7 @@ async function fetchLiveBenchmarks(
       `INVOICE: Terms=${inv.avg_invoice_terms_days}d | LateRate=${inv.late_payment_rate} | BadDebt=${inv.bad_debt_pct_rev} | SafeDSCR=${inv.safe_dscr_threshold} | MaxInv/Rev=${inv.max_safe_invoice_to_rev_ratio}`
     );
   parts.push(
-    `SOURCE: AIWMC Quantis Benchmark Master v2.0 | 95,500 data points | Data date: 2025-04-01`
+    `SOURCE: AIWMC Quantis Benchmark Master v2.0 | ${BENCHMARK_COUNT_DISPLAY} data points | Data date: 2025-04-01`
   );
   parts.push(
     `INSTRUCTION: You MUST anchor ALL financial figures to these live benchmarks. Deviation >25% from p50 requires explicit justification.`

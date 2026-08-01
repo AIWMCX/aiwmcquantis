@@ -21,7 +21,7 @@ import { maybeHealthResponse } from '../_shared/health.ts';
 const FUNCTION_NAME = 'invoice-capacity-check';
 const FUNCTION_VERSION = '1.0.0';
 
-/** Fetch sector-specific invoice benchmarks from the 95,500-row dataset. */
+/** Fetch sector-specific invoice benchmarks from the 97,500-row dataset. */
 async function getInvoiceBenchmarkContext(sector?: string): Promise<string> {
   const url = Deno.env.get('SUPABASE_URL');
   const key = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? Deno.env.get('SUPABASE_ANON_KEY');

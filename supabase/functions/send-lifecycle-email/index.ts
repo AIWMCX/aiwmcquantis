@@ -7,7 +7,7 @@ import { getRequestId } from '../_shared/request-id.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { MONTE_CARLO_ITERATIONS_DISPLAY } from '../_shared/canonical-facts.ts';
+import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT_DISPLAY } from '../_shared/canonical-facts.ts';
 const FUNCTION_NAME = 'send-lifecycle-email';
 const FUNCTION_VERSION = '1.0.0';
 
@@ -258,7 +258,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
           Ever wonder what your local market really looks like — who your competitors are, what they charge, and where the gaps are?
         </p>
         <p style="color: #4a4a4a; font-size: 16px; line-height: 1.6;">
-          Quantis pulls from <strong>95,500+ real benchmarks</strong> across 200+ industries to build a market snapshot specific to your business idea.
+          Quantis pulls from <strong>${BENCHMARK_COUNT_DISPLAY}+ real benchmarks</strong> across 200+ industries to build a market snapshot specific to your business idea.
         </p>
         <div style="background: #f0f9ff; border-left: 4px solid #3b82f6; padding: 16px; margin: 24px 0; border-radius: 4px;">
           <p style="color: #1e40af; margin: 0; font-size: 15px; font-weight: 600;">What you'll see in your analysis:</p>
@@ -421,7 +421,7 @@ const EMAIL_TEMPLATES: Record<string, { subject: string; html: (data: Record<str
         </p>
         <div style="background: #f8f9fa; padding: 20px; border-radius: 8px; margin: 20px 0;">
           <p style="margin: 0 0 10px 0;"><strong>Day 1:</strong> We confirmed your email</p>
-          <p style="margin: 0 0 10px 0;"><strong>Day 2:</strong> Market analysis with 95,500+ benchmarks</p>
+          <p style="margin: 0 0 10px 0;"><strong>Day 2:</strong> Market analysis with ${BENCHMARK_COUNT_DISPLAY}+ benchmarks</p>
           <p style="margin: 0 0 10px 0;"><strong>Day 3:</strong> Break-even and cash flow projections</p>
           <p style="margin: 0 0 10px 0;"><strong>Day 4:</strong> Consulting-grade analysis, free</p>
           <p style="margin: 0 0 10px 0;"><strong>Day 5:</strong> Investor-ready reports in minutes</p>

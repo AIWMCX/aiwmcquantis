@@ -207,7 +207,11 @@ export const LLM_BUDGET: Record<Tier, LlmBudget> = {
     max_tokens: 4_800,
     temperature: 0.2,
     top_p: 0.9,
-    monte_carlo_iterations: 95_500,
+    // MONTE_CARLO_ITERATIONS (canonical-facts.ts) is 1,000 — this field
+    // previously held 95_500, the benchmark-corpus size, not the iteration
+    // count (same C-8 confusion fixed in _shared/entitlements.ts). This
+    // field is currently unread anywhere, but should stay correct.
+    monte_carlo_iterations: 1_000,
     pnl_horizon_months: 36,
     retry_on_schema_fail: 2,
     timeout_ms: 45_000,
@@ -217,7 +221,11 @@ export const LLM_BUDGET: Record<Tier, LlmBudget> = {
     max_tokens: 9_600,
     temperature: 0.15,
     top_p: 0.85,
-    monte_carlo_iterations: 95_500,
+    // MONTE_CARLO_ITERATIONS (canonical-facts.ts) is 1,000 — this field
+    // previously held 95_500, the benchmark-corpus size, not the iteration
+    // count (same C-8 confusion fixed in _shared/entitlements.ts). This
+    // field is currently unread anywhere, but should stay correct.
+    monte_carlo_iterations: 1_000,
     pnl_horizon_months: 60,
     retry_on_schema_fail: 3,
     timeout_ms: 90_000,

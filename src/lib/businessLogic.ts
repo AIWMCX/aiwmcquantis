@@ -38,7 +38,9 @@ export type TwelveVariableKey = (typeof TWELVE_FINANCIAL_VARIABLES)[number];
 
 export const MONTE_CARLO_ITERATIONS = 1_000 as const;
 export const ENGINE_TIME_BUDGET_SEC = 90 as const;
-export const BENCHMARK_COUNT = 95_500 as const;
+// DB-verified 2026-07-11 (see src/config/canonical-facts.ts for the audit
+// trail): 97,500, not 95,500 — five benchmark_master_* tables × 19,500 rows.
+export const BENCHMARK_COUNT = 97_500 as const;
 
 export const LTV_CAC_THRESHOLDS = {
   critical: 1,
