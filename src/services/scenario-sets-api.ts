@@ -116,3 +116,21 @@ export function runScenario(params: {
 export function promoteScenario(scenarioRunId: string) {
   return invokeScenarioFn<ScenarioRunRefPayload>('promote-scenario', { scenario_run_id: scenarioRunId });
 }
+
+export interface PromoteToAnalysisResult {
+  analysis_id: string;
+  parent_analysis_id: string;
+  origin_scenario_run_id: string;
+}
+
+/**
+ * Promotes a saved scenario run into a NEW analysis (Analysis v2) — spec
+ * AIWMC_Quantis_Scenario_Evidence_System_Spec.md §9. The original analysis
+ * is never touched; the new one carries parent_analysis_id/
+ * origin_scenario_run_id lineage. Distinct from promoteScenario(), which
+ * only hands back data for a Docs Studio document — this creates a real
+ * baseline the user can keep working from.
+ */
+export function promoteScenarioToAnalysis(scenarioRunId: string) {
+  return invokeScenarioFn<PromoteToAnalysisResult>('promote-scenario-to-analysis', { scenario_run_id: scenarioRunId });
+}

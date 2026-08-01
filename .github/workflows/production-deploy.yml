@@ -280,6 +280,7 @@ jobs:
             create-scenario-set
             run-scenario
             promote-scenario
+            promote-scenario-to-analysis
             # ── API / team ────────────────────────────────────────────────
             create-api-key
             team-invite

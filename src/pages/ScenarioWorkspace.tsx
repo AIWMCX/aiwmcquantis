@@ -14,6 +14,7 @@ import {
   createScenarioSet,
   runScenario,
   promoteScenario,
+  promoteScenarioToAnalysis,
   ScenarioEntitlementError,
   type ScenarioAssumptionKey,
   type ScenarioDeltaChange,
@@ -221,6 +222,26 @@ export default function ScenarioWorkspace() {
     }
   };
 
+  const [isPromotingToAnalysis, setIsPromotingToAnalysis] = useState<string | null>(null);
+  const handlePromoteToAnalysis = async (runId: string) => {
+    setIsPromotingToAnalysis(runId);
+    try {
+      await promoteScenarioToAnalysis(runId);
+      toast.success('Created a new analysis from this scenario', {
+        description: 'The original analysis is unchanged. Find the new one at the top of History.',
+      });
+      navigate('/app?tab=history');
+    } catch (e) {
+      if (e instanceof ScenarioEntitlementError) {
+        toast.error(e.message, { description: 'Upgrade to Plus or Pro to promote scenarios.' });
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Promote to new analysis failed');
+      }
+    } finally {
+      setIsPromotingToAnalysis(null);
+    }
+  };
+
   if (!analysisId) {
     return (
       <AppLayout title="Scenario Modeling">
@@ -325,14 +346,25 @@ export default function ScenarioWorkspace() {
                             </td>
                             <td className="py-2">
                               {s.run?.run_id && (
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  disabled={!hasFeature('scenarioPromote') || isPromoting === s.run.run_id}
-                                  onClick={() => handlePromote(s.run!.run_id!)}
-                                >
-                                  {isPromoting === s.run.run_id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Promote to Document'}
-                                </Button>
+                                <div className="flex gap-2">
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!hasFeature('scenarioPromote') || isPromotingToAnalysis === s.run.run_id}
+                                    onClick={() => handlePromoteToAnalysis(s.run!.run_id!)}
+                                    title="Creates a new, separate analysis from this scenario — the original is never changed"
+                                  >
+                                    {isPromotingToAnalysis === s.run.run_id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Promote to New Analysis'}
+                                  </Button>
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    disabled={!hasFeature('scenarioPromote') || isPromoting === s.run.run_id}
+                                    onClick={() => handlePromote(s.run!.run_id!)}
+                                  >
+                                    {isPromoting === s.run.run_id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Promote to Document'}
+                                  </Button>
+                                </div>
                               )}
                             </td>
                           </tr>
