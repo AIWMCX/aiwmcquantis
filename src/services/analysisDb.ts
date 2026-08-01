@@ -80,6 +80,13 @@ export async function saveAnalysis(
       // Handbook §19 item 9 follow-up — joins to analysis_snapshots.correlation_id
       // without ever mutating the immutable snapshot row.
       analysis_correlation_id: result.analysis_correlation_id ?? null,
+      // Phase D (2026-08-01) — frozen calculateStrictFinancials input bundle,
+      // attached server-side by analyze-business/index.ts. Enables scenario
+      // modeling without re-running industry/location detection later (see
+      // migration 20260801030858_scenario_base_input_and_quota_rpc.sql).
+      // Absent (undefined) for legacy result shapes and for the free-tier
+      // truncated payload — both correctly persist as null.
+      scenario_base_input: (result as unknown as { _scenarioBaseInput?: unknown })._scenarioBaseInput ?? null,
     } as any)
     .select('id')
     .single();

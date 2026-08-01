@@ -1,8 +1,10 @@
 import React, { useState, useCallback, lazy, Suspense } from 'react';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams, useLocation } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useAuth } from '@/hooks/useAuth';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import type { ScenarioRunRef } from '@/types/canonical-document-model';
 import { useDocumentDownload } from '@/hooks/useDocumentDownload';
 import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
@@ -191,9 +193,19 @@ const TEMPLATE_CARDS = [
 
 export default function DocsStudio() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const analysisId = searchParams.get('analysis') || undefined;
-  
+  const { hasFeature } = useEntitlements();
+  // Phase D — a promoted scenario run arrives via navigation state from
+  // ScenarioWorkspace. Gated on 'scenarioDocument': there is no server-side
+  // enforcement point for this (document creation is a direct client-side
+  // `documents` table insert, not an edge function), so this client check is
+  // the only gate — consistent with Docs Studio access itself already being
+  // Plus/Pro-only at the route level (PlusGate module="docs" in App.tsx).
+  const incomingScenarioRunRef = (location.state as { scenarioRunRef?: ScenarioRunRef } | null)?.scenarioRunRef;
+  const scenarioRunRef = incomingScenarioRunRef && hasFeature('scenarioDocument') ? incomingScenarioRunRef : undefined;
+
   // ALL HOOKS MUST BE AT THE TOP - before any conditional returns
   const [step, setStep] = useState<Step>('home');
   const [activeTab, setActiveTab] = useState<'templates' | 'documents'>('templates');
@@ -290,7 +302,7 @@ export default function DocsStudio() {
       // hash, engine/formula version) per variable when this document was
       // generated from an analysis — an empty object when it wasn't (e.g.
       // NDA/founder-agreement templates that don't pull financial data).
-      const canonicalVariables = analysisId ? getCanonicalVariables(analysisId) : null;
+      const canonicalVariables = analysisId ? getCanonicalVariables(analysisId, scenarioRunRef) : null;
 
       createDocument({
         templateId,
@@ -314,7 +326,7 @@ export default function DocsStudio() {
 
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal, getCanonicalVariables]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal, getCanonicalVariables, scenarioRunRef]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar

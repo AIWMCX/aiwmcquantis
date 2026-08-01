@@ -986,23 +986,18 @@ export default function Index() {
                       </div>
                       <h3 className="text-xl font-bold text-foreground mb-2">Scenario Modeling</h3>
                       <p className="text-sm text-muted-foreground max-w-md mb-6">
-                        Compare best-case, worst-case, and stress-test projections side by side.
-                        What-if modeling for pricing, churn, and market changes.
+                        Model what-if deltas on pricing, CAC, churn, and rent against this
+                        analysis using the same deterministic engine, then compare and save.
                       </p>
-                      <div className="grid grid-cols-3 gap-3 max-w-sm w-full mb-6">
-                        {['Optimistic', 'Base Case', 'Pessimistic'].map((label) => (
-                          <div
-                            key={label}
-                            className="p-3 rounded-lg border border-border bg-muted/30"
-                          >
-                            <p className="text-xs font-medium text-muted-foreground">{label}</p>
-                            <p className="text-lg font-bold text-foreground mt-1">—</p>
-                          </div>
-                        ))}
-                      </div>
-                      <Badge variant="secondary" className="text-xs">
-                        Coming Soon
-                      </Badge>
+                      {currentAnalysisId ? (
+                        <Button onClick={() => navigate(`/app/scenarios?analysisId=${currentAnalysisId}`)}>
+                          Open Scenario Workspace
+                        </Button>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Run or select an analysis first to model scenarios against it.
+                        </p>
+                      )}
                     </div>
                   </TabsContent>
                 </Tabs>

@@ -1,12 +1,12 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { checkScenarioMonotonicity } from './payback-contract.ts';
 import {
   calculateStrictFinancials,
   type StrictFinancialResult,
 } from './financial-calculator.ts';
-import { emitAnalysisSnapshot } from '../_shared/analysis-snapshot.ts';
+import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERSION, FORMULA_REGISTRY_VERSION as SCENARIO_BASE_INPUT_FORMULA_VERSION } from '../_shared/analysis-snapshot.ts';
+import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
@@ -317,31 +317,9 @@ export interface IndustryBenchmarks {
   keywords: string[];
 }
 
-// ========== INDUSTRY COST LABEL MAP ==========
-// Maps industry IDs to the appropriate label for COGS in reports
-// Software companies don't have "inventory" — they have infrastructure/hosting costs
-const INDUSTRY_COGS_LABELS: Record<string, string> = {
-  saas: 'infrastructure_and_hosting',
-  fintech: 'infrastructure_and_hosting',
-  education: 'content_and_platform',
-  media: 'content_production',
-  consulting: 'service_delivery',
-  healthcare: 'medical_supplies',
-  fitness: 'equipment_and_supplies',
-  food_service: 'inventory_replenishment',
-  ecommerce: 'inventory_replenishment',
-  logistics: 'fleet_and_fuel',
-  real_estate: 'property_costs',
-  general: 'cost_of_goods_sold',
-};
-
-// Maps industry IDs to investment categories (no "inventory" for software)
-const INDUSTRY_INVESTMENT_CATEGORIES: Record<string, { labels: Record<string, number> }> = {
-  saas: { labels: { product_development: 0.40, cloud_infrastructure: 0.15, legal: 0.05, marketing_initial: 0.10 } },
-  fintech: { labels: { product_development: 0.35, compliance_and_licensing: 0.15, cloud_infrastructure: 0.10, legal: 0.10, marketing_initial: 0.10 } },
-  consulting: { labels: { office_setup: 0.20, tools_and_software: 0.15, legal: 0.10, marketing_initial: 0.15 } },
-  education: { labels: { content_development: 0.35, platform_setup: 0.15, legal: 0.05, marketing_initial: 0.15 } },
-};
+// INDUSTRY_COGS_LABELS / INDUSTRY_INVESTMENT_CATEGORIES moved to
+// financial-analysis-shape.ts (Phase D, 2026-08-01) — they were only used by
+// the financial_analysis reshaping logic extracted into that file.
 
 const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
   {
@@ -1682,14 +1660,6 @@ function transformResponse(
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
-  // Handbook §19 P0-6/P0-7 (2026-07-12 CTO-verdict audit): scenario
-  // contradictions were detected and logged (server console only) but
-  // never surfaced on the report itself, and confidence_score had no
-  // awareness of them at all — the exact "95% confidence next to a
-  // detected contradiction" finding from the July 11 report. Set inside
-  // the scenarios{} IIFE below; read here at confidence-scoring time,
-  // both within this same transformResponse() function scope.
-  let scenarioContradictions: Array<{ code: string; message: string }> = [];
   const sources = Array.isArray(raw.sources)
     ? raw.sources.map((s: unknown) => String(s).trim()).filter(Boolean)
     : (typeof raw.sources === 'string' && raw.sources.trim().length > 0)
@@ -1747,326 +1717,14 @@ function transformResponse(
     userProvidedCustomers
   );
   
-  // Build calculation summary in English
-  const calculationsSummary = `
-## Financial Calculations Audit
-
-### Input Data
-- Revenue (MRR): $${calc.mrr.toLocaleString()}
-- Investment: $${calc.startupInvestment.toLocaleString()}
-- Average Check: $${calc.averageCheck}
-- CAC: $${calc.cac}
-- LTV: $${calc.ltv.toLocaleString()}
-- Industry: ${calc.industryDetected}
-
-### Expense Structure
-| Category | Amount | % of Revenue |
-|----------|--------|--------------|
-| COGS | $${calc.expenses.cogs.toLocaleString()} | ${Math.round(calc.expenses.cogs / calc.mrr * 100)}% |
-| Salaries | $${calc.expenses.salaries.toLocaleString()} | ${Math.round(calc.expenses.salaries / calc.mrr * 100)}% |
-| Rent | $${calc.expenses.rent.toLocaleString()} | ${Math.round(calc.expenses.rent / calc.mrr * 100)}% |
-| Utilities | $${calc.expenses.utilities.toLocaleString()} | ${Math.round(calc.expenses.utilities / calc.mrr * 100)}% |
-| Marketing | $${calc.expenses.marketing.toLocaleString()} | ${Math.round(calc.expenses.marketing / calc.mrr * 100)}% |
-| Other | $${calc.expenses.other.toLocaleString()} | ${Math.round(calc.expenses.other / calc.mrr * 100)}% |
-| **TOTAL** | **$${calc.totalExpenses.toLocaleString()}** | **${Math.round(calc.totalExpenses / calc.mrr * 100)}%** |
-
-### Profit Calculation
-**Profit = Revenue - Expenses**
-$${calc.mrr.toLocaleString()} - $${calc.totalExpenses.toLocaleString()} = **$${calc.netProfit.toLocaleString()}** ${calc.isProfitable ? '✓' : '❌ LOSS'}
-
-### Key Metrics
-- **Net Margin:** ${calc.netMarginPercent}% ${calc.netMarginPercent >= benchmarks.net_margin_min ? '✓' : '⚠'}
-- **LTV:CAC:** ${calc.ltvCacRatio}x ${calc.ltvCacRatio >= benchmarks.ltv_cac_min ? '✓' : '⚠'}
-- **Payback:** ${calc.paybackMonths === 999 ? 'never' : calc.paybackMonths + ' months'}
-- **Year 1 ROI:** ${calc.roiYear1Percent}%
-
-### Break-even Points
-- **For zero profit:** $${calc.breakEvenRevenue.toLocaleString()}/mo
-- **For $45k profit:** $${calc.revenueFor45kProfit.toLocaleString()}/mo
-
-### Formula Audit
-${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
-`.trim();
+  // financial_analysis reshaping extracted to financial-analysis-shape.ts
+  // (Phase D, 2026-08-01) so run-scenario can reuse the exact same shape —
+  // see that file's header comment. No behavior change versus the inline
+  // version this replaced.
+  const { financialAnalysis, scenarioContradictions } = shapeFinancialAnalysis(calc, benchmarks, log);
 
   return {
-    financial_analysis: {
-      inputs: {
-        price_per_unit: calc.averageCheck,
-        units_sold_monthly: calc.ordersMonthly,
-        purchase_frequency: benchmarks.orders_per_client,
-        upsell_per_customer: 0,
-        cogs_per_unit: Math.round(calc.averageCheck * (benchmarks.cogs_percent / 100)),
-        fixed_opex: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-        marketing_budget: calc.expenses.marketing,
-        cac: calc.cac,
-        startup_investment: calc.startupInvestment,
-        capex: Math.round(calc.startupInvestment * 0.45),
-        ltv: calc.ltv,
-        churn_rate: Math.round(100 / benchmarks.client_lifetime_months) / 100
-      },
-      mrr: calc.mrr,
-      arr: calc.mrr * 12,
-      scenarios: (() => {
-        // CRITICAL FIX: Calculate expenses from breakdown, not calc.totalExpenses
-        const fixedCosts = calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other;
-        const baseCogsPercent = calc.mrr > 0 ? calc.expenses.cogs / calc.mrr : 0;
-        
-        // Pessimistic scenario: 20% less revenue + margin COMPRESSION (+5% COGS ratio)
-        const pessRevenue = Math.round(calc.mrr * 0.8);
-        const pessCogsRatio = Math.min(baseCogsPercent + 0.05, 0.95);
-        const pessCogs = Math.round(pessRevenue * pessCogsRatio);
-        const pessMarketing = Math.round(calc.expenses.marketing * 0.85);
-        const pessFixed = Math.round(fixedCosts * 1.05);
-        const pessTotalExpenses = pessCogs + pessMarketing + pessFixed;
-        const pessNetProfit = pessRevenue - pessTotalExpenses;
-        const pessGrossProfit = pessRevenue - pessCogs;
-        const pessNetMargin = pessRevenue > 0 ? Math.round((pessNetProfit / pessRevenue) * 100) : 0;
-        const pessGrossMargin = pessRevenue > 0 ? Math.round((pessGrossProfit / pessRevenue) * 100) : 0;
-        
-        // Base scenario: current values
-        const baseVariableCosts = calc.expenses.cogs + calc.expenses.marketing;
-        const baseTotalExpenses = fixedCosts + baseVariableCosts;
-        const baseNetProfit = calc.mrr - baseTotalExpenses;
-        const baseNetMargin = calc.mrr > 0 ? Math.round((baseNetProfit / calc.mrr) * 100) : 0;
-        
-        // Optimistic scenario: 25% more revenue + margin EXPANSION (-2% COGS ratio)
-        const optRevenue = Math.round(calc.mrr * 1.25);
-        const optCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01);
-        const optCogs = Math.round(optRevenue * optCogsRatio);
-        const optMarketing = Math.round(calc.expenses.marketing * 1.20);
-        const optFixed = Math.round(fixedCosts * 0.95);
-        const optTotalExpenses = optCogs + optMarketing + optFixed;
-        const optNetProfit = optRevenue - optTotalExpenses;
-        const optGrossProfit = optRevenue - optCogs;
-        const optNetMargin = optRevenue > 0 ? Math.round((optNetProfit / optRevenue) * 100) : 0;
-        const optGrossMargin = optRevenue > 0 ? Math.round((optGrossProfit / optRevenue) * 100) : 0;
-        
-        const builtScenarios = {
-          pessimistic: {
-            revenue: pessRevenue,
-            variable_costs: pessCogs + pessMarketing,
-            fixed_costs: pessFixed,
-            gross_profit: pessGrossProfit,
-            net_profit: pessNetProfit,
-            gross_margin: pessGrossMargin,
-            net_margin: pessNetMargin
-          },
-          base: {
-            revenue: calc.mrr,
-            variable_costs: baseVariableCosts,
-            fixed_costs: fixedCosts,
-            gross_profit: calc.grossProfit,
-            net_profit: baseNetProfit,
-            gross_margin: calc.grossMarginPercent,
-            net_margin: baseNetMargin
-          },
-          optimistic: {
-            revenue: optRevenue,
-            variable_costs: optCogs + optMarketing,
-            fixed_costs: optFixed,
-            gross_profit: optGrossProfit,
-            net_profit: optNetProfit,
-            gross_margin: optGrossMargin,
-            net_margin: optNetMargin
-          }
-        };
-
-        // Handbook §19 Wave 2 (item 5) — detect a scenario where revenue moves
-        // one direction but net profit moves the other, with no driver
-        // explanation attached. Does not block the request or alter the
-        // numbers (a documented driver explanation per scenario, Handbook
-        // §9.1, is a narrative-generation feature, not an engine-level
-        // change — deferred pending that scope and product sign-off on
-        // rejecting live user requests). But per P0-6/P0-7, it must no
-        // longer be silent: it's now surfaced on the report itself and
-        // caps the confidence score below.
-        try {
-          const monotonicityIssues = checkScenarioMonotonicity(builtScenarios);
-          scenarioContradictions = monotonicityIssues;
-          for (const issue of monotonicityIssues) {
-            log.warn(`⚠️ Scenario monotonicity [${issue.code}]: ${issue.message}`);
-          }
-        } catch (monotonicityErr) {
-          log.warn(`Scenario monotonicity check failed (non-fatal): ${String(monotonicityErr)}`);
-        }
-
-        return builtScenarios;
-      })(),
-      unit_economics: {
-        // NOTE (Handbook §19 Wave 1, 2026-07-12): this contribution_margin
-        // uses only benchmark cogs_percent against averageCheck — it is
-        // actually gross margin per unit under an industry-typical COGS
-        // assumption, not real contribution margin (no variable OPEX like
-        // marketing is netted out). Left unchanged here — unknown how many
-        // consumers already read this exact field/shape — but the correctly
-        // computed contribution margin (variable costs = actual cogs +
-        // actual marketing, not a benchmark COGS%) now lives at
-        // financial_analysis.cvp.contributionMarginRatio. Do not treat
-        // these two fields as interchangeable.
-        contribution_margin: Math.round(calc.averageCheck - calc.averageCheck * (benchmarks.cogs_percent / 100)),
-        contribution_margin_ratio: (100 - benchmarks.cogs_percent) / 100,
-        cac: calc.cac,
-        cac_payback_months: QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - benchmarks.cogs_percent) / 100), 1),
-        ltv: calc.ltv,
-        ltv_cac_ratio: calc.ltvCacRatio
-      },
-      // Handbook §19 Wave 1 — Contribution Margin & CVP
-      // (docs/WAVE1_CONTRIBUTION_MARGIN_CVP_FORMULA_CONTRACTS_2026-07-12.md).
-      // The correctly computed family: real contribution margin (actual
-      // variable costs, not a benchmark COGS%), break-even, margin of
-      // safety, degree of operating leverage — every field typed, no
-      // sentinels, no silent floor-guards hiding an unachievable break-even.
-      cvp: calc.cvp,
-      // Handbook §19 Wave 2 — Profitability Margins
-      // (docs/WAVE2_PROFITABILITY_RATIOS_FORMULA_CONTRACT_2026-07-12.md).
-      profitability_margins: calc.profitabilityMargins,
-      // Handbook §19 Wave 3 — Leverage Ratios. All six metrics type as
-      // INSUFFICIENT_INPUTS with specific reasonCodes (no debt schedule
-      // collected). Exposed on the payload so future code cannot silently
-      // fabricate a leverage value; see
-      // docs/WAVE3_LEVERAGE_RATIOS_FORMULA_CONTRACT_2026-07-12.md.
-      leverage_ratios: calc.leverageRatios,
-      breakeven: {
-        breakeven_units: Math.ceil(calc.breakEvenRevenue / Math.max(calc.averageCheck, 1)),
-        breakeven_revenue: calc.breakEvenRevenue,
-        breakeven_months: calc.isProfitable ? Math.min(calc.paybackMonths, 24) : 0
-      },
-      returns: {
-        payback_period_months: calc.paybackMonths,
-        // Handbook §19 Wave 2 — additive typed contract alongside the legacy
-        // numeric field above. New consumers should prefer this; the numeric
-        // field keeps its existing 999-sentinel wire contract unchanged for
-        // the 20+ existing call sites that already guard against it.
-        investment_payback_result: calc.paybackResult,
-        roi_year_1: calc.roiYear1Percent,
-        roi_year_3: Math.round((calc.netProfit * 36 / Math.max(calc.startupInvestment, 1)) * 100),
-        // BUG FIX: True DCF NPV at 10% annual WACC — not cumulative profit
-        npv_3_years: (() => {
-          const monthlyRate = Math.pow(1.10, 1 / 12) - 1;
-          let npv = -calc.startupInvestment;
-          for (let m = 1; m <= 36; m++) {
-            npv += calc.netProfit / Math.pow(1 + monthlyRate, m);
-          }
-          return Math.round(npv);
-        })(),
-      },
-      startup_investment: (() => {
-        // INDUSTRY-AWARE investment breakdown
-        const total = calc.startupInvestment;
-        const industryCategories = INDUSTRY_INVESTMENT_CATEGORIES[benchmarks.id];
-        
-        if (industryCategories) {
-          // Use industry-specific breakdown (no "inventory" for software)
-          const breakdown: Record<string, number> = {};
-          let allocated = 0;
-          for (const [label, pct] of Object.entries(industryCategories.labels)) {
-            breakdown[label] = Math.round(total * pct);
-            allocated += breakdown[label];
-          }
-          // Working capital absorbs remainder
-          breakdown.working_capital = total - allocated;
-          if (breakdown.working_capital < 0) breakdown.working_capital = 0;
-          
-          const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
-          if (breakdownSum !== total) {
-            breakdown.working_capital += (total - breakdownSum);
-          }
-          
-          return { total, breakdown, reasoning: `Industry-specific ${benchmarks.name} investment allocation` };
-        }
-        
-        // Default breakdown for physical businesses
-        const rentDeposit = Math.round(calc.expenses.rent * 2);
-        const equipment = Math.round(total * 0.40);
-        const inventory = Math.round(total * 0.15);
-        const legal = Math.min(2000, Math.round(total * 0.05));
-        const marketingInitial = Math.round(total * 0.10);
-        const workingCapital = total - rentDeposit - equipment - inventory - legal - marketingInitial;
-        
-        const breakdown: Record<string, number> = {
-          rent_deposit: rentDeposit,
-          equipment: equipment,
-          inventory: inventory,
-          legal: legal,
-          marketing_initial: marketingInitial,
-          working_capital: Math.max(0, workingCapital)
-        };
-        
-        const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
-        if (breakdownSum !== total) {
-          breakdown.working_capital += (total - breakdownSum);
-        }
-        
-        return {
-          total,
-          breakdown,
-          reasoning: `Investment $${total.toLocaleString()}: equipment 40%, inventory 15%, working capital ${Math.round(Math.max(0, workingCapital) / total * 100)}%, marketing 10%, deposit & legal ${Math.round((rentDeposit + legal) / total * 100)}%`
-        };
-      })(),
-      monthly_expenses: (() => {
-        // INDUSTRY-AWARE: Use appropriate label for COGS based on industry type
-        const cogsLabel = INDUSTRY_COGS_LABELS[benchmarks.id] || INDUSTRY_COGS_LABELS.general;
-        const breakdown: Record<string, number> = {
-          rent: calc.expenses.rent,
-          utilities: calc.expenses.utilities,
-          salaries: calc.expenses.salaries,
-          [cogsLabel]: calc.expenses.cogs,
-          marketing: calc.expenses.marketing,
-          other: calc.expenses.other
-        };
-        
-        // Calculate actual sum of breakdown items
-        const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
-        
-        // Log warning if there's a mismatch with calc.totalExpenses
-        if (Math.abs(breakdownSum - calc.totalExpenses) > 1) {
-          log.warn(`⚠️ Expense mismatch detected: breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses}. Using sum.`);
-        }
-        
-        return {
-          total: breakdownSum, // Use the SUM as the total, not the separate calc.totalExpenses
-          variable_costs: calc.expenses.cogs + calc.expenses.marketing,
-          fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
-          breakdown
-        };
-      })(),
-      risk_analysis: {
-        revenue_drop_20: {
-          scenario: "Revenue drops 20%",
-          description: "Demand decline, seasonality, or competition",
-          impact_on_revenue: -20,
-          impact_on_costs: 0,
-          resulting_profit: Math.round((calc.mrr * 0.8) - calc.totalExpenses * 0.95),
-          probability: "medium" as const
-        },
-        costs_rise_15: {
-          scenario: "Costs increase 15%",
-          description: "Inflation, supplier price increases, rent hikes",
-          impact_on_revenue: 0,
-          impact_on_costs: 15,
-          resulting_profit: Math.round(calc.mrr - calc.totalExpenses * 1.15),
-          probability: "high" as const
-        },
-        cac_doubles: {
-          scenario: "CAC doubles",
-          description: "Increased ad competition, market saturation",
-          impact_on_revenue: 0,
-          impact_on_costs: 0,
-          resulting_profit: Math.round(calc.netProfit - calc.expenses.marketing),
-          probability: "medium" as const
-        },
-        churn_increase: {
-          scenario: "Churn increases 50%",
-          description: "Quality issues, competitor offers, market shift",
-          impact_on_revenue: -15,
-          impact_on_costs: 0,
-          resulting_profit: Math.round((calc.mrr * 0.85) - calc.totalExpenses),
-          probability: "medium" as const
-        }
-      },
-      calculations_summary: calculationsSummary,
-      industry_detected: calc.industryDetected
-    },
+    financial_analysis: financialAnalysis,
     business_plan: {
       executive_summary: enforceNarrativeIntegrity(
         bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
@@ -2226,7 +1884,33 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
     // instead of reaching into a scope it never had access to.
     report_integrity: scenarioContradictions.length > 0 ? 'BLOCK' : 'PASS',
     report_integrity_issues: scenarioContradictions,
-    _calc: calc
+    _calc: calc,
+    // Phase D (2026-08-01): the exact raw bundle fed into
+    // calculateStrictFinancials, frozen so a later scenario re-run never has
+    // to re-derive industry/location/sub-industry detection (which drifts as
+    // the benchmark dataset changes over time — see migration
+    // 20260801030858_scenario_base_input_and_quota_rpc.sql). Unlike `_calc`,
+    // this is NOT stripped before the response is sent — the client persists
+    // it verbatim via analysisDb.ts's saveAnalysis() into
+    // analyses.scenario_base_input. Free-tier's truncated wirePayload (built
+    // from a fresh object literal, not a spread of `result`) naturally omits
+    // it, which is correct: only saved (Plus/Pro) analyses need it.
+    _scenarioBaseInput: {
+      rawMrr,
+      rawInvestment,
+      rawCac,
+      rawLtv,
+      rawAvgCheck,
+      benchmarks,
+      locationMultipliers,
+      subIndustry,
+      userProvidedCosts,
+      userProvidedChurnRate,
+      userProvidedCustomers,
+      engineVersion: SCENARIO_BASE_INPUT_ENGINE_VERSION,
+      formulaRegistryVersion: SCENARIO_BASE_INPUT_FORMULA_VERSION,
+      datasetVersion: String(BENCHMARK_COUNT),
+    },
   };
 }
 

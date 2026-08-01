@@ -1,0 +1,408 @@
+import React, { useEffect, useState, useCallback } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { AppLayout } from '@/components/layout/AppLayout';
+import { PageSEO } from '@/components/seo/PageSEO';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { useEntitlements } from '@/hooks/useEntitlements';
+import {
+  createScenarioSet,
+  runScenario,
+  promoteScenario,
+  ScenarioEntitlementError,
+  type ScenarioAssumptionKey,
+  type ScenarioDeltaChange,
+  type RunScenarioResult,
+} from '@/services/scenario-sets-api';
+import { ArrowLeft, Loader2, Sparkles, Lock } from 'lucide-react';
+import { toast } from 'sonner';
+
+const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
+  monthly_revenue: 'Monthly revenue',
+  startup_investment: 'Startup investment',
+  cac: 'Customer acquisition cost',
+  average_price: 'Average price',
+  monthly_costs: 'Monthly costs',
+  churn_rate: 'Churn rate',
+  expected_customers: 'Expected customers',
+  rent: 'Rent',
+};
+
+interface ScenarioSetRow {
+  id: string;
+  name: string;
+  created_at: string;
+}
+
+interface ScenarioRow {
+  id: string;
+  name: string;
+}
+
+/**
+ * Phase D — standalone route (not an AppDashboard tab): scenario building is
+ * multi-step and may target a historical analysis, so it owns its own data
+ * fetching via ?analysisId=/&setId= rather than assuming dashboard state.
+ * Wrapped in ProtectedRoute only (see src/App.tsx) — free users have
+ * scenarioView/scenarioCustom and can build + preview here; only
+ * save/compare/promote are gated inline via useEntitlements().
+ */
+export default function ScenarioWorkspace() {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const analysisId = searchParams.get('analysisId');
+  const setId = searchParams.get('setId');
+  const { hasFeature } = useEntitlements();
+
+  const [baseAvailable, setBaseAvailable] = useState<boolean | null>(null);
+  const [scenarioSets, setScenarioSets] = useState<ScenarioSetRow[]>([]);
+  const [loadingSets, setLoadingSets] = useState(true);
+
+  const [scenarios, setScenarios] = useState<Array<{ id: string; name: string; run: RunScenarioResult | null }>>([]);
+  const [loadingCompare, setLoadingCompare] = useState(false);
+
+  const [changes, setChanges] = useState<Partial<Record<ScenarioAssumptionKey, string>>>({});
+  const [scenarioName, setScenarioName] = useState('');
+  const [preview, setPreview] = useState<RunScenarioResult | null>(null);
+  const [isRunning, setIsRunning] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isPromoting, setIsPromoting] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!analysisId || !user) return;
+    supabase
+      .from('analyses')
+      .select('scenario_base_input')
+      .eq('id', analysisId)
+      .eq('user_id', user.id)
+      .maybeSingle()
+      .then(({ data }) => setBaseAvailable(!!data?.scenario_base_input));
+  }, [analysisId, user]);
+
+  const loadSets = useCallback(() => {
+    if (!analysisId || !user) return;
+    setLoadingSets(true);
+    supabase
+      .from('scenario_sets')
+      .select('id, name, created_at')
+      .eq('analysis_id', analysisId)
+      .eq('user_id', user.id)
+      .is('archived_at', null)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setScenarioSets(data ?? []);
+        setLoadingSets(false);
+      });
+  }, [analysisId, user]);
+
+  useEffect(() => { loadSets(); }, [loadSets]);
+
+  const loadCompare = useCallback(async () => {
+    if (!setId || !user) return;
+    setLoadingCompare(true);
+    const { data: scenarioRows } = await supabase
+      .from('scenarios')
+      .select('id, name')
+      .eq('scenario_set_id', setId)
+      .eq('user_id', user.id);
+
+    const withRuns = await Promise.all(
+      (scenarioRows ?? []).map(async (s: ScenarioRow) => {
+        const { data: versions } = await supabase
+          .from('scenario_versions')
+          .select('id')
+          .eq('scenario_id', s.id)
+          .order('version_number', { ascending: false })
+          .limit(1);
+        const latestVersionId = versions?.[0]?.id;
+        if (!latestVersionId) return { id: s.id, name: s.name, run: null };
+        const { data: run } = await supabase
+          .from('scenario_runs')
+          .select('id, output, output_hash, engine_version, formula_version, reconciliation_status')
+          .eq('scenario_version_id', latestVersionId)
+          .maybeSingle();
+        return {
+          id: s.id,
+          name: s.name,
+          run: run
+            ? ({
+                persisted: true,
+                run_id: run.id,
+                output: run.output,
+                reconciliation_status: run.reconciliation_status,
+              } as unknown as RunScenarioResult)
+            : null,
+        };
+      }),
+    );
+    setScenarios(withRuns);
+    setLoadingCompare(false);
+  }, [setId, user]);
+
+  useEffect(() => { if (setId) loadCompare(); }, [setId, loadCompare]);
+
+  const buildChanges = (): ScenarioDeltaChange[] =>
+    Object.entries(changes)
+      .filter(([, v]) => v !== undefined && v !== '')
+      .map(([key, value]) => ({
+        assumption_key: key as ScenarioAssumptionKey,
+        operation: 'increase_pct' as const,
+        value: Number(value),
+      }));
+
+  const handlePreview = async () => {
+    if (!setId) {
+      toast.error('Create a scenario set first');
+      return;
+    }
+    setIsRunning(true);
+    try {
+      const result = await runScenario({ scenarioSetId: setId, changes: buildChanges(), persist: false });
+      setPreview(result);
+    } catch (e) {
+      if (e instanceof ScenarioEntitlementError) {
+        toast.error(e.message);
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Preview failed');
+      }
+    } finally {
+      setIsRunning(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!analysisId) return;
+    setIsSaving(true);
+    try {
+      let targetSetId = setId;
+      if (!targetSetId) {
+        const created = await createScenarioSet(analysisId);
+        targetSetId = created.scenario_set_id;
+      }
+      const result = await runScenario({
+        scenarioSetId: targetSetId!,
+        name: scenarioName || 'Custom Scenario',
+        changes: buildChanges(),
+        persist: true,
+      });
+      toast.success('Scenario saved');
+      navigate(`/app/scenarios?analysisId=${analysisId}&setId=${targetSetId}`);
+      setPreview(result);
+    } catch (e) {
+      if (e instanceof ScenarioEntitlementError) {
+        toast.error(e.message, { description: 'Upgrade to Plus or Pro to save scenarios.' });
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Save failed');
+      }
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handlePromote = async (runId: string) => {
+    setIsPromoting(runId);
+    try {
+      const ref = await promoteScenario(runId);
+      navigate('/docs', { state: { scenarioRunRef: ref } });
+    } catch (e) {
+      if (e instanceof ScenarioEntitlementError) {
+        toast.error(e.message, { description: 'Upgrade to Plus or Pro to promote scenarios to documents.' });
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Promote failed');
+      }
+    } finally {
+      setIsPromoting(null);
+    }
+  };
+
+  if (!analysisId) {
+    return (
+      <AppLayout title="Scenario Modeling">
+        <div className="max-w-3xl mx-auto px-4 py-10 text-center space-y-4">
+          <p className="text-muted-foreground">Pick an analysis from your history to start modeling scenarios.</p>
+          <Button onClick={() => navigate('/app?tab=history')}>Go to history</Button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  return (
+    <AppLayout title="Scenario Modeling">
+      <PageSEO
+        title="Scenario Modeling — Quantis"
+        description="Model what-if scenarios against your analysis using the same deterministic engine, then compare and promote results into documents."
+        canonical="/app/scenarios"
+      />
+      <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+        <button
+          onClick={() => navigate('/app')}
+          className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" />
+          Back to dashboard
+        </button>
+
+        <div className="flex items-center gap-3">
+          <Sparkles className="w-5 h-5 text-primary" />
+          <h1 className="text-xl font-semibold">Scenario Modeling</h1>
+        </div>
+
+        {baseAvailable === false && (
+          <Card className="border-amber-500/40">
+            <CardContent className="pt-6 text-sm text-muted-foreground">
+              This analysis was saved before scenario modeling was enabled. Re-run it to unlock scenarios.
+            </CardContent>
+          </Card>
+        )}
+
+        {!setId && (
+          <Card>
+            <CardHeader><CardTitle className="text-base">Saved Scenario Sets</CardTitle></CardHeader>
+            <CardContent className="space-y-2">
+              {loadingSets ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : scenarioSets.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No saved sets yet — build one below and save it.</p>
+              ) : (
+                scenarioSets.map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => navigate(`/app/scenarios?analysisId=${analysisId}&setId=${s.id}`)}
+                    className="w-full text-left p-3 rounded-lg border hover:border-primary transition-colors flex items-center justify-between"
+                  >
+                    <span>{s.name}</span>
+                    <span className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleDateString()}</span>
+                  </button>
+                ))
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        {setId && (
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle className="text-base">Compare Scenarios</CardTitle>
+              {!hasFeature('scenarioCompare') && (
+                <Badge variant="secondary"><Lock className="w-3 h-3 mr-1" />Upgrade to compare</Badge>
+              )}
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {loadingCompare ? (
+                <Loader2 className="w-4 h-4 animate-spin" />
+              ) : scenarios.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No scenarios in this set yet.</p>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-sm">
+                    <thead>
+                      <tr className="text-left text-muted-foreground border-b">
+                        <th className="py-2 pr-4">Scenario</th>
+                        <th className="py-2 pr-4">Revenue</th>
+                        <th className="py-2 pr-4">Net Profit</th>
+                        <th className="py-2 pr-4">Status</th>
+                        <th className="py-2" />
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {scenarios.map((s) => {
+                        const base = s.run?.output?.financial_analysis?.scenarios?.base;
+                        return (
+                          <tr key={s.id} className="border-b last:border-0">
+                            <td className="py-2 pr-4 font-medium">{s.name}</td>
+                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.revenue.toLocaleString()}` : '—'}</td>
+                            <td className="py-2 pr-4 tabular-nums">{base ? `$${base.net_profit.toLocaleString()}` : '—'}</td>
+                            <td className="py-2 pr-4">
+                              <Badge variant={s.run?.reconciliation_status === 'passed' ? 'default' : 'secondary'}>
+                                {s.run?.reconciliation_status ?? 'unknown'}
+                              </Badge>
+                            </td>
+                            <td className="py-2">
+                              {s.run?.run_id && (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  disabled={!hasFeature('scenarioPromote') || isPromoting === s.run.run_id}
+                                  onClick={() => handlePromote(s.run!.run_id!)}
+                                >
+                                  {isPromoting === s.run.run_id ? <Loader2 className="w-3 h-3 animate-spin" /> : 'Promote to Document'}
+                                </Button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        )}
+
+        <Card>
+          <CardHeader><CardTitle className="text-base">Build a Scenario</CardTitle></CardHeader>
+          <CardContent className="space-y-4">
+            <div>
+              <Label htmlFor="scenario-name">Scenario name</Label>
+              <Input
+                id="scenario-name"
+                value={scenarioName}
+                onChange={(e) => setScenarioName(e.target.value)}
+                placeholder="e.g. Higher CAC"
+              />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              {(Object.keys(ASSUMPTION_LABELS) as ScenarioAssumptionKey[]).map((key) => (
+                <div key={key}>
+                  <Label htmlFor={key}>{ASSUMPTION_LABELS[key]} (% change)</Label>
+                  <Input
+                    id={key}
+                    type="number"
+                    value={changes[key] ?? ''}
+                    onChange={(e) => setChanges((c) => ({ ...c, [key]: e.target.value }))}
+                    placeholder="0"
+                  />
+                </div>
+              ))}
+            </div>
+
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={handlePreview} disabled={isRunning || baseAvailable === false}>
+                {isRunning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                Preview
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={isSaving || baseAvailable === false || !hasFeature('scenarioSave')}
+                title={!hasFeature('scenarioSave') ? 'Upgrade to Plus or Pro to save scenarios' : undefined}
+              >
+                {isSaving ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
+                {hasFeature('scenarioSave') ? 'Save to Scenario Set' : <><Lock className="w-3 h-3 mr-2" />Save (Upgrade)</>}
+              </Button>
+            </div>
+
+            {preview && (
+              <div className="rounded-lg border p-4 space-y-2 text-sm">
+                <div className="font-medium">Preview result</div>
+                <div className="grid grid-cols-2 gap-2 tabular-nums">
+                  <div>Revenue: ${preview.output.financial_analysis.scenarios.base.revenue.toLocaleString()}</div>
+                  <div>Net Profit: ${preview.output.financial_analysis.scenarios.base.net_profit.toLocaleString()}</div>
+                </div>
+                <Badge variant={preview.output.reconciliation.all_passed ? 'default' : 'secondary'}>
+                  {preview.output.reconciliation.all_passed ? 'Reconciliation passed' : 'Reconciliation issues found'}
+                </Badge>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+    </AppLayout>
+  );
+}

@@ -275,6 +275,61 @@ export async function requireDownloadQuota(
   return { tier, used: result.used, limit };
 }
 
+/**
+ * Consume one scenario_set slot from the per-analysis quota AND create the
+ * row, atomically (see consume_scenario_set_quota in migration
+ * 20260801030858_scenario_base_input_and_quota_rpc.sql). Unlike
+ * requireAnalysisQuota/requireDownloadQuota (which increment a counter),
+ * this RPC performs the count-check and the scenario_sets INSERT in one
+ * transaction — there is no separate insert step for the caller to run.
+ * Returns the new row's id as scenarioSetId. Throws on quota exceeded.
+ */
+export async function requireScenarioSetQuota(
+  supabase: SupabaseClient,
+  userId: string,
+  analysisId: string,
+  name: string,
+  baseSnapshotId: number | null = null,
+  path?: string,
+): Promise<{ tier: TierId; used: number; limit: number; scenarioSetId: string }> {
+  const { tier } = await getUserTier(supabase, userId);
+  const limit = LIMITS[tier].scenarioSetsPerAnalysis;
+
+  if (limit <= 0) {
+    await logDenial(supabase, userId, tier, 'scenarioSetsPerAnalysis', path, { used: 0, limit });
+    throw new EntitlementError('scenarioSetsPerAnalysis', tier, 'quota_exceeded', { used: 0, limit });
+  }
+
+  const { data, error } = await supabase.rpc('consume_scenario_set_quota', {
+    p_user_id: userId,
+    p_analysis_id: analysisId,
+    p_limit: isFinite(limit) ? limit : 2147483647,
+    p_name: name,
+    p_base_snapshot_id: baseSnapshotId,
+  });
+
+  if (error) {
+    console.error('[entitlements] consume_scenario_set_quota error:', error.message);
+    await logDenial(supabase, userId, tier, 'scenarioSetsPerAnalysis', path, { rpc_error: error.message });
+    throw new EntitlementError('scenarioSetsPerAnalysis', tier, 'quota_exceeded', { rpcError: true });
+  }
+
+  const result = data as { allowed: boolean; used: number; limit: number; scenario_set_id?: string };
+  if (!result?.allowed) {
+    await logDenial(supabase, userId, tier, 'scenarioSetsPerAnalysis', path, { used: result?.used, limit });
+    throw new EntitlementError('scenarioSetsPerAnalysis', tier, 'quota_exceeded', {
+      used: result?.used,
+      limit,
+    });
+  }
+  if (!result.scenario_set_id) {
+    // Should never happen when allowed === true — fail closed rather than
+    // return a success shape with no created row for the caller to use.
+    throw new EntitlementError('scenarioSetsPerAnalysis', tier, 'quota_exceeded', { rpcError: true });
+  }
+  return { tier, used: result.used, limit, scenarioSetId: result.scenario_set_id };
+}
+
 // ---------- Helpers ----------
 
 /** Limit lookup without consumption. Use for read-only UI hydration. */

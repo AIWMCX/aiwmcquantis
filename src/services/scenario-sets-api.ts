@@ -1,0 +1,118 @@
+/**
+ * Phase D — thin client wrapper around the three scenario edge functions.
+ * Deliberately distinct name from src/services/scenario-engine.ts, which is
+ * an unrelated, non-persisted client-side Monte-Carlo stress-test widget —
+ * do not merge or confuse the two.
+ */
+import { supabase } from '@/integrations/supabase/client';
+
+export type ScenarioAssumptionKey =
+  | 'monthly_revenue'
+  | 'startup_investment'
+  | 'cac'
+  | 'average_price'
+  | 'monthly_costs'
+  | 'churn_rate'
+  | 'expected_customers'
+  | 'rent';
+
+export type ScenarioDeltaOperation = 'replace' | 'increase_pct' | 'decrease_pct';
+
+export interface ScenarioDeltaChange {
+  assumption_key: ScenarioAssumptionKey;
+  operation: ScenarioDeltaOperation;
+  value: number;
+}
+
+export interface ScenarioRunOutput {
+  // deno-lint-ignore no-explicit-any
+  financial_analysis: Record<string, any>;
+  metadata: { industry_detected: string };
+  reconciliation: {
+    checks: Array<{ rule: string; label: string; pass: boolean; skipped?: boolean; note?: string }>;
+    all_passed: boolean;
+    passed_count: number;
+    failed_count: number;
+    skipped_count: number;
+    engine_version: string;
+  };
+}
+
+export interface RunScenarioResult {
+  persisted: boolean;
+  deduplicated?: boolean;
+  scenario_id?: string;
+  version_id?: string;
+  run_id?: string;
+  output: ScenarioRunOutput;
+  reconciliation_status: 'passed' | 'failed' | 'unknown';
+}
+
+export interface ScenarioRunRefPayload {
+  scenarioRunId: string;
+  outputHash: string;
+  engineVersion: string;
+  formulaVersion: string;
+  output: ScenarioRunOutput;
+}
+
+/** Thrown for any entitlement-denied (402) response, so callers can show an upsell. */
+export class ScenarioEntitlementError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly feature?: string,
+  ) {
+    super(message);
+    this.name = 'ScenarioEntitlementError';
+  }
+}
+
+async function invokeScenarioFn<T>(fn: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(fn, { body });
+  if (error) {
+    // supabase-js surfaces non-2xx as a generic FunctionsHttpError; the real
+    // status/body live on error.context (a Response) for 402s.
+    // deno-lint-ignore no-explicit-any
+    const context = (error as any)?.context;
+    if (context?.status === 402) {
+      const payload = await context.json().catch(() => null);
+      throw new ScenarioEntitlementError(
+        payload?.message ?? 'This feature requires an upgrade.',
+        payload?.code ?? 'FEATURE_LOCKED',
+        payload?.feature,
+      );
+    }
+    throw new Error(error.message || `${fn} failed`);
+  }
+  return data as T;
+}
+
+export function createScenarioSet(analysisId: string, name?: string) {
+  return invokeScenarioFn<{ scenario_set_id: string; used: number; limit: number }>(
+    'create-scenario-set',
+    { analysis_id: analysisId, name },
+  );
+}
+
+export function runScenario(params: {
+  scenarioSetId: string;
+  scenarioId?: string;
+  name?: string;
+  startingCase?: string;
+  changes: ScenarioDeltaChange[];
+  persist: boolean;
+}) {
+  return invokeScenarioFn<RunScenarioResult>('run-scenario', {
+    scenario_set_id: params.scenarioSetId,
+    scenario_id: params.scenarioId,
+    name: params.name,
+    starting_case: params.startingCase,
+    changes: params.changes,
+    persist: params.persist,
+  });
+}
+
+export function promoteScenario(scenarioRunId: string) {
+  return invokeScenarioFn<ScenarioRunRefPayload>('promote-scenario', { scenario_run_id: scenarioRunId });
+}

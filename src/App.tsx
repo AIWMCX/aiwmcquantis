@@ -58,6 +58,7 @@ const VsComparePage = lazy(() => import("./pages/vs/VsComparePage"));
 const DirectoryTracker = lazy(() => import("./pages/DirectoryTracker"));
 const Research = lazy(() => import("./pages/Research"));
 const PreMortem = lazy(() => import("./pages/PreMortem"));
+const ScenarioWorkspace = lazy(() => import("./pages/ScenarioWorkspace"));
 const Status = lazy(() => import("./pages/Status"));
 const Security = lazy(() => import("./pages/Security"));
 const RefundPolicy = lazy(() => import("./pages/RefundPolicy"));
@@ -215,6 +216,15 @@ const App = () => {
                     <PlusGate module="pre-mortem">
                       <PreMortem />
                     </PlusGate>
+                  </ProtectedRoute>
+                } />
+                {/* Phase D — deliberately NOT wrapped in PlusGate: free users
+                    have scenarioView/scenarioCustom and can build + preview;
+                    only save/compare/promote are gated inline via
+                    useEntitlements() inside the page itself. */}
+                <Route path="/app/scenarios" element={
+                  <ProtectedRoute>
+                    <ScenarioWorkspace />
                   </ProtectedRoute>
                 } />
                 <Route path="/settings/brand" element={

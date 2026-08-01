@@ -4,7 +4,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from './useAuth';
 import { toast } from 'sonner';
 import type { BusinessAnalysisResult } from '@/types/analysis';
-import type { CanonicalModelSnapshot, DocumentVariable } from '@/types/canonical-document-model';
+import type { CanonicalModelSnapshot, DocumentVariable, ScenarioRunRef } from '@/types/canonical-document-model';
 import { mapCanonicalModelToDocumentVariables } from '@/lib/canonical-document-mapper';
 
 export interface AnalysisSummary {
@@ -197,12 +197,15 @@ export function useAnalysisAutoFill() {
   });
 
   const getCanonicalVariables = useCallback(
-    (analysisId: string): Record<string, DocumentVariable> | null => {
+    // Phase D: an optional scenarioRun swaps in a saved scenario's numbers —
+    // the mapper already resolves `scenarioRun?.output ?? modelSnapshot.result`
+    // (canonical-document-mapper.ts), so this is the only wiring needed here.
+    (analysisId: string, scenarioRun?: ScenarioRunRef): Record<string, DocumentVariable> | null => {
       const analysis = analyses?.find((a) => a.id === analysisId);
       if (!analysis) return null;
       const snapshot = snapshotsByAnalysisId?.get(analysisId);
       const canonical = toCanonicalSnapshot(analysis, snapshot);
-      return mapCanonicalModelToDocumentVariables(canonical);
+      return mapCanonicalModelToDocumentVariables(canonical, scenarioRun);
     },
     [analyses, snapshotsByAnalysisId],
   );

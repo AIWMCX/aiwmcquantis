@@ -15,8 +15,8 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import type { MonthsMetricResult } from '../analyze-business/payback-contract.ts';
 
-const ENGINE_VERSION = '2.0.0-precision';
-const FORMULA_REGISTRY_VERSION = '1.0.0';
+export const ENGINE_VERSION = '2.0.0-precision';
+export const FORMULA_REGISTRY_VERSION = '1.0.0';
 
 export interface AnalysisSnapshotInput {
   correlationId: string;
@@ -31,7 +31,7 @@ export interface AnalysisSnapshotInput {
   validationIssues?: unknown[];
 }
 
-async function sha256Hex(value: unknown): Promise<string> {
+export async function sha256Hex(value: unknown): Promise<string> {
   const json = JSON.stringify(value, Object.keys(value as object).sort());
   const bytes = new TextEncoder().encode(json);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
