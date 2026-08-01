@@ -20,7 +20,7 @@ import {
   type ScenarioDeltaChange,
   type RunScenarioResult,
 } from '@/services/scenario-sets-api';
-import { ArrowLeft, Loader2, Sparkles, Lock } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Lock, GitBranch, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
@@ -43,6 +43,15 @@ interface ScenarioSetRow {
 interface ScenarioRow {
   id: string;
   name: string;
+}
+
+interface AnalysisHistoryRow {
+  id: string;
+  idea: string;
+  location: string;
+  created_at: string;
+  confidence_score: number | null;
+  scenario_base_input: unknown;
 }
 
 /**
@@ -74,6 +83,44 @@ export default function ScenarioWorkspace() {
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPromoting, setIsPromoting] = useState<string | null>(null);
+
+  // Landing view (no ?analysisId): the user's own completed-analysis
+  // history, each flagged with how many scenario sets already exist for it —
+  // this is the "general page" the sidebar's Scenarios link opens directly,
+  // not a placeholder that requires picking an analysis elsewhere first.
+  const [historyAnalyses, setHistoryAnalyses] = useState<AnalysisHistoryRow[]>([]);
+  const [scenarioCounts, setScenarioCounts] = useState<Map<string, number>>(new Map());
+  const [loadingHistory, setLoadingHistory] = useState(true);
+
+  useEffect(() => {
+    if (analysisId || !user) return;
+    let cancelled = false;
+    setLoadingHistory(true);
+    (async () => {
+      const [{ data: analysesData }, { data: setsData }] = await Promise.all([
+        supabase
+          .from('analyses')
+          .select('id, idea, location, created_at, confidence_score, scenario_base_input')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(50),
+        supabase
+          .from('scenario_sets')
+          .select('analysis_id')
+          .eq('user_id', user.id)
+          .is('archived_at', null),
+      ]);
+      if (cancelled) return;
+      const counts = new Map<string, number>();
+      for (const row of setsData ?? []) {
+        counts.set(row.analysis_id, (counts.get(row.analysis_id) ?? 0) + 1);
+      }
+      setHistoryAnalyses((analysesData ?? []) as AnalysisHistoryRow[]);
+      setScenarioCounts(counts);
+      setLoadingHistory(false);
+    })();
+    return () => { cancelled = true; };
+  }, [analysisId, user]);
 
   useEffect(() => {
     if (!analysisId || !user) return;
@@ -245,9 +292,77 @@ export default function ScenarioWorkspace() {
   if (!analysisId) {
     return (
       <AppLayout title="Scenario Modeling">
-        <div className="max-w-3xl mx-auto px-4 py-10 text-center space-y-4">
-          <p className="text-muted-foreground">Pick an analysis from your history to start modeling scenarios.</p>
-          <Button onClick={() => navigate('/app?tab=history')}>Go to history</Button>
+        <PageSEO
+          title="Scenario Modeling — Quantis"
+          description="Model what-if scenarios against any of your completed analyses using the same deterministic engine, then compare and promote results into documents."
+          canonical="/app/scenarios"
+        />
+        <div className="max-w-4xl mx-auto px-4 py-6 space-y-6">
+          <button
+            onClick={() => navigate('/app')}
+            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          >
+            <ArrowLeft className="w-3.5 h-3.5" />
+            Back to dashboard
+          </button>
+
+          <div className="flex items-center gap-3">
+            <Sparkles className="w-5 h-5 text-primary shrink-0" />
+            <h1 className="text-xl font-semibold">Scenario Modeling</h1>
+          </div>
+          <p className="text-sm text-muted-foreground -mt-4">
+            Pick a completed analysis to model what-if changes against — same engine, same numbers, fully reproducible.
+          </p>
+
+          {loadingHistory ? (
+            <div className="flex items-center gap-2 text-sm text-muted-foreground py-10 justify-center">
+              <Loader2 className="w-4 h-4 animate-spin" /> Loading your analyses…
+            </div>
+          ) : historyAnalyses.length === 0 ? (
+            <Card>
+              <CardContent className="pt-6 text-center space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  You haven't run an analysis yet. Run one first, then come back here to model scenarios against it.
+                </p>
+                <Button onClick={() => navigate('/app')}>Run an Analysis</Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {historyAnalyses.map((a) => {
+                const count = scenarioCounts.get(a.id) ?? 0;
+                const enabled = !!a.scenario_base_input;
+                return (
+                  <button
+                    key={a.id}
+                    onClick={() => navigate(`/app/scenarios?analysisId=${a.id}`)}
+                    className="w-full text-left p-4 rounded-lg border hover:border-primary transition-colors flex items-center justify-between gap-4"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium truncate">{a.idea}</p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {a.location} · {new Date(a.created_at).toLocaleDateString()}
+                        {typeof a.confidence_score === 'number' && ` · ${a.confidence_score}% confidence`}
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {enabled ? (
+                        <Badge variant={count > 0 ? 'default' : 'secondary'} className="whitespace-nowrap">
+                          <GitBranch className="w-3 h-3 mr-1" />
+                          {count > 0 ? `${count} scenario set${count === 1 ? '' : 's'}` : 'Model scenarios'}
+                        </Badge>
+                      ) : (
+                        <Badge variant="outline" className="whitespace-nowrap text-muted-foreground">
+                          Re-run to enable
+                        </Badge>
+                      )}
+                      <ChevronRight className="w-4 h-4 text-muted-foreground hidden sm:block" />
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
         </div>
       </AppLayout>
     );
@@ -346,7 +461,7 @@ export default function ScenarioWorkspace() {
                             </td>
                             <td className="py-2">
                               {s.run?.run_id && (
-                                <div className="flex gap-2">
+                                <div className="flex flex-wrap gap-2">
                                   <Button
                                     size="sm"
                                     variant="outline"
@@ -390,7 +505,7 @@ export default function ScenarioWorkspace() {
                 placeholder="e.g. Higher CAC"
               />
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {(Object.keys(ASSUMPTION_LABELS) as ScenarioAssumptionKey[]).map((key) => (
                 <div key={key}>
                   <Label htmlFor={key}>{ASSUMPTION_LABELS[key]} (% change)</Label>
@@ -405,7 +520,7 @@ export default function ScenarioWorkspace() {
               ))}
             </div>
 
-            <div className="flex gap-3">
+            <div className="flex flex-col sm:flex-row gap-3">
               <Button variant="outline" onClick={handlePreview} disabled={isRunning || baseAvailable === false}>
                 {isRunning ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : null}
                 Preview

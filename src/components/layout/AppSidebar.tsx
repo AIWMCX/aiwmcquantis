@@ -81,7 +81,7 @@ const NAV_SECTIONS: NavSection[] = [
     label: 'INTELLIGENCE',
     items: [
       { title: 'Benchmarks', url: '/admin/benchmarks', icon: BarChart3, adminOnly: true },
-      { title: 'Scenarios', url: '/app?tab=scenarios', icon: GitBranch },
+      { title: 'Scenarios', url: '/app/scenarios', icon: GitBranch },
       { title: 'My Stats', url: '/app/stats', icon: Trophy },
       { title: 'Progress', url: '/leaderboard', icon: TrendingUp },
     ],
