@@ -277,6 +277,9 @@ jobs:
             # ── Intelligence / scenarios ──────────────────────────────────
             ai-consensus
             analyze-preview
+            create-scenario-set
+            run-scenario
+            promote-scenario
             # ── API / team ────────────────────────────────────────────────
             create-api-key
             team-invite
