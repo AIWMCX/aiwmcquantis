@@ -256,7 +256,7 @@ export const UPGRADE_COPY: Record<
   depthFull: {
     title: 'Full Report Mode',
     bullets: [
-      `${MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}-iteration Monte Carlo across 97,500 benchmarks`,
+      `${MONTE_CARLO_ITERATIONS.toLocaleString('en-US')}-iteration Monte Carlo sensitivity analysis`,
       '36-month P&L with variance bands',
       'Prioritized action plan',
     ],
@@ -332,7 +332,7 @@ export const UPGRADE_COPY: Record<
     bullets: [
       'REST endpoints for all features',
       'Programmatic analysis runs',
-      'Rolling out Q2 2026',
+      'Server-issued API keys with Pro-tier enforcement',
     ],
     recommendedTier: 'pro',
   },
@@ -371,6 +371,41 @@ export const UPGRADE_COPY: Record<
   actionPlan: {
     title: 'Action Plan Generator',
     bullets: ['Prioritized next steps', 'Tied to your specific risks', 'Updated per analysis'],
+    recommendedTier: 'plus',
+  },
+  scenarioView: {
+    title: 'Scenario Preview',
+    bullets: ['Review baseline assumptions', 'Preview one unsaved scenario', 'See which driver changes the result'],
+    recommendedTier: 'free',
+  },
+  scenarioCustom: {
+    title: 'Custom Scenario',
+    bullets: ['Change explicit assumptions', 'Recalculate through the canonical engine', 'Keep units and lineage visible'],
+    recommendedTier: 'free',
+  },
+  scenarioSave: {
+    title: 'Saved Scenario Sets',
+    bullets: ['Persist versioned scenarios', 'Retain assumption history', 'Reopen the decision later'],
+    recommendedTier: 'plus',
+  },
+  scenarioCompare: {
+    title: 'Scenario Comparison',
+    bullets: ['Compare baseline, downside and upside', 'See changed drivers', 'Inspect cash and breakpoint effects'],
+    recommendedTier: 'plus',
+  },
+  scenarioPromote: {
+    title: 'Promote Scenario',
+    bullets: ['Create a new analysis version', 'Never overwrite the original baseline', 'Preserve the audit trail'],
+    recommendedTier: 'plus',
+  },
+  scenarioEvidenceRefresh: {
+    title: 'Scenario Evidence Refresh',
+    bullets: ['Refresh material evidence', 'Keep source dates visible', 'Review conflicts before acceptance'],
+    recommendedTier: 'plus',
+  },
+  scenarioDocument: {
+    title: 'Scenario Documents',
+    bullets: ['Generate from a saved scenario run', 'Use the canonical numeric payload', 'Preserve output hashes'],
     recommendedTier: 'plus',
   },
 };

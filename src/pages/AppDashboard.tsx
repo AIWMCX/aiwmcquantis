@@ -66,19 +66,33 @@ export default function Index() {
 
   // Sync activeTab with URL ?tab= param
   const tabParam = searchParams.get('tab');
-  const initialTab = tabParam === 'history' || tabParam === 'scenarios' ? tabParam : 'analyze';
-  const [activeTab, setActiveTab] = useState<'analyze' | 'history' | 'scenarios'>(initialTab);
+  const initialTab = tabParam === 'history' ? tabParam : 'analyze';
+  const [activeTab, setActiveTab] = useState<'analyze' | 'history'>(initialTab);
 
   useEffect(() => {
     const t = searchParams.get('tab');
-    if (t === 'history' || t === 'scenarios') {
+    if (t === 'history') {
       setActiveTab(t);
     } else if (!t) {
       setActiveTab('analyze');
     }
   }, [searchParams]);
+
   const [showUpgradePrompt, setShowUpgradePrompt] = useState(false);
   const [currentAnalysisId, setCurrentAnalysisId] = useState<string | null>(null);
+
+  // Spec (AIWMC_Quantis_Scenario_Evidence_System_Spec): "?tab=scenarios" was
+  // a static placeholder tab, never a real workspace — replace with route
+  // navigation to the actual /app/scenarios workspace rather than rendering
+  // dead-end dashboard content.
+  useEffect(() => {
+    if (searchParams.get('tab') !== 'scenarios') return;
+    navigate(
+      currentAnalysisId ? `/app/scenarios?analysisId=${currentAnalysisId}` : '/app/scenarios',
+      { replace: true },
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams]);
   const [showCelebration, setShowCelebration] = useState(false);
   const [hasPrefill, setHasPrefill] = useState(false);
   const formRef = useRef<HTMLDivElement>(null);
@@ -741,18 +755,15 @@ export default function Index() {
               <div>
                 <Tabs
                   value={activeTab}
-                  onValueChange={(v) => setActiveTab(v as 'analyze' | 'history' | 'scenarios')}
+                  onValueChange={(v) => setActiveTab(v as 'analyze' | 'history')}
                 >
                   {isAuthenticated && (
-                    <TabsList className="mb-3 grid w-full grid-cols-3">
+                    <TabsList className="mb-3 grid w-full grid-cols-2">
                       <TabsTrigger value="analyze" className="gap-1.5 min-h-[40px] text-sm">
                         <BarChart3 className="w-3.5 h-3.5" /> Results
                       </TabsTrigger>
                       <TabsTrigger value="history" className="gap-1.5 min-h-[40px] text-sm">
                         <History className="w-3.5 h-3.5" /> History
-                      </TabsTrigger>
-                      <TabsTrigger value="scenarios" className="gap-1.5 min-h-[40px] text-sm">
-                        <BarChart3 className="w-3.5 h-3.5" /> Scenarios
                       </TabsTrigger>
                     </TabsList>
                   )}
@@ -979,27 +990,6 @@ export default function Index() {
                     />
                   </TabsContent>
 
-                  <TabsContent value="scenarios">
-                    <div className="rounded-xl border border-border bg-card p-8 text-center min-h-[300px] flex flex-col items-center justify-center">
-                      <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mb-5">
-                        <BarChart3 className="w-8 h-8 text-primary" />
-                      </div>
-                      <h3 className="text-xl font-bold text-foreground mb-2">Scenario Modeling</h3>
-                      <p className="text-sm text-muted-foreground max-w-md mb-6">
-                        Model what-if deltas on pricing, CAC, churn, and rent against this
-                        analysis using the same deterministic engine, then compare and save.
-                      </p>
-                      {currentAnalysisId ? (
-                        <Button onClick={() => navigate(`/app/scenarios?analysisId=${currentAnalysisId}`)}>
-                          Open Scenario Workspace
-                        </Button>
-                      ) : (
-                        <p className="text-xs text-muted-foreground">
-                          Run or select an analysis first to model scenarios against it.
-                        </p>
-                      )}
-                    </div>
-                  </TabsContent>
                 </Tabs>
               </div>
             </div>

@@ -3,7 +3,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate, useLocation } from "react-router-dom";
 import { ThemeProvider } from "next-themes";
 import ErrorBoundary from "./components/ErrorBoundary";
 import LoadingFallback from "./components/layout/LoadingFallback";
@@ -83,6 +83,14 @@ const QuoteNew = lazy(() => import("./pages/quote/QuoteNew"));
 const QuoteEdit = lazy(() => import("./pages/quote/QuoteEdit"));
 const QuoteResult = lazy(() => import("./pages/quote/QuoteResult"));
 import { PlusGate } from "./components/PlusGate";
+
+// Spec-requested "/scenario" compatibility alias -> "/app/scenarios",
+// preserving the query string (e.g. ?analysisId=...) — plain <Navigate
+// to="..."> does not carry the current location's search params.
+function ScenarioAliasRedirect() {
+  const location = useLocation();
+  return <Navigate to={{ pathname: "/app/scenarios", search: location.search }} replace />;
+}
 
 // Optimized QueryClient configuration for production
 const queryClient = new QueryClient({
@@ -227,6 +235,8 @@ const App = () => {
                     <ScenarioWorkspace />
                   </ProtectedRoute>
                 } />
+                {/* Spec-requested compatibility alias. */}
+                <Route path="/scenario" element={<ScenarioAliasRedirect />} />
                 <Route path="/settings/brand" element={
                   <ProtectedRoute>
                     <BrandProfileSettings />
