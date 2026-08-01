@@ -8,6 +8,7 @@ import { useDocDownloadLimit } from '@/hooks/useDocDownloadLimit';
 import { useCreateDocument, useDocuments } from '@/hooks/useDocuments';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { useDocSignals } from '@/hooks/useDocSignals';
+import { useAnalysisAutoFill } from '@/hooks/useAnalysisAutoFill';
 import { PreviewDownloadBar } from '@/components/docs/PreviewDownloadBar';
 import { DocumentsList } from '@/components/docs/DocumentsList';
 import { Button } from '@/components/ui/button';
@@ -235,6 +236,11 @@ export default function DocsStudio() {
   // Doc performance signal tracking
   const { recordSignal } = useDocSignals();
 
+  // Canonical provenance for the analysis this document is generated from
+  // (if any) — used so saved documents carry real snapshot/hash/version
+  // lineage in variables_data instead of an empty object.
+  const { getCanonicalVariables } = useAnalysisAutoFill();
+
   // All useCallback hooks MUST be defined before any conditional returns
   const handlePreviewUpdate = useCallback((html: string) => {
     setPreviewHTML(html);
@@ -280,11 +286,17 @@ export default function DocsStudio() {
         },
       };
 
+      // Full provenance (source path, model snapshot ID, numeric output
+      // hash, engine/formula version) per variable when this document was
+      // generated from an analysis — an empty object when it wasn't (e.g.
+      // NDA/founder-agreement templates that don't pull financial data).
+      const canonicalVariables = analysisId ? getCanonicalVariables(analysisId) : null;
+
       createDocument({
         templateId,
         analysisId,
         title,
-        variables: {},
+        variables: canonicalVariables ?? {},
         documentJson,
       });
     }
@@ -302,7 +314,7 @@ export default function DocsStudio() {
 
     // Trigger download
     downloadFn(html, title);
-  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal]);
+  }, [isUnlimited, isPlus, recordDownload, createDocument, analysisId, documentTitle, recordSignal, getCanonicalVariables]);
 
   const handleGenerate = useCallback((_documentData: Record<string, unknown>) => {
     // No-op: forms no longer have submit buttons; downloads happen via PreviewDownloadBar
