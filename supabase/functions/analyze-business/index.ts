@@ -2330,13 +2330,16 @@ serve(async (req) => {
     // TEMP DIAGNOSTIC (2026-08-01) — remove once the worker-auth path is
     // confirmed live. Never leaks to real users: only ever attached to the
     // free-tier response, and only reflects header/body shape, no secrets.
+    const _debugApikeyHeader = req.headers.get('apikey');
     const _debugAuthHeaderPresent = !!authHeader;
     const _debugAuthHeaderLen = authHeader?.length ?? 0;
+    const _debugApikeyHeaderLen = _debugApikeyHeader?.length ?? 0;
     const _debugServiceKeyLen = supabaseServiceKey?.length ?? 0;
+    const _debugApikeyMatchedServiceKey = _debugApikeyHeader === supabaseServiceKey;
     let _debugHeaderMatchedServiceKey = false;
     let _debugBodyParseError: string | null = null;
     let _debugBodyHadWorkerRun: boolean | null = null;
-    if (authHeader === `Bearer ${supabaseServiceKey}`) {
+    if (authHeader === `Bearer ${supabaseServiceKey}` || _debugApikeyMatchedServiceKey) {
       _debugHeaderMatchedServiceKey = true;
       try {
         const peekBody = await req.clone().json();
@@ -4403,6 +4406,9 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         _debug_worker_auth: {
           authHeaderPresent: _debugAuthHeaderPresent,
           authHeaderLen: _debugAuthHeaderLen,
+          apikeyHeaderPresent: !!_debugApikeyHeader,
+          apikeyHeaderLen: _debugApikeyHeaderLen,
+          apikeyMatchedServiceKey: _debugApikeyMatchedServiceKey,
           serviceKeyLen: _debugServiceKeyLen,
           headerMatchedServiceKey: _debugHeaderMatchedServiceKey,
           bodyParseError: _debugBodyParseError,
