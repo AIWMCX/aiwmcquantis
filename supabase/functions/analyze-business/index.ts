@@ -2311,33 +2311,78 @@ serve(async (req) => {
     const supabaseService = createClient(supabaseUrl, supabaseServiceKey);
     
     const authHeader = req.headers.get("Authorization");
-    
-    if (authHeader) {
+
+    // ========== TRUSTED WORKER AUTHENTICATION ==========
+    // analyze-pro-worker invokes this function via a service-role Supabase
+    // client with no explicit headers override, so the Supabase JS client
+    // attaches the SERVICE ROLE KEY itself as this Authorization header —
+    // not the paying user's JWT. The normal getUser() flow below can never
+    // identify who a worker callback's job belongs to from that token, so
+    // every Pro-depth worker callback silently fell through to
+    // userPlan='free', triggering the free-tier wirePayload truncation and
+    // discarding the entire Pro analysis (confirmed live 2026-08-01 via
+    // analysis_jobs.result containing only the free-tier {_tier, score,
+    // verdict, top_risks, ...} shape for real Pro subscribers' jobs).
+    // Only requests carrying the literal service-role secret — never
+    // exposed to any client — are trusted to assert a _worker_user_id, so
+    // this cannot be spoofed by an external caller claiming to be a worker.
+    let workerAuthedUserId: string | null = null;
+    if (authHeader === `Bearer ${supabaseServiceKey}`) {
+      try {
+        const peekBody = await req.clone().json();
+        if (peekBody?._worker_run === true && typeof peekBody?._worker_user_id === 'string') {
+          workerAuthedUserId = peekBody._worker_user_id;
+        }
+      } catch {
+        // Body isn't JSON (or already consumed) — fall through to normal auth.
+      }
+    }
+
+    if (workerAuthedUserId) {
+      userId = workerAuthedUserId;
+      isAnonymous = false;
+      log.info(`Worker-authenticated request for user: ${userId}`);
+
+      const { data: subscription } = await supabaseService
+        .from('subscriptions')
+        .select('plan_id, status')
+        .eq('user_id', userId)
+        .maybeSingle();
+
+      if (subscription && ['active', 'trialing'].includes(subscription.status)) {
+        userPlan = subscription.plan_id;
+      }
+      log.info(`Worker-resolved user plan: ${userPlan}`);
+      // Deliberately skip the free-tier monthly-usage gate below — this is
+      // a server-to-server recompute of an already-approved Pro request,
+      // not a new interactive submission subject to the abuse-prevention
+      // quota that gate exists for.
+    } else if (authHeader) {
       // Authenticated user - check their subscription
       const supabaseAuth = createClient(supabaseUrl, supabaseAnonKey, {
         global: { headers: { Authorization: authHeader } },
       });
-      
+
       const { data: { user }, error: userError } = await supabaseAuth.auth.getUser();
-      
+
       if (!userError && user) {
         userId = user.id;
         isAnonymous = false;
         log.info(`Authenticated user: ${user.email}`);
-        
+
         // Check subscription
         const { data: subscription } = await supabaseAuth
           .from('subscriptions')
           .select('plan_id, status')
           .eq('user_id', user.id)
           .maybeSingle();
-        
+
         if (subscription && ['active', 'trialing'].includes(subscription.status)) {
           userPlan = subscription.plan_id;
         }
-        
+
         log.info(`User plan: ${userPlan}`);
-        
+
         // If free tier, check monthly usage
         if (userPlan === 'free') {
           const monthYear = `${new Date().getFullYear()}-${String(new Date().getMonth() + 1).padStart(2, '0')}`;
