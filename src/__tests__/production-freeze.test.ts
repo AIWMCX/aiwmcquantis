@@ -789,3 +789,30 @@ describe('T14 — TAM/SAM/SOM is disclosed as an AI estimate, never fabricated a
     expect(src).toContain('TAM/SAM/SOM market-size figures have no deterministic-engine equivalent');
   });
 });
+
+// ============================================================================
+// T16 — Both dual-engine cross-validation paths receive the same resolved
+// startup-investment figure (root-caused 2026-08-02). The July 25 ROI-gate
+// fix (removing quantis-engine.ts's `netProfit > 0` gate) raised the live
+// dual-engine agreement score from an average of 39.8 to 85.0 -- a real,
+// measured improvement -- but never crossed the >=95 "verified" threshold
+// (0/87 analyses, still 0/3 same-day). Traced the residual gap to a second,
+// independent bug: financial-calculator.ts's rawInvestment falls back
+// through three tiers (user input -> AI-extracted estimate -> $100,000
+// default, index.ts:1679) before calculateStrictFinancials ever runs, but
+// quantis-engine.ts's `investment` read only the raw user field and
+// defaulted to $0 via `|| 0` (quantis-engine.ts:272) whenever it was
+// missing -- a live example showed strict=-125% vs quantis=0% for the
+// identical business, both internally consistent under their own (already
+// IDENTICAL ramp-up) ROI formula, diverging only because they disagreed on
+// what "the investment" even was. Fixed by passing calc.startupInvestment
+// (the already-resolved figure) into quantisInput instead of re-deriving it
+// from the raw merged input a second time.
+// ============================================================================
+describe('T16 — quantis-engine.ts and financial-calculator.ts agree on startup investment', () => {
+  it('index.ts passes the resolved calc.startupInvestment into quantisInput, not the raw user field', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toMatch(/startupInvestment:\s*calc\.startupInvestment/);
+    expect(src).not.toMatch(/startupInvestment:\s*mergedFinancialInputs\.startup_investment/);
+  });
+});

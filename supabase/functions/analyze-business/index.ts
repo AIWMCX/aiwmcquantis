@@ -3160,7 +3160,19 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         businessIdea: idea_clean,
         location: location_clean,
         financialInputs: mergedFinancialInputs ? {
-          startupInvestment: mergedFinancialInputs.startup_investment,
+          // Root cause (2026-08-02, dual-engine ROI divergence investigation):
+          // this used to read mergedFinancialInputs.startup_investment directly
+          // -- the raw user field, which quantis-engine.ts then defaults to $0
+          // via `|| 0` when absent. financial-calculator.ts's own rawInvestment
+          // (index.ts:1679) instead falls back through a 3-tier chain (user
+          // input -> AI-extracted estimate -> $100,000 default) before ever
+          // reaching calculateStrictFinancials. Whenever a user omitted startup
+          // investment, the two engines silently computed Year-1 ROI against
+          // two completely different investment bases ($0 vs $100k), which is
+          // what kept every live analysis's dual-engine agreement score capped
+          // at 85/100 even after the earlier profitability-gate fix. Both
+          // engines now receive the exact same already-resolved figure.
+          startupInvestment: calc.startupInvestment,
           monthlyRevenue: mergedFinancialInputs.monthly_revenue,
           averagePrice: mergedFinancialInputs.average_price,
           expectedCustomers: mergedFinancialInputs.expected_customers,
