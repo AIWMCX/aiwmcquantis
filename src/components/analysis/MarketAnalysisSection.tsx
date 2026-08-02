@@ -24,6 +24,11 @@ export function MarketAnalysisSection({ market }: MarketAnalysisSectionProps) {
             <PieChart className="w-4 h-4 text-muted-foreground" />
             Market Size
           </h4>
+          <p className="text-[11px] text-muted-foreground/80 -mt-1">
+            AI-modeled estimate — not derived from the deterministic financial
+            engine or a direct market-data benchmark. Treat as a starting
+            hypothesis to validate, not a verified figure.
+          </p>
           <div className="grid grid-cols-3 gap-3">
             <div className="p-3 rounded-lg bg-primary/5 border border-primary/20 text-center">
               <p className="text-xs text-muted-foreground mb-1">TAM</p>

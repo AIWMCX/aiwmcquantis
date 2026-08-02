@@ -16,6 +16,10 @@ export function ReportMarketAnalysis({ result }: ReportMarketAnalysisProps) {
 
       {/* Market Size */}
       <div style={pdfStyles.sectionTitle}>Market Size Analysis</div>
+      <div style={{ ...pdfStyles.disclaimer, marginBottom: '12px' }}>
+        AI-modeled estimate — not derived from the deterministic financial engine or a direct
+        market-data benchmark. Treat as a starting hypothesis to validate, not a verified figure.
+      </div>
       <div style={pdfStyles.marketSizeContainer}>
         <div style={pdfStyles.marketSizeItem}>
           <div style={pdfStyles.marketSizeCircle}>

@@ -59,6 +59,7 @@ Before emitting JSON, scan every prose field (executive_summary, recommendation,
 ## D. Realistic TAM / SAM / SOM
 - TAM = global/national. SAM = relevant regional/segment. SOM = realistic obtainable revenue for THIS specific business, anchored to capacity and penetration.
 - Never quote a multi-billion TAM without immediately anchoring it to a believable SOM.
+- You have no real market-research data source (no IBIS, Statista, or similar access). Derive TAM/SAM only from the benchmarks/metrics you were actually given, and label them as an AI-modeled estimate — never attribute a figure to a named external source you don't have. If it can't be derived, say so instead of inventing a number.
 
 ## E. Scenario realism (Pessimistic / Base / Optimistic)
 - Vary underlying drivers (traffic, customers, ticket, marketing intensity, CAC, utilization, pricing), not just a flat revenue multiplier.

@@ -730,3 +730,62 @@ describe('T13 — operating profit is never displayed as if it were true net inc
     expect(src).toMatch(/does not model/);
   });
 });
+
+// ============================================================================
+// T14 — TAM/SAM/SOM is never presented as calculated market data (P0
+// accuracy-audit finding, 2026-08-02). Quantis has no market-sizing data
+// source anywhere in the deterministic engine -- no formula-registry entry,
+// no benchmark table for market size. But the base-tier narration prompt
+// instructed the LLM to invent a dollar figure AND attribute it to a named
+// external source it doesn't actually have access to (the prompt's own
+// example: "TAM: $2.4B ... based on IBIS 2025 estimate" -- IBIS is a real
+// market-research vendor Quantis has no subscription to). The narration
+// fallback path (used when the LLM call itself fails) was worse: it
+// computed TAM/SAM via arbitrary, unsourced multipliers (mrr × 12 × 500,
+// mrr × 12 × 50) with decimal-precision formatting, in CODE, not just a
+// prompt suggestion. And the base-tier UI (MarketAnalysisSection.tsx,
+// ReportMarketAnalysis.tsx, usePdfExport.ts) rendered whatever came back
+// with zero disclaimer -- while a separate, PLUS-tier "Market Sizing"
+// feature (MarketSizingCard.tsx) already carried an honest "AI-modeled
+// estimate, not verified" disclaimer, proving the team already knew this
+// needed disclosure for one code path but not this one. Fixed: disclaimer
+// added to the base-tier UI + PDF renderers (matching MarketSizingCard's
+// exact wording), the fallback's arbitrary multipliers replaced with an
+// honest "not available" state, the prompt's fake-citation example
+// removed, and the Methodology page's "every dollar figure is checked"
+// claim scoped to exclude the one category it doesn't actually cover.
+// ============================================================================
+describe('T14 — TAM/SAM/SOM is disclosed as an AI estimate, never fabricated as verified data', () => {
+  it('MarketAnalysisSection.tsx (base-tier live UI) discloses TAM/SAM/SOM is an AI-modeled estimate', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/MarketAnalysisSection.tsx'), 'utf8');
+    expect(src).toContain('AI-modeled estimate');
+  });
+
+  it('ReportMarketAnalysis.tsx (PDF export) discloses TAM/SAM/SOM is an AI-modeled estimate', () => {
+    const src = readFileSync(join(ROOT, 'src/components/pdf/ReportMarketAnalysis.tsx'), 'utf8');
+    expect(src).toContain('AI-modeled estimate');
+  });
+
+  it('usePdfExport.ts (the duplicate React-PDF renderer) discloses the same TAM/SAM/SOM disclaimer', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    expect(src).toContain('AI-modeled estimate');
+  });
+
+  it('narrator-prompt.ts no longer instructs a fabricated citation to a market-research vendor Quantis has no access to', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/narrator-prompt.ts'), 'utf8');
+    expect(src).not.toMatch(/IBIS 2025 estimate/);
+    expect(src).toMatch(/NEVER invent or attribute a dollar figure to a named external source/);
+  });
+
+  it('narrator-prompt.ts fallback path no longer fabricates TAM/SAM via arbitrary unsourced multipliers', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/narrator-prompt.ts'), 'utf8');
+    expect(src).not.toMatch(/metrics\.mrr \* 12 \* 500/);
+    expect(src).not.toMatch(/metrics\.mrr \* 12 \* 50/);
+    expect(src).toMatch(/TAM not available/);
+  });
+
+  it('Methodology.tsx scopes its "every dollar figure is checked" claim to exclude TAM/SAM/SOM', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/Methodology.tsx'), 'utf8');
+    expect(src).toContain('TAM/SAM/SOM market-size figures have no deterministic-engine equivalent');
+  });
+});

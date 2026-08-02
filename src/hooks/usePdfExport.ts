@@ -1241,6 +1241,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
       React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Market Size Analysis'),
       React.createElement(
         View,
+        { style: { ...styles.disclaimer, marginBottom: 12 } },
+        React.createElement(Text, {}, 'AI-modeled estimate — not derived from the deterministic financial engine or a direct market-data benchmark. Treat as a starting hypothesis to validate, not a verified figure.')
+      ),
+      React.createElement(
+        View,
         { style: styles.marketSizeContainer },
         React.createElement(
           View,

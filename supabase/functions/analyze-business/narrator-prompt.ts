@@ -120,9 +120,8 @@ Every element of your analysis must relate to the specific business idea, locati
 - NO generic trends like "Digital transformation" or "Increasing customer expectations"
 - NO generic competitive landscape like "moderately competitive market"
 - NO placeholder competitors like "Established Local Provider" or "National Chain"
-- TAM/SAM/SOM MUST include dollar figures with derivation methodology (e.g., "TAM: $2.4B — US specialty coffee market based on IBIS 2025 estimate")
-- SAM must narrow by geography and format with a dollar value
-- SOM must be capacity-constrained and tied to the user's specific unit economics
+- TAM/SAM/SOM: you have NO access to real market-research data (no IBIS, Statista, or similar subscription) — NEVER invent or attribute a dollar figure to a named external source you don't actually have. If you can reason a figure from the benchmarks/metrics actually provided to you, show that derivation explicitly and label it "AI-modeled estimate, not verified market data." If you cannot derive it from the given inputs, write "Insufficient data for TAM/SAM — requires market research" rather than fabricating a number or a citation.
+- SOM must be capacity-constrained and tied to the user's specific unit economics — this one CAN be grounded in real numbers (active customers × average check × 12), so compute it from what you were given rather than guessing.
 - Competitors must be specific to the industry and location
 - Trends must reference the specific industry and geography with directional data
 - If you cannot provide specificity, state "Insufficient data for specific [X] — requires market research" rather than generating generic filler
@@ -172,7 +171,7 @@ export const narratorToolSchema = {
         },
         market_analysis_json: {
           type: "string",
-          description: "JSON: tam (dollar value with derivation methodology, e.g. '$2.4B — US specialty coffee market, IBIS 2025'), sam (narrowed by geography and format with dollar value), som (capacity-constrained dollar value tied to user's unit economics), trends array (industry+location specific with directional data — NO generic phrases), competitors array (name, strengths, weaknesses — specific to location/industry, NO placeholders like 'National Chain'), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities. Every field MUST reference the specific business idea, industry, and location."
+          description: "JSON: tam (derive from the actual benchmarks/metrics given and label it an AI-modeled estimate, NEVER attribute it to a named external source like 'IBIS' or 'Statista' you do not actually have access to — if it can't be derived, write 'Insufficient data for TAM — requires market research'), sam (same rule — derive and label as an estimate, or state insufficient data), som (capacity-constrained dollar value tied to user's unit economics — this one you CAN compute from what you were given), trends array (industry+location specific with directional data — NO generic phrases), competitors array (name, strengths, weaknesses — specific to location/industry, NO placeholders like 'National Chain'), competitive_landscape, market_gaps, barriers_to_entry, growth_opportunities. Every field MUST reference the specific business idea, industry, and location."
         },
         action_plan_json: {
           type: "string",
@@ -334,7 +333,7 @@ Document data has already been extracted and incorporated into the metrics above
 5. **Data Quality**: Honest assessment of input completeness and benchmark reliance.
 6. **Business Plan**: Product, audience, advantages, operations, launch steps (reference cost from computed metrics), risks. Use industry-specific revenue logic.
 7. **Marketing Plan**: Strategy and channels with budget as % of marketing spend.
-8. **Market Analysis**: TAM/SAM/SOM must be dollar values with derivation methodology. Example: "TAM: $X.XB based on [source/logic]". SAM must narrow by geography. SOM must be capacity-constrained. Never output vague phrases. Trends must be industry and location specific with directional data. Competitors must be named real-world entities or specific archetypes with location context — NO generic placeholders.
+8. **Market Analysis**: TAM/SAM must be derived from the benchmarks/metrics actually provided and labeled "AI-modeled estimate" — you have no real market-research data source, so NEVER invent a dollar figure or attribute one to a named external source (e.g. IBIS, Statista) you don't have access to; if it can't be derived, say "Insufficient data — requires market research" instead. SOM must be capacity-constrained and computed from the user's real unit economics (customers × average check × 12), since that one you actually can calculate. Never output vague phrases. Trends must be industry and location specific with directional data. Competitors must be named real-world entities or specific archetypes with location context — NO generic placeholders.
 9. **Action Plan**: Prioritized steps with timelines. First 30-90 days should focus on collecting missing data and de-risking key assumptions.
 
 Remember: You EXPLAIN and STRATEGIZE. The engine COMPUTES. Never invent numbers.`;
@@ -570,10 +569,21 @@ export function generateFallbackNarrator(
     },
     
     market_analysis: {
-      tam: (benchmarks as any).market_size_usd 
+      // Accuracy-audit fix, 2026-08-02: this fallback path (used when the LLM
+      // narration call fails) used to fabricate TAM/SAM via arbitrary,
+      // unsourced multipliers (mrr × 12 × 500 / × 50) whenever no real
+      // benchmark market-size figure existed -- presenting an invented number
+      // with decimal-precision formatting as if it were derived. It is not:
+      // there is no market-sizing data source or engine formula behind those
+      // multipliers. Only report TAM/SAM when a real benchmark figure
+      // (`market_size_usd`) exists; otherwise say so plainly rather than
+      // inventing a number. SOM is left as-is -- it's a genuine derivation
+      // from real engine-computed metrics (mrr, active customers, average
+      // check), not a fabricated multiplier.
+      tam: (benchmarks as any).market_size_usd
         ? `Estimated TAM: $${((benchmarks as any).market_size_usd / 1e9).toFixed(1)}B — ${benchmarks.name} market (benchmark-derived estimate, replace with actual market research).`
-        : `Estimated TAM: $${((metrics.mrr * 12 * 500) / 1e6).toFixed(1)}M — derived from ${benchmarks.name} revenue potential × 500x market multiplier for ${location}. This is a benchmark-derived estimate requiring validation.`,
-      sam: `Estimated SAM: $${((metrics.mrr * 12 * 50) / 1e6).toFixed(1)}M — ${benchmarks.name} serviceable market in ${location}, narrowed from TAM by geography and business format.`,
+        : `TAM not available — no market-size benchmark exists for ${benchmarks.name} in ${location}. Requires primary market research; do not treat this as a calculated figure.`,
+      sam: `SAM not available — no serviceable-market benchmark exists for ${benchmarks.name} in ${location}. A defensible SAM requires primary market research (addressable geography, format, channel reach); this engine has no data source for it.`,
       som: `SOM: $${(metrics.mrr * 12).toLocaleString()} — first-year revenue target based on ${metrics.clientsActive} active customers at $${metrics.averageCheck} average transaction.`,
       trends: [
         `${benchmarks.name} demand patterns in ${location} — requires local market validation`,
