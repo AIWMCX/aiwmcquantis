@@ -413,3 +413,45 @@ All four resolved this session (see UPDATE above). Remaining open items are the 
 
 ### Next activation command
 **`ACTIVATE: P0_STABILIZATION`**, scoped to P0-01/02 once decision #1 lands — it is the single most trust-destroying defect for the Aug 15 first-paid client (a fractional CFO seeing their own reported expenses silently inflated). P0-09 (`999`) is the next-largest lift and should follow, not precede, it.
+
+---
+
+## Session: 2026-08-02 — Domain 1 audit (the one domain this ledger's own July-25 closing note flagged as never covered) + regression-check on P0-24 through P0-28
+
+Between this session and 2026-07-25, four separate remediation sessions independently fixed P0-24, P0-26, P0-27, and P0-28 (visible in this project's task history: reset social-proof counters, added the what-if-widget disclaimer, populated `ai_calls.cost_usd`, and the benchmark-source softening had already shipped same-session on 07-25). Rather than trust those task titles at face value, this session re-verified each with fresh live evidence — the same discipline this ledger has followed throughout — and separately audited Domain 1, closing the one gap the 07-25 session honestly flagged as incomplete.
+
+### Domain 1 (Production Truth & Release Control, Q1-Q10) — first rigorous pass
+
+No literal Q1-Q10 question text survives in this repo, so this pass investigated the domain's named theme directly: can what's truly running in production be verified with certainty, and does the release process have real safety rails?
+
+**1. Frontend build-SHA traceability — CORRECTION to Q171/Q189, not a new gap.** Those two questions concluded "no mechanism exists" after grepping only for the literal strings `VITE_COMMIT_SHA`/`BUILD_SHA`. A real equivalent already existed a full month before that July 25 audit: `vite.config.ts:9-14` defines `__BUILD_ID__` from `VITE_BUILD_ID` / `VERCEL_GIT_COMMIT_SHA` (committed `f26c2989`, 2026-06-26), consumed by `src/lib/appRecovery.ts` and surfaced at `/app/diagnostics` (`AppDiagnostics.tsx:88`). The practical gap Q171/Q189 were really pointing at still stands — there's no build marker visible to a casual visitor without opening `/app/diagnostics` — but "no mechanism exists" was itself inaccurate. Correcting the record rather than carrying the wrong conclusion forward.
+
+**2. Backend commit-SHA verification — PASS, reconfirmed live.** `GET .../analyze-business?health=1` returned `commit_sha: 6a5ad62e...`, an exact match to `git log -1 --format=%H` on main at the time of the check.
+
+**3. CI/CD deploy-coverage guard — PASS, and the guard family has grown.** `verify-deploy-coverage.ts` is still a required, blocking CI step; `.deploy-ignore` is current. Two new siblings now exist and are wired in: `verify-ai-cost-logging.ts` and `verify-r3-enforcement.ts` (the latter requires every LLM-calling edge function to import a schema-boundary/`r3-validator` module, via an explicit allowlist for exceptions).
+
+**4. Migration integrity — DOWNGRADED from Q173's "reconfirmed clean."** `list_migrations` now reports 179 applied rows, but the repo has 209 real timestamped files under `supabase/migrations/`. A 30-file gap not explained by the already-known backlog-renaming quirk. **UNVERIFIED, needs reconciliation** — could be unpushed local files or further renaming drift; not confirmed either way this pass.
+
+**5. Rollback capability — UPGRADED from the ledger's ad-hoc `git revert` characterization.** `.github/workflows/vercel-production-deploy.yml` runs a real automated rollback (`scripts/vercel-rollback.sh`) on any deploy-fidelity or smoke-test failure — re-promotes the last known-good Vercel deployment with no human action required. Backend rollback remains manual (`git revert <sha>`), unchanged.
+
+**6. Environment parity / staging — CONFIRMS the ledger's implication, now with hard evidence.** `staging-deploy.yml` exists and is real, but `gh pr list` / `gh run list --workflow=staging-deploy.yml` show zero merged PRs and zero staging runs since 2026-07-14. Every commit since then — every P0-24 through P0-28 fix, and everything through this session's own work — shipped directly to `main` with no PR-gated preview step. Staging exists in config, not in practice, for the last ~3 weeks of real shipped work.
+
+**Net Domain 1 outcome:** 2 items reconfirmed clean (backend SHA verification, CI deploy-coverage guard, which has grown), 1 corrected finding (build-ID mechanism does exist, just not under the searched name — practical gap narrower than stated), 1 upgraded finding (real automated rollback exists), 1 downgraded finding (migration count needs reconciliation, not confirmed clean), 1 confirmed-with-evidence process gap (staging not gating real pushes). No code shipped — items 4 and 6 are the two genuinely open threads from this domain, both worth a founder-scoped look rather than a unilateral fix.
+
+### Regression check: P0-24 through P0-28
+
+| Finding | Verdict | Evidence |
+|---|---|---|
+| **P0-24** (benchmark-source claim softened) | **HELD** | Live homepage still reads "...informed by SEC filings, World Bank enterprise surveys, and proprietary industry modeling." Not reverted. |
+| **P0-25** (reconciliation engines unreachable) | **PARTIALLY HELD, unchanged in substance** | `reconcileFinancialOutput`/`reconcileMonthlyRow`/`defaultFinancialReconciler` still have zero live callers. A new Deno port (`_shared/r3-validator.ts`) exists but is also imported nowhere. Only the narrow cash-roll-forward check (`financial-calculator.ts:524-545`, explicitly comments citing P0-25) was added. The "which engine is canonical" architectural question remains fully open, exactly as this ledger originally flagged it. |
+| **P0-26** (what-if widget arbitrary heuristic) | **PARTIALLY HELD — disclosure shipped, math not fixed** | `AccuracyTransparentResults.tsx:792` now shows "Rough directional estimate, not a full recalculation of your report" directly above the lever output. But `scenarioMetrics` (`:186-198`) is byte-for-byte unchanged — same arbitrary CAC/rent/ticket-size arithmetic. This is now honestly-labeled approximate math, not corrected math — the right outcome for a same-session fix, but the deeper P0-26 gap (wire it to the real engine) is still open. |
+| **P0-27** (fabricated social-proof counters) | **HELD, and tightened** | `public_metrics` now reads `analyses_total = 89`, `plans_stress_tested = 89` (migration `20260725200736_correct_public_metrics_fabricated_seed`). Ground truth: 102 real `analyses` rows, 89 real `analysis_complete` events — the counter now tracks the conservative, correct event count exactly, not an inflated seed. Live homepage confirms "89+ PLANS STRESS-TESTED" / "89 ANALYSES RUN (TOTAL)." |
+| **P0-28** (`ai_calls.cost_usd` always zero) | **HELD, strongly** | 15 total rows now (up from 7) — the 7 pre-fix rows stay `0.000000` (historical, correctly unchanged), but 8 new rows since 2026-08-01 all carry real nonzero `cost_usd` values (e.g. `0.005403`), confirming the shared logger fix in `content-studio-generate` is live and actually firing, not just committed. |
+
+### New findings this pass (not previously documented)
+
+- **Build-ID mechanism predates and contradicts Q171/Q189's "none exists" conclusion** (Severity: Low-Medium, audit-accuracy correction — see Domain 1 item 1 above). The prior grep searched only the two literal names it expected and missed the real implementation.
+- **30-file gap between repo migrations (209) and applied DB migrations (179)**, root cause unconfirmed (Severity: Low, integrity-hygiene). Worth a reconciliation pass to rule out an unpushed or silently-dropped schema change.
+- **Staging pipeline has not gated a single push to main in ~3 weeks** (Severity: Medium, process gap). `staging-deploy.yml` is real but unused in practice; every recent fix — including this entire session's four accuracy commits — shipped by direct push to `main`.
+
+**Net session outcome:** Domain 1 gap (the one this ledger's own July-25 close honestly flagged) is now closed with the same evidence-first rigor as the rest of the series. All 4 previously-flagged-for-founder-scoping fixes (P0-24, 26, 27, 28) were independently re-verified rather than trusted from task titles alone — P0-24/27/28 fully held, P0-26 held for its disclosure half but not its math half (as intended — a same-session disclaimer, not a rewrite of the interactive widget), and P0-25 is unchanged and still the single largest open architectural item across the whole series. Two new, real, low-to-medium-severity gaps surfaced (migration count mismatch, staging pipeline disuse) — neither fabricated, both concrete and independently checkable by the founder.
