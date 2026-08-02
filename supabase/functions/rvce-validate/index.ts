@@ -922,7 +922,9 @@ serve(async (req) => {
       search_diagnostics: searchDiagnostics,
     };
 
-    logValidation(payload_out).catch(() => {});
+    persistObservations(adminClient, payload_out).catch((e) =>
+      console.error(`[rvce] persistObservations failed (non-fatal): ${(e as Error).message}`),
+    );
     return jsonResp(payload_out);
 
   } catch (err) {
@@ -952,32 +954,105 @@ function slug(s: string): string {
   return (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-async function logValidation(payload: any) {
-  if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) return;
-  try {
-    await fetch(`${SUPABASE_URL}/rest/v1/rvce_validation_log`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        apikey: SUPABASE_SERVICE_ROLE_KEY,
-        Authorization: `Bearer ${SUPABASE_SERVICE_ROLE_KEY}`,
-        Prefer: 'return=minimal',
-      },
-      body: JSON.stringify({
-        analysis_id:     payload.analysis_id || crypto.randomUUID(),
-        rvce_version:    payload.rvce_version,
-        global_confidence: payload.global_confidence_score,
-        metrics_count:   Object.keys(payload.metrics_validation || {}).length,
-        outlier_count:   payload.flags?.length || 0,
-        warn_count:      Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'WARN').length,
-        no_data_count:   Object.values(payload.metrics_validation || {}).filter((v: any) => v.status === 'NO_DATA').length,
-        total_observations: Object.values(payload.metrics_validation || {}).reduce((s: number, v: any) => s + (v.observation_count || 0), 0),
-        reference_classes: payload.reference_classes,
-        metrics_validation: payload.metrics_validation,
-        flags:           payload.flags,
-        evidence_samples: payload.evidence_samples,
-        latency_ms:      payload.latency_ms,
-      }),
-    });
-  } catch { /* best-effort */ }
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Persists RVCE's results into rvce_observations — one row per real
+ * evidence sample, plus one honest "no evidence found" row per validated
+ * metric that had zero (matching the methodology page's own design
+ * promise: report unavailable plainly rather than silently omitting).
+ *
+ * Replaces the previous logValidation(), which POSTed to
+ * `rvce_validation_log` — a table that was never created, so every call
+ * failed with a 404 and was silently swallowed by a bare `catch {}` since
+ * this code was written. rvce_observations (the reviewed accuracy-schema
+ * table) already existed with the right structure; nothing wrote to it.
+ * Root cause of "0 rows in rvce_observations": two different persistence
+ * targets, neither one working. Non-blocking by design — RVCE must never
+ * fail an analysis over a logging problem — but errors are now logged,
+ * not swallowed.
+ */
+interface RvceEvidenceSample {
+  metric: string;
+  source: string;
+  url?: string;
+  summary: string;
+  value: number;
+}
+
+interface RvcePersistPayload {
+  analysis_id: string;
+  metrics_validation: Record<string, { status: string; discrepancy_score: number }>;
+  evidence_samples: RvceEvidenceSample[];
+}
+
+async function persistObservations(
+  adminClient: ReturnType<typeof createClient> | null,
+  payload: RvcePersistPayload,
+): Promise<void> {
+  if (!adminClient) return;
+
+  const correlationId = crypto.randomUUID();
+  const analysisId = UUID_RE.test(payload.analysis_id) ? payload.analysis_id : null;
+  const rows: Record<string, unknown>[] = [];
+
+  const evidenceByMetric = new Map<string, RvceEvidenceSample[]>();
+  for (const sample of payload.evidence_samples ?? []) {
+    const list = evidenceByMetric.get(sample.metric) ?? [];
+    list.push(sample);
+    evidenceByMetric.set(sample.metric, list);
+  }
+
+  for (const [metric, validation] of Object.entries(payload.metrics_validation ?? {})) {
+    const samples = evidenceByMetric.get(metric) ?? [];
+    const v = validation as { status: string; discrepancy_score: number };
+    // Same OK/WARN/OUTLIER -> score mapping used for comparability elsewhere
+    // in this system; NO_DATA gets the lowest score since no evidence backs it.
+    const qualityScore = v.status === 'OK' ? 0.9 : v.status === 'WARN' ? 0.6 : v.status === 'OUTLIER' ? 0.3 : 0.1;
+
+    if (samples.length === 0) {
+      rows.push({
+        analysis_id: analysisId,
+        correlation_id: correlationId,
+        metric_code: metric,
+        raw_value: null,
+        normalized_value: null,
+        unit: 'unknown',
+        source_url: null,
+        source_title: null,
+        publisher: null,
+        extraction_method: 'rvce_web_search',
+        source_quality: qualityScore,
+        comparability_score: qualityScore,
+        accepted: false,
+        rejection_reason: 'no_external_evidence_found',
+      });
+      continue;
+    }
+
+    for (const sample of samples) {
+      const hasRealUrl = typeof sample.url === 'string' && sample.url.length > 0;
+      rows.push({
+        analysis_id: analysisId,
+        correlation_id: correlationId,
+        metric_code: metric,
+        raw_value: sample.value,
+        normalized_value: sample.value,
+        unit: 'unknown',
+        source_url: hasRealUrl ? sample.url : null,
+        source_title: sample.summary ?? null,
+        publisher: sample.source ?? null,
+        extraction_method: hasRealUrl ? 'rvce_web_search' : 'internal_benchmark_master',
+        source_quality: qualityScore,
+        comparability_score: qualityScore,
+        accepted: v.status !== 'OUTLIER',
+        rejection_reason: v.status === 'OUTLIER' ? 'outlier_vs_reference' : null,
+      });
+    }
+  }
+
+  if (rows.length === 0) return;
+
+  const { error } = await adminClient.from('rvce_observations').insert(rows);
+  if (error) throw new Error(error.message);
 }
