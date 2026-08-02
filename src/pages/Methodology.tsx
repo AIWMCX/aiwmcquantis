@@ -54,7 +54,7 @@ const LIMITATIONS = [
   { id: 'UX-001', title: 'Confidence Theater', desc: 'Confidence badges now connected to systematic safety_evaluations pipeline as of v2.0.0.', status: 'Resolved' },
   { id: 'DATA-001', title: 'Benchmark Staleness', desc: 'Staleness-decay scoring is live: full weight under 6 months, decaying through 12 and 18 months, flagged stale beyond 18 months.', status: 'Resolved' },
   { id: 'DATA-002', title: 'Multi-Source Provenance', desc: 'Data provenance registry now tracks 5+ open data sources with license compliance and freshness indicators.', status: 'Resolved' },
-  { id: 'TEST-001', title: 'Regression Coverage', desc: `Golden test vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes, run on demand via the admin accuracy dashboard. No scheduled (cron/CI) automated run exists yet.`, status: 'Active' },
+  { id: 'TEST-001', title: 'Regression Coverage', desc: `Golden test vector suite covers ${GOLDEN_VECTORS.length} canonical archetypes, each run through the real deterministic engine and checked against expected ranges on every CI build (src/__tests__/golden-vectors-live-engine.test.ts) — not a scheduled production job yet, but no longer just defined data.`, status: 'Resolved' },
   { id: 'FB-001', title: 'User Feedback Loop', desc: 'Realism feedback widget now captures per-dimension scoring for model calibration.', status: 'Resolved' },
 ];
 

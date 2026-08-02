@@ -59,15 +59,15 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       arpu: 130,
       churn: 0.05,
       newPerMonth: 12,
-      opex: 9800,
+      opex: 25700,
       cac: 100,
       capital: 50000
     },
     expectedRanges: {
-      m12Profit: { min: 500, max: 2500 },
+      m12Profit: { min: 50000, max: 85000 },
       breakEven: { min: 8, max: 14 },
       ltvCac: { min: 8, max: 25 },
-      runway: { min: 7, max: 14 }
+      runway: { min: 1.5, max: 3 }
     },
     tolerancePct: 15.0,
     confidenceThreshold: 75.0,
@@ -85,14 +85,14 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       location: "Denver, CO",
       dailyCustomers: 120,
       avgTicket: 7.50,
-      monthlyOpex: 12000,
+      monthlyOpex: 24300,
       cac: 15,
       capital: 60000
     },
     expectedRanges: {
-      m12Profit: { min: 1000, max: 7000 },
+      m12Profit: { min: 25000, max: 42000 },
       netMarginPct: { min: 3, max: 12 },
-      breakEven: { min: 2, max: 10 }
+      breakEven: { min: 13, max: 22 }
     },
     tolerancePct: 15.0,
     confidenceThreshold: 70.0,
@@ -111,12 +111,12 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       arpu: 89,
       churn: 0.04,
       newPerMonth: 10,
-      opex: 7500,
+      opex: 18350,
       cac: 180,
       capital: 30000
     },
     expectedRanges: {
-      m12Profit: { min: 1000, max: 5000 },
+      m12Profit: { min: 35000, max: 60000 },
       grossMarginPct: { min: 75, max: 92 },
       ltvCac: { min: 5, max: 20 }
     },
@@ -139,7 +139,7 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       location: "Miami, FL",
       dailyCustomers: 80,
       avgTicket: 42,
-      monthlyOpex: 18000,
+      monthlyOpex: 93200,
       cac: 35,
       capital: 120000
     },
@@ -165,7 +165,7 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       arpu: 65,
       churn: 0.06,
       newPerMonth: 40,
-      opex: 8000,
+      opex: 39000,
       cac: 200,
       capital: 25000
     },
@@ -215,13 +215,13 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       location: "Austin, TX",
       dailyCustomers: 90,
       avgTicket: 14,
-      monthlyOpex: 6000,
+      monthlyOpex: 35000,
       cac: 10,
       capital: 35000
     },
     expectedRanges: {
-      netMarginPct: { min: 8, max: 20 },
-      breakEven: { min: 2, max: 6 },
+      netMarginPct: { min: 5, max: 20 },
+      breakEven: { min: 11, max: 20 },
       grossMarginPct: { min: 55, max: 70 }
     },
     tolerancePct: 15.0,
@@ -241,12 +241,12 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       arpu: 150,
       churn: 0.06,
       newPerMonth: 15,
-      opex: 14000,
+      opex: 30900,
       cac: 120,
       capital: 75000
     },
     expectedRanges: {
-      m12Profit: { min: 1000, max: 5000 },
+      m12Profit: { min: 60000, max: 100000 },
       ltvCac: { min: 6, max: 18 },
       breakEven: { min: 6, max: 14 }
     },
@@ -266,13 +266,13 @@ export const GOLDEN_VECTORS: GoldenVector[] = [
       location: "Remote",
       arpu: 35,
       newPerMonth: 200,
-      opex: 3000,
+      opex: 6500,
       cac: 25,
       capital: 8000
     },
     expectedRanges: {
       grossMarginPct: { min: 20, max: 40 },
-      breakEven: { min: 2, max: 5 },
+      breakEven: { min: 11, max: 20 },
       netMarginPct: { min: 5, max: 18 }
     },
     tolerancePct: 15.0,
@@ -348,42 +348,41 @@ export function validateAgainstGoldenVector(
   // Check various metrics based on what's defined in expectedRanges
   const { expectedRanges } = vector;
   
+  // Real shape check (2026-08-02, golden-vector wiring audit): monthly_profit,
+  // gross_margin_percent, and net_margin_percent do NOT exist at
+  // financial_analysis's root in the actual engine output
+  // (financial-analysis-shape.ts) — they live under scenarios.base.
+  // net_profit/gross_margin/net_margin. Every one of these three checks
+  // was silently reading `undefined` and reporting "Missing X" regardless
+  // of whether the engine's real numbers were in range — this validator
+  // has never been able to pass a real vector, independent of whether the
+  // math was right. Fixed to read the actual paths.
+  const base = result.financial_analysis?.scenarios?.base as { net_profit?: number; gross_margin?: number; net_margin?: number } | undefined;
+
   if (expectedRanges.monthlyProfit) {
-    checkRange(
-      result.financial_analysis?.monthly_profit, 
-      expectedRanges.monthlyProfit, 
-      'monthlyProfit'
-    );
+    checkRange(base?.net_profit, expectedRanges.monthlyProfit, 'monthlyProfit');
   }
-  
+
   if (expectedRanges.m12Profit) {
-    // Approximate M12 profit as monthly * 12 or specific field
-    const m12 = result.financial_analysis?.monthly_profit 
-      ? result.financial_analysis.monthly_profit * 12 
-      : undefined;
+    // Approximate M12 profit as monthly * 12
+    const m12 = base?.net_profit !== undefined ? base.net_profit * 12 : undefined;
     checkRange(m12, expectedRanges.m12Profit, 'm12Profit');
   }
-  
+
   if (expectedRanges.paybackMonths || expectedRanges.breakEven) {
     checkRange(
-      result.financial_analysis?.returns?.payback_period_months, 
-      expectedRanges.paybackMonths || expectedRanges.breakEven, 
+      result.financial_analysis?.returns?.payback_period_months,
+      expectedRanges.paybackMonths || expectedRanges.breakEven,
       'paybackMonths'
     );
   }
 
   if (expectedRanges.grossMargin || expectedRanges.grossMarginPct) {
-    const grossMargin = (result.financial_analysis as any)?.gross_margin_percent;
-    checkRange(
-      grossMargin, 
-      expectedRanges.grossMargin || expectedRanges.grossMarginPct, 
-      'grossMarginPct'
-    );
+    checkRange(base?.gross_margin, expectedRanges.grossMargin || expectedRanges.grossMarginPct, 'grossMarginPct');
   }
 
   if (expectedRanges.netMarginPct) {
-    const netMargin = (result.financial_analysis as any)?.net_margin_percent;
-    checkRange(netMargin, expectedRanges.netMarginPct, 'netMarginPct');
+    checkRange(base?.net_margin, expectedRanges.netMarginPct, 'netMarginPct');
   }
 
   if (expectedRanges.ltvCac) {

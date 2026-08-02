@@ -1,6 +1,13 @@
 /**
  * LAYER 6 — Regression Suite (Integration Gate)
- * Ties all layers together as a single pass/fail gate for engine consistency.
+ *
+ * This file checks structural invariants (formula registry self-tests,
+ * QMath self-tests, vector-count/active-flag sanity, confidence->QSL
+ * mapping) — it does NOT run GOLDEN_VECTORS through the real engine.
+ * That real regression gate is golden-vectors-live-engine.test.ts
+ * (added 2026-08-02) — this file's previous header claimed to "tie all
+ * layers together... for engine consistency," which was never true; see
+ * that test's own header for the full story of why.
  */
 import { describe, it, expect } from 'vitest';
 import { FormulaRegistry } from '@/lib/formula-registry';
