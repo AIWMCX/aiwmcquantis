@@ -130,8 +130,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         { tab: 'Revenue Projections', field: 'annual_revenue', label: 'Annual Revenue', value: result.financial_analysis?.arr },
         { tab: 'Startup Costs', field: 'total_startup_costs', label: 'Total Startup Costs', value: result.financial_analysis?.startup_investment?.total },
         { tab: 'Operating Expenses', field: 'total_monthly_expenses', label: 'Total Monthly Expenses', value: result.financial_analysis?.monthly_expenses?.total },
-        { tab: 'Cash Flow', field: 'net_profit', label: 'Monthly Net Profit', value: result.financial_analysis?.scenarios?.base?.net_profit },
-        { tab: 'Cash Flow', field: 'net_margin', label: 'Net Margin (%)', value: result.financial_analysis?.scenarios?.base?.net_margin },
+        { tab: 'Cash Flow', field: 'net_profit', label: 'Monthly Operating Profit', value: result.financial_analysis?.scenarios?.base?.net_profit },
+        { tab: 'Cash Flow', field: 'net_margin', label: 'Operating Margin (%)', value: result.financial_analysis?.scenarios?.base?.net_margin },
         { tab: 'Cash Flow', field: 'payback_period', label: 'Payback Period (months)', value: result.financial_analysis?.returns?.payback_period_months },
         { tab: 'KPIs', field: 'roi_year_1', label: 'ROI Year 1 (%)', value: result.financial_analysis?.returns?.roi_year_1 },
       ];
@@ -293,8 +293,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               </div>
               <div className="grid grid-cols-3 gap-3">
                 <MetricMini label="Revenue" value={`$${scenarioMetrics.revenue.toLocaleString()}`} positive={true} />
-                <MetricMini label="Net Margin" value={`${scenarioMetrics.margin.toFixed(1)}%`} positive={scenarioMetrics.margin >= 0} />
-                <MetricMini label="Net Profit" value={`$${scenarioMetrics.profit.toLocaleString()}`} positive={scenarioMetrics.profit >= 0} />
+                <MetricMini label="Op. Margin" value={`${scenarioMetrics.margin.toFixed(1)}%`} positive={scenarioMetrics.margin >= 0} />
+                <MetricMini label="Op. Profit" value={`$${scenarioMetrics.profit.toLocaleString()}`} positive={scenarioMetrics.profit >= 0} />
               </div>
             </div>
           </div>

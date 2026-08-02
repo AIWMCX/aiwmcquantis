@@ -657,3 +657,76 @@ describe('T12 — anonymous visitors never see a phantom signed-in-only quota as
     expect(src).not.toMatch(/const FREE_TIER_LIMIT\s*=/);
   });
 });
+
+// ============================================================================
+// T13 — "Net Profit"/"Net Margin" never shown to users as a true bottom-line
+// figure (P0 accuracy-audit finding, 2026-08-02). The engine computes
+// Revenue - COGS - fixed costs - marketing (financial-calculator.ts's
+// `netProfit = mrr - totalExpenses`) and stops there — it never subtracts
+// depreciation, amortization, interest expense, or income tax (confirmed:
+// no debt schedule exists either — leverage ratios explicitly return
+// INSUFFICIENT_INPUTS). That is operating profit / EBITDA-equivalent, not
+// true net income, but every user-facing surface (live results, PDF export,
+// social share text, the Methodology page's own definition) labeled it
+// "Net Profit" / "Net Margin" as if it were the real bottom line — an
+// "investor-grade" report overstating precision it doesn't have. The
+// internal field names (`net_profit`, `net_margin`) are unchanged (a
+// rename would be a much larger, riskier refactor across the DB schema and
+// every consumer); only the user-facing display text changed, plus one
+// explicit disclaimer on the methodology page. This is a live-source-scan
+// test because the bug was in display copy, not in any function's return
+// value — a unit test on the calculator could never have caught it.
+// ============================================================================
+describe('T13 — operating profit is never displayed as if it were true net income', () => {
+  const noBareNetProfitLabel = (src: string) => {
+    // Allow "net_profit"/"net_margin" as field/id names, but the *display*
+    // string "Net Profit" / "Net Margin" (capitalized, human-facing) must not
+    // appear standalone -- it must be prefixed to "Operating Profit/Margin".
+    expect(src).not.toMatch(/>Net Profit</);
+    expect(src).not.toMatch(/>Net Margin</);
+    expect(src).not.toMatch(/'Net Profit'/);
+    expect(src).not.toMatch(/'Net Margin/);
+    expect(src).not.toMatch(/"Net Profit/);
+    expect(src).not.toMatch(/Monthly Net Profit/);
+  };
+
+  it('FinancialSummary.tsx uses "Operating Profit"/"Operating Margin"', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/FinancialSummary.tsx'), 'utf8');
+    noBareNetProfitLabel(src);
+    expect(src).toContain('Operating Profit');
+    expect(src).toContain('Operating Margin');
+  });
+
+  it('AnalysisResults.tsx uses "Operating Profit"/"Operating Margin"', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    noBareNetProfitLabel(src);
+  });
+
+  it('ShareSuccessModal.tsx (public social-share text) says "operating margin", not "net margin"', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/ShareSuccessModal.tsx'), 'utf8');
+    expect(src).not.toMatch(/net margin/i);
+    expect(src).toMatch(/operating margin/i);
+  });
+
+  it('PDF exports (ReportExecutiveSummary, ReportFinancials, usePdfExport) use "Operating Profit"/"Operating Margin"', () => {
+    for (const f of [
+      'src/components/pdf/ReportExecutiveSummary.tsx',
+      'src/components/pdf/ReportFinancials.tsx',
+      'src/hooks/usePdfExport.ts',
+    ]) {
+      const src = readFileSync(join(ROOT, f), 'utf8');
+      noBareNetProfitLabel(src);
+    }
+  });
+
+  it('Methodology.tsx discloses that operating profit excludes D&A, interest, and tax', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/Methodology.tsx'), 'utf8');
+    expect(src).toContain('excludes depreciation, amortization, and interest expense');
+  });
+
+  it('formula-registry.ts documents net_profit as operating-profit-equivalent', () => {
+    const src = readFileSync(join(ROOT, 'src/lib/formula-registry.ts'), 'utf8');
+    expect(src).toContain("name: 'Operating Profit'");
+    expect(src).toMatch(/does not model/);
+  });
+});

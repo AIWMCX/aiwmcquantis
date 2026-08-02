@@ -43,14 +43,14 @@ export function ShareSuccessModal({
   // Curiosity-driven share text
   const shareablePaybackMonths = paybackMonths !== undefined && paybackMonths < 999 ? paybackMonths : undefined;
 
-  const shareText = `Quantis gave my "${ideaLabel}" idea a ${ideaScore}/10. Here's why: $${profit.toLocaleString()}/mo profit, ${margin.toFixed(1)}% net margin${shareablePaybackMonths ? `, ${shareablePaybackMonths}mo payback` : ''}. See the full breakdown:`;
+  const shareText = `Quantis gave my "${ideaLabel}" idea a ${ideaScore}/10. Here's why: $${profit.toLocaleString()}/mo profit, ${margin.toFixed(1)}% operating margin${shareablePaybackMonths ? `, ${shareablePaybackMonths}mo payback` : ''}. See the full breakdown:`;
 
   // Pre-formatted image caption for Instagram/LinkedIn posts
   const imageCaption = `📊 Just validated my business idea with AIWMC Quantis
 
 Score: ${ideaScore}/10 ${ideaScore >= 8 ? '🏆' : ideaScore >= 5 ? '⚡' : '⚠️'}
 Monthly Profit: $${profit.toLocaleString()}
-Net Margin: ${margin.toFixed(1)}%${shareablePaybackMonths ? `\nPayback Period: ${shareablePaybackMonths} months` : ''}
+Operating Margin: ${margin.toFixed(1)}%${shareablePaybackMonths ? `\nPayback Period: ${shareablePaybackMonths} months` : ''}
 
 Most validators just say "good idea" or "bad idea."
 Quantis shows you HOW to make it profitable 📈
@@ -137,7 +137,7 @@ ${shareUrl ? `\nMy full report: ${shareUrl}` : ''}`;
                 </p>
               </div>
               <div>
-                <p className="text-xs text-muted-foreground">Net Margin</p>
+                <p className="text-xs text-muted-foreground">Operating Margin</p>
                 <p className="text-sm font-bold text-foreground">{margin.toFixed(1)}%</p>
               </div>
             </div>

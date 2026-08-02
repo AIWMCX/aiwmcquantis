@@ -144,7 +144,7 @@ export function ReportFinancials({ result }: ReportFinancialsProps) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={pdfStyles.tableCell}>Net Profit</td>
+                  <td style={pdfStyles.tableCell}>Operating Profit</td>
                   <td style={{ ...pdfStyles.tableCell, textAlign: 'right', color: scenarios.pessimistic.net_profit >= 0 ? '#22c55e' : '#ef4444' }}>
                     {formatCurrency(scenarios.pessimistic.net_profit)}
                   </td>
@@ -168,7 +168,7 @@ export function ReportFinancials({ result }: ReportFinancialsProps) {
                   </td>
                 </tr>
                 <tr>
-                  <td style={pdfStyles.tableCell}>Net Margin</td>
+                  <td style={pdfStyles.tableCell}>Operating Margin</td>
                   <td style={{ ...pdfStyles.tableCell, textAlign: 'right' }}>
                     {formatNumber(scenarios.pessimistic.net_margin)}%
                   </td>
@@ -184,7 +184,7 @@ export function ReportFinancials({ result }: ReportFinancialsProps) {
 
             {/* Visual Bar Chart */}
             <div style={pdfStyles.chartSection}>
-              <div style={pdfStyles.chartTitle}>Net Profit Comparison</div>
+              <div style={pdfStyles.chartTitle}>Operating Profit Comparison</div>
               <div style={pdfStyles.barChartContainer}>
                 {[
                   { label: 'Pessimistic', value: scenarios.pessimistic.net_profit, color: '#ef4444' },

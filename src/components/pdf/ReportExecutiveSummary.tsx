@@ -63,7 +63,7 @@ export function ReportExecutiveSummary({ result }: ReportExecutiveSummaryProps) 
           <div style={pdfStyles.metricCardValue}>{formatCurrency(monthlyRevenue)}</div>
         </div>
         <div style={pdfStyles.metricCard}>
-          <div style={pdfStyles.metricCardLabel}>Monthly Net Profit</div>
+          <div style={pdfStyles.metricCardLabel}>Monthly Operating Profit</div>
           <div
             style={{
               ...pdfStyles.metricCardValue,

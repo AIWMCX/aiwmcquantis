@@ -196,7 +196,7 @@ describe('FormulaRegistry — Execution', () => {
 
   it('returns audit trail string', () => {
     const result = FormulaRegistry.execute('net_profit', 15000, 10000);
-    expect(result.auditTrail).toContain('Net_Profit');
+    expect(result.auditTrail).toContain('Operating_Profit');
     expect(result.output).toBe(5000);
   });
 });

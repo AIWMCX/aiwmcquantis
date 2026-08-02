@@ -135,7 +135,7 @@ function ScenarioCard({ title, metrics, variant }: { title: string; metrics: Sce
           <span className="font-medium">{formatCurrency(metrics.gross_profit)}</span>
         </div>
         <div className="flex justify-between">
-          <span className="text-muted-foreground">Net Profit:</span>
+          <span className="text-muted-foreground">Operating Profit:</span>
           <span className={cn("font-bold", metrics.net_profit >= 0 ? "text-emerald-600" : "text-destructive")}>
             {formatCurrency(metrics.net_profit)}
           </span>
@@ -146,7 +146,7 @@ function ScenarioCard({ title, metrics, variant }: { title: string; metrics: Sce
             <span className="font-medium">{formatPercent(metrics.gross_margin)}</span>
           </div>
           <div className="flex justify-between">
-            <span className="text-muted-foreground">Net Margin:</span>
+            <span className="text-muted-foreground">Operating Margin:</span>
             <span className={cn("font-medium", metrics.net_margin >= 0 ? "text-emerald-600" : "text-destructive")}>
               {formatPercent(metrics.net_margin)}
             </span>
@@ -225,7 +225,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
       bgColor: 'bg-emerald-500/10',
     },
     {
-      label: 'Net Profit/mo',
+      label: 'Operating Profit/mo',
       value: formatCurrency(baseProfit),
       icon: isProfitable ? TrendingUp : TrendingDown,
       color: isProfitable ? 'text-emerald-600 dark:text-emerald-400' : 'text-destructive',
@@ -286,7 +286,7 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
             bgColor="bg-emerald-500/10"
           />
           <CopyableMetricCard
-            label="Net Profit/mo"
+            label="Operating Profit/mo"
             value={formatCurrency(baseProfit)}
             rawValue={baseProfit}
             icon={isProfitable ? TrendingUp : TrendingDown}

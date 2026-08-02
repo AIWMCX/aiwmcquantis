@@ -979,7 +979,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         React.createElement(
           View,
           { style: styles.metricCard },
-          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Net Profit'),
+          React.createElement(Text, { style: styles.metricCardLabel }, 'Monthly Operating Profit'),
           React.createElement(Text, { style: { ...styles.metricCardValue, color: getProfitColor(monthlyProfit) } }, formatCurrency(monthlyProfit))
         ),
         React.createElement(
@@ -1149,7 +1149,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(
             View,
             { style: styles.tableRow },
-            React.createElement(Text, { style: styles.tableCell }, 'Net Profit'),
+            React.createElement(Text, { style: styles.tableCell }, 'Operating Profit'),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.pessimistic.net_profit) } }, formatCurrency(financial.scenarios.pessimistic.net_profit)),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.base.net_profit) } }, formatCurrency(financial.scenarios.base.net_profit)),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight, color: getProfitColor(financial.scenarios.optimistic.net_profit) } }, formatCurrency(financial.scenarios.optimistic.net_profit))
@@ -1165,7 +1165,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(
             View,
             { style: styles.tableRow },
-            React.createElement(Text, { style: styles.tableCell }, 'Net Margin'),
+            React.createElement(Text, { style: styles.tableCell }, 'Operating Margin'),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.pessimistic.net_margin)}%`),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.base.net_margin)}%`),
             React.createElement(Text, { style: { ...styles.tableCell, ...styles.textRight } }, `${formatNumber(financial.scenarios.optimistic.net_margin)}%`)

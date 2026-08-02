@@ -509,7 +509,7 @@ export default function ScenarioWorkspace() {
                       <tr className="text-left text-muted-foreground border-b">
                         <th className="py-2 pr-4">Scenario</th>
                         <th className="py-2 pr-4">Revenue</th>
-                        <th className="py-2 pr-4">Net Profit</th>
+                        <th className="py-2 pr-4">Operating Profit</th>
                         <th className="py-2 pr-4">Status</th>
                         <th className="py-2" />
                       </tr>
@@ -685,7 +685,7 @@ export default function ScenarioWorkspace() {
                 <div className="font-medium">Preview result</div>
                 <div className="grid grid-cols-2 gap-2 tabular-nums">
                   <div>Revenue: ${preview.output.financial_analysis.scenarios.base.revenue.toLocaleString()}</div>
-                  <div>Net Profit: ${preview.output.financial_analysis.scenarios.base.net_profit.toLocaleString()}</div>
+                  <div>Operating Profit: ${preview.output.financial_analysis.scenarios.base.net_profit.toLocaleString()}</div>
                 </div>
                 <Badge variant={preview.output.reconciliation.all_passed ? 'default' : 'secondary'}>
                   {preview.output.reconciliation.all_passed ? 'Reconciliation passed' : 'Reconciliation issues found'}

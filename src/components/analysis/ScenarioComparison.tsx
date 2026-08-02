@@ -51,7 +51,7 @@ const METRIC_LABELS: Record<string, string> = {
   revenue_month_6: 'Revenue Month 6',
   revenue_month_12: 'Revenue Month 12',
   break_even_month: 'Break-even Month',
-  net_margin: 'Net Margin (%)',
+  net_margin: 'Operating Margin (%)',
   gross_margin: 'Gross Margin (%)',
   survival_probability: 'Survival Probability (%)',
   monthly_profit: 'Monthly Profit ($)',

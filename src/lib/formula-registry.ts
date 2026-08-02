@@ -324,12 +324,12 @@ FormulaRegistry.register({
 
 FormulaRegistry.register({
   id: 'net_profit',
-  name: 'Net Profit',
-  description: 'Revenue minus all expenses (COGS + fixed costs + marketing).',
+  name: 'Operating Profit',
+  description: 'Revenue minus all expenses (COGS + fixed costs + marketing). This is operating profit / EBITDA-equivalent — it does not subtract depreciation, amortization, interest, or income tax, which this engine does not model.',
   category: 'profitability',
   criticality: 'critical',
   units: 'USD',
-  formulaExpression: 'Net_Profit = MRR - Total_Expenses',
+  formulaExpression: 'Operating_Profit = MRR - Total_Expenses',
   inputs: [
     { name: 'mrr', description: 'Monthly Recurring Revenue', unit: 'USD', min: 0, required: true },
     { name: 'totalExpenses', description: 'Total monthly expenses', unit: 'USD', min: 0, required: true },
@@ -347,15 +347,15 @@ FormulaRegistry.register({
 
 FormulaRegistry.register({
   id: 'net_margin_percent',
-  name: 'Net Margin Percentage',
-  description: 'Net profit as a percentage of revenue.',
+  name: 'Operating Margin Percentage',
+  description: 'Operating profit as a percentage of revenue (see the Operating Profit formula for why this is not post-tax net margin).',
   category: 'profitability',
   criticality: 'critical',
   units: '%',
   validRange: { min: -500, max: 100 },
-  formulaExpression: 'Net_Margin% = (Net_Profit / MRR) × 100',
+  formulaExpression: 'Operating_Margin% = (Operating_Profit / MRR) × 100',
   inputs: [
-    { name: 'netProfit', description: 'Net profit', unit: 'USD', required: true },
+    { name: 'netProfit', description: 'Operating profit', unit: 'USD', required: true },
     { name: 'mrr', description: 'Monthly Recurring Revenue', unit: 'USD', min: 0, required: true },
   ],
   formula: (netProfit, mrr) => {
