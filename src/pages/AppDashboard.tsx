@@ -616,6 +616,26 @@ export default function Index() {
                     size="sm"
                     variant="default"
                     onClick={async () => {
+                      // Prod bug, 2026-08-02: this button rendered for anonymous
+                      // visitors too (the panel above is gated only on
+                      // !hasAnyResult, not isAuthenticated), showing a "5/mo free"
+                      // badge right next to AnonymousUsageNotice's real "1 free
+                      // analysis" preview badge -- two different numbers for what
+                      // looked like the same "how much can I use for free"
+                      // question. The idea-gen quota is real (5/month, enforced
+                      // server-side in generate-idea/index.ts), but it only exists
+                      // for signed-in free-tier accounts; an anonymous click hit
+                      // AUTH_REQUIRED and fell through to a generic "Could not
+                      // generate idea" error with no explanation. Route anonymous
+                      // clicks to signup instead of the edge function.
+                      if (!isAuthenticated) {
+                        toast({
+                          title: 'Sign in to generate ideas',
+                          description: 'Free accounts get 5 AI-generated business ideas per month.',
+                        });
+                        navigate('/auth?mode=signup');
+                        return;
+                      }
                       try {
                         const { supabase } = await import('@/integrations/supabase/client');
                         const { data, error } = await supabase.functions.invoke('generate-idea', {
@@ -629,6 +649,14 @@ export default function Index() {
                             /* ignore */
                           }
                           const code = errBody?.error || '';
+                          if (code === 'AUTH_REQUIRED') {
+                            toast({
+                              title: 'Sign in to generate ideas',
+                              description: errBody?.message || 'Sign in to use your 5 free random ideas.',
+                            });
+                            navigate('/auth?mode=signup');
+                            return;
+                          }
                           if (code === 'QUOTA_EXCEEDED') {
                             toast({
                               title: 'Monthly limit reached',
@@ -683,7 +711,8 @@ export default function Index() {
                     className="gap-1.5 text-xs h-8"
                   >
                     <Brain className="w-3.5 h-3.5" /> Generate Random Idea{' '}
-                    {isFree && <span className="ml-1 text-[10px] opacity-60">5/mo free</span>}
+                    {isAuthenticated && isFree && <span className="ml-1 text-[10px] opacity-60">5/mo free</span>}
+                    {!isAuthenticated && <span className="ml-1 text-[10px] opacity-60">sign in for 5/mo free</span>}
                   </Button>
                 </div>
               </div>

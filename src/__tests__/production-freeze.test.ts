@@ -617,3 +617,43 @@ describe('T11 — accuracy notice banner exists on all report surfaces', () => {
     expect(src).toContain('Cross-section reconciliation is partially implemented');
   });
 });
+
+// ============================================================================
+// T12 — Anonymous visitors never see a signed-in-only quota badge as if it
+// were already theirs (prod bug, 2026-08-02, reported via screenshot: a
+// user with no account saw "1 free analysis" (AnonymousUsageNotice's real,
+// enforced anonymous-preview badge) and "5/mo free" (the AI idea-generator's
+// real, enforced Free-tier monthly quota) on the same screen simultaneously
+// -- two genuine numbers for two different features, but presented so it
+// looked like one inconsistent, hardcoded "how much do I get for free"
+// answer. Root cause: the "Try Sample / Generate Random Idea" panel in
+// AppDashboard.tsx is gated only on !hasAnyResult, not isAuthenticated, and
+// isFree defaults true for anonymous visitors too (tier falls back to
+// 'FREE' in useSubscription.ts). Clicking it as an anonymous visitor hit the
+// server's real AUTH_REQUIRED response but the client had no handler for
+// that code, so it fell through to a generic "Could not generate idea"
+// error -- doubly confusing, since the button looked usable but silently
+// wasn't. Fixed: anonymous clicks route to signup with an honest message;
+// the badge itself only claims "5/mo free" once isAuthenticated is true.
+// ============================================================================
+describe('T12 — anonymous visitors never see a phantom signed-in-only quota as usable', () => {
+  it('AppDashboard.tsx only shows the idea-gen "5/mo free" claim to authenticated users', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/AppDashboard.tsx'), 'utf8');
+    expect(src).toMatch(/isAuthenticated\s*&&\s*isFree\s*&&\s*<span[^>]*>5\/mo free/);
+  });
+
+  it('AppDashboard.tsx routes anonymous idea-gen clicks to signup instead of the edge function', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/AppDashboard.tsx'), 'utf8');
+    expect(src).toMatch(/if\s*\(!isAuthenticated\)\s*\{[\s\S]{0,400}navigate\('\/auth\?mode=signup'\)/);
+  });
+
+  it('AppDashboard.tsx handles a server-side AUTH_REQUIRED response explicitly, not as a generic error', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/AppDashboard.tsx'), 'utf8');
+    expect(src).toMatch(/code\s*===\s*'AUTH_REQUIRED'/);
+  });
+
+  it('useSubscription.ts has no stale, unused FREE_TIER_LIMIT constant contradicting the real tier-spec value', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/useSubscription.ts'), 'utf8');
+    expect(src).not.toMatch(/const FREE_TIER_LIMIT\s*=/);
+  });
+});

@@ -58,7 +58,11 @@ interface SubscriptionData {
   openPortal: () => Promise<void>;
 }
 
-const FREE_TIER_LIMIT = 1;
+// Dead/stale constant removed 2026-08-02: `FREE_TIER_LIMIT = 1` here was
+// never referenced anywhere in this file (the real limit comes from
+// manifest.monthly_analysis_limit, sourced from tier-spec.ts's
+// FEATURE_MANIFEST.FREE = 5) -- a leftover from an earlier free-tier
+// allowance that had gone stale and could have misled a future edit.
 const MAX_LOADING_TIMEOUT = 5000; // 5 seconds max wait
 const MAX_RETRIES = 2;
 
