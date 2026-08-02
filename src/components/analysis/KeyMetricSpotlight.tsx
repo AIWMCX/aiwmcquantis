@@ -36,7 +36,7 @@ export function KeyMetricSpotlight({ result }: KeyMetricSpotlightProps) {
       {
         label: `Current (${churn.toFixed(1)}%)`,
         profitDelta: 'baseline',
-        beDelta: `Mo. ${baseBe}`,
+        beDelta: baseBe >= 999 ? 'N/A' : `Mo. ${baseBe}`,
         color: 'text-[var(--q-text-secondary)]',
         isCurrent: true,
       },

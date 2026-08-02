@@ -126,7 +126,11 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
             <div className="text-right">
               <p className="text-[10px] text-[var(--q-text-tertiary)]">Yours</p>
               <p className="text-xs font-bold tabular-nums text-[var(--q-text-primary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.userValue.toLocaleString()}` : `${row.userValue}${row.unit}`}
+                {row.unit === '$'
+                  ? `$${row.userValue.toLocaleString()}`
+                  : row.unit === 'mo' && row.userValue >= 999
+                    ? 'N/A'
+                    : `${row.userValue}${row.unit}`}
               </p>
             </div>
 

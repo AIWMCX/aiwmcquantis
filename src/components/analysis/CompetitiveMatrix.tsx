@@ -63,7 +63,7 @@ export function CompetitiveMatrix({ result }: CompetitiveMatrixProps) {
     const formatCell = (val: number, idx: number) => {
       if (idx === 0 || idx === 2) return `$${val.toLocaleString()}`;
       if (idx === 1 || idx === 3) return `${val.toFixed(1)}%`;
-      if (idx === 4) return `Mo.${val}`;
+      if (idx === 4) return val >= 999 ? 'N/A' : `Mo.${val}`;
       if (idx === 5) return `${val.toFixed(1)}×`;
       if (idx === 6) return val >= 0 ? `+$${val.toLocaleString()}` : `−$${Math.abs(val).toLocaleString()}`;
       return String(val);

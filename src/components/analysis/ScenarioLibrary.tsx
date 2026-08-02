@@ -167,8 +167,12 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
       ) : (
         <div className="space-y-2">
           {scenarios.map(s => {
-            const be = s.output?.financial_analysis?.breakeven?.breakeven_months
-              ?? s.output?.financial_analysis?.returns?.payback_period_months ?? null;
+            // payback_period_months carries the real unprofitable-sentinel (999);
+            // breakeven_months is 0 (not null) for unprofitable cases, so it must
+            // never be checked first — that previously rendered "Break-even: 0 mo"
+            // for underwater scenarios, which is false, not just unformatted.
+            const be = s.output?.financial_analysis?.returns?.payback_period_months
+              ?? s.output?.financial_analysis?.breakeven?.breakeven_months ?? null;
             const rev12 = (() => {
               const rev = s.output?.financial_analysis?.scenarios?.base?.revenue || s.output?.financial_analysis?.mrr || 0;
               const g = s.params?.monthly_growth_rate || 0.05;
@@ -202,7 +206,7 @@ export function ScenarioLibrary({ analysisId, currentParams, currentOutput, curr
                       {s.is_pinned && <Star className="w-3 h-3 text-amber-500 fill-amber-500" />}
                     </div>
                     <div className="flex items-center gap-3 text-[11px] text-muted-foreground">
-                      {be != null && <span>Break-even: {Math.round(be)} mo</span>}
+                      {be != null && <span>Break-even: {be >= 999 ? 'N/A (unprofitable)' : `${Math.round(be)} mo`}</span>}
                       <span>M12 Rev: ${rev12.toLocaleString()}</span>
                       {confTier && <span className={confColor}>{confTier} confidence</span>}
                     </div>

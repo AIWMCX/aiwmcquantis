@@ -38,7 +38,10 @@ function classifyQoE(result: BusinessAnalysisResult): QoEResult {
 
   if (ltvCac > 10) { structural++; flags.push({ type: 'structural', text: `LTV:CAC ${ltvCac.toFixed(1)}× — durable customer economics` }); }
   if (gm > gmP50) { structural++; flags.push({ type: 'structural', text: `Gross margin ${gm.toFixed(0)}% exceeds industry median ${gmP50}%` }); }
-  if (be > 0 && be <= beP50) { structural++; flags.push({ type: 'structural', text: `Break-even Mo.${be} beats industry median Mo.${beP50}` }); }
+  // be < 999 is an explicit sentinel guard, not incidental: relying on
+  // "beP50 will never reach 999" alone is fragile against a misconfigured
+  // benchmark row — see payback-sentinel-guard-live-scan.test.ts.
+  if (be > 0 && be < 999 && be <= beP50) { structural++; flags.push({ type: 'structural', text: `Break-even Mo.${be} beats industry median Mo.${beP50}` }); }
   if (arpu > arpuP50) { structural++; flags.push({ type: 'structural', text: `ARPU $${arpu.toLocaleString()} beats industry median $${arpuP50}` }); }
 
   // Concerns
