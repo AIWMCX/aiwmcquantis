@@ -3,8 +3,12 @@
  * Tests QSL boundaries, shouldPulse, clamping, and confidence scoring behavior.
  */
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { QSL, getQSLFromConfidence, getQSLConfig, shouldPulse, QSL_CONFIG } from '@/lib/quantis-safety-levels';
 import { calculateOutputConfidence, type ConfidenceInput } from '@/services/confidence-scorer';
+
+const ROOT = process.cwd();
 
 // ── QSL Tier Assignment ──
 
@@ -277,5 +281,48 @@ describe('Confidence Scorer — Breakdown', () => {
       sampleSize: 1,
     };
     expect(calculateOutputConfidence(low).score).toBeGreaterThanOrEqual(0);
+  });
+});
+
+// ============================================================================
+// Accuracy-audit finding, 2026-08-02: "QSL silent-70 fallback" and the
+// scale bug it was hiding alongside.
+//
+// AnalysisResults.tsx fed engine-cross-validator.ts's agreementScore (already
+// 0-100, per DualEngineBadge.tsx's direct, unscaled read of the same field)
+// into calculateOutputConfidence() as `agreement_score * 100` -- producing
+// values like 8500, silently clamped to a fake 100 by this module's own
+// Math.min(100, ...) floor. When cross-validation hadn't run at all, it fell
+// back to `result.confidence_score || 70` -- confidence_score is a
+// data-completeness/reliability metric (a different signal entirely, not
+// model-agreement), and 70 made a never-computed number indistinguishable
+// from a real one. QuantisHealth.tsx's admin KPI aggregate had the identical
+// *100 scale bug, inflating its "Consensus Score" card ~100x and making its
+// `good={v => v >= 70}` threshold meaningless. These are live-source-scan
+// tests (not pure-function tests) because the bug lived in how a real
+// UI/analytics consumer wired a correct field into a correct formula, not in
+// either module itself -- exactly the class of bug a unit test on
+// calculateOutputConfidence() alone could never catch.
+// ============================================================================
+describe('Consensus score wiring — live source scan', () => {
+  it('AnalysisResults.tsx does not re-scale an already-0-100 agreement_score', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    expect(src).not.toMatch(/cross_validation\.agreement_score\s*\*\s*100/);
+  });
+
+  it('AnalysisResults.tsx does not substitute confidence_score for a missing consensus signal', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    expect(src).not.toMatch(/consensusScore:.*confidence_score\s*\|\|\s*70/s);
+  });
+
+  it('AnalysisResults.tsx shows an honest "not computed" state instead of a fabricated score', () => {
+    const src = readFileSync(join(ROOT, 'src/components/analysis/AnalysisResults.tsx'), 'utf8');
+    expect(src).toContain('Cross-model consensus not computed for this analysis');
+  });
+
+  it('QuantisHealth.tsx does not re-scale an already-0-100 agreement_score', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/admin/QuantisHealth.tsx'), 'utf8');
+    expect(src).not.toMatch(/cross_validation\.agreement_score\s*\*\s*100/);
+    expect(src).toMatch(/consensusSum\s*\+=\s*r\.cross_validation\.agreement_score;/);
   });
 });

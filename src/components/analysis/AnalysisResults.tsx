@@ -489,18 +489,42 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
               );
             })()}
             <ModelConfidenceBadge confidence={result.model_confidence} />
-            <OutputConfidenceBadge
-              confidence={calculateOutputConfidence({
-                consensusScore: (result as any).cross_validation?.agreement_score
-                  ? (result as any).cross_validation.agreement_score * 100
-                  : (result.confidence_score || 70),
-                dataCompleteness: result.model_confidence ? Math.round(result.model_confidence.confidence * 100) : 60,
-                benchmarkAlignment: (result as any).benchmark_confidence?.overall_confidence
-                  ? (result as any).benchmark_confidence.overall_confidence * 100 : 65,
-                dataFreshnessHours: 0,
-                sampleSize: result.model_confidence?.similar_cases_count || 5,
-              })}
-            />
+            {(() => {
+              // Accuracy-audit finding, 2026-08-02 (QSL silent-70 fallback):
+              // this block had two compounding bugs. (1) cross_validation.agreement_score
+              // is ALREADY 0-100 (see engine-cross-validator.ts's `score`, which
+              // DualEngineBadge.tsx reads directly with no scaling) -- multiplying it
+              // by 100 here produced values like 8500, which calculateOutputConfidence's
+              // weighted formula then silently clamped to a fake 100. (2) when no
+              // cross-validation had run at all, this fell back to
+              // `result.confidence_score || 70` -- confidence_score is a data-completeness/
+              // reliability metric (see index.ts's reliabilityScore), not model-agreement;
+              // substituting it for consensusScore was a category error on top of the
+              // scale error, and a hardcoded 70 made a never-computed number
+              // indistinguishable from a real one. Fixed: use agreement_score as-is
+              // (already 0-100), and when it's genuinely absent, say so instead of
+              // fabricating a score.
+              const cv = (result as any).cross_validation as { agreement_score?: number } | undefined;
+              if (typeof cv?.agreement_score !== 'number') {
+                return (
+                  <div className="rounded-xl border border-dashed border-[var(--q-border-default)] bg-[var(--q-bg-elevated)] p-4 text-xs text-[var(--q-text-secondary)]">
+                    Cross-model consensus not computed for this analysis — no comparable second-engine run was available.
+                  </div>
+                );
+              }
+              return (
+                <OutputConfidenceBadge
+                  confidence={calculateOutputConfidence({
+                    consensusScore: cv.agreement_score,
+                    dataCompleteness: result.model_confidence ? Math.round(result.model_confidence.confidence * 100) : 60,
+                    benchmarkAlignment: (result as any).benchmark_confidence?.overall_confidence
+                      ? (result as any).benchmark_confidence.overall_confidence * 100 : 65,
+                    dataFreshnessHours: 0,
+                    sampleSize: result.model_confidence?.similar_cases_count || 5,
+                  })}
+                />
+              );
+            })()}
             {result.market_prior?.anomaly_card && result.market_prior.anomaly_card.length > 0 && (
               <AnomalyCard anomalyCard={result.market_prior.anomaly_card} peerGroupLabel={result.market_prior.peer_group_label} />
             )}

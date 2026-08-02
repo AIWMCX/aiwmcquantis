@@ -135,7 +135,12 @@ export default function QuantisHealth() {
       for (const a of recentArr) {
         const r = a.result as any;
         if (r?.cross_validation?.agreement_score != null) {
-          consensusSum += r.cross_validation.agreement_score * 100;
+          // agreement_score is already a 0-100 score (engine-cross-validator.ts's
+          // `score`, read as-is by DualEngineBadge.tsx) -- this used to multiply by
+          // 100 again, inflating the KPI card ~100x (e.g. a real 85% showing as
+          // "8500%"), which also meant the `good={v => v >= 70}` threshold below
+          // was meaningless since any nonzero value cleared it once inflated.
+          consensusSum += r.cross_validation.agreement_score;
           consensusCount++;
         }
         if (r?.validation?.is_blocked) errorCount++;
