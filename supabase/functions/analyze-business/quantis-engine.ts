@@ -297,9 +297,22 @@ export function processQuantisAnalysis(
     paybackMonths = 999;
   }
   
-  // Ramp-up aware Year 1 ROI
+  // Ramp-up aware Year 1 ROI. Root cause (2026-08-02, dual-engine
+  // cross-validation audit): this was gated on `netProfit > 0`, so every
+  // unprofitable analysis silently left roiYear1Percent at 0 instead of
+  // computing the real negative ROI — indistinguishable from "broke even
+  // exactly." financial-calculator.ts's sibling engine has never had this
+  // gate (see its own roiYear1Percent block, guarded only by
+  // `startupInvestment > 0`) and correctly reports negative ROI for
+  // underwater businesses. Fresh production query: of 7 analyses since
+  // 2026-07-25, all 7 diverged on roiYear1Percent (and only roiYear1Percent
+  // in 6/7) between this engine and the strict one — this single gate was
+  // the reason engine-cross-validator.ts's dual-engine agreement score has
+  // never once reached its own >=95 "verified" threshold in this system's
+  // history. Removing the profitability gate; the ramp-up formula below is
+  // already sign-agnostic and needs no other change.
   let roiYear1Percent = 0;
-  if (investment > 0 && netProfit > 0) {
+  if (investment > 0) {
     const RAMP = [0.30, 0.45, 0.60, 0.75, 0.90, 1.00];
     const fixedP = totalExpenses * 0.6;
     const varP = totalExpenses * 0.4;
