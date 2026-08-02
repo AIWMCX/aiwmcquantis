@@ -34,6 +34,27 @@ const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
   rent: 'Rent',
 };
 
+/**
+ * Starting-case quick presets — the schema (`scenarios.starting_case`,
+ * already enforced by a DB check constraint) and run-scenario have
+ * supported these since Phase D shipped; the builder never exposed them,
+ * so every scenario had to be hand-built from a blank form. Matches the
+ * Unified Decision Framework's §8.3 requirement for named starting cases,
+ * not free-form deltas as the only entry point.
+ */
+const STARTING_CASE_PRESETS: Array<{
+  id: 'baseline' | 'demand_downside' | 'cost_shock' | 'pricing_change' | 'capacity_constraint';
+  label: string;
+  description: string;
+  changes: Partial<Record<ScenarioAssumptionKey, string>>;
+}> = [
+  { id: 'baseline', label: 'Baseline', description: 'Re-run the base case unchanged, as a comparison anchor', changes: {} },
+  { id: 'demand_downside', label: 'Demand Downside', description: 'Revenue and customer count both 20% lower', changes: { monthly_revenue: '-20', expected_customers: '-20' } },
+  { id: 'cost_shock', label: 'Cost Shock', description: 'Monthly costs 15% higher', changes: { monthly_costs: '15' } },
+  { id: 'pricing_change', label: 'Pricing Change', description: 'Average price 10% higher', changes: { average_price: '10' } },
+  { id: 'capacity_constraint', label: 'Capacity Constraint', description: 'Customer count capped 25% below plan', changes: { expected_customers: '-25' } },
+];
+
 interface ScenarioSetRow {
   id: string;
   name: string;
@@ -79,6 +100,14 @@ export default function ScenarioWorkspace() {
 
   const [changes, setChanges] = useState<Partial<Record<ScenarioAssumptionKey, string>>>({});
   const [scenarioName, setScenarioName] = useState('');
+  const [startingCase, setStartingCase] = useState<string>('custom');
+
+  const applyPreset = (preset: typeof STARTING_CASE_PRESETS[number]) => {
+    setStartingCase(preset.id);
+    setChanges(preset.changes);
+    setScenarioName((current) => current || preset.label);
+    setPreview(null);
+  };
   const [preview, setPreview] = useState<RunScenarioResult | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -211,7 +240,7 @@ export default function ScenarioWorkspace() {
     }
     setIsRunning(true);
     try {
-      const result = await runScenario({ scenarioSetId: setId, changes: buildChanges(), persist: false });
+      const result = await runScenario({ scenarioSetId: setId, changes: buildChanges(), persist: false, startingCase });
       setPreview(result);
     } catch (e) {
       if (e instanceof ScenarioEntitlementError) {
@@ -238,6 +267,7 @@ export default function ScenarioWorkspace() {
         name: scenarioName || 'Custom Scenario',
         changes: buildChanges(),
         persist: true,
+        startingCase,
       });
       toast.success('Scenario saved');
       navigate(`/app/scenarios?analysisId=${analysisId}&setId=${targetSetId}`);
@@ -496,6 +526,32 @@ export default function ScenarioWorkspace() {
         <Card>
           <CardHeader><CardTitle className="text-base">Build a Scenario</CardTitle></CardHeader>
           <CardContent className="space-y-4">
+            <div>
+              <Label className="mb-2 block">Starting case</Label>
+              <div className="flex flex-wrap gap-2">
+                {STARTING_CASE_PRESETS.map((preset) => (
+                  <Button
+                    key={preset.id}
+                    type="button"
+                    size="sm"
+                    variant={startingCase === preset.id ? 'default' : 'outline'}
+                    onClick={() => applyPreset(preset)}
+                    title={preset.description}
+                  >
+                    {preset.label}
+                  </Button>
+                ))}
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={startingCase === 'custom' ? 'default' : 'outline'}
+                  onClick={() => setStartingCase('custom')}
+                  title="Set every assumption change yourself"
+                >
+                  Custom
+                </Button>
+              </div>
+            </div>
             <div>
               <Label htmlFor="scenario-name">Scenario name</Label>
               <Input

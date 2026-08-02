@@ -390,7 +390,7 @@ export const UPGRADE_COPY: Record<
   },
   scenarioCompare: {
     title: 'Scenario Comparison',
-    bullets: ['Compare baseline, downside and upside', 'See changed drivers', 'Inspect cash and breakpoint effects'],
+    bullets: ['Compare saved scenario runs side by side', 'See revenue and net profit deltas', 'Check reconciliation status per run'],
     recommendedTier: 'plus',
   },
   scenarioPromote: {
