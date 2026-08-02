@@ -7,6 +7,7 @@ import { useAnalysisHistory } from '@/hooks/useAnalysisHistory';
 import { usePullToRefresh } from '@/hooks/usePullToRefresh';
 import type { AnalysisHistoryEntry, BusinessAnalysisResult } from '@/types/analysis';
 import { getMonthlyProfit, getPaybackMonths } from '@/types/analysis';
+import { formatPaybackDisplay } from '@/lib/formatPayback';
 
 interface AnalysisHistoryProps {
   onSelect: (result: BusinessAnalysisResult, analysisId: string) => void;
@@ -200,7 +201,10 @@ export function AnalysisHistory({ onSelect, onClone }: AnalysisHistoryProps) {
                     </span>
                     <span className="text-xs text-muted-foreground">
                       Payback: <span className="font-medium text-foreground">
-                        {getPaybackMonths(entry.result.financial_analysis)} mo.
+                        {formatPaybackDisplay(
+                          getPaybackMonths(entry.result.financial_analysis),
+                          getMonthlyProfit(entry.result.financial_analysis),
+                        )}
                       </span>
                     </span>
                     <span className="text-xs text-muted-foreground flex items-center gap-1">

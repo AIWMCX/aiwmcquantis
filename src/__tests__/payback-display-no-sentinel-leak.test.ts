@@ -6,7 +6,11 @@
  * app funnels through formatPaybackDisplay() (src/lib/formatPayback.ts)
  * before showing the value to a customer — confirmed by grep across
  * AccuracyTransparentResults.tsx, AnalysisResults.tsx, CapacityCheckCard.tsx,
- * FinancialSummary.tsx, and ReportExecutiveSummary.tsx.
+ * FinancialSummary.tsx, ReportExecutiveSummary.tsx, ViralCard.tsx, and
+ * components/analysis/AnalysisHistory.tsx (the last one was found rendering
+ * the raw sentinel directly as "999 mo." in production on 2026-08-02 — a
+ * real user's history list showed it on ~30 analyses — and fixed the same
+ * day; this list is the actual audit trail, not a design intent).
  *
  * This test locks that behavior as a CI-blocking invariant: no future
  * change to formatPaybackDisplay may reintroduce a raw "999" (or
