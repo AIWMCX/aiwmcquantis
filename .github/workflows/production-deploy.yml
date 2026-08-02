@@ -281,6 +281,7 @@ jobs:
             run-scenario
             promote-scenario
             promote-scenario-to-analysis
+            scenario-breakpoint
             # ── API / team ────────────────────────────────────────────────
             create-api-key
             team-invite

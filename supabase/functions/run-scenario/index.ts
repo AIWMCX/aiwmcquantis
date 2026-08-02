@@ -26,6 +26,7 @@ import { calculateStrictFinancials } from '../analyze-business/financial-calcula
 import { shapeFinancialAnalysis } from '../analyze-business/financial-analysis-shape.ts';
 import { runReconciliationCheck } from '../analyze-business/reconciliation-check.ts';
 import { QMath } from '../analyze-business/quantis-math-server.ts';
+import { computeSensitivityRanking } from '../_shared/scenario-sensitivity.ts';
 
 const FUNCTION_NAME = 'run-scenario';
 const FUNCTION_VERSION = '1.0.0';
@@ -213,6 +214,16 @@ Deno.serve(async (req) => {
 
     const { financialAnalysis } = shapeFinancialAnalysis(calc, baseInput.benchmarks, log);
 
+    // Sensitivity ranking against the CURRENT effective position (post-delta),
+    // so it always answers "from here, what matters most" — cheap, pure,
+    // zero LLM/research cost. See _shared/scenario-sensitivity.ts.
+    const sensitivity = computeSensitivityRanking(
+      { ...effective, rawLtv: baseInput.rawLtv },
+      baseInput.benchmarks,
+      baseInput.subIndustry,
+      'netProfit',
+    );
+
     const cacPaybackMonths = !calc.isProfitable
       ? 999
       : QMath.roundTo(QMath.cacPaybackMonths(calc.cac, calc.averageCheck, (100 - baseInput.benchmarks.cogs_percent) / 100), 1);
@@ -273,6 +284,7 @@ Deno.serve(async (req) => {
       financial_analysis: financialAnalysis,
       metadata: { industry_detected: calc.industryDetected },
       reconciliation,
+      sensitivity,
     };
 
     if (!persist) {

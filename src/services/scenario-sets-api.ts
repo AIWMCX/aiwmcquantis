@@ -24,6 +24,43 @@ export interface ScenarioDeltaChange {
   value: number;
 }
 
+export type ScenarioTargetMetric = 'netProfit' | 'mrr' | 'grossProfit' | 'ltvCacRatio';
+
+export interface ScenarioSensitivityResult {
+  assumption_key: ScenarioAssumptionKey;
+  base_metric: number;
+  metric_up_10pct: number;
+  metric_down_10pct: number;
+  dollar_impact_per_10pct: number;
+  elasticity: number | null;
+}
+
+export type ScenarioBreakpointResult =
+  | {
+      status: 'FOUND';
+      assumption_key: ScenarioAssumptionKey;
+      target_metric: ScenarioTargetMetric;
+      target_value: number;
+      breakpoint_pct: number;
+      base_metric: number;
+    }
+  | {
+      status: 'NOT_FOUND_IN_RANGE';
+      assumption_key: ScenarioAssumptionKey;
+      target_metric: ScenarioTargetMetric;
+      target_value: number;
+      searched_range_pct: [number, number];
+      metric_at_low: number;
+      metric_at_high: number;
+    }
+  | {
+      status: 'ALREADY_AT_TARGET';
+      assumption_key: ScenarioAssumptionKey;
+      target_metric: ScenarioTargetMetric;
+      target_value: number;
+      base_metric: number;
+    };
+
 export interface ScenarioRunOutput {
   // deno-lint-ignore no-explicit-any
   financial_analysis: Record<string, any>;
@@ -36,6 +73,7 @@ export interface ScenarioRunOutput {
     skipped_count: number;
     engine_version: string;
   };
+  sensitivity: ScenarioSensitivityResult[];
 }
 
 export interface RunScenarioResult {
@@ -110,6 +148,29 @@ export function runScenario(params: {
     starting_case: params.startingCase,
     changes: params.changes,
     persist: params.persist,
+  });
+}
+
+/**
+ * Finds the % change on one assumption at which a target metric crosses a
+ * target value (default: net profit crossing zero). Free-tier eligible —
+ * gated on 'scenarioCustom' only, same as the live preview run. Applies any
+ * client-supplied `changes` first so the breakpoint reflects the user's
+ * current builder state, not just the original analysis baseline.
+ */
+export function findScenarioBreakpoint(params: {
+  analysisId: string;
+  assumptionKey: ScenarioAssumptionKey;
+  changes?: ScenarioDeltaChange[];
+  targetMetric?: ScenarioTargetMetric;
+  targetValue?: number;
+}) {
+  return invokeScenarioFn<ScenarioBreakpointResult>('scenario-breakpoint', {
+    analysis_id: params.analysisId,
+    assumption_key: params.assumptionKey,
+    changes: params.changes,
+    target_metric: params.targetMetric,
+    target_value: params.targetValue,
   });
 }
 

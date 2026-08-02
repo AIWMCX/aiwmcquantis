@@ -15,12 +15,14 @@ import {
   runScenario,
   promoteScenario,
   promoteScenarioToAnalysis,
+  findScenarioBreakpoint,
   ScenarioEntitlementError,
   type ScenarioAssumptionKey,
   type ScenarioDeltaChange,
   type RunScenarioResult,
+  type ScenarioBreakpointResult,
 } from '@/services/scenario-sets-api';
-import { ArrowLeft, Loader2, Sparkles, Lock, GitBranch, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Loader2, Sparkles, Lock, GitBranch, ChevronRight, Target } from 'lucide-react';
 import { toast } from 'sonner';
 
 const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
@@ -112,6 +114,8 @@ export default function ScenarioWorkspace() {
   const [isRunning, setIsRunning] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isPromoting, setIsPromoting] = useState<string | null>(null);
+  const [breakpoints, setBreakpoints] = useState<Partial<Record<ScenarioAssumptionKey, ScenarioBreakpointResult>>>({});
+  const [solvingKey, setSolvingKey] = useState<ScenarioAssumptionKey | null>(null);
 
   // Landing view (no ?analysisId): the user's own completed-analysis
   // history, each flagged with how many scenario sets already exist for it —
@@ -250,6 +254,27 @@ export default function ScenarioWorkspace() {
       }
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const handleFindBreakpoint = async (key: ScenarioAssumptionKey) => {
+    if (!analysisId) return;
+    setSolvingKey(key);
+    try {
+      const result = await findScenarioBreakpoint({
+        analysisId,
+        assumptionKey: key,
+        changes: buildChanges().filter((c) => c.assumption_key !== key),
+      });
+      setBreakpoints((b) => ({ ...b, [key]: result }));
+    } catch (e) {
+      if (e instanceof ScenarioEntitlementError) {
+        toast.error(e.message);
+      } else {
+        toast.error(e instanceof Error ? e.message : 'Breakpoint search failed');
+      }
+    } finally {
+      setSolvingKey(null);
     }
   };
 
@@ -572,6 +597,39 @@ export default function ScenarioWorkspace() {
                     onChange={(e) => setChanges((c) => ({ ...c, [key]: e.target.value }))}
                     placeholder="0"
                   />
+                  <div className="mt-1.5 flex items-center gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={() => handleFindBreakpoint(key)}
+                      disabled={solvingKey !== null || baseAvailable === false}
+                      className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors disabled:opacity-50"
+                      title="Find the % change on this assumption where net profit hits zero, holding your other changes fixed"
+                    >
+                      {solvingKey === key
+                        ? <Loader2 className="w-3 h-3 animate-spin" />
+                        : <Target className="w-3 h-3" />}
+                      Find breakeven
+                    </button>
+                    {breakpoints[key] && (
+                      <span className="text-xs tabular-nums">
+                        {breakpoints[key]!.status === 'FOUND' && (
+                          <>
+                            Breaks even at{' '}
+                            <strong>
+                              {(breakpoints[key] as Extract<ScenarioBreakpointResult, { status: 'FOUND' }>).breakpoint_pct > 0 ? '+' : ''}
+                              {(breakpoints[key] as Extract<ScenarioBreakpointResult, { status: 'FOUND' }>).breakpoint_pct}%
+                            </strong>
+                          </>
+                        )}
+                        {breakpoints[key]!.status === 'ALREADY_AT_TARGET' && 'Already at breakeven'}
+                        {breakpoints[key]!.status === 'NOT_FOUND_IN_RANGE' && (
+                          <span className="text-muted-foreground">
+                            No breakeven between −95% and +500% — this lever alone can't get you there
+                          </span>
+                        )}
+                      </span>
+                    )}
+                  </div>
                 </div>
               ))}
             </div>
@@ -601,6 +659,42 @@ export default function ScenarioWorkspace() {
                 <Badge variant={preview.output.reconciliation.all_passed ? 'default' : 'secondary'}>
                   {preview.output.reconciliation.all_passed ? 'Reconciliation passed' : 'Reconciliation issues found'}
                 </Badge>
+
+                {preview.output.sensitivity?.length > 0 && (
+                  <div className="pt-3 border-t space-y-2">
+                    <div className="font-medium">What moves net profit most, from here</div>
+                    <p className="text-xs text-muted-foreground">
+                      Each assumption moved ±10% on its own, against this scenario's position. Dollar impact is the
+                      average swing in monthly net profit.
+                    </p>
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-xs">
+                        <thead>
+                          <tr className="text-left text-muted-foreground border-b">
+                            <th className="py-1.5 pr-4">Driver</th>
+                            <th className="py-1.5 pr-4 text-right">Impact per ±10%</th>
+                            <th className="py-1.5 text-right">Elasticity</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {preview.output.sensitivity.map((s) => (
+                            <tr key={s.assumption_key} className="border-b last:border-0">
+                              <td className="py-1.5 pr-4">{ASSUMPTION_LABELS[s.assumption_key]}</td>
+                              <td className="py-1.5 pr-4 text-right tabular-nums">
+                                {s.dollar_impact_per_10pct < 1
+                                  ? <span className="text-muted-foreground">no effect</span>
+                                  : `$${Math.round(s.dollar_impact_per_10pct).toLocaleString()}`}
+                              </td>
+                              <td className="py-1.5 text-right tabular-nums text-muted-foreground">
+                                {s.elasticity === null ? '—' : s.elasticity.toFixed(2)}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
