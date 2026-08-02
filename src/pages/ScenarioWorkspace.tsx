@@ -21,6 +21,7 @@ import {
   type ScenarioDeltaChange,
   type RunScenarioResult,
   type ScenarioBreakpointResult,
+  type AssumptionOriginClass,
 } from '@/services/scenario-sets-api';
 import { ArrowLeft, Loader2, Sparkles, Lock, GitBranch, ChevronRight, Target } from 'lucide-react';
 import { toast } from 'sonner';
@@ -34,6 +35,18 @@ const ASSUMPTION_LABELS: Record<ScenarioAssumptionKey, string> = {
   churn_rate: 'Churn rate',
   expected_customers: 'Expected customers',
   rent: 'Rent',
+};
+
+/**
+ * Living Assumption Register (Multiplier System #1) — short badge text per
+ * origin class, shown next to each assumption input once a preview has run.
+ */
+const ORIGIN_LABELS: Record<AssumptionOriginClass, string> = {
+  USER_ACTUAL: 'Your input',
+  DERIVED: 'AI-extracted',
+  MODELED_BENCHMARK_PRIOR: 'Benchmark prior',
+  SYSTEM_ASSUMPTION: 'System-derived',
+  PLACEHOLDER: 'No evidence',
 };
 
 /**
@@ -587,9 +600,26 @@ export default function ScenarioWorkspace() {
               />
             </div>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {(Object.keys(ASSUMPTION_LABELS) as ScenarioAssumptionKey[]).map((key) => (
+              {(Object.keys(ASSUMPTION_LABELS) as ScenarioAssumptionKey[]).map((key) => {
+                const originInfo = preview?.output.assumption_origins?.[key];
+                return (
                 <div key={key}>
-                  <Label htmlFor={key}>{ASSUMPTION_LABELS[key]} (% change)</Label>
+                  <div className="flex items-center gap-1.5 flex-wrap mb-1">
+                    <Label htmlFor={key} className="mb-0">{ASSUMPTION_LABELS[key]} (% change)</Label>
+                    {originInfo && (
+                      <Badge
+                        variant={originInfo.origin === 'USER_ACTUAL' ? 'default' : originInfo.origin === 'PLACEHOLDER' ? 'destructive' : 'secondary'}
+                        className="text-[10px] px-1.5 py-0 font-normal"
+                        title={[
+                          ORIGIN_LABELS[originInfo.origin],
+                          originInfo.evidence_range ? `Evidence range: ${originInfo.evidence_range[0].toLocaleString()}–${originInfo.evidence_range[1].toLocaleString()}` : null,
+                          `Confidence: ${originInfo.confidence}%`,
+                        ].filter(Boolean).join(' · ')}
+                      >
+                        {ORIGIN_LABELS[originInfo.origin]} · {originInfo.confidence}%
+                      </Badge>
+                    )}
+                  </div>
                   <Input
                     id={key}
                     type="number"
@@ -631,7 +661,8 @@ export default function ScenarioWorkspace() {
                     )}
                   </div>
                 </div>
-              ))}
+                );
+              })}
             </div>
 
             <div className="flex flex-col sm:flex-row gap-3">

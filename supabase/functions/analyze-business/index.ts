@@ -9,6 +9,7 @@ import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERS
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
+import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
 
 const FUNCTION_NAME = 'analyze-business';
@@ -1702,6 +1703,18 @@ function transformResponse(
     }
   }
   
+  // Living Assumption Register (Multiplier System #1): must be classified
+  // right here, before the userInputs?.x || fa.x || benchmark chain above is
+  // forgotten — see assumption-origin.ts's header comment.
+  const assumptionOrigins = classifyAssumptionOrigins({
+    userInputs,
+    fa,
+    mp,
+    benchmarks,
+    locationMultipliers,
+    subIndustry,
+  });
+
   // Calculate with strict validation using enhanced multipliers and sub-industry
   const calc = calculateStrictFinancials(
     rawMrr, 
@@ -1910,6 +1923,7 @@ function transformResponse(
       engineVersion: SCENARIO_BASE_INPUT_ENGINE_VERSION,
       formulaRegistryVersion: SCENARIO_BASE_INPUT_FORMULA_VERSION,
       datasetVersion: String(BENCHMARK_COUNT),
+      assumptionOrigins,
     },
   };
 }

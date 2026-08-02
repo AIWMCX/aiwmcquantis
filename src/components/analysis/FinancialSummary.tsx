@@ -398,28 +398,48 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
                     </div>
                   </div>
                 </div>
-                {financial.breakeven && (
+                {financial.breakeven && (() => {
+                  // Handbook §19 Wave 1 — the legacy breakeven_revenue field
+                  // floor-guards contribution margin to a minimum 1% rather
+                  // than reporting NOT_ACHIEVABLE, which can make an
+                  // underwater business look like it has a real break-even
+                  // point. cvp.breakEven is the typed, non-floor-guarded
+                  // contract computed in parallel — check it before trusting
+                  // the legacy figure (same pattern as
+                  // AccuracyTransparentResults.tsx). Absent on analyses
+                  // saved before this field existed.
+                  const cvp = (financial as unknown as { cvp?: { breakEven: { status: string } } }).cvp;
+                  const notAchievable = cvp?.breakEven.status === 'NOT_ACHIEVABLE';
+                  return (
                   <div className="p-4 rounded-lg border border-border bg-card md:col-span-2">
                     <h4 className="font-semibold mb-3 flex items-center gap-2">
                       <Target className="w-4 h-4 text-primary" />
                       Break-even Point
                     </h4>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div>
-                        <p className="text-xs text-muted-foreground">In Units</p>
-                        <p className="text-lg font-bold">{formatNumber(financial.breakeven.breakeven_units ?? 0)}</p>
+                    {notAchievable ? (
+                      <p className="text-sm text-amber-600 flex items-start gap-2">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                        Not achievable at current costs and pricing — contribution margin is zero or negative, so no volume of sales reaches break-even.
+                      </p>
+                    ) : (
+                      <div className="grid grid-cols-3 gap-4">
+                        <div>
+                          <p className="text-xs text-muted-foreground">In Units</p>
+                          <p className="text-lg font-bold">{formatNumber(financial.breakeven.breakeven_units ?? 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">In Revenue</p>
+                          <p className="text-lg font-bold">{formatCurrency(financial.breakeven.breakeven_revenue ?? 0)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-muted-foreground">Months to BE</p>
+                          <p className="text-lg font-bold">{financial.breakeven.breakeven_months ?? '—'}</p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">In Revenue</p>
-                        <p className="text-lg font-bold">{formatCurrency(financial.breakeven.breakeven_revenue ?? 0)}</p>
-                      </div>
-                      <div>
-                        <p className="text-xs text-muted-foreground">Months to BE</p>
-                        <p className="text-lg font-bold">{financial.breakeven.breakeven_months ?? '—'}</p>
-                      </div>
-                    </div>
+                    )}
                   </div>
-                )}
+                  );
+                })()}
               </div>
             ) : (
               <div className="p-4 rounded-lg bg-muted/30 border border-border text-center text-muted-foreground">

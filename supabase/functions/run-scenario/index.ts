@@ -27,6 +27,7 @@ import { shapeFinancialAnalysis } from '../analyze-business/financial-analysis-s
 import { runReconciliationCheck } from '../analyze-business/reconciliation-check.ts';
 import { QMath } from '../analyze-business/quantis-math-server.ts';
 import { computeSensitivityRanking } from '../_shared/scenario-sensitivity.ts';
+import { withScenarioOverrideFlags, type AssumptionOriginMap } from '../_shared/assumption-origin.ts';
 
 const FUNCTION_NAME = 'run-scenario';
 const FUNCTION_VERSION = '1.0.0';
@@ -58,6 +59,8 @@ interface ScenarioBaseInputBundle {
   engineVersion: string;
   formulaRegistryVersion: string;
   datasetVersion: string;
+  /** Absent on analyses saved before the Living Assumption Register shipped. */
+  assumptionOrigins?: AssumptionOriginMap;
 }
 
 Deno.serve(async (req) => {
@@ -280,11 +283,16 @@ Deno.serve(async (req) => {
       scenarioCoherent,
     });
 
+    const assumptionOrigins = baseInput.assumptionOrigins
+      ? withScenarioOverrideFlags(baseInput.assumptionOrigins, normalizedChanges.map((c) => c.assumption_key))
+      : null;
+
     const output = {
       financial_analysis: financialAnalysis,
       metadata: { industry_detected: calc.industryDetected },
       reconciliation,
       sensitivity,
+      assumption_origins: assumptionOrigins,
     };
 
     if (!persist) {

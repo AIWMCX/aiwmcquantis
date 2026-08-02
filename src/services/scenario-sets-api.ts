@@ -61,6 +61,23 @@ export type ScenarioBreakpointResult =
       base_metric: number;
     };
 
+export type AssumptionOriginClass =
+  | 'USER_ACTUAL'
+  | 'DERIVED'
+  | 'MODELED_BENCHMARK_PRIOR'
+  | 'SYSTEM_ASSUMPTION'
+  | 'PLACEHOLDER';
+
+export interface AssumptionOrigin {
+  origin: AssumptionOriginClass;
+  evidence_range: [number, number] | null;
+  confidence: number;
+  label: string;
+  overridden_in_scenario?: boolean;
+}
+
+export type AssumptionOriginMap = Record<ScenarioAssumptionKey, AssumptionOrigin>;
+
 export interface ScenarioRunOutput {
   // deno-lint-ignore no-explicit-any
   financial_analysis: Record<string, any>;
@@ -74,6 +91,8 @@ export interface ScenarioRunOutput {
     engine_version: string;
   };
   sensitivity: ScenarioSensitivityResult[];
+  /** Null for analyses saved before the Living Assumption Register shipped (re-run to enable). */
+  assumption_origins: AssumptionOriginMap | null;
 }
 
 export interface RunScenarioResult {
