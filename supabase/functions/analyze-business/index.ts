@@ -4203,37 +4203,31 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     }
 
     // ── QOC Shadow Mode (docs/QOC_MIGRATION_PLAN.md, Stage 1) ──
-    // Fire-and-forget parallel call to the newer qoc-orchestrate pipeline.
-    // Purely observational: not awaited before the response below, wrapped so
-    // it can never throw into this request, and has zero ability to change
-    // wirePayload or any header the user actually receives. Its only effect
-    // is a best-effort row in `qoc_audit_envelopes` when it succeeds (per
-    // qoc-orchestrate/adapters.ts's putEnvelope -- CORRECTED 2026-07-25:
-    // a prior version of this comment claimed the target table was
-    // `qoc_audit`, which does not exist in this schema at all; that was
-    // itself a documentation bug that could send a future investigation
-    // chasing the wrong table, as it very nearly did here). Only fires for
+    // Purely observational: cannot change wirePayload or any header the user
+    // actually receives, and any error here is swallowed before the response
+    // below. Its only effect is a best-effort row in `qoc_audit_envelopes`
+    // (per qoc-orchestrate/adapters.ts's putEnvelope). Only fires for
     // authenticated requests (anonymous callers have no bearer token for
-    // qoc-orchestrate to authenticate -- that's fine, coverage starts with
-    // the logged-in tiers and is intentionally partial in this stage). A
-    // failed or skipped shadow call is invisible to the caller.
+    // qoc-orchestrate to authenticate -- coverage starts with the logged-in
+    // tiers, intentionally partial in this stage).
     //
-    // INVESTIGATION NOTE (2026-07-25, P0-14): qoc_audit_envelopes has 0 rows
-    // in production despite Stage 1 being marked shipped, including for real
-    // authenticated traffic (2026-07-23) that should have been shadowed.
-    // Hypothesis considered: the runtime's background-task keepalive API
-    // (checked just below) being unavailable, silently truncating the shadow
-    // call. NOT proven -- the invoke().then().catch() promise below already
-    // begins executing the instant it's constructed, independent of which
-    // branch runs after it, so the fallback log line added here improves
-    // observability (we'll see it fire if the keepalive API is ever absent)
-    // but does not by itself guarantee completion -- there is no alternative
-    // primitive for extending isolate lifetime. Left as an open lead, not
-    // claimed as a fix; the log line lets the next real analysis prove or
-    // disprove whether this branch fires at all.
+    // FIXED 2026-08-02 (P0-14, QOC decision): this was previously
+    // fire-and-forget via `edgeRuntime.waitUntil()`, added specifically
+    // because a bare unawaited promise gets killed when the Deno isolate
+    // tears down on `return`. A 2026-07-25 investigation found
+    // `qoc_audit_envelopes` still had 0 rows even for real authenticated
+    // traffic that should have been shadowed, and left as an open,
+    // unconfirmed hypothesis whether `EdgeRuntime.waitUntil` was ever
+    // actually available at runtime. Rather than keep guessing at isolate
+    // lifetime, this is now directly `await`ed (with a bounded timeout so a
+    // slow/hanging qoc-orchestrate call can never delay the user's real
+    // response by more than QOC_SHADOW_TIMEOUT_MS) -- the isolate cannot
+    // tear down mid-request while something is still being awaited in it,
+    // which is a strictly stronger guarantee than any keepalive API.
     try {
       const authHeader = req.headers.get('Authorization');
       if (authHeader && idea_clean) {
+        const QOC_SHADOW_TIMEOUT_MS = 4000;
         const shadowInvoke = supabaseService.functions
           .invoke('qoc-orchestrate', {
             headers: { Authorization: authHeader },
@@ -4249,21 +4243,16 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
             } else {
               log.info('[qoc-shadow] recorded', { verdict: data?.overall_verdict });
             }
-          })
-          .catch((e) => {
-            log.info('[qoc-shadow] skipped (non-fatal)', String(e?.message ?? e));
           });
-
-        // deno-lint-ignore no-explicit-any
-        const edgeRuntime = (globalThis as any).EdgeRuntime;
-        if (edgeRuntime?.waitUntil) {
-          edgeRuntime.waitUntil(shadowInvoke);
-        } else {
-          // Fallback matching queue-export/index.ts's proven pattern: still
-          // fire it. Best-effort without the isolate-lifetime guarantee is
-          // strictly better than the previous behavior of firing nothing.
-          log.info('[qoc-shadow] EdgeRuntime.waitUntil unavailable -- firing without lifetime guarantee');
-        }
+        const shadowTimeout = new Promise<void>((resolve) => {
+          setTimeout(() => {
+            log.info(`[qoc-shadow] timed out after ${QOC_SHADOW_TIMEOUT_MS}ms (non-fatal)`);
+            resolve();
+          }, QOC_SHADOW_TIMEOUT_MS);
+        });
+        await Promise.race([shadowInvoke, shadowTimeout]).catch((e) => {
+          log.info('[qoc-shadow] skipped (non-fatal)', String((e as Error)?.message ?? e));
+        });
       }
     } catch (shadowSetupErr) {
       // Shadow mode must never affect the real response path, even here.

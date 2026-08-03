@@ -526,7 +526,7 @@ describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
     expect(src).toContain("'qoc-orchestrate'");
   });
 
-  it('the shadow invoke is never awaited before the final response is built', () => {
+  it('the shadow invoke is awaited with a bounded timeout, not fire-and-forget (fixed 2026-08-02, P0-14)', () => {
     // Isolate the shadow-mode block (between its start marker and the final
     // `return new Response` that ships wirePayload to the user).
     const start = src.indexOf('QOC Shadow Mode');
@@ -535,11 +535,17 @@ describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
     expect(start, 'shadow-mode block not found').toBeGreaterThan(-1);
     expect(end, 'final wirePayload response not found after shadow block').toBeGreaterThan(start);
     const block = src.slice(start, end);
-    // The shadow invoke promise must never be awaited directly — only handed
-    // to EdgeRuntime.waitUntil (background) or left to run via .then/.catch.
-    expect(block).not.toMatch(/await\s+shadowInvoke/);
-    expect(block).toContain('EdgeRuntime');
-    expect(block).toContain('waitUntil');
+    // Previously handed to EdgeRuntime.waitUntil (fire-and-forget) -- found
+    // to still leave qoc_audit_envelopes at 0 rows for real authenticated
+    // traffic, unconfirmed whether the keepalive API was ever actually
+    // available. Now directly awaited (bounded by a timeout so it can never
+    // stall the user's real response indefinitely) -- an isolate cannot
+    // tear down while something inside it is still being awaited.
+    expect(block).toMatch(/await Promise\.race\(\[shadowInvoke, shadowTimeout\]\)/);
+    expect(block).toContain('QOC_SHADOW_TIMEOUT_MS');
+    // The explanatory comment may still name EdgeRuntime/waitUntil for
+    // historical context; the actual conditional call site must be gone.
+    expect(block).not.toMatch(/if\s*\(edgeRuntime\?\.\s*waitUntil\)/);
   });
 
   it('the shadow-mode setup is wrapped in try/catch so it cannot throw into the request', () => {
@@ -553,11 +559,12 @@ describe('T6: QOC shadow-mode never blocks or breaks the real response', () => {
     expect(block).toMatch(/\}\s*catch\s*\(shadowSetupErr\)/);
   });
 
-  it('the shadow invoke has its own .catch so a rejected promise cannot become an unhandled rejection', () => {
+  it('the awaited shadow race has its own .catch so a rejection cannot throw into the request', () => {
     const start = src.indexOf('QOC Shadow Mode');
-    const end = src.indexOf('EdgeRuntime', start);
+    const responseMarker = 'success: true, data: wirePayload';
+    const end = src.indexOf(responseMarker, start);
     const block = src.slice(start, end);
-    expect(block).toMatch(/\.catch\(/);
+    expect(block).toMatch(/Promise\.race\(\[shadowInvoke, shadowTimeout\]\)\.catch\(/);
   });
 });
 
@@ -866,5 +873,27 @@ describe('T17 — reconciliation module map is honestly labeled, not silently de
     const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
     expect(src).toMatch(/const rawMrr = userInputs\?\.\w+ \|\| finite\(fa\.mrr\)/);
     expect(src).toMatch(/const rawInvestment = userInputs\?\.\w+ \|\| finite\(fa\.startup_investment\)/);
+  });
+});
+
+// ============================================================================
+// T18 — QOC shadow-mode call is awaited, not fire-and-forget (P0-14, decided
+// 2026-08-02). qoc_audit_envelopes had 0 rows in production for months
+// despite Stage 1 being marked shipped, including for real authenticated
+// traffic that should have been shadowed. A 2026-07-25 investigation
+// suspected but never confirmed that `EdgeRuntime.waitUntil()` wasn't
+// actually keeping the isolate alive long enough for the fire-and-forget
+// invoke to complete. Rather than keep guessing at isolate lifetime, the
+// call is now directly awaited with a bounded timeout -- an isolate cannot
+// tear down mid-request while something inside it is still being awaited,
+// a strictly stronger guarantee than any keepalive API, and the timeout
+// caps the worst-case latency added to a real user's response.
+// ============================================================================
+describe('T18 — QOC shadow-mode call cannot be silently killed by isolate teardown', () => {
+  it('the qoc-orchestrate shadow invoke is awaited (with a bounded timeout), not fire-and-forget', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toMatch(/await Promise\.race\(\[shadowInvoke, shadowTimeout\]\)/);
+    expect(src).toContain('QOC_SHADOW_TIMEOUT_MS');
+    expect(src).not.toMatch(/edgeRuntime\.waitUntil\(shadowInvoke\)/);
   });
 });
