@@ -816,3 +816,55 @@ describe('T16 — quantis-engine.ts and financial-calculator.ts agree on startup
     expect(src).not.toMatch(/startupInvestment:\s*mergedFinancialInputs\.startup_investment/);
   });
 });
+
+// ============================================================================
+// T17 — P0-25 resolution (2026-08-02): the "3 unreachable reconciliation
+// engines" finding was imprecise. Deep read of all 5 reconciliation-named
+// modules found reconciliation-check.ts is already the live, canonical one
+// (wired into both analyze-business and run-scenario) -- the other 3 aren't
+// unwired by oversight, they're specs for infrastructure that doesn't exist
+// yet (a monthly P&L series, a full three-statement model with D&A/interest/
+// tax). Relabeled each with a clear header explaining exactly why, rather
+// than deleting real, correct design work or leaving it silently unexplained.
+// Two real, safe improvements shipped alongside the relabeling:
+// (1) reconciliation-check.ts's 5 sum-integrity/sign-consistency rules now
+//     escalate the existing report_integrity gate (same mechanism the
+//     scenario-coherence check already uses) -- a real formula regression
+//     now surfaces the same way a scenario contradiction already does.
+// (2) defaultFinancialReconciler (real, tested, unused since it was written)
+//     is now called on every narrator financial_json parse, and the fallback
+//     chains (rawMrr/rawInvestment/rawCac/rawLtv/rawAvgCheck) are guarded
+//     with Number.isFinite -- closing a real, previously-unguarded gap where
+//     `Infinity || 100000` evaluates to Infinity, not the fallback.
+// ============================================================================
+describe('T17 — reconciliation module map is honestly labeled, not silently dead', () => {
+  it('reconciliation-engine.ts explains why it is not currently applicable', () => {
+    const src = readFileSync(join(ROOT, 'src/lib/reconciliation-engine.ts'), 'utf8');
+    expect(src).toContain('NOT CURRENTLY APPLICABLE');
+    expect(src).toContain('generate12MonthProjections');
+  });
+
+  it('src/financial/reconcile.ts explains why it is not currently applicable', () => {
+    const src = readFileSync(join(ROOT, 'src/financial/reconcile.ts'), 'utf8');
+    expect(src).toContain('NOT CURRENTLY APPLICABLE');
+    expect(src).toContain('three-statement model');
+  });
+
+  it('reconciliation-check.ts critical checks escalate report_integrity, not just log', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toContain('CRITICAL_RECONCILIATION_RULES');
+    expect(src).toMatch(/report_integrity['"]?\)?\s*=\s*['"]BLOCK['"]/);
+  });
+
+  it('defaultFinancialReconciler is imported and called on the narrator financial_json parse', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toMatch(/import\s*\{\s*defaultFinancialReconciler\s*\}\s*from\s*['"]\.\.\/_shared\/r3-validator\.ts['"]/);
+    expect(src).toContain('financialPlausibilityIssue');
+  });
+
+  it('the rawMrr/rawInvestment/rawCac/rawLtv fallback chains are guarded against non-finite AI values', () => {
+    const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    expect(src).toMatch(/const rawMrr = userInputs\?\.\w+ \|\| finite\(fa\.mrr\)/);
+    expect(src).toMatch(/const rawInvestment = userInputs\?\.\w+ \|\| finite\(fa\.startup_investment\)/);
+  });
+});

@@ -59,6 +59,21 @@ function compare(
  * integrity, sign consistency, and benchmark boundaries on already-derived
  * fields but does not recompute net income, FCF, or the cash roll-forward
  * from scratch.
+ *
+ * NOT CURRENTLY APPLICABLE (documented 2026-08-02, P0-25 investigation):
+ * `MonthlyFinancialRow` requires depreciation, amortization, interest
+ * expense, taxes, capex, and debt principal/new-debt/new-equity fields --
+ * a genuine three-statement model. The live engine
+ * (analyze-business/financial-calculator.ts) deliberately does not compute
+ * any of these (see AnalysisResults.tsx/formula-registry.ts's "Operating
+ * Profit" relabeling, 2026-08-02: no depreciation schedule, debt structure,
+ * or tax rate exists anywhere in the live path). Wiring this in would mean
+ * either fabricating zero-values for all of those fields (defeating the
+ * whole point of the check) or building the full three-statement engine
+ * first. Kept as a reviewed, correct spec for that future engine, not
+ * active production code -- see reconciliation-engine.ts's header for the
+ * sibling module in the same situation, and reconciliation-check.ts for
+ * what actually runs against today's single-snapshot engine.
  */
 export function reconcileMonthlyRow(
   row: MonthlyFinancialRow,

@@ -89,6 +89,7 @@ import { computeBenchmarkConfidence, getHedgingPrefix, type BenchmarkConfidenceR
 import { computeAssumptionGraph, type AssumptionGraphResult } from "./assumption-graph.ts";
 import { runAntiBS, type SanityFlag } from "./bulletproof-validator.ts";
 import { runReconciliationCheck, type ReconciliationResult } from "./reconciliation-check.ts";
+import { defaultFinancialReconciler } from "../_shared/r3-validator.ts";
 import { computeModelConfidence, type ModelConfidenceResult } from "./prediction-engine.ts";
 
 // ========== MARKET PRIOR ENGINE ==========
@@ -1661,6 +1662,21 @@ function transformResponse(
   const bp = safeParseJSON(raw.business_json, {});
   const mp = safeParseJSON(raw.marketing_json, {});
   const ma = safeParseJSON(raw.market_json, {});
+
+  // R3 plausibility check (2026-08-02, P0-25 review): defaultFinancialReconciler
+  // existed, tested, correct, and unused since it was written -- this is the
+  // first real call site. `||` chains below treat NaN as absent (falls through
+  // to the next fallback) but NOT Infinity (`Infinity || 100000` === Infinity)
+  // -- a malformed AI numeric field could silently become "$Infinity startup
+  // investment" downstream with zero protection before this. Logged for real
+  // visibility into how often the narrator actually produces this (currently
+  // unmeasured), and Number.isFinite guards below close the actual gap.
+  const financialPlausibilityIssue = defaultFinancialReconciler<Record<string, unknown>>({
+    finiteFields: ['mrr', 'startup_investment', 'cac', 'ltv', 'average_check'],
+  })(fa as Record<string, unknown>);
+  if (financialPlausibilityIssue) {
+    log.warn(`AI-estimated financial_json failed R3 plausibility check: ${financialPlausibilityIssue}`);
+  }
   const sources = Array.isArray(raw.sources)
     ? raw.sources.map((s: unknown) => String(s).trim()).filter(Boolean)
     : (typeof raw.sources === 'string' && raw.sources.trim().length > 0)
@@ -1675,11 +1691,18 @@ function transformResponse(
 
   // CRITICAL FIX: PRIORITIZE USER-PROVIDED VALUES over AI-generated values
   // This ensures user inputs like monthly_revenue=$15,000 are used, not AI's $150,000
-  const rawMrr = userInputs?.monthly_revenue || fa.mrr || 50000;
-  const rawInvestment = userInputs?.startup_investment || fa.startup_investment || 100000;
-  const rawCac = userInputs?.cac || fa.cac || mp.cac || benchmarks.cac_typical;
-  const rawLtv = fa.ltv || mp.ltv || 500;
-  const rawAvgCheck = userInputs?.average_price || fa.average_check || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
+  //
+  // finite() guards (2026-08-02): `||` treats NaN as absent and falls through
+  // correctly, but Infinity is truthy -- `Infinity || 100000` === Infinity.
+  // An AI-generated non-finite value would otherwise flow straight through
+  // as a real "$Infinity startup investment" with no protection. See the R3
+  // plausibility check above, which logs how often this actually happens.
+  const finite = (v: unknown): number | undefined => (typeof v === 'number' && Number.isFinite(v) ? v : undefined);
+  const rawMrr = userInputs?.monthly_revenue || finite(fa.mrr) || 50000;
+  const rawInvestment = userInputs?.startup_investment || finite(fa.startup_investment) || 100000;
+  const rawCac = userInputs?.cac || finite(fa.cac) || finite(mp.cac) || benchmarks.cac_typical;
+  const rawLtv = finite(fa.ltv) || finite(mp.ltv) || 500;
+  const rawAvgCheck = userInputs?.average_price || finite(fa.average_check) || (benchmarks.average_check_min + benchmarks.average_check_max) / 2;
   
   // User-provided operational data
   const userProvidedCosts = userInputs?.monthly_costs;
@@ -3698,6 +3721,31 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       });
       if (!reconciliationResult.all_passed) {
         log.info(`Reconciliation: ${reconciliationResult.failed_count} check(s) failed of ${reconciliationResult.checks.length}`);
+      }
+
+      // Escalate to the same report_integrity gate the scenario-coherence
+      // check (P0-6/P0-7) already uses, rather than inventing a second,
+      // parallel blocking mechanism. Only R-001..R-005 (sum integrity +
+      // sign consistency) escalate -- a failure there means a real formula
+      // regression (e.g. gross profit no longer equals revenue minus COGS).
+      // R-006..R-011 (benchmark boundaries, active-clients sign, scenario
+      // coherence) stay informational-only: a business legitimately sitting
+      // outside a typical LTV/CAC range is unusual, not wrong, and forcing
+      // it into the same hard-flag bucket would just teach users to ignore
+      // the flag. Decided 2026-08-02 per the P0-25 reconciliation-engine
+      // review.
+      const CRITICAL_RECONCILIATION_RULES = new Set(['R-001', 'R-002', 'R-003', 'R-004', 'R-005']);
+      const criticalFailures = reconciliationResult.checks.filter(
+        (c) => !c.pass && !c.skipped && CRITICAL_RECONCILIATION_RULES.has(c.rule),
+      );
+      if (criticalFailures.length > 0) {
+        (result as Record<string, unknown>).report_integrity = 'BLOCK';
+        const existingIssues = ((result as Record<string, unknown>).report_integrity_issues as Array<{ code: string; message: string }> | undefined) ?? [];
+        (result as Record<string, unknown>).report_integrity_issues = [
+          ...existingIssues,
+          ...criticalFailures.map((c) => ({ code: `RECONCILIATION_${c.rule}`, message: c.note ?? c.label })),
+        ];
+        log.info(`Reconciliation: ${criticalFailures.length} critical check(s) escalated report_integrity to BLOCK (${criticalFailures.map((c) => c.rule).join(', ')})`);
       }
     } catch (rcErr) {
       log.error('Reconciliation check failed:', rcErr);

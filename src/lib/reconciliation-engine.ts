@@ -5,6 +5,24 @@
  * before they reach the user. Detects, logs, normalises, and flags
  * inconsistencies in P&L, cash-flow, and unit-economics outputs.
  *
+ * NOT CURRENTLY APPLICABLE (documented 2026-08-02, P0-25 investigation):
+ * this module operates on a per-month `PLStatement[]`/`CashFlowStatement[]`
+ * time series produced by `financial-engine.ts`'s `generate12MonthProjections`
+ * -- but that engine has zero call sites anywhere in the live product.
+ * The engine actually running in production (`calculateStrictFinancials`,
+ * analyze-business/financial-calculator.ts) returns a single computed
+ * snapshot, not a monthly series, so there is nothing of this shape to feed
+ * in today. The live, canonical reconciliation layer is
+ * `supabase/functions/analyze-business/reconciliation-check.ts` (wired into
+ * both `analyze-business` and `run-scenario`) -- see that file's own header
+ * for why it deliberately does NOT reuse this module.
+ *
+ * This file is kept, not deleted: the sum-integrity/sign-consistency/
+ * benchmark-boundary logic here is real and correct, and would become
+ * directly useful again the day Quantis builds a genuine monthly P&L/cash-
+ * flow projection engine. Until then, treat it as a reviewed spec for that
+ * future engine, not as active production code.
+ *
  * @module ReconciliationEngine
  * @version 1.0.0
  */
