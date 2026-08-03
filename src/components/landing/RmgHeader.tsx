@@ -16,6 +16,15 @@ import { useAuth } from '@/hooks/useAuth';
 const NAV = [
   { to: '/how-it-works', label: 'How It Works' },
   { to: '/use-cases',    label: 'Use Cases'    },
+  // 2026-08-02 (GTM/ICP-discoverability finding): /consultants is a
+  // real, fully-built ICP landing page -- honest ROI calculator, objection
+  // FAQ, white-label pricing -- that had zero internal links pointing to it
+  // anywhere in the live app (not this nav, not the footer, not the
+  // homepage body). It was reachable only via a direct URL or a search-
+  // engine hit landing exactly on that page. Adding it here, alongside the
+  // homepage's own "Who it's for" section, is the actual fix -- the page
+  // itself needed no rebuild.
+  { to: '/consultants',  label: 'For Consultants' },
   { to: '/examples',     label: 'Examples'     },
   { to: '/risk-gallery', label: 'Risk Gallery' },
   { to: '/pricing',      label: 'Pricing'      },

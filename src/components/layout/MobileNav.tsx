@@ -12,7 +12,8 @@ import {
   Lock,
   X,
   Zap,
-  Crown
+  Crown,
+  Briefcase
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -68,6 +69,7 @@ export function MobileNav({ children }: MobileNavProps) {
     { path: '/', label: 'Home', icon: Home, show: true },
     { path: '/how-it-works', label: 'How It Works', icon: Brain, show: true },
     { path: '/use-cases', label: 'Use Cases', icon: User, show: true },
+    { path: '/consultants', label: 'For Consultants', icon: Briefcase, show: true },
     { path: '/examples', label: 'Examples', icon: FileText, show: true },
     { path: '/risk-gallery', label: 'Risk Gallery', icon: Shield, show: true },
     { path: '/pricing', label: 'Pricing', icon: Zap, show: true },

@@ -22,6 +22,7 @@ import { SocialProofBar } from '@/components/landing/SocialProofBar';
 import { FeaturedDirectories } from '@/components/landing/FeaturedDirectories';
 import { SocialPanel } from '@/components/landing/SocialPanel';
 import { ProgressiveEngagementCTA } from '@/components/landing/ProgressiveEngagementCTA';
+import { WhoItsFor } from '@/components/landing/WhoItsFor';
 import { useTheme } from 'next-themes';
 import aiwmcLogoText from '@/assets/aiwmc-quantis-logo-text.png';
 import { RmgHeader } from '@/components/landing/RmgHeader';
@@ -103,6 +104,11 @@ export default function Landing() {
 
         {/* 2. What Quantis Actually Does */}
         <QuantisOutputs />
+
+        {/* 2.2. Who it's for — real navigation to /consultants and /use-cases,
+            previously orphaned pages with zero internal links pointing to
+            them anywhere in the app (2026-08-02 GTM-discoverability fix). */}
+        <WhoItsFor />
 
         {/* 2.5. Progressive Engagement — low-friction example CTA */}
         <ProgressiveEngagementCTA />

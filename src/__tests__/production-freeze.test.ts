@@ -897,3 +897,45 @@ describe('T18 — QOC shadow-mode call cannot be silently killed by isolate tear
     expect(src).not.toMatch(/edgeRuntime\.waitUntil\(shadowInvoke\)/);
   });
 });
+
+// ============================================================================
+// T19 — /consultants (the ICP landing page) is reachable from real navigation,
+// not just a direct URL hit. 2026-08-02 investigation found the page itself
+// was already fully built and live (real ROI calculator, objection FAQ,
+// white-label pricing, in sitemap.xml) but had zero internal links anywhere
+// in the app -- not the desktop nav, not the mobile nav, not the homepage
+// body -- contradicting a stale prior-audit claim that "no dedicated ICP
+// landing page exists." Fixed by adding it to both nav surfaces and to a
+// rewritten homepage "Who it's for" section (previously dead code: built,
+// styled, but never imported anywhere and with no navigation of its own).
+// This guard pins the wiring so a future refactor can't silently orphan the
+// page again.
+// ============================================================================
+describe('T19 — ICP landing page (/consultants) has real internal navigation, not just a direct URL', () => {
+  it('the desktop header nav (RmgHeader) links to /consultants', () => {
+    const src = readFileSync(join(ROOT, 'src/components/landing/RmgHeader.tsx'), 'utf8');
+    expect(src).toMatch(/to:\s*['"]\/consultants['"]/);
+  });
+
+  it('the mobile drawer nav (MobileNav) links to /consultants', () => {
+    const src = readFileSync(join(ROOT, 'src/components/layout/MobileNav.tsx'), 'utf8');
+    expect(src).toMatch(/path:\s*['"]\/consultants['"]/);
+  });
+
+  it('WhoItsFor is a real component that navigates to /consultants (not the old dead static-bullet version)', () => {
+    const src = readFileSync(join(ROOT, 'src/components/landing/WhoItsFor.tsx'), 'utf8');
+    expect(src).toContain("navigate('/consultants')");
+    expect(src).toMatch(/export function WhoItsFor/);
+  });
+
+  it('WhoItsFor is actually imported and rendered on the homepage, not orphaned again', () => {
+    const src = readFileSync(join(ROOT, 'src/pages/Landing.tsx'), 'utf8');
+    expect(src).toMatch(/import\s*\{\s*WhoItsFor\s*\}\s*from\s*['"]@\/components\/landing\/WhoItsFor['"]/);
+    expect(src).toMatch(/<WhoItsFor\s*\/>/);
+  });
+
+  it('/consultants route itself still resolves to the real Consultants page', () => {
+    const appSrc = readFileSync(join(ROOT, 'src/App.tsx'), 'utf8');
+    expect(appSrc).toMatch(/consultants/i);
+  });
+});
