@@ -111,6 +111,37 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       // CRITICAL FIX: Calculate expenses from breakdown, not calc.totalExpenses
       const fixedCosts = calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other;
       const baseCogsPercent = calc.mrr > 0 ? calc.expenses.cogs / calc.mrr : 0;
+      const baseVariableCosts = calc.expenses.cogs + calc.expenses.marketing;
+      const baseTotalExpensesItemized = fixedCosts + baseVariableCosts;
+      // RECONCILIATION FIX (P0, 2026-08-03): calc.totalExpenses is the
+      // engine's authoritative expense figure (it may come directly from a
+      // single user-provided monthly-cost total rather than the itemized
+      // fixed/COGS/marketing breakdown above — see calc.expenseSource). When
+      // the two diverge, pessimistic/optimistic scenarios previously computed
+      // net_profit from the unreconciled itemized total while base.net_profit
+      // was already patched to read calc.netProfit directly (see the 2026-08-01
+      // fix below) — so a real, unrelated report showed optimistic revenue
+      // scaled up 25% but net_profit computed against a cost base that could
+      // be roughly double the user's actual reported total, making optimistic
+      // profit look worse than base purely from this scale mismatch, not from
+      // any genuine cost-scaling assumption. Rescaling pessimistic/optimistic
+      // total expenses by the same ratio anchors both to the same reconciled
+      // cost base base.net_profit already uses, while leaving gross_profit/
+      // gross_margin (driven only by the COGS ratio assumption, not the
+      // itemized/authoritative expense divergence) untouched.
+      const expenseReconciliationScale = baseTotalExpensesItemized > 0
+        ? calc.totalExpenses / baseTotalExpensesItemized
+        : null;
+      // Degenerate fallback: when the itemized breakdown is entirely zero
+      // (no cost basis to scale a ratio from) but calc.totalExpenses is
+      // non-zero, scaling by revenue ratio keeps pessimistic/optimistic
+      // costs proportional to calc.totalExpenses (the reconciled figure
+      // base.net_profit already uses) instead of leaving them computed
+      // from an unrelated, disconnected itemized total of zero.
+      const reconcileExpenses = (itemizedTotal: number, scenarioRevenue: number): number =>
+        expenseReconciliationScale !== null
+          ? Math.round(itemizedTotal * expenseReconciliationScale)
+          : Math.round(calc.totalExpenses * (calc.mrr > 0 ? scenarioRevenue / calc.mrr : 1));
 
       // Pessimistic scenario: 20% less revenue + margin COMPRESSION (+5% COGS ratio)
       const pessRevenue = Math.round(calc.mrr * 0.8);
@@ -118,22 +149,21 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
       const pessCogs = Math.round(pessRevenue * pessCogsRatio);
       const pessMarketing = Math.round(calc.expenses.marketing * 0.85);
       const pessFixed = Math.round(fixedCosts * 1.05);
-      const pessTotalExpenses = pessCogs + pessMarketing + pessFixed;
+      const pessTotalExpensesItemized = pessCogs + pessMarketing + pessFixed;
+      const pessTotalExpenses = reconcileExpenses(pessTotalExpensesItemized, pessRevenue);
       const pessNetProfit = pessRevenue - pessTotalExpenses;
       const pessGrossProfit = pessRevenue - pessCogs;
       const pessNetMargin = pessRevenue > 0 ? Math.round((pessNetProfit / pessRevenue) * 100) : 0;
       const pessGrossMargin = pessRevenue > 0 ? Math.round((pessGrossProfit / pessRevenue) * 100) : 0;
 
-      // Base scenario: current values
-      const baseVariableCosts = calc.expenses.cogs + calc.expenses.marketing;
-      const baseTotalExpenses = fixedCosts + baseVariableCosts;
       // Optimistic scenario: 25% more revenue + margin EXPANSION (-2% COGS ratio)
       const optRevenue = Math.round(calc.mrr * 1.25);
       const optCogsRatio = Math.max(baseCogsPercent - 0.02, 0.01);
       const optCogs = Math.round(optRevenue * optCogsRatio);
       const optMarketing = Math.round(calc.expenses.marketing * 1.20);
       const optFixed = Math.round(fixedCosts * 0.95);
-      const optTotalExpenses = optCogs + optMarketing + optFixed;
+      const optTotalExpensesItemized = optCogs + optMarketing + optFixed;
+      const optTotalExpenses = reconcileExpenses(optTotalExpensesItemized, optRevenue);
       const optNetProfit = optRevenue - optTotalExpenses;
       const optGrossProfit = optRevenue - optCogs;
       const optNetMargin = optRevenue > 0 ? Math.round((optNetProfit / optRevenue) * 100) : 0;

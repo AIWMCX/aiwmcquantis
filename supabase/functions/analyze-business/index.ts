@@ -1918,7 +1918,18 @@ function transformResponse(
     // computed with the correctly-scoped local variable, so serve() can
     // read `result.report_integrity` / `result.report_integrity_issues`
     // instead of reaching into a scope it never had access to.
-    report_integrity: scenarioContradictions.length > 0 ? 'BLOCK' : 'PASS',
+    // Scenario-monotonicity contradictions (optimistic revenue up, profit
+    // down) do NOT escalate report_integrity to BLOCK on their own (decided
+    // 2026-08-03, after root-causing and fixing the dominant cause in
+    // financial-analysis-shape.ts's scenario cost-reconciliation). The
+    // remaining legitimate trigger for this check is a marketing-heavy
+    // business where scaled acquisition spend genuinely outpaces modeled
+    // revenue growth -- checkScenarioMonotonicity's own docstring calls this
+    // a real possibility, not a defect. It still surfaces here via
+    // report_integrity_issues for transparency (rendered as the "Contradictions
+    // detected" notice), but only the CRITICAL_RECONCILIATION_RULES escalation
+    // further below (accounting-identity failures, R-001..R-005) may set BLOCK.
+    report_integrity: 'PASS',
     report_integrity_issues: scenarioContradictions,
     _calc: calc,
     // Phase D (2026-08-01): the exact raw bundle fed into
