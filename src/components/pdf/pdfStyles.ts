@@ -153,6 +153,43 @@ export const pdfStyles: Record<string, React.CSSProperties> = {
     fontFeatureSettings: '"tnum" 1',
   },
   
+  // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the row
+  // of separately-labeled reconciliation dimensions replacing the single
+  // "Confidence Score" figure. Deliberately smaller/quieter than the two
+  // coverMetricBox cards above -- these are pass/fail checks, not the
+  // headline number.
+  qualityDimensionsRow: {
+    display: 'flex',
+    justifyContent: 'center',
+    flexWrap: 'wrap' as const,
+    gap: '12px',
+    marginTop: '24px',
+  },
+
+  qualityDimensionChip: {
+    textAlign: 'center' as const,
+    padding: '8px 14px',
+    backgroundColor: colors.bgSecondary,
+    border: `1px solid ${colors.border}`,
+    borderRadius: '6px',
+    minWidth: '100px',
+  },
+
+  qualityDimensionLabel: {
+    fontSize: '9px',
+    color: colors.textSecondary,
+    marginBottom: '4px',
+    textTransform: 'uppercase' as const,
+    letterSpacing: '0.5px',
+    fontFamily: "'DM Sans', sans-serif",
+  },
+
+  qualityDimensionValue: {
+    fontSize: '13px',
+    fontWeight: '700',
+    fontFamily: "'JetBrains Mono', monospace",
+  },
+
   coverFooter: {
     textAlign: 'center' as const,
     paddingTop: '40px',

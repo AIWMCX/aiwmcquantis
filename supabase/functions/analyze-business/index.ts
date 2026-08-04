@@ -11,6 +11,7 @@ import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
 import { MONTE_CARLO_ITERATIONS_DISPLAY, BENCHMARK_COUNT } from '../_shared/canonical-facts.ts';
+import { buildQualityDimensions } from '../_shared/quality-dimensions.ts';
 
 const FUNCTION_NAME = 'analyze-business';
 const FUNCTION_VERSION = '1.1.0';
@@ -1759,16 +1760,23 @@ function transformResponse(
   // version this replaced.
   const { financialAnalysis, scenarioContradictions } = shapeFinancialAnalysis(calc, benchmarks, log);
 
+  // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): capture
+  // wasModified once here so it's available below for the internal
+  // _narrativeWasModified field. Previously this call's `.wasModified`
+  // result was computed and immediately discarded -- see
+  // quality-dimensions.ts's header comment for why that mattered.
+  const narrativeIntegrityResult = enforceNarrativeIntegrity(
+    bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
+    calc,
+    benchmarks.name,
+    location,
+    log,
+  );
+
   return {
     financial_analysis: financialAnalysis,
     business_plan: {
-      executive_summary: enforceNarrativeIntegrity(
-        bp.executive_summary || "Business analysis in progress. Please provide more details for comprehensive summary.",
-        calc,
-        benchmarks.name,
-        location,
-        log,
-      ).executiveSummary,
+      executive_summary: narrativeIntegrityResult.executiveSummary,
       product_description: bp.product_description || "Product/service details being analyzed.",
       target_audience: bp.target_audience || `Target customers in ${location} market.`,
       competitive_advantages: bp.competitive_advantages || "Differentiation analysis in progress.",
@@ -1932,6 +1940,9 @@ function transformResponse(
     report_integrity: 'PASS',
     report_integrity_issues: scenarioContradictions,
     _calc: calc,
+    // Internal only -- consumed and deleted alongside _calc in serve(),
+    // then folded into validation.quality_dimensions.narrative_reconciliation.
+    _narrativeWasModified: narrativeIntegrityResult.wasModified,
     // Phase D (2026-08-01): the exact raw bundle fed into
     // calculateStrictFinancials, frozen so a later scenario re-run never has
     // to re-derive industry/location/sub-industry detection (which drifts as
@@ -3095,6 +3106,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     const result = transformResponse(rawResult, location.trim(), detectedIndustry, locationMultipliers, subIndustry, mergedFinancialInputs);
     const calc = result._calc as StrictFinancialResult;
     delete (result as Record<string, unknown>)._calc;
+    const narrativeWasModified = Boolean((result as Record<string, unknown>)._narrativeWasModified);
+    delete (result as Record<string, unknown>)._narrativeWasModified;
 
     // ── WS1: SET GOLDEN — a valid deterministic result now exists ──
     GOLDEN = { ...result } as Record<string, unknown>;
@@ -3762,6 +3775,28 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.error('Reconciliation check failed:', rcErr);
     }
 
+    // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the
+    // blended reliabilityScore computed above is what the report cover used
+    // to show labeled only "Confidence Score" -- a 40/30/20/10 blend that is
+    // not a measure of forecast accuracy and is not even purely input
+    // coverage. qualityDimensions decomposes it into separately-labeled,
+    // honestly derived dimensions using signals already computed above,
+    // read here AFTER the critical-reconciliation BLOCK escalation so
+    // scenario_reconciliation reflects the final report_integrity state,
+    // not a stale pre-escalation snapshot. See _shared/quality-dimensions.ts
+    // for the full rationale and which dimensions are real vs. explicitly
+    // UNVERIFIED/NOT_AVAILABLE.
+    const qualityDimensions = buildQualityDimensions({
+      inputCompleteness: confidenceBreakdown.input_completeness,
+      industryRelevance: confidenceBreakdown.industry_relevance,
+      benchmarkSource,
+      reportIntegrity: (result as Record<string, unknown>).report_integrity as 'PASS' | 'BLOCK' | undefined,
+      reportIntegrityIssues: (result as Record<string, unknown>).report_integrity_issues as
+        | Array<{ code: string; message: string }>
+        | undefined,
+      narrativeWasModified,
+    });
+
     // ========== ASSUMPTION GRAPH ==========
     let assumptionGraph: AssumptionGraphResult | undefined;
     try {
@@ -3890,6 +3925,12 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         revenue_for_45k_profit: quantisOutput.validation.revenueFor45kProfit,
         industry_detected: quantisOutput.validation.industryDetected,
         confidence_breakdown: quantisOutput.validation.confidenceBreakdown,
+        // Accuracy session 2026-08-04 (Confidence semantics, Priority 1):
+        // computed from result.report_integrity/_issues, benchmarkSource,
+        // and confidenceBreakdown -- all deterministic-path signals, so this
+        // is populated identically regardless of whether the Quantis 2.0
+        // enhanced validation path succeeded (see the fallback branch below).
+        quality_dimensions: qualityDimensions,
         improvement_suggestions: quantisOutput.validation.improvementSuggestions,
         summary: quantisOutput.validation.summary,
         health_scores: quantisOutput.validation.healthScores,
@@ -3905,6 +3946,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         revenue_for_45k_profit: null,
         industry_detected: calc.industryDetected,
         confidence_breakdown: null,
+        quality_dimensions: qualityDimensions,
         improvement_suggestions: [],
         summary: 'Quantis engine unavailable — deterministic financials only.',
         health_scores: null,

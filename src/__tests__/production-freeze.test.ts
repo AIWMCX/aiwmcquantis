@@ -447,11 +447,25 @@ describe('T10: narrative numeric firewall is wired into the request flow, not de
   });
 
   it('the executive_summary assembly point passes it through enforceNarrativeIntegrity', () => {
+    // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the
+    // call site was refactored from an inline
+    // `executive_summary: enforceNarrativeIntegrity(...).executiveSummary`
+    // into a captured `narrativeIntegrityResult` const, so that its
+    // previously-discarded `.wasModified` flag could be reused for the new
+    // narrative_reconciliation quality dimension (see
+    // _shared/quality-dimensions.ts). The behavior this test guards --
+    // enforceNarrativeIntegrity's result actually reaching
+    // business_plan.executive_summary, not a disconnected/dead call -- is
+    // unchanged; only the surface syntax moved. Assert both halves of that
+    // connection explicitly so the test still fails if either breaks.
     const src = readFileSync(join(ROOT, 'supabase/functions/analyze-business/index.ts'), 'utf8');
+    const narrativeConstIdx = src.indexOf('const narrativeIntegrityResult = enforceNarrativeIntegrity(');
+    expect(narrativeConstIdx, 'narrativeIntegrityResult must be assigned directly from enforceNarrativeIntegrity(...)').toBeGreaterThan(-1);
     const idx = src.indexOf('business_plan: {');
     expect(idx, 'business_plan assembly block not found').toBeGreaterThan(-1);
+    expect(idx, 'narrativeIntegrityResult must be defined before the business_plan block that consumes it').toBeGreaterThan(narrativeConstIdx);
     const window = src.slice(idx, idx + 400);
-    expect(window).toContain('executive_summary: enforceNarrativeIntegrity(');
+    expect(window).toContain('executive_summary: narrativeIntegrityResult.executiveSummary');
   });
 });
 

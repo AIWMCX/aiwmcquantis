@@ -1,9 +1,36 @@
 import React from 'react';
-import type { BusinessAnalysisResult } from '@/types/analysis';
+import type { BusinessAnalysisResult, QualityStatus } from '@/types/analysis';
 import { pdfStyles } from './pdfStyles';
 
 interface ReportCoverPageProps {
   result: BusinessAnalysisResult;
+}
+
+const STATUS_LABEL: Record<QualityStatus, string> = {
+  PASS: 'Pass',
+  WARN: 'Warn',
+  FAIL: 'Fail',
+  UNVERIFIED: 'Unverified',
+  NOT_AVAILABLE: 'Not available',
+};
+
+const STATUS_COLOR: Record<QualityStatus, string> = {
+  PASS: '#22c55e',
+  WARN: '#f59e0b',
+  FAIL: '#ef4444',
+  UNVERIFIED: '#94a3b8',
+  NOT_AVAILABLE: '#94a3b8',
+};
+
+function DimensionChip({ label, status }: { label: string; status: QualityStatus }) {
+  return (
+    <div style={pdfStyles.qualityDimensionChip}>
+      <div style={pdfStyles.qualityDimensionLabel}>{label}</div>
+      <div style={{ ...pdfStyles.qualityDimensionValue, color: STATUS_COLOR[status] }}>
+        {STATUS_LABEL[status]}
+      </div>
+    </div>
+  );
 }
 
 export function ReportCoverPage({ result }: ReportCoverPageProps) {
@@ -12,6 +39,21 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
     month: 'long',
     day: 'numeric'
   });
+
+  // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the
+  // cover previously showed result.confidence_score -- a 40/30/20/10
+  // blend of input completeness, data quality, validation-rule score, and
+  // industry relevance -- under the literal label "Confidence Score,"
+  // which a reader reasonably (and incorrectly) interprets as forecast
+  // accuracy. It never measured that.
+  //
+  // quality_dimensions (added this session) decomposes that blend into
+  // separately-labeled, honestly-derived signals. Older stored reports
+  // generated before this change won't have it -- fall back to
+  // displaying the legacy blended number under an unambiguous label that
+  // does not claim forecast accuracy either.
+  const qd = result.validation?.quality_dimensions;
+  const legacyScore = result.confidence_score;
 
   return (
     <div style={{ ...pdfStyles.page, ...pdfStyles.coverPage }}>
@@ -36,13 +78,15 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
       {/* Key Metrics Preview */}
       <div style={pdfStyles.coverMetrics}>
         <div style={pdfStyles.coverMetricBox}>
-          <div style={pdfStyles.coverMetricLabel}>Confidence Score</div>
+          <div style={pdfStyles.coverMetricLabel}>
+            {qd ? 'Input Completeness' : 'Analysis Quality Index (legacy)'}
+          </div>
           <div style={{
             ...pdfStyles.coverMetricValue,
-            color: result.confidence_score >= 70 ? '#22c55e' : 
-                   result.confidence_score >= 50 ? '#f59e0b' : '#ef4444'
+            color: (qd ? qd.input_completeness : legacyScore) >= 70 ? '#22c55e' :
+                   (qd ? qd.input_completeness : legacyScore) >= 50 ? '#f59e0b' : '#ef4444'
           }}>
-            {result.confidence_score}%
+            {qd ? qd.input_completeness : legacyScore}%
           </div>
         </div>
         <div style={pdfStyles.coverMetricBox}>
@@ -50,6 +94,19 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
           <div style={pdfStyles.coverMetricValue}>{generatedDate}</div>
         </div>
       </div>
+
+      {/* Quality dimensions -- replaces the single "Confidence Score" with
+          separately-labeled reconciliation checks. Only rendered when the
+          engine populated them (older stored reports won't have this). */}
+      {qd && (
+        <div style={pdfStyles.qualityDimensionsRow}>
+          <DimensionChip label="Benchmark Match" status={qd.benchmark_match_quality} />
+          <DimensionChip label="Scenario Check" status={qd.scenario_reconciliation} />
+          <DimensionChip label="Narrative Check" status={qd.narrative_reconciliation} />
+          <DimensionChip label="Formula Check" status={qd.formula_reconciliation} />
+          <DimensionChip label="Outcome Calibration" status={qd.outcome_calibration} />
+        </div>
+      )}
 
       {/* Footer */}
       <div style={pdfStyles.coverFooter}>
