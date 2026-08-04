@@ -1,0 +1,40 @@
+name: DB Security Invariant Check
+
+# P0 security incident, 2026-08-03/04 (docs/security/2026-08-03-p0-access/).
+# Read-only check: fails if any public-schema object reintroduces the
+# defect class proven exploitable in that incident. Reuses the exact
+# SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD secrets already configured
+# for production-deploy.yml — no new secret required. Scheduled (mirrors
+# seo-live-monitor.yml's pattern) rather than run on every PR, since PR CI
+# has no live DB target; this checks the real, current production state.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *' # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Run security invariant query against production (read-only)
+        env:
+          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
+          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$PROJECT_REF" ]; then
+            echo "::error title=Missing secret::SUPABASE_DB_PASSWORD or VITE_SUPABASE_PROJECT_ID not set — cannot run the invariant check."
+            exit 1
+          fi
+          DB_URL="postgresql://postgres.${PROJECT_REF}:${SUPABASE_DB_PASSWORD}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
+          OUTPUT=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-invariants.sql)
+          if [ -n "$OUTPUT" ]; then
+            echo "::error title=DB security invariant violated::One or more public-schema objects match a known-dangerous pattern."
+            echo "$OUTPUT"
+            echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+            exit 1
+          fi
+          echo "✓ No security invariant violations found." >> "$GITHUB_STEP_SUMMARY"

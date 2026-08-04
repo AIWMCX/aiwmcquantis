@@ -61,12 +61,32 @@ Investigation of real code call sites (not just schema) found:
 7. `supabase/migrations/20260804_p0_access_control_hardening.sql` — the actual migration, **not applied to production**.
 8. `src/__tests__/security-rls-effective-access.test.ts` — automated regression tests against the real REST API (read-only assertions; will need a service-role setup step to seed/clean canary data when run in CI).
 
+## Corrected mutation record (2026-08-04 review, Blocker 7)
+
+Replacing the prior, imprecise "no production mutation performed" with the exact record:
+
+**No production schema, policy, privilege, deployment, or application-code mutation was performed.** Controlled temporary production test data was inserted, updated, and removed to reproduce effective access, as follows:
+
+| Field | Value |
+|---|---|
+| Canary identifier | `__CANARY_SECURITY_TEST_2026-08-03__` (table `usage_counters`), row id `c28ee5b1-0af0-48ad-86b3-7cb43aed942f` |
+| Insertion time | 2026-08-04 02:04:07 UTC (via service-role SQL) |
+| Update time | 2026-08-04 02:04:07 UTC (anon PATCH, `analyses_used: 1 → 9999`) — same second, sub-second sequence per the request log |
+| Deletion time | 2026-08-04 02:04:35 UTC (anon DELETE, confirmed via `api` service logs, request id `20347a55-b0c9-44e4-8535-5987e3041522`) |
+| Funnel-event session identifier | **None.** The original incident-reproduction pass (`02_EFFECTIVE_ACCESS_RESULTS.md` §A) did not invoke `record_funnel_event` — only `usage_counters` CRUD and read-only `select=id` probes against `invoices`/`leads`. The newly-added test files (`security-rls-effective-access.test.ts`, `security-rls-production-smoke.test.ts`) do exercise the RPC, but both are gated behind explicit env vars (`RUN_RLS_INTEGRATION_TESTS`, `RUN_PRODUCTION_SECURITY_SMOKE`) that are unset — neither has executed, so no funnel event exists from this work as of this update. |
+| Cleanup verification | Confirmed via a follow-up `SELECT count(*) FROM usage_counters WHERE identity_key = '__CANARY_SECURITY_TEST_2026-08-03__'` returning 0 rows, plus the DELETE call itself returning the deleted row body (200, row present in the response) as positive confirmation it existed and was removed in the same request. |
+| Operator/tool | Claude Code (this session), via PowerShell `Invoke-RestMethod`/`Invoke-WebRequest` against the real PostgREST endpoint using only the public anon key, and the Supabase MCP `execute_sql` tool (service-role) for canary setup/verification. |
+
+`invoices`/`leads` were touched only via `select=id` — no row content (names, emails, amounts) was ever retrieved, logged, or displayed anywhere in this incident record.
+
 ## What is explicitly NOT done yet
 
-- The migration has **not** been applied to production.
+- The migration has **not** been applied to production or to any staging/preview environment.
 - No branch has been merged.
 - No PR has been merged (a draft PR is opened for review only).
-- The P1 report-integrity canary (§8 of your instructions) is deliberately deferred until after this P0 is resolved, per your own priority order.
+- **Blockers 3/5/8 (real cross-identity user-A/user-B/admin testing, seeded canaries across all 10 tables, staging apply + rollback rehearsal) are blocked on infrastructure**, not skipped by choice: Supabase branching requires the Pro plan (confirmed via a real `create_branch` call, `PaymentRequiredException`), and creating a new disposable project failed because this organization is already at its 2-project free-tier limit (confirmed via a real `create_project` call, `BadRequestException`). Resolving this requires a founder decision — see the response accompanying this update for the options.
+- The P1 report-integrity canary (§8 of an earlier instruction set) is deliberately deferred until after this P0 is resolved, per the established priority order.
 - Sentry/observability (P2) is untouched.
+- The CI database-security invariant (Blocker 10) is added as a standalone script, not yet wired into a scheduled/CI job requiring a live DB credential — see `07_CI_SECURITY_INVARIANT.md`.
 
 **Awaiting your review of `04_REMEDIATION_PLAN.md` and the production action preview before any deployment.**

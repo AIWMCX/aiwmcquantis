@@ -157,6 +157,15 @@ CREATE POLICY referral_codes_owner_select
 -- ============================================================
 
 REVOKE ALL ON TABLE public.funnel_events FROM anon, authenticated;
+-- BLOCKER 1 FIX (2026-08-04 review): an RLS policy does not grant table
+-- privileges on its own -- FOR SELECT + a role list only *restricts which
+-- rows a role with SELECT can see*, it never *confers* SELECT. Without
+-- this GRANT, authenticated (including real admins) would have gotten a
+-- 403 (insufficient_privilege) on every query regardless of the policy,
+-- and /admin/funnel would have silently broken. Only SELECT is granted --
+-- authenticated never gets INSERT/UPDATE/DELETE/TRUNCATE on this table;
+-- the RPC remains the only write path.
+GRANT SELECT ON TABLE public.funnel_events TO authenticated;
 DROP POLICY IF EXISTS funnel_events_svc ON public.funnel_events;
 CREATE POLICY funnel_events_service_only
   ON public.funnel_events

@@ -1,12 +1,48 @@
--- ROLLBACK for 20260804000000_p0_access_control_hardening.sql
+-- ============================================================================
+-- EMERGENCY REVERSION -- THIS SCRIPT REINTRODUCES CONFIRMED P0
+-- UNAUTHORIZED ACCESS. EXECUTION REQUIRES INCIDENT-COMMANDER APPROVAL,
+-- IMMEDIATE TRAFFIC CONTAINMENT, AND A TIME-BOXED FORWARD-FIX PLAN.
+-- ============================================================================
+--
+-- Do NOT run this as a routine "undo." Running it puts production back into
+-- the exact state proven exploitable in 02_EFFECTIVE_ACCESS_RESULTS.md: any
+-- unauthenticated visitor can read/write/delete usage_counters,
+-- analysis_attempts, invoices, leads, shared_reports, export_jobs,
+-- quote_gen_usage, referral_codes, analysis_cases, and funnel_events using
+-- only the public anon key.
+--
+-- BEFORE running this, prefer the safe operational fallback below, which
+-- keeps deny-by-default access intact and only disables the specific
+-- regressing workflow. Only fall through to this full reversion if the
+-- regression cannot be isolated to one workflow and continuing to operate
+-- with the hardened policies is genuinely worse than reopening the incident.
+--
+-- ============================================================================
+-- SAFE OPERATIONAL FALLBACK (prefer this over full reversion)
+-- ============================================================================
+-- If exactly one workflow regresses post-deploy (e.g. an owner-scoped INSERT
+-- policy is missing a required column), the safe fix is to ADD the missing
+-- grant/policy for that one table, not to revert all ten tables to fully
+-- open. Example pattern, if e.g. invoices needed an UPDATE path that wasn't
+-- anticipated:
+--
+--   GRANT UPDATE ON TABLE public.invoices TO authenticated;
+--   CREATE POLICY invoices_owner_update ON public.invoices
+--     FOR UPDATE TO authenticated
+--     USING (user_id = auth.uid())
+--     WITH CHECK (user_id = auth.uid());
+--
+-- This preserves deny-by-default for every anon request and every other
+-- authenticated user's rows, while unblocking the one real, legitimate gap.
+-- Always attempt this path first; it never reopens the P0.
+--
+-- ============================================================================
+-- FULL ROLLBACK (last resort only, per the warning above)
+-- ============================================================================
 -- Restores the exact pre-migration state (proven via 01_RAW_POLICY_EVIDENCE.sql):
 -- every one of the 10 tables back to a single PERMISSIVE policy,
 -- roles={public}, cmd=ALL, qual=true, with_check=true, plus full
 -- SELECT/INSERT/UPDATE/DELETE/TRUNCATE grants to anon and authenticated.
---
--- This restores the vulnerability. Only run this if the migration causes a
--- real regression that must be reverted immediately while a fix is
--- prepared -- not as a routine operation.
 
 -- usage_counters
 DROP POLICY IF EXISTS usage_counters_service_only ON public.usage_counters;
