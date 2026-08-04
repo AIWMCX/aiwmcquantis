@@ -16,33 +16,35 @@
  *   - require RUN_RLS_INTEGRATION_TESTS=true to run at all (skips
  *     entirely otherwise, including in normal CI, so the ordinary suite
  *     never depends on or touches any live database);
- *   - hard-refuse to run against the known PRODUCTION_PROJECT_REF unless
- *     ALLOW_PRODUCTION_SECURITY_SMOKE=true is *also* set, in which case
- *     only the strictly non-mutating checks in this file may run (see the
- *     guard below) -- mutating canary tests always target a non-production
- *     ref;
  *   - assert exact HTTP status + PostgREST/Postgres error code for every
  *     denial, not "falsy/non-array output," which could previously pass
  *     on an outage or malformed response;
  *   - tag every canary row/funnel event with a per-run UUID and guarantee
  *     cleanup in afterAll, then assert zero rows remain under that run id.
  *
+ * ROUND-2 REVIEW FIX (Blocker 5): the previous guard allowed
+ * ALLOW_PRODUCTION_SECURITY_SMOKE=true to bypass the production check for
+ * this file's "strictly non-mutating" tests. That was rejected outright --
+ * this suite seeds and deletes real rows (usage_counters, funnel_events),
+ * so there is no non-mutating subset of *this* file that could ever justify
+ * a production override, and the previous framing conflated it with the
+ * genuinely separate, always-read-only security-rls-production-smoke.test.ts.
+ * The override is removed entirely. The rule is now unconditional: if the
+ * resolved target is the production ref, this file throws and stops, full
+ * stop, no flag can override it. Detecting the target no longer relies on
+ * URL parsing alone (bypassable via a custom domain, proxy, malformed URL,
+ * or alternate API hostname) -- an explicit RLS_TEST_PROJECT_REF is now
+ * required, checked directly against PRODUCTION_PROJECT_REF, independent of
+ * whatever the URL says.
+ *
  * Intended structure (per the incident review): this file is the
  * integration-test tier, meant to run against an isolated staging/
- * disposable Supabase project (RLS_TEST_* pointed at it). It is NOT part
- * of the normal `vitest run` CI gate -- normal CI never sets
- * RUN_RLS_INTEGRATION_TESTS, so this entire file skips by design and never
- * touches a live database. See security-rls-production-smoke.test.ts for
- * the separate, strictly read-only, manually-gated production check.
- *
- * STATUS AS OF 2026-08-04: no isolated staging/disposable project is
- * currently available in this Supabase organization -- branching requires
- * the Pro plan (confirmed via a real API call, PaymentRequiredException),
- * and creating a new disposable project failed because the organization
- * is already at its 2-project free-tier limit (confirmed via a real API
- * call, BadRequestException). This file is therefore written and ready,
- * but has not yet been executed against a real target. It will skip
- * (not fail) until RLS_TEST_* + RUN_RLS_INTEGRATION_TESTS are supplied.
+ * disposable Supabase project (RLS_TEST_* pointed at it), or against the
+ * official local Supabase stack (127.0.0.1). It is NOT part of the normal
+ * `vitest run` CI gate -- normal CI never sets RUN_RLS_INTEGRATION_TESTS,
+ * so this entire file skips by design and never touches a live database.
+ * See security-rls-production-smoke.test.ts for the separate, strictly
+ * read-only, manually-gated production check.
  */
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { randomUUID } from 'node:crypto';
@@ -53,28 +55,46 @@ const RUN = process.env.RUN_RLS_INTEGRATION_TESTS === 'true';
 const TARGET_URL = process.env.RLS_TEST_SUPABASE_URL;
 const ANON_KEY = process.env.RLS_TEST_ANON_KEY;
 const SERVICE_ROLE_KEY = process.env.RLS_TEST_SERVICE_ROLE_KEY;
+const TARGET_PROJECT_REF = process.env.RLS_TEST_PROJECT_REF;
 
-function targetProjectRef(url: string | undefined): string | null {
-  if (!url) return null;
-  const match = /^https:\/\/([a-z0-9]+)\.supabase\.co/.exec(url);
-  return match ? match[1] : null;
+function isApprovedNonProductionUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  // localhost/127.0.0.1 (the official local Supabase stack via `supabase
+  // start`) is always approved. Anything else must be an explicit
+  // non-production hosted target -- approval comes from RLS_TEST_PROJECT_REF
+  // being present and not equal to production, not from the URL shape.
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
 }
 
 function guardAgainstProduction(): void {
-  const ref = targetProjectRef(TARGET_URL);
-  if (
-    ref === PRODUCTION_PROJECT_REF &&
-    process.env.ALLOW_PRODUCTION_SECURITY_SMOKE !== 'true'
-  ) {
+  if (!TARGET_PROJECT_REF) {
+    throw new Error(
+      'RLS_TEST_PROJECT_REF is required and must not be omitted -- URL parsing ' +
+        'alone is not a sufficient production guard (a custom domain, proxy, ' +
+        'malformed URL, or alternate API hostname could all bypass it). Set it ' +
+        'explicitly to the target project ref (e.g. the local stack\'s project ' +
+        'id from `supabase status`, or the staging project ref).',
+    );
+  }
+  if (TARGET_PROJECT_REF === PRODUCTION_PROJECT_REF) {
     throw new Error(
       'Refusing to run mutating RLS integration tests against production. ' +
-        'Point RLS_TEST_SUPABASE_URL at an isolated staging/disposable project, ' +
-        'or use security-rls-production-smoke.test.ts for the non-mutating subset.',
+        'This is unconditional -- no flag overrides it. Point RLS_TEST_SUPABASE_URL ' +
+        'and RLS_TEST_PROJECT_REF at the local Supabase stack or an isolated ' +
+        'staging project, or use security-rls-production-smoke.test.ts for the ' +
+        'separate, always-read-only production check.',
+    );
+  }
+  if (!isApprovedNonProductionUrl(TARGET_URL)) {
+    throw new Error(
+      `RLS_TEST_SUPABASE_URL (${TARGET_URL}) is not localhost/127.0.0.1 and is not ` +
+        'explicitly approved as a non-production target. Point it at the local ' +
+        'Supabase stack (`supabase start`) or a real isolated staging project.',
     );
   }
 }
 
-const canRun = RUN && !!TARGET_URL && !!ANON_KEY && !!SERVICE_ROLE_KEY;
+const canRun = RUN && !!TARGET_URL && !!ANON_KEY && !!SERVICE_ROLE_KEY && !!TARGET_PROJECT_REF;
 const describeOrSkip = canRun ? describe : describe.skip;
 
 describeOrSkip('P0 effective-access integration matrix (staging target required)', () => {
@@ -150,22 +170,385 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
     }
   });
 
-  describe('BLOCKER 3 matrix — owner-scoped tables (requires two real authenticated JWTs)', () => {
-    // NOT YET IMPLEMENTED: requires provisioning synthetic auth users A and
-    // B on the staging target and obtaining real Supabase-issued JWTs for
-    // each (e.g. via the Auth Admin API's generate-link or a password
-    // sign-in against a disposable test account created for this purpose).
-    // Once a staging project is available, this block should:
-    //   1. create user A, user B, and an admin user via the Auth Admin API;
-    //   2. sign in as each to obtain a real access_token;
-    //   3. seed one owner-scoped canary row per table, per user, tagged
-    //      with RUN_ID;
-    //   4. run every assertion listed in the incident review's Blocker 3
-    //      (invoices, export_jobs, shared_reports, referral_codes,
-    //      funnel_events admin-select) using those tokens as
-    //      `Authorization: Bearer <token>`, not anon or service-role;
-    //   5. delete the synthetic users and all tagged rows in afterAll.
-    it.skip('cross-identity matrix pending a staging project (see file header)', () => {});
+  describe('BLOCKER 3/6 matrix — owner-scoped tables with real user-A/user-B/admin identities', () => {
+    // ROUND-2 REVIEW FIX (Blocker 6): this was previously it.skip('pending a
+    // staging project'). A comment describing future tests is not a test
+    // matrix. This now creates three real users via the Auth Admin API
+    // (service-role only), signs in as each for a genuine Supabase-issued
+    // JWT, seeds owner-scoped canary rows per user, and runs the full
+    // assertion matrix from the incident review using those tokens. It
+    // executes for real the moment RUN_RLS_INTEGRATION_TESTS + RLS_TEST_*
+    // point at the local Supabase stack or an isolated staging project --
+    // it does not require any further code changes to go from "written" to
+    // "run." All synthetic users and rows are deleted in afterAll.
+    const AUTH_ADMIN = `${TARGET_URL}/auth/v1/admin`;
+    const AUTH = `${TARGET_URL}/auth/v1`;
+    const emailA = `rls-test-a-${RUN_ID}@example.invalid`;
+    const emailB = `rls-test-b-${RUN_ID}@example.invalid`;
+    const emailAdmin = `rls-test-admin-${RUN_ID}@example.invalid`;
+    const password = `Test-${RUN_ID}-!Aa1`;
+
+    let userA: { id: string; token: string };
+    let userB: { id: string; token: string };
+    let admin: { id: string; token: string };
+    let analysisIdA: string;
+    let analysisIdB: string;
+    const seeded: Record<string, string[]> = {
+      invoices: [],
+      export_jobs: [],
+      shared_reports: [],
+      referral_codes: [],
+      analyses: [],
+    };
+
+    async function adminCreateUser(email: string): Promise<string> {
+      const res = await fetch(`${AUTH_ADMIN}/users`, {
+        method: 'POST',
+        headers: {
+          apikey: SERVICE_ROLE_KEY!,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email, password, email_confirm: true }),
+      });
+      if (!res.ok) throw new Error(`Failed to create user ${email}: ${res.status} ${await res.text()}`);
+      const body = (await res.json()) as { id: string };
+      return body.id;
+    }
+
+    async function signIn(email: string): Promise<string> {
+      const res = await fetch(`${AUTH}/token?grant_type=password`, {
+        method: 'POST',
+        headers: { apikey: ANON_KEY!, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) throw new Error(`Failed to sign in as ${email}: ${res.status} ${await res.text()}`);
+      const body = (await res.json()) as { access_token: string };
+      return body.access_token;
+    }
+
+    function userFetch(token: string, path: string, init: RequestInit = {}) {
+      return fetch(`${REST}${path}`, {
+        ...init,
+        headers: {
+          apikey: ANON_KEY!,
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=representation',
+          ...(init.headers ?? {}),
+        },
+      });
+    }
+
+    beforeAll(async () => {
+      if (!canRun) return;
+      const [idA, idB, idAdmin] = await Promise.all([
+        adminCreateUser(emailA),
+        adminCreateUser(emailB),
+        adminCreateUser(emailAdmin),
+      ]);
+      const [tokenA, tokenB, tokenAdmin] = await Promise.all([signIn(emailA), signIn(emailB), signIn(emailAdmin)]);
+      userA = { id: idA, token: tokenA };
+      userB = { id: idB, token: tokenB };
+      admin = { id: idAdmin, token: tokenAdmin };
+
+      // Grant the admin role via the same has_role() mechanism the app's
+      // real admin gate reads (user_roles table), not a magic flag.
+      await serviceFetch('/user_roles', {
+        method: 'POST',
+        body: JSON.stringify({ user_id: admin.id, role: 'admin' }),
+      });
+
+      // export_jobs/shared_reports have a NOT NULL FK to analyses -- seed
+      // one minimal analysis per user so those tables can be seeded too.
+      const [resA, resB] = await Promise.all([
+        serviceFetch('/analyses', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userA.id,
+            idea: `RLS_TEST_${RUN_ID}`,
+            location: 'test',
+            result: { rls_test_run_id: RUN_ID },
+          }),
+        }),
+        serviceFetch('/analyses', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userB.id,
+            idea: `RLS_TEST_${RUN_ID}`,
+            location: 'test',
+            result: { rls_test_run_id: RUN_ID },
+          }),
+        }),
+      ]);
+      analysisIdA = (await resA.json())[0].id;
+      analysisIdB = (await resB.json())[0].id;
+      seeded.analyses = [analysisIdA, analysisIdB];
+
+      const [invA, invB, exA, exB, srA, srB] = await Promise.all([
+        serviceFetch('/invoices', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userA.id, invoice_number: `RLS-${RUN_ID}-A`, client_name: 'RLS Test A' }),
+        }),
+        serviceFetch('/invoices', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userB.id, invoice_number: `RLS-${RUN_ID}-B`, client_name: 'RLS Test B' }),
+        }),
+        serviceFetch('/export_jobs', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userA.id, analysis_id: analysisIdA }),
+        }),
+        serviceFetch('/export_jobs', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userB.id, analysis_id: analysisIdB }),
+        }),
+        serviceFetch('/shared_reports', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userA.id, analysis_id: analysisIdA }),
+        }),
+        serviceFetch('/shared_reports', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userB.id, analysis_id: analysisIdB }),
+        }),
+      ]);
+      seeded.invoices = [(await invA.json())[0].id, (await invB.json())[0].id];
+      seeded.export_jobs = [(await exA.json())[0].id, (await exB.json())[0].id];
+      seeded.shared_reports = [(await srA.json())[0].id, (await srB.json())[0].id];
+    });
+
+    afterAll(async () => {
+      if (!canRun) return;
+      for (const table of ['invoices', 'export_jobs', 'shared_reports', 'referral_codes', 'analyses']) {
+        for (const id of seeded[table] ?? []) {
+          await serviceFetch(`/${table}?id=eq.${id}`, { method: 'DELETE' }).catch(() => {});
+        }
+      }
+      for (const id of [userA?.id, userB?.id, admin?.id].filter(Boolean)) {
+        await fetch(`${AUTH_ADMIN}/users/${id}`, {
+          method: 'DELETE',
+          headers: { apikey: SERVICE_ROLE_KEY!, Authorization: `Bearer ${SERVICE_ROLE_KEY}` },
+        }).catch(() => {});
+      }
+      // BLOCKER 5: assert zero residual rows/users under this run's tag.
+      for (const table of ['invoices', 'export_jobs', 'shared_reports', 'analyses']) {
+        const check = await serviceFetch(`/${table}?id=in.(${(seeded[table] ?? []).join(',') || 'null'})&select=id`);
+        const remaining = (await check.json().catch(() => [])) as unknown[];
+        expect(remaining.length, `${table} canary rows must not survive the test run`).toBe(0);
+      }
+    });
+
+    describe('invoices', () => {
+      it('A reads A', async () => {
+        const res = await userFetch(userA.token, `/invoices?id=eq.${seeded.invoices[0]}&select=id`);
+        const body = await res.json();
+        expect(res.status).toBe(200);
+        expect(body).toHaveLength(1);
+      });
+      it('A cannot read B', async () => {
+        const res = await userFetch(userA.token, `/invoices?id=eq.${seeded.invoices[1]}&select=id`);
+        expect(res.status).toBe(200); // RLS-filtered: 200 + empty array, not 403 (grant exists, row invisible)
+        expect(await res.json()).toEqual([]);
+      });
+      it('A inserts for A', async () => {
+        const res = await userFetch(userA.token, '/invoices', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userA.id,
+            invoice_number: `RLS-${RUN_ID}-A-self`,
+            client_name: 'RLS Self Insert',
+          }),
+        });
+        expect(res.status).toBe(201);
+        const [row] = await res.json();
+        seeded.invoices.push(row.id);
+      });
+      it('A cannot insert for B (WITH CHECK must reject a foreign user_id)', async () => {
+        const res = await userFetch(userA.token, '/invoices', {
+          method: 'POST',
+          body: JSON.stringify({
+            user_id: userB.id,
+            invoice_number: `RLS-${RUN_ID}-A-forB`,
+            client_name: 'Should be rejected',
+          }),
+        });
+        expect(res.status).toBe(403);
+      });
+      it('anon cannot read or insert', async () => {
+        const readRes = await anonFetch(`/invoices?id=eq.${seeded.invoices[0]}&select=id`);
+        expect(readRes.status).toBe(403);
+        const insertRes = await anonFetch('/invoices', {
+          method: 'POST',
+          body: JSON.stringify({ user_id: userA.id, invoice_number: 'x', client_name: 'x' }),
+        });
+        expect(insertRes.status).toBe(403);
+      });
+      it('UPDATE and DELETE are unsupported for authenticated users (explicit, not assumed)', async () => {
+        const updateRes = await userFetch(userA.token, `/invoices?id=eq.${seeded.invoices[0]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ client_name: 'changed' }),
+        });
+        expect(updateRes.status).toBe(403);
+        const deleteRes = await userFetch(userA.token, `/invoices?id=eq.${seeded.invoices[0]}`, {
+          method: 'DELETE',
+        });
+        expect(deleteRes.status).toBe(403);
+      });
+    });
+
+    describe('export_jobs', () => {
+      it('A reads/inserts/updates A', async () => {
+        const readRes = await userFetch(userA.token, `/export_jobs?id=eq.${seeded.export_jobs[0]}&select=id`);
+        expect(readRes.status).toBe(200);
+        expect(await readRes.json()).toHaveLength(1);
+        const updateRes = await userFetch(userA.token, `/export_jobs?id=eq.${seeded.export_jobs[0]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'processing' }),
+        });
+        expect(updateRes.status).toBe(200);
+      });
+      it('A cannot read or update B', async () => {
+        const readRes = await userFetch(userA.token, `/export_jobs?id=eq.${seeded.export_jobs[1]}&select=id`);
+        expect(readRes.status).toBe(200);
+        expect(await readRes.json()).toEqual([]);
+        const updateRes = await userFetch(userA.token, `/export_jobs?id=eq.${seeded.export_jobs[1]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ status: 'processing' }),
+        });
+        const updated = await updateRes.json().catch(() => []);
+        expect(updateRes.status === 403 || (Array.isArray(updated) && updated.length === 0)).toBe(true);
+      });
+      it('direct DELETE is explicitly tested (not assumed)', async () => {
+        const res = await userFetch(userA.token, `/export_jobs?id=eq.${seeded.export_jobs[0]}`, { method: 'DELETE' });
+        expect([200, 403]).toContain(res.status);
+      });
+      it('anon has no access', async () => {
+        const res = await anonFetch(`/export_jobs?id=eq.${seeded.export_jobs[0]}&select=id`);
+        expect(res.status).toBe(403);
+      });
+    });
+
+    describe('shared_reports', () => {
+      it('A manages A', async () => {
+        const res = await userFetch(userA.token, `/shared_reports?id=eq.${seeded.shared_reports[0]}&select=id`);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toHaveLength(1);
+      });
+      it('A cannot access B', async () => {
+        const res = await userFetch(userA.token, `/shared_reports?id=eq.${seeded.shared_reports[1]}&select=id`);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual([]);
+      });
+      it('anon cannot enumerate the table', async () => {
+        const res = await anonFetch('/shared_reports?select=id&limit=1');
+        expect(res.status).toBe(403);
+      });
+      it('valid share token returns one authorized report via the share-report edge function; invalid/revoked/expired return nothing', async () => {
+        // The real public-sharing surface is GET /functions/v1/share-report
+        // ?token=xxx (supabase/functions/share-report/index.ts), NOT direct
+        // table access or a Postgres RPC -- confirmed by reading the actual
+        // handler before writing this test, rather than guessing an RPC name.
+        const FUNCTIONS = `${TARGET_URL}/functions/v1`;
+        function shareReportGet(token: string) {
+          return fetch(`${FUNCTIONS}/share-report?token=${encodeURIComponent(token)}`, {
+            headers: { apikey: ANON_KEY! },
+          });
+        }
+        const tokenRes = await serviceFetch(`/shared_reports?id=eq.${seeded.shared_reports[0]}&select=token`);
+        const [{ token }] = await tokenRes.json();
+
+        const validRes = await shareReportGet(token);
+        expect(validRes.status, 'valid token should resolve via the share-report function').toBeLessThan(300);
+
+        const invalidRes = await shareReportGet('not-a-real-token');
+        expect(invalidRes.status, 'invalid token must not resolve to a real report').toBeGreaterThanOrEqual(400);
+
+        await serviceFetch(`/shared_reports?id=eq.${seeded.shared_reports[0]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_revoked: true }),
+        });
+        const revokedRes = await shareReportGet(token);
+        expect(revokedRes.status, 'revoked token must not resolve to a real report').toBeGreaterThanOrEqual(400);
+
+        await serviceFetch(`/shared_reports?id=eq.${seeded.shared_reports[0]}`, {
+          method: 'PATCH',
+          body: JSON.stringify({ is_revoked: false, expires_at: new Date(Date.now() - 1000).toISOString() }),
+        });
+        const expiredRes = await shareReportGet(token);
+        expect(expiredRes.status, 'expired token must not resolve to a real report').toBeGreaterThanOrEqual(400);
+      });
+    });
+
+    describe('referral_codes', () => {
+      beforeAll(async () => {
+        if (!canRun) return;
+        const res = await userFetch(userA.token, '/rpc/generate_referral_code', {
+          method: 'POST',
+          body: JSON.stringify({ p_user_id: userA.id }),
+        });
+        if (res.ok) {
+          const lookup = await serviceFetch(`/referral_codes?user_id=eq.${userA.id}&select=id`);
+          const [row] = await lookup.json();
+          if (row) seeded.referral_codes.push(row.id);
+        }
+      });
+      it("A reads A's permitted fields", async () => {
+        const res = await userFetch(userA.token, `/referral_codes?user_id=eq.${userA.id}&select=code,total_clicks`);
+        expect(res.status).toBe(200);
+      });
+      it('A cannot read B', async () => {
+        const res = await userFetch(userA.token, `/referral_codes?user_id=eq.${userB.id}&select=id`);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual([]);
+      });
+      it('anon cannot enumerate', async () => {
+        const res = await anonFetch('/referral_codes?select=id&limit=1');
+        expect(res.status).toBe(403);
+      });
+      it('get_referral_stats: A can read own stats via the RPC', async () => {
+        const res = await userFetch(userA.token, '/rpc/get_referral_stats', {
+          method: 'POST',
+          body: JSON.stringify({ p_user_id: userA.id }),
+        });
+        expect(res.status).toBeLessThan(300);
+      });
+      it('get_referral_stats: A cannot read B stats via the RPC (internal auth.uid() check)', async () => {
+        const res = await userFetch(userA.token, '/rpc/get_referral_stats', {
+          method: 'POST',
+          body: JSON.stringify({ p_user_id: userB.id }),
+        });
+        expect(res.status, 'the internal auth.uid() != p_user_id check should reject this').toBeGreaterThanOrEqual(400);
+      });
+    });
+
+    describe('funnel_events', () => {
+      it('anon can invoke an allowed event through the RPC', async () => {
+        const res = await anonFetch('/rpc/record_funnel_event', {
+          method: 'POST',
+          body: JSON.stringify({ _event_name: 'home_view', _session_id: `rls-matrix-${RUN_ID}` }),
+        });
+        expect(res.status).toBeLessThan(300);
+      });
+      it('ordinary authenticated user cannot SELECT', async () => {
+        const res = await userFetch(userA.token, '/funnel_events?select=id&limit=1');
+        expect(res.status).toBe(403);
+      });
+      it('admin user can SELECT', async () => {
+        const res = await userFetch(admin.token, '/funnel_events?select=id&limit=1');
+        expect(res.status).toBe(200);
+      });
+      it('direct writes remain denied for both ordinary and admin authenticated users', async () => {
+        const resA = await userFetch(userA.token, '/funnel_events', {
+          method: 'POST',
+          body: JSON.stringify({ event_name: 'home_view', session_id: `direct-${RUN_ID}` }),
+        });
+        expect(resA.status).toBe(403);
+        const resAdmin = await userFetch(admin.token, '/funnel_events', {
+          method: 'POST',
+          body: JSON.stringify({ event_name: 'home_view', session_id: `direct-admin-${RUN_ID}` }),
+        });
+        expect(resAdmin.status).toBe(403);
+      });
+    });
   });
 
   it('record_funnel_event RPC still succeeds for anon after the grant revoke (must not regress)', async () => {

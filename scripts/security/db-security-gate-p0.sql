@@ -1,0 +1,127 @@
+-- P0 SECURITY — RELEASE-BLOCKING GATE.
+-- docs/security/2026-08-03-p0-access/ — round-2 review, Blocker 8.
+--
+-- This is the CI-failing half of the split invariant check. It is
+-- deliberately narrow: it only re-checks the exact incident boundary (the
+-- ten remediated tables plus the SECURITY DEFINER functions that write to
+-- them or were found in the same incident) against the exact post-P0-
+-- migration baseline. It returns ZERO ROWS once the P0 migration is
+-- applied, and stays at zero indefinitely -- it is a regression lock, not
+-- an open-ended scan. Broader schema findings (the ~60+ table TRUNCATE
+-- grant sprawl, search_path gaps on unrelated functions, etc.) belong in
+-- db-security-advisory.sql, which reports but never fails CI.
+--
+-- Every finding below is a real regression: if this returns any row, the
+-- exact P0 that was proven exploitable via live PostgREST calls has come
+-- back, either on the original table/grant vector or the SECURITY-DEFINER-
+-- RPC alternate-path vector caught in round 2. Zero rows = PASS.
+--
+-- Run manually via:
+--   psql "$SUPABASE_DB_URL" -f scripts/security/db-security-gate-p0.sql
+-- Wired into .github/workflows/db-security-invariant.yml as the failing
+-- step; db-security-advisory.sql runs alongside as a non-failing report.
+
+WITH incident_tables AS (
+  SELECT * FROM (VALUES
+    ('usage_counters'), ('analysis_attempts'), ('leads'), ('quote_gen_usage'),
+    ('analysis_cases'), ('invoices'), ('export_jobs'), ('shared_reports'),
+    ('referral_codes'), ('funnel_events')
+  ) AS t(tablename)
+),
+
+-- Expected post-P0-migration grants to anon/authenticated on the incident
+-- tables. Every row here was deliberately chosen in the P0 migration; any
+-- grant found in role_table_grants that isn't in this list is a
+-- regression back toward the original incident, not a false positive.
+expected_grants AS (
+  SELECT * FROM (VALUES
+    ('funnel_events', 'authenticated', 'SELECT')
+    -- All nine other incident tables expect ZERO anon/authenticated grants
+    -- of any kind (service_role-only or owner-scoped-via-RLS-and-RPC-only).
+  ) AS t(tablename, grantee, privilege_type)
+),
+
+-- Functions proven or reasonably suspected to write to an incident table,
+-- enumerated explicitly (not inferred from function-body parsing, which is
+-- unreliable) from the source investigation in 00_EXECUTIVE_SUMMARY.md and
+-- the round-2 charge_free_analysis finding. Expected EXECUTE grantees are
+-- the post-remediation baseline -- anon/authenticated should hold EXECUTE
+-- here ONLY where a real, reviewed, intentional caller needs it.
+incident_functions AS (
+  SELECT * FROM (VALUES
+    ('public.charge_free_analysis(text)'::regprocedure,          ARRAY[]::name[]),
+    ('public.charge_free_analysis(text, boolean)'::regprocedure, ARRAY[]::name[]),
+    ('public.record_funnel_event(text, text, text, text, text, text, text, jsonb)'::regprocedure,
+                                                                   ARRAY['anon','authenticated']::name[])
+  ) AS t(function_signature, expected_execute_grantees)
+),
+
+unexpected_wide_open_policy AS (
+  SELECT
+    'incident_table_wide_open_policy' AS violation,
+    p.tablename,
+    p.policyname AS detail
+  FROM pg_policies p
+  JOIN incident_tables it ON it.tablename = p.tablename
+  WHERE p.schemaname = 'public'
+    AND p.permissive = 'PERMISSIVE'
+    AND p.roles @> ARRAY['public']::name[]
+    AND p.qual = 'true'
+    AND coalesce(p.with_check, 'true') = 'true'
+),
+
+unexpected_table_grant AS (
+  SELECT
+    'incident_table_unexpected_grant' AS violation,
+    g.table_name AS tablename,
+    (g.grantee || ':' || g.privilege_type) AS detail
+  FROM information_schema.role_table_grants g
+  JOIN incident_tables it ON it.tablename = g.table_name
+  WHERE g.table_schema = 'public'
+    AND g.grantee IN ('anon', 'authenticated')
+    AND NOT EXISTS (
+      SELECT 1 FROM expected_grants eg
+      WHERE eg.tablename = g.table_name
+        AND eg.grantee = g.grantee
+        AND eg.privilege_type = g.privilege_type
+    )
+),
+
+unexpected_function_execute AS (
+  SELECT
+    'incident_function_unexpected_execute_grant' AS violation,
+    fn.function_signature::text AS tablename,
+    grantee.grantee_name AS detail
+  FROM incident_functions fn
+  CROSS JOIN LATERAL unnest(ARRAY['anon','authenticated']::name[]) AS grantee(grantee_name)
+  WHERE has_function_privilege(grantee.grantee_name, fn.function_signature, 'EXECUTE')
+    AND NOT (grantee.grantee_name = ANY(fn.expected_execute_grantees))
+),
+
+incident_function_missing_search_path AS (
+  SELECT
+    'incident_function_missing_search_path' AS violation,
+    fn.function_signature::text AS tablename,
+    'no search_path in proconfig' AS detail
+  FROM incident_functions fn
+  JOIN pg_proc p ON p.oid = fn.function_signature::regprocedure::oid
+  WHERE NOT EXISTS (
+    SELECT 1 FROM unnest(coalesce(p.proconfig, ARRAY[]::text[])) cfg
+    WHERE cfg LIKE 'search_path=%'
+  )
+)
+
+SELECT * FROM unexpected_wide_open_policy
+UNION ALL
+SELECT * FROM unexpected_table_grant
+UNION ALL
+SELECT * FROM unexpected_function_execute
+UNION ALL
+SELECT * FROM incident_function_missing_search_path
+ORDER BY violation, tablename;
+
+-- CI convention: zero rows = PASS, exit 0. Any row = FAIL, print the
+-- result set (metadata only, never customer data) and exit non-zero. This
+-- gate is expected to return zero rows immediately after the P0 migration
+-- is applied and to stay at zero indefinitely -- a permanently-red gate
+-- here would itself be a bug in the gate, not an accepted baseline.

@@ -95,3 +95,11 @@ DROP POLICY IF EXISTS funnel_events_service_only ON public.funnel_events;
 DROP POLICY IF EXISTS funnel_events_admin_select ON public.funnel_events;
 CREATE POLICY funnel_events_svc ON public.funnel_events FOR ALL USING (true) WITH CHECK (true);
 GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE public.funnel_events TO anon, authenticated;
+
+-- charge_free_analysis overloads (round-2 review, Blocker 2) -- restores the
+-- exact pre-P0 grant state, including re-opening the anon/authenticated
+-- EXECUTE path this migration closed. This is itself part of what the
+-- emergency-reversion warning above refers to: rolling back reopens a real
+-- alternate write path into usage_counters, not just the table-level access.
+GRANT EXECUTE ON FUNCTION public.charge_free_analysis(text) TO anon, authenticated, service_role;
+GRANT EXECUTE ON FUNCTION public.charge_free_analysis(text, boolean) TO service_role;

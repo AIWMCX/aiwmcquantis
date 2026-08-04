@@ -14,6 +14,17 @@
  *
  * Gated behind RUN_PRODUCTION_SECURITY_SMOKE=true so it never runs
  * accidentally in a normal CI/local `vitest run`.
+ *
+ * ROUND-2 REVIEW FIX (Blocker 4): this file previously called
+ * record_funnel_event via POST, which inserts a real row into
+ * public.funnel_events — that is a mutation regardless of how closely it
+ * resembles ordinary traffic; labeling it "not test pollution because it
+ * looks like a real visit" was correctly rejected. Security evidence must
+ * stay distinguishable from real customer activity. The RPC-regression
+ * check is removed from this file entirely and belongs in the local
+ * integration environment (security-rls-effective-access.test.ts), where
+ * it is tagged with a run id and cleaned up under service-role in
+ * afterAll. This file now performs ONLY read-only anon-denial checks.
  */
 import { describe, it, expect } from 'vitest';
 
@@ -55,18 +66,13 @@ describeOrSkip('production post-deploy smoke — read-only anon-denial checks', 
     });
   }
 
-  it('record_funnel_event RPC still succeeds for anon in production (must not regress)', async () => {
-    const res = await anonFetch('/rpc/record_funnel_event', {
+  it('anon EXECUTE on charge_free_analysis(text) is denied (must not regress open after Blocker 2)', async () => {
+    const res = await anonFetch('/rpc/charge_free_analysis', {
       method: 'POST',
-      body: JSON.stringify({
-        _event_name: 'home_view',
-        _session_id: `prod-smoke-${Date.now()}`,
-      }),
+      body: JSON.stringify({ p_identity: `prod-smoke-should-be-denied-${Date.now()}` }),
     });
-    expect(res.status).toBeLessThan(300);
-    // Note: this legitimately writes one real funnel_events row, exactly as
-    // a real visitor's page load would -- it is the RPC's real, intended
-    // behavior, not test pollution requiring cleanup (unlike the disposable
-    // canary rows in the staging integration suite).
+    const body = await res.json().catch(() => ({}));
+    expect(res.status, `expected 403, got ${res.status}: ${JSON.stringify(body)}`).toBe(403);
+    expect(body.code).toBe('42501');
   });
 });

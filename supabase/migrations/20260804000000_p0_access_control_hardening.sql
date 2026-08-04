@@ -178,3 +178,55 @@ CREATE POLICY funnel_events_admin_select
   FOR SELECT
   TO authenticated
   USING (public.has_role(auth.uid(), 'admin'));
+
+-- ============================================================
+-- 4. BLOCKER 2 FIX (round-2 review): close the SECURITY DEFINER
+--    alternate-access path into usage_counters.
+--
+--    Enumerated via:
+--      SELECT p.oid::regprocedure AS function_signature, p.prosecdef,
+--             p.proconfig, pg_get_userbyid(p.proowner) AS owner,
+--             pg_get_function_identity_arguments(p.oid) AS identity_arguments
+--      FROM pg_proc p JOIN pg_namespace n ON n.oid = p.pronamespace
+--      WHERE n.nspname = 'public' AND p.proname = 'charge_free_analysis';
+--
+--    Two confirmed overloads, both SECURITY DEFINER, both writing to
+--    usage_counters regardless of that table's REVOKE above (SECURITY
+--    DEFINER bypasses the caller's table grants entirely):
+--
+--      charge_free_analysis(text)                -- introduced 20260610171342;
+--                                                    missing search_path;
+--                                                    explicitly re-granted
+--                                                    anon/authenticated/
+--                                                    service_role EXECUTE in
+--                                                    20260613022816 under an
+--                                                    "intentionally public"
+--                                                    bucket that did not
+--                                                    actually apply to it --
+--                                                    no live caller exists
+--                                                    anywhere in src/ or
+--                                                    supabase/functions/.
+--      charge_free_analysis(text, boolean)       -- introduced 20260610171342
+--                                                    with SET search_path TO
+--                                                    'public' and a p_dry_run
+--                                                    branch; only ever
+--                                                    granted to service_role;
+--                                                    also has zero live
+--                                                    callers.
+--
+--    Neither overload has a real caller (confirmed by grep across src/ and
+--    supabase/functions/ -- only the auto-generated types.ts references the
+--    name). Per the review's instruction to retain-but-revoke rather than
+--    drop during an emergency remediation (removal needs a separate
+--    migration-dependency pass), both overloads are kept, EXECUTE is fully
+--    revoked from PUBLIC/anon/authenticated, and neither is re-granted to
+--    service_role -- no server workflow was found that needs it. If one is
+--    later found to be required, grant EXECUTE to service_role explicitly
+--    in a follow-up migration with a comment naming the caller.
+-- ============================================================
+
+REVOKE ALL ON FUNCTION public.charge_free_analysis(text) FROM PUBLIC, anon, authenticated, service_role;
+REVOKE ALL ON FUNCTION public.charge_free_analysis(text, boolean) FROM PUBLIC, anon, authenticated, service_role;
+
+ALTER FUNCTION public.charge_free_analysis(text) SET search_path = public, pg_temp;
+ALTER FUNCTION public.charge_free_analysis(text, boolean) SET search_path = public, pg_temp;

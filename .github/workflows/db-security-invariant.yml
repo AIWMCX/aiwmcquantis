@@ -1,12 +1,23 @@
 name: DB Security Invariant Check
 
 # P0 security incident, 2026-08-03/04 (docs/security/2026-08-03-p0-access/).
-# Read-only check: fails if any public-schema object reintroduces the
-# defect class proven exploitable in that incident. Reuses the exact
-# SUPABASE_ACCESS_TOKEN / SUPABASE_DB_PASSWORD secrets already configured
-# for production-deploy.yml — no new secret required. Scheduled (mirrors
-# seo-live-monitor.yml's pattern) rather than run on every PR, since PR CI
-# has no live DB target; this checks the real, current production state.
+# Round-2 review (Blockers 8/11) split this into two independent, read-only
+# checks:
+#   - db-security-gate-p0.sql: the exact incident boundary (ten tables +
+#     known SECURITY DEFINER functions). Fails the job on any row -- this
+#     is a regression lock, expected to return zero rows indefinitely once
+#     the P0 migration is live.
+#   - db-security-advisory.sql: everything else (broad TRUNCATE grants,
+#     unrelated search_path gaps, etc.). Always exits 0; reported to the
+#     job summary for a human to triage into separate tracked tickets. A
+#     permanently-red monitor is noise, not a control -- this keeps the
+#     failing gate meaningful.
+#
+# Consumes SUPABASE_DB_URL directly (a full Postgres connection string)
+# rather than reconstructing a pooler hostname/region, which cannot be
+# safely assumed for every project or future environment. Never printed --
+# masked at the top of the job so it can't leak into step output even by
+# accident (e.g. an error message that echoes its input).
 
 on:
   schedule:
@@ -20,21 +31,49 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Run security invariant query against production (read-only)
+      - name: Mask the database URL before any other step can echo it
         env:
-          SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
-          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
         run: |
-          if [ -z "$SUPABASE_DB_PASSWORD" ] || [ -z "$PROJECT_REF" ]; then
-            echo "::error title=Missing secret::SUPABASE_DB_PASSWORD or VITE_SUPABASE_PROJECT_ID not set — cannot run the invariant check."
+          if [ -z "$SUPABASE_DB_URL" ]; then
+            echo "::error title=Missing secret::SUPABASE_DB_URL is not set -- cannot run the invariant checks."
             exit 1
           fi
-          DB_URL="postgresql://postgres.${PROJECT_REF}:${SUPABASE_DB_PASSWORD}@aws-0-us-east-1.pooler.supabase.com:5432/postgres"
-          OUTPUT=$(psql "$DB_URL" -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-invariants.sql)
+          echo "::add-mask::$SUPABASE_DB_URL"
+
+      - name: P0 release-blocking gate (fails the job)
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          echo "::add-mask::$SUPABASE_DB_URL"
+          OUTPUT=$(psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-gate-p0.sql)
           if [ -n "$OUTPUT" ]; then
-            echo "::error title=DB security invariant violated::One or more public-schema objects match a known-dangerous pattern."
+            echo "::error title=P0 security regression::One or more incident-boundary objects match a known-dangerous pattern."
             echo "$OUTPUT"
-            echo "$OUTPUT" >> "$GITHUB_STEP_SUMMARY"
+            {
+              echo "### P0 gate: FAIL"
+              echo '```'
+              echo "$OUTPUT"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
             exit 1
           fi
-          echo "✓ No security invariant violations found." >> "$GITHUB_STEP_SUMMARY"
+          echo "### P0 gate: PASS (zero findings)" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Hardening advisory (report-only, never fails)
+        if: always()
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          echo "::add-mask::$SUPABASE_DB_URL"
+          OUTPUT=$(psql "$SUPABASE_DB_URL" -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-advisory.sql || true)
+          if [ -n "$OUTPUT" ]; then
+            {
+              echo "### Hardening advisory (non-blocking -- triage into separate tickets)"
+              echo '```'
+              echo "$OUTPUT"
+              echo '```'
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "### Hardening advisory: no findings" >> "$GITHUB_STEP_SUMMARY"
+          fi
