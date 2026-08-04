@@ -43,16 +43,18 @@ export interface ConfidenceBreakdown {
 // dimensions so no UI surface has to present one percentage as if it
 // measured forecast accuracy. See that file for which dimensions are real
 // signals vs. explicitly UNVERIFIED/NOT_AVAILABLE.
-export type QualityStatus = 'PASS' | 'WARN' | 'FAIL' | 'UNVERIFIED' | 'NOT_AVAILABLE';
+export type QualityStatus = 'PASS' | 'WARN' | 'FAIL' | 'UNVERIFIED' | 'NOT_AVAILABLE' | 'CORRECTED';
 
 export interface QualityDimensions {
   input_completeness: number;
+  source_coverage: number;
   benchmark_match_quality: QualityStatus;
   scenario_reconciliation: QualityStatus;
   narrative_reconciliation: QualityStatus;
   formula_reconciliation: QualityStatus;
   outcome_calibration: QualityStatus;
   evidence: {
+    source_coverage: string;
     benchmark_match_quality: string;
     scenario_reconciliation: string;
     narrative_reconciliation: string;

@@ -3775,17 +3775,27 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       log.error('Reconciliation check failed:', rcErr);
     }
 
-    // Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the
-    // blended reliabilityScore computed above is what the report cover used
-    // to show labeled only "Confidence Score" -- a 40/30/20/10 blend that is
-    // not a measure of forecast accuracy and is not even purely input
-    // coverage. qualityDimensions decomposes it into separately-labeled,
-    // honestly derived dimensions using signals already computed above,
-    // read here AFTER the critical-reconciliation BLOCK escalation so
-    // scenario_reconciliation reflects the final report_integrity state,
-    // not a stale pre-escalation snapshot. See _shared/quality-dimensions.ts
-    // for the full rationale and which dimensions are real vs. explicitly
-    // UNVERIFIED/NOT_AVAILABLE.
+    // Accuracy session 2026-08-04 (Confidence semantics, Priority 1,
+    // round-2 review): the blended reliabilityScore computed above is what
+    // the report cover used to show labeled only "Confidence Score" -- a
+    // 40/30/20/10 blend that is not a measure of forecast accuracy and is
+    // not even purely input coverage. qualityDimensions decomposes it into
+    // separately-labeled, honestly derived dimensions using signals
+    // already computed above, read here AFTER the critical-reconciliation
+    // BLOCK escalation so formula/scenario_reconciliation reflect the
+    // final reconciliationResult state, not a stale pre-escalation
+    // snapshot. See _shared/quality-dimensions.ts for the full rationale,
+    // including the round-2 fix deriving formula_reconciliation from
+    // R-001..R-005 and scenario_reconciliation from R-011 specifically
+    // (rather than the broader report_integrity field).
+    const assumptionOriginClasses = (
+      result as { _scenarioBaseInput?: { assumptionOrigins?: Record<string, { origin: string }> } }
+    )._scenarioBaseInput?.assumptionOrigins
+      ? Object.values(
+          (result as { _scenarioBaseInput: { assumptionOrigins: Record<string, { origin: string }> } })
+            ._scenarioBaseInput.assumptionOrigins,
+        ).map((a) => a.origin as import('../_shared/quality-dimensions.ts').AssumptionOriginClass)
+      : undefined;
     const qualityDimensions = buildQualityDimensions({
       inputCompleteness: confidenceBreakdown.input_completeness,
       industryRelevance: confidenceBreakdown.industry_relevance,
@@ -3794,6 +3804,8 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       reportIntegrityIssues: (result as Record<string, unknown>).report_integrity_issues as
         | Array<{ code: string; message: string }>
         | undefined,
+      reconciliationChecks: reconciliationResult ? reconciliationResult.checks : null,
+      assumptionOriginClasses,
       narrativeWasModified,
     });
 

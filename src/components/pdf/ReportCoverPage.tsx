@@ -6,11 +6,18 @@ interface ReportCoverPageProps {
   result: BusinessAnalysisResult;
 }
 
+// ROUND-2 REVIEW FIX (item 1): UNVERIFIED/NOT_AVAILABLE must read as
+// explicitly non-evaluated, not as a quiet member of the same pass/fail
+// family -- a reader skimming five same-shaped chips will otherwise treat
+// them as equivalent outcomes. Distinct wording plus a dashed border
+// (rather than the solid border on an actual verdict) marks that this
+// dimension simply wasn't checked.
 const STATUS_LABEL: Record<QualityStatus, string> = {
   PASS: 'Pass',
   WARN: 'Warn',
   FAIL: 'Fail',
-  UNVERIFIED: 'Unverified',
+  CORRECTED: 'Corrected',
+  UNVERIFIED: 'Not evaluated for this report',
   NOT_AVAILABLE: 'Not available',
 };
 
@@ -18,15 +25,37 @@ const STATUS_COLOR: Record<QualityStatus, string> = {
   PASS: '#22c55e',
   WARN: '#f59e0b',
   FAIL: '#ef4444',
+  CORRECTED: '#3b82f6',
   UNVERIFIED: '#94a3b8',
   NOT_AVAILABLE: '#94a3b8',
 };
 
+const STATUS_IS_EVALUATED: Record<QualityStatus, boolean> = {
+  PASS: true,
+  WARN: true,
+  FAIL: true,
+  CORRECTED: true,
+  UNVERIFIED: false,
+  NOT_AVAILABLE: false,
+};
+
 function DimensionChip({ label, status }: { label: string; status: QualityStatus }) {
+  const evaluated = STATUS_IS_EVALUATED[status];
   return (
-    <div style={pdfStyles.qualityDimensionChip}>
+    <div
+      style={{
+        ...pdfStyles.qualityDimensionChip,
+        borderStyle: evaluated ? 'solid' : 'dashed',
+      }}
+    >
       <div style={pdfStyles.qualityDimensionLabel}>{label}</div>
-      <div style={{ ...pdfStyles.qualityDimensionValue, color: STATUS_COLOR[status] }}>
+      <div
+        style={{
+          ...pdfStyles.qualityDimensionValue,
+          color: STATUS_COLOR[status],
+          fontStyle: evaluated ? 'normal' : 'italic',
+        }}
+      >
         {STATUS_LABEL[status]}
       </div>
     </div>
@@ -89,6 +118,18 @@ export function ReportCoverPage({ result }: ReportCoverPageProps) {
             {qd ? qd.input_completeness : legacyScore}%
           </div>
         </div>
+        {qd && (
+          <div style={pdfStyles.coverMetricBox}>
+            <div style={pdfStyles.coverMetricLabel}>Source Coverage</div>
+            <div style={{
+              ...pdfStyles.coverMetricValue,
+              color: qd.source_coverage >= 70 ? '#22c55e' :
+                     qd.source_coverage >= 40 ? '#f59e0b' : '#ef4444'
+            }}>
+              {qd.source_coverage}%
+            </div>
+          </div>
+        )}
         <div style={pdfStyles.coverMetricBox}>
           <div style={pdfStyles.coverMetricLabel}>Analysis Date</div>
           <div style={pdfStyles.coverMetricValue}>{generatedDate}</div>

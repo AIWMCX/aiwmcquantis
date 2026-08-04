@@ -33,12 +33,14 @@ function makeResult(overrides: Partial<BusinessAnalysisResult> = {}): BusinessAn
 
 const QD_PASS: QualityDimensions = {
   input_completeness: 82,
+  source_coverage: 60,
   benchmark_match_quality: 'PASS',
   scenario_reconciliation: 'PASS',
   narrative_reconciliation: 'PASS',
   formula_reconciliation: 'UNVERIFIED',
   outcome_calibration: 'NOT_AVAILABLE',
   evidence: {
+    source_coverage: 'x',
     benchmark_match_quality: 'x',
     scenario_reconciliation: 'x',
     narrative_reconciliation: 'x',
@@ -59,6 +61,12 @@ describe('ReportCoverPage', () => {
     expect(screen.getByText('82%')).toBeInTheDocument();
   });
 
+  it('shows Source Coverage as its own metric, separate from Input Completeness', () => {
+    render(<ReportCoverPage result={makeResult({ validation: { quality_dimensions: QD_PASS } as never })} />);
+    expect(screen.getByText('Source Coverage')).toBeInTheDocument();
+    expect(screen.getByText('60%')).toBeInTheDocument();
+  });
+
   it('shows the separate reconciliation dimensions, including Outcome Calibration as Not available', () => {
     render(<ReportCoverPage result={makeResult({ validation: { quality_dimensions: QD_PASS } as never })} />);
     expect(screen.getByText('Benchmark Match')).toBeInTheDocument();
@@ -67,6 +75,21 @@ describe('ReportCoverPage', () => {
     expect(screen.getByText('Formula Check')).toBeInTheDocument();
     expect(screen.getByText('Outcome Calibration')).toBeInTheDocument();
     expect(screen.getByText('Not available')).toBeInTheDocument();
+  });
+
+  it('UNVERIFIED reads as explicitly non-evaluated, not a quiet pass/fail sibling (round-2 review item 1)', () => {
+    render(<ReportCoverPage result={makeResult({ validation: { quality_dimensions: QD_PASS } as never })} />);
+    // formula_reconciliation is UNVERIFIED in this fixture -- must not
+    // render the bare word "Unverified", which reads as just another
+    // status among equals.
+    expect(screen.queryByText('Unverified')).not.toBeInTheDocument();
+    expect(screen.getByText('Not evaluated for this report')).toBeInTheDocument();
+  });
+
+  it('renders CORRECTED distinctly when the narrative firewall replaced the summary', () => {
+    const qdCorrected: QualityDimensions = { ...QD_PASS, narrative_reconciliation: 'CORRECTED' };
+    render(<ReportCoverPage result={makeResult({ validation: { quality_dimensions: qdCorrected } as never })} />);
+    expect(screen.getByText('Corrected')).toBeInTheDocument();
   });
 
   it('falls back safely for older stored reports with no quality_dimensions, without claiming forecast accuracy', () => {
