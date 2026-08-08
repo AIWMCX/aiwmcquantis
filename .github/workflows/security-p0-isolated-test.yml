@@ -1,0 +1,197 @@
+name: Security P0 — Isolated Supabase Test (GitHub-hosted)
+
+# P0 effective-access remediation (docs/security/2026-08-03-p0-access/,
+# PR #26). Local Docker on the development workstation could not start
+# (WSL2 backend failure, ~40 min across two attempts, documented in that
+# PR's history) -- that blocked `supabase start` locally, not Supabase
+# testing in general. GitHub-hosted ubuntu-latest runners boot in a fresh
+# VM with Docker already available and are Supabase's own documented path
+# for CI database testing (supabase.com/docs -- "Testing your database
+# with GitHub Actions"), so this workflow reruns the exact same test
+# suite that was written-but-never-executed against a real, disposable,
+# GitHub-hosted Supabase stack instead.
+#
+# This workflow ONLY runs on this security branch (manually and on push
+# here) -- it is not part of the normal CI gate on main, and it never
+# touches production credentials or the production project.
+#
+# Sequence (Phase A-D rehearsal, per the incident review's own spec):
+#   checkout -> install Supabase CLI -> supabase start -> supabase db
+#   reset (replays the FULL migration chain from empty, including this
+#   branch's P0 migration -- this is Phase A's "clean baseline" and
+#   Phase B's "apply" in one step, since the P0 migration is already a
+#   normal file in supabase/migrations/ on this branch)
+#   -> capture local connection info
+#   -> create synthetic user A / user B / admin via the local Auth Admin
+#      API (real Supabase-issued JWTs, not simulated)
+#   -> run the RLS integration suite (cross-identity matrix + service-
+#      role-only table checks + funnel_events RPC checks) against this
+#      real local target
+#   -> run pgTAP (npx supabase test db)
+#   -> Phase C: apply 05_ROLLBACK.sql locally, prove it actually
+#      reintroduces the pre-P0 defect (anon can read again), never
+#      against production
+#   -> Phase D: supabase db reset again (full clean rebuild + reapply,
+#      including the P0 migration) -> rerun the full test suite -> must
+#      be green again, proving the fix is not a one-shot artifact of
+#      migration ordering
+#   -> runner is destroyed automatically by GitHub Actions; nothing
+#      persists.
+
+on:
+  push:
+    branches: [security/p0-effective-access-control]
+  workflow_dispatch: {}
+
+jobs:
+  isolated-security-test:
+    name: Isolated Supabase P0 security test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      # ============================================================
+      # PHASE A/B — clean baseline + apply (one step: db reset replays
+      # every migration in supabase/migrations/ from empty, including
+      # this branch's 20260804000000_p0_access_control_hardening.sql).
+      # If the historical migration chain cannot recreate the database,
+      # this step fails loudly -- that IS the required evidence per the
+      # incident review ("never claim migration readiness if the chain
+      # cannot recreate the database").
+      # ============================================================
+      - name: supabase start (isolated, GitHub-hosted, disposable)
+        run: npx supabase start
+
+      - name: supabase db reset — full migration replay from empty
+        run: npx supabase db reset
+
+      - name: Capture local connection info
+        id: local
+        run: |
+          npx supabase status -o env > supabase-status.env
+          cat supabase-status.env | sed 's/=.*/=<redacted-in-log>/' # never print the actual keys
+          {
+            echo "api_url=$(grep '^API_URL=' supabase-status.env | cut -d= -f2- | tr -d '"')"
+          } >> "$GITHUB_OUTPUT"
+          echo "ANON_KEY=$(grep '^ANON_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          echo "SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          echo "API_URL=$(grep '^API_URL=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          rm supabase-status.env
+
+      # ============================================================
+      # DELIBERATE FIX: do not derive RLS_TEST_PROJECT_REF from
+      # `supabase status` or supabase/config.toml's project_id --
+      # config.toml's project_id is literally the PRODUCTION ref
+      # (dmlxrvfyqsakyjomsvdj, used only for local container naming),
+      # and the test file's guardAgainstProduction() would then
+      # (correctly) refuse to run, treating this real local/CI target
+      # as if it were production. Set an explicit, obviously-non-
+      # production literal instead -- this is what makes the guard
+      # meaningful rather than accidentally self-defeating.
+      #
+      # No separate user-creation step is needed here: the test file's
+      # own 'BLOCKER 3/6 matrix' describe block creates user A / user B
+      # / admin itself via the local Auth Admin API in its beforeAll,
+      # using RLS_TEST_SERVICE_ROLE_KEY / RLS_TEST_ANON_KEY below.
+      # ============================================================
+      - name: RLS effective-access integration suite (cross-identity matrix)
+        env:
+          RUN_RLS_INTEGRATION_TESTS: "true"
+          RLS_TEST_SUPABASE_URL: ${{ steps.local.outputs.api_url }}
+          RLS_TEST_ANON_KEY: ${{ env.ANON_KEY }}
+          RLS_TEST_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          RLS_TEST_PROJECT_REF: "github-ci-local-ephemeral"
+        run: bunx vitest run src/__tests__/security-rls-effective-access.test.ts --reporter=verbose
+
+      - name: P0 release-blocking gate (must return zero rows on the fresh apply)
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-gate-p0.sql | tee gate-output-first-apply.txt
+          if [ -s gate-output-first-apply.txt ]; then
+            echo "::error::P0 gate returned findings on the FIRST apply -- the migration does not close the incident."
+            exit 1
+          fi
+          echo "P0 gate: PASS (zero findings) on first apply" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: pgTAP (npx supabase test db)
+        run: npx supabase test db
+
+      # ============================================================
+      # PHASE C — rollback rehearsal. Confirms 05_ROLLBACK.sql actually
+      # restores the pre-P0 defect (never run this against production --
+      # this step only ever touches the disposable CI-local database).
+      # ============================================================
+      - name: Rollback rehearsal — apply 05_ROLLBACK.sql, prove defect returns
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -f docs/security/2026-08-03-p0-access/05_ROLLBACK.sql
+          # After rollback, the P0 gate query itself is expected to find the
+          # original 10-table wide-open state again -- prove the rollback is
+          # real, not a no-op.
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-gate-p0.sql | tee gate-output-post-rollback.txt
+          if [ ! -s gate-output-post-rollback.txt ]; then
+            echo "::error::Rollback did not reintroduce the known defect pattern -- 05_ROLLBACK.sql may not be doing what it claims."
+            exit 1
+          fi
+          echo "Rollback rehearsal: confirmed 05_ROLLBACK.sql reintroduces the P0 pattern (expected -- this is why the script carries the emergency-reversion warning)." >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+          cat gate-output-post-rollback.txt >> "$GITHUB_STEP_SUMMARY"
+          echo '```' >> "$GITHUB_STEP_SUMMARY"
+
+      # ============================================================
+      # PHASE D — rebuild clean + reapply. Confirms the fix is durable
+      # under a full migration replay, not an artifact of this specific
+      # run's state.
+      # ============================================================
+      - name: Rebuild clean and reapply the full migration chain
+        run: npx supabase db reset
+
+      - name: P0 gate — must be zero findings again after reapply
+        env:
+          PGPASSWORD: postgres
+        run: |
+          psql "postgresql://postgres:postgres@127.0.0.1:54322/postgres" \
+            -v ON_ERROR_STOP=1 -qtA -f scripts/security/db-security-gate-p0.sql | tee gate-output-reapply.txt
+          if [ -s gate-output-reapply.txt ]; then
+            echo "::error::P0 gate returned findings after REAPPLY -- the fix is not durable across a clean migration replay."
+            exit 1
+          fi
+          echo "P0 gate: PASS (zero findings) after clean rebuild + reapply" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: RLS effective-access integration suite — rerun post-reapply
+        env:
+          RUN_RLS_INTEGRATION_TESTS: "true"
+          RLS_TEST_SUPABASE_URL: ${{ steps.local.outputs.api_url }}
+          RLS_TEST_ANON_KEY: ${{ env.ANON_KEY }}
+          RLS_TEST_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          RLS_TEST_PROJECT_REF: "github-ci-local-ephemeral"
+        run: bunx vitest run src/__tests__/security-rls-effective-access.test.ts --reporter=verbose
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Isolated Supabase P0 security test — summary"
+            echo ""
+            echo "Target: GitHub-hosted, disposable, ephemeral local Supabase stack."
+            echo "Never touched production. Runner is destroyed automatically on job completion."
+          } >> "$GITHUB_STEP_SUMMARY"
