@@ -25,6 +25,7 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
     const roi = result.financial_analysis.returns?.roi_year_1 ?? result.financial_analysis.roi_year_1 ?? 0;
     const grossMargin = result.financial_analysis.scenarios?.base?.gross_margin ?? 0;
     const confidence = result.confidence_score;
+    const confidenceTier = confidence >= 80 ? 'High' : confidence >= 50 ? 'Medium' : 'Low';
     const idea = result.metadata.idea;
     const location = result.metadata.location;
     const industry = result.metadata.industry_detected ?? 'General';
@@ -160,8 +161,15 @@ export const ViralCard = forwardRef<HTMLDivElement, ViralCardProps>(
               <div style={{ fontSize: '18px', fontWeight: 700, color: roi > 0 ? '#22c55e' : '#ef4444' }}>{pct(roi)}</div>
             </div>
             <div>
-              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Confidence</div>
-              <div style={{ fontSize: '18px', fontWeight: 700, color: confidence >= 70 ? '#3b82f6' : '#f59e0b' }}>{confidence}%</div>
+              <div style={{ fontSize: '11px', color: '#64748b', marginBottom: '2px' }}>Data Quality</div>
+              {/* Phase 3 (2026-08-09, see docs/execution/2026-08-09/
+                  PHASE3_PR27_CONFIDENCE_SEMANTICS_REVIEW.md): this card is posted
+                  to Twitter/Reddit with zero surrounding context -- a bare
+                  "Confidence: 82%" reads as a predicted success rate to a stranger,
+                  not the input-coverage grade it actually is. Mirrors the
+                  categorical-tier pattern already used correctly in
+                  ScenarioLibrary.tsx instead of a raw number. */}
+              <div style={{ fontSize: '18px', fontWeight: 700, color: confidenceTier === 'High' ? '#22c55e' : confidenceTier === 'Medium' ? '#f59e0b' : '#ef4444' }}>{confidenceTier}</div>
             </div>
           </div>
           <div style={{

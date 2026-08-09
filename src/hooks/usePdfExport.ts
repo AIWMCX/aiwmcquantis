@@ -871,7 +871,15 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(
             View,
             { style: styles.coverMetricBox },
-            React.createElement(Text, { style: styles.coverMetricLabel }, 'Confidence Score'),
+            // Phase 3 (PR #27 intent, applied here to the live PDF renderer --
+            // ReportCoverPage.tsx's fix never shipped, see docs/execution/
+            // 2026-08-09/PHASE3_PR27_CONFIDENCE_SEMANTICS_REVIEW.md): "Confidence
+            // Score" reads as predictive accuracy. This is a blended input-coverage
+            // grade (40% completeness / 30% data quality / 20% validation / 10%
+            // industry match -- see ConfidenceIndicator.tsx), not a forecast. The
+            // Accuracy Notice page two pages later already discloses this; the
+            // cover page previously didn't carry the same honesty.
+            React.createElement(Text, { style: styles.coverMetricLabel }, 'Input & Data Quality'),
             React.createElement(Text, { style: { ...styles.coverMetricValue, color: getScoreColor(result.confidence_score) } }, `${result.confidence_score}%`)
           ),
           React.createElement(

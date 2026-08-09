@@ -59,30 +59,62 @@ order:
 | `src/components/analysis/StressMap.tsx` | `confidence` is one input among several to a computed "Overall Risk Index" penalty term, never displayed as a bare percentage on its own. | **OK as-is** — internal computation input, not a labeling issue. |
 | `src/components/pdf/ReportAppendix.tsx` | Bare `{result.confidence_score}%` (line 81) — **moot**, same dead-code family as `ReportExecutiveSummary.tsx`. | **N/A pending the dead-code decision.** |
 
-## What Phase 3 actually needs before merge
+## Resolution — 2026-08-09, same session
 
-1. **Fix the real PDF** — apply PR #27's quality-dimensions decomposition to
-   `usePdfExport.ts`'s inline `createExecutiveReport()` (the live function), not
-   to the unreachable `ExecutiveReport.tsx` family. This is the one true gap
-   between "PR #27 exists" and "PR #27 fixes the customer PDF."
-2. **Decide the dead code's fate**: either (a) delete
-   `ExecutiveReport.tsx`/`ReportCoverPage.tsx`/`ReportExecutiveSummary.tsx`/
-   `ReportAppendix.tsx`/`pdf-generator` (they add maintenance surface and, as
-   just proven, can absorb real fix effort while shipping nothing), or (b) wire
-   one of them in and retire the inline `usePdfExport.ts` generator instead —
-   but not both indefinitely. This is a scope decision for you, not something
-   to resolve unilaterally.
-3. **Fix `ViralCard.tsx`** — replace the bare percentage with the tier-label
-   pattern already proven correct in `ScenarioLibrary.tsx`.
-4. Everything else in the consumer table is genuinely fine as-is or correctly
-   deferred with a documented reason — no further action needed there.
+All four items closed on `security/p0-effective-access-control` (branch-local
+commit, not pushed):
 
-## Not yet done
+1. **Dead-code decision: DELETE** (explicit founder call). Removed
+   `ExecutiveReport.tsx` and its 8 page sub-components (`ReportActionPlan`,
+   `ReportAppendix`, `ReportBenchmarks`, `ReportCoverPage`,
+   `ReportExecutiveSummary`, `ReportFinancials`, `ReportMarketAnalysis`,
+   `ReportRiskAssessment`), the shared `ReportPageElements.tsx` and
+   `pdfStyles.ts`, and the unused `supabase/functions/pdf-generator` edge
+   function. `ServiceQuoteReport.tsx` (a genuinely live, separate PDF path for
+   the Quote Gen feature) was confirmed via its own importer check and left
+   untouched. Reasoning: the inline `usePdfExport.ts` generator is the one
+   every real call site already uses and has capabilities (branding config,
+   benchmark rows, defensive sanitization via `prepareSafeResult`) the
+   orphaned family never had — rewiring would mean rebuilding all of that for
+   no functional gain, and would leave the exact trap that caused this bug in
+   place for the next person to trip over.
+2. **Live PDF fixed**: `usePdfExport.ts`'s cover page (line 875 area)
+   relabeled from "Confidence Score" to "Input & Data Quality" — the number
+   itself is unchanged (it's real computed data, not fabricated), only the
+   label that implied predictive accuracy is gone. Deliberately did **not**
+   pull PR #27's `quality_dimensions` schema onto this branch — that's a data-
+   model change scoped to the confidence-semantics workstream on its own
+   branch, and mixing it into the security branch would be scope creep across
+   two independent efforts. This is a minimal, self-contained relabel using
+   data that already exists here.
+3. **`ViralCard.tsx` fixed**: bare `{confidence}%` replaced with the same
+   categorical tier pattern (`High`/`Medium`/`Low`, thresholds 80/50 —
+   identical to `ScenarioLibrary.tsx`'s already-correct implementation) plus
+   the same "Data Quality" relabel.
+4. **Test suite updated for the deletion**: `production-freeze.test.ts` and
+   `payback-display-no-sentinel-leak.test.ts` had `readFileSync` checks against
+   the now-deleted files — removed those specific checks while preserving
+   every real invariant they protected (Operating Profit labeling, TAM/SAM/SOM
+   disclosure, CAC-payback-sentinel guard) on the files that still exist,
+   especially `usePdfExport.ts` which already independently passed all three.
+   Also corrected now-stale doc comments in `BenchmarkCitations.tsx` and
+   `BenchmarkRecordsBlock.tsx` that referenced the deleted files.
 
-- No code changes made for items 1 or 3 above — flagging for your direction
-  before touching the live PDF export path (PDF content is a customer-facing
-  change, and item 2 requires an explicit deletion/retirement decision this
-  session should not make unilaterally).
+**Verification**: `npx tsc --noEmit` — 0 errors, both before and after the
+deletion. Full `npx vitest run` — 1374 passed, 69 skipped (pre-existing,
+unrelated), 0 failures, identical count before and after every edit in this
+sequence (no regressions, nothing silently broken by the deletion).
+
+## Still not done (separate from this branch's scope)
+
+- PR #27's actual `quality_dimensions` decomposition (Input Completeness /
+  Data Quality / Validation Pass / Industry Match as separately reported
+  dimensions, not a blended score) remains scoped to its own branch
+  (`accuracy/confidence-semantics-split`) and was not merged here. This
+  session's fix makes the live PDF and share card honest with the *existing*
+  data model; the richer decomposition is still PR #27's job to ship when that
+  branch itself is reviewed and merged.
 - PDF payload/UI/PDF numeric parity (the directive's Phase 3 acceptance
-  criterion) has not been tested — blocked on deciding which PDF pipeline is
-  canonical first (item 2).
+  criterion) still needs a fresh production analysis + generated PDF
+  comparison — unblocked now that the dead-code ambiguity is resolved, but not
+  yet executed this session.

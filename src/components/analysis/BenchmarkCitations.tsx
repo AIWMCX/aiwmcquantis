@@ -45,8 +45,8 @@ interface BenchmarkCitationsProps {
   /**
    * Handbook §19 P0-5 (2026-07-12 audit): the server computes its own
    * benchmark match once, at analysis time, and stores it in
-   * result.metadata.benchmarks — this is the SAME data "Live Benchmark
-   * Block" (ReportBenchmarks.tsx) renders. Before this fix, this component
+   * result.metadata.benchmarks — this is the SAME data the "Live Benchmark
+   * Block" (BenchmarkRecordsBlock.tsx) renders. Before this fix, this component
    * always re-queried a completely separate client-side RPC
    * (benchmark_lookup, a different table with a different row count),
    * fresh on every render, with no knowledge of the server's own match —

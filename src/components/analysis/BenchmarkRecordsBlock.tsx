@@ -8,7 +8,12 @@
  *
  * Read by:
  *   - AccuracyTransparentResults.tsx (dashboard)
- *   - components/pdf/ReportBenchmarks.tsx (print)
+ *
+ * PDF export (src/hooks/usePdfExport.ts) renders benchmark rows separately via
+ * its own PdfBenchmarkRow shape — not this component. Deleted 2026-08-09: an
+ * earlier React-PDF-component print path (components/pdf/ReportBenchmarks.tsx
+ * and siblings) that would have read this data was confirmed dead code, never
+ * imported by anything, and removed rather than fixed.
  */
 import React from 'react';
 import { ShieldCheck, AlertTriangle, MinusCircle, Download } from 'lucide-react';

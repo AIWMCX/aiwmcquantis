@@ -463,9 +463,11 @@ describe('T10: narrative numeric firewall is wired into the request flow, not de
 // sibling Project Payback metric right next to it (MetricDisambiguationBanner.tsx)
 // already had the correct guard. Root cause: cac_payback_months render sites
 // were copy-pasted without the >=999 guard applied to payback_period_months
-// elsewhere. Fixed in 6 places: the two PDF renderers (usePdfExport.ts,
-// ReportFinancials.tsx), three live-UI metric displays (AnalysisResults.tsx,
-// FinancialSummary.tsx, MetricDisambiguationBanner.tsx), and the public
+// elsewhere. Fixed in 5 places: the PDF renderer (usePdfExport.ts — the only
+// live one; a second React-PDF component path was confirmed dead code and
+// deleted 2026-08-09 rather than fixed), three live-UI metric displays
+// (AnalysisResults.tsx, FinancialSummary.tsx, MetricDisambiguationBanner.tsx),
+// and the public
 // social-share text (ShareSuccessModal.tsx), which would otherwise have
 // posted "999mo payback" to a user's own Twitter/LinkedIn share.
 // ============================================================================
@@ -473,11 +475,6 @@ describe('T9: sentinel 999 never reaches a customer-facing surface as literal mo
   it('usePdfExport.ts CAC Payback PDF metric is guarded', () => {
     const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
     expect(src).toContain("cac_payback_months >= 999 ? 'N/A (unprofitable)'");
-  });
-
-  it('ReportFinancials.tsx CAC Payback PDF metric is guarded', () => {
-    const src = readFileSync(join(ROOT, 'src/components/pdf/ReportFinancials.tsx'), 'utf8');
-    expect(src).toContain("unitEconomics.cac_payback_months >= 999 ? 'N/A (unprofitable)'");
   });
 
   it('AnalysisResults.tsx CAC Payback live-UI metric is guarded', () => {
@@ -715,15 +712,9 @@ describe('T13 — operating profit is never displayed as if it were true net inc
     expect(src).toMatch(/operating margin/i);
   });
 
-  it('PDF exports (ReportExecutiveSummary, ReportFinancials, usePdfExport) use "Operating Profit"/"Operating Margin"', () => {
-    for (const f of [
-      'src/components/pdf/ReportExecutiveSummary.tsx',
-      'src/components/pdf/ReportFinancials.tsx',
-      'src/hooks/usePdfExport.ts',
-    ]) {
-      const src = readFileSync(join(ROOT, f), 'utf8');
-      noBareNetProfitLabel(src);
-    }
+  it('PDF export (usePdfExport.ts, the live PDF renderer) uses "Operating Profit"/"Operating Margin"', () => {
+    const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
+    noBareNetProfitLabel(src);
   });
 
   it('Methodology.tsx discloses that operating profit excludes D&A, interest, and tax', () => {
@@ -751,7 +742,7 @@ describe('T13 — operating profit is never displayed as if it were true net inc
 // computed TAM/SAM via arbitrary, unsourced multipliers (mrr × 12 × 500,
 // mrr × 12 × 50) with decimal-precision formatting, in CODE, not just a
 // prompt suggestion. And the base-tier UI (MarketAnalysisSection.tsx,
-// ReportMarketAnalysis.tsx, usePdfExport.ts) rendered whatever came back
+// usePdfExport.ts, the live PDF renderer) rendered whatever came back
 // with zero disclaimer -- while a separate, PLUS-tier "Market Sizing"
 // feature (MarketSizingCard.tsx) already carried an honest "AI-modeled
 // estimate, not verified" disclaimer, proving the team already knew this
@@ -768,12 +759,7 @@ describe('T14 — TAM/SAM/SOM is disclosed as an AI estimate, never fabricated a
     expect(src).toContain('AI-modeled estimate');
   });
 
-  it('ReportMarketAnalysis.tsx (PDF export) discloses TAM/SAM/SOM is an AI-modeled estimate', () => {
-    const src = readFileSync(join(ROOT, 'src/components/pdf/ReportMarketAnalysis.tsx'), 'utf8');
-    expect(src).toContain('AI-modeled estimate');
-  });
-
-  it('usePdfExport.ts (the duplicate React-PDF renderer) discloses the same TAM/SAM/SOM disclaimer', () => {
+  it('usePdfExport.ts (the live PDF renderer) discloses the same TAM/SAM/SOM disclaimer', () => {
     const src = readFileSync(join(ROOT, 'src/hooks/usePdfExport.ts'), 'utf8');
     expect(src).toContain('AI-modeled estimate');
   });
