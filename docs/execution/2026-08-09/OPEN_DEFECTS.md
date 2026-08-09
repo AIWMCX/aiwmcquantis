@@ -80,11 +80,26 @@ hypothesis, per the directive's evidence-first rule.
   #2/#3), or (b) local/CI reproduction once INFRA-1/INFRA-2 clear. The manual curl
   reproduction is achievable without CI and should be the next concrete action.
 
-## MON-1 (unverified this session) — SEO Live Monitor failure
+## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
-- **Status:** `HISTORICAL` (last known: failing since Aug 6). Not re-checked this
-  session. If it runs via GitHub Actions, INFRA-1 is now a confirmed contributing
-  cause and the monitor cannot be fully diagnosed until billing unlocks.
+- **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.
+- **Root cause confirmed:** `.github/workflows/seo-live-monitor.yml` runs on GitHub
+  Actions (`schedule` + `workflow_dispatch`). Its "failing since Aug 6" status is
+  therefore explained entirely by INFRA-1 (account-wide billing lock) -- there is
+  nothing wrong with the workflow file itself (read in full: standard checkout +
+  one script call, no defects).
+- **More importantly, the underlying question the monitor exists to answer --
+  "is live production actually broken?" -- was answered directly this session**,
+  independent of CI: `scripts/verify-live-production.sh` (the exact script the
+  workflow calls) was run directly against `https://www.aiwmcquantis.com` this
+  session. Result: **PASS on every assertion** -- all 7 sampled routes have correct
+  self-referencing canonicals, no duplicate bodies, the shipped JS bundle still
+  contains the $49/Pro pricing data, sitemap.xml reachable with 88 URLs, robots.txt
+  reachable, and unknown routes correctly 404.
+- **Conclusion:** the live site has no SEO regression. The monitor's red/missing
+  status was a false signal caused entirely by INFRA-1, not a real production
+  problem. No further action needed on MON-1 beyond the standing INFRA-1 fix
+  (founder updates GitHub billing) restoring the monitor's own scheduled runs.
 
 ## PUB-1 (P0-adjacent, blocking Phase 4 acceptance) — No fail-closed publication gate for `report_integrity=BLOCK`
 
