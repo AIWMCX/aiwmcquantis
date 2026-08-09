@@ -108,7 +108,18 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     return Math.max(1, Math.floor(investment / Math.abs(monthlyProfit)));
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
+  // Phase 4 (PUB-1): a report the reconciliation engine flagged as BLOCK has a
+  // proven arithmetic contradiction. It stays visible in-app (the "⚠ Contradiction
+  // detected" audit-trail label already covers that) but must not leave this screen
+  // as a PDF, CSV, or public share link looking like a normal successful report.
+  const isReportBlocked = (result as any)?.report_integrity === 'BLOCK';
+  const BLOCKED_EXPORT_MESSAGE = 'This report has a detected data-integrity issue (a contradiction between financial sections) and can’t be exported or shared until it’s reviewed. Try regenerating the analysis.';
+
   const handleExportPDF = async () => {
+    if (isReportBlocked) {
+      toast.error('Report needs review', { description: BLOCKED_EXPORT_MESSAGE });
+      return;
+    }
     const toastId = 'pdf-generation';
     try {
       toast.loading('Generating your Executive Report...', { id: toastId, description: 'This may take up to 30 seconds.' });
@@ -124,6 +135,10 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
   };
 
   const handleExportSCORE = useCallback(() => {
+    if (isReportBlocked) {
+      toast.error('Report needs review', { description: BLOCKED_EXPORT_MESSAGE });
+      return;
+    }
     try {
       const fields = [
         { tab: 'Revenue Projections', field: 'monthly_revenue', label: 'Monthly Revenue', value: result.financial_analysis?.mrr },
@@ -151,11 +166,15 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     } catch {
       toast.error('Failed to export SCORE file');
     }
-  }, [result]);
+  }, [result, isReportBlocked]);
 
   const handleShare = useCallback(() => {
+    if (isReportBlocked) {
+      toast.error('Report needs review', { description: BLOCKED_EXPORT_MESSAGE });
+      return;
+    }
     if (analysisId) shareReport(analysisId);
-  }, [analysisId, shareReport]);
+  }, [analysisId, shareReport, isReportBlocked]);
 
   // Top 3 risk flags
   const topRisks = useMemo(() => {
@@ -220,6 +239,19 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
   return (
     <div className="space-y-0" ref={contentRef}>
+      {isReportBlocked && (
+        <div className="mb-4 rounded-lg border-2 border-[var(--q-status-red)] bg-[var(--q-status-red)]/10 p-4 flex items-start gap-3">
+          <TriangleAlert className="w-5 h-5 text-[var(--q-status-red)] shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-semibold text-[var(--q-status-red)]">This report needs review before it's used</p>
+            <p className="text-xs text-muted-foreground mt-1">
+              Our reconciliation check found a contradiction between financial sections (see "Audit Trail" below for
+              details). The numbers are still shown for your reference, but PDF export, SCORE CSV export, and public
+              sharing are disabled until this is resolved. Try regenerating the analysis.
+            </p>
+          </div>
+        </div>
+      )}
       {/* Sticky Top Bar — t=0 fade in */}
       <div className="animate-fade-in" style={{ animationFillMode: 'both' }}>
         <ResultsTopBar
@@ -229,8 +261,8 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
           onExportPDF={handleExportPDF}
           onShare={analysisId ? handleShare : undefined}
           onReset={onReset}
-          isGeneratingPdf={isGenerating}
-          isSharing={isSharing}
+          isGeneratingPdf={isGenerating || isReportBlocked}
+          isSharing={isSharing || isReportBlocked}
         />
       </div>
 
@@ -340,7 +372,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
 
             {/* SCORE export + social */}
             <div className="animate-fade-in flex flex-wrap gap-2" style={{ animationDelay: '1000ms', animationFillMode: 'both' }}>
-              <Button onClick={handleExportSCORE} variant="outline" size="sm" className="gap-1.5 text-xs">
+              <Button onClick={handleExportSCORE} disabled={isReportBlocked} variant="outline" size="sm" className="gap-1.5 text-xs">
                 <Download className="w-3.5 h-3.5" /> SCORE CSV
               </Button>
               {shareUrl && (

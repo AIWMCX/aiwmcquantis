@@ -71,7 +71,7 @@ export default function SharedReport() {
         const result = await response.json();
 
         if (!response.ok) {
-          setError(result.error || 'Failed to load report');
+          setError(result.message || result.error || 'Failed to load report');
           return;
         }
 

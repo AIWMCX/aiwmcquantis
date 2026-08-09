@@ -1,0 +1,86 @@
+{
+  "as_of": "2026-08-09T00:00:00Z",
+  "captured_by": "Phase 0 freeze (7-Day Consolidated Execution Package)",
+  "git": {
+    "main_head_sha": "97540bc750545354936148c8793e2a1d99fefd76",
+    "main_head_committed_at": "2026-08-03T01:25:28-06:00",
+    "status": "PROD_DEPLOYED candidate -- Vercel auto-deploys main on push; this SHA has not been re-confirmed against the live bundle in this session (last confirmed via bundle-SHA check in a prior session per memory). Treat deploy-currency as CODE_VERIFIED, not PROD_VERIFIED, until re-checked.",
+    "working_branch": "security/p0-effective-access-control",
+    "working_branch_head_sha": "5f8199ef9de7aeb048bb3d75fba9c4a4790eaa76",
+    "working_branch_diverges_from_main_by": "16 files, +2156/-0 lines (PR #26 scope only)"
+  },
+  "open_pull_requests": [
+    {
+      "number": 26,
+      "title": "security(P0): effective-access remediation for 10 exposed tables -- NOT YET APPLIED",
+      "branch": "security/p0-effective-access-control",
+      "head_sha": "5f8199ef9de7aeb048bb3d75fba9c4a4790eaa76",
+      "draft": true,
+      "mergeable": "MERGEABLE",
+      "status": "PROD_VERIFIED: not merged, not applied to production. CODE_VERIFIED: migration + tests + CI gate exist in the branch."
+    },
+    {
+      "number": 27,
+      "title": "fix(accuracy): PR1 - split confidence-score UI from a single misleading percentage",
+      "branch": "accuracy/confidence-semantics-split",
+      "head_sha": "b98ce05b02e9b3907ee7fcbc8bc9ac82bed5aa14",
+      "draft": true,
+      "mergeable": "MERGEABLE",
+      "status": "PROD_VERIFIED: not merged, not deployed. UNVERIFIED: locked-payload/UI/PDF parity on a fresh production analysis."
+    },
+    {
+      "number": 25,
+      "title": "Integrate Dahl inference provider",
+      "branch": "agent/dahl-inference",
+      "head_sha": "5be300aa95139cf6c61325e3c91d0ac85e5d2660",
+      "draft": true,
+      "mergeable": "CONFLICTING",
+      "status": "Out of scope for stabilization sequence per directive Section 8B. Do not touch."
+    },
+    {
+      "number": 2,
+      "title": "Install Vercel Web Analytics",
+      "branch": "vercel/install-vercel-web-analytics-6hyg6m",
+      "head_sha": "290a597de09455b59051b71f2437cc9036b41cdb",
+      "draft": true,
+      "mergeable": "UNKNOWN",
+      "status": "Not part of this sequence. Not evaluated this pass."
+    }
+  ],
+  "supabase": {
+    "project_ref": "dmlxrvfyqsakyjomsvdj",
+    "applied_migrations_count": 200,
+    "latest_applied_migration": "20260802162404_rvce_observations_nullable_source_url",
+    "p0_migration_applied": false,
+    "p0_migration_file": "supabase/migrations/20260804000000_p0_access_control_hardening.sql",
+    "p0_migration_status": "PROD_VERIFIED NOT APPLIED -- exists only on security/p0-effective-access-control, not in the applied-migrations list above."
+  },
+  "live_db_snapshot": {
+    "queried_at": "2026-08-09 (this session, direct execute_sql)",
+    "total_auth_users": 44,
+    "analyses_last_5_days": 2,
+    "active_or_trialing_subscriptions": 24,
+    "qoc_audit_envelopes_total": 0,
+    "last_analysis_at": "2026-08-06T02:26:30.095339+00:00",
+    "note": "qoc_audit_envelopes=0 re-confirmed live this session, AFTER the Aug 2 fire-and-forget-to-awaited fix (commit b069e5f2) had already been on main for 3+ days. This rules out isolate-teardown as the sole cause -- see OPEN_DEFECTS.md QOC-1."
+  },
+  "ci_infrastructure": {
+    "github_actions_status": "PROD_VERIFIED BLOCKED -- account-wide. Screenshot evidence (user-supplied, this session): 'GitHub Actions workflows can't be executed on this repository. Your account's billing is currently locked. Please update your payment information.' Confirmed across every workflow and trigger type (push, pull_request, workflow_dispatch) on the AIWMCX account, not specific to any one workflow file.",
+    "impact": "Blocks: isolated Supabase CI test (security-p0-isolated-test.yml, Workstream 4/Phase 1 verification), any GitHub-Actions-based scheduled live-production monitor (Phase 2), the db-security-invariant.yml CI gate on future PRs.",
+    "remediation_owner": "Founder/account owner only -- requires updating payment information at github.com/settings/billing/payment_information. Not fixable by the agent (financial-credentials action, outside agent action scope regardless of access).",
+    "local_docker_status": "PROD_VERIFIED BLOCKED -- WSL2 backend failed to start on the development workstation across two attempts (~40 min), documented in PR #26 history. Independent of the GitHub Actions blocker."
+  },
+  "live_monitoring": {
+    "seo_live_monitor_status": "UNVERIFIED THIS SESSION -- last known state (prior session, Aug 8 audit) was failing since Aug 6. Not re-checked in this pass. Given the GitHub Actions account-wide billing lock confirmed above, if this monitor runs via GitHub Actions its failure is now explained by the same root cause and is not a separate defect until billing is restored and it is re-tested."
+  },
+  "report_publication_control": {
+    "status": "UNVERIFIED THIS SESSION -- not re-inspected in this pass. Prior audit found no publication-state gate preventing a report_integrity=BLOCK result from displaying/downloading as a normal successful report. Requires direct code re-check in Phase 4."
+  },
+  "billing_entitlement_lifecycle": {
+    "status": "UNVERIFIED THIS SESSION -- no test-mode E2E run in this pass. Task #23 (pending, tracked separately) already flags this as outstanding: 'Verify Stripe test-mode checkout round-trip once founder runs it.'"
+  },
+  "qoc_status": {
+    "status": "PROD_VERIFIED NOT PERSISTING -- 0 rows in qoc_audit_envelopes, confirmed live this session, after the P0-14 awaited-call fix has been live 3+ days. Root cause NOT yet isolated to a specific edge (see OPEN_DEFECTS.md QOC-1). orchestrator.ts's safePut() wrapper covers every exit path inside orchestrate(), so the break is upstream of orchestrate() -- in the HTTP/auth boundary of qoc-orchestrate/index.ts or in the shadow-invoke call site in analyze-business/index.ts. Not yet proven which."
+  },
+  "predicta_integration_status": "NOT STARTED. No code exists yet for ProviderCapabilityRegistry, EvidenceSource, EvidenceClaim, NumericObservation, or QuantisEvidencePacket. Correctly sequenced last per the directive -- P0 security must close first."
+}

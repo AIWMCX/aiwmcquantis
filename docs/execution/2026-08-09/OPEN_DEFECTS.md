@@ -1,0 +1,143 @@
+# Open Defects — 2026-08-09 Phase 0 Freeze
+
+Ranked by release-blocking severity. Each entry states what is proven vs. still
+hypothesis, per the directive's evidence-first rule.
+
+## SEC-1 (P0, blocking) — 10 tables effectively open to unauthenticated access
+
+- **Status:** Remediation written (PR #26), not merged, not applied to production.
+- **Proven:** `HISTORICAL` reproduction with real anon-key HTTP calls (prior session).
+- **Not proven this session:** re-reproduction against current production state (would
+  be redundant — the migration hasn't changed production, so the prior finding stands
+  unless production config changed independently, which is not expected).
+- **Blocker to closing:** isolated test execution (local Docker down; GitHub Actions
+  billing-locked). See INFRA-1.
+- **Next action:** once INFRA-1 clears, run the full Phase 1 sequence (migration
+  replay, pgTAP, cross-identity matrix, rollback rehearsal) via
+  `security-p0-isolated-test.yml`, then request founder approval to merge/apply.
+
+## SEC-2 (P0, blocking, conditional) — `get_referral_stats` / `complete_referral_signup` possible auth bypass
+
+- **Status:** Root cause identified by source reading (NULL-comparison three-valued-logic
+  bug; signature-mismatch REVOKE no-op). NOT reproduced via actual HTTP exploitation.
+- **Language requirement:** must remain conditional/hedged ("plausible", "code-level
+  finding") until reproduced with synthetic data — per explicit prior instruction.
+- **Blocker to closing:** same as SEC-1 (INFRA-1).
+
+## INFRA-1 (blocking multiple workstreams) — GitHub Actions account billing lock
+
+- **Status:** `PROD_VERIFIED`. Screenshot evidence: "Your account's billing is
+  currently locked. Please update your payment information." Confirmed account-wide,
+  not workflow-specific.
+- **Owner:** founder/account owner only. Requires action at
+  `github.com/settings/billing/payment_information`. Not actionable by the agent —
+  this is a financial-credentials action outside agent scope regardless of access
+  level, and the agent has no access to the billing page in any case.
+- **Downstream impact:** blocks Workstream/Phase 1 isolated CI verification, blocks
+  any GitHub-Actions-based production monitor (Phase 2), blocks `db-security-invariant.yml`
+  running on future PRs.
+- **Next action:** waiting on founder. No workaround exists that preserves the
+  "no production credentials in CI" constraint — running these tests locally would
+  require the separately-blocked Docker/WSL2 fix instead.
+
+## INFRA-2 (blocking, independent of INFRA-1) — Local Docker/WSL2 failure
+
+- **Status:** `HISTORICAL`, not re-attempted this session. Independent infrastructure
+  wall from INFRA-1 — fixing one does not fix the other.
+- **Next action:** none pending from this session; GitHub Actions was pursued as the
+  designated alternative per prior explicit instruction. If INFRA-1 also stays blocked
+  for an extended period, WSL2 repair becomes the only remaining path and should be
+  escalated back to the founder as a decision point.
+
+## QOC-1 (blocking Phase 6 decision, not release-blocking on its own) — Zero audit envelopes despite awaited call
+
+- **Status:** `PROD_VERIFIED` zero rows, live re-confirmed this session, 3+ days after
+  the isolate-teardown fix (P0-14) was already live. That fix is therefore **confirmed
+  insufficient on its own** — the root cause is not fully explained by isolate lifetime.
+- **Three candidate failure points identified, none yet isolated as the actual cause:**
+  1. `sb.auth.getUser()` inside `qoc-orchestrate/index.ts` fails to resolve a user from
+     whatever `Authorization` header actually arrives (returns 401 before `orchestrate()`
+     is ever called — and `orchestrate()` is proven, by full source read, to call
+     `safePut()`/insert on every single exit path, so if it ran even once, a row would exist).
+  2. The Supabase JS client's `functions.invoke(..., { headers: { Authorization: authHeader } })`
+     call in `analyze-business/index.ts` may not actually be sending the explicit header
+     override — this exact codebase has one **documented precedent** of this exact class
+     of bug (the Pro-worker auth issue, `analyze-business/index.ts` lines 2047-2067),
+     so it is a live, evidence-supported hypothesis, not speculation.
+  3. The edge function's platform-level `verify_jwt: true` setting (confirmed via
+     `get_edge_function` this session) may reject the request before the function's own
+     code runs at all, if the forwarded header isn't a JWT format Supabase's edge
+     gateway recognizes as valid — independent of what the function's own code does.
+- **Also relevant, not a defect but context:** authenticated qualifying traffic is
+  extremely low (2 analyses in 5 days per live snapshot) — even a fully working pipe
+  would produce very few rows in this window. This does NOT explain zero, but it does
+  mean the eventual fix's proof will need a single controlled authenticated test call,
+  not a wait-and-see on organic traffic.
+- **Next action:** requires either (a) a live `get_logs` capture of an actual shadow-call
+  attempt at the moment it happens (needs a real authenticated request to trigger, or
+  a manual curl reproduction with a real user JWT against the deployed `qoc-orchestrate`
+  endpoint directly, bypassing `analyze-business` entirely, to isolate candidate #1 from
+  #2/#3), or (b) local/CI reproduction once INFRA-1/INFRA-2 clear. The manual curl
+  reproduction is achievable without CI and should be the next concrete action.
+
+## MON-1 (unverified this session) — SEO Live Monitor failure
+
+- **Status:** `HISTORICAL` (last known: failing since Aug 6). Not re-checked this
+  session. If it runs via GitHub Actions, INFRA-1 is now a confirmed contributing
+  cause and the monitor cannot be fully diagnosed until billing unlocks.
+
+## PUB-1 (P0-adjacent, blocking Phase 4 acceptance) — No fail-closed publication gate for `report_integrity=BLOCK`
+
+- **Status:** `CODE_VERIFIED`, confirmed this session by direct source read.
+- **Finding:** `report_integrity` is referenced in exactly two client files —
+  `AccuracyTransparentResults.tsx` (line 651) and `AnalysisResults.tsx` (lines
+  536-537, which only pass it down as a prop). The ONLY effect of `BLOCK` is a text
+  swap in a small "Audit Trail" widget from "✓ Passed" to "⚠ Contradiction detected".
+  There is no `READY | DEGRADED | BLOCKED` publication state anywhere. PDF generation,
+  download, and sharing are not gated by this value at all — grep across the codebase
+  found zero references to `report_integrity` in any PDF/export/share code path.
+- **Concrete impact:** a report with a proven arithmetic contradiction (the exact
+  condition the reconciliation engine was built to catch) is fully downloadable and
+  shareable today, indistinguishable from a valid report except for one small text
+  label most users will never notice.
+- **Status update 2026-08-09: FIXED, not yet deployed.** Implemented on
+  `security/p0-effective-access-control` branch (uncommitted as of this entry, pending
+  the user's decision on where/when to commit and merge):
+  - `src/components/analysis/AnalysisResults.tsx`: added `isReportBlocked` check;
+    `handleExportPDF`, `handleExportSCORE`, `handleShare` now refuse to run and show
+    a toast when `result.report_integrity === 'BLOCK'`; SCORE CSV button and
+    `ResultsTopBar`'s PDF/Share buttons render `disabled`; added a visible red banner
+    at the top of the results view explaining the report needs review (full report
+    detail remains visible in-app — this is a customer-facing warning layer, not data
+    removal, per the directive's "preserve debugging/evidence data internally").
+  - `supabase/functions/share-report/index.ts` (the real security boundary — this is
+    the unauthenticated, third-party-facing GET endpoint): now returns HTTP 409
+    `report_needs_review` instead of report data when the underlying analysis has
+    `report_integrity === 'BLOCK'`, closing the actual external-exposure risk that
+    client-side gating alone cannot close.
+  - `src/pages/SharedReport.tsx`: displays the server's `message` field so recipients
+    of a blocked share link see a clear explanation rather than a generic error.
+  - `npx tsc --noEmit` on the full project: 0 errors (exit 0).
+  - **Not yet done:** PDF generation is fully client-side (`@react-pdf/renderer` via
+    `usePdfExport.ts`), so there is no separate edge function to gate there — the
+    `AnalysisResults.tsx` handler gate is the only enforcement point for PDF export,
+    and it is bypassable by a technically sophisticated user calling `generatePdf()`
+    directly from devtools. This is acceptable for now (matches "customer-facing
+    behavior", not a security boundary — the PDF only ever contained the user's own
+    data anyway) but is weaker than the share-report server-side fix. Not
+    browser-verified live yet (no dev server run this pass). Not committed.
+
+## BILL-1 (unverified this session) — Stripe/entitlement E2E lifecycle unproven
+
+- **Status:** `UNVERIFIED`, carried from task #23 (pending). 24 active/trialing
+  subscriptions exist in production (`PROD_VERIFIED` this session) — meaning real
+  money is flowing through a path that has not had a supervised end-to-end test-mode
+  verification. This is a real gap, not a hypothetical one.
+
+## ACT-1 (context, not a defect to "fix") — Near-zero activation
+
+- **Status:** `PROD_VERIFIED` this session: 2 analyses in 5 days, last analysis
+  2026-08-06 (3 days stale as of capture). Reconfirms the 2026-08-08 finding.
+  Per prior explicit instruction, this must not be described as caused by
+  analytics/CSP/bot-detection failures (those are separate, `HISTORICAL` findings)
+  and must not be scaled into with acquisition spend while the system is RED.

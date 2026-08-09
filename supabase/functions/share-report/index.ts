@@ -152,8 +152,26 @@ Deno.serve(async (req) => {
 
       if (!share) {
         return new Response(
-          JSON.stringify({ error: "Report not found or expired" }), 
+          JSON.stringify({ error: "Report not found or expired" }),
           { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
+      // Phase 4 (PUB-1): a report the reconciliation engine flagged BLOCK has a
+      // proven arithmetic contradiction. This endpoint is the highest-consequence
+      // exposure of that -- it's unauthenticated and third parties (investors,
+      // lenders) may treat whatever it returns as a normal successful report. Fail
+      // closed here rather than relying on the owner's own in-app UI gate, which
+      // this request never passes through.
+      const sharedAnalysis = share.analyses as unknown as { result?: { report_integrity?: string } } | null;
+      if (sharedAnalysis?.result?.report_integrity === "BLOCK") {
+        log.info("[share-report] Refused: report_integrity=BLOCK for share:", share.id);
+        return new Response(
+          JSON.stringify({
+            error: "report_needs_review",
+            message: "This report has a detected data-integrity issue and is not available for external sharing until it has been reviewed.",
+          }),
+          { status: 409, headers: { ...corsHeaders, "Content-Type": "application/json" } }
         );
       }
 
