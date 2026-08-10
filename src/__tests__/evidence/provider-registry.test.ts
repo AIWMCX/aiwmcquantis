@@ -53,8 +53,14 @@ describe('selectProvidersForLens', () => {
 });
 
 describe('isClearedForPersistence — the honest default', () => {
-  it('returns false for every current provider, because no legal/terms review has actually happened yet', () => {
+  it('returns false for Tavily: reviewed, but the review found caching/retention is unaddressed by the ToS, so canPersist stays false', () => {
+    expect(TAVILY_PROVIDER.termsReviewedAt).toBeDefined();
+    expect(TAVILY_PROVIDER.canPersist).toBe(false);
     expect(isClearedForPersistence('tavily')).toBe(false);
+  });
+
+  it('returns false for DuckDuckGo: not reviewed at all yet', () => {
+    expect(DUCKDUCKGO_PROVIDER.termsReviewedAt).toBeUndefined();
     expect(isClearedForPersistence('duckduckgo-html')).toBe(false);
   });
 
@@ -62,15 +68,15 @@ describe('isClearedForPersistence — the honest default', () => {
     expect(isClearedForPersistence('does-not-exist')).toBe(false);
   });
 
-  it('documents what WOULD make a provider cleared, without actually granting it', () => {
-    const hypotheticallyReviewed = {
-      ...TAVILY_PROVIDER,
-      termsReviewedAt: '2026-08-10T00:00:00Z',
-      canPersist: true,
-    };
-    expect(Boolean(hypotheticallyReviewed.termsReviewedAt) && hypotheticallyReviewed.canPersist).toBe(true);
+  it('documents what WOULD make Tavily cleared (a real answer on caching/retention flipping canPersist), without actually granting it', () => {
+    const hypotheticallyCleared = { ...TAVILY_PROVIDER, canPersist: true };
+    expect(Boolean(hypotheticallyCleared.termsReviewedAt) && hypotheticallyCleared.canPersist).toBe(true);
     // But the real, live constant is untouched by this hypothetical.
-    expect(TAVILY_PROVIDER.termsReviewedAt).toBeUndefined();
+    expect(TAVILY_PROVIDER.canPersist).toBe(false);
+  });
+
+  it("Tavily's review carries a citation, not just a bare timestamp", () => {
+    expect(TAVILY_PROVIDER.termsReviewCitation).toContain('tavily.com/terms');
   });
 });
 
@@ -88,5 +94,20 @@ describe('registry entries are internally consistent', () => {
 
   it('Tavily is correctly typed as OFFICIAL_API', () => {
     expect(TAVILY_PROVIDER.integrationType).toBe('OFFICIAL_API');
+  });
+});
+
+describe("Tavily's real terms review findings are locked in (regression lock against silent drift)", () => {
+  it('canRedisplay is true (ToS section 3.2(ii) explicitly permits customer-app integration)', () => {
+    expect(TAVILY_PROVIDER.canRedisplay).toBe(true);
+  });
+
+  it('canTrainOnResults is false and must never flip true (ToS section 6.6 explicit prohibition)', () => {
+    expect(TAVILY_PROVIDER.canTrainOnResults).toBe(false);
+  });
+
+  it('canCache and canPersist stay false pending explicit clarification (ToS is silent, not permissive)', () => {
+    expect(TAVILY_PROVIDER.canCache).toBe(false);
+    expect(TAVILY_PROVIDER.canPersist).toBe(false);
   });
 });

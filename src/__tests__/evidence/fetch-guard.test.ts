@@ -1,17 +1,25 @@
 /**
  * Quantis Evidence Service — fetch-guard.ts regression suite (PR E1/E3).
  *
- * `safeFetch` tests inject a mocked `fetchImpl` -- no real network calls
- * are made by this suite.
+ * `safeFetch` tests inject both a mocked `fetchImpl` AND a mocked
+ * `dnsResolver` -- no real network calls or real DNS lookups are made by
+ * this suite. `mockResolver` below stands in for "example.com resolves to
+ * an ordinary public IP," so tests exercise the DNS-check code path
+ * without depending on live DNS.
  */
 import { describe, it, expect, vi } from 'vitest';
 import {
   isPrivateOrDangerousHost,
   validateOutboundUrl,
+  validateOutboundUrlWithDns,
   safeFetch,
   SsrfGuardViolationError,
   ContentPolicyViolationError,
+  type DnsResolver,
 } from '../../../supabase/functions/_shared/evidence/fetch-guard';
+
+/** Resolves every hostname to a single, unambiguously-public IP. */
+const mockResolver: DnsResolver = async () => ['93.184.216.34'];
 
 describe('isPrivateOrDangerousHost', () => {
   it('blocks loopback', () => {
@@ -86,11 +94,70 @@ function fakeResponse(init: {
   });
 }
 
+describe('validateOutboundUrlWithDns', () => {
+  it('passes an ordinary domain that resolves only to public IPs', async () => {
+    const result = await validateOutboundUrlWithDns('https://example.com/page', mockResolver);
+    expect(result.ok).toBe(true);
+  });
+
+  it('rejects a domain that resolves to a private IP, even though the literal hostname string looks fine', async () => {
+    const resolvesInternal: DnsResolver = async () => ['10.0.0.5'];
+    const result = await validateOutboundUrlWithDns('https://looks-legit.example.com/x', resolvesInternal);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('10.0.0.5');
+  });
+
+  it('rejects a domain that resolves to the cloud-metadata address among multiple A records', async () => {
+    const resolvesMixed: DnsResolver = async () => ['203.0.113.5', '169.254.169.254'];
+    const result = await validateOutboundUrlWithDns('https://mixed.example.com/x', resolvesMixed);
+    expect(result.ok).toBe(false);
+  });
+
+  it('skips DNS resolution entirely for a literal IP (already covered by the static check)', async () => {
+    const resolverThatShouldNeverBeCalled: DnsResolver = vi.fn();
+    const result = await validateOutboundUrlWithDns('https://8.8.8.8/x', resolverThatShouldNeverBeCalled);
+    expect(result.ok).toBe(true);
+    expect(resolverThatShouldNeverBeCalled).not.toHaveBeenCalled();
+  });
+
+  it('fails closed when DNS resolution throws', async () => {
+    const throwingResolver: DnsResolver = async () => {
+      throw new Error('NXDOMAIN');
+    };
+    const result = await validateOutboundUrlWithDns('https://nonexistent.example.invalid/x', throwingResolver);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('DNS_RESOLUTION_FAILED');
+  });
+
+  it('fails closed when DNS resolution returns zero addresses', async () => {
+    const emptyResolver: DnsResolver = async () => [];
+    const result = await validateOutboundUrlWithDns('https://empty.example.com/x', emptyResolver);
+    expect(result.ok).toBe(false);
+    expect(result.reason).toContain('DNS_RESOLUTION_EMPTY');
+  });
+
+  it('still rejects an unparseable URL or bad scheme before ever touching the resolver', async () => {
+    const resolverThatShouldNeverBeCalled: DnsResolver = vi.fn();
+    expect((await validateOutboundUrlWithDns('not a url', resolverThatShouldNeverBeCalled)).ok).toBe(false);
+    expect((await validateOutboundUrlWithDns('ftp://example.com', resolverThatShouldNeverBeCalled)).ok).toBe(false);
+    expect(resolverThatShouldNeverBeCalled).not.toHaveBeenCalled();
+  });
+});
+
 describe('safeFetch', () => {
-  it('refuses to call fetchImpl at all for an SSRF target', async () => {
+  it('refuses to call fetchImpl at all for an SSRF target (literal IP, no DNS lookup needed)', async () => {
     const fetchImpl = vi.fn();
     await expect(
       safeFetch('http://169.254.169.254/latest/meta-data/', { fetchImpl }),
+    ).rejects.toThrow(SsrfGuardViolationError);
+    expect(fetchImpl).not.toHaveBeenCalled();
+  });
+
+  it('refuses to call fetchImpl for a domain that DNS-resolves to a private address', async () => {
+    const fetchImpl = vi.fn();
+    const resolvesInternal: DnsResolver = async () => ['192.168.1.1'];
+    await expect(
+      safeFetch('https://rebind.example.com/x', { fetchImpl, dnsResolver: resolvesInternal }),
     ).rejects.toThrow(SsrfGuardViolationError);
     expect(fetchImpl).not.toHaveBeenCalled();
   });
@@ -99,29 +166,40 @@ describe('safeFetch', () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       fakeResponse({ body: '<html>hello</html>', headers: { 'content-type': 'text/html; charset=utf-8' } }),
     );
-    const result = await safeFetch('https://example.com/page', { fetchImpl });
+    const result = await safeFetch('https://example.com/page', { fetchImpl, dnsResolver: mockResolver });
     expect(result.text).toBe('<html>hello</html>');
     expect(result.finalUrl).toBe('https://example.com/page');
   });
 
-  it('follows a redirect to a safe URL and re-fetches it', async () => {
+  it('follows a redirect to a safe URL and re-fetches it, re-checking DNS on the redirect target too', async () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(fakeResponse({ status: 302, headers: { location: 'https://example.com/final' } }))
       .mockResolvedValueOnce(fakeResponse({ body: 'final content' }));
-    const result = await safeFetch('https://example.com/start', { fetchImpl });
+    const result = await safeFetch('https://example.com/start', { fetchImpl, dnsResolver: mockResolver });
     expect(result.text).toBe('final content');
     expect(result.finalUrl).toBe('https://example.com/final');
     expect(fetchImpl).toHaveBeenCalledTimes(2);
   });
 
-  it('BLOCKS a redirect to a private/SSRF target instead of following it (redirect-based SSRF bypass)', async () => {
+  it('BLOCKS a redirect to a private/SSRF target instead of following it (redirect-based SSRF bypass, literal IP)', async () => {
     const fetchImpl = vi
       .fn()
       .mockResolvedValueOnce(fakeResponse({ status: 302, headers: { location: 'http://169.254.169.254/secret' } }));
-    await expect(safeFetch('https://example.com/start', { fetchImpl })).rejects.toThrow(
-      SsrfGuardViolationError,
-    );
+    await expect(
+      safeFetch('https://example.com/start', { fetchImpl, dnsResolver: mockResolver }),
+    ).rejects.toThrow(SsrfGuardViolationError);
+  });
+
+  it('BLOCKS a redirect to a domain that DNS-resolves to a private target (the actual DNS-rebinding-style redirect case)', async () => {
+    const fetchImpl = vi
+      .fn()
+      .mockResolvedValueOnce(fakeResponse({ status: 302, headers: { location: 'https://attacker-controlled.example.com/x' } }));
+    const resolverThatFlipsPerHost: DnsResolver = async (hostname) =>
+      hostname === 'attacker-controlled.example.com' ? ['169.254.169.254'] : ['93.184.216.34'];
+    await expect(
+      safeFetch('https://example.com/start', { fetchImpl, dnsResolver: resolverThatFlipsPerHost }),
+    ).rejects.toThrow(SsrfGuardViolationError);
   });
 
   it('throws after exceeding the max redirect count', async () => {
@@ -129,7 +207,7 @@ describe('safeFetch', () => {
       fakeResponse({ status: 302, headers: { location: 'https://example.com/loop' } }),
     );
     await expect(
-      safeFetch('https://example.com/start', { fetchImpl, maxRedirects: 2 }),
+      safeFetch('https://example.com/start', { fetchImpl, dnsResolver: mockResolver, maxRedirects: 2 }),
     ).rejects.toThrow(SsrfGuardViolationError);
     // 1 initial + maxRedirects(2) follow-up attempts = 3 calls before giving up.
     expect(fetchImpl).toHaveBeenCalledTimes(3);
@@ -139,9 +217,9 @@ describe('safeFetch', () => {
     const fetchImpl = vi.fn().mockResolvedValue(
       fakeResponse({ headers: { 'content-type': 'application/octet-stream' } }),
     );
-    await expect(safeFetch('https://example.com/binary', { fetchImpl })).rejects.toThrow(
-      ContentPolicyViolationError,
-    );
+    await expect(
+      safeFetch('https://example.com/binary', { fetchImpl, dnsResolver: mockResolver }),
+    ).rejects.toThrow(ContentPolicyViolationError);
   });
 
   it('rejects a response with no content-type at all', async () => {
@@ -154,9 +232,9 @@ describe('safeFetch', () => {
       headers: { get: (_name: string) => null },
       text: async () => 'body',
     });
-    await expect(safeFetch('https://example.com/x', { fetchImpl })).rejects.toThrow(
-      ContentPolicyViolationError,
-    );
+    await expect(
+      safeFetch('https://example.com/x', { fetchImpl, dnsResolver: mockResolver }),
+    ).rejects.toThrow(ContentPolicyViolationError);
   });
 
   it('rejects via the Content-Length fast-path when it exceeds the cap', async () => {
@@ -164,7 +242,7 @@ describe('safeFetch', () => {
       fakeResponse({ headers: { 'content-type': 'text/html', 'content-length': '99999999' } }),
     );
     await expect(
-      safeFetch('https://example.com/huge', { fetchImpl, maxContentBytes: 1000 }),
+      safeFetch('https://example.com/huge', { fetchImpl, dnsResolver: mockResolver, maxContentBytes: 1000 }),
     ).rejects.toThrow(ContentPolicyViolationError);
   });
 
@@ -174,7 +252,7 @@ describe('safeFetch', () => {
       fakeResponse({ body: bigBody, headers: { 'content-type': 'text/plain' } }),
     );
     await expect(
-      safeFetch('https://example.com/lying', { fetchImpl, maxContentBytes: 1000 }),
+      safeFetch('https://example.com/lying', { fetchImpl, dnsResolver: mockResolver, maxContentBytes: 1000 }),
     ).rejects.toThrow(ContentPolicyViolationError);
   });
 
@@ -184,6 +262,7 @@ describe('safeFetch', () => {
     );
     const result = await safeFetch('https://example.com/doc.pdf', {
       fetchImpl,
+      dnsResolver: mockResolver,
       allowedMimePrefixes: ['application/pdf'],
     });
     expect(result.text).toBe('pdf-bytes');

@@ -17,6 +17,14 @@
  *   3. Re-validates the target of every redirect before following it
  *      (redirect-based SSRF bypass is the most common way a naive
  *      URL-only check gets defeated).
+ *   3b. Resolves every hostname (initial URL AND every redirect target) to
+ *      its actual A/AAAA records and checks EVERY resolved IP against the
+ *      same private/link-local/metadata denylist -- catches a domain name
+ *      that simply resolves to an internal address, which a literal-string
+ *      check alone cannot see. See `validateOutboundUrlWithDns`'s own
+ *      doc comment for the honest, explicitly-stated limitation this does
+ *      NOT close (true DNS-rebinding race condition against fetch()'s own
+ *      internal re-resolution at connect time).
  *   4. Enforces a hard redirect-count limit.
  *   5. Enforces a hard timeout.
  *   6. Enforces a MIME allowlist on the response Content-Type.
@@ -122,6 +130,7 @@ export interface UrlValidationResult {
   reason?: string;
 }
 
+/** Static (no DNS) check: scheme + literal-IP/known-hostname denylist only. */
 export function validateOutboundUrl(rawUrl: string): UrlValidationResult {
   let parsed: URL;
   try {
@@ -137,6 +146,115 @@ export function validateOutboundUrl(rawUrl: string): UrlValidationResult {
   const hostCheck = isPrivateOrDangerousHost(parsed.hostname);
   if (!hostCheck.safe) {
     return { ok: false, reason: hostCheck.reason };
+  }
+
+  return { ok: true };
+}
+
+// ============================================================
+// DNS-resolution-aware validation (defends against a domain name that
+// resolves to a private/link-local/metadata IP, which validateOutboundUrl
+// above cannot catch since it only inspects the literal hostname string).
+// ============================================================
+
+export type DnsResolver = (hostname: string) => Promise<string[]>;
+
+function isLiteralIp(hostname: string): boolean {
+  return isIPv4(hostname) || hostname.includes(':');
+}
+
+/**
+ * Resolves a hostname to every A/AAAA record it has. Runtime-detects Deno
+ * vs. Node so this one function works both in the edge runtime and under
+ * Vitest. Returns an empty array (never throws) if resolution fails for
+ * both record types -- the caller treats "could not resolve" as unsafe
+ * (fail closed), matching this module's overall conservative posture.
+ */
+export const defaultDnsResolver: DnsResolver = async (hostname) => {
+  const results: string[] = [];
+
+  // Deno edge runtime.
+  const denoGlobal = (globalThis as { Deno?: { resolveDns?: (h: string, t: string) => Promise<string[]> } }).Deno;
+  if (denoGlobal?.resolveDns) {
+    await Promise.allSettled([
+      denoGlobal.resolveDns(hostname, 'A').then((ips) => results.push(...ips)),
+      denoGlobal.resolveDns(hostname, 'AAAA').then((ips) => results.push(...ips)),
+    ]);
+    return results;
+  }
+
+  // Node / Vitest.
+  try {
+    const dns = await import('node:dns/promises');
+    await Promise.allSettled([
+      dns.resolve4(hostname).then((ips) => results.push(...ips)),
+      dns.resolve6(hostname).then((ips) => results.push(...ips)),
+    ]);
+  } catch {
+    // node:dns/promises unavailable in this runtime -- fall through with
+    // whatever (possibly empty) results were gathered.
+  }
+  return results;
+};
+
+/**
+ * DNS-resolution-aware validation. Rejects a hostname if ANY resolved IP
+ * (not just the literal string, which `validateOutboundUrl` already
+ * checks) falls in a private/loopback/link-local/reserved range --
+ * catches the case where an attacker-controlled or compromised DNS name
+ * (e.g. a shortlink service, or a domain the attacker fully controls)
+ * points at an internal address rather than passing a raw IP directly.
+ *
+ * HONEST LIMITATION (do not remove this comment when refactoring): this
+ * is a resolve-then-check pattern, not IP-pinned transport. A classic DNS
+ * rebinding attack changes the DNS answer BETWEEN this check and the
+ * moment the underlying `fetch()` implementation performs its own,
+ * separate DNS resolution to actually connect -- there is a real,
+ * unavoidable time-of-check-to-time-of-use gap here that this function
+ * does not close. Full protection requires pinning the exact IP address
+ * at the socket/transport layer (e.g. a custom low-level connect that
+ * bypasses fetch()'s internal resolution and separately verifies the TLS
+ * certificate/Host header match the intended hostname), which is a
+ * larger, platform-specific undertaking deliberately out of scope for
+ * this pass. This function still meaningfully raises the bar against the
+ * overwhelming majority of real-world SSRF attempts (a domain that simply
+ * *is* configured to resolve to an internal address, checked at request
+ * time, with a short-lived window rather than an attacker needing to
+ * race a rebind against every single request) -- it should be treated as
+ * defense-in-depth, not a complete guarantee.
+ */
+export async function validateOutboundUrlWithDns(
+  rawUrl: string,
+  resolver: DnsResolver = defaultDnsResolver,
+): Promise<UrlValidationResult> {
+  const staticCheck = validateOutboundUrl(rawUrl);
+  if (!staticCheck.ok) return staticCheck;
+
+  const parsed = new URL(rawUrl);
+  if (isLiteralIp(parsed.hostname)) {
+    // Already fully covered by the static check above -- no DNS lookup needed.
+    return { ok: true };
+  }
+
+  let resolvedIps: string[];
+  try {
+    resolvedIps = await resolver(parsed.hostname);
+  } catch {
+    return { ok: false, reason: `DNS_RESOLUTION_FAILED: could not resolve ${parsed.hostname}` };
+  }
+
+  if (resolvedIps.length === 0) {
+    return { ok: false, reason: `DNS_RESOLUTION_EMPTY: ${parsed.hostname} resolved to no addresses` };
+  }
+
+  for (const ip of resolvedIps) {
+    const ipCheck = isPrivateOrDangerousHost(ip);
+    if (!ipCheck.safe) {
+      return {
+        ok: false,
+        reason: `${parsed.hostname} resolves to a disallowed address ${ip}: ${ipCheck.reason}`,
+      };
+    }
   }
 
   return { ok: true };
@@ -163,6 +281,8 @@ export interface SafeFetchOptions {
   allowedMimePrefixes?: string[];
   /** Injectable for testing; defaults to the global fetch. */
   fetchImpl?: typeof fetch;
+  /** Injectable for testing; defaults to real DNS resolution (Deno or Node, auto-detected). */
+  dnsResolver?: DnsResolver;
 }
 
 /**
@@ -180,11 +300,15 @@ export async function safeFetch(
   const maxContentBytes = options.maxContentBytes ?? DEFAULT_MAX_CONTENT_BYTES;
   const allowedMimePrefixes = options.allowedMimePrefixes ?? ALLOWED_MIME_PREFIXES;
   const doFetch = options.fetchImpl ?? fetch;
+  const resolver = options.dnsResolver ?? defaultDnsResolver;
 
   let currentUrl = url;
 
   for (let redirectCount = 0; redirectCount <= maxRedirects; redirectCount++) {
-    const check = validateOutboundUrl(currentUrl);
+    // DNS-aware check on every hop, including redirect targets -- a
+    // redirect to a domain that resolves to an internal address is just
+    // as dangerous as a redirect to a literal private IP.
+    const check = await validateOutboundUrlWithDns(currentUrl, resolver);
     if (!check.ok) {
       throw new SsrfGuardViolationError(currentUrl, check.reason ?? 'unknown');
     }

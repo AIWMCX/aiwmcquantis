@@ -37,7 +37,8 @@ function sortKeysDeep(value: unknown): unknown {
   return value;
 }
 
-async function sha256Hex(input: string): Promise<string> {
+/** Exported for callers (e.g. the pipeline) that need to content-hash an individual passage/source, not just a whole packet. */
+export async function sha256Hex(input: string): Promise<string> {
   const bytes = new TextEncoder().encode(input);
   const digest = await crypto.subtle.digest('SHA-256', bytes);
   return Array.from(new Uint8Array(digest))

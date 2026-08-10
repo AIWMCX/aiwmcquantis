@@ -76,6 +76,8 @@ export interface ProviderCapability {
   lastSuccessfulRequestAt?: string;
 
   termsReviewedAt?: string;
+  /** Citation for the terms review -- URL + section references, so the review is auditable rather than a bare timestamp. */
+  termsReviewCitation?: string;
 
   enabledForQuantis: boolean;
 }
