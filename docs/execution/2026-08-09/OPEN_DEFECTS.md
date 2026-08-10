@@ -129,6 +129,31 @@ hypothesis, per the directive's evidence-first rule.
   resolve which scenario is true, and confirm `'ALL'` matches (or update it
   to whatever the real value is) before this migration is considered final.
 
+## DATA-2 (new, UNVERIFIED, needs your check) — subscription_upsert_fix migration likely never fully applied to production
+
+- **Status:** `CODE_VERIFIED` the migration has a fatal syntax error;
+  `UNVERIFIED` what actually took effect on production.
+- **Finding:** `20260608000002_subscription_upsert_fix.sql`'s final line was
+  a bare top-level `RAISE NOTICE ...;` outside any PL/pgSQL block --
+  `RAISE` is only valid inside `DO $$ ... $$` or a function body, so this is
+  a genuine SQL syntax error (42601), not a replay-specific issue.
+- **Why this matters beyond CI:** Postgres runs each migration file in one
+  transaction by default. A syntax error anywhere in the file aborts the
+  whole transaction -- meaning the migration's two real changes (adding a
+  unique constraint on `subscriptions.user_id`, needed by `stripe-webhook`'s
+  `upsert(onConflict:"user_id")` call, and creating the
+  `admin_fix_subscription` RPC) **may never have actually taken effect on
+  production**, not just failed in this CI replay.
+- **Fix applied:** wrapped the trailing `RAISE NOTICE` in its own `DO $$
+  BEGIN ... END $$;` block -- pure syntax fix, no logic change.
+- **Next action:** once DB access is restored (INFRA-3), directly confirm on
+  production: `SELECT conname FROM pg_constraint WHERE
+  conrelid='public.subscriptions'::regclass AND contype='u';` (does the
+  unique constraint exist?) and whether `admin_fix_subscription` exists as a
+  function. If either is missing, `stripe-webhook`'s upsert call may be
+  silently failing or behaving unexpectedly on every webhook delivery --
+  worth checking against BILL-1 (Stripe E2E, already flagged as unverified).
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.

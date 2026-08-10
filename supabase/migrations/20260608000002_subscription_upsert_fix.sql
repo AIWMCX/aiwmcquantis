@@ -97,4 +97,17 @@ WHERE
   status = 'trialing'
   AND trial_ends_at IS NULL;
 
-RAISE NOTICE 'subscription_upsert_fix migration complete';
+-- Fixed 2026-08-10: RAISE is PL/pgSQL-only and is invalid as bare top-level
+-- SQL (42601, "syntax error at or near RAISE") -- must be inside a DO block
+-- or function body. Since Postgres runs each migration file in one
+-- transaction by default, this syntax error would have aborted the ENTIRE
+-- migration on production too, not just this trailing log line -- meaning
+-- the unique constraint (step 1) and admin_fix_subscription RPC (step 2)
+-- above may never have actually taken effect there either. Worth confirming
+-- directly once DB access is available (SELECT conname FROM pg_constraint
+-- WHERE conrelid='public.subscriptions'::regclass AND contype='u'; and
+-- checking whether admin_fix_subscription exists).
+DO $$
+BEGIN
+  RAISE NOTICE 'subscription_upsert_fix migration complete';
+END $$;
