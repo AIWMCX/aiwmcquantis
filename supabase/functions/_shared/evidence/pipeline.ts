@@ -57,7 +57,7 @@
  * hashing) is real, tested logic reused as-is from its own module.
  */
 import type { EvidenceProvider, ProviderExecutionContext, ProviderSearchResult } from './provider';
-import type { EvidenceClaim, EvidencePassage, EvidenceSource, SourceLens } from './types';
+import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, SourceLens } from './types';
 import { redactSensitiveContent, type PrivacyFinding } from './privacy-gate';
 import { compileEvidenceRequest } from './request-compiler';
 import { ProviderRouter } from './provider-router';
@@ -83,6 +83,8 @@ export interface RunEvidencePipelineInput {
 
 export interface RunEvidencePipelineResult {
   packet: QuantisEvidencePacket;
+  /** The compiled EvidenceRequest that drove this run -- needed by callers (E6 shadow worker) that persist evidence_requests alongside the packet. */
+  request: EvidenceRequest;
   providerResults: ProviderSearchResult[];
   privacyFindings: PrivacyFinding[];
 }
@@ -238,5 +240,5 @@ export async function runEvidencePipeline(input: RunEvidencePipelineInput): Prom
     clock: nowIso,
   });
 
-  return { packet, providerResults, privacyFindings };
+  return { packet, request, providerResults, privacyFindings };
 }

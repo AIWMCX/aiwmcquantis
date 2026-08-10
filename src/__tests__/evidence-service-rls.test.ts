@@ -390,4 +390,70 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
       await serviceFetch(`/evidence_passages?id=eq.${passage.id}`, { method: 'DELETE' }).catch(() => {});
     });
   });
+
+  describe('evidence_shadow_queue (E6): AFTER INSERT trigger on analyses', () => {
+    it('enqueues a PENDING row when an analysis with a real user_id is inserted (seeded analysis A from beforeAll)', async () => {
+      const res = await serviceFetch(`/evidence_shadow_queue?analysis_id=eq.${analysisIdA}&select=id,status,idea,location,user_id`);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body).toHaveLength(1);
+      expect(body[0].status).toBe('PENDING');
+      expect(body[0].user_id).toBe(userA.id);
+      expect(body[0].idea).toBe(`EVIDENCE_RLS_TEST_${RUN_ID}`);
+    });
+
+    // NOTE: the "skip when user_id IS NULL" branch of
+    // enqueue_evidence_shadow_run() (anonymous analyses) is intentionally
+    // NOT exercised here. src/services/analysisDb.ts's
+    // saveAnonymousAnalysis() inserts `user_id: null`, but grep across the
+    // full tracked migration history finds no migration that ever drops
+    // analyses.user_id's original NOT NULL constraint -- the same class of
+    // migration/production drift this branch already found twice for the
+    // service_role and authenticated grants on public.analyses (see
+    // 20251127185736...sql's own comments). Inserting a null-user_id row
+    // here, against the CLEAN migration-replayed schema this CI job uses,
+    // would very likely fail on that unrelated pre-existing NOT NULL
+    // constraint rather than proving anything about this trigger -- a
+    // false failure for the wrong reason. The positive path (user_id IS
+    // NOT NULL -> enqueued) is proven directly below; the negative branch
+    // is simple enough (`IF NEW.user_id IS NOT NULL THEN ... END IF`) to
+    // trust by inspection until that separate drift issue is resolved.
+    it('anon cannot SELECT evidence_shadow_queue', async () => {
+      const res = await anonFetch(`/evidence_shadow_queue?select=id&limit=1`);
+      expect([401, 403]).toContain(res.status);
+    });
+
+    it('authenticated (even the owning user) cannot SELECT evidence_shadow_queue -- fully closed except service_role, unlike the other evidence_* tables', async () => {
+      const res = await userFetch(userA.token, `/evidence_shadow_queue?analysis_id=eq.${analysisIdA}&select=id`);
+      expect(res.status).toBe(403);
+    });
+
+    it('authenticated cannot INSERT into evidence_shadow_queue', async () => {
+      const res = await userFetch(userA.token, '/evidence_shadow_queue', {
+        method: 'POST',
+        body: JSON.stringify({ analysis_id: analysisIdA, user_id: userA.id, idea: 'x', location: 'y' }),
+      });
+      expect([401, 403]).toContain(res.status);
+    });
+
+    it('service role can SELECT and process (claim) a queued row', async () => {
+      const res = await serviceFetch(`/evidence_shadow_queue?analysis_id=eq.${analysisIdA}&select=id,status`);
+      const [row] = await res.json();
+      expect(row.status).toBe('PENDING');
+
+      const claimRes = await serviceFetch(`/evidence_shadow_queue?id=eq.${row.id}&status=eq.PENDING`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'PROCESSING', attempts: 1 }),
+      });
+      const claimBody = await claimRes.json();
+      expect(claimRes.ok, JSON.stringify(claimBody)).toBe(true);
+      expect(claimBody).toHaveLength(1);
+
+      // Revert for cleanliness of the rest of the suite.
+      await serviceFetch(`/evidence_shadow_queue?id=eq.${row.id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({ status: 'PENDING', attempts: 0 }),
+      });
+    });
+  });
 });

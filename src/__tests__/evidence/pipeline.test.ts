@@ -30,7 +30,7 @@ describe('runEvidencePipeline — happy path', () => {
     );
     const tavily = new TavilyEvidenceProvider({ apiKey: 'test-key', fetchImpl });
 
-    const { packet, providerResults, privacyFindings } = await runEvidencePipeline({
+    const { packet, request, providerResults, privacyFindings } = await runEvidencePipeline({
       analysisRunId: 'run-1',
       idea: 'Coffee shop',
       location: 'Denver, Colorado',
@@ -41,6 +41,8 @@ describe('runEvidencePipeline — happy path', () => {
 
     expect(privacyFindings).toEqual([]);
     expect(providerResults.length).toBeGreaterThan(0);
+    expect(request.analysisRunId).toBe('run-1');
+    expect(request.questions.length).toBeGreaterThan(0);
     expect(packet.analysisRunId).toBe('run-1');
     expect(packet.degraded).toBe(false);
     expect(packet.sources.length).toBeGreaterThan(0);

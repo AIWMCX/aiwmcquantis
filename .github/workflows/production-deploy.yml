@@ -305,6 +305,10 @@ jobs:
             meta-credentials-setup
             # ── QOC orchestration layer ────────────────────────────────────
             qoc-orchestrate
+            # ── Evidence Service (E6, shadow mode -- gated behind
+            #    EVIDENCE_SERVICE_SHADOW_ENABLED, no-op until explicitly
+            #    turned on) ───────────────────────────────────────────────
+            evidence-shadow-worker
             # ── Observability harnesses (admin dashboard reads their output) ─
             # Missing from the list meant source changes to these functions
             # never actually shipped. Confirmed 2026-07-02: after PR #4

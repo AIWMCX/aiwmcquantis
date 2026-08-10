@@ -107,3 +107,6 @@ verify_jwt = false
 
 [functions.rvce-validate]
 verify_jwt = false
+
+[functions.evidence-shadow-worker]
+verify_jwt = false
