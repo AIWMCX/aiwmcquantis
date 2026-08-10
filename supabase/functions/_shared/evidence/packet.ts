@@ -10,8 +10,8 @@
  * Deno edge runtime and Node 18+/Vitest, so this file needs no
  * environment-specific branching.
  */
-import type { QuantisEvidencePacket, EvidenceSource, EvidencePassage, EvidenceClaim, NumericObservation, SourceLens } from './types';
-import { EVIDENCE_SCHEMA_VERSION } from './types';
+import type { QuantisEvidencePacket, EvidenceSource, EvidencePassage, EvidenceClaim, NumericObservation, SourceLens } from './types.ts';
+import { EVIDENCE_SCHEMA_VERSION } from './types.ts';
 
 /**
  * Deterministically stringifies a value with all object keys sorted

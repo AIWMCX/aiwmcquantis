@@ -20,7 +20,7 @@
  *     DuckDuckGoEvidenceProvider by copying TavilyEvidenceProvider's
  *     shape without first doing that review.
  */
-import type { ProviderCapability, SourceLens } from './types';
+import type { ProviderCapability, SourceLens } from './types.ts';
 
 /**
  * REAL terms review, 2026-08-10, performed against the live document at

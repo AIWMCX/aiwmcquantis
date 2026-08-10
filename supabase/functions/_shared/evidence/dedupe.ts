@@ -24,8 +24,8 @@
  * which does not exist yet. Do not add fuzzy matching here without that
  * corpus; an unvalidated threshold is worse than no threshold.
  */
-import type { EvidenceSource } from './types';
-import { canonicalizeUrl } from './url-normalize';
+import type { EvidenceSource } from './types.ts';
+import { canonicalizeUrl } from './url-normalize.ts';
 
 /** Simple union-find (disjoint-set) with path compression. */
 class DisjointSet {

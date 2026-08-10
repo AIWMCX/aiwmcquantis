@@ -27,7 +27,7 @@
  *      table's own schema comment -- populating it early would misuse a
  *      column reserved for a different, not-yet-built measurement.
  */
-import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, QuantisEvidencePacket } from './types';
+import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, QuantisEvidencePacket } from './types.ts';
 
 const PERSISTABLE_PASSAGE_POLICIES = new Set(['PASSAGE_ALLOWED', 'FULL_ALLOWED']);
 

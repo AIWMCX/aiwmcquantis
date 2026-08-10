@@ -13,7 +13,7 @@
  * change to `EVIDENCE_OBJECTIVE_CATALOG` below -- never a runtime decision
  * made by a model.
  */
-import type { EvidenceQuestion, EvidenceRequest, SourceLens } from './types';
+import type { EvidenceQuestion, EvidenceRequest, SourceLens } from './types.ts';
 
 export interface CompileEvidenceRequestInput {
   analysisRunId: string;

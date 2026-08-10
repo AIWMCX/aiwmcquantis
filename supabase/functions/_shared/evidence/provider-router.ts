@@ -8,9 +8,9 @@
  * etc.) right now. Never instantiates a provider itself -- callers own
  * construction (and therefore secret-injection) of each adapter.
  */
-import type { EvidenceProvider, ProviderExecutionContext, ProviderSearchRequest, ProviderSearchResult } from './provider';
-import type { SourceLens } from './types';
-import { selectProvidersForLens } from './provider-registry';
+import type { EvidenceProvider, ProviderExecutionContext, ProviderSearchRequest, ProviderSearchResult } from './provider.ts';
+import type { SourceLens } from './types.ts';
+import { selectProvidersForLens } from './provider-registry.ts';
 
 export class ProviderRouter {
   constructor(private readonly providers: EvidenceProvider[]) {}

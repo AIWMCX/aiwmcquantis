@@ -56,17 +56,17 @@
  * canonicalization, dedup/independence clustering, packet content
  * hashing) is real, tested logic reused as-is from its own module.
  */
-import type { EvidenceProvider, ProviderExecutionContext, ProviderSearchResult } from './provider';
-import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, SourceLens } from './types';
-import { redactSensitiveContent, type PrivacyFinding } from './privacy-gate';
-import { compileEvidenceRequest } from './request-compiler';
-import { ProviderRouter } from './provider-router';
-import { canonicalizeUrl } from './url-normalize';
-import { clusterSources } from './dedupe';
-import { buildEvidenceClaim } from './evidence-graph';
-import { classifyFreshness, rollUpFreshness } from './freshness';
-import { buildEvidencePacket, sha256Hex } from './packet';
-import type { QuantisEvidencePacket } from './types';
+import type { EvidenceProvider, ProviderExecutionContext, ProviderSearchResult } from './provider.ts';
+import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, SourceLens } from './types.ts';
+import { redactSensitiveContent, type PrivacyFinding } from './privacy-gate.ts';
+import { compileEvidenceRequest } from './request-compiler.ts';
+import { ProviderRouter } from './provider-router.ts';
+import { canonicalizeUrl } from './url-normalize.ts';
+import { clusterSources } from './dedupe.ts';
+import { buildEvidenceClaim } from './evidence-graph.ts';
+import { classifyFreshness, rollUpFreshness } from './freshness.ts';
+import { buildEvidencePacket, sha256Hex } from './packet.ts';
+import type { QuantisEvidencePacket } from './types.ts';
 
 const PIPELINE_VERSION = '0.1.0';
 

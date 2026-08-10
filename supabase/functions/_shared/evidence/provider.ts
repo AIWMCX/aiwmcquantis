@@ -7,7 +7,7 @@
  * graph, and the numeric firewall all live in their own modules and never
  * need to know which provider a result came from beyond `providerId`.
  */
-import type { SourceLens } from './types';
+import type { SourceLens } from './types.ts';
 
 export interface ProviderSearchRequest {
   query: string;

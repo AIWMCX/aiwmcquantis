@@ -16,7 +16,7 @@
  * value extracted from a passage, but this module -- not the LLM -- is
  * what decides whether it is trustworthy enough to be labeled OBSERVED.
  */
-import type { NumericObservationStatus } from './types';
+import type { NumericObservationStatus } from './types.ts';
 
 /** Strips currency symbols, thousands separators, and whitespace, keeping only digits and one decimal point. */
 export function normalizeNumberString(raw: string): string {

@@ -13,7 +13,7 @@
  * independence is relevant to the CONTESTED determination in
  * evidence-graph.ts, not to how many confirmations exist.
  */
-import type { EvidenceClaimSupport, EvidenceSource } from './types';
+import type { EvidenceClaimSupport, EvidenceSource } from './types.ts';
 
 /**
  * Counts distinct independence clusters among a claim's SUPPORTS entries.

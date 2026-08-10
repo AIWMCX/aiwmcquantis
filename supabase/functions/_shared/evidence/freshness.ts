@@ -13,7 +13,7 @@
  * before (`freshness: 'UNKNOWN'` for every source, even ones with a real
  * publish date sitting right there unused).
  */
-import type { Freshness } from './types';
+import type { Freshness } from './types.ts';
 
 const CURRENT_WINDOW_DAYS = 180;
 const AGING_WINDOW_DAYS = 730;

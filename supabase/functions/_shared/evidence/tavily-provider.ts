@@ -21,8 +21,8 @@
  * (canPersist stays false pending real clarification on caching/
  * retention rights).
  */
-import type { EvidenceProvider, ProviderExecutionContext, ProviderResult, ProviderSearchRequest, ProviderSearchResult } from './provider';
-import { validateOutboundUrl } from './fetch-guard';
+import type { EvidenceProvider, ProviderExecutionContext, ProviderResult, ProviderSearchRequest, ProviderSearchResult } from './provider.ts';
+import { validateOutboundUrl } from './fetch-guard.ts';
 
 const TAVILY_ENDPOINT = 'https://api.tavily.com/search';
 const DEFAULT_TIMEOUT_MS = 8000; // Matches rvce-validate/index.ts's existing Tavily timeout.

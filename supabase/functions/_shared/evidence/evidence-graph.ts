@@ -15,8 +15,8 @@
  * review should treat direct `claim.status = ...` assignment outside this
  * file as a defect.
  */
-import type { ClaimStatus, EvidenceClaim, EvidenceClaimSupport, EvidenceSource, Freshness } from './types';
-import { computeSourceIndependenceCount, computeContradictionIndependenceCount } from './independence';
+import type { ClaimStatus, EvidenceClaim, EvidenceClaimSupport, EvidenceSource, Freshness } from './types.ts';
+import { computeSourceIndependenceCount, computeContradictionIndependenceCount } from './independence.ts';
 
 export interface DeriveClaimStatusOptions {
   /** If true, a claim whose freshness isn't CURRENT is forced to STALE regardless of support strength. */
