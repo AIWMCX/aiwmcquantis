@@ -63,7 +63,14 @@ function isApprovedNonProductionUrl(url: string | undefined): boolean {
   // start`) is always approved. Anything else must be an explicit
   // non-production hosted target -- approval comes from RLS_TEST_PROJECT_REF
   // being present and not equal to production, not from the URL shape.
-  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//.test(url);
+  // Fixed 2026-08-10: the trailing `\/` made this reject a bare origin with
+  // no path -- exactly what `supabase status -o env`'s API_URL actually is
+  // (e.g. "http://127.0.0.1:54321", no trailing slash), which is what this
+  // isolated CI workflow passes as RLS_TEST_SUPABASE_URL. That caused
+  // guardAgainstProduction() to throw on every real run, silently skipping
+  // all 35 real assertions in this suite -- confirmed live via this exact
+  // isolated CI test run, not a hypothetical.
+  return /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(url);
 }
 
 function guardAgainstProduction(): void {
