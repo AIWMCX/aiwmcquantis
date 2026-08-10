@@ -174,16 +174,25 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
   describe('service-role-only tables (usage_counters, analysis_attempts, leads, quote_gen_usage, analysis_cases)', () => {
     const tables = ['usage_counters', 'analysis_attempts', 'leads', 'quote_gen_usage', 'analysis_cases'];
     for (const table of tables) {
-      it(`anon SELECT on ${table} is denied with 403/42501 (no grant, not just RLS-filtered)`, async () => {
+      // Fixed 2026-08-10: confirmed live via this isolated CI replay --
+      // PostgREST/Kong returns 401, not 403, for the `anon` role
+      // specifically lacking a table grant (42501 insufficient_privilege is
+      // still the underlying Postgres error, but PostgREST maps it to 401
+      // "please authenticate" when the effective role came from no/anon
+      // credentials, reserving 403 for an authenticated-but-forbidden
+      // role). 401 + code 42501 is still a hard denial, not a soft
+      // RLS-filter -- the assertion below still fails a request that
+      // merely omits headers or otherwise resolves to a 200.
+      it(`anon SELECT on ${table} is denied with 401/42501 (no grant, not just RLS-filtered)`, async () => {
         const res = await anonFetch(`/${table}?select=id&limit=1`);
         const body = await res.json().catch(() => ({}));
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401);
         expect(res.headers.get('content-type')).toContain('application/json');
         expect(body.code).toBe('42501');
       });
-      it(`anon INSERT on ${table} is denied with 403/42501`, async () => {
+      it(`anon INSERT on ${table} is denied with 401/42501`, async () => {
         const res = await anonFetch(`/${table}`, { method: 'POST', body: JSON.stringify({}) });
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401);
       });
     }
   });
@@ -416,12 +425,12 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
       });
       it('anon cannot read or insert', async () => {
         const readRes = await anonFetch(`/invoices?id=eq.${seeded.invoices[0]}&select=id`);
-        expect(readRes.status).toBe(403);
+        expect(readRes.status).toBe(401); // anon role, no grant -- see the service-role-only-tables note above
         const insertRes = await anonFetch('/invoices', {
           method: 'POST',
           body: JSON.stringify({ user_id: userA.id, invoice_number: 'x', client_name: 'x' }),
         });
-        expect(insertRes.status).toBe(403);
+        expect(insertRes.status).toBe(401);
       });
       it('UPDATE and DELETE are unsupported for authenticated users (explicit, not assumed)', async () => {
         const updateRes = await userFetch(userA.token, `/invoices?id=eq.${seeded.invoices[0]}`, {
@@ -464,7 +473,7 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
       });
       it('anon has no access', async () => {
         const res = await anonFetch(`/export_jobs?id=eq.${seeded.export_jobs[0]}&select=id`);
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401); // anon role, no grant
       });
     });
 
@@ -481,7 +490,7 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
       });
       it('anon cannot enumerate the table', async () => {
         const res = await anonFetch('/shared_reports?select=id&limit=1');
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401); // anon role, no grant
       });
       it('valid share token returns one authorized report via the share-report edge function; invalid/revoked/expired return nothing', async () => {
         // The real public-sharing surface is GET /functions/v1/share-report
@@ -543,7 +552,7 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
       });
       it('anon cannot enumerate', async () => {
         const res = await anonFetch('/referral_codes?select=id&limit=1');
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(401); // anon role, no grant
       });
       it('get_referral_stats: A can read own stats via the RPC', async () => {
         const res = await userFetch(userA.token, '/rpc/get_referral_stats', {
@@ -570,8 +579,14 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
         expect(res.status).toBeLessThan(300);
       });
       it('ordinary authenticated user cannot SELECT', async () => {
+        // authenticated has table-level SELECT (needed so the admin policy
+        // can grant admins visibility) -- for a non-admin, RLS filters to
+        // zero rows, so this is 200 + [], not 403, matching the same
+        // RLS-filtered-not-forbidden pattern used for invoices/export_jobs
+        // "A cannot read B" above.
         const res = await userFetch(userA.token, '/funnel_events?select=id&limit=1');
-        expect(res.status).toBe(403);
+        expect(res.status).toBe(200);
+        expect(await res.json()).toEqual([]);
       });
       it('admin user can SELECT', async () => {
         const res = await userFetch(admin.token, '/funnel_events?select=id&limit=1');
