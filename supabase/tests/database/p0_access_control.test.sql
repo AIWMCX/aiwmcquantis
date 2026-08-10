@@ -196,24 +196,51 @@ SELECT is_empty(
 -- decision is not silently forgotten, not as claims that they are fixed.
 -- ============================================================
 
+-- Fixed 2026-08-10: confirmed live via the isolated CI pgTAP run --
+-- has_function_privilege('PUBLIC', ...) hard-errors "role \"PUBLIC\" does
+-- not exist" -- PUBLIC is GRANT/REVOKE syntax for "every role," not an
+-- actual row in pg_authid, so casting the literal string 'PUBLIC' to a
+-- role oid fails. The correct way to check for a PUBLIC grant is to look
+-- for the grantee='PUBLIC' marker row information_schema.routine_privileges
+-- carries for exactly this case.
 SELECT ok(
-  has_function_privilege('PUBLIC', 'public.get_next_invoice_number(uuid)', 'EXECUTE'),
+  EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE routine_schema = 'public' AND routine_name = 'get_next_invoice_number'
+      AND grantee = 'PUBLIC' AND privilege_type = 'EXECUTE'
+  ),
   'KNOWN OPEN FINDING: get_next_invoice_number still PUBLIC-executable (fix deferred pending scope decision)'
 );
 SELECT ok(
-  has_function_privilege('PUBLIC', 'public.get_referral_stats(uuid)', 'EXECUTE'),
+  EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE routine_schema = 'public' AND routine_name = 'get_referral_stats'
+      AND grantee = 'PUBLIC' AND privilege_type = 'EXECUTE'
+  ),
   'KNOWN OPEN FINDING: get_referral_stats still PUBLIC-executable, and its internal check fails open for anon (fix deferred pending scope decision)'
 );
 SELECT ok(
-  has_function_privilege('PUBLIC', 'public.complete_referral_signup(uuid,uuid)', 'EXECUTE'),
+  EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE routine_schema = 'public' AND routine_name = 'complete_referral_signup'
+      AND grantee = 'PUBLIC' AND privilege_type = 'EXECUTE'
+  ),
   'KNOWN OPEN FINDING: complete_referral_signup still PUBLIC-executable due to a signature-mismatch bug in migration 20260613022816 (fix deferred pending scope decision)'
 );
 SELECT ok(
-  has_function_privilege('PUBLIC', 'public.generate_referral_code(uuid)', 'EXECUTE'),
+  EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE routine_schema = 'public' AND routine_name = 'generate_referral_code'
+      AND grantee = 'PUBLIC' AND privilege_type = 'EXECUTE'
+  ),
   'KNOWN OPEN FINDING: generate_referral_code still PUBLIC-executable (fix deferred pending scope decision)'
 );
 SELECT ok(
-  has_function_privilege('PUBLIC', 'public.decrement_quote_gen_usage()', 'EXECUTE'),
+  EXISTS (
+    SELECT 1 FROM information_schema.routine_privileges
+    WHERE routine_schema = 'public' AND routine_name = 'decrement_quote_gen_usage'
+      AND grantee = 'PUBLIC' AND privilege_type = 'EXECUTE'
+  ),
   'KNOWN OPEN FINDING: decrement_quote_gen_usage still PUBLIC-executable, though functionally inert for anon since it keys off auth.uid() (fix deferred pending scope decision)'
 );
 
