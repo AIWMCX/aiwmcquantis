@@ -46,6 +46,15 @@ create table if not exists public.doc_templates (
 
 alter table public.doc_templates enable row level security;
 
+-- Fixed 2026-08-10: same root cause as the collision above -- the Feb-vintage
+-- doc_templates (which wins on replay) has template_json JSONB NOT NULL with
+-- NO default (this file's own version adds `default '{}'::jsonb`, but that
+-- never took effect against the already-existing table). The seed INSERT
+-- below never supplies template_json, relying on a default that isn't
+-- actually there on the active schema. SET DEFAULT is safe regardless of
+-- which schema generation is active (idempotent either way).
+alter table public.doc_templates alter column template_json set default '{}'::jsonb;
+
 drop policy if exists doc_templates_public_read on public.doc_templates;
 create policy doc_templates_public_read on public.doc_templates
   for select using (is_active = true);
