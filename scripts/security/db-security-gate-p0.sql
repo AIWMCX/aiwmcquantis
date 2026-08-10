@@ -47,13 +47,27 @@ expected_grants AS (
 -- the round-2 charge_free_analysis finding. Expected EXECUTE grantees are
 -- the post-remediation baseline -- anon/authenticated should hold EXECUTE
 -- here ONLY where a real, reviewed, intentional caller needs it.
+-- Fixed 2026-08-10: confirmed live via the isolated CI rollback rehearsal
+-- -- 'public.charge_free_analysis(text)'::regprocedure hard-errors
+-- "function ... does not exist" (the same out-of-band-only function
+-- documented and guarded elsewhere in this branch), which crashed this
+-- entire query under -v ON_ERROR_STOP=1. Because the crash produces empty
+-- stdout, and this gate's own pass condition is "empty output = zero
+-- findings = PASS," the crash was silently indistinguishable from a
+-- genuine clean pass -- this gate had never actually evaluated a single
+-- real check in this CI environment; it was passing by accident every
+-- time. Switched to to_regprocedure(), which resolves the same signature
+-- but returns NULL instead of erroring when the function is absent;
+-- filtered out below so a genuinely-missing function is correctly treated
+-- as "nothing to check here" rather than crashing the whole gate.
 incident_functions AS (
   SELECT * FROM (VALUES
-    ('public.charge_free_analysis(text)'::regprocedure,          ARRAY[]::name[]),
-    ('public.charge_free_analysis(text, boolean)'::regprocedure, ARRAY[]::name[]),
-    ('public.record_funnel_event(text, text, text, text, text, text, text, jsonb)'::regprocedure,
+    (to_regprocedure('public.charge_free_analysis(text)'),          ARRAY[]::name[]),
+    (to_regprocedure('public.charge_free_analysis(text, boolean)'), ARRAY[]::name[]),
+    (to_regprocedure('public.record_funnel_event(text, text, text, text, text, text, text, jsonb)'),
                                                                    ARRAY['anon','authenticated']::name[])
   ) AS t(function_signature, expected_execute_grantees)
+  WHERE t.function_signature IS NOT NULL
 ),
 
 unexpected_wide_open_policy AS (
