@@ -238,26 +238,30 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
   describe('owner-scoped read access', () => {
     it('user A reads their own evidence_packets row', async () => {
       const res = await userFetch(userA.token, `/evidence_packets?id=eq.${packetIdA}&select=id`);
-      expect(res.status).toBe(200);
-      expect(await res.json()).toHaveLength(1);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body).toHaveLength(1);
     });
 
     it('user A cannot read user B\'s evidence_packets row (RLS-filtered, not a hard error)', async () => {
       const res = await userFetch(userA.token, `/evidence_packets?id=eq.${packetIdB}&select=id`);
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body).toEqual([]);
     });
 
     it('user A reads their own evidence_sources row', async () => {
       const res = await userFetch(userA.token, `/evidence_sources?analysis_id=eq.${analysisIdA}&select=id`);
-      expect(res.status).toBe(200);
-      expect((await res.json()).length).toBeGreaterThan(0);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body.length).toBeGreaterThan(0);
     });
 
     it('user A cannot see user B\'s evidence_sources via analysis_id filter (cross-analysis, cross-tenant denial)', async () => {
       const res = await userFetch(userA.token, `/evidence_sources?analysis_id=eq.${analysisIdB}&select=id`);
-      expect(res.status).toBe(200);
-      expect(await res.json()).toEqual([]);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body).toEqual([]);
     });
   });
 
