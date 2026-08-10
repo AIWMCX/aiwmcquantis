@@ -194,7 +194,25 @@ CREATE POLICY funnel_events_admin_select
 --    usage_counters regardless of that table's REVOKE above (SECURITY
 --    DEFINER bypasses the caller's table grants entirely):
 --
---      charge_free_analysis(text)                -- introduced 20260610171342;
+--      charge_free_analysis(text)                -- NOT actually created by
+--                                                    any tracked migration
+--                                                    (corrected 2026-08-10:
+--                                                    the "introduced
+--                                                    20260610171342" claim
+--                                                    below was wrong -- that
+--                                                    migration only creates
+--                                                    the (text, boolean)
+--                                                    overload; confirmed via
+--                                                    direct read). Exists in
+--                                                    production only via
+--                                                    out-of-band creation --
+--                                                    same class as several
+--                                                    other functions/tables
+--                                                    found missing from
+--                                                    tracked history this
+--                                                    session. REVOKE/ALTER
+--                                                    below are guarded
+--                                                    accordingly;
 --                                                    missing search_path;
 --                                                    explicitly re-granted
 --                                                    anon/authenticated/
@@ -225,8 +243,23 @@ CREATE POLICY funnel_events_admin_select
 --    in a follow-up migration with a comment naming the caller.
 -- ============================================================
 
-REVOKE ALL ON FUNCTION public.charge_free_analysis(text) FROM PUBLIC, anon, authenticated, service_role;
-REVOKE ALL ON FUNCTION public.charge_free_analysis(text, boolean) FROM PUBLIC, anon, authenticated, service_role;
+-- Fixed 2026-08-10: charge_free_analysis(text) is not created by any
+-- tracked migration (confirmed by grep and by directly reading
+-- 20260610171342, which only creates the (text, boolean) overload) -- it
+-- exists in production only via out-of-band creation. Guarded with this
+-- repo's own established EXCEPTION WHEN undefined_function idiom (see the
+-- "Maintenance / cleanup" block in 20260613022816_...sql) so a fresh
+-- database replay doesn't abort on a function that may not exist there.
+-- The (text, boolean) overload IS genuinely created by 20260610171342, so
+-- its REVOKE/ALTER stay unguarded -- confirmed to always exist by this
+-- point in the chain.
+DO $$
+BEGIN
+  REVOKE ALL ON FUNCTION public.charge_free_analysis(text) FROM PUBLIC, anon, authenticated, service_role;
+  ALTER FUNCTION public.charge_free_analysis(text) SET search_path = public, pg_temp;
+EXCEPTION WHEN undefined_function THEN
+  RAISE NOTICE 'charge_free_analysis(text) does not exist on this database -- skipping (out-of-band-only function, not in tracked migration history)';
+END $$;
 
-ALTER FUNCTION public.charge_free_analysis(text) SET search_path = public, pg_temp;
+REVOKE ALL ON FUNCTION public.charge_free_analysis(text, boolean) FROM PUBLIC, anon, authenticated, service_role;
 ALTER FUNCTION public.charge_free_analysis(text, boolean) SET search_path = public, pg_temp;
