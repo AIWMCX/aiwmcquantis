@@ -145,8 +145,9 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     analysisIdB = bodyB[0].id;
     seeded.analyses = [analysisIdA, analysisIdB];
 
-    const packetPayload = (analysisId: string) => ({
+    const packetPayload = (analysisId: string, userId: string) => ({
       analysis_id: analysisId,
+      user_id: userId,
       query_plan_version: '0.1.0',
       provider_set_version: '0.1.0',
       ranking_version: '0.1.0',
@@ -157,8 +158,8 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     });
 
     const [packetResA, packetResB] = await Promise.all([
-      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdA)) }),
-      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdB)) }),
+      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdA, userA.id)) }),
+      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdB, userB.id)) }),
     ]);
     if (!packetResA.ok) throw new Error(`Failed to seed packet A: ${packetResA.status} ${await packetResA.text()}`);
     if (!packetResB.ok) throw new Error(`Failed to seed packet B: ${packetResB.status} ${await packetResB.text()}`);
@@ -171,6 +172,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
       method: 'POST',
       body: JSON.stringify({
         analysis_id: analysisIdA,
+        user_id: userA.id,
         evidence_packet_id: packetIdA,
         canonical_url: 'https://example.com/a',
         retrieved_at: new Date().toISOString(),
@@ -271,6 +273,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
         method: 'POST',
         body: JSON.stringify({
           analysis_id: analysisIdA,
+          user_id: userA.id,
           query_plan_version: '0.1.0',
           provider_set_version: '0.1.0',
           ranking_version: '0.1.0',
@@ -287,6 +290,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
         method: 'POST',
         body: JSON.stringify({
           analysis_id: analysisIdB,
+          user_id: userB.id,
           query_plan_version: '0.1.0',
           provider_set_version: '0.1.0',
           ranking_version: '0.1.0',
@@ -336,6 +340,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
         method: 'POST',
         body: JSON.stringify({
           analysis_id: analysisIdA,
+          user_id: userA.id,
           evidence_source_id: seeded.sources[0],
           text: 'This should be rejected -- source A is METADATA_ONLY.',
           extracted_at: new Date().toISOString(),
@@ -350,6 +355,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
         method: 'POST',
         body: JSON.stringify({
           analysis_id: analysisIdA,
+          user_id: userA.id,
           evidence_packet_id: packetIdA,
           canonical_url: 'https://example.com/allowed',
           retrieved_at: new Date().toISOString(),
@@ -370,6 +376,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
         method: 'POST',
         body: JSON.stringify({
           analysis_id: analysisIdA,
+          user_id: userA.id,
           evidence_source_id: allowedSource.id,
           text: 'This should be accepted.',
           extracted_at: new Date().toISOString(),

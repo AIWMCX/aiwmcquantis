@@ -10,13 +10,32 @@
 -- existing ai_calls-style pattern), not something this schema persists as
 -- canonical evidence.
 --
--- Ownership model: every table carries analysis_id, and RLS is enforced
--- by joining to public.analyses (the actual source of truth for who owns
--- an analysis) rather than a denormalized user_id copy on each row --
--- deliberately chosen over denormalization to eliminate any drift risk
--- between a copied user_id and the real owner, exactly the kind of gap
--- this project's own P0 access-control incident (2026-08-03,
--- docs/security/2026-08-03-p0-access/) was rooted in.
+-- Ownership model: every table carries both analysis_id AND a denormalized
+-- user_id column, enforced consistent with the real owner via a write-time
+-- trigger (below) rather than trusted by convention.
+--
+-- Revised 2026-08-10 from the original join-based design (RLS policies
+-- doing `EXISTS (SELECT 1 FROM analyses WHERE ... AND user_id = auth.uid())`).
+-- That design was proven live-broken by this exact isolated CI replay:
+-- `authenticated` reading its OWN evidence_packets row got 42501
+-- "permission denied for table subscriptions", because Postgres must
+-- evaluate ALL permissive SELECT policies on public.analyses to resolve
+-- the EXISTS subquery -- including "Pro team members read inheritance"
+-- (migration 20260504220238...sql), an unrelated pre-existing policy
+-- whose SECURITY DEFINER function joins to public.subscriptions. That
+-- table has its own independent, deliberately-restrictive grant surface,
+-- and the resulting permission error surfaced on THIS table's query even
+-- though this table has nothing to do with team/subscription features.
+--
+-- Rather than reach into and modify an orthogonal, already-shipped
+-- policy/table to fix a problem in a new feature branch, this schema
+-- denormalizes user_id directly onto every evidence_* row and checks
+-- `user_id = auth.uid()` with no join at all -- avoiding any dependency
+-- on `analyses`' other policies entirely. Consistency between the
+-- denormalized user_id and the analysis's real owner is enforced at
+-- write time (the only time it can drift, since only service_role ever
+-- writes here) by enforce_evidence_user_id_matches_analysis() below,
+-- applied to every table, for every role including service_role.
 --
 -- Security acceptance bar (explicit founder requirement, encoded below
 -- and re-verified by src/__tests__/evidence-service-rls.test.ts using
@@ -42,6 +61,7 @@
 CREATE TABLE IF NOT EXISTS public.evidence_requests (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   risk_class text NOT NULL,
   questions jsonb NOT NULL, -- EvidenceQuestion[]
   created_at timestamptz NOT NULL DEFAULT now()
@@ -55,6 +75,7 @@ CREATE INDEX IF NOT EXISTS evidence_requests_analysis_id_idx ON public.evidence_
 CREATE TABLE IF NOT EXISTS public.evidence_packets (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- = QuantisEvidencePacket.evidencePacketId
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_request_id uuid REFERENCES public.evidence_requests(id) ON DELETE SET NULL,
   query_plan_version text NOT NULL,
   provider_set_version text NOT NULL,
@@ -79,6 +100,7 @@ CREATE INDEX IF NOT EXISTS evidence_packets_analysis_id_idx ON public.evidence_p
 CREATE TABLE IF NOT EXISTS public.evidence_sources (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- = EvidenceSource.sourceId
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_packet_id uuid NOT NULL REFERENCES public.evidence_packets(id) ON DELETE CASCADE,
   canonical_url text NOT NULL,
   publisher text,
@@ -117,6 +139,7 @@ CREATE INDEX IF NOT EXISTS evidence_sources_packet_id_idx ON public.evidence_sou
 CREATE TABLE IF NOT EXISTS public.evidence_passages (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- = EvidencePassage.passageId
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_source_id uuid NOT NULL REFERENCES public.evidence_sources(id) ON DELETE CASCADE,
   text text NOT NULL,
   heading text,
@@ -166,6 +189,7 @@ CREATE TRIGGER evidence_passages_storage_policy_guard
 CREATE TABLE IF NOT EXISTS public.evidence_claims (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- = EvidenceClaim.claimId
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_packet_id uuid NOT NULL REFERENCES public.evidence_packets(id) ON DELETE CASCADE,
   statement text NOT NULL,
   support jsonb NOT NULL, -- EvidenceClaimSupport[]
@@ -184,6 +208,7 @@ CREATE INDEX IF NOT EXISTS evidence_claims_packet_id_idx ON public.evidence_clai
 CREATE TABLE IF NOT EXISTS public.numeric_observations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(), -- = NumericObservation.observationId
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_packet_id uuid NOT NULL REFERENCES public.evidence_packets(id) ON DELETE CASCADE,
   evidence_source_id uuid NOT NULL REFERENCES public.evidence_sources(id) ON DELETE CASCADE,
   evidence_passage_id uuid NOT NULL REFERENCES public.evidence_passages(id) ON DELETE CASCADE,
@@ -210,6 +235,7 @@ CREATE INDEX IF NOT EXISTS numeric_observations_packet_id_idx ON public.numeric_
 CREATE TABLE IF NOT EXISTS public.evidence_evaluations (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
   analysis_id uuid NOT NULL REFERENCES public.analyses(id) ON DELETE CASCADE,
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   evidence_packet_id uuid NOT NULL REFERENCES public.evidence_packets(id) ON DELETE CASCADE,
   metric_name text NOT NULL,
   metric_value numeric,
@@ -221,10 +247,60 @@ CREATE INDEX IF NOT EXISTS evidence_evaluations_analysis_id_idx ON public.eviden
 CREATE INDEX IF NOT EXISTS evidence_evaluations_packet_id_idx ON public.evidence_evaluations(evidence_packet_id);
 
 -- ============================================================
--- Row Level Security -- deny-by-default, owner-scoped-via-analyses-join,
--- explicit service_role grants (never assumed from bypassrls -- this
--- session's own P0 remediation work proved bypassrls does NOT imply
--- table-level GRANTs, a separate Postgres mechanism entirely).
+-- Write-time integrity guard -- every evidence_* row's denormalized
+-- user_id must match its analysis_id's real owner. Applied to ALL roles
+-- including service_role (the only writer), since this is a data
+-- integrity invariant, not an access-control boundary -- it must hold
+-- regardless of who is writing.
+-- ============================================================
+CREATE OR REPLACE FUNCTION public.enforce_evidence_user_id_matches_analysis()
+RETURNS trigger
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_owner uuid;
+BEGIN
+  SELECT user_id INTO v_owner FROM public.analyses WHERE id = NEW.analysis_id;
+
+  IF v_owner IS NULL THEN
+    RAISE EXCEPTION '%: referenced analysis_id % does not exist', TG_TABLE_NAME, NEW.analysis_id;
+  END IF;
+
+  IF NEW.user_id IS DISTINCT FROM v_owner THEN
+    RAISE EXCEPTION '%: user_id % does not match analysis % owner %', TG_TABLE_NAME, NEW.user_id, NEW.analysis_id, v_owner;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+DO $$
+DECLARE
+  tbl text;
+BEGIN
+  FOREACH tbl IN ARRAY ARRAY[
+    'evidence_requests', 'evidence_packets', 'evidence_sources',
+    'evidence_passages', 'evidence_claims', 'numeric_observations',
+    'evidence_evaluations'
+  ] LOOP
+    EXECUTE format('DROP TRIGGER IF EXISTS %I_user_id_guard ON public.%I', tbl, tbl);
+    EXECUTE format(
+      'CREATE TRIGGER %I_user_id_guard BEFORE INSERT OR UPDATE ON public.%I FOR EACH ROW EXECUTE FUNCTION public.enforce_evidence_user_id_matches_analysis()',
+      tbl, tbl
+    );
+    EXECUTE format('CREATE INDEX IF NOT EXISTS %I_user_id_idx ON public.%I(user_id)', tbl, tbl);
+  END LOOP;
+END $$;
+
+-- ============================================================
+-- Row Level Security -- deny-by-default, owner-scoped via denormalized
+-- user_id (no join to public.analyses -- see design-decision note at the
+-- top of this file for why), explicit service_role grants (never assumed
+-- from bypassrls -- this session's own P0 remediation work proved
+-- bypassrls does NOT imply table-level GRANTs, a separate Postgres
+-- mechanism entirely).
 -- ============================================================
 
 DO $$
@@ -257,9 +333,7 @@ END $$;
 DROP POLICY IF EXISTS evidence_requests_owner_select ON public.evidence_requests;
 CREATE POLICY evidence_requests_owner_select ON public.evidence_requests
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_requests.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_requests_service_all ON public.evidence_requests;
 CREATE POLICY evidence_requests_service_all ON public.evidence_requests
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -268,9 +342,7 @@ CREATE POLICY evidence_requests_service_all ON public.evidence_requests
 DROP POLICY IF EXISTS evidence_packets_owner_select ON public.evidence_packets;
 CREATE POLICY evidence_packets_owner_select ON public.evidence_packets
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_packets.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_packets_service_all ON public.evidence_packets;
 CREATE POLICY evidence_packets_service_all ON public.evidence_packets
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -279,9 +351,7 @@ CREATE POLICY evidence_packets_service_all ON public.evidence_packets
 DROP POLICY IF EXISTS evidence_sources_owner_select ON public.evidence_sources;
 CREATE POLICY evidence_sources_owner_select ON public.evidence_sources
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_sources.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_sources_service_all ON public.evidence_sources;
 CREATE POLICY evidence_sources_service_all ON public.evidence_sources
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -290,9 +360,7 @@ CREATE POLICY evidence_sources_service_all ON public.evidence_sources
 DROP POLICY IF EXISTS evidence_passages_owner_select ON public.evidence_passages;
 CREATE POLICY evidence_passages_owner_select ON public.evidence_passages
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_passages.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_passages_service_all ON public.evidence_passages;
 CREATE POLICY evidence_passages_service_all ON public.evidence_passages
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -301,9 +369,7 @@ CREATE POLICY evidence_passages_service_all ON public.evidence_passages
 DROP POLICY IF EXISTS evidence_claims_owner_select ON public.evidence_claims;
 CREATE POLICY evidence_claims_owner_select ON public.evidence_claims
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_claims.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_claims_service_all ON public.evidence_claims;
 CREATE POLICY evidence_claims_service_all ON public.evidence_claims
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -312,9 +378,7 @@ CREATE POLICY evidence_claims_service_all ON public.evidence_claims
 DROP POLICY IF EXISTS numeric_observations_owner_select ON public.numeric_observations;
 CREATE POLICY numeric_observations_owner_select ON public.numeric_observations
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = numeric_observations.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS numeric_observations_service_all ON public.numeric_observations;
 CREATE POLICY numeric_observations_service_all ON public.numeric_observations
   FOR ALL TO service_role USING (true) WITH CHECK (true);
@@ -323,15 +387,14 @@ CREATE POLICY numeric_observations_service_all ON public.numeric_observations
 DROP POLICY IF EXISTS evidence_evaluations_owner_select ON public.evidence_evaluations;
 CREATE POLICY evidence_evaluations_owner_select ON public.evidence_evaluations
   FOR SELECT TO authenticated
-  USING (EXISTS (
-    SELECT 1 FROM public.analyses a WHERE a.id = evidence_evaluations.analysis_id AND a.user_id = auth.uid()
-  ));
+  USING (user_id = auth.uid());
 DROP POLICY IF EXISTS evidence_evaluations_service_all ON public.evidence_evaluations;
 CREATE POLICY evidence_evaluations_service_all ON public.evidence_evaluations
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
--- No EXECUTE grants of any kind are made in this migration -- the only
--- function defined here (enforce_evidence_passage_storage_policy) is a
--- trigger function, invoked internally by the executor, never callable
--- directly via SQL by any role; it deliberately receives no explicit
--- GRANT EXECUTE to anon/authenticated/PUBLIC/service_role.
+-- No EXECUTE grants of any kind are made in this migration -- both
+-- functions defined here (enforce_evidence_passage_storage_policy,
+-- enforce_evidence_user_id_matches_analysis) are trigger functions,
+-- invoked internally by the executor, never callable directly via SQL by
+-- any role; neither receives an explicit GRANT EXECUTE to
+-- anon/authenticated/PUBLIC/service_role.
