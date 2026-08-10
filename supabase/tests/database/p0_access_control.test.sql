@@ -19,7 +19,11 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(24);
+-- Fixed 2026-08-10: confirmed live via the isolated CI pgTAP run -- this
+-- file actually contains 25 SELECT ok()/is_empty() assertions, not 24 (an
+-- off-by-one present since this file was first written but never executed
+-- until this session, per the header note above).
+SELECT plan(25);
 
 -- ============================================================
 -- Table-level: the ten incident tables must have zero anon/authenticated
@@ -51,25 +55,35 @@ SELECT is_empty(
      WHERE table_schema='public' AND table_name='analysis_cases' AND grantee IN ('anon','authenticated') $$,
   'analysis_cases: zero anon/authenticated grants'
 );
+-- Fixed 2026-08-10: confirmed live via the isolated CI pgTAP run -- unlike
+-- the five service-role-only tables above, invoices/export_jobs/
+-- shared_reports/referral_codes are owner-scoped tables the P0 migration
+-- deliberately grants to `authenticated` (GRANT SELECT, INSERT ON TABLE
+-- public.invoices TO authenticated; etc., right above in
+-- 20260804000000_p0_access_control_hardening.sql) so a real user can read/
+-- write their own rows -- RLS then scopes it to auth.uid() = user_id. The
+-- original "zero anon/authenticated grants" assertion below was never
+-- actually executed before this session (file header says so) and doesn't
+-- match that intentional design; only the ANON grant needs to be zero.
 SELECT is_empty(
   $$ SELECT 1 FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND table_name='invoices' AND grantee IN ('anon','authenticated') $$,
-  'invoices: zero anon/authenticated grants'
+     WHERE table_schema='public' AND table_name='invoices' AND grantee = 'anon' $$,
+  'invoices: zero anon grants (authenticated intentionally retains owner-scoped SELECT/INSERT)'
 );
 SELECT is_empty(
   $$ SELECT 1 FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND table_name='export_jobs' AND grantee IN ('anon','authenticated') $$,
-  'export_jobs: zero anon/authenticated grants'
+     WHERE table_schema='public' AND table_name='export_jobs' AND grantee = 'anon' $$,
+  'export_jobs: zero anon grants (authenticated intentionally retains owner-scoped SELECT/INSERT/UPDATE)'
 );
 SELECT is_empty(
   $$ SELECT 1 FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND table_name='shared_reports' AND grantee IN ('anon','authenticated') $$,
-  'shared_reports: zero anon/authenticated grants'
+     WHERE table_schema='public' AND table_name='shared_reports' AND grantee = 'anon' $$,
+  'shared_reports: zero anon grants (authenticated intentionally retains owner-scoped CRUD)'
 );
 SELECT is_empty(
   $$ SELECT 1 FROM information_schema.role_table_grants
-     WHERE table_schema='public' AND table_name='referral_codes' AND grantee IN ('anon','authenticated') $$,
-  'referral_codes: zero anon/authenticated grants'
+     WHERE table_schema='public' AND table_name='referral_codes' AND grantee = 'anon' $$,
+  'referral_codes: zero anon grants (authenticated intentionally retains owner-scoped SELECT)'
 );
 SELECT is_empty(
   $$ SELECT 1 FROM information_schema.role_table_grants
@@ -103,13 +117,30 @@ SELECT is_empty(
 -- charge_free_analysis: both overloads retained but fully closed.
 -- ============================================================
 
+-- Fixed 2026-08-10: confirmed live via the isolated CI pgTAP run --
+-- 'public.charge_free_analysis(text)'::regprocedure (and the
+-- has_function_privilege(role, text-signature, ...) overload, which casts
+-- the same way internally) HARD-ERRORS "function ... does not exist" when
+-- the function is genuinely absent, rather than returning false/NULL --
+-- unlike to_regprocedure(text), which resolves the same signature and
+-- returns NULL instead of erroring. That single unguarded assertion
+-- aborted the whole pgTAP script here (only 12/24 planned tests ran), on
+-- the exact function this branch's own migration already documented as
+-- "NOT actually created by any tracked migration ... exists in production
+-- only via out-of-band creation" (20260804000000_p0_access_control_
+-- hardening.sql). Rewritten to resolve the oid via to_regprocedure()
+-- first and treat a genuinely-absent function as trivially satisfying
+-- "EXECUTE revoked" / "search_path pinned", matching this repo's own
+-- established EXCEPTION WHEN undefined_function convention elsewhere.
 SELECT ok(
-  NOT has_function_privilege('anon', 'public.charge_free_analysis(text)', 'EXECUTE'),
-  'charge_free_analysis(text): anon EXECUTE revoked'
+  to_regprocedure('public.charge_free_analysis(text)') IS NULL
+    OR NOT has_function_privilege('anon', to_regprocedure('public.charge_free_analysis(text)'), 'EXECUTE'),
+  'charge_free_analysis(text): anon EXECUTE revoked (or function absent -- out-of-band-only)'
 );
 SELECT ok(
-  NOT has_function_privilege('authenticated', 'public.charge_free_analysis(text)', 'EXECUTE'),
-  'charge_free_analysis(text): authenticated EXECUTE revoked'
+  to_regprocedure('public.charge_free_analysis(text)') IS NULL
+    OR NOT has_function_privilege('authenticated', to_regprocedure('public.charge_free_analysis(text)'), 'EXECUTE'),
+  'charge_free_analysis(text): authenticated EXECUTE revoked (or function absent -- out-of-band-only)'
 );
 SELECT ok(
   NOT has_function_privilege('anon', 'public.charge_free_analysis(text, boolean)', 'EXECUTE'),
@@ -120,10 +151,11 @@ SELECT ok(
   'charge_free_analysis(text,boolean): authenticated EXECUTE revoked'
 );
 SELECT ok(
-  (SELECT bool_or(cfg LIKE 'search_path=%')
-     FROM pg_proc p, unnest(p.proconfig) cfg
-     WHERE p.oid = 'public.charge_free_analysis(text)'::regprocedure),
-  'charge_free_analysis(text): search_path is now pinned'
+  to_regprocedure('public.charge_free_analysis(text)') IS NULL
+    OR (SELECT bool_or(cfg LIKE 'search_path=%')
+          FROM pg_proc p, unnest(p.proconfig) cfg
+          WHERE p.oid = to_regprocedure('public.charge_free_analysis(text)')),
+  'charge_free_analysis(text): search_path is now pinned (or function absent -- out-of-band-only)'
 );
 SELECT ok(
   (SELECT bool_or(cfg LIKE 'search_path=%')
