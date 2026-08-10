@@ -4,6 +4,17 @@
 -- production, so the harness cannot complete its job. Reviewed proposal
 -- from quantis_accuracy_migration_proposal.sql, applied as-is (additive,
 -- RLS enabled on every table, service-role/admin access only).
+--
+-- Fixed 2026-08-10: this comment's own claim ("neither exist in production")
+-- is reassuring, not alarming, unlike the scenarios/DATA-5 finding earlier
+-- in this investigation -- it means both tables' earlier, unrelated Feb/Apr
+-- definitions (still in tracked history) were genuinely dropped out-of-band
+-- before this migration ran there, so this almost certainly applied cleanly
+-- to production already. The collision below only surfaces on a full-chain
+-- replay, which necessarily recreates the old tables first. Reconciled
+-- additively (ADD COLUMN IF NOT EXISTS for every genuinely new column) both
+-- here and for accuracy_runs below, matching this repo's existing
+-- convention over guessing.
 
 create table if not exists public.golden_test_vectors (
   id uuid primary key default gen_random_uuid(),
@@ -26,6 +37,19 @@ create table if not exists public.golden_test_vectors (
   updated_at timestamptz not null default now()
 );
 
+alter table public.golden_test_vectors add column if not exists vector_code text;
+alter table public.golden_test_vectors add column if not exists archetype text;
+alter table public.golden_test_vectors add column if not exists promotion_status text default 'candidate';
+alter table public.golden_test_vectors add column if not exists expected_statuses jsonb default '{}'::jsonb;
+alter table public.golden_test_vectors add column if not exists expected_invariants jsonb default '[]'::jsonb;
+alter table public.golden_test_vectors add column if not exists tolerance_pct numeric default 0.01;
+alter table public.golden_test_vectors add column if not exists oracle_method text;
+alter table public.golden_test_vectors add column if not exists oracle_version text;
+alter table public.golden_test_vectors add column if not exists reviewer_finance text;
+alter table public.golden_test_vectors add column if not exists reviewer_engineering text;
+alter table public.golden_test_vectors add column if not exists evidence_urls jsonb default '[]'::jsonb;
+alter table public.golden_test_vectors add column if not exists active boolean default true;
+
 create table if not exists public.accuracy_runs (
   id bigint generated always as identity primary key,
   run_id uuid not null default gen_random_uuid(),
@@ -45,6 +69,28 @@ create table if not exists public.accuracy_runs (
   output_hash text,
   created_at timestamptz not null default now()
 );
+
+-- Fixed 2026-08-10: accuracy_runs already existed (20260426215919_...sql,
+-- also guarded with IF NOT EXISTS, so neither CREATE TABLE conflicts --
+-- but the earlier, simpler schema wins on replay, missing every column this
+-- richer v1 design adds). Reconciled additively rather than replacing the
+-- table -- these are genuinely new columns (run_date, commit_sha, etc.),
+-- not a case of two conflicting designs for the same concept, so ADD COLUMN
+-- IF NOT EXISTS is a safe, faithful merge. Added broadly (not just the two
+-- columns the indexes below need) since nothing later in this file inserts
+-- into accuracy_runs, so there's no NOT NULL constraint to worry about --
+-- all added nullable.
+alter table public.accuracy_runs add column if not exists run_date timestamptz not null default now();
+alter table public.accuracy_runs add column if not exists formula_registry_version text;
+alter table public.accuracy_runs add column if not exists dataset_version text;
+alter table public.accuracy_runs add column if not exists commit_sha text;
+alter table public.accuracy_runs add column if not exists seed text;
+alter table public.accuracy_runs add column if not exists metric_results jsonb;
+alter table public.accuracy_runs add column if not exists invariant_results jsonb;
+alter table public.accuracy_runs add column if not exists worst_deviation_pct numeric;
+alter table public.accuracy_runs add column if not exists duration_ms integer;
+alter table public.accuracy_runs add column if not exists error_code text;
+alter table public.accuracy_runs add column if not exists output_hash text;
 
 create index if not exists accuracy_runs_vector_date_idx
   on public.accuracy_runs(vector_id, run_date desc);

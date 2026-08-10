@@ -39,6 +39,20 @@ CREATE TABLE public.analyses (
 
 ALTER TABLE public.analyses ENABLE ROW LEVEL SECURITY;
 
+-- Fixed 2026-08-10: every other table added later in this repo's history
+-- explicitly GRANTs to service_role (RLS bypass via bypassrls does NOT
+-- imply table-level privileges -- those are two separate Postgres
+-- mechanisms), but this original table never did, relying entirely on
+-- whatever default privileges happen to be configured. Confirmed live via
+-- this exact isolated CI replay: a fresh `supabase db reset` leaves
+-- service_role with zero grants on public.analyses ("permission denied for
+-- table analyses", 42501), breaking every edge function that writes here
+-- (analyze-business, promote-scenario-to-analysis, this test's own seeding).
+-- Production evidently has this grant from some out-of-band source (the
+-- app's core analysis-save path works live), so this is additive and safe
+-- to apply idempotently everywhere.
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.analyses TO service_role;
+
 CREATE POLICY "Users can view own analyses"
   ON public.analyses FOR SELECT
   TO authenticated

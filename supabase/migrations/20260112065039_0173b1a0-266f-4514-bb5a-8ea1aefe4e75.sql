@@ -12,6 +12,26 @@ DROP POLICY IF EXISTS "Service role full access" ON public.subscriptions;
 -- We'll use a security definer function to check for privileged access patterns
 
 -- Create a helper function to check if the request is from service role context
+--
+-- Fixed 2026-08-10: proven live-broken via an isolated CI replay -- a
+-- non-admin authenticated user (real Supabase-issued JWT, role
+-- 'authenticated') got 200 reading public.funnel_events, and
+-- get_referral_stats(p_user_id) let user A successfully read user B's
+-- stats despite its own internal `auth.uid() != p_user_id AND NOT
+-- is_service_role()` guard. Root cause: the original second OR branch,
+-- `current_setting('role', true) = 'service_role'`, reads the Postgres
+-- session's `role` GUC (last SET ROLE), NOT the caller's JWT role claim.
+-- Depending on how the Postgres connection pooler in front of PostgREST is
+-- configured (session mode vs. per-request SET ROLE), that GUC can reflect
+-- the pooler's own connection role rather than the authenticated caller's
+-- role -- on this local/CI stack it silently made is_service_role() return
+-- true for every caller, defeating every policy/function that depends on
+-- it. Replaced with the same JWT-claims-GUC read Supabase's own built-in
+-- auth.role() uses (request.jwt.claims, the single JSON GUC PostgREST
+-- always sets per-request, not the legacy flattened
+-- request.jwt.claim.role variant, which is empty on current PostgREST
+-- versions anyway) -- the one signal that is reliably the actual caller's
+-- role regardless of pooler topology.
 CREATE OR REPLACE FUNCTION public.is_service_role()
 RETURNS boolean
 LANGUAGE sql
@@ -19,8 +39,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT current_setting('request.jwt.claim.role', true) = 'service_role'
-    OR current_setting('role', true) = 'service_role'
+  SELECT COALESCE(
+    (current_setting('request.jwt.claims', true)::jsonb ->> 'role') = 'service_role',
+    false
+  )
 $$;
 
 -- Recreate the service role policy with proper check

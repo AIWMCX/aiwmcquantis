@@ -10,8 +10,24 @@
 --   - template usage analytics were never recorded
 -- This migration creates exactly the schema src/types/document.ts already
 -- specifies (that file was the de-facto spec, just never implemented).
+--
+-- Fixed 2026-08-10: all 6 tables this migration creates already had earlier,
+-- structurally similar (but not always identical -- e.g. old documents.user_id
+-- referenced public.profiles(id), this version references auth.users(id))
+-- definitions from Feb 2026 migrations, still present in this repo's tracked
+-- history. This file's own comment above states production was confirmed
+-- (via direct live query) to have NONE of these tables at the time this was
+-- written -- meaning the Feb tables were presumably dropped out-of-band
+-- before production ever reached this point, a gap a full-chain replay can't
+-- see. Rather than guess at reconciling two schema generations column-by-
+-- column (real risk of masking a genuine FK-target difference), every
+-- CREATE TABLE/INDEX below is now IF NOT EXISTS and every CREATE POLICY has
+-- a matching DROP POLICY IF EXISTS -- purely idempotent, no destructive
+-- action taken. If the Feb-vintage tables genuinely still exist somewhere,
+-- this will NOT reconcile their schema to match this file's intent silently;
+-- that remains open for direct investigation once DB access allows it.
 
-create table public.doc_templates (
+create table if not exists public.doc_templates (
   id uuid primary key default gen_random_uuid(),
   template_id text not null unique,
   name text not null,
@@ -30,6 +46,16 @@ create table public.doc_templates (
 
 alter table public.doc_templates enable row level security;
 
+-- Fixed 2026-08-10: same root cause as the collision above -- the Feb-vintage
+-- doc_templates (which wins on replay) has template_json JSONB NOT NULL with
+-- NO default (this file's own version adds `default '{}'::jsonb`, but that
+-- never took effect against the already-existing table). The seed INSERT
+-- below never supplies template_json, relying on a default that isn't
+-- actually there on the active schema. SET DEFAULT is safe regardless of
+-- which schema generation is active (idempotent either way).
+alter table public.doc_templates alter column template_json set default '{}'::jsonb;
+
+drop policy if exists doc_templates_public_read on public.doc_templates;
 create policy doc_templates_public_read on public.doc_templates
   for select using (is_active = true);
 
@@ -48,9 +74,10 @@ insert into public.doc_templates (template_id, name, description, category, tier
   ('financial-forecast', 'Financial Forecast', '3-scenario financial projections with pessimistic, base, and optimistic views.', 'financial', 'plus', 'BarChart3', '1'),
   ('partnership-proposal', 'Partnership Proposal', 'Professional partnership proposal with terms, responsibilities, and value proposition.', 'legal', 'plus', 'Users', '1'),
   ('founder-agreement', 'Founder Agreement', 'Co-founder equity, vesting, IP assignment, and governance agreement.', 'legal', 'plus', 'Users', '1'),
-  ('market-analysis', 'Market Analysis', 'Comprehensive market research with TAM/SAM/SOM, competition, and trends.', 'planning', 'plus', 'BarChart3', '1');
+  ('market-analysis', 'Market Analysis', 'Comprehensive market research with TAM/SAM/SOM, competition, and trends.', 'planning', 'plus', 'BarChart3', '1')
+ON CONFLICT (template_id) DO NOTHING;
 
-create table public.documents (
+create table if not exists public.documents (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   template_id uuid references public.doc_templates(id) on delete set null,
@@ -68,24 +95,28 @@ create table public.documents (
   deleted_at timestamptz
 );
 
-create index documents_user_id_idx on public.documents(user_id);
-create index documents_analysis_id_idx on public.documents(analysis_id);
+create index if not exists documents_user_id_idx on public.documents(user_id);
+create index if not exists documents_analysis_id_idx on public.documents(analysis_id);
 
 alter table public.documents enable row level security;
 
+drop policy if exists documents_owner_select on public.documents;
 create policy documents_owner_select on public.documents
   for select using (user_id = auth.uid());
+drop policy if exists documents_owner_insert on public.documents;
 create policy documents_owner_insert on public.documents
   for insert with check (user_id = auth.uid());
+drop policy if exists documents_owner_update on public.documents;
 create policy documents_owner_update on public.documents
   for update using (user_id = auth.uid()) with check (user_id = auth.uid());
+drop policy if exists documents_owner_delete on public.documents;
 create policy documents_owner_delete on public.documents
   for delete using (user_id = auth.uid());
 -- Signed share-token read access is a deliberate follow-up (needs an
 -- expiry-aware policy + edge function to mint tokens) — not added here to
 -- avoid a half-built anonymous-read surface.
 
-create table public.document_versions (
+create table if not exists public.document_versions (
   id uuid primary key default gen_random_uuid(),
   document_id uuid not null references public.documents(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -97,17 +128,26 @@ create table public.document_versions (
   unique(document_id, version_number)
 );
 
-create index document_versions_document_id_idx on public.document_versions(document_id);
+create index if not exists document_versions_document_id_idx on public.document_versions(document_id);
 
 alter table public.document_versions enable row level security;
 
+-- Fixed 2026-08-10: same collision as the rest of this file -- the
+-- Feb-vintage document_versions (which wins on replay) has no user_id
+-- column at all (only created_by), unlike this file's version. Added
+-- nullable rather than NOT NULL since we can't safely backfill existing
+-- rows (if any) with a real owner from a migration alone.
+alter table public.document_versions add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
+drop policy if exists document_versions_owner_select on public.document_versions;
 create policy document_versions_owner_select on public.document_versions
   for select using (user_id = auth.uid());
+drop policy if exists document_versions_owner_insert on public.document_versions;
 create policy document_versions_owner_insert on public.document_versions
   for insert with check (user_id = auth.uid());
 -- No update/delete: version history is immutable once written.
 
-create table public.document_exports (
+create table if not exists public.document_exports (
   id uuid primary key default gen_random_uuid(),
   document_id uuid references public.documents(id) on delete cascade,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -121,19 +161,22 @@ create table public.document_exports (
   completed_at timestamptz
 );
 
-create index document_exports_document_id_idx on public.document_exports(document_id);
-create index document_exports_user_id_idx on public.document_exports(user_id);
+create index if not exists document_exports_document_id_idx on public.document_exports(document_id);
+create index if not exists document_exports_user_id_idx on public.document_exports(user_id);
 
 alter table public.document_exports enable row level security;
 
+drop policy if exists document_exports_owner_select on public.document_exports;
 create policy document_exports_owner_select on public.document_exports
   for select using (user_id = auth.uid());
+drop policy if exists document_exports_owner_insert on public.document_exports;
 create policy document_exports_owner_insert on public.document_exports
   for insert with check (user_id = auth.uid());
+drop policy if exists document_exports_owner_update on public.document_exports;
 create policy document_exports_owner_update on public.document_exports
   for update using (user_id = auth.uid()) with check (user_id = auth.uid());
 
-create table public.doc_performance_signals (
+create table if not exists public.doc_performance_signals (
   id uuid primary key default gen_random_uuid(),
   document_id uuid references public.documents(id) on delete set null,
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -143,19 +186,21 @@ create table public.doc_performance_signals (
   created_at timestamptz not null default now()
 );
 
-create index doc_performance_signals_user_id_idx on public.doc_performance_signals(user_id);
+create index if not exists doc_performance_signals_user_id_idx on public.doc_performance_signals(user_id);
 
 alter table public.doc_performance_signals enable row level security;
 
+drop policy if exists doc_performance_signals_owner_select on public.doc_performance_signals;
 create policy doc_performance_signals_owner_select on public.doc_performance_signals
   for select using (user_id = auth.uid());
+drop policy if exists doc_performance_signals_owner_insert on public.doc_performance_signals;
 create policy doc_performance_signals_owner_insert on public.doc_performance_signals
   for insert with check (user_id = auth.uid());
 
 -- document_downloads: NOT keyed to doc_templates.id — useDocDownloadLimit.ts
 -- passes the raw TEMPLATE_CARDS slug (e.g. 'professional-invoice'), so
 -- template_id here is text, matching actual call-site behavior.
-create table public.document_downloads (
+create table if not exists public.document_downloads (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
   template_id text not null,
@@ -163,11 +208,13 @@ create table public.document_downloads (
   downloaded_at timestamptz not null default now()
 );
 
-create index document_downloads_user_id_downloaded_at_idx on public.document_downloads(user_id, downloaded_at);
+create index if not exists document_downloads_user_id_downloaded_at_idx on public.document_downloads(user_id, downloaded_at);
 
 alter table public.document_downloads enable row level security;
 
+drop policy if exists document_downloads_owner_select on public.document_downloads;
 create policy document_downloads_owner_select on public.document_downloads
   for select using (user_id = auth.uid());
+drop policy if exists document_downloads_owner_insert on public.document_downloads;
 create policy document_downloads_owner_insert on public.document_downloads
   for insert with check (user_id = auth.uid());

@@ -23,10 +23,33 @@ create table if not exists public.qoc_audit (
 grant select on public.qoc_audit to authenticated;
 grant all    on public.qoc_audit to service_role;
 
--- Idempotency lookups: most-recent PASS by fingerprint.
-create index if not exists qoc_audit_fp_idx
-  on public.qoc_audit (fingerprint, created_at desc)
-  where overall_verdict = 'PASS';
+-- Fixed 2026-08-10: this CREATE TABLE IF NOT EXISTS silently no-ops when
+-- public.qoc_audit already exists -- and it does, created earlier the same
+-- day by 20260624010000_qoc_audit_trail.sql with a completely different,
+-- incompatible schema (per-stage tracing: correlation_id/stage/ok, no
+-- overall_verdict column at all). That earlier migration wins on a replay,
+-- so the index below -- which depends on a column this table's real,
+-- currently-active schema doesn't have -- would abort the migration
+-- (42703, "column overall_verdict does not exist"), on production too, not
+-- just this CI replay. This later per-request-envelope design (request_id/
+-- fingerprint/overall_verdict/traces) matches supabase/functions/
+-- qoc-orchestrate/adapters.ts's putEnvelope(), which actually writes to a
+-- THIRD, differently-named table (qoc_audit_envelopes) -- strongly
+-- suggesting this migration was superseded/abandoned mid-development rather
+-- than ever taking effect. Guarded rather than assumed: only create the
+-- index if the column genuinely exists on whatever qoc_audit turns out to
+-- be at runtime, so this can never abort the migration either way.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'qoc_audit' AND column_name = 'overall_verdict'
+  ) THEN
+    EXECUTE 'create index if not exists qoc_audit_fp_idx on public.qoc_audit (fingerprint, created_at desc) where overall_verdict = ''PASS''';
+  ELSE
+    RAISE NOTICE 'qoc_audit.overall_verdict does not exist on this table (likely superseded by qoc_audit_envelopes) -- skipping fingerprint index';
+  END IF;
+END $$;
 
 -- Burst counting: user activity in a recent window.
 create index if not exists qoc_audit_user_time_idx
