@@ -23,6 +23,28 @@ COMMENT ON TABLE public.data_provenance IS
 
 ALTER TABLE public.data_provenance ENABLE ROW LEVEL SECURITY;
 
+-- Fixed 2026-08-10: this file's own CREATE TABLE IF NOT EXISTS above defines
+-- date_range_start/end as text, but this table was already created earlier
+-- (20260309045112_...sql, unconditional CREATE TABLE, no IF NOT EXISTS) with
+-- those same columns typed as `date` -- that earlier migration wins on a
+-- replay, so IF NOT EXISTS here silently no-ops the type difference away.
+-- The INSERT below uses bare-year literals ('2009', '2025', etc.), which
+-- are not valid `date` values (22007, invalid input syntax) but are exactly
+-- what a text column should hold. USING col::text is safe whether the
+-- column is currently date or already text (idempotent either way), so this
+-- doesn't need to branch on which schema actually won.
+ALTER TABLE public.data_provenance ALTER COLUMN date_range_start TYPE text USING date_range_start::text;
+ALTER TABLE public.data_provenance ALTER COLUMN date_range_end TYPE text USING date_range_end::text;
+
+-- Same root cause (the March schema won on replay, not this file's own
+-- CREATE TABLE IF NOT EXISTS): that schema also has dataset_type text NOT
+-- NULL with no default, but this file's design and its INSERT below never
+-- reference that column at all -- the later migration's own intent didn't
+-- consider it necessary. Rather than invent a per-row category value for
+-- each of these 6 real data sources (guessing business classification is
+-- worse than relaxing an unused constraint), drop the NOT NULL requirement.
+ALTER TABLE public.data_provenance ALTER COLUMN dataset_type DROP NOT NULL;
+
 DROP POLICY IF EXISTS "data_provenance public read" ON public.data_provenance;
 CREATE POLICY "data_provenance public read"
   ON public.data_provenance
