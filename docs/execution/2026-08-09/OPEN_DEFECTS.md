@@ -99,6 +99,36 @@ hypothesis, per the directive's evidence-first rule.
   #2/#3), or (b) local/CI reproduction once INFRA-1/INFRA-2 clear. The manual curl
   reproduction is achievable without CI and should be the next concrete action.
 
+## DATA-1 (new, UNVERIFIED, needs your check) — benchmark_master_geo may be unseeded in production
+
+- **Status:** `CODE_VERIFIED` the seed migration is broken as written; `UNVERIFIED`
+  whether production actually has rows in this table.
+- **Finding:** `20260608000001_benchmark_master_seed.sql`'s INSERT for
+  `benchmark_master_geo` (11 rows of pure geography cost/wage/rent multipliers)
+  never included `sector_level1` in its column list. Confirmed against the
+  real live schema (generated types, `src/integrations/supabase/types.ts`):
+  `sector_level1` is `TEXT NOT NULL` with no default in production too, not
+  just in the tracked migration file. **This exact statement would have
+  failed against production the same way it failed in this isolated CI
+  replay.**
+- **Two possibilities, not yet distinguished:** (a) this table genuinely has
+  zero rows in production — meaning geo-based benchmark multipliers
+  (cost-of-living/wage/rent adjustments by region) have been silently
+  unseeded this whole time — or (b) it was seeded successfully via a
+  different, uncommitted path (manual SQL, different values for
+  `sector_level1`) and the committed migration file just doesn't match what
+  actually ran.
+- **Fix applied to unblock CI replay:** added `'ALL'` as the `sector_level1`
+  value for all 11 rows (the only sensible cross-sector convention, since
+  every row here is intentionally sector-agnostic by design — no sector-
+  specific columns exist in this table at all). This is a reasonable guess,
+  not confirmed against whatever (if anything) production actually contains.
+- **Next action:** once DB access is restored (INFRA-3), run
+  `SELECT count(*) FROM benchmark_master_geo;` and `SELECT DISTINCT
+  sector_level1 FROM benchmark_master_geo;` against production directly to
+  resolve which scenario is true, and confirm `'ALL'` matches (or update it
+  to whatever the real value is) before this migration is considered final.
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.

@@ -316,22 +316,34 @@ ON CONFLICT DO NOTHING;
 
 -- ============================================================
 -- Step 6: SEED — benchmark_master_geo (US regions)
--- ============================================================
+-- Fixed 2026-08-10: this table's sector_level1 column is TEXT NOT NULL with
+-- no default (confirmed against the real live schema via generated types,
+-- src/integrations/supabase/types.ts -- Row/Insert both show
+-- `sector_level1: string`, never nullable, never optional), but this
+-- INSERT's own column list never included it -- every row here is a pure
+-- geography multiplier with no sector dimension by design. As originally
+-- written this statement would violate the NOT NULL constraint against
+-- production too, not just this CI replay -- flagged separately as a real
+-- open question (does benchmark_master_geo actually have rows in
+-- production right now?), not just a replay-safety issue. Added the
+-- 'ALL' sentinel (this table's only sensible cross-sector value, since
+-- every row is intentionally sector-agnostic) so the insert can succeed;
+-- confirm this matches whatever value (if any) production's real rows use.
 INSERT INTO public.benchmark_master_geo
-  (geo_region, country, city_tier,
+  (sector_level1, geo_region, country, city_tier,
    cost_of_living_index, wage_multiplier, rent_multiplier, consumer_spend_index, sample_size)
 VALUES
-('North America', 'US', 'tier1',   1.35, 1.28, 1.65, 1.22, 18500),
-('North America', 'US', 'tier2',   1.10, 1.08, 1.20, 1.08, 14200),
-('North America', 'US', 'tier3',   0.88, 0.92, 0.85, 0.92,  8900),
-('North America', 'US', NULL,      1.00, 1.00, 1.00, 1.00, 22000),
-('North America', 'CA', NULL,      1.05, 0.95, 1.10, 0.98,  6200),
-('Europe',        'GB', 'tier1',   1.25, 1.18, 1.55, 1.15,  7800),
-('Europe',        'GB', NULL,      1.05, 1.02, 1.10, 1.02,  5400),
-('Europe',        'DE', NULL,      1.00, 1.05, 1.08, 1.00,  4900),
-('Europe',        'FR', NULL,      1.05, 1.02, 1.15, 1.02,  3800),
-('Asia Pacific',  'AU', NULL,      1.10, 1.08, 1.20, 1.05,  3200),
-('Asia Pacific',  'SG', NULL,      1.30, 1.22, 1.45, 1.18,  2800)
+('ALL', 'North America', 'US', 'tier1',   1.35, 1.28, 1.65, 1.22, 18500),
+('ALL', 'North America', 'US', 'tier2',   1.10, 1.08, 1.20, 1.08, 14200),
+('ALL', 'North America', 'US', 'tier3',   0.88, 0.92, 0.85, 0.92,  8900),
+('ALL', 'North America', 'US', NULL,      1.00, 1.00, 1.00, 1.00, 22000),
+('ALL', 'North America', 'CA', NULL,      1.05, 0.95, 1.10, 0.98,  6200),
+('ALL', 'Europe',        'GB', 'tier1',   1.25, 1.18, 1.55, 1.15,  7800),
+('ALL', 'Europe',        'GB', NULL,      1.05, 1.02, 1.10, 1.02,  5400),
+('ALL', 'Europe',        'DE', NULL,      1.00, 1.05, 1.08, 1.00,  4900),
+('ALL', 'Europe',        'FR', NULL,      1.05, 1.02, 1.15, 1.02,  3800),
+('ALL', 'Asia Pacific',  'AU', NULL,      1.10, 1.08, 1.20, 1.05,  3200),
+('ALL', 'Asia Pacific',  'SG', NULL,      1.30, 1.22, 1.45, 1.18,  2800)
 ON CONFLICT DO NOTHING;
 
 -- ============================================================
