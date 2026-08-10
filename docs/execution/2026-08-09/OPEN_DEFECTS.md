@@ -231,6 +231,50 @@ hypothesis, per the directive's evidence-first rule.
   column list via `information_schema.columns` and confirm this
   reconstruction is complete, or extend it.
 
+## DATA-5 (CRITICAL, new) — the entire Phase D Scenario Workspace feature has no database tables in production
+
+- **Status:** `PROD_VERIFIED` (via generated types, real live schema).
+- **Finding:** `20260730084255_scenario_framework_foundation.sql` (the
+  "Phase D" scenario-ledger migration -- `scenario_sets`, `scenarios`
+  [new ledger design], `scenario_versions`, `scenario_runs`) creates a
+  `scenarios` table with no `IF NOT EXISTS` guard. A table named
+  `public.scenarios` already existed from an earlier, unrelated migration
+  (`20260308082036_...sql`) -- a flat, single-row Monte-Carlo design
+  (`params`/`output`/`monte_carlo_result`/`confidence_score`/`scenario_type`),
+  completely different from the new ledger design. The `CREATE TABLE`
+  collision aborted the statement.
+- **Why this is critical, not just a replay issue:** confirmed against
+  `src/integrations/supabase/types.ts` (generated from the real live
+  database) that production's `scenarios` table **still has the OLD March
+  shape today** -- and that `scenario_sets`, `scenario_versions`, and
+  `scenario_runs` **do not exist in production at all**. Since a migration
+  file runs as one transaction by default, the `scenarios` collision (the
+  second `CREATE TABLE` in the file) rolled back the entire migration,
+  including `scenario_sets` (the first, otherwise-uncontested statement).
+- **Practical impact:** the entire Phase D Scenario Workspace feature --
+  reported complete through "Phase D-14: Deploy + register in CI + live
+  verify sensitivity/breakpoint" -- has never actually had its foundational
+  tables created in production. Every dependent piece
+  (`create-scenario-set`, `run-scenario`, `promote-scenario` edge functions,
+  the `/app/scenarios` UI, sensitivity/breakpoint analysis) has had nothing
+  real to write to or read from since it shipped. Whatever "live
+  verification" happened for Phase D must not have caught this, or verified
+  against a different environment.
+- **Fix applied (to this branch, unblocking CI replay):** a non-destructive
+  rename -- `ALTER TABLE public.scenarios RENAME TO
+  scenarios_legacy_monte_carlo` when the old shape is detected (checked via
+  a real column, `params`, that only the old design has), before creating
+  the new ledger table. Data-preserving, not a drop.
+- **This is a real candidate fix for production, not just a CI patch** --
+  but renaming a live production table is a genuinely consequential action
+  that needs your explicit review before this migration is ever applied
+  there. Flagged prominently, not decided unilaterally.
+- **Next action:** this deserves priority attention separate from the P0
+  access-control work this branch primarily exists for. Once you've
+  reviewed the rename approach (or specify a different resolution), this
+  migration can be applied to production to actually stand up the Phase D
+  feature's tables for the first time.
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.

@@ -27,6 +27,46 @@ create policy scenario_sets_owner_update on public.scenario_sets
 create policy scenario_sets_owner_delete on public.scenario_sets
   for delete using (user_id = auth.uid());
 
+-- ============================================================================
+-- CRITICAL FINDING 2026-08-10: public.scenarios already existed before this
+-- migration (created unconditionally by 20260308082036_...sql, a flat,
+-- single-row-per-scenario Monte-Carlo design: analysis_id/params/output/
+-- monte_carlo_result/confidence_score/scenario_type -- completely different
+-- from the ledger design below). This CREATE TABLE (no IF NOT EXISTS)
+-- collided with it.
+--
+-- Confirmed against the real live schema (generated types,
+-- src/integrations/supabase/types.ts): production's scenarios table STILL
+-- has the OLD March shape today. Also confirmed scenario_sets/
+-- scenario_versions/scenario_runs -- the other three tables this exact
+-- migration file creates -- do NOT exist in production at all. Since a
+-- migration file runs as one transaction by default, this table-name
+-- collision on the SECOND create table statement rolled back the ENTIRE
+-- file, including scenario_sets (the first, otherwise-uncontested
+-- statement). This means the whole Phase D scenario-ledger foundation --
+-- despite being reported complete through "Phase D-14: live verification"
+-- -- never actually applied to production. Every feature depending on it
+-- (create-scenario-set/run-scenario/promote-scenario edge functions, the
+-- ScenarioWorkspace UI) has had nothing to write to.
+--
+-- Fix: rename the pre-existing legacy table out of the way (non-destructive
+-- -- preserves whatever data it has) rather than drop anything, so the new
+-- ledger table can be created cleanly. This is written as a real candidate
+-- fix for production, not just a CI-replay patch -- but renaming a live
+-- production table is exactly the kind of action that needs explicit
+-- founder review before this migration is ever applied there. Flagged
+-- prominently; not a decision made unilaterally.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'scenarios' AND column_name = 'params'
+  ) THEN
+    ALTER TABLE public.scenarios RENAME TO scenarios_legacy_monte_carlo;
+    RAISE NOTICE 'Renamed pre-existing legacy scenarios table (flat Monte-Carlo design) to scenarios_legacy_monte_carlo to make way for the Phase D ledger design -- data preserved, not dropped.';
+  END IF;
+END $$;
+
 create table public.scenarios (
   id uuid primary key default gen_random_uuid(),
   scenario_set_id uuid not null references public.scenario_sets(id) on delete cascade,
