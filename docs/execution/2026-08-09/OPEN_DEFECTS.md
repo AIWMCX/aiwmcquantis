@@ -154,6 +154,48 @@ hypothesis, per the directive's evidence-first rule.
   silently failing or behaving unexpectedly on every webhook delivery --
   worth checking against BILL-1 (Stripe E2E, already flagged as unverified).
 
+## DATA-3 (new, connects directly to QOC-1) — three different tables all named/related to "qoc_audit", only one of which the deployed code actually uses
+
+- **Status:** `CODE_VERIFIED`.
+- **Finding:** the migration chain contains two *completely different* table
+  designs both created as `public.qoc_audit`:
+  - `20260624010000_qoc_audit_trail.sql` (earlier, wins on replay): per-stage
+    tracing, `correlation_id`/`stage`/`ok`/`duration_ms`, one row per
+    pipeline stage.
+  - `20260624054320_...sql` (later, silently no-ops on `CREATE TABLE IF NOT
+    EXISTS` since the table already exists from the file above): a
+    per-request envelope design — `request_id`/`fingerprint`/
+    `overall_verdict`/`traces`/`short_circuit` — that never actually took
+    effect, confirmed because it broke this migration's own index creation
+    (the column it depends on was never added).
+  - **Neither of these is `qoc_audit_envelopes`** — the table
+    `supabase/functions/qoc-orchestrate/adapters.ts`'s `putEnvelope()`
+    actually writes to, confirmed by direct source read earlier this session
+    during the QOC-1 investigation (Workstream 7). That table's own creation
+    migration hasn't been located in this pass.
+  - The later `qoc_audit` design's column shape
+    (`request_id`/`fingerprint`/`overall_verdict`/`traces`/`short_circuit`)
+    matches `qoc_audit_envelopes`'s real shape almost exactly — strongly
+    suggesting a developer built `qoc_audit` first, then renamed/rebuilt it
+    as `qoc_audit_envelopes` mid-development, and this abandoned migration
+    was left in the chain never having actually applied.
+- **Relevance to QOC-1** (this session's earlier finding that
+  `qoc_audit_envelopes` has 0 rows despite the P0-14 awaited-call fix):
+  this doesn't change that finding, but it does confirm the QOC audit-trail
+  concept went through at least 3 distinct schema attempts
+  (`qoc_audit` per-stage, `qoc_audit` per-request [abandoned],
+  `qoc_audit_envelopes` per-request [live]) — worth knowing when tracing
+  QOC-1 further, so as not to mistake evidence about the wrong table for
+  evidence about the one the deployed code actually uses.
+- **Fix applied:** guarded the later migration's index creation with a
+  column-existence check rather than assuming which schema is "correct" —
+  this is a real architectural decision (which qoc_audit design, if either,
+  should still exist) that shouldn't be resolved by a CI-unblocking patch.
+- **Next action:** worth a deliberate decision on whether the abandoned
+  per-stage `qoc_audit` table (which DOES currently exist per this replay)
+  is still wanted, or should be dropped in a follow-up migration once its
+  production status is confirmed.
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.
