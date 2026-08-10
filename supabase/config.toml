@@ -78,9 +78,6 @@ verify_jwt = false
 [functions.warm-functions]
 verify_jwt = false
 
-[functions.referral-reward]
-verify_jwt = false
-
 [functions.generate-document-content]
 verify_jwt = false
 
