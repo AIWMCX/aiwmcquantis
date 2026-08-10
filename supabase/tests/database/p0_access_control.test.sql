@@ -225,17 +225,34 @@ SELECT is_empty(
 -- ignoring grantor entirely -- the correct, grantor-independent way to
 -- ask "can literally anyone execute this," covering both the explicit-
 -- and implicit-default-ACL cases from round 2.
+-- Fixed 2026-08-10 (round 4): with the aclexplode() check actually working
+-- correctly (round 3), the live evidence across two consecutive CI runs
+-- shows 4 of these 5 "KNOWN OPEN FINDING" claims are stale -- they were
+-- already independently closed by migrations elsewhere in this repo's
+-- history, using the exact matching function signature (unlike
+-- complete_referral_signup below, which genuinely remains open because
+-- its revoke targeted the wrong signature):
+--   - get_next_invoice_number(uuid) / get_referral_stats(uuid): revoked
+--     from PUBLIC/anon in 20260613022816's "Authenticated-only user
+--     helpers" block, correct signature.
+--   - generate_referral_code(uuid): revoked from PUBLIC/anon in
+--     20260613022816's "PII / referral / lead helpers" block, correct
+--     signature.
+--   - decrement_quote_gen_usage(): revoked from PUBLIC directly in its
+--     origin migration, 20260611120000, correct (zero-arg) signature.
+-- Flipped to assert the now-verified-closed state rather than leave a
+-- regression lock permanently red for findings that are no longer true.
 SELECT ok(
-  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
-     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-     WHERE p.oid = 'public.get_next_invoice_number(uuid)'::regprocedure),
-  'KNOWN OPEN FINDING: get_next_invoice_number still PUBLIC-executable (fix deferred pending scope decision)'
+  NOT (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+         FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+         WHERE p.oid = 'public.get_next_invoice_number(uuid)'::regprocedure),
+  'get_next_invoice_number: PUBLIC EXECUTE revoked (verified closed, 20260613022816)'
 );
 SELECT ok(
-  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
-     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-     WHERE p.oid = 'public.get_referral_stats(uuid)'::regprocedure),
-  'KNOWN OPEN FINDING: get_referral_stats still PUBLIC-executable, and its internal check fails open for anon (fix deferred pending scope decision)'
+  NOT (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+         FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+         WHERE p.oid = 'public.get_referral_stats(uuid)'::regprocedure),
+  'get_referral_stats: PUBLIC EXECUTE revoked (verified closed, 20260613022816); internal auth.uid() check also verified live via the RLS integration suite'
 );
 SELECT ok(
   (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
@@ -244,16 +261,16 @@ SELECT ok(
   'KNOWN OPEN FINDING: complete_referral_signup still PUBLIC-executable due to a signature-mismatch bug in migration 20260613022816 (fix deferred pending scope decision)'
 );
 SELECT ok(
-  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
-     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-     WHERE p.oid = 'public.generate_referral_code(uuid)'::regprocedure),
-  'KNOWN OPEN FINDING: generate_referral_code still PUBLIC-executable (fix deferred pending scope decision)'
+  NOT (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+         FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+         WHERE p.oid = 'public.generate_referral_code(uuid)'::regprocedure),
+  'generate_referral_code: PUBLIC EXECUTE revoked (verified closed, 20260613022816)'
 );
 SELECT ok(
-  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
-     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
-     WHERE p.oid = 'public.decrement_quote_gen_usage()'::regprocedure),
-  'KNOWN OPEN FINDING: decrement_quote_gen_usage still PUBLIC-executable, though functionally inert for anon since it keys off auth.uid() (fix deferred pending scope decision)'
+  NOT (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+         FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+         WHERE p.oid = 'public.decrement_quote_gen_usage()'::regprocedure),
+  'decrement_quote_gen_usage: PUBLIC EXECUTE revoked (verified closed, 20260611120000)'
 );
 
 SELECT * FROM finish();
