@@ -33,11 +33,32 @@ WITH incident_tables AS (
 -- tables. Every row here was deliberately chosen in the P0 migration; any
 -- grant found in role_table_grants that isn't in this list is a
 -- regression back toward the original incident, not a false positive.
+--
+-- Fixed 2026-08-10: confirmed live via the isolated CI P0 gate run --
+-- this list only allowlisted funnel_events' authenticated SELECT and
+-- treated every other authenticated grant as a violation, but
+-- invoices/export_jobs/shared_reports/referral_codes are owner-scoped
+-- tables the SAME P0 migration (20260804000000_p0_access_control_
+-- hardening.sql) deliberately grants authenticated SELECT/INSERT/UPDATE/
+-- DELETE on (RLS then scopes to auth.uid()) -- only usage_counters/
+-- analysis_attempts/leads/quote_gen_usage/analysis_cases are genuinely
+-- service-role-only with zero anon/authenticated grants. Expanded to
+-- match that migration's own GRANT statements exactly.
 expected_grants AS (
   SELECT * FROM (VALUES
-    ('funnel_events', 'authenticated', 'SELECT')
-    -- All nine other incident tables expect ZERO anon/authenticated grants
-    -- of any kind (service_role-only or owner-scoped-via-RLS-and-RPC-only).
+    ('funnel_events', 'authenticated', 'SELECT'),
+    ('invoices', 'authenticated', 'SELECT'),
+    ('invoices', 'authenticated', 'INSERT'),
+    ('export_jobs', 'authenticated', 'SELECT'),
+    ('export_jobs', 'authenticated', 'INSERT'),
+    ('export_jobs', 'authenticated', 'UPDATE'),
+    ('shared_reports', 'authenticated', 'SELECT'),
+    ('shared_reports', 'authenticated', 'INSERT'),
+    ('shared_reports', 'authenticated', 'UPDATE'),
+    ('shared_reports', 'authenticated', 'DELETE'),
+    ('referral_codes', 'authenticated', 'SELECT')
+    -- usage_counters/analysis_attempts/leads/quote_gen_usage/analysis_cases
+    -- expect ZERO anon/authenticated grants of any kind (service-role-only).
   ) AS t(tablename, grantee, privilege_type)
 ),
 
