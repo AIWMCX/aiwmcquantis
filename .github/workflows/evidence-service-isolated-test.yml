@@ -1,0 +1,78 @@
+name: Evidence Service — Isolated Supabase Test (GitHub-hosted)
+
+# PR E5 (Quantis Evidence Service persistence + RLS). Mirrors
+# security-p0-isolated-test.yml's proven pattern: a fresh, disposable,
+# GitHub-hosted Supabase stack replays the FULL migration chain from
+# empty (main's ~220 existing migrations plus this branch's new
+# 20260810090000_evidence_service_schema.sql), then the real
+# cross-identity RLS suite runs against it using genuine Supabase-issued
+# JWTs -- never pgTAP/grant-checking alone, which this repo's own P0 work
+# proved can miss real bugs (e.g. is_service_role() silently always-true).
+#
+# Branch-scoped only, not part of the normal CI gate on main. Never
+# touches production credentials or the production project. Runner is
+# destroyed automatically on completion.
+
+on:
+  push:
+    branches: [feature/evidence-service]
+  workflow_dispatch: {}
+
+jobs:
+  isolated-evidence-service-test:
+    name: Isolated Supabase Evidence Service test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Supabase CLI
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: supabase start (isolated, GitHub-hosted, disposable)
+        run: npx supabase start
+
+      - name: supabase db reset — full migration replay from empty
+        run: npx supabase db reset
+
+      - name: Capture local connection info
+        id: local
+        run: |
+          npx supabase status -o env > supabase-status.env
+          cat supabase-status.env | sed 's/=.*/=<redacted-in-log>/'
+          {
+            echo "api_url=$(grep '^API_URL=' supabase-status.env | cut -d= -f2- | tr -d '"')"
+          } >> "$GITHUB_OUTPUT"
+          echo "ANON_KEY=$(grep '^ANON_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          echo "SERVICE_ROLE_KEY=$(grep '^SERVICE_ROLE_KEY=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          echo "API_URL=$(grep '^API_URL=' supabase-status.env | cut -d= -f2- | tr -d '"')" >> "$GITHUB_ENV"
+          rm supabase-status.env
+
+      - name: Evidence Service RLS integration suite (cross-identity matrix)
+        env:
+          RUN_RLS_INTEGRATION_TESTS: "true"
+          RLS_TEST_SUPABASE_URL: ${{ steps.local.outputs.api_url }}
+          RLS_TEST_ANON_KEY: ${{ env.ANON_KEY }}
+          RLS_TEST_SERVICE_ROLE_KEY: ${{ env.SERVICE_ROLE_KEY }}
+          RLS_TEST_PROJECT_REF: "github-ci-local-ephemeral"
+        run: bunx vitest run src/__tests__/evidence-service-rls.test.ts --reporter=verbose
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "## Evidence Service isolated test — summary"
+            echo ""
+            echo "Target: GitHub-hosted, disposable, ephemeral local Supabase stack."
+            echo "Never touched production. Runner is destroyed automatically on job completion."
+          } >> "$GITHUB_STEP_SUMMARY"
