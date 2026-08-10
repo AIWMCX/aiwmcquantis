@@ -166,6 +166,10 @@ REVOKE ALL ON TABLE public.funnel_events FROM anon, authenticated;
 -- authenticated never gets INSERT/UPDATE/DELETE/TRUNCATE on this table;
 -- the RPC remains the only write path.
 GRANT SELECT ON TABLE public.funnel_events TO authenticated;
+-- Fixed 2026-08-10: the FOR ALL TO service_role policy below grants row
+-- visibility, not table privilege -- service_role never had an explicit
+-- table GRANT here either (same class of gap as section 5 below).
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.funnel_events TO service_role;
 DROP POLICY IF EXISTS funnel_events_svc ON public.funnel_events;
 CREATE POLICY funnel_events_service_only
   ON public.funnel_events
@@ -263,3 +267,24 @@ END $$;
 
 REVOKE ALL ON FUNCTION public.charge_free_analysis(text, boolean) FROM PUBLIC, anon, authenticated, service_role;
 ALTER FUNCTION public.charge_free_analysis(text, boolean) SET search_path = public, pg_temp;
+
+-- ============================================================
+-- 5. Added 2026-08-10: missing service_role table grants, found via this
+--    exact isolated CI replay ("permission denied for table analyses",
+--    42501). RLS bypassrls (which service_role has) only skips row-level
+--    policies -- it does not confer table-level SELECT/INSERT/UPDATE/DELETE,
+--    a separate Postgres privilege that must be granted explicitly. Every
+--    table this branch's own edge functions and this suite's service-role
+--    seeding write to was checked; the four below (plus public.analyses,
+--    fixed at its origin migration 20251127185736) had never received an
+--    explicit service_role grant anywhere in tracked history and relied
+--    entirely on ambient default privileges that do not reliably apply on a
+--    fresh `supabase db reset` replay. Production evidently has these
+--    already (the live app's invoice/export/share/referral/funnel-logging
+--    paths all work), so this is additive and safe everywhere.
+-- ============================================================
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.invoices TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.export_jobs TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shared_reports TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.referral_codes TO service_role;
+GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.user_roles TO service_role;
