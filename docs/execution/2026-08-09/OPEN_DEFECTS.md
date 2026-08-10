@@ -40,6 +40,25 @@ hypothesis, per the directive's evidence-first rule.
   "no production credentials in CI" constraint — running these tests locally would
   require the separately-blocked Docker/WSL2 fix instead.
 
+## INFRA-3 (new this session, blocking further live-DB verification) — Supabase DB MCP permission loss
+
+- **Status:** `PROD_VERIFIED` as a tooling fact this session. During Workstream 2
+  work, the Supabase DB MCP (`execute_sql`, `get_advisors`) began failing every
+  call, including a trivial `SELECT 1`, with `MCP error -32600: You do not have
+  permission to perform this action`. This happened mid-session, after several
+  successful queries earlier (live DB snapshot, qoc_audit_envelopes count) —
+  something changed the tool's access mid-session, not a pre-existing condition.
+- **Impact:** blocks live re-verification of current grant state (the Workstream 2
+  function matrix's grant columns are carried forward from a 2026-08-04 snapshot,
+  not re-confirmed live this session), and blocks any further direct production
+  DB queries generally until resolved.
+- **Not retried in a loop** per standing instruction against retrying failing
+  commands — confirmed failing on 3 different call types (execute_sql twice,
+  get_advisors once) before stopping.
+- **Next action:** unclear owner — may self-resolve (a session/token expiry) or
+  may need the founder to check the Supabase MCP connection's own permission
+  scope. Flagging for awareness; not blocking on it further this session.
+
 ## INFRA-2 (blocking, independent of INFRA-1) — Local Docker/WSL2 failure
 
 - **Status:** `HISTORICAL`, not re-attempted this session. Independent infrastructure
