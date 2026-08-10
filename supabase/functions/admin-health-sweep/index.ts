@@ -25,7 +25,7 @@ const FUNCTIONS = [
   "doc-queue-worker","entitlements-snapshot","export-document","generate-document",
   "generate-document-content","generate-idea","health-check","ingest-benchmark-data",
   "ingest-benchmark-v2","ingest-data-sources","invoice-capacity-check","manage-benchmarks",
-  "manage-knowledge-base","newsletter-unsubscribe","parse-document","pdf-generator",
+  "manage-knowledge-base","newsletter-unsubscribe","parse-document",
   "process-doc-job","process-subscription-downgrades","publish-due-posts","queue-export",
   "replay-webhook-events","run-accuracy-harness","run-tier-qa-harness","rvce-validate",
   "score-import","seed-benchmarks","self-learning-update","send-lead-magnet",

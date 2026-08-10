@@ -271,7 +271,6 @@ jobs:
             generate-document
             generate-document-content
             export-document
-            pdf-generator
             parse-document
             queue-export
             # ── Intelligence / scenarios ──────────────────────────────────
