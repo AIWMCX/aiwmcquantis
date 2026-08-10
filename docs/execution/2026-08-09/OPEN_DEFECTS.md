@@ -275,6 +275,37 @@ hypothesis, per the directive's evidence-first rule.
   migration can be applied to production to actually stand up the Phase D
   feature's tables for the first time.
 
+## DATA-6 (replay-safety only, likely NOT a production defect) — Docs Studio's 6 tables collide with earlier Feb-vintage definitions on replay
+
+- **Status:** `CODE_VERIFIED` collision exists in tracked history;
+  likely `NOT` a live production defect (distinct from DATA-5).
+- **Finding:** `20260730085727_docs_studio_persistence_repair.sql` creates
+  6 tables (`doc_templates`, `documents`, `document_versions`,
+  `document_exports`, `doc_performance_signals`, `document_downloads`) with
+  plain `CREATE TABLE` (no guard). All 6 have earlier, Feb-2026-vintage
+  definitions still in tracked history, structurally similar but not
+  identical (e.g. old `documents.user_id` referenced `public.profiles(id)`,
+  this version references `auth.users(id)`).
+- **Why this is likely fine in production, unlike DATA-5:** this migration's
+  own header comment states it **confirmed live, via direct query**, that
+  `doc_templates` did not exist in production when this was written --
+  meaning the Feb tables were almost certainly dropped out-of-band before
+  July, and this migration's original application to production most likely
+  succeeded cleanly (no collision existed there). The collision only
+  surfaces on a full-chain replay, which necessarily re-creates the Feb
+  tables first (they were never removed from tracked history) before
+  reaching this file.
+- **Fix applied:** every `CREATE TABLE`/`CREATE INDEX` converted to
+  `IF NOT EXISTS`, every `CREATE POLICY` given a matching
+  `DROP POLICY IF EXISTS`, seed `INSERT` given `ON CONFLICT DO NOTHING` --
+  purely idempotent, no destructive action, no attempt to reconcile the two
+  schema generations' column/FK differences (real risk of masking a genuine
+  difference without live verification).
+- **Next action:** low priority relative to DATA-5 -- if you want full
+  confidence, confirm directly once DB access allows it that production's
+  live `documents.user_id` FK target matches this migration's intent
+  (`auth.users`, not `public.profiles`).
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.
