@@ -497,6 +497,15 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
         // ?token=xxx (supabase/functions/share-report/index.ts), NOT direct
         // table access or a Postgres RPC -- confirmed by reading the actual
         // handler before writing this test, rather than guessing an RPC name.
+        //
+        // Fixed 2026-08-10: confirmed live via the isolated CI run -- this
+        // makes 4 sequential real edge-function invocations against a
+        // freshly started local Deno edge runtime; the first hit's cold
+        // start alone can exceed vitest's default 5000ms test timeout, only
+        // surfacing here now that this suite is actually executing for real
+        // (see the isApprovedNonProductionUrl fix earlier in this file's
+        // history). Not a logic bug -- bumped to a timeout that has real
+        // margin over observed edge-function cold-start latency.
         const FUNCTIONS = `${TARGET_URL}/functions/v1`;
         function shareReportGet(token: string) {
           return fetch(`${FUNCTIONS}/share-report?token=${encodeURIComponent(token)}`, {
@@ -525,7 +534,7 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
         });
         const expiredRes = await shareReportGet(token);
         expect(expiredRes.status, 'expired token must not resolve to a real report').toBeGreaterThanOrEqual(400);
-      });
+      }, 20000);
     });
 
     describe('referral_codes', () => {
