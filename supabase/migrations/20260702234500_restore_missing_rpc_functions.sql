@@ -141,12 +141,39 @@ ALTER TABLE public.leads ADD CONSTRAINT leads_status_check
 -- unsubscribe/resubscribe/get_lead_email work for leads captured before
 -- this fix. Existing rows are treated as already-confirmed (they opted
 -- in before double opt-in existed).
-UPDATE public.leads
-SET email_hash = encode(extensions.digest(LOWER(email), 'sha256'), 'hex'),
-    email_encrypted = public.encrypt_pii(LOWER(email)),
-    confirmed_at = COALESCE(confirmed_at, created_at),
-    status = CASE WHEN status = 'new' THEN 'confirmed' ELSE status END
-WHERE email IS NOT NULL AND email_hash IS NULL;
+--
+-- Fixed 2026-08-10: this UPDATE assumes public.leads still has a plaintext
+-- email column at this point in the chain. Confirmed against the real live
+-- schema (generated types) that production's CURRENT leads table has no
+-- such column -- only email_encrypted/email_hash -- meaning it must have
+-- existed only briefly in production's real chronological history (this
+-- backfill ran, then a later migration dropped it), which a fresh replay of
+-- the committed migration files alone cannot reconstruct if the column's
+-- own creation was never captured as a tracked migration either. Guarded so
+-- a fresh database (nothing to backfill) skips this cleanly instead of
+-- aborting on a genuinely historical, production-specific data migration.
+-- Uses EXECUTE (dynamic SQL) rather than a plain UPDATE inside the IF --
+-- PL/pgSQL resolves static SQL's column references at DO-block COMPILE
+-- time, not when the branch actually runs, so a plain UPDATE referencing
+-- `email` here would still fail to parse even inside an IF that's false.
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'leads' AND column_name = 'email'
+  ) THEN
+    EXECUTE $sql$
+      UPDATE public.leads
+      SET email_hash = encode(extensions.digest(LOWER(email), 'sha256'), 'hex'),
+          email_encrypted = public.encrypt_pii(LOWER(email)),
+          confirmed_at = COALESCE(confirmed_at, created_at),
+          status = CASE WHEN status = 'new' THEN 'confirmed' ELSE status END
+      WHERE email IS NOT NULL AND email_hash IS NULL
+    $sql$;
+  ELSE
+    RAISE NOTICE 'leads.email does not exist on this database -- skipping legacy plaintext backfill';
+  END IF;
+END $$;
 
 -- ============================================================
 -- 4. Lead compliance RPCs
