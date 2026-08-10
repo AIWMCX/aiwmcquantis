@@ -101,5 +101,16 @@ GRANT DELETE, INSERT, REFERENCES, SELECT, TRIGGER, TRUNCATE, UPDATE ON TABLE pub
 -- EXECUTE path this migration closed. This is itself part of what the
 -- emergency-reversion warning above refers to: rolling back reopens a real
 -- alternate write path into usage_counters, not just the table-level access.
-GRANT EXECUTE ON FUNCTION public.charge_free_analysis(text) TO anon, authenticated, service_role;
+-- Fixed 2026-08-10: confirmed live via the isolated CI rollback rehearsal
+-- -- charge_free_analysis(text) is not created by any tracked migration
+-- (out-of-band-only, same finding as 20260804000000_p0_access_control_
+-- hardening.sql's own guard on this exact function) and its absence
+-- aborted the rollback script under -v ON_ERROR_STOP=1. Guarded with this
+-- repo's established EXCEPTION WHEN undefined_function idiom.
+DO $$
+BEGIN
+  GRANT EXECUTE ON FUNCTION public.charge_free_analysis(text) TO anon, authenticated, service_role;
+EXCEPTION WHEN undefined_function THEN
+  RAISE NOTICE 'charge_free_analysis(text) does not exist on this database -- skipping (out-of-band-only function, not in tracked migration history)';
+END $$;
 GRANT EXECUTE ON FUNCTION public.charge_free_analysis(text, boolean) TO service_role;
