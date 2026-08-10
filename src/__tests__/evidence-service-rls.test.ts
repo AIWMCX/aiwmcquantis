@@ -357,8 +357,9 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
           provider_id: 'tavily',
         }),
       });
-      expect(allowedSourceRes.ok, await allowedSourceRes.text()).toBe(true);
-      const [allowedSource] = await allowedSourceRes.json();
+      const allowedSourceBody = await allowedSourceRes.json();
+      expect(allowedSourceRes.ok, JSON.stringify(allowedSourceBody)).toBe(true);
+      const [allowedSource] = allowedSourceBody;
       seeded.sources.push(allowedSource.id);
 
       const passageRes = await serviceFetch('/evidence_passages', {
@@ -371,8 +372,9 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
           content_hash: 'a1'.repeat(32),
         }),
       });
-      expect(passageRes.ok, await passageRes.text()).toBe(true);
-      const [passage] = await passageRes.json();
+      const passageBody = await passageRes.json();
+      expect(passageRes.ok, JSON.stringify(passageBody)).toBe(true);
+      const [passage] = passageBody;
       seeded.passages.push(passage.id);
       await serviceFetch(`/evidence_passages?id=eq.${passage.id}`, { method: 'DELETE' }).catch(() => {});
     });

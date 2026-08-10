@@ -53,6 +53,34 @@ ALTER TABLE public.analyses ENABLE ROW LEVEL SECURITY;
 -- to apply idempotently everywhere.
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.analyses TO service_role;
 
+-- Fixed 2026-08-10 (E5, evidence-service branch): same class of gap as
+-- the service_role grant above, confirmed live via this exact isolated
+-- CI replay -- `authenticated` has NEVER been explicitly granted
+-- table-level privileges on public.analyses anywhere in tracked
+-- migration history either (grep confirms only the service_role grant
+-- above and one unrelated function EXECUTE grant exist). The live app
+-- clearly works for real logged-in users today, so production must have
+-- this from the same kind of out-of-band source as the service_role
+-- gap -- but a fresh replay doesn't. This surfaced now because
+-- evidence_service_schema.sql's RLS policies join to
+-- `analyses.user_id = auth.uid()` via an EXISTS subquery, which Postgres
+-- evaluates under the QUERYING role's own privileges on the referenced
+-- table -- without this grant, that subquery itself fails with
+-- insufficient_privilege, surfacing as a 403 on the OUTER query even for
+-- a user reading their own row.
+--
+-- Scoped to exactly what's policy-backed: SELECT (the "Users can view
+-- own analyses" policy below) and INSERT (the "Users can insert own
+-- analyses" policy below). DELETE is intentionally left out of this
+-- grant -- there IS a "Users can delete own analyses" policy below, but
+-- granting it here would be a real, independent behavior change to an
+-- existing production table well outside this branch's actual scope; if
+-- that grant is also genuinely missing, it belongs in its own reviewed
+-- fix, not bundled into an unrelated evidence-service migration. There
+-- is no UPDATE policy on this table at all in tracked history, so
+-- UPDATE is correctly omitted.
+GRANT SELECT, INSERT ON public.analyses TO authenticated;
+
 CREATE POLICY "Users can view own analyses"
   ON public.analyses FOR SELECT
   TO authenticated
