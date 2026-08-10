@@ -212,35 +212,47 @@ SELECT is_empty(
 -- some Postgres versions' information_schema views don't synthesize a row
 -- for. complete_referral_signup happened to still pass because migration
 -- 20260613022816's signature-mismatch bug left it with an *explicit*
--- (redundant) PUBLIC grant, masking the same underlying view gap. Using
--- aclcontains() against coalesce(proacl, acldefault(...)) directly
--- against pg_proc, the same resolution has_function_privilege() performs
--- internally, correctly covers both the explicit- and implicit-default
--- cases -- this is the version-independent, catalog-level way to ask
--- "can literally anyone execute this."
+-- (redundant) PUBLIC grant, masking the same underlying view gap.
+--
+-- Fixed 2026-08-10 (round 3): the round-2 aclcontains()/makeaclitem() fix
+-- was ALSO wrong, confirmed live -- aclcontains() requires an EXACT
+-- aclitem match including grantor, and makeaclitem(0, 0, ...) passes
+-- grantor=0, which matches no real role (the actual grantor is whichever
+-- role ran CREATE FUNCTION/GRANT, never oid 0) -- so it silently returned
+-- false for all five, every time, regardless of the real ACL content.
+-- aclexplode() unnests the ACL into one row per (grantor, grantee,
+-- privilege) and lets the query filter on grantee/privilege only,
+-- ignoring grantor entirely -- the correct, grantor-independent way to
+-- ask "can literally anyone execute this," covering both the explicit-
+-- and implicit-default-ACL cases from round 2.
 SELECT ok(
-  (SELECT aclcontains(coalesce(proacl, acldefault('f', proowner)), makeaclitem(0, 0, 'EXECUTE', false))
-     FROM pg_proc WHERE oid = 'public.get_next_invoice_number(uuid)'::regprocedure),
+  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.oid = 'public.get_next_invoice_number(uuid)'::regprocedure),
   'KNOWN OPEN FINDING: get_next_invoice_number still PUBLIC-executable (fix deferred pending scope decision)'
 );
 SELECT ok(
-  (SELECT aclcontains(coalesce(proacl, acldefault('f', proowner)), makeaclitem(0, 0, 'EXECUTE', false))
-     FROM pg_proc WHERE oid = 'public.get_referral_stats(uuid)'::regprocedure),
+  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.oid = 'public.get_referral_stats(uuid)'::regprocedure),
   'KNOWN OPEN FINDING: get_referral_stats still PUBLIC-executable, and its internal check fails open for anon (fix deferred pending scope decision)'
 );
 SELECT ok(
-  (SELECT aclcontains(coalesce(proacl, acldefault('f', proowner)), makeaclitem(0, 0, 'EXECUTE', false))
-     FROM pg_proc WHERE oid = 'public.complete_referral_signup(uuid,uuid)'::regprocedure),
+  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.oid = 'public.complete_referral_signup(uuid,uuid)'::regprocedure),
   'KNOWN OPEN FINDING: complete_referral_signup still PUBLIC-executable due to a signature-mismatch bug in migration 20260613022816 (fix deferred pending scope decision)'
 );
 SELECT ok(
-  (SELECT aclcontains(coalesce(proacl, acldefault('f', proowner)), makeaclitem(0, 0, 'EXECUTE', false))
-     FROM pg_proc WHERE oid = 'public.generate_referral_code(uuid)'::regprocedure),
+  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.oid = 'public.generate_referral_code(uuid)'::regprocedure),
   'KNOWN OPEN FINDING: generate_referral_code still PUBLIC-executable (fix deferred pending scope decision)'
 );
 SELECT ok(
-  (SELECT aclcontains(coalesce(proacl, acldefault('f', proowner)), makeaclitem(0, 0, 'EXECUTE', false))
-     FROM pg_proc WHERE oid = 'public.decrement_quote_gen_usage()'::regprocedure),
+  (SELECT bool_or(a.grantee = 0 AND a.privilege_type = 'EXECUTE')
+     FROM pg_proc p, LATERAL aclexplode(coalesce(p.proacl, acldefault('f', p.proowner))) a
+     WHERE p.oid = 'public.decrement_quote_gen_usage()'::regprocedure),
   'KNOWN OPEN FINDING: decrement_quote_gen_usage still PUBLIC-executable, though functionally inert for anon since it keys off auth.uid() (fix deferred pending scope decision)'
 );
 
