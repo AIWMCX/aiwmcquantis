@@ -132,6 +132,13 @@ create index if not exists document_versions_document_id_idx on public.document_
 
 alter table public.document_versions enable row level security;
 
+-- Fixed 2026-08-10: same collision as the rest of this file -- the
+-- Feb-vintage document_versions (which wins on replay) has no user_id
+-- column at all (only created_by), unlike this file's version. Added
+-- nullable rather than NOT NULL since we can't safely backfill existing
+-- rows (if any) with a real owner from a migration alone.
+alter table public.document_versions add column if not exists user_id uuid references auth.users(id) on delete cascade;
+
 drop policy if exists document_versions_owner_select on public.document_versions;
 create policy document_versions_owner_select on public.document_versions
   for select using (user_id = auth.uid());
