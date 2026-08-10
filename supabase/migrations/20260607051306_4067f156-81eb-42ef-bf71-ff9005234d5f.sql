@@ -1,3 +1,11 @@
+-- Fixed 2026-08-10: this redefinition changes the return type from JSON
+-- (20260606120000_idea_gen_quota.sql) to jsonb. Postgres's CREATE OR REPLACE
+-- FUNCTION cannot alter an existing function's return type in place
+-- (42P13, "cannot change return type of existing function") -- it must be
+-- dropped first. DROP FUNCTION IF EXISTS is safe on a fresh database too
+-- (no-ops when the function doesn't exist yet).
+DROP FUNCTION IF EXISTS public.consume_idea_gen_quota(uuid, integer, text);
+
 CREATE OR REPLACE FUNCTION public.consume_idea_gen_quota(
   p_user_id uuid,
   p_limit integer,
