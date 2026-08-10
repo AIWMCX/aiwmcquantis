@@ -196,6 +196,41 @@ hypothesis, per the directive's evidence-first rule.
   is still wanted, or should be dropped in a follow-up migration once its
   production status is confirmed.
 
+## DATA-4 (new, directly touches PR #26 core migration) — analysis_attempts, one of the 10 original P0 tables, never created by any tracked migration
+
+- **Status:** `CODE_VERIFIED` the table is missing from tracked history;
+  `PROD_VERIFIED` (via the original incident's own live evidence, not this
+  session) that the table genuinely exists in production.
+- **Finding:** `analysis_attempts` — one of the 10 tables in the original
+  P0 unauthenticated-access incident, and directly referenced by this
+  branch's own core security migration
+  (`20260804000000_p0_access_control_hardening.sql`'s REVOKE/POLICY
+  statements for it) — is never created by any migration in this repo's
+  tracked history. Confirmed real and live via the original incident's own
+  `pg_policies` query capture (`01_RAW_POLICY_EVIDENCE.sql`:
+  `analysis_attempts | analysis_attempts_self | PERMISSIVE | {public} | ALL
+  | true | true`), not just inferred.
+- **Reconstruction basis, stronger than the other 4 table reconstructions
+  this session:** not from `types.ts` (this table isn't in there at all —
+  a separate, unexplained gap in the type generator's coverage) but from
+  `20260719163441_fix_analysis_health_security_definer_exposure.sql`'s own
+  header comment, which states its view definition was reconstructed from a
+  **direct live query against production on 2026-07-21** — meaning the
+  columns it selects (`created_at`, `tier`, `status`, `degraded`,
+  `latency_ms`) are real, confirmed column names, not guessed.
+- **Caveat:** the 2026-08-03 incident audit describes this as an
+  "idempotency ledger" with additional undocumented purpose — this
+  reconstruction covers exactly the columns provably needed for the view and
+  the P0 migration's (column-agnostic) REVOKE/POLICY statements to succeed;
+  it may not be the complete real schema.
+- **Why this matters beyond CI:** this table sat in the P0 migration's own
+  scope the whole time without anyone (this session included, until now)
+  confirming it has zero tracked creation history — a real gap that only
+  surfaced because this is the first time the full chain has ever replayed.
+- **Next action:** once DB access is restored (INFRA-3), pull the real full
+  column list via `information_schema.columns` and confirm this
+  reconstruction is complete, or extend it.
+
 ## MON-1 (RESOLVED this session) — SEO Live Monitor failure
 
 - **Status:** `PROD_VERIFIED` -- fully resolved by direct evidence, not inference.
