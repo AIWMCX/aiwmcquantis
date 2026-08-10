@@ -112,7 +112,18 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
   function anonFetch(path: string, init: RequestInit = {}) {
     return fetch(`${REST}${path}`, {
       ...init,
-      headers: { apikey: ANON_KEY!, 'Content-Type': 'application/json', ...(init.headers ?? {}) },
+      headers: {
+        apikey: ANON_KEY!,
+        // Fixed 2026-08-10: PostgREST/Kong on the local stack returns 401
+        // ("no suitable key or wrong key type") rather than a genuine 403
+        // insufficient_privilege when Authorization is omitted entirely --
+        // every other real client (supabase-js, userFetch below) sends the
+        // anon key as both apikey AND Bearer token for unauthenticated
+        // requests, so match that instead of relying on apikey alone.
+        Authorization: `Bearer ${ANON_KEY}`,
+        'Content-Type': 'application/json',
+        ...(init.headers ?? {}),
+      },
     });
   }
 
@@ -288,8 +299,13 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
           }),
         }),
       ]);
-      analysisIdA = (await resA.json())[0].id;
-      analysisIdB = (await resB.json())[0].id;
+      if (!resA.ok) throw new Error(`Failed to seed analysis for user A: ${resA.status} ${await resA.text()}`);
+      if (!resB.ok) throw new Error(`Failed to seed analysis for user B: ${resB.status} ${await resB.text()}`);
+      const [bodyA, bodyB] = await Promise.all([resA.json(), resB.json()]);
+      if (!Array.isArray(bodyA) || !bodyA[0]) throw new Error(`Unexpected analyses insert response for A: ${JSON.stringify(bodyA)}`);
+      if (!Array.isArray(bodyB) || !bodyB[0]) throw new Error(`Unexpected analyses insert response for B: ${JSON.stringify(bodyB)}`);
+      analysisIdA = bodyA[0].id;
+      analysisIdB = bodyB[0].id;
       seeded.analyses = [analysisIdA, analysisIdB];
 
       const [invA, invB, exA, exB, srA, srB] = await Promise.all([
@@ -318,9 +334,27 @@ describeOrSkip('P0 effective-access integration matrix (staging target required)
           body: JSON.stringify({ user_id: userB.id, analysis_id: analysisIdB }),
         }),
       ]);
-      seeded.invoices = [(await invA.json())[0].id, (await invB.json())[0].id];
-      seeded.export_jobs = [(await exA.json())[0].id, (await exB.json())[0].id];
-      seeded.shared_reports = [(await srA.json())[0].id, (await srB.json())[0].id];
+      for (const [label, res] of [
+        ['invoices A', invA],
+        ['invoices B', invB],
+        ['export_jobs A', exA],
+        ['export_jobs B', exB],
+        ['shared_reports A', srA],
+        ['shared_reports B', srB],
+      ] as const) {
+        if (!res.ok) throw new Error(`Failed to seed ${label}: ${res.status} ${await res.text()}`);
+      }
+      const [invABody, invBBody, exABody, exBBody, srABody, srBBody] = await Promise.all([
+        invA.json(),
+        invB.json(),
+        exA.json(),
+        exB.json(),
+        srA.json(),
+        srB.json(),
+      ]);
+      seeded.invoices = [invABody[0].id, invBBody[0].id];
+      seeded.export_jobs = [exABody[0].id, exBBody[0].id];
+      seeded.shared_reports = [srABody[0].id, srBBody[0].id];
     });
 
     afterAll(async () => {
