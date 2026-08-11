@@ -1,0 +1,73 @@
+{
+  "as_of": "2026-08-10",
+  "main_sha": "97540bc750545354936148c8793e2a1d99fefd76",
+  "main_last_commit": "2026-08-03T01:25:28-06:00 feat(admin): surface the activation ladder on /admin/funnel",
+  "feature_evidence_sha": "12db365753f51af585bda56cf6cbda6741b336e4",
+  "feature_evidence_divergence": "10 commits ahead of main, 0 behind",
+  "feature_evidence_diffstat": "63 files changed, 7828 insertions(+), 65 deletions(-) vs main (43 new files, 20 modified existing files)",
+  "production_sha": null,
+  "production_evidence": "index.html live at https://www.aiwmcquantis.com references /assets/index-DqNTPYgz.js -- a content-hashed bundle, not a git SHA. Confirms SOME build is live and serving; does not by itself prove which commit. Not yet resolved to a specific SHA this session -- UNVERIFIED pending a bundle-content grep or a build-id endpoint check.",
+  "production_build_id": null,
+  "open_prs": [
+    { "number": 27, "title": "fix(accuracy): PR1 - split confidence-score UI from a single misleading percentage", "branch": "accuracy/confidence-semantics-split", "state": "DRAFT", "opened": "2026-08-04" },
+    { "number": 26, "title": "security(P0): effective-access remediation for 10 exposed tables — NOT YET APPLIED", "branch": "security/p0-effective-access-control", "state": "DRAFT", "opened": "2026-08-04" },
+    { "number": 25, "title": "Integrate Dahl inference provider", "branch": "agent/dahl-inference", "state": "DRAFT", "opened": "2026-07-14" },
+    { "number": 2, "title": "Install Vercel Web Analytics", "branch": "vercel/install-vercel-web-analytics-6hyg6m", "state": "DRAFT", "opened": "2026-04-13" }
+  ],
+  "no_open_pr_for_feature_evidence_service": true,
+  "supabase_migration_state": {
+    "clean_replay": "PASS (isolated GitHub-hosted Supabase stack, evidence-service-isolated-test.yml, most recent run 31428938463, 2026-08-10T20:25Z)",
+    "production_upgrade_path": "UNVERIFIED -- not tested against actual production migration ledger this session; execute_sql against project dmlxrvfyqsakyjomsvdj returned permission-denied when attempted",
+    "historical_migrations_modified_by_feature_branch": 18,
+    "new_migrations_added_by_feature_branch": 3
+  },
+  "billing_state": "UNVERIFIED this session -- no fresh Stripe/webhook lifecycle check performed in this turn; prior-session finding (memory: quantis_stripe_billing_audit_charter) was a signing-secret mismatch causing 401s on webhook delivery, disposition after that finding not reconfirmed live this turn",
+  "security_state": "PR #26 (security/p0-effective-access-control) remains OPEN/DRAFT/NOT_MERGED -- explicitly titled 'NOT YET APPLIED'. The 18 historical-migration edits on feature/evidence-service were ported FROM that same branch's fixes via git checkout, meaning the underlying SQL fixes exist in two unmerged branches simultaneously, neither in main.",
+  "monitoring_state": "UNVERIFIED this session",
+  "rvce_state": "CODE_VERIFIED (prior sessions): rvce-validate edge function exists, live in supabase/functions/rvce-validate, uses Tavily directly (separate from the new Evidence Service's TavilyEvidenceProvider). Not re-audited this turn.",
+  "qoc_state": "CODE_VERIFIED (prior sessions): QOC shadow mode exists in analyze-business/index.ts, invoked via bounded-await + timeout-race pattern (not fire-and-forget, per a documented 2026-08-02 fix). Not re-audited this turn.",
+  "evidence_service_e0_e10": {
+    "E0_discovery": "PROD_VERIFIED_AS_DORMANT -- architecture map produced, code-verified against repo",
+    "E1_contracts": "TEST_VERIFIED -- pure types, no logic",
+    "E2_provider_capability_registry": "TEST_VERIFIED",
+    "E2.1_tavily_adapter": "TEST_VERIFIED -- real adapter, SSRF/DNS-rebinding hardened, ToS reviewed and cited",
+    "E3_normalization_dedupe_independence": "TEST_VERIFIED",
+    "E4_graph_numeric_firewall": "TEST_VERIFIED",
+    "E5_persistence_rls": "TEST_VERIFIED via isolated CI (clean replay + 45 cross-identity RLS tests, most recent green run 31428938463). NOT independently re-verified against actual production migration lineage this turn (see migration hygiene gate finding).",
+    "E6_shadow_integration": "CODE_VERIFIED + TEST_VERIFIED (CI) as of this session -- trigger + queue + worker built, feature-flagged off by default (EVIDENCE_SERVICE_SHADOW_ENABLED unset). NOT deployed to production. Idempotency key is NOT yet analysisRunId + evidence-plan-version as this new master prompt specifies (E6 acceptance criteria) -- current implementation dedupes only via per-queue-row PENDING/PROCESSING claim, not a content-derived idempotency key. GAP.",
+    "E7_observability_cost_control": "NOT_STARTED",
+    "E8_evaluation_corpus": "NOT_STARTED",
+    "E9_controlled_production_shadow": "NOT_STARTED",
+    "E10_load_bearing_evidence_ui": "NOT_STARTED"
+  },
+  "feature_flags": {
+    "EVIDENCE_SERVICE_SHADOW_ENABLED": "unset in all known environments -- worker no-ops. This is both the feature flag and the kill switch (same variable)."
+  },
+  "e5_5_migration_lineage_gate": {
+    "status": "BLOCKED",
+    "as_of": "2026-08-10T21:00Z",
+    "artifacts": [
+      "docs/execution/2026-08-10/MIGRATION_LINEAGE_AUDIT.md",
+      "docs/execution/2026-08-10/MIGRATION_CLASSIFICATION.json",
+      "docs/execution/2026-08-10/PRODUCTION_SCHEMA_DIFF.md",
+      "docs/execution/2026-08-10/FORWARD_FIX_PLAN.md"
+    ],
+    "production_db_access_this_session": "DENIED -- execute_sql and list_tables (Supabase MCP, project dmlxrvfyqsakyjomsvdj) both returned 'MCP error -32600: You do not have permission to perform this action', including a trivial SELECT 1. Phase A of the E5.5 execution prompt could not be completed. All 18 historical-migration classifications rest on secondary evidence (generated types, prior CI-replay findings, in-file investigation notes), not live production queries.",
+    "classification_summary": {
+      "REPLAY_COMPATIBILITY_ONLY": 10,
+      "REQUIRED_FORWARD_FIX": 5,
+      "ACCIDENTAL_MUTATION": 1,
+      "UNSAFE_HISTORY_REWRITE": 1,
+      "ALREADY_PRODUCTION_APPLIED_DIFFERENTLY": 4
+    },
+    "critical_findings_independent_of_evidence_service": [
+      { "id": 2, "title": "is_service_role() may still be exploitable in production (old GUC-based check never forward-fixed)", "severity": "P0-candidate", "confidence": "PROVEN exploitable in CI this session; production status UNVERIFIED" },
+      { "id": 9, "title": "subscription_upsert_fix.sql likely rolled back entirely in production (bare RAISE syntax error, 42601)", "severity": "P0-candidate", "confidence": "PROVEN to fail in CI this session; production status UNVERIFIED" },
+      { "id": 16, "title": "Phase D scenario-ledger tables (scenario_sets/scenario_versions/scenario_runs) likely do not exist in production; public.scenarios likely still has the old flat Monte-Carlo shape, despite prior 'Phase D-14: live verification' report", "severity": "P0-candidate", "confidence": "CODE_VERIFIED via src/integrations/supabase/types.ts -- highest-confidence finding in this audit" },
+      { "id": 8, "title": "benchmark_master_geo may have zero rows in production (original seed INSERT would have violated a NOT NULL constraint)", "severity": "P1-candidate", "confidence": "INFERRED, migration author's own comment flags this as an open question" }
+    ],
+    "path1_fresh_replay": "PASS (evidence-service-isolated-test.yml, run 31428938463)",
+    "path2_existing_database_upgrade": "NOT_RUN -- requires production access not available this session",
+    "next_action": "Founder/operator to either grant this session direct read-only Supabase DB access, or run the queries listed in PRODUCTION_SCHEMA_DIFF.md directly and share results. E6 idempotency work (SHA256 evidenceRunKey) is queued behind this gate per explicit CTO decision and has NOT been started this session."
+  }
+}
