@@ -64,7 +64,7 @@ describe('mapEvidenceRequestRow', () => {
 });
 
 describe('mapEvidencePacketRow', () => {
-  it('preserves the packet id as the row id (auditability link)', () => {
+  it('preserves the packet id as the row id (auditability link)', async () => {
     const packet: QuantisEvidencePacket = {
       evidencePacketId: 'packet-1',
       analysisRunId: 'run-1',
@@ -84,13 +84,40 @@ describe('mapEvidencePacketRow', () => {
       retrievalLatencyMs: 100,
       contentHash: 'c'.repeat(64),
     };
-    const row = mapEvidencePacketRow(packet, ANALYSIS_ID, USER_ID, 'request-db-id');
+    const row = await mapEvidencePacketRow(packet, ANALYSIS_ID, USER_ID, 'request-db-id');
     expect(row.id).toBe('packet-1');
     expect(row.evidence_request_id).toBe('request-db-id');
     expect(row.analysis_id).toBe(ANALYSIS_ID);
     expect(row.user_id).toBe(USER_ID);
     expect(row.content_hash).toBe('c'.repeat(64));
     expect(row.cost_usd).toBeUndefined();
+    expect(row.run_key).toMatch(/^[0-9a-f]{64}$/);
+  });
+
+  it('produces the same run_key for two packets with identical analysisRunId/queryPlanVersion/evidenceSchemaVersion (the idempotency guarantee)', async () => {
+    const base: QuantisEvidencePacket = {
+      evidencePacketId: 'packet-A',
+      analysisRunId: 'run-1',
+      queryPlanVersion: '0.1.0',
+      providerSetVersion: '0.1.0',
+      rankingVersion: '0.1.0',
+      evidenceSchemaVersion: '0.1.0',
+      createdAt: '2026-08-10T00:00:00Z',
+      sourceLenses: [],
+      sources: [],
+      passages: [],
+      claims: [],
+      numericObservations: [],
+      unresolvedQuestions: [],
+      contradictions: [],
+      degraded: false,
+      retrievalLatencyMs: 50,
+      contentHash: 'd'.repeat(64),
+    };
+    const rowA = await mapEvidencePacketRow(base, ANALYSIS_ID, USER_ID, 'req-A');
+    const rowB = await mapEvidencePacketRow({ ...base, evidencePacketId: 'packet-B', contentHash: 'e'.repeat(64) }, ANALYSIS_ID, USER_ID, 'req-B');
+    expect(rowA.run_key).toBe(rowB.run_key);
+    expect(rowA.id).not.toBe(rowB.id); // different packets, same semantic run identity
   });
 });
 

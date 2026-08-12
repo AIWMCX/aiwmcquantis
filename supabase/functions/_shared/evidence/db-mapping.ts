@@ -28,6 +28,7 @@
  *      column reserved for a different, not-yet-built measurement.
  */
 import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, QuantisEvidencePacket } from './types.ts';
+import { computeEvidenceRunKey } from './evidence-run-key.ts';
 
 const PERSISTABLE_PASSAGE_POLICIES = new Set(['PASSAGE_ALLOWED', 'FULL_ALLOWED']);
 
@@ -43,6 +44,7 @@ export interface EvidencePacketRow {
   analysis_id: string;
   user_id: string;
   evidence_request_id: string;
+  run_key: string;
   query_plan_version: string;
   provider_set_version: string;
   ranking_version: string;
@@ -115,17 +117,23 @@ export function mapEvidenceRequestRow(
   };
 }
 
-export function mapEvidencePacketRow(
+export async function mapEvidencePacketRow(
   packet: QuantisEvidencePacket,
   analysisId: string,
   userId: string,
   evidenceRequestId: string,
-): EvidencePacketRow {
+): Promise<EvidencePacketRow> {
+  const runKey = await computeEvidenceRunKey({
+    analysisRunId: packet.analysisRunId,
+    evidencePlanVersion: packet.queryPlanVersion,
+    evidenceSchemaVersion: packet.evidenceSchemaVersion,
+  });
   return {
     id: packet.evidencePacketId,
     analysis_id: analysisId,
     user_id: userId,
     evidence_request_id: evidenceRequestId,
+    run_key: runKey,
     query_plan_version: packet.queryPlanVersion,
     provider_set_version: packet.providerSetVersion,
     ranking_version: packet.rankingVersion,

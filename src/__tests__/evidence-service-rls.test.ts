@@ -145,9 +145,10 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     analysisIdB = bodyB[0].id;
     seeded.analyses = [analysisIdA, analysisIdB];
 
-    const packetPayload = (analysisId: string, userId: string) => ({
+    const packetPayload = (analysisId: string, userId: string, runKey: string) => ({
       analysis_id: analysisId,
       user_id: userId,
+      run_key: runKey,
       query_plan_version: '0.1.0',
       provider_set_version: '0.1.0',
       ranking_version: '0.1.0',
@@ -158,8 +159,8 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     });
 
     const [packetResA, packetResB] = await Promise.all([
-      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdA, userA.id)) }),
-      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdB, userB.id)) }),
+      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdA, userA.id, '1'.repeat(64))) }),
+      serviceFetch('/evidence_packets', { method: 'POST', body: JSON.stringify(packetPayload(analysisIdB, userB.id, '2'.repeat(64))) }),
     ]);
     if (!packetResA.ok) throw new Error(`Failed to seed packet A: ${packetResA.status} ${await packetResA.text()}`);
     if (!packetResB.ok) throw new Error(`Failed to seed packet B: ${packetResB.status} ${await packetResB.text()}`);
@@ -313,6 +314,72 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     it('user A cannot DELETE their own evidence_packets row', async () => {
       const res = await userFetch(userA.token, `/evidence_packets?id=eq.${packetIdA}`, { method: 'DELETE' });
       expect(res.status).toBe(403);
+    });
+  });
+
+  describe('evidence_packets.run_key semantic idempotency (E6.2)', () => {
+    it('rejects a second evidence_packets row with the same run_key at the DB level (not just app logic)', async () => {
+      const sharedRunKey = '3'.repeat(64);
+      const firstRes = await serviceFetch('/evidence_packets', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdA,
+          user_id: userA.id,
+          run_key: sharedRunKey,
+          query_plan_version: '0.1.0',
+          provider_set_version: '0.1.0',
+          ranking_version: '0.1.0',
+          evidence_schema_version: '0.1.0',
+          retrieval_latency_ms: 1,
+          content_hash: 'f'.repeat(64),
+        }),
+      });
+      const firstBody = await firstRes.json();
+      expect(firstRes.ok, JSON.stringify(firstBody)).toBe(true);
+      const firstPacketId = firstBody[0].id;
+      seeded.packets.push(firstPacketId);
+
+      // Simulates a duplicate evidence run for the SAME analysis under the
+      // SAME evidence plan/schema version (a duplicate trigger fire, or a
+      // retry racing a still-committing prior attempt) -- must be rejected
+      // by the unique index, not silently create a second packet.
+      const secondRes = await serviceFetch('/evidence_packets', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdA,
+          user_id: userA.id,
+          run_key: sharedRunKey,
+          query_plan_version: '0.1.0',
+          provider_set_version: '0.1.0',
+          ranking_version: '0.1.0',
+          evidence_schema_version: '0.1.0',
+          retrieval_latency_ms: 1,
+          content_hash: 'a1'.repeat(32),
+        }),
+      });
+      const secondBody = await secondRes.json();
+      expect(secondRes.status, JSON.stringify(secondBody)).toBe(409);
+      expect(secondBody.code).toBe('23505');
+    });
+
+    it('allows a different run_key for the same analysis (a legitimate new evidence-plan version)', async () => {
+      const res = await serviceFetch('/evidence_packets', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdA,
+          user_id: userA.id,
+          run_key: '4'.repeat(64),
+          query_plan_version: '0.2.0',
+          provider_set_version: '0.1.0',
+          ranking_version: '0.1.0',
+          evidence_schema_version: '0.1.0',
+          retrieval_latency_ms: 1,
+          content_hash: 'b2'.repeat(32),
+        }),
+      });
+      const body = await res.json();
+      expect(res.ok, JSON.stringify(body)).toBe(true);
+      seeded.packets.push(body[0].id);
     });
   });
 

@@ -56,6 +56,8 @@ const BATCH_SIZE = 5;
 const MAX_ATTEMPTS = 3;
 /** Per-item budget so one slow/hanging provider call can only ever cost this one queue item, never stall the batch. */
 const PIPELINE_TIMEOUT_MS = 20000;
+/** Postgres unique_violation -- semantic-duplicate evidence run detection (evidence_packets_run_key_uidx). */
+const PG_UNIQUE_VIOLATION = '23505';
 
 interface QueueRow {
   id: string;
@@ -165,9 +167,26 @@ Deno.serve(async (req: Request) => {
           .single();
         if (reqErr || !insertedRequest) throw new Error(`evidence_requests insert failed: ${reqErr?.message}`);
 
-        const packetRow = mapEvidencePacketRow(packet, claimed.analysis_id, claimed.user_id, insertedRequest.id);
+        const packetRow = await mapEvidencePacketRow(packet, claimed.analysis_id, claimed.user_id, insertedRequest.id);
         const { error: packetErr } = await supabase.from('evidence_packets').insert(packetRow);
-        if (packetErr) throw new Error(`evidence_packets insert failed: ${packetErr.message}`);
+        if (packetErr) {
+          if (packetErr.code === PG_UNIQUE_VIOLATION) {
+            // This exact analysis + evidence-plan-version + schema-version has
+            // already been researched and persisted by another run (a
+            // duplicate trigger fire, or a retry racing a still-committing
+            // prior attempt) -- not a failure. The winning run already
+            // inserted sources/passages/claims for this evidencePacketId, so
+            // there is nothing further to do for this queue item.
+            log.info(`Duplicate evidence run detected (run_key collision) for analysis ${claimed.analysis_id} -- treating as idempotent success`);
+            await supabase
+              .from('evidence_shadow_queue')
+              .update({ status: 'DONE', processed_at: new Date().toISOString() })
+              .eq('id', claimed.id);
+            processed++;
+            continue;
+          }
+          throw new Error(`evidence_packets insert failed: ${packetErr.message}`);
+        }
 
         const sourceRows = mapEvidenceSourceRows(packet.sources, claimed.analysis_id, claimed.user_id, packet.evidencePacketId);
         if (sourceRows.length > 0) {
