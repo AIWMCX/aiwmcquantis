@@ -8,6 +8,11 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { supabase } from '@/integrations/supabase/client';
+
+// Scenario workspace tables (scenario_sets/versions/runs, analyses.scenario_base_input)
+// are not present in the generated Supabase types yet — use an untyped client here.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const sb = supabase as any;
 import { useAuth } from '@/hooks/useAuth';
 import { useEntitlements } from '@/hooks/useEntitlements';
 import {
@@ -144,13 +149,13 @@ export default function ScenarioWorkspace() {
     setLoadingHistory(true);
     (async () => {
       const [{ data: analysesData }, { data: setsData }] = await Promise.all([
-        supabase
+        sb
           .from('analyses')
           .select('id, idea, location, created_at, confidence_score, scenario_base_input')
           .eq('user_id', user.id)
           .order('created_at', { ascending: false })
           .limit(50),
-        supabase
+        sb
           .from('scenario_sets')
           .select('analysis_id')
           .eq('user_id', user.id)
@@ -170,7 +175,7 @@ export default function ScenarioWorkspace() {
 
   useEffect(() => {
     if (!analysisId || !user) return;
-    supabase
+    sb
       .from('analyses')
       .select('scenario_base_input')
       .eq('id', analysisId)
@@ -182,7 +187,7 @@ export default function ScenarioWorkspace() {
   const loadSets = useCallback(() => {
     if (!analysisId || !user) return;
     setLoadingSets(true);
-    supabase
+    sb
       .from('scenario_sets')
       .select('id, name, created_at')
       .eq('analysis_id', analysisId)
@@ -200,7 +205,7 @@ export default function ScenarioWorkspace() {
   const loadCompare = useCallback(async () => {
     if (!setId || !user) return;
     setLoadingCompare(true);
-    const { data: scenarioRows } = await supabase
+    const { data: scenarioRows } = await sb
       .from('scenarios')
       .select('id, name')
       .eq('scenario_set_id', setId)
@@ -208,7 +213,7 @@ export default function ScenarioWorkspace() {
 
     const withRuns = await Promise.all(
       (scenarioRows ?? []).map(async (s: ScenarioRow) => {
-        const { data: versions } = await supabase
+        const { data: versions } = await sb
           .from('scenario_versions')
           .select('id')
           .eq('scenario_id', s.id)
@@ -216,7 +221,7 @@ export default function ScenarioWorkspace() {
           .limit(1);
         const latestVersionId = versions?.[0]?.id;
         if (!latestVersionId) return { id: s.id, name: s.name, run: null };
-        const { data: run } = await supabase
+        const { data: run } = await sb
           .from('scenario_runs')
           .select('id, output, output_hash, engine_version, formula_version, reconciliation_status')
           .eq('scenario_version_id', latestVersionId)
