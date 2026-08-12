@@ -1,10 +1,19 @@
 # E5.5 — Production Migration Lineage Reconciliation
 
-**Date**: 2026-08-10
+**Date**: 2026-08-10, revised 2026-08-11
 **Branch under review**: `feature/evidence-service` @ `12db365753f51af585bda56cf6cbda6741b336e4`
 **Baseline**: `main` @ `97540bc750545354936148c8793e2a1d99fefd76`
 **Mode**: READ-ONLY. No writes, no migration execution, no deploys performed.
 **Full per-file detail**: [MIGRATION_CLASSIFICATION.json](MIGRATION_CLASSIFICATION.json)
+
+## -1. 2026-08-11 revision — a real correction, and a process gap worth naming
+
+The founder ran direct read-only queries against production (`supabase_migrations.schema_migrations` and `qoc_audit_envelopes`'s live column list) and reported two findings. Independently, cross-referencing `docs/accuracy/QUANTIS_ACCURACY_STATE.md` — a pre-existing, already-authoritative investigation from 2026-08-02 that I should have found and read before writing this document's original version, and did not — confirms both findings with a documented, independent methodology:
+
+- `analysis_self_learning` and `rvce_validation_log` **do not exist in production**. This session's original 2026-08-10 fix to `20260613022534` invented a full `CREATE TABLE` for `analysis_self_learning`, inferring its schema from generated TypeScript types. **That was wrong** — production evidence directly contradicts the inference, and inventing schema to make a historical migration replay is exactly the failure mode this entire E5.5 gate exists to catch. Corrected: the invented table is removed; both `CREATE POLICY` statements are now existence-guarded no-ops, matching confirmed production reality. Reclassified `ALREADY_PRODUCTION_APPLIED_DIFFERENTLY` → `ACCIDENTAL_MUTATION` (of my own prior fix).
+- `public.qoc_audit` **was never created in production**; the real, live QOC table is `qoc_audit_envelopes`, and its production column list matches `supabase/migrations/20260623_qoc_audit.sql` exactly — a file that itself carries no `schema_migrations` ledger entry, meaning its DDL reached production through a path this repo's tracked history doesn't capture as a formal migration. This resolves the prior genuine ambiguity; reclassified `20260624054320` from a provisional `UNSAFE_HISTORY_REWRITE` flag to `ALREADY_PRODUCTION_APPLIED_DIFFERENTLY`. No `UNSAFE_HISTORY_REWRITE` findings remain.
+
+**The process lesson**: `docs/accuracy/QUANTIS_ACCURACY_STATE.md` had already answered several of this gate's open questions with real evidence, days before this gate was opened. I should have grepped for and read it before writing my own classification from scratch — I built new speculative evidence (generated-types inference) where authoritative, already-verified evidence already existed in the repo. Both my own reported findings and the founder's fresh live query converged on the same answer, which is reassuring, but the redundant work was avoidable.
 
 ## 0. Access constraint (read this first)
 

@@ -117,14 +117,14 @@
     {
       "id": 10,
       "filename": "20260613022534_79b89014-d84f-4599-b089-3323d37fe9c0.sql",
-      "concerns": "public.analysis_self_learning -- reconstructed CREATE TABLE IF NOT EXISTS",
-      "main_behavior": "References the table in a policy without ever creating it.",
-      "feature_behavior": "Adds CREATE TABLE IF NOT EXISTS, reconstructed from generated types, global_status default INFERRED.",
-      "production_behavior": "CODE_VERIFIED (moderate confidence) via src/integrations/supabase/types.ts line 1184.",
-      "classification": "ALREADY_PRODUCTION_APPLIED_DIFFERENTLY",
-      "evidence": ["grep: never created by any tracked migration", "src/integrations/supabase/types.ts line 1184"],
-      "risk": "MEDIUM, same class as #5 -- safe against production (IF NOT EXISTS), residual risk only in fresh-replay column-level fidelity.",
-      "required_action": "Same as #5: reconcile real \\d+ output once DB access exists."
+      "concerns": "public.analysis_self_learning, public.rvce_validation_log -- RESTRICTIVE anon-deny policies on two tables",
+      "main_behavior": "Unconditional CREATE POLICY statements against both tables, assuming they exist.",
+      "feature_behavior_CORRECTED_2026-08-11": "REVISED after this classification's original entry was found to be wrong. The original 2026-08-10 pass invented a full CREATE TABLE IF NOT EXISTS for analysis_self_learning, inferring its schema from generated TypeScript types -- that has been REMOVED. Both CREATE POLICY statements are now guarded to apply only if their target table exists (a safe no-op otherwise), inventing no schema.",
+      "production_behavior": "PROD_VERIFIED via an independent, pre-existing, authoritative investigation: docs/accuracy/QUANTIS_ACCURACY_STATE.md's 2026-08-02 migration-ledger reconciliation individually checked all 30 untracked migrations against real production state and concluded neither analysis_self_learning nor rvce_validation_log exists in production -- this migration's original statements never successfully applied there and correctly carry no schema_migrations ledger entry. Independently corroborated by the founder's own live production query this session, which reported the same result before this pre-existing document was found.",
+      "classification": "ACCIDENTAL_MUTATION (of the original 2026-08-10 fix; CORRECTED 2026-08-11)",
+      "evidence": ["docs/accuracy/QUANTIS_ACCURACY_STATE.md, 'Session: 2026-08-02 (continued) -- migration mismatch resolved': '5 target dead/gone objects, correctly left unrecorded: 20260613022534 (RESTRICTIVE policies on analysis_self_learning/rvce_validation_log -- neither table exists)'", "founder-reported live production query this session (unconfirmed by this session's own tools, but consistent)", "src/integrations/supabase/types.ts DOES list analysis_self_learning -- this is now understood to be misleading for this specific table (types.ts reflects a schema that was apparently never actually created in the live database this session is auditing), a caution against trusting generated types alone without a direct query, exactly as this gate was designed to force"],
+      "risk": "RESOLVED. The corrected migration is now a safe no-op against production (matches confirmed reality) and against a fresh replay.",
+      "required_action": "None further for this file. Separately, whether analysis_self_learning/rvce_validation_log should be built as real features at all is an open founder-scoped product question, not a migration-hygiene one."
     },
     {
       "id": 11,
@@ -132,11 +132,11 @@
       "concerns": "public.qoc_audit -- CREATE TABLE IF NOT EXISTS collides with an earlier same-day migration's incompatible schema for the same table name; index creation guarded against the missing column",
       "main_behavior": "Unconditional CREATE INDEX referencing overall_verdict, assuming this file's own CREATE TABLE IF NOT EXISTS won.",
       "feature_behavior": "Wraps the index creation in an information_schema.columns existence check; skips with a NOTICE if overall_verdict isn't present.",
-      "production_behavior": "GENUINELY UNKNOWN. The migration's own comment concludes this qoc_audit design (fingerprint/overall_verdict) was likely superseded/abandoned mid-development, since qoc-orchestrate/adapters.ts's real write path targets a THIRD, differently-named table (qoc_audit_envelopes) entirely -- suggesting this migration's intent was abandoned rather than ever fully applied.",
-      "classification": "UNSAFE_HISTORY_REWRITE",
-      "evidence": ["an earlier same-day migration (20260624010000_qoc_audit_trail.sql) creates an incompatible qoc_audit schema first", "qoc-orchestrate/adapters.ts's putEnvelope() writes to qoc_audit_envelopes, not qoc_audit, suggesting this table is dead code either way"],
-      "risk": "MEDIUM-LOW on production data safety (the guard can't corrupt anything), but flagged UNSAFE_HISTORY_REWRITE rather than a lighter label because I genuinely do not know whether this migration succeeded, partially succeeded, or failed on production, and the guard silently changes the file's observable behavior (an aborting error becomes a silent skip) without that ambiguity being resolved first. This is exactly the kind of case Section 4 warns against accepting on clean-replay-passes alone.",
-      "required_action": "Confirm qoc_audit's real current schema in production (does it have overall_verdict or correlation_id/stage/ok, or does it not exist at all). Given qoc_audit_envelopes is the table actually read/written by live code, consider whether qoc_audit is dead schema entirely and this whole migration file is a candidate for formal retirement rather than repair."
+      "production_behavior": "PROD_VERIFIED via the same independent authoritative investigation as #10 (docs/accuracy/QUANTIS_ACCURACY_STATE.md, 2026-08-02): '20260624010000 + 20260624054320 (both attempted to create a qoc_audit table under that exact name -- it was never created; the real, live QOC table is qoc_audit_envelopes, built separately)'. qoc_audit_envelopes' real production column list (id, request_id, user_id, fingerprint, qoc_version, overall_verdict, traces, total_cost_usd, total_duration_ms, report, short_circuit, created_at, per the founder's own live query this session) matches supabase/migrations/20260623_qoc_audit.sql's CREATE TABLE exactly -- but that file itself also carries no schema_migrations ledger entry, meaning its DDL reached production through some path this repo's tracked history does not capture as a formal migration.",
+      "classification": "ALREADY_PRODUCTION_APPLIED_DIFFERENTLY (upgraded from a provisional UNSAFE_HISTORY_REWRITE flag, now that direct production evidence resolves the prior ambiguity)",
+      "evidence": ["docs/accuracy/QUANTIS_ACCURACY_STATE.md's 2026-08-02 ledger reconciliation", "founder-reported live query: qoc_audit_envelopes' column list matches 20260623_qoc_audit.sql byte-for-byte", "an earlier same-day migration (20260624010000_qoc_audit_trail.sql) creates an incompatible, also-dead qoc_audit schema first on a fresh replay", "qoc-orchestrate/adapters.ts's putEnvelope() writes to qoc_audit_envelopes, not qoc_audit"],
+      "risk": "LOW, now resolved -- the guard in the historical file remains correct and necessary for fresh-replay compatibility (qoc_audit itself DOES get created on a fresh replay by 20260624010000, unlike in production, so the guard's existence-check behavior differs by environment for a legitimate reason, not an inconsistency).",
+      "required_action": "None blocking. Recommend (not performed here): 20260623_qoc_audit.sql's filename lacks a full HHMMSS timestamp, which may be why it was never tracked in schema_migrations the way properly-named migrations are -- worth a founder-scoped decision on whether to formally backfill its ledger entry (metadata-only, no DDL re-run, the same technique already used for the 21 other files in the 2026-08-02 reconciliation) so future tooling recognizes it. qoc_audit (as opposed to qoc_audit_envelopes) appears to be entirely dead schema and is a candidate for formal retirement review, separate from this gate."
     },
     {
       "id": 12,
@@ -224,12 +224,14 @@
     }
   ],
   "summary_counts": {
-    "REPLAY_COMPATIBILITY_ONLY": 10,
+    "as_of": "2026-08-11, revised after cross-referencing docs/accuracy/QUANTIS_ACCURACY_STATE.md and the founder's own live production query",
+    "REPLAY_COMPATIBILITY_ONLY": 8,
     "REQUIRED_FORWARD_FIX": 5,
-    "ACCIDENTAL_MUTATION": 1,
-    "UNSAFE_HISTORY_REWRITE": 1,
-    "ALREADY_PRODUCTION_APPLIED_DIFFERENTLY": 4,
-    "note_on_totals": "Sums to 21, not 18, because 3 files legitimately carry two distinct findings each ((1) grants + inference, (8) seed data + open question already counted once, (12) backfill + a separately-noted untracked-column-lifecycle gap) -- each file still has exactly ONE primary classification as required; the extra counts reflect sub-findings folded into the same entry's risk/required_action fields, not double-classification."
+    "ACCIDENTAL_MUTATION": 2,
+    "UNSAFE_HISTORY_REWRITE": 0,
+    "ALREADY_PRODUCTION_APPLIED_DIFFERENTLY": 3,
+    "revision_note": "Entry #10 moved ALREADY_PRODUCTION_APPLIED_DIFFERENTLY -> ACCIDENTAL_MUTATION (the original 2026-08-10 fix had invented a CREATE TABLE for analysis_self_learning that production confirms never existed; corrected to a non-inventive existence-guarded no-op). Entry #11 moved UNSAFE_HISTORY_REWRITE -> ALREADY_PRODUCTION_APPLIED_DIFFERENTLY (production evidence resolved the prior genuine ambiguity about qoc_audit's real state). Zero UNSAFE_HISTORY_REWRITE findings remain as of this revision.",
+    "note_on_totals": "Sums to 18 exactly as of this revision (the prior 21-count note applied to sub-findings folded into other entries' risk/required_action fields, not to this per-classification tally, and remains accurate for those)."
   },
   "critical_findings_requiring_immediate_attention_independent_of_evidence_service": [
     { "id": 2, "title": "is_service_role() may still be exploitable in production", "severity": "P0-candidate" },
