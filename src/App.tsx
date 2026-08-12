@@ -33,6 +33,7 @@ const Terms = lazy(() => import("./pages/Terms"));
 const PlusSettings = lazy(() => import("./pages/PlusSettings"));
 const DocsStudio = lazy(() => import("./pages/DocsStudio"));
 const Blog = lazy(() => import("./pages/Blog"));
+const DecisionValidationSprint = lazy(() => import("./pages/DecisionValidationSprint"));
 const BlogArticle = lazy(() => import("./pages/BlogArticle"));
 const Leaderboard = lazy(() => import("./pages/Leaderboard"));
 const ViralContent = lazy(() => import("./pages/ViralContent"));
@@ -150,6 +151,7 @@ const App = () => {
                 <Route path="/privacy" element={<Privacy />} />
                 <Route path="/terms" element={<Terms />} />
                 <Route path="/blog" element={<Blog />} />
+                <Route path="/decision-validation-sprint" element={<DecisionValidationSprint />} />
                 <Route path="/blog/:slug" element={<BlogArticle />} />
                 <Route path="/reset-password" element={<ResetPassword />} />
                 <Route path="/leaderboard" element={<Leaderboard />} />

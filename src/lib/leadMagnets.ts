@@ -9,23 +9,25 @@
 // Lead Source Types
 // ============================================
 
-export type LeadSource = 
+export type LeadSource =
   | 'exit_intent_popup'
   | 'scroll_popup'
   | 'time_delay_popup'
   | 'footer_newsletter'
   | 'resource_download'
   | 'feature_waitlist'
-  | 'blog_cta';
+  | 'blog_cta'
+  | 'sprint_page';
 
-export type LeadOffer = 
+export type LeadOffer =
   | 'free_analysis'
   | 'business_guide'
   | 'validation_questions'
   | 'projection_template'
   | 'newsletter'
   | 'early_access'
-  | 'founder_starter_kit';
+  | 'founder_starter_kit'
+  | 'decision_sprint';
 
 // ============================================
 // Popup Priority Configuration
@@ -49,6 +51,7 @@ export const COOLDOWN_CONFIG: Record<LeadSource, { submit: number; dismiss: numb
   resource_download: { submit: 720, dismiss: 0 },    // 30 days submit, no dismiss
   feature_waitlist: { submit: 720, dismiss: 0 },     // 30 days submit, no dismiss
   blog_cta: { submit: 168, dismiss: 0 },             // 7 days submit, no dismiss
+  sprint_page: { submit: 720, dismiss: 0 },          // 30 days submit, no dismiss -- this is a sales request, not a newsletter signup; long cooldown just prevents accidental double-submit
 };
 
 // ============================================
@@ -154,6 +157,19 @@ export const LEAD_MAGNET_CONTENT: Record<LeadOffer, LeadMagnetContent> = {
     ],
     ctaText: 'Join Waitlist',
     successMessage: "You're on the list! We'll be in touch soon.",
+  },
+  decision_sprint: {
+    offer: 'decision_sprint',
+    headline: 'Request the Decision Validation Sprint',
+    subheadline: 'A bounded, human-reviewed stress test of one real decision — $149, founding price',
+    benefits: [
+      'Assumption ledger with origin labels — what you told us vs. what we assumed',
+      'Base / downside / upside scenarios with break-even, runway, and payback where the model supports them',
+      'Top five decision risks, plus a human numeric-integrity review before delivery',
+      '30-minute call to walk through the report',
+    ],
+    ctaText: 'Request the Sprint',
+    successMessage: "Request received — expect a reply within one business day to confirm scope and send the payment link.",
   },
 };
 
