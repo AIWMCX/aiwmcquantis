@@ -1,7 +1,7 @@
 import { useLocation } from 'react-router-dom';
 import { PageMeta } from './PageMeta';
 import { TIERS } from '@/config/tiers';
-import { LEGAL_ENTITY_NAME } from '@/config/canonical-facts';
+import { LEGAL_ENTITY_NAME, BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 
 /**
  * RouteSEO — drop-in component that auto-resolves title/description/canonical
