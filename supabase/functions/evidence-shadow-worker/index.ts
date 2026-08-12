@@ -40,14 +40,16 @@ import { corsHeadersFor } from '../_shared/cors.ts';
 import { createLogger } from '../_shared/logger.ts';
 import { getRequestId } from '../_shared/request-id.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
-import { runEvidencePipeline } from '../_shared/evidence/pipeline.ts';
+import { runEvidencePipeline, PIPELINE_VERSION } from '../_shared/evidence/pipeline.ts';
 import { TavilyEvidenceProvider } from '../_shared/evidence/tavily-provider.ts';
+import { computeEvidenceTelemetry } from '../_shared/evidence/evidence-telemetry.ts';
 import {
   mapEvidenceRequestRow,
   mapEvidencePacketRow,
   mapEvidenceSourceRows,
   mapEvidencePassageRows,
   mapEvidenceClaimRows,
+  mapEvidenceTelemetryRow,
 } from '../_shared/evidence/db-mapping.ts';
 
 const FUNCTION_NAME = 'evidence-shadow-worker';
@@ -157,7 +159,7 @@ Deno.serve(async (req: Request) => {
         const timeout = new Promise<never>((_, reject) =>
           setTimeout(() => reject(new Error(`pipeline timed out after ${PIPELINE_TIMEOUT_MS}ms`)), PIPELINE_TIMEOUT_MS),
         );
-        const { packet, request } = await Promise.race([pipelinePromise, timeout]);
+        const { packet, request, providerResults } = await Promise.race([pipelinePromise, timeout]);
 
         const requestRow = mapEvidenceRequestRow(request, claimed.analysis_id, claimed.user_id);
         const { data: insertedRequest, error: reqErr } = await supabase
@@ -204,6 +206,20 @@ Deno.serve(async (req: Request) => {
         if (claimRows.length > 0) {
           const { error: claimsErr } = await supabase.from('evidence_claims').insert(claimRows);
           if (claimsErr) throw new Error(`evidence_claims insert failed: ${claimsErr.message}`);
+        }
+
+        // Best-effort observability (E7): computed from data already in
+        // hand, so it can never itself fail the pipeline retrieval/
+        // persistence above. A telemetry-insert failure is logged and
+        // swallowed -- losing one run's metrics is acceptable; losing the
+        // evidence packet itself over a telemetry bug would not be.
+        try {
+          const telemetry = computeEvidenceTelemetry(packet, providerResults);
+          const telemetryRow = mapEvidenceTelemetryRow(telemetry, claimed.analysis_id, claimed.user_id, packet.evidencePacketId, PIPELINE_VERSION);
+          const { error: telemetryErr } = await supabase.from('evidence_telemetry').insert(telemetryRow);
+          if (telemetryErr) log.warn(`evidence_telemetry insert failed (non-fatal): ${telemetryErr.message}`);
+        } catch (telemetryEx) {
+          log.warn('evidence_telemetry computation failed (non-fatal):', telemetryEx);
         }
 
         await supabase

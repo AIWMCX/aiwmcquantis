@@ -213,6 +213,7 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
     'evidence_claims',
     'numeric_observations',
     'evidence_evaluations',
+    'evidence_telemetry',
   ];
 
   describe('anonymous access is denied on every evidence table', () => {
@@ -455,6 +456,65 @@ describeOrSkip('Evidence Service RLS integration matrix (staging target required
       const [passage] = passageBody;
       seeded.passages.push(passage.id);
       await serviceFetch(`/evidence_passages?id=eq.${passage.id}`, { method: 'DELETE' }).catch(() => {});
+    });
+  });
+
+  describe('evidence_telemetry (E7)', () => {
+    it('service role can insert a telemetry row and the owner can read it back', async () => {
+      const insertRes = await serviceFetch('/evidence_telemetry', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdA,
+          user_id: userA.id,
+          evidence_packet_id: packetIdA,
+          retrieval_latency_ms: 4200,
+          pipeline_version: '0.1.0',
+        }),
+      });
+      const insertBody = await insertRes.json();
+      expect(insertRes.ok, JSON.stringify(insertBody)).toBe(true);
+      const telemetryId = insertBody[0].id;
+
+      const readRes = await userFetch(userA.token, `/evidence_telemetry?id=eq.${telemetryId}&select=id,retrieval_latency_ms`);
+      const readBody = await readRes.json();
+      expect(readRes.status, JSON.stringify(readBody)).toBe(200);
+      expect(readBody).toHaveLength(1);
+      expect(readBody[0].retrieval_latency_ms).toBe(4200);
+    });
+
+    it('user A cannot read user B\'s evidence_telemetry row', async () => {
+      const insertRes = await serviceFetch('/evidence_telemetry', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdB,
+          user_id: userB.id,
+          evidence_packet_id: packetIdB,
+          retrieval_latency_ms: 1000,
+          pipeline_version: '0.1.0',
+        }),
+      });
+      const insertBody = await insertRes.json();
+      expect(insertRes.ok, JSON.stringify(insertBody)).toBe(true);
+      const telemetryIdB = insertBody[0].id;
+
+      const res = await userFetch(userA.token, `/evidence_telemetry?id=eq.${telemetryIdB}&select=id`);
+      const body = await res.json();
+      expect(res.status, JSON.stringify(body)).toBe(200);
+      expect(body).toEqual([]);
+    });
+
+    it('authenticated cannot INSERT into evidence_telemetry', async () => {
+      const res = await userFetch(userA.token, '/evidence_telemetry', {
+        method: 'POST',
+        body: JSON.stringify({
+          analysis_id: analysisIdA,
+          user_id: userA.id,
+          evidence_packet_id: packetIdA,
+          retrieval_latency_ms: 1,
+          pipeline_version: '0.1.0',
+        }),
+      });
+      expect([401, 403]).toContain(res.status);
     });
   });
 

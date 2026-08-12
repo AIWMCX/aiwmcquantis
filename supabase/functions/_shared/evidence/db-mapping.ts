@@ -29,6 +29,7 @@
  */
 import type { EvidenceClaim, EvidencePassage, EvidenceRequest, EvidenceSource, QuantisEvidencePacket } from './types.ts';
 import { computeEvidenceRunKey } from './evidence-run-key.ts';
+import type { EvidenceTelemetryMetrics } from './evidence-telemetry.ts';
 
 const PERSISTABLE_PASSAGE_POLICIES = new Set(['PASSAGE_ALLOWED', 'FULL_ALLOWED']);
 
@@ -220,4 +221,66 @@ export function mapEvidenceClaimRows(
     freshness: c.freshness,
     source_independence_count: c.sourceIndependenceCount,
   }));
+}
+
+export interface EvidenceTelemetryRow {
+  analysis_id: string;
+  user_id: string;
+  evidence_packet_id: string;
+  provider_call_count: number;
+  provider_success_count: number;
+  provider_degraded_count: number;
+  provider_failed_count: number;
+  source_count: number;
+  independent_source_count: number;
+  duplicate_source_count: number;
+  primary_source_count: number;
+  stale_source_count: number;
+  claim_count: number;
+  supported_claim_count: number;
+  single_source_claim_count: number;
+  contested_claim_count: number;
+  unsupported_claim_count: number;
+  contradiction_count: number;
+  unresolved_question_count: number;
+  numeric_observation_count: number;
+  retrieval_latency_ms: number;
+  cost_usd?: number;
+  degraded: boolean;
+  pipeline_version: string;
+}
+
+export function mapEvidenceTelemetryRow(
+  metrics: EvidenceTelemetryMetrics,
+  analysisId: string,
+  userId: string,
+  evidencePacketId: string,
+  pipelineVersion: string,
+): EvidenceTelemetryRow {
+  return {
+    analysis_id: analysisId,
+    user_id: userId,
+    evidence_packet_id: evidencePacketId,
+    provider_call_count: metrics.providerCallCount,
+    provider_success_count: metrics.providerSuccessCount,
+    provider_degraded_count: metrics.providerDegradedCount,
+    provider_failed_count: metrics.providerFailedCount,
+    source_count: metrics.sourceCount,
+    independent_source_count: metrics.independentSourceCount,
+    duplicate_source_count: metrics.duplicateSourceCount,
+    primary_source_count: metrics.primarySourceCount,
+    stale_source_count: metrics.staleSourceCount,
+    claim_count: metrics.claimCount,
+    supported_claim_count: metrics.supportedClaimCount,
+    single_source_claim_count: metrics.singleSourceClaimCount,
+    contested_claim_count: metrics.contestedClaimCount,
+    unsupported_claim_count: metrics.unsupportedClaimCount,
+    contradiction_count: metrics.contradictionCount,
+    unresolved_question_count: metrics.unresolvedQuestionCount,
+    numeric_observation_count: metrics.numericObservationCount,
+    retrieval_latency_ms: metrics.retrievalLatencyMs,
+    cost_usd: metrics.costUsd,
+    degraded: metrics.degraded,
+    pipeline_version: pipelineVersion,
+  };
 }

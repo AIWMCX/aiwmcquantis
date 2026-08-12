@@ -68,7 +68,7 @@ import { classifyFreshness, rollUpFreshness } from './freshness.ts';
 import { buildEvidencePacket, sha256Hex } from './packet.ts';
 import type { QuantisEvidencePacket } from './types.ts';
 
-const PIPELINE_VERSION = '0.1.0';
+export const PIPELINE_VERSION = '0.1.0';
 
 export interface RunEvidencePipelineInput {
   analysisRunId: string;
