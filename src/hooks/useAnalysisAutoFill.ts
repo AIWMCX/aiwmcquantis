@@ -177,7 +177,7 @@ export function useAnalysisAutoFill() {
     queryFn: async (): Promise<Map<string, SnapshotRow>> => {
       if (analysisIds.length === 0) return new Map();
 
-      const { data, error } = await supabase
+      const { data, error } = await (supabase as any)
         .from('analysis_snapshots')
         .select('id, analysis_id, engine_version, formula_registry_version, dataset_version, numeric_output_hash, created_at')
         .in('analysis_id', analysisIds)
