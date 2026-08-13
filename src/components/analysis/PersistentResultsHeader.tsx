@@ -196,7 +196,13 @@ export function PersistentResultsHeader({
           />
           <KPIChip
             label="Break-Even"
-            value={animatedBreakEven > 24 ? 'Mo. 24+' : `Mo. ${Math.round(animatedBreakEven)}`}
+            value={
+              breakEvenMonths >= 999
+                ? 'Not achieved'
+                : animatedBreakEven > 24
+                  ? 'Mo. 24+'
+                  : `Mo. ${Math.round(animatedBreakEven)}`
+            }
             color={breakEvenColor}
           />
           <KPIChip

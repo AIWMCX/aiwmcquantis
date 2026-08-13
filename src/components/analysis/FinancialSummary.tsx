@@ -299,7 +299,13 @@ export function FinancialSummary({ financial, selectedScenario = 'base' }: Finan
               const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
               return formatPaybackDisplay(raw, baseProfit);
             })()}
-            rawValue={financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0}
+            rawValue={(() => {
+              // Copied value must match the displayed value -- never copy the
+              // literal 999 sentinel when the visible card reads
+              // "N/A (unprofitable)".
+              const raw = financial.returns?.payback_period_months || financial.breakeven?.breakeven_months || 0;
+              return raw >= 999 || baseProfit <= 0 ? 'N/A (unprofitable)' : raw;
+            })()}
             icon={Clock}
             color="text-amber-600 dark:text-amber-400"
             bgColor="bg-amber-500/10"

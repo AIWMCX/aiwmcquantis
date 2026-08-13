@@ -806,7 +806,13 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Break-even</span>
-                      <span>Mo. {breakEvenMonths > 24 ? '24+' : breakEvenMonths}</span>
+                      <span>
+                        {breakEvenMonths >= 999
+                          ? 'Not achieved'
+                          : breakEvenMonths > 24
+                            ? 'Mo. 24+'
+                            : `Mo. ${breakEvenMonths}`}
+                      </span>
                     </div>
                     <div className="flex justify-between items-center">
                       <span className="text-muted-foreground">Runway</span>
