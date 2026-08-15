@@ -1,0 +1,106 @@
+{
+  "_meta": {
+    "generated": "2026-08-14",
+    "charter": "MR. PREDICTA v1.0",
+    "phase": "Phase 0 -- baseline freeze",
+    "note": "Every field below carries an evidence label per the charter's truth hierarchy (S4). CODE_VERIFIED means read directly from git objects this session. Nothing here is PROD_VERIFIED or DB_VERIFIED -- see blocked_evidence."
+  },
+  "shas": {
+    "main": { "value": "741bbbe7a198f88e8ce4b4d1afae29be69032327", "label": "CODE_VERIFIED", "matches_charter_hypothesis": true },
+    "feature_evidence_service": { "value": "cb833b9078808fbd180d28d501e1dd9aaaed6b08", "label": "CODE_VERIFIED", "matches_charter_hypothesis": true },
+    "merge_base": { "value": "97540bc750545354936148c8793e2a1d99fefd76", "label": "CODE_VERIFIED" }
+  },
+  "branch_divergence": {
+    "ahead_of_main": 15,
+    "behind_main": 8,
+    "label": "CODE_VERIFIED"
+  },
+  "open_related_prs": {
+    "feature_evidence_service_itself": { "open_pr": null, "label": "CODE_VERIFIED", "note": "No open PR exists for feature/evidence-service against main." },
+    "other_open_prs_touching_evidence_terms": [
+      { "number": 28, "title": "security(P0-track-a): fix get_referral_stats anon fail-open + 3 deferred grant issues", "branch": "security/p0-track-a-referral-access-fix", "relation": "unrelated -- keyword match only" },
+      { "number": 26, "title": "security(P0): effective-access remediation for 10 exposed tables", "branch": "security/p0-effective-access-control", "relation": "unrelated -- keyword match only" }
+    ]
+  },
+  "migrations": {
+    "evidence_related_on_branch": [
+      "supabase/migrations/20260810090000_evidence_service_schema.sql",
+      "supabase/migrations/20260810120000_evidence_shadow_queue.sql",
+      "supabase/migrations/20260810130000_evidence_shadow_worker_cron.sql",
+      "supabase/migrations/20260811000000_evidence_run_key.sql",
+      "supabase/migrations/20260811010000_evidence_telemetry.sql"
+    ],
+    "evidence_related_on_main": [],
+    "label": "CODE_VERIFIED",
+    "applied_to_production": { "value": "UNKNOWN", "label": "UNVERIFIED", "reason": "No production DB access this session -- see blocked_evidence." }
+  },
+  "edge_functions": {
+    "evidence_shadow_worker": {
+      "path": "supabase/functions/evidence-shadow-worker/index.ts",
+      "registered_in_production_deploy_yml": true,
+      "registered_in_deploy_ignore": false,
+      "config_toml_entry": "[functions.evidence-shadow-worker] verify_jwt = false",
+      "label": "CODE_VERIFIED",
+      "would_deploy_on_next_main_run": true,
+      "actually_deployed": { "value": "NOT DEPLOYED (inferred: branch unmerged, main has zero evidence footprint)", "label": "INFERRED", "confidence": "high but not DB_VERIFIED or PROD_VERIFIED" }
+    },
+    "shared_modules": [
+      "supabase/functions/_shared/evidence/db-mapping.ts",
+      "supabase/functions/_shared/evidence/dedupe.ts",
+      "supabase/functions/_shared/evidence/evidence-graph.ts",
+      "supabase/functions/_shared/evidence/evidence-run-key.ts",
+      "supabase/functions/_shared/evidence/evidence-telemetry.ts",
+      "supabase/functions/_shared/evidence/fetch-guard.ts",
+      "supabase/functions/_shared/evidence/freshness.ts",
+      "supabase/functions/_shared/evidence/independence.ts",
+      "supabase/functions/_shared/evidence/numeric-firewall.ts",
+      "supabase/functions/_shared/evidence/packet.ts",
+      "supabase/functions/_shared/evidence/pipeline.ts",
+      "supabase/functions/_shared/evidence/privacy-gate.ts",
+      "supabase/functions/_shared/evidence/provider-registry.ts",
+      "supabase/functions/_shared/evidence/provider-router.ts",
+      "supabase/functions/_shared/evidence/provider.ts",
+      "supabase/functions/_shared/evidence/request-compiler.ts",
+      "supabase/functions/_shared/evidence/tavily-provider.ts",
+      "supabase/functions/_shared/evidence/types.ts",
+      "supabase/functions/_shared/evidence/url-normalize.ts"
+    ]
+  },
+  "feature_flags": {
+    "charter_hypothesis_name": "QUANTIS_EVIDENCE_SHADOW_ENABLED",
+    "actual_code_name": "EVIDENCE_SERVICE_SHADOW_ENABLED",
+    "hypothesis_status": "DISPROVEN -- names differ",
+    "label": "CODE_VERIFIED",
+    "default_when_unset": "false (no-op / skip)",
+    "referenced_at": [
+      "supabase/functions/evidence-shadow-worker/index.ts:93",
+      ".github/workflows/production-deploy.yml:308-309 (comment only)"
+    ],
+    "set_in_any_real_environment": { "value": "UNKNOWN", "label": "UNVERIFIED", "reason": "No production/Supabase-dashboard access this session -- see blocked_evidence." }
+  },
+  "provider_configuration": {
+    "providers_wired": ["tavily"],
+    "env_vars_referenced": ["TAVILY_API_KEY"],
+    "label": "CODE_VERIFIED",
+    "note": "Single-provider only as of this SHA -- provider-registry.ts / provider-router.ts exist as abstraction but only one concrete adapter (tavily-provider.ts) is implemented."
+  },
+  "cron": {
+    "evidence_shadow_worker_poll": {
+      "schedule": "*/10 * * * *",
+      "mechanism": "pg_cron -> net.http_post -> evidence-shadow-worker edge function, x-cron-secret auth (matches existing repo convention)",
+      "migration": "supabase/migrations/20260810130000_evidence_shadow_worker_cron.sql",
+      "label": "CODE_VERIFIED",
+      "active_in_production": { "value": "UNKNOWN", "label": "UNVERIFIED" }
+    }
+  },
+  "blocked_evidence": {
+    "root_cause": "Supabase MCP connected to this session is authenticated as a different account/project (suncitymoving, ref tjoeintpstnifkmjlirs) than AIWMC Quantis (ref dmlxrvfyqsakyjomsvdj). get_project('dmlxrvfyqsakyjomsvdj') returns a permission error (project exists, identity not authorized), not 'not found'.",
+    "blocks": [
+      "Whether any evidence_* migration has actually been applied to production (DB_VERIFIED)",
+      "Whether EVIDENCE_SERVICE_SHADOW_ENABLED is set in any real environment (CONFIG_VERIFIED)",
+      "Whether evidence-shadow-worker is actually deployed (PROD_VERIFIED)",
+      "Whether the pg_cron job is registered/firing in production (DB_VERIFIED)",
+      "All of Test Domains B (deterministic parity against real data), D (provider routing under real conditions), K (numeric firewall against real retrieved content), N (RLS cross-tenant matrix against real auth.users), O (idempotency/concurrency against real DB), P (telemetry against real rows), Q (performance/cost against real traffic)"
+    ]
+  }
+}
