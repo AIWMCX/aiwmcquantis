@@ -17,20 +17,25 @@ live RLS policies:            UNVERIFIED
 critical feature flags:       UNVERIFIED (EVIDENCE_SERVICE_SHADOW_ENABLED state in any real environment unknown)
 ```
 
-## Supabase project-identity gate (§4.1) — result this pass
+## Supabase project-identity gate (§4.1) — RESOLVED this pass
+
+Founder reconnected the Supabase MCP mid-session. Re-checked fresh:
 
 ```
-project_ref (connected)      = tjoeintpstnifkmjlirs
-project_name (connected)     = suncitymoving@suncitymoving.com's Project
-organization (connected)     = kbypmudeysuchvzvpkak
-expected_ref (Quantis)       = dmlxrvfyqsakyjomsvdj
-get_project(dmlxrvfyqsakyjomsvdj) result = permission denied (project exists; connected identity not authorized on it)
-gate result                  = WRONG_ACCOUNT
+project_ref (connected)  = dmlxrvfyqsakyjomsvdj
+project_name              = AIWMC QUANTIS
+organization               = kigtmuwprthzlbrnzwwf
+status                     = ACTIVE_HEALTHY
+gate result                = MATCHES_QUANTIS_PRODUCTION
 ```
 
-Checked fresh this pass (not reused from a prior turn's cached result) — same outcome as the two prior checks earlier in this session. This is a stable, repeatable finding, not a transient error: `SUPABASE_CONNECTION_MISMATCH`.
+`list_projects` also surfaced 4 sibling projects under the same org, not previously known to this session: `betaaiwmcsupas` (INACTIVE), `AIWMC ROBOTIC` (INACTIVE), `v2 AIWMC; Kerry main FEAT beta` (INACTIVE), `sun-city-moving-dev` (ACTIVE_HEALTHY). None relevant to Quantis; noted for completeness only.
 
-**Exact unblock action**: in an interactive Claude Code session, run `/mcp`, disconnect the Supabase connector, and reconnect using the account/login under which `dmlxrvfyqsakyjomsvdj` actually exists (verify in the Supabase dashboard under that account before reconnecting — the project is real, so it lives under *some* account; the connected session simply isn't that one).
+## Real production evidence captured this pass (DB_VERIFIED, read-only)
+
+- **Track A functions**: all 5 confirmed `anon EXECUTE = true` live; signatures match Track A's migration exactly. See `SECURITY_STATUS.md` for full detail and the direct exploit reproduction.
+- **Schema drift, newly found**: `public.referral_rewards` and `public.referral_conversions` do not exist in production; only `referral_codes` does (0 rows — feature never successfully used). Independent of the security finding.
+- **Evidence Service dormancy, upgraded from INFERRED to DB_VERIFIED**: `evidence_packets`, `evidence_shadow_queue`, `evidence_telemetry`, `evidence_sources`, `evidence_claims` — none exist in production. No `cron.job` row matching `%evidence%`. Confirms Predicta Phase 0's inference was correct: fully dormant, nothing deployed.
 
 ## What remains CODE_VERIFIED (repo-only, unaffected by the above)
 
