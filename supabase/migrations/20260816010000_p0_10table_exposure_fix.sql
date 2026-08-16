@@ -75,18 +75,21 @@ CREATE POLICY export_jobs_service_only ON public.export_jobs
 --    policies for the first time.
 -- ============================================================
 
--- invoices: owner SELECT + INSERT. No direct client UPDATE/DELETE call site
--- found (financial documents are append-only from the client's perspective;
--- edits go through export/document-generation edge functions under
--- service-role). If a void/edit workflow needs it, add an owner UPDATE
--- policy in a follow-up migration naming that caller.
+-- invoices: owner SELECT + INSERT + UPDATE. Checked src/hooks/useInvoices.ts
+-- directly before writing this: useUpdateInvoiceStatus() does a real
+-- client-side UPDATE (marking an invoice paid/status change) under the
+-- caller's own authenticated session -- an owner UPDATE policy is required,
+-- not optional, or this live feature breaks. No client-side DELETE call
+-- site found.
 REVOKE ALL ON TABLE public.invoices FROM anon, authenticated;
-GRANT SELECT, INSERT ON TABLE public.invoices TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON TABLE public.invoices TO authenticated;
 DROP POLICY IF EXISTS invoices_svc ON public.invoices;
 CREATE POLICY invoices_owner_select ON public.invoices
   FOR SELECT TO authenticated USING (user_id = auth.uid());
 CREATE POLICY invoices_owner_insert ON public.invoices
   FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+CREATE POLICY invoices_owner_update ON public.invoices
+  FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
 CREATE POLICY invoices_service_all ON public.invoices
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
