@@ -37,6 +37,32 @@ export interface ConfidenceBreakdown {
   details: string[];             // Explanation of score factors
 }
 
+// Accuracy session 2026-08-04 (Confidence semantics, Priority 1): the
+// mirror of supabase/functions/_shared/quality-dimensions.ts's types.
+// Decomposes the single blended reliability_score into separately-labeled
+// dimensions so no UI surface has to present one percentage as if it
+// measured forecast accuracy. See that file for which dimensions are real
+// signals vs. explicitly UNVERIFIED/NOT_AVAILABLE.
+export type QualityStatus = 'PASS' | 'WARN' | 'FAIL' | 'UNVERIFIED' | 'NOT_AVAILABLE' | 'CORRECTED';
+
+export interface QualityDimensions {
+  input_completeness: number;
+  source_coverage: number;
+  benchmark_match_quality: QualityStatus;
+  scenario_reconciliation: QualityStatus;
+  narrative_reconciliation: QualityStatus;
+  formula_reconciliation: QualityStatus;
+  outcome_calibration: QualityStatus;
+  evidence: {
+    source_coverage: string;
+    benchmark_match_quality: string;
+    scenario_reconciliation: string;
+    narrative_reconciliation: string;
+    formula_reconciliation: string;
+    outcome_calibration: string;
+  };
+}
+
 export interface ValidationResult {
   is_realistic: boolean;
   is_profitable: boolean;
@@ -49,6 +75,7 @@ export interface ValidationResult {
   revenue_for_45k_profit: number;
   industry_detected?: string;
   confidence_breakdown?: ConfidenceBreakdown;
+  quality_dimensions?: QualityDimensions;
   improvement_suggestions?: string[];
   summary: string;
 }
