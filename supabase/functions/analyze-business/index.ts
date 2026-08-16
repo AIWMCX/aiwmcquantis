@@ -1774,6 +1774,17 @@ function transformResponse(
   );
 
   return {
+    // Gate 3 fix (2026-08-16): raw.investment_verdict (HIGH_RISK/MEDIUM_RISK/
+    // LOW_RISK/PROMISING) is guaranteed non-null by narrator-prompt.ts's own
+    // `|| 'MEDIUM_RISK'` fallback, but was never copied onto this return
+    // object -- every downstream reader of `result.verdict` (the hybrid
+    // validator at line ~4108, and the free-tier wire payload at ~4154) has
+    // therefore always received null, regardless of tier. Confirmed via a
+    // real anonymous production request this session: HTTP 200,
+    // success:true, "verdict":null. `?? null` keeps the same safe fallback
+    // shape those call sites already expect if `raw` is ever missing the
+    // field.
+    verdict: (raw as any)?.investment_verdict ?? null,
     financial_analysis: financialAnalysis,
     business_plan: {
       executive_summary: narrativeIntegrityResult.executiveSummary,
