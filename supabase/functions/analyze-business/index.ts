@@ -7,6 +7,7 @@ import {
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERSION, FORMULA_REGISTRY_VERSION as SCENARIO_BASE_INPUT_FORMULA_VERSION } from '../_shared/analysis-snapshot.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
+import { deriveInvestmentVerdict } from './investment-verdict.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
@@ -1773,18 +1774,21 @@ function transformResponse(
     log,
   );
 
+  // FREE-NULL-VERDICT, root-cause corrected 2026-08-16 (supersedes the
+  // 2026-08-16 raw.investment_verdict fix earlier the same day, which was
+  // real but insufficient AND architecturally wrong -- it sourced the
+  // verdict from the AI narrator, when the deterministic engine must own
+  // it; see investment-verdict.ts's header for the full chain).
+  // `calc` (calculateStrictFinancials, line ~1743) is the SAME canonical
+  // financial state both the AI-narrator path and the deterministic-
+  // fallback path already flow through by this point -- one derivation
+  // here covers every response path with no per-path duplication.
+  const investmentVerdict = deriveInvestmentVerdict(calc, userInputs);
+
   return {
-    // Gate 3 fix (2026-08-16): raw.investment_verdict (HIGH_RISK/MEDIUM_RISK/
-    // LOW_RISK/PROMISING) is guaranteed non-null by narrator-prompt.ts's own
-    // `|| 'MEDIUM_RISK'` fallback, but was never copied onto this return
-    // object -- every downstream reader of `result.verdict` (the hybrid
-    // validator at line ~4108, and the free-tier wire payload at ~4154) has
-    // therefore always received null, regardless of tier. Confirmed via a
-    // real anonymous production request this session: HTTP 200,
-    // success:true, "verdict":null. `?? null` keeps the same safe fallback
-    // shape those call sites already expect if `raw` is ever missing the
-    // field.
-    verdict: (raw as any)?.investment_verdict ?? null,
+    verdict: investmentVerdict.verdict,
+    verdict_basis: investmentVerdict.basis,
+    verdict_reasons: investmentVerdict.reasons,
     financial_analysis: financialAnalysis,
     business_plan: {
       executive_summary: narrativeIntegrityResult.executiveSummary,
