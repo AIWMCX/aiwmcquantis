@@ -442,7 +442,14 @@ export interface QueuedAnalysisJob {
 // silently retried 3x, then surfaced as ANALYSIS_UNAVAILABLE — fixed 2026-07-30).
 export interface FreeTierAnalysisSummary {
   kind: 'free_tier_summary';
-  score: number | null;
+  // "score" (blended reliabilityScore) deprecated 2026-08-17 -- see
+  // supabase/functions/analyze-business/index.ts wirePayload for the full
+  // root-cause writeup. It defaulted unmeasured components to "healthy" and
+  // produced misleadingly high numbers (e.g. 90) on zero-input requests.
+  // input_completeness (0-100, from the PR #27 quality_dimensions
+  // architecture) replaces it: it only measures how much real input the
+  // user supplied, never business viability/accuracy.
+  input_completeness: number | null;
   verdict: string | null;
   top_risks: unknown[];
   base_revenue: number | null;

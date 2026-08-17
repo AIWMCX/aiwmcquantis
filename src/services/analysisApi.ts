@@ -308,14 +308,16 @@ export async function generateAnalysis(request: AnalysisRequest): Promise<Analys
         const d = data.data as unknown as Record<string, unknown>;
         logger.info('Free-tier analysis summary received', { metadata: { request_id: requestId } });
         try {
-          trackAnalysisCompleted(0, 0, Number(d.score ?? 0) || 0);
+          // score deprecated 2026-08-17 (see FreeTierAnalysisSummary); the
+          // analytics dimension now tracks input_completeness instead.
+          trackAnalysisCompleted(0, 0, Number(d.input_completeness ?? 0) || 0);
         } catch {
           /* analytics must never break the analysis path */
         }
         const cta = d._upgrade_cta as Record<string, unknown> | undefined;
         return {
           kind: 'free_tier_summary',
-          score: (d.score as number | null) ?? null,
+          input_completeness: (d.input_completeness as number | null) ?? null,
           verdict: (d.verdict as string | null) ?? null,
           top_risks: Array.isArray(d.top_risks) ? (d.top_risks as unknown[]) : [],
           base_revenue: (d.base_revenue as number | null) ?? null,

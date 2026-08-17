@@ -4216,15 +4216,34 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         || quantisOutput?.validation?.improvementSuggestions
         || [];
       const top3 = Array.isArray(allRisks) ? allRisks.slice(0, 3) : [];
-      const score = (result as any)?.score
-        ?? (result as any)?.overall_score
-        ?? quantisOutput?.validation?.reliabilityScore
-        ?? null;
       const verdict = (result as any)?.verdict ?? null;
       const baseRevenue = quantisOutput?.metrics?.mrr ?? null;
 
       return {
-        score,
+        // "score:90" TRUST DEFECT (P1, closed 2026-08-17, linked to PR #27's
+        // confidence-semantics work): this used to read
+        // quantisOutput.validation.reliabilityScore, a 0-100 blend of
+        // dataQualityScore and businessViabilityScore (bulletproof-validator.ts
+        // ~588-608). Reconstructed live: for a bare idea+location request with
+        // zero real financial input, dataConsistency/expenseReconciliation/
+        // profitabilityScore/unitEconomicsScore/riskProfileScore all default to
+        // their PLACEHOLDER 100 ("nothing to check" mistaken for "verified
+        // healthy") because nothing was supplied to check -- only
+        // schemaCompleteness genuinely drops for real missingness. Two live
+        // production requests with zero user-supplied financials both
+        // returned "score":90 next to a top_risks entry telling the user to
+        // add revenue data -- a visible, self-contradicting number. No
+        // defensible single meaning survives that reconstruction (it isn't
+        // input completeness, isn't forecast accuracy, isn't validated
+        // viability), so it is deprecated rather than relabeled under the
+        // same ambiguous name. Replaced by input_completeness below, sourced
+        // from the same qualityDimensions architecture PR #27 already built
+        // and already computes unconditionally on this exact code path (see
+        // buildQualityDimensions() call above, ~line 3814) -- no second
+        // confidence framework, no new formula.
+        score: null,
+        score_status: 'DEPRECATED' as const,
+        input_completeness: qualityDimensions.input_completeness,
         verdict,
         top_risks: top3,
         base_revenue: baseRevenue,
