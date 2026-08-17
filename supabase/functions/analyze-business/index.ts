@@ -3326,8 +3326,7 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // How much actual data vs assumptions - now includes user-provided financial_inputs
     const requiredFields = ['mrr', 'startup_investment', 'cac', 'ltv'];
     const optionalFields = ['average_check', 'orders_monthly', 'equipment'];
-    
-    const fa = safeParseJSON(rawResult.financial_json, {});
+
     let providedRequired = 0;
     let providedOptional = 0;
     
@@ -3364,15 +3363,27 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       userProvidedFields.push('churn');
     }
     
-    // Also count AI-estimated fields that look non-default
-    if (!financial_inputs?.monthly_revenue && fa.mrr && fa.mrr !== 50000) providedRequired++;
-    if (!financial_inputs?.startup_investment && fa.startup_investment && fa.startup_investment !== 100000) providedRequired++;
-    if (!financial_inputs?.cac && fa.cac && fa.cac !== detectedIndustry.cac_typical) providedRequired++;
-    if (fa.ltv && fa.ltv !== 500) providedRequired++;
-    if (!financial_inputs?.average_price && fa.average_check) providedOptional++;
-    if (fa.orders_monthly) providedOptional++;
-    if (fa.equipment) providedOptional++;
-    
+    // REMOVED 2026-08-17 (paid-tier input_completeness fabrication, follow-up
+    // to the free-tier score:90 fix): this block used to credit
+    // providedRequired/providedOptional whenever the AI's own generated
+    // financial_json (`fa`) merely differed from a handful of arbitrary
+    // literal sentinels (mrr!==50000, startup_investment!==100000,
+    // cac!==industry_typical, ltv!==500) -- true for nearly every AI
+    // response regardless of whether the user supplied anything real. Live
+    // proof on the free-tier wire payload (fixed first, in
+    // investment-verdict.ts's computeInputCompletenessPct): a request with
+    // zero financial_inputs scored input_completeness:100. This formula
+    // feeds confidenceBreakdown.input_completeness, which flows into
+    // qualityDimensions.input_completeness (PR #27's architecture) and is
+    // shown prominently, color-coded, on the PAID-tier PDF cover
+    // (ReportCoverPage.tsx, labeled "Input Completeness") and in
+    // result.confidence_score's legacy blend -- so this was the same
+    // fabricated-completeness defect on the paid product surface, not just
+    // free. Removed entirely rather than patched: every other genuine
+    // completeness signal (real financial_inputs above, document-extracted
+    // data below, idea-description-length checks below) is unaffected and
+    // was never part of this defect.
+
     // Input completeness: required fields (70%) + optional (30%)
     const requiredScore = (providedRequired / requiredFields.length) * 0.70;
     const optionalScore = (providedOptional / optionalFields.length) * 0.30;
