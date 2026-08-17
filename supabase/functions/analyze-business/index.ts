@@ -4173,16 +4173,51 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           idea: idea_clean,
           location: location_clean,
           industry_detected: calc.industryDetected || 'unknown',
-          score: (result as any)?.score ?? null,
+          // "score" dead-accessor audit (2026-08-17, same session as the
+          // top_risks fix above): result.score was NEVER set at the top
+          // level for any tier -- not a regression from the free-tier score
+          // deprecation, this accessor was always reading nothing. Left
+          // explicitly null rather than fixed to point somewhere: the old
+          // "score" concept itself was retired (docs/accuracy -- no single
+          // defensible semantic survived reconstruction), so there is no
+          // correct value to wire in here. R5 (verdict/score coherence) in
+          // hybrid-validator.ts is now permanently dormant by design, not by
+          // accident -- do not resurrect it with a substitute numeric signal.
+          score: null,
           verdict: (result as any)?.verdict ?? null,
           ltv: quantisOutput?.metrics?.ltv ?? null,
           cac: quantisOutput?.metrics?.cac ?? null,
           ltv_cac_ratio: quantisOutput?.metrics?.ltvCacRatio ?? null,
-          gross_margin: (result as any)?.gross_margin ?? (quantisOutput?.metrics as any)?.grossMargin ?? null,
-          net_margin: (result as any)?.net_margin ?? (quantisOutput?.metrics as any)?.netMargin ?? null,
+          // gross_margin/net_margin/monthly_profit/payback_months dead-accessor
+          // fix (2026-08-17): same class of bug as top_risks and score above.
+          // (result as any)?.gross_margin/.net_margin/.monthly_profit/
+          // .payback_months were never set at the top level of transformResponse()'s
+          // return object -- the real values live on `calc`, the same canonical
+          // financial state already used for deriveInvestmentVerdict() above in
+          // this file. The (quantisOutput?.metrics as any)?.grossMargin/.netMargin
+          // fallbacks were ALSO wrong -- quantis-engine.ts's real property names are
+          // grossMarginPercent/netMarginPercent (confirmed in quantis-engine.ts),
+          // not the bare grossMargin/netMargin this code was reading -- so both the
+          // primary and fallback accessors resolved to undefined. This means every
+          // deterministic check in hybrid-validator.ts gated on these four fields
+          // (gross_margin_ceiling_violated, gross_margin_industry_mismatch,
+          // net_margin > gross_margin, payback > 60 months) has been silently
+          // skipped for every paid-tier analysis, and the LLM second-pass review
+          // prompt has been getting literal "null" for all four in its input
+          // summary. Fixed to read calc directly.
+          gross_margin: calc.grossMarginPercent,
+          net_margin: calc.netMarginPercent,
           monthly_revenue: quantisOutput?.metrics?.mrr ?? null,
-          monthly_profit: (result as any)?.monthly_profit ?? null,
-          payback_months: (result as any)?.payback_months ?? null,
+          monthly_profit: calc.netProfit,
+          // Uses the typed payback contract (payback-contract.ts), never the
+          // raw paybackMonths/999 sentinel -- same discipline as this
+          // session's payback-999-display-leak fix and deriveInvestmentVerdict().
+          // A business whose payback was never reached has no real numeric
+          // months value; feeding 999 here would make hybrid-validator.ts's
+          // "payback > 60 months" check report a fabricated exact figure
+          // ("Payback of 999 months exceeds 5 years") instead of the true
+          // semantic (payback not meaningfully computed).
+          payback_months: calc.paybackResult?.status === 'VALUE' ? Number(calc.paybackResult.months) : null,
           // Same dead-accessor bug as wirePayload's top_risks (see the
           // FREE-tier fix above this block) -- result.risks/top_risks are
           // never set at the top level; the real array is
