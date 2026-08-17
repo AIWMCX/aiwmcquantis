@@ -4183,7 +4183,18 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
           monthly_revenue: quantisOutput?.metrics?.mrr ?? null,
           monthly_profit: (result as any)?.monthly_profit ?? null,
           payback_months: (result as any)?.payback_months ?? null,
-          top_risks: ((result as any)?.risks || (result as any)?.top_risks || []).slice(0, 3),
+          // Same dead-accessor bug as wirePayload's top_risks (see the
+          // FREE-tier fix above this block) -- result.risks/top_risks are
+          // never set at the top level; the real array is
+          // result.business_plan.risks. Fixed here too so the paid-tier
+          // validator's cross-check isn't silently checking against an
+          // always-empty risks list.
+          top_risks: (Array.isArray((result as any)?.business_plan?.risks)
+            ? (result as any).business_plan.risks
+                .map((r: unknown) => (r && typeof r === 'object' && 'risk' in r ? String((r as { risk: unknown }).risk) : null))
+                .filter((s: string | null): s is string => !!s)
+            : []
+          ).slice(0, 3),
           benchmark_match_quality: v2BenchmarkSummary?.overall_match_quality || 'none',
         });
         log.info(
@@ -4210,11 +4221,29 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
     // depth coercion, we never wire-send paid-tier data to a Free user.
     const isFreeOrAnon = userPlan === 'free';
     const wirePayload = isFreeOrAnon ? (() => {
-      // Pull risks from multiple possible shapes
-      const allRisks = (result as any)?.risks
-        || (result as any)?.top_risks
-        || quantisOutput?.validation?.improvementSuggestions
-        || [];
+      // "Top Risks" MISLABEL (P1, found during the score:90 Gate-2 field
+      // audit, closed 2026-08-17): this used to try (result as any)?.risks,
+      // then (result as any)?.top_risks -- but transformResponse()'s return
+      // object never sets either key at the top level; the real risk array
+      // lives at result.business_plan.risks (built ~index.ts:1828, an
+      // AI-narrated or sensible-default array of {risk, probability, impact,
+      // mitigation} objects, identically for every response path since
+      // that's inside transformResponse() itself). Both dead accessors always
+      // fell through to quantisOutput.validation.improvementSuggestions --
+      // generic data-completeness nagging ("Add revenue estimate or customer
+      // count for accurate analysis") -- which is why every live free-tier
+      // response showed the same one-line suggestion under a "Top Risks"
+      // heading instead of an actual risk assessment. Fixed to read the real
+      // risk array first; the suggestions list remains the fallback only for
+      // the rare case business_plan.risks is genuinely empty.
+      const realRisks = Array.isArray((result as any)?.business_plan?.risks)
+        ? (result as any).business_plan.risks
+            .map((r: unknown) => (r && typeof r === 'object' && 'risk' in r ? String((r as { risk: unknown }).risk) : null))
+            .filter((s: string | null): s is string => !!s)
+        : [];
+      const allRisks = realRisks.length > 0
+        ? realRisks
+        : (quantisOutput?.validation?.improvementSuggestions || []);
       const top3 = Array.isArray(allRisks) ? allRisks.slice(0, 3) : [];
       const verdict = (result as any)?.verdict ?? null;
       const baseRevenue = quantisOutput?.metrics?.mrr ?? null;
