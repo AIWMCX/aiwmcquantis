@@ -58,15 +58,40 @@ export interface VerdictInputProvenance {
   expected_customers?: number;
 }
 
+const PROVENANCE_FIELDS: (keyof VerdictInputProvenance)[] = [
+  "monthly_revenue", "startup_investment", "cac", "average_price", "expected_customers",
+];
+
+function providedFieldCount(userInputs: VerdictInputProvenance | undefined): number {
+  if (!userInputs) return 0;
+  return PROVENANCE_FIELDS.filter((f) => typeof userInputs[f] === "number" && Number.isFinite(userInputs[f])).length;
+}
+
 function classifyBasis(userInputs: VerdictInputProvenance | undefined): VerdictBasis {
-  if (!userInputs) return "BENCHMARK_MODELED";
-  const fields: (keyof VerdictInputProvenance)[] = [
-    "monthly_revenue", "startup_investment", "cac", "average_price", "expected_customers",
-  ];
-  const provided = fields.filter((f) => typeof userInputs[f] === "number" && Number.isFinite(userInputs[f]));
-  if (provided.length === 0) return "BENCHMARK_MODELED";
-  if (provided.length >= 3) return "USER_ACTUAL";
+  const provided = providedFieldCount(userInputs);
+  if (provided === 0) return "BENCHMARK_MODELED";
+  if (provided >= 3) return "USER_ACTUAL";
   return "MIXED";
+}
+
+/**
+ * Honest 0-100 "how much of this analysis's financial state came from the
+ * user" percentage -- built 2026-08-17 as the second half of the score:90
+ * TRUST DEFECT fix. The free wire payload originally replaced the deprecated
+ * blended "score" with quality-dimensions.ts's confidenceBreakdown.input_completeness,
+ * which turned out to have the SAME disease it was meant to cure: index.ts's
+ * "AI-estimated fields that look non-default" bonus (~line 3367-3374) credits
+ * completeness whenever the AI's own generated numbers merely differ from a
+ * handful of arbitrary literal sentinels (mrr!==50000, startup_investment!==
+ * 100000, cac!==industry_typical, ltv!==500) -- which is true for nearly
+ * every AI response regardless of whether the user supplied anything. Live
+ * proof: a bare idea+location request with zero financial_inputs scored
+ * input_completeness:100. This function instead counts ONLY genuinely
+ * user-supplied fields (the exact same PROVENANCE_FIELDS list classifyBasis
+ * already uses for verdict_basis) -- zero AI/benchmark credit, ever.
+ */
+export function computeInputCompletenessPct(userInputs: VerdictInputProvenance | undefined): number {
+  return Math.round((providedFieldCount(userInputs) / PROVENANCE_FIELDS.length) * 100);
 }
 
 /**

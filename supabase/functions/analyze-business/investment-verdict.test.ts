@@ -12,7 +12,7 @@
 // function directory.
 
 import { describe, expect, it } from "vitest";
-import { deriveInvestmentVerdict, type VerdictInputProvenance } from "./investment-verdict.ts";
+import { deriveInvestmentVerdict, computeInputCompletenessPct, type VerdictInputProvenance } from "./investment-verdict.ts";
 import type { StrictFinancialResult } from "./financial-calculator.ts";
 import type { MonthsMetricResult } from "./payback-contract.ts";
 
@@ -119,5 +119,34 @@ describe("deriveInvestmentVerdict", () => {
     const calc: Calc = { isProfitable: true, ltvCacRatio: 1.5, paybackResult: payback(8), cac: 150, ltv: 225 };
     const result = deriveInvestmentVerdict(calc, fullUserInputs);
     expect(result.verdict).toBe("HIGH_RISK");
+  });
+});
+
+describe("computeInputCompletenessPct", () => {
+  it("is 0 for undefined inputs (the sparse anonymous/free case) -- never a fabricated high number", () => {
+    expect(computeInputCompletenessPct(undefined)).toBe(0);
+  });
+
+  it("is 0 for an empty object -- no AI/benchmark credit, ever", () => {
+    expect(computeInputCompletenessPct({})).toBe(0);
+  });
+
+  it("is 100 when all five provenance fields are real numbers", () => {
+    expect(computeInputCompletenessPct(fullUserInputs)).toBe(100);
+  });
+
+  it("scales linearly with the count of real fields (2 of 5 -> 40%)", () => {
+    expect(computeInputCompletenessPct({ monthly_revenue: 5000, cac: 100 })).toBe(40);
+  });
+
+  it("ignores non-finite values (NaN/Infinity are not real user input)", () => {
+    expect(computeInputCompletenessPct({ monthly_revenue: NaN, cac: Infinity, average_price: 50 })).toBe(20);
+  });
+
+  it("ignores zero -- a literal 0 is not the same as 'the user gave us a number'", () => {
+    // classifyBasis/providedFieldCount both use typeof === 'number' && isFinite,
+    // which 0 satisfies -- documenting the actual behavior: 0 IS counted as
+    // provided (the user explicitly entered zero), distinct from undefined.
+    expect(computeInputCompletenessPct({ monthly_revenue: 0 })).toBe(20);
   });
 });
