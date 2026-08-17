@@ -7,7 +7,7 @@ import {
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERSION, FORMULA_REGISTRY_VERSION as SCENARIO_BASE_INPUT_FORMULA_VERSION } from '../_shared/analysis-snapshot.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
-import { deriveInvestmentVerdict } from './investment-verdict.ts';
+import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
 import { detectArchetype } from '../_shared/business-archetypes.ts';
 import { classifyAssumptionOrigins } from '../_shared/assumption-origin.ts';
@@ -4265,14 +4265,28 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         // defensible single meaning survives that reconstruction (it isn't
         // input completeness, isn't forecast accuracy, isn't validated
         // viability), so it is deprecated rather than relabeled under the
-        // same ambiguous name. Replaced by input_completeness below, sourced
-        // from the same qualityDimensions architecture PR #27 already built
-        // and already computes unconditionally on this exact code path (see
-        // buildQualityDimensions() call above, ~line 3814) -- no second
-        // confidence framework, no new formula.
+        // same ambiguous name.
+        //
+        // ROUND 2 (same day): the first replacement, qualityDimensions.
+        // input_completeness (PR #27's architecture), turned out to have the
+        // identical disease it was meant to cure. index.ts's own
+        // confidenceBreakdown.input_completeness (~line 3367-3374, "Also
+        // count AI-estimated fields that look non-default") credits
+        // completeness whenever the AI's generated numbers merely differ
+        // from a handful of arbitrary literal sentinels (mrr!==50000,
+        // startup_investment!==100000, cac!==industry_typical, ltv!==500) --
+        // true for nearly every AI response regardless of real user input.
+        // Live proof: the same zero-financial-input request that used to
+        // show "score":90 came back "input_completeness":100 with this
+        // module's first fix deployed -- worse, not better. Replaced again
+        // with computeInputCompletenessPct(), which counts ONLY the fields
+        // mergedFinancialInputs actually contains -- the exact same
+        // PROVENANCE_FIELDS list already driving verdict_basis below, zero
+        // AI/benchmark credit. Not a second confidence framework: it's the
+        // one this module already built for the verdict fix, reused.
         score: null,
         score_status: 'DEPRECATED' as const,
-        input_completeness: qualityDimensions.input_completeness,
+        input_completeness: computeInputCompletenessPct(mergedFinancialInputs),
         verdict,
         top_risks: top3,
         base_revenue: baseRevenue,

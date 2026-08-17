@@ -8,11 +8,33 @@ unrelated financial-display code, not verdict derivation). Goal: exactly one
 derivation, every other site a read-only consumer or dead code, none of them
 silently deciding the same financial conclusion a second way.
 
+## 0. Related but distinct: `input_completeness` (score:90 follow-on fix, 2026-08-17)
+
+Not a verdict field, but built with the exact same `investment-verdict.ts` module
+and worth recording here since it shares the PROVENANCE_FIELDS list `verdict_basis`
+uses. Two rounds:
+
+1. `score` (the free wire payload's old blended `quantisOutput.validation.reliabilityScore`)
+   was deprecated (`score: null, score_status: 'DEPRECATED'`) after live evidence
+   showed a zero-financial-input request scoring 90/100 — five of six sub-scores
+   defaulted to a PLACEHOLDER 100 because nothing was supplied to penalize.
+2. The first replacement, `qualityDimensions.input_completeness` (PR #27's
+   architecture), turned out to have the identical disease: `index.ts`'s
+   `confidenceBreakdown.input_completeness` (~line 3367-3374, "AI-estimated fields
+   that look non-default") credits completeness whenever the AI's generated
+   numbers merely differ from arbitrary literal sentinels — true for nearly every
+   AI response regardless of real user input. Live proof: the same zero-input
+   request came back `input_completeness: 100` with round 1 deployed.
+   Replaced with `computeInputCompletenessPct()` (`investment-verdict.ts`),
+   which counts ONLY fields genuinely present in `mergedFinancialInputs` — zero
+   AI/benchmark credit, ever. See that function's docstring for the full chain.
+
 ## 1. Canonical derivation (the only place a verdict is decided)
 
 | File | Role |
 |---|---|
 | `investment-verdict.ts` — `deriveInvestmentVerdict()` | **SOURCE OF TRUTH.** Pure function over `calculateStrictFinancials()`'s already-computed `calc` object. Classifies `verdict` + `basis` + `reasons`. Never recomputes profitability/payback/LTV:CAC itself. |
+| `investment-verdict.ts` — `computeInputCompletenessPct()` | **SOURCE OF TRUTH for the free wire payload's `input_completeness`.** Reuses the same `PROVENANCE_FIELDS` list `classifyBasis()` uses for `verdict_basis` — one shared notion of "how much of this came from the user," not a second confidence framework. |
 | `investment-verdict.test.ts` | 11-case test matrix against the function above (run via the standalone `vitest.investment-verdict.config.ts` — no Deno test harness exists for this directory; eslint also ignores `supabase/functions/**` entirely, confirmed by running it directly against these files). |
 
 ## 2. Live read-only consumer (the funnel point)
