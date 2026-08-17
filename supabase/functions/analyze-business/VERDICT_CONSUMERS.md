@@ -21,6 +21,15 @@ silently deciding the same financial conclusion a second way.
 |---|---|
 | `index.ts` `transformResponse()` (~line 1786) | Calls `deriveInvestmentVerdict(calc, userInputs)` once, exposes `verdict` / `verdict_basis` / `verdict_reasons` on the API response. This is the single point both the AI-narrator path and `generateDeterministicFallbackResult()`'s quick/free path converge on before their return — one call covers both. **Superseded** the PR #33 fix that lived at this exact spot (`verdict: raw.investment_verdict ?? null`), which was real but incomplete: it only fired for the AI-narrator branch, not the actual free/anonymous "quick" path most users hit. No other `investment_verdict`/`HIGH_RISK`/etc. reference exists anywhere else in `index.ts` — confirmed by grep. |
 
+## 2b. Downstream read-only consumers of `result.verdict` (missed by the initial string-literal grep, found during live production verification)
+
+The initial grep (`investment_verdict`, `HIGH_RISK`, etc.) missed two real consumers because they read the field via property access (`(result as any)?.verdict`), not a literal enum string. Both confirmed read-only — neither recomputes or overrides a verdict.
+
+| File | Role |
+|---|---|
+| `index.ts:4177` `validatorResult = await validateAnalysis({ ..., verdict: (result as any)?.verdict ?? null, ... })` (paid tiers only) | Passes the canonical verdict into the hybrid validator's cross-check input. Read-only. |
+| `index.ts:4223` `wirePayload` (the actual free/anonymous tier-sanitization shaper, `isFreeOrAnon` branch) | `const verdict = (result as any)?.verdict ?? null;` — this is the **literal free-tier wire response** shape (`{score, verdict, top_risks, base_revenue, ...}`), confirmed via a live production request post-deploy: `result` at this point is exactly `transformResponse()`'s return value (`const result = transformResponse(...)` at `index.ts:3121`), so `wirePayload.verdict` is the canonical `deriveInvestmentVerdict()` output end-to-end, with no intermediate reshaping that could drop or override it. |
+
 ## 3. Upstream of the canonical derivation — the AI's own raw opinion (now fully superseded, but still produced)
 
 The AI narrator is still *prompted* to state its own qualitative verdict, and that raw guess is still parsed into `NarratorOutput.investment_verdict` — but nothing downstream in `index.ts` reads that field for the response's `verdict` anymore (confirmed: the only assignment to the response's `verdict` field is the canonical call in §2). These are documented so the AI's internal opinion doesn't get mistaken for a second live derivation:
