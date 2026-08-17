@@ -16,7 +16,7 @@ interface FreeTierResultCardProps {
  * into AccuracyTransparentResults, which assumes the full paid-tier shape.
  */
 export function FreeTierResultCard({ summary, onReset }: FreeTierResultCardProps) {
-  const { score, verdict, top_risks, base_revenue, currency, industry_detected, idea, upgrade_cta } = summary;
+  const { input_completeness, verdict, top_risks, base_revenue, currency, industry_detected, idea, upgrade_cta } = summary;
   const quoteTrade = detectQuoteGenTrade(idea, industry_detected);
 
   return (
@@ -43,14 +43,17 @@ export function FreeTierResultCard({ summary, onReset }: FreeTierResultCardProps
       </div>
 
       <div className="flex flex-wrap items-end gap-6">
-        {score !== null && (
+        {input_completeness !== null && (
           <div>
             <div className="text-[11px] font-semibold uppercase tracking-[0.06em]" style={{ color: 'var(--q-text-disabled)' }}>
-              Score
+              Input Completeness
             </div>
             <div className="text-[40px] font-bold leading-none" style={{ fontFamily: 'Sora, sans-serif', color: 'var(--q-text-primary)' }}>
-              {Math.round(score)}
-              <span className="text-[18px] font-medium" style={{ color: 'var(--q-text-tertiary)' }}>/100</span>
+              {Math.round(input_completeness)}
+              <span className="text-[18px] font-medium" style={{ color: 'var(--q-text-tertiary)' }}>%</span>
+            </div>
+            <div className="text-[11px] mt-0.5" style={{ color: 'var(--q-text-tertiary)' }}>
+              How much of your own data we used — not a viability score
             </div>
           </div>
         )}
