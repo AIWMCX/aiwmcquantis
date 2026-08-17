@@ -38,6 +38,13 @@ create index if not exists qoc_audit_user_time_idx
 -- RLS: users can only read their own audit envelopes
 alter table public.qoc_audit_envelopes enable row level security;
 
+-- IDEMPOTENCY FIX (2026-08-17, broken CI migration pipeline): this table
+-- and policy were already live in production (created directly, outside
+-- this tracked migration -- confirmed via pg_policies before this fix), so
+-- a bare CREATE POLICY here would abort with "policy already exists" the
+-- first time this file's batch actually got a chance to run. DROP IF
+-- EXISTS + CREATE makes it safe to replay regardless of how it got there.
+drop policy if exists "users read own envelopes" on public.qoc_audit_envelopes;
 create policy "users read own envelopes"
   on public.qoc_audit_envelopes for select
   using (auth.uid()::text = user_id);

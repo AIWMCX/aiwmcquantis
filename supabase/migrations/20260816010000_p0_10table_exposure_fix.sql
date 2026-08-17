@@ -26,6 +26,16 @@
 --
 -- Additive and idempotent: DROP POLICY IF EXISTS + CREATE POLICY, REVOKE is a
 -- no-op if the privilege isn't held. No table, column, or row is altered.
+--
+-- IDEMPOTENCY FIX (2026-08-17, broken CI migration pipeline): this file was
+-- applied directly to production earlier (confirmed live via the
+-- postcondition query at the bottom, run standalone), but every CREATE
+-- POLICY below only guarded the OLD policy name it was replacing, not its
+-- OWN new name -- so a replay (e.g. by `supabase db push` once it finally
+-- reaches this file) would abort with "policy already exists" on the very
+-- first CREATE POLICY. Every CREATE POLICY below now has a matching
+-- DROP POLICY IF EXISTS on its own name immediately before it, so this file
+-- is now safe to apply any number of times regardless of starting state.
 
 -- ============================================================
 -- 1. Dead/internal tables -- zero legitimate anon/authenticated caller found
@@ -35,16 +45,19 @@
 -- ============================================================
 REVOKE ALL ON TABLE public.analysis_attempts FROM anon, authenticated;
 DROP POLICY IF EXISTS analysis_attempts_self ON public.analysis_attempts;
+DROP POLICY IF EXISTS analysis_attempts_service_only ON public.analysis_attempts;
 CREATE POLICY analysis_attempts_service_only ON public.analysis_attempts
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 REVOKE ALL ON TABLE public.leads FROM anon, authenticated;
 DROP POLICY IF EXISTS leads_svc ON public.leads;
+DROP POLICY IF EXISTS leads_service_only ON public.leads;
 CREATE POLICY leads_service_only ON public.leads
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 REVOKE ALL ON TABLE public.analysis_cases FROM anon, authenticated;
 DROP POLICY IF EXISTS analysis_cases_svc ON public.analysis_cases;
+DROP POLICY IF EXISTS analysis_cases_service_only ON public.analysis_cases;
 CREATE POLICY analysis_cases_service_only ON public.analysis_cases
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -55,18 +68,21 @@ CREATE POLICY analysis_cases_service_only ON public.analysis_cases
 REVOKE ALL ON TABLE public.usage_counters FROM anon, authenticated;
 GRANT SELECT ON TABLE public.usage_counters TO authenticated; -- required by the existing "Users read own usage_counter" policy
 DROP POLICY IF EXISTS usage_counters_self ON public.usage_counters;
+DROP POLICY IF EXISTS usage_counters_service_only ON public.usage_counters;
 CREATE POLICY usage_counters_service_only ON public.usage_counters
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 REVOKE ALL ON TABLE public.quote_gen_usage FROM anon, authenticated;
 GRANT SELECT ON TABLE public.quote_gen_usage TO authenticated; -- required by "Users read own quote_gen_usage"
 DROP POLICY IF EXISTS quote_gen_usage_svc ON public.quote_gen_usage;
+DROP POLICY IF EXISTS quote_gen_usage_service_only ON public.quote_gen_usage;
 CREATE POLICY quote_gen_usage_service_only ON public.quote_gen_usage
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
 REVOKE ALL ON TABLE public.export_jobs FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.export_jobs TO authenticated; -- matches the 3 existing owner policies (select/insert/update, no delete)
 DROP POLICY IF EXISTS export_jobs_svc ON public.export_jobs;
+DROP POLICY IF EXISTS export_jobs_service_only ON public.export_jobs;
 CREATE POLICY export_jobs_service_only ON public.export_jobs
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -84,12 +100,16 @@ CREATE POLICY export_jobs_service_only ON public.export_jobs
 REVOKE ALL ON TABLE public.invoices FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE ON TABLE public.invoices TO authenticated;
 DROP POLICY IF EXISTS invoices_svc ON public.invoices;
+DROP POLICY IF EXISTS invoices_owner_select ON public.invoices;
 CREATE POLICY invoices_owner_select ON public.invoices
   FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS invoices_owner_insert ON public.invoices;
 CREATE POLICY invoices_owner_insert ON public.invoices
   FOR INSERT TO authenticated WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS invoices_owner_update ON public.invoices;
 CREATE POLICY invoices_owner_update ON public.invoices
   FOR UPDATE TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS invoices_service_all ON public.invoices;
 CREATE POLICY invoices_service_all ON public.invoices
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -101,8 +121,10 @@ CREATE POLICY invoices_service_all ON public.invoices
 REVOKE ALL ON TABLE public.shared_reports FROM anon, authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON TABLE public.shared_reports TO authenticated;
 DROP POLICY IF EXISTS shared_reports_svc ON public.shared_reports;
+DROP POLICY IF EXISTS shared_reports_owner_all ON public.shared_reports;
 CREATE POLICY shared_reports_owner_all ON public.shared_reports
   FOR ALL TO authenticated USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+DROP POLICY IF EXISTS shared_reports_service_all ON public.shared_reports;
 CREATE POLICY shared_reports_service_all ON public.shared_reports
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -112,8 +134,10 @@ CREATE POLICY shared_reports_service_all ON public.shared_reports
 REVOKE ALL ON TABLE public.referral_codes FROM anon, authenticated;
 GRANT SELECT ON TABLE public.referral_codes TO authenticated;
 DROP POLICY IF EXISTS referral_codes_svc ON public.referral_codes;
+DROP POLICY IF EXISTS referral_codes_owner_select ON public.referral_codes;
 CREATE POLICY referral_codes_owner_select ON public.referral_codes
   FOR SELECT TO authenticated USING (user_id = auth.uid());
+DROP POLICY IF EXISTS referral_codes_service_all ON public.referral_codes;
 CREATE POLICY referral_codes_service_all ON public.referral_codes
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
@@ -124,8 +148,10 @@ CREATE POLICY referral_codes_service_all ON public.referral_codes
 REVOKE ALL ON TABLE public.funnel_events FROM anon, authenticated;
 GRANT SELECT ON TABLE public.funnel_events TO authenticated;
 DROP POLICY IF EXISTS funnel_events_svc ON public.funnel_events;
+DROP POLICY IF EXISTS funnel_events_admin_select ON public.funnel_events;
 CREATE POLICY funnel_events_admin_select ON public.funnel_events
   FOR SELECT TO authenticated USING (public.has_role(auth.uid(), 'admin'));
+DROP POLICY IF EXISTS funnel_events_service_all ON public.funnel_events;
 CREATE POLICY funnel_events_service_all ON public.funnel_events
   FOR ALL TO service_role USING (true) WITH CHECK (true);
 
