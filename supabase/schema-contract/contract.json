@@ -1,0 +1,198 @@
+{
+  "$comment": "Current required schema contract for AIWMC Quantis production (project dmlxrvfyqsakyjomsvdj). This is NOT a replay of every historical migration -- it lists only objects the CURRENT canonical application code depends on. Verified by scripts/verify-production-schema.mjs, gated in .github/workflows/production-deploy.yml. See docs/MIGRATION_CONTROL_PLANE.md for the full investigation and rationale. Only include objects required by current canonical application code -- do not add an entry just because a historical migration created it.",
+  "version": "1.0.0",
+  "generated_from": "PR #41 migration-ledger-drift audit + Slices 1-3 restoration (2026-08-17/18)",
+  "objects": [
+    {
+      "object": "public.analyses",
+      "domain": "core",
+      "required_by": "analyze-business, analyze-plus, analyze-pro-worker, ScenarioWorkspace, docs-engine, virtually every user-facing feature",
+      "severity": "P0",
+      "check": { "kind": "table_exists", "table": "analyses" }
+    },
+    {
+      "object": "public.profiles",
+      "domain": "core",
+      "required_by": "auth, entitlements, every user-scoped feature",
+      "severity": "P0",
+      "check": { "kind": "table_exists", "table": "profiles" }
+    },
+    {
+      "object": "public.subscriptions",
+      "domain": "billing",
+      "required_by": "stripe-webhook, entitlements, create-checkout-session",
+      "severity": "P0",
+      "check": { "kind": "table_exists", "table": "subscriptions" }
+    },
+    {
+      "object": "public.referral_codes",
+      "domain": "referral",
+      "required_by": "src/hooks/useReferral.ts, get_referral_stats RPC",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "referral_codes" }
+    },
+    {
+      "object": "public.referral_conversions",
+      "domain": "referral",
+      "required_by": "src/hooks/useReferral.ts:81, track_referral_click RPC, complete_referral_signup RPC",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "referral_conversions" },
+      "notes": "Restored 2026-08-17 (PR #42, Slice 1). RLS: anon denied, owner SELECT via referral_codes ownership chain, service_role ALL."
+    },
+    {
+      "object": "public.referral_conversions.rls_enabled",
+      "domain": "referral",
+      "required_by": "same as referral_conversions",
+      "severity": "P1",
+      "check": { "kind": "rls_enabled", "table": "referral_conversions" }
+    },
+    {
+      "object": "public.referral_conversions.anon_denied",
+      "domain": "referral",
+      "required_by": "security -- anon must never read referral conversion data directly",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "referral_conversions", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.referral_rewards",
+      "domain": "referral",
+      "required_by": "src/hooks/useReferral.ts:100, get_referral_stats RPC",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "referral_rewards" },
+      "notes": "Restored 2026-08-17 (PR #42, Slice 1). SCHEMA RESTORED but FEATURE INCOMPLETE: no application code path anywhere inserts into this table (only a SELECT call site exists) -- reward issuance is not implemented. Referral UI (ReferralBanner/ReferralDashboard) is not mounted in any route -- the feature is dormant, not launched. See REFERRAL_STATUS in docs/MIGRATION_LEDGER_DRIFT_AUDIT_2026-08-17.md."
+    },
+    {
+      "object": "public.referral_rewards.anon_denied",
+      "domain": "referral",
+      "required_by": "security",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "referral_rewards", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.get_referral_stats(uuid)",
+      "domain": "referral",
+      "required_by": "src/hooks/useReferral.ts fetchStats()",
+      "severity": "P1",
+      "check": { "kind": "function_exists", "name": "get_referral_stats", "arg_count": 1 }
+    },
+    {
+      "object": "public.track_referral_click(text,text,text)",
+      "domain": "referral",
+      "required_by": "src/hooks/useReferral.ts trackReferralFromUrl(), anon-callable by design",
+      "severity": "P1",
+      "check": { "kind": "function_exists", "name": "track_referral_click", "arg_count": 3 }
+    },
+    {
+      "object": "public.user_engagement",
+      "domain": "lifecycle",
+      "required_by": "src/hooks/useEngagement.ts, check-lifecycle-emails, check-churn-signals, update_engagement_on_analysis_trigger",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "user_engagement" },
+      "notes": "Restored 2026-08-18 (PR #43, Slice 3)."
+    },
+    {
+      "object": "public.user_engagement.rls_enabled",
+      "domain": "lifecycle",
+      "required_by": "same as user_engagement",
+      "severity": "P1",
+      "check": { "kind": "rls_enabled", "table": "user_engagement" }
+    },
+    {
+      "object": "public.user_engagement.anon_denied",
+      "domain": "lifecycle",
+      "required_by": "security",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "user_engagement", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.user_notifications",
+      "domain": "lifecycle",
+      "required_by": "src/hooks/useNotifications.ts, mounted globally via src/components/layout/Header.tsx -> NotificationCenter, check-churn-signals",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "user_notifications" },
+      "notes": "Restored 2026-08-18 (PR #43, Slice 3). Highest-traffic restored table this session -- queried on every authenticated page load."
+    },
+    {
+      "object": "public.user_notifications.rls_enabled",
+      "domain": "lifecycle",
+      "required_by": "same as user_notifications",
+      "severity": "P1",
+      "check": { "kind": "rls_enabled", "table": "user_notifications" }
+    },
+    {
+      "object": "public.user_notifications.anon_denied",
+      "domain": "lifecycle",
+      "required_by": "security",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "user_notifications", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.email_sequences",
+      "domain": "lifecycle",
+      "required_by": "check-lifecycle-emails sequence config",
+      "severity": "P1",
+      "check": { "kind": "table_exists", "table": "email_sequences" },
+      "notes": "Restored 2026-08-18 (PR #43, Slice 3)."
+    },
+    {
+      "object": "public.email_sequence_log",
+      "domain": "lifecycle",
+      "required_by": "check-lifecycle-emails alreadySent(), send-lifecycle-email dedup write",
+      "severity": "P0",
+      "check": { "kind": "table_exists", "table": "email_sequence_log" },
+      "notes": "Restored 2026-08-18 (PR #43, Slice 3). P0 not P1: this table backs the ONLY duplicate-send protection for a live hourly cron-triggered customer email campaign. Its absence caused a real (not theoretical) duplicate-send risk. See also the fail-closed fix in supabase/functions/check-lifecycle-emails and send-lifecycle-email."
+    },
+    {
+      "object": "public.email_sequence_log.anon_denied",
+      "domain": "lifecycle",
+      "required_by": "security",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "email_sequence_log", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.email_sequence_log.authenticated_denied",
+      "domain": "lifecycle",
+      "required_by": "security -- no client should ever read/write the send-dedup ledger directly",
+      "severity": "P1",
+      "check": { "kind": "no_table_privilege", "table": "email_sequence_log", "role": "authenticated", "privilege": "SELECT" }
+    },
+    {
+      "object": "update_engagement_on_analysis_trigger",
+      "domain": "lifecycle",
+      "required_by": "streak/milestone tracking, powers user_engagement writes on every analysis completion",
+      "severity": "P1",
+      "check": { "kind": "trigger_exists", "table": "analyses", "trigger": "update_engagement_on_analysis_trigger" }
+    },
+    {
+      "object": "public.gsc_verification",
+      "domain": "admin-tooling",
+      "required_by": "admin Google Search Console verification tooling",
+      "severity": "P2",
+      "check": { "kind": "table_exists", "table": "gsc_verification" },
+      "notes": "Reconciled 2026-08-18: found via the control-plane's own ledger-reconciliation check (a LEDGER_ONLY row from an earlier this-session direct fix that was never committed as a migration file, plus a genuinely missing gsc_admin_delete policy from an older partially-applied migration). See docs/MIGRATION_CONTROL_PLANE.md."
+    },
+    {
+      "object": "public.gsc_verification.anon_denied",
+      "domain": "admin-tooling",
+      "required_by": "security",
+      "severity": "P1",
+      "check": { "kind": "no_table_privilege", "table": "gsc_verification", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.doc_generation_jobs",
+      "domain": "document-delivery",
+      "severity": "OPTIONAL",
+      "deprecated": true,
+      "check": { "kind": "table_exists", "table": "doc_generation_jobs" },
+      "notes": "INTENTIONALLY DEPRECATED, do not restore. docs-engine.ts's async branch (enqueueDocumentJob) is unreachable given the live doc_templates schema has no is_fast_path column (condition always true -> sync path only). doc-queue-worker/process-doc-job are excluded from production-deploy.yml, no cron triggers them. See docs/MIGRATION_LEDGER_DRIFT_AUDIT_2026-08-17.md Slice 2 finding. Listed here with deprecated:true precisely so the verifier does NOT require it and a future audit does not re-flag it as drift."
+    },
+    {
+      "object": "public.report_outputs",
+      "domain": "document-delivery",
+      "severity": "OPTIONAL",
+      "deprecated": true,
+      "check": { "kind": "table_exists", "table": "report_outputs" },
+      "notes": "INTENTIONALLY DEPRECATED, do not restore. src/services/report-store.ts and src/hooks/useDocQueue.ts (its only would-be consumers) have zero callers anywhere in src/. Same Slice 2 finding as doc_generation_jobs."
+    }
+  ]
+}

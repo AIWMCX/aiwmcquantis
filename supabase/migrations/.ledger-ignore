@@ -1,0 +1,14 @@
+# Migration files intentionally NEVER applied to production, with a reason.
+# Mirrors supabase/functions/.deploy-ignore's pattern for edge functions.
+# This is the allowlist for scripts/verify-migration-ledger.mjs: a repo
+# migration with no ledger row is otherwise classified GIT_ONLY (anomalous —
+# see docs/MIGRATION_CONTROL_PLANE.md) and blocks release. List a filename
+# here only when it was deliberately superseded/retired before ever
+# shipping — never to silence a real gap.
+
+# Superseded before it shipped by 20260706170000_analyses_total_counter.sql,
+# which implements the same analyses_total counter via a different
+# mechanism (funnel_events trigger instead of a direct analyses-table
+# trigger). Applying this file now would double-count every analysis.
+# Self-documented in the file's own header ("SUPERSEDED — DO NOT APPLY").
+20260704130000_analyses_bump_plans_metric.sql

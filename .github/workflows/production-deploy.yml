@@ -117,6 +117,54 @@ jobs:
           }
           echo "✓ Migrations applied (or were already up to date)" >> "$GITHUB_STEP_SUMMARY"
 
+  verify-schema-contract:
+    name: Verify migration control plane (ledger + schema contract)
+    # Deliberately does NOT gate deploy-edge-functions (that stays decoupled
+    # so a schema issue never freezes an unrelated code fix — same reasoning
+    # as deploy-edge-functions' own `always()`). This job IS the authoritative
+    # DATABASE_MIGRATIONS=PASS/FAIL signal: unlike the `db push` step above
+    # (soft ::warning, by design tolerant of already-applied migrations),
+    # this job hard-fails the workflow when the ledger and live schema don't
+    # actually agree with what current application code requires. See
+    # docs/MIGRATION_CONTROL_PLANE.md.
+    needs: [run-migrations]
+    if: ${{ always() && (github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: "1.3.14"
+
+      - name: Reconcile git migrations against the Supabase ledger
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::warning title=Ledger check skipped::SUPABASE_ACCESS_TOKEN not set"
+            exit 0
+          fi
+          node scripts/verify-migration-ledger.mjs
+
+      - name: Verify live schema against the current required contract
+        env:
+          SUPABASE_ACCESS_TOKEN: ${{ secrets.SUPABASE_ACCESS_TOKEN }}
+          SUPABASE_PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
+        run: |
+          if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
+            echo "::warning title=Schema contract check skipped::SUPABASE_ACCESS_TOKEN not set"
+            exit 0
+          fi
+          node scripts/verify-production-schema.mjs
+
   deploy-edge-functions:
     name: Deploy Supabase Edge Functions
     needs: [run-migrations]
