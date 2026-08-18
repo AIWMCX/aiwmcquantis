@@ -171,7 +171,7 @@ through 2026-08-18).
 | `email_sequence_log` | `RESTORED_PROD_VERIFIED` | #43 | Live, UNIQUE constraint verified to enforce dedup | Also required a fail-closed code fix (`alreadySent()`/`isOnCooldown()`/`hasOptedOut()` in `check-lifecycle-emails`) — see `docs/MIGRATION_CONTROL_PLANE.md` §20 |
 | `doc_generation_jobs` | `REMOVE_DEAD_CODE` | pending (flagged as a follow-up task, not yet a PR) | N/A — not restored | Async doc-generation branch is unreachable: live `doc_templates` has no `is_fast_path` column, so the sync path is the only one ever taken. `doc-queue-worker`/`process-doc-job` excluded from deploy, no cron triggers them. |
 | `report_outputs` | `REMOVE_DEAD_CODE` | pending (same follow-up task) | N/A — not restored | `report-store.ts`/`useDocQueue.ts` (only would-be consumers) have zero callers anywhere in `src/`. |
-| `activation_events` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Not yet investigated this session. Next priority tier per the governing order (activation/feedback). |
+| `activation_events` | `REPLACED_BY_CURRENT_ARCHITECTURE` | — | Not restored (deliberately) | Superseded for commercial-activation-funnel measurement by `funnel_events` (live, canonical, already covers `verdict_viewed`/`scenario_compared`/`analysis_completed` with real production data). Still referenced by `activationTracking.ts` for a separate, non-overlapping gamification score/band system, currently silently broken (writes fail, `get_user_activation_score` always returns empty default) — a smaller, distinct bug flagged as a follow-up, not resurrected as a second analytics store. See contract.json notes. |
 | `analysis_edge_cases` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Admin tooling (`analysis-case-grid.ts`) — noncritical tier. |
 | `analysis_logs` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Observability/accuracy-support tier — deferred per the governing directive until revenue slices close (now done); next in queue. |
 | `benchmark_calibration` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Explicitly deferred — benchmark architecture (`benchmark_master_*` vs `benchmarks_v2_*`) not yet proven canonical. |
@@ -188,9 +188,9 @@ through 2026-08-18).
 | `template_improvement_suggestions` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `template-optimizer` — noncritical tier. |
 | `template_performance_history` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same function, noncritical tier. |
 | `training_cases` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Benchmark-architecture gate. |
-| `user_realism_feedback` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Depends on `safety_evaluations` (missing) — cascading prerequisite, activation/feedback tier. |
+| `user_realism_feedback` | `RESTORED_PROD_VERIFIED` | #45 | Live, RLS/grants verified, cross-user denial tested | Write-only USER_FEEDBACK_SIGNAL, confirmed never mutates financial numbers/prompts/benchmarks. Its own hardening migration (20260704003227) referenced a nonexistent `analyses.is_public` column — dropped, ownership-only check used instead. Not actually blocked by `safety_evaluations` (that dependency was for a different policy in the same origin migration, unrelated to this table's own schema). |
 | `user_settings` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `api-analyze` edge function — not yet investigated for current-vs-superseded status. |
-| `user_validation_progress` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `ValidationJourney.tsx` — activation tier. |
+| `user_validation_progress` | `RESTORE_LATER` (deferred) | — | Not restored (deliberately) | `ValidationJourney.tsx` is mounted/reachable, but its checklist items (log 10+ interviews, import actuals, achieve 70% model accuracy) correspond to no real product feature — pure self-reported, unverified gamification, not decision-engagement. Fails safe today (silent no-op, no crash). Revisit alongside a product decision on whether to rebuild around real actions or retire the widget. |
 
 ### Referral product status correction
 
