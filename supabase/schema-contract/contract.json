@@ -204,10 +204,24 @@
     {
       "object": "public.activation_events",
       "domain": "activation-feedback",
-      "severity": "OPTIONAL",
-      "deprecated": true,
+      "required_by": "src/lib/activationTracking.ts, mounted via ActivationWidget (AppSidebar.tsx, every authenticated page), ContextualUpgradeBanner, MyStats.tsx, ActivationKpiCard (AdminDashboard.tsx)",
+      "severity": "P1",
       "check": { "kind": "table_exists", "table": "activation_events" },
-      "notes": "SUPERSEDED for commercial-activation-funnel measurement by funnel_events -- do not restore for that purpose. Still referenced by src/lib/activationTracking.ts for a SEPARATE gamification score/band system (sidebar widget, dashboard banner, admin KPI dashboard, contextual upgrade triggers) with its own, non-overlapping event vocabulary (idea_entered/calculation_completed/pdf_exported/etc). That system is currently silently broken (writes fail against the missing table; get_user_activation_score always returns the empty default) -- a separate, smaller bug, not a data-integrity risk, tracked as a follow-up rather than resurrecting a second analytics store. See docs/MIGRATION_LEDGER_DRIFT_AUDIT_2026-08-17.md Activation/Feedback slice."
+      "notes": "RESTORED 2026-08-18 as a deliberate narrow, separate store (not a resurrected duplicate of funnel_events): 3 of its 8 event types (pdf_exported, doc_generated, invoice_created -- the highest-weighted, backing contextualTriggers.ts's highest-priority upgrade triggers) have zero representation in funnel_events' vocabulary. funnel_events answers 'did they engage with the decision'; activation_events answers 'are they a power user across product surfaces'. Live-verified fixed a real cross-user data leak found during verification: get_user_activation_score()'s authz check used `NOT public.is_service_role()`, and is_service_role() returns SQL NULL (not false) when neither JWT claim is set, collapsing the whole IF condition to NULL (falsy in PL/pgSQL) -- any authenticated user could read any other user's activation score. Fixed with COALESCE(public.is_service_role(), false). Same anti-pattern found in 4 other migration files, flagged as a P0 security follow-up (not yet audited/fixed)."
+    },
+    {
+      "object": "public.activation_events.anon_denied",
+      "domain": "activation-feedback",
+      "required_by": "security",
+      "severity": "P0",
+      "check": { "kind": "no_table_privilege", "table": "activation_events", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.get_user_activation_score(uuid)",
+      "domain": "activation-feedback",
+      "required_by": "src/lib/activationTracking.ts fetchActivationScore()",
+      "severity": "P1",
+      "check": { "kind": "function_exists", "name": "get_user_activation_score", "arg_count": 1 }
     },
     {
       "object": "public.user_validation_progress",
