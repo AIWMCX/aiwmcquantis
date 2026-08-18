@@ -56,37 +56,59 @@ serve(async (req: Request): Promise<Response> => {
     let emailsSent = 0;
     const errors: string[] = [];
 
-    // Helper: check if email already sent for this sequence+step
+    // Helper: check if email already sent for this sequence+step.
+    // Fail CLOSED: if the dedup query itself errors (missing table, outage,
+    // etc.), we cannot prove this hasn't already been sent, so treat it as
+    // already-sent and skip. The alternative -- treating a query error as
+    // "not sent" -- is what let a missing email_sequence_log table produce
+    // unbounded duplicate lifecycle emails on every hourly cron run (see
+    // docs/MIGRATION_CONTROL_PLANE.md, "lifecycle-email fail-closed fix").
     async function alreadySent(userId: string, sequenceName: string, stepNumber: number): Promise<boolean> {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("email_sequence_log")
         .select("id")
         .eq("user_id", userId)
         .eq("sequence_name", sequenceName)
         .eq("step_number", stepNumber)
         .limit(1);
+      if (error) {
+        errors.push(`alreadySent check failed for ${userId}/${sequenceName}/${stepNumber}: ${error.message}`);
+        return true;
+      }
       return (data && data.length > 0) || false;
     }
 
-    // Helper: check 48-hour global cooldown per user (anti-spam protection)
+    // Helper: check 48-hour global cooldown per user (anti-spam protection).
+    // Fail CLOSED: a query error means we cannot prove the user is off
+    // cooldown, so treat it as on-cooldown and skip sending.
     async function isOnCooldown(userId: string): Promise<boolean> {
       const cutoff = new Date(Date.now() - 48 * 60 * 60 * 1000).toISOString();
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("email_send_log")
         .select("id")
         .eq("user_id", userId)
         .gte("sent_at", cutoff)
         .limit(1);
+      if (error) {
+        errors.push(`isOnCooldown check failed for ${userId}: ${error.message}`);
+        return true;
+      }
       return (data && data.length > 0) || false;
     }
 
-    // Helper: check if user has opted out of marketing emails
+    // Helper: check if user has opted out of marketing emails.
+    // Fail CLOSED: a query error means we cannot confirm the user opted in,
+    // so treat it as opted-out and skip sending.
     async function hasOptedOut(userId: string): Promise<boolean> {
-      const { data } = await supabase
+      const { data, error } = await supabase
         .from("profiles")
         .select("email_marketing_opt_in")
         .eq("id", userId)
         .single();
+      if (error) {
+        errors.push(`hasOptedOut check failed for ${userId}: ${error.message}`);
+        return true;
+      }
       return data?.email_marketing_opt_in === false;
     }
 

@@ -148,6 +148,67 @@ For each table above:
    `quality_metrics_daily`, `reconciliation_log`, `analysis_logs`) are lower
    urgency — broken observability, not broken product.
 
+## Disposition ledger (updated 2026-08-18)
+
+Per-table classification for all 27 tables in the "Confirmed missing" table
+above. `RESTORE_NOW`/`RESTORED_PROD_VERIFIED`/`REMOVE_DEAD_CODE`/`REPLACE`/
+`INTENTIONALLY_DEPRECATED`/`NEEDS_MORE_EVIDENCE`, per the governing
+prioritization directive (referral → document delivery → lifecycle/retention
+→ observability/accuracy-support → activation/feedback → benchmark-ingestion
+cleanup → noncritical admin tooling). Three slices closed this session; see
+`docs/MIGRATION_CONTROL_PLANE.md` for the systemic control-plane work done
+in parallel, which also found and closed 4 more drift instances outside
+this original 27-table list (a different migration window, 2026-07-04
+through 2026-08-18).
+
+| Table | Disposition | PR | Production status | Notes |
+|---|---|---|---|---|
+| `referral_conversions` | `RESTORED_PROD_VERIFIED` | #42 | Live, RLS/grants verified, full generate→click→complete flow tested | Schema/RPC layer only — see `REFERRAL_PRODUCT` status below |
+| `referral_rewards` | `RESTORED_PROD_VERIFIED` (schema) — feature incomplete | #42 | Table live, RLS/grants verified | **No application code path anywhere inserts into this table** (only a SELECT call site exists). Reward issuance is unimplemented, not merely undeployed. See correction below — do not conflate schema restoration with feature completeness. |
+| `user_engagement` | `RESTORED_PROD_VERIFIED` | #43 | Live, trigger fires correctly on analysis insert (tested), RLS verified | |
+| `user_notifications` | `RESTORED_PROD_VERIFIED` | #43 | Live, cross-user RLS denial + owner mark-as-read tested | Highest-traffic restoration this session — queried on every authenticated page load via globally-mounted `NotificationCenter` |
+| `email_sequences` | `RESTORED_PROD_VERIFIED` | #43 | Live, 12 seed rows present | |
+| `email_sequence_log` | `RESTORED_PROD_VERIFIED` | #43 | Live, UNIQUE constraint verified to enforce dedup | Also required a fail-closed code fix (`alreadySent()`/`isOnCooldown()`/`hasOptedOut()` in `check-lifecycle-emails`) — see `docs/MIGRATION_CONTROL_PLANE.md` §20 |
+| `doc_generation_jobs` | `REMOVE_DEAD_CODE` | pending (flagged as a follow-up task, not yet a PR) | N/A — not restored | Async doc-generation branch is unreachable: live `doc_templates` has no `is_fast_path` column, so the sync path is the only one ever taken. `doc-queue-worker`/`process-doc-job` excluded from deploy, no cron triggers them. |
+| `report_outputs` | `REMOVE_DEAD_CODE` | pending (same follow-up task) | N/A — not restored | `report-store.ts`/`useDocQueue.ts` (only would-be consumers) have zero callers anywhere in `src/`. |
+| `activation_events` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Not yet investigated this session. Next priority tier per the governing order (activation/feedback). |
+| `analysis_edge_cases` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Admin tooling (`analysis-case-grid.ts`) — noncritical tier. |
+| `analysis_logs` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Observability/accuracy-support tier — deferred per the governing directive until revenue slices close (now done); next in queue. |
+| `benchmark_calibration` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Explicitly deferred — benchmark architecture (`benchmark_master_*` vs `benchmarks_v2_*`) not yet proven canonical. |
+| `benchmark_ingestion_runs` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same benchmark-architecture gate. |
+| `benchmark_sources` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same gate. |
+| `benchmark_store` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same gate. |
+| `benchmarks_v2_core` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same gate — likely `REMOVE_DEAD_CODE` pending confirmation of whether `ingest-data-sources` is still invoked at all. |
+| `industry_distributions` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Feeds `market-prior.ts` — accuracy-support tier. |
+| `location_data` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Benchmark-cache tier. |
+| `newsletter_sends` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Lifecycle-adjacent but a separate cron (`send-weekly-insights`) from the Slice 3 tables — not yet investigated for live-cron impact the way Slice 3 was. |
+| `quality_metrics_daily` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Observability tier. |
+| `reconciliation_log` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Observability tier. |
+| `safety_evaluations` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Blocks `user_realism_feedback` (dependency found mid-session, cascade deliberately stopped rather than chased reactively — see session history). |
+| `template_improvement_suggestions` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `template-optimizer` — noncritical tier. |
+| `template_performance_history` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Same function, noncritical tier. |
+| `training_cases` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Benchmark-architecture gate. |
+| `user_realism_feedback` | `NEEDS_MORE_EVIDENCE` | — | Still missing | Depends on `safety_evaluations` (missing) — cascading prerequisite, activation/feedback tier. |
+| `user_settings` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `api-analyze` edge function — not yet investigated for current-vs-superseded status. |
+| `user_validation_progress` | `NEEDS_MORE_EVIDENCE` | — | Still missing | `ValidationJourney.tsx` — activation tier. |
+
+### Referral product status correction
+
+Restoring `referral_conversions`/`referral_rewards` closes the schema/RPC
+defect, but does not make the referral feature operationally complete.
+Recording precisely, per explicit correction:
+
+- `REFERRAL_SCHEMA/RPC = PROD_VERIFIED / CLOSED`
+- `REFERRAL_UI = DORMANT` (`ReferralBanner`/`ReferralDashboard` not mounted
+  in any route)
+- `REFERRAL_REWARD_ISSUANCE = NOT_IMPLEMENTED` (no code path anywhere
+  inserts into `referral_rewards`)
+- `REFERRAL_PRODUCT = NOT_LAUNCHED`
+
+"Infrastructure exists" and "feature works" are not the same claim — this
+distinction is recorded explicitly because this codebase has a recurring
+pattern of conflating the two.
+
 ## Not done in this audit
 
 - No production DDL was executed as part of this specific audit — this is
