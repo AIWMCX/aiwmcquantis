@@ -179,6 +179,45 @@
       "check": { "kind": "no_table_privilege", "table": "gsc_verification", "role": "anon", "privilege": "SELECT" }
     },
     {
+      "object": "public.user_realism_feedback",
+      "domain": "activation-feedback",
+      "required_by": "src/components/analysis/RealismFeedbackWidget.tsx, mounted in AccuracyTransparentResults.tsx (reachable by real users)",
+      "severity": "P2",
+      "check": { "kind": "table_exists", "table": "user_realism_feedback" },
+      "notes": "Restored 2026-08-18 (Activation/Feedback slice). Write-only USER_FEEDBACK_SIGNAL (1-5 realism scale) -- no consumer mutates financial numbers, prompts, or benchmarks from it. Current-schema deviation from its own hardening migration (20260704003227): dropped a reference to analyses.is_public, which does not exist on the live analyses table."
+    },
+    {
+      "object": "public.user_realism_feedback.anon_denied",
+      "domain": "activation-feedback",
+      "required_by": "security",
+      "severity": "P1",
+      "check": { "kind": "no_table_privilege", "table": "user_realism_feedback", "role": "anon", "privilege": "SELECT" }
+    },
+    {
+      "object": "public.funnel_events",
+      "domain": "activation-feedback",
+      "required_by": "src/lib/analytics.ts (record_funnel_event RPC), src/pages/admin/Funnel.tsx",
+      "severity": "P0",
+      "check": { "kind": "table_exists", "table": "funnel_events" },
+      "notes": "The canonical commercial-activation event store. idea_submitted/analysis_started/analysis_completed/verdict_viewed/scenario_compared/assumption_changed/upgrade_cta_seen/subscription_started all live here. Confirmed live via production data (2026-08-18): 262 home_view, 33 analysis_started, 27 verdict_viewed, 11 scenario_compared in the trailing 30 days."
+    },
+    {
+      "object": "public.activation_events",
+      "domain": "activation-feedback",
+      "severity": "OPTIONAL",
+      "deprecated": true,
+      "check": { "kind": "table_exists", "table": "activation_events" },
+      "notes": "SUPERSEDED for commercial-activation-funnel measurement by funnel_events -- do not restore for that purpose. Still referenced by src/lib/activationTracking.ts for a SEPARATE gamification score/band system (sidebar widget, dashboard banner, admin KPI dashboard, contextual upgrade triggers) with its own, non-overlapping event vocabulary (idea_entered/calculation_completed/pdf_exported/etc). That system is currently silently broken (writes fail against the missing table; get_user_activation_score always returns the empty default) -- a separate, smaller bug, not a data-integrity risk, tracked as a follow-up rather than resurrecting a second analytics store. See docs/MIGRATION_LEDGER_DRIFT_AUDIT_2026-08-17.md Activation/Feedback slice."
+    },
+    {
+      "object": "public.user_validation_progress",
+      "domain": "activation-feedback",
+      "severity": "OPTIONAL",
+      "deprecated": true,
+      "check": { "kind": "table_exists", "table": "user_validation_progress" },
+      "notes": "DEFERRED, not restored. ValidationJourney.tsx is mounted and reachable, but its checklist items (log 10+ customer interviews, import actuals, achieve 70% model accuracy) correspond to product features that do not exist anywhere in the current app -- pure self-reported, unverified gamification, not real decision-engagement behavior. Restoring the table would only make vanity checkboxes persist across reloads; it would not add a genuine activation signal. Fails safe today: missing-table reads/writes are silently ignored by the component (no error surfaced, no crash), so this is inert, not broken. Revisit only alongside a product decision on whether to rebuild this feature around real actions."
+    },
+    {
       "object": "public.doc_generation_jobs",
       "domain": "document-delivery",
       "severity": "OPTIONAL",
