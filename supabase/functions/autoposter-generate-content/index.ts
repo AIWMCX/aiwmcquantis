@@ -77,13 +77,12 @@ Deno.serve(async (req) => {
     const userId = claimsData.claims.sub;
 
     const admin = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: roleRow } = await admin
+    const { data: roleRows } = await admin
       .from('user_roles')
       .select('role')
       .eq('user_id', userId)
-      .eq('role', 'admin')
-      .maybeSingle();
-    if (!roleRow) {
+      .in('role', ['admin', 'content_admin']);
+    if (!roleRows || roleRows.length === 0) {
       return new Response(JSON.stringify({ error: 'Forbidden' }), {
         status: 403,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
