@@ -150,11 +150,12 @@ Deno.serve(async (req) => {
     const user = userRes?.user;
     if (!user) return j({ error: 'Unauthorized' }, 401);
 
-    // Admin check (allowlist OR role)
+    // Admin check: full admin OR the scoped content_admin role
+    // (AIWMCSRM@gmail.com / jjbalaganvasya@gmail.com)
     const supaSvc = createClient(SUPABASE_URL, SERVICE_KEY);
-    const { data: roleRow } = await supaSvc
-      .from('user_roles').select('role').eq('user_id', user.id).eq('role', 'admin').maybeSingle();
-    if (!roleRow) return j({ error: 'Admin only' }, 403);
+    const { data: roleRows } = await supaSvc
+      .from('user_roles').select('role').eq('user_id', user.id).in('role', ['admin', 'content_admin']);
+    if (!roleRows || roleRows.length === 0) return j({ error: 'Admin only' }, 403);
 
     const body = await req.json().catch(() => ({}));
     const topic = String(body.topic ?? '').trim();

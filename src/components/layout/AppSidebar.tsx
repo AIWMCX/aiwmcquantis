@@ -44,6 +44,7 @@ interface NavItem {
   url: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  contentAdminOnly?: boolean;
   external?: boolean;
   badge?: string;
   plusOnly?: boolean;
@@ -89,8 +90,8 @@ const NAV_SECTIONS: NavSection[] = [
   {
     label: 'ADMIN',
     items: [
-      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, adminOnly: true },
-      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, adminOnly: true },
+      { title: 'Content Studio', url: '/admin/content-studio', icon: Radio, contentAdminOnly: true },
+      { title: 'Autoposter', url: '/admin/autoposter', icon: Megaphone, contentAdminOnly: true },
     ],
   },
   {
@@ -111,7 +112,7 @@ export function AppSidebar() {
 
   const { user } = useAuth();
   const { isPlus, isPro } = useSubscription();
-  const { isAdmin } = useAdmin();
+  const { isAdmin, isContentAdmin } = useAdmin();
 
   const settingsPath = isPro ? '/pro-settings' : '/plus-settings';
   const resolveUrl = (url: string) => url.replace('__settings__', settingsPath);
@@ -211,7 +212,10 @@ export function AppSidebar() {
         <SidebarContent className="py-3 overflow-y-auto">
           {NAV_SECTIONS.map((section) => {
             const visibleItems = section.items.filter(
-              (item) => (!item.adminOnly || isAdmin) && (!item.flag || isEnabled(item.flag))
+              (item) =>
+                (!item.adminOnly || isAdmin) &&
+                (!item.contentAdminOnly || isContentAdmin) &&
+                (!item.flag || isEnabled(item.flag))
             );
             if (visibleItems.length === 0) return null;
 

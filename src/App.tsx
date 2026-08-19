@@ -300,12 +300,12 @@ const App = () => {
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/autoposter" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireContentAdmin>
                     <Autoposter />
                   </ProtectedRoute>
                 } />
                 <Route path="/admin/content-studio" element={
-                  <ProtectedRoute requireAdmin>
+                  <ProtectedRoute requireContentAdmin>
                     <ContentStudio />
                   </ProtectedRoute>
                 } />
