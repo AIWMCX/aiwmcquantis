@@ -9,14 +9,13 @@ useDefault = true
 [allowlist]
   description = "Known-safe, by-design-public, or non-secret matches specific to this repo"
 
-  # Build artifacts and source maps are gitignored (see .gitignore) and should
-  # never be scanned even if a historical commit predates that exclusion.
-  paths = [
-    '''\.vercel/''',
-    '''^dist/''',
-    '''^dist-ssr/''',
-    '''\.map$''',
-  ]
+  # Deliberately NOT excluding .vercel/, dist/, dist-ssr/, or *.map by path.
+  # .vercel/ and dist/ are gitignored today so they shouldn't normally be
+  # committed -- but a path-based blind spot is exactly where a real secret
+  # would slip through undetected if gitignore were ever bypassed (a build
+  # artifact WAS committed once, in commit 583a80ba, before .gitignore
+  # excluded it — see QNT-DEFECT-013). Only allowlist specific inspected
+  # matches below, never a category of files wholesale.
 
   regexes = [
     # Supabase anon/publishable key for THIS project (dmlxrvfyqsakyjomsvdj).

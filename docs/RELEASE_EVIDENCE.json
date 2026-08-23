@@ -289,7 +289,7 @@
     },
     {
       "id": "EV-045",
-      "command": "User-approved live test: curl POST to https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/manage-benchmarks with header x-admin-key: quantis_admin_7722_xPqq23a544849283484d (the leaked .env.md value) and an empty {} body",
+      "command": "User-approved live test: curl POST to https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/manage-benchmarks with header x-admin-key: <leaked .env.md value, sha256 fingerprint 4da914c02e2c1b6b..., redacted here per CodeRabbit review -- do not reproduce leaked secret values in evidence docs> and an empty {} body",
       "result": "HTTP 401 {\"error\":\"Unauthorized. Admin access required.\"}",
       "run_at": "2026-08-23T01:02:00Z",
       "conclusion": "The leaked ADMIN_UPLOAD_KEY value is confirmed NOT the current live secret. STRIPE_WEBHOOK_SECRET could not be tested the same way without forging a Stripe-signed payload (itself an attack simulation) and was left unverified -- recommend rotating it out of caution via the Stripe dashboard (blocked on connector access, same as QNT-DEFECT-009). Logged as QNT-DEFECT-013. Wired gitleaks into CI (.github/workflows/gitleaks.yml) scoped to new commits only (never full history, to avoid permanently red-flagging this pre-existing history) with .gitleaks.toml documenting every allowlist decision; verified locally against this session's actual new commit range (8b7faf11..HEAD) with zero findings before committing the workflow."
