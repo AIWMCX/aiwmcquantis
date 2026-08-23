@@ -8,6 +8,7 @@ import { aiCall } from '../_shared/llm-call.ts';
 
 
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { getUserTier } from '../_shared/entitlements.ts';
 const FUNCTION_NAME = 'generate-document-content';
 const FUNCTION_VERSION = '1.0.1';
 
@@ -259,15 +260,14 @@ serve(async (req) => {
       );
     }
 
-    const { data: subscription } = await supabase
-      .from('subscriptions')
-      .select('plan_id, status')
-      .eq('user_id', user.id)
-      .single();
-
-    const hasAccess = subscription &&
-      (subscription.plan_id === 'plus' || subscription.plan_id === 'pro' || subscription.plan_id === 'enterprise') &&
-      (subscription.status === 'active' || subscription.status === 'trialing');
+    // Was an ad-hoc inline check here (plan_id + status only -- no
+    // current_period_end, no trial_ends_at) that was WEAKER than the shared
+    // resolver: an active-but-unrenewed subscription, or an expired trial
+    // still marked 'trialing', both bypassed it. Now uses the same
+    // getUserTier/resolveTier the rest of the app relies on, which fails
+    // closed on both of those cases -- see _shared/entitlements.ts.
+    const { tier } = await getUserTier(supabase, user.id);
+    const hasAccess = tier === 'plus' || tier === 'pro';
 
     if (!hasAccess) {
       return new Response(

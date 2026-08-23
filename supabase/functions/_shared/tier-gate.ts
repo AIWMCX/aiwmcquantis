@@ -44,7 +44,7 @@ export async function resolveCallerTier(req: Request): Promise<ResolveTierResult
   const [{ data: sub }, { data: usage }] = await Promise.all([
     adminClient
       .from('subscriptions')
-      .select('plan_id, status')
+      .select('plan_id, status, trial_ends_at, current_period_end')
       .eq('user_id', user.id)
       .maybeSingle(),
     adminClient
@@ -55,7 +55,21 @@ export async function resolveCallerTier(req: Request): Promise<ResolveTierResult
       .maybeSingle(),
   ]);
 
-  const isActive = sub?.status === 'active' || sub?.status === 'trialing';
+  // Was `sub?.status === 'active' || sub?.status === 'trialing'` with no
+  // further check -- an expired trial still marked 'trialing', or an
+  // active-but-unrenewed subscription past its own current_period_end,
+  // both granted paid access indefinitely. Fails closed the same way
+  // _shared/entitlements.ts's resolveTier does (this module intentionally
+  // keeps its own Tier/'FREE'|'PLUS'|'PRO' type rather than importing that
+  // one, so the check is duplicated here rather than shared -- see
+  // docs/OPEN_DEFECTS.json QNT-DEFECT-019 for the cross-reference).
+  const trialExpired = sub?.status === 'trialing' && sub?.trial_ends_at
+    ? new Date(sub.trial_ends_at).getTime() < Date.now()
+    : false;
+  const periodExpired = sub?.status === 'active' && sub?.current_period_end
+    ? new Date(sub.current_period_end).getTime() < Date.now()
+    : false;
+  const isActive = (sub?.status === 'active' || sub?.status === 'trialing') && !trialExpired && !periodExpired;
   const tier: Tier = isActive ? planToTier(sub?.plan_id) : 'FREE';
   return {
     userId: user.id,
