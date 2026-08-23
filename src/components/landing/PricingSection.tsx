@@ -39,9 +39,9 @@ const FREE_FEATURES = [
   },
   { text: 'Quick depth only', highlight: false, subtext: 'No Monte Carlo, P&L, or action plan' },
   {
-    text: '5 watermarked PDFs/day',
+    text: '5 PDF downloads/day',
     highlight: false,
-    subtext: '"Powered by Quantis" footer included',
+    subtext: 'Separate from your monthly analysis limit, watermarked with "Powered by Quantis"',
   },
   {
     text: 'Pre-Mortem Stress Test 🔒',
@@ -91,7 +91,7 @@ const PLUS_FEATURES = [
   {
     text: 'Custom branding & PDF export',
     highlight: false,
-    subtext: 'White-label reports with your logo',
+    subtext: 'Add your logo and colors (Quantis footer stays — remove it entirely on Pro)',
   },
   {
     text: 'AI Document Intelligence',
