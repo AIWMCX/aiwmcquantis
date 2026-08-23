@@ -1,0 +1,70 @@
+rules:
+  # ---------------------------------------------------------------------
+  # QNT-DEFECT-001 class: raw `!=` against auth.uid() NULL-collapses the
+  # whole guard to a no-op for an unauthenticated caller (auth.uid() IS
+  # NULL, and `NULL != x` is SQL NULL, which PL/pgSQL's IF treats as
+  # false). This exact bug was confirmed LIVE EXPLOITABLE this session
+  # (get_user_activation_score, get_user_engagement_stats — anon-key
+  # curl returned real user data with zero auth) and fixed via
+  # `IS DISTINCT FROM`, which is NULL-safe. See docs/OPEN_DEFECTS.json
+  # QNT-DEFECT-001 for the full writeup.
+  #
+  # Deliberately a plain positive match, not a pattern-not exclusion:
+  # the safe form (`$X IS DISTINCT FROM auth.uid()`) is a textually
+  # different token sequence, so it will never match this pattern by
+  # construction — no negative-lookahead logic needed, which matters
+  # because this rule could not be locally test-fired before being
+  # committed (semgrep-core hangs indefinitely in this session's Windows
+  # sandbox — see docs/OPEN_DEFECTS.json QNT-DEFECT-015). Kept
+  # deliberately simple to minimize the risk of an untested rule
+  # misbehaving on its first real run in CI.
+  - id: sql-raw-auth-uid-null-collapse
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      Raw '!=' comparison against auth.uid() inside an authorization guard.
+      For an unauthenticated caller, auth.uid() IS NULL, so 'auth.uid() !=
+      x' evaluates to SQL NULL rather than true/false — PL/pgSQL's IF
+      treats a NULL condition as false, silently skipping the guard. Use
+      'x IS DISTINCT FROM auth.uid()' instead (NULL-safe). This is the
+      exact bug class confirmed live-exploitable in QNT-DEFECT-001 —
+      see docs/OPEN_DEFECTS.json for the full incident writeup.
+      Do not merge without EITHER fixing to IS DISTINCT FROM OR a
+      code-comment explaining why this specific occurrence is safe
+      (e.g. auth.uid() is already proven non-null earlier in the same
+      transaction).
+    patterns:
+      - pattern-either:
+          - pattern: auth.uid() != $X
+          - pattern: $X != auth.uid()
+    paths:
+      include:
+        - "supabase/migrations/*.sql"
+        - "supabase/functions/**/*.sql"
+
+  # ---------------------------------------------------------------------
+  # Companion half of the same bug class: is_service_role() itself
+  # returns SQL NULL (not false) when neither JWT role claim is set, so
+  # `NOT is_service_role()` inside an AND-chain guard collapses the same
+  # way. Fix is COALESCE(is_service_role(), false). Same simple-positive-
+  # match reasoning as above: the safe form's token sequence
+  # (`NOT COALESCE(is_service_role(), false)`) does not match this
+  # pattern, so no exclusion logic is needed.
+  - id: sql-unwrapped-is-service-role
+    languages: [generic]
+    severity: ERROR
+    message: >-
+      'NOT is_service_role()' (or 'NOT public.is_service_role()') without
+      COALESCE. is_service_role() returns SQL NULL when neither JWT role
+      claim is set, and NOT NULL is NULL, which PL/pgSQL's IF treats as
+      false — the guard silently no-ops. Wrap as
+      'NOT COALESCE(public.is_service_role(), false)'. See
+      docs/OPEN_DEFECTS.json QNT-DEFECT-001.
+    patterns:
+      - pattern-either:
+          - pattern: NOT is_service_role()
+          - pattern: NOT public.is_service_role()
+    paths:
+      include:
+        - "supabase/migrations/*.sql"
+        - "supabase/functions/**/*.sql"

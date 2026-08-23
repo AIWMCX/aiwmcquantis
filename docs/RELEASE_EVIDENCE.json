@@ -319,6 +319,40 @@
       "result": "`deno check` on analyze-business/index.ts: clean, zero errors. `bun run lint`: 0 errors, 319 warnings -- same count as the established pre-change baseline (docs/CURRENT_PRODUCTION_STATE.json test_and_build_gates). Grep for the 3 changed/new file names against the full lint output: zero matches -- none of the 319 warnings are anchored to any file this pilot touched.",
       "run_at": "2026-08-23T02:10:00Z",
       "conclusion": "QNT-DEFECT-014 (OpenTelemetry pilot) is genuinely wired and verified, not speculative code, and introduces zero new lint debt (confirmed by identity, not inferred from an unchanged count). It remains inert in every real environment until a tracing vendor is chosen and OTEL_EXPORTER_OTLP_ENDPOINT is set -- a product/budget decision outside this session's authority to make."
+    },
+    {
+      "id": "EV-050",
+      "command": "pip install semgrep (v1.174.0, no prior local tooling existed). Then attempted semgrep --version / --help / scan across 7+ variations: with and without --metrics=off, --debug, piped empty stdin via echo, PATH-corrected invocations (pysemgrep.exe found via the Scripts dir), and explicit 45s timeouts. Also tested curl -sI https://semgrep.dev to rule out blocked network egress, and confirmed docker info still returns 'not running' (no daemon, same as item 6).",
+      "result": "--help returns instantly (exit 0), proving the CLI wrapper loads fine. Every --version/scan invocation either hangs past its timeout (exit 124) or, once, appeared to exit fast under --debug but was later reproduced to also hang (that first 'success' was an artifact of `head -40` closing the pipe early, not a real completion). curl to semgrep.dev returns HTTP 200 -- network reachability is fine, ruling out simple blocked-egress as the cause.",
+      "run_at": "2026-08-23T02:15:00Z",
+      "conclusion": "Local semgrep execution is genuinely blocked in this session's Windows/git-bash sandbox, root cause not fully diagnosed (most likely an OCaml semgrep-core subprocess incompatibility specific to this environment, not a config or network issue). No Docker fallback available either. Local verification of the custom rule's behavior is therefore impossible this session -- proceeded via proxy verification (EV-051) instead of blocking the whole item on this unresolved environment issue."
+    },
+    {
+      "id": "EV-051",
+      "command": "Wrote .semgrep/quantis-rules.yml (2 custom rules for the QNT-DEFECT-001 NULL-collapse bug class) and validated its YAML with ruamel.yaml (already installed as a semgrep dependency) since semgrep itself could not parse/run it. Then wrote regex approximations of both rule patterns in Python and ran them against known ground-truth text: the already-confirmed-vulnerable historical migration text for 3 functions, and the already-confirmed-fixed live definitions of the same 3 functions (both from QNT-DEFECT-001).",
+      "result": "YAML parses cleanly, 2 rules, both languages:[generic]. Regex proxy: matches all 3 known-vulnerable historical texts (both patterns fire correctly), does NOT match 2 of the 3 known-fixed live texts, but DOES match get_referral_stats' live text on the is_service_role half -- an unexpected result that led directly to EV-052.",
+      "run_at": "2026-08-23T02:20:00Z",
+      "conclusion": "The proxy check is not just a formality -- it caught a real discrepancy between what QNT-DEFECT-001 had reported as fully fixed and what was actually still live."
+    },
+    {
+      "id": "EV-052",
+      "command": "Investigated the get_referral_stats discrepancy: pg_get_functiondef() confirmed live definition still has `NOT is_service_role()` unwrapped (no COALESCE), unlike get_user_activation_score and get_user_engagement_stats which both got the full fix. Reasoned through exploitability: get_referral_stats has anon_can_exec=false (confirmed earlier this session), and is_service_role() only returns NULL when neither the JWT role claim nor the `role` GUC is set, which essentially never happens for a normal PostgREST-routed authenticated call -- narrow, likely-unreachable-via-HTTP gap, not equivalent in severity to the original anon-exploitable findings. Applied the same proven COALESCE fix anyway (migration 20260823020929) for defense-in-depth and rule-cleanliness, without requiring a live-exploit test first given the narrow, already-reasoned-through risk.",
+      "result": "success:true. Migration applied and tracked.",
+      "run_at": "2026-08-23T02:22:00Z"
+    },
+    {
+      "id": "EV-053",
+      "command": "Ran the same 2 regex-proxy patterns across the ENTIRE current repo (not just the 4 previously-audited files) via grep -rnE, first with an escaping bug (unescaped parens in `auth.uid()` swallowed by grep -E's group syntax, silently returning zero matches for the raw != pattern), caught by noticing the zero-result was implausible, then corrected. Corrected run surfaced get_subscription_summary(p_user_id) (migration 20260205051029, never redefined since, never audited this session) with the identical vulnerable guard shape.",
+      "result": "pg_get_functiondef() confirmed the live definition is unchanged from the original vulnerable text. has_function_privilege confirmed anon_can_exec=true. Read a real user_id/subscription row, then curl POST to the anon-key REST RPC endpoint (no session) with that user_id: HTTP 200, returned real plan_id/status/current_period_start/current_period_end for that user, zero authentication.",
+      "run_at": "2026-08-23T02:28:00Z",
+      "conclusion": "A genuine, previously-undiscovered, live anon-exploitable vulnerability, found as a direct byproduct of building the Semgrep rule rather than by the rule itself (which could not be run). Required explicit user approval (an auto-mode classifier blocked the fix-application call, correctly treating a fresh unscoped live exploit with more caution than a pre-discussed item) before applying the fix."
+    },
+    {
+      "id": "EV-054",
+      "command": "User-approved fix: migration fix_null_collapse_get_subscription_summary (IS DISTINCT FROM + COALESCE, mirroring the proven pattern). Re-ran the identical curl call immediately after. Then re-ran the full-repo regex-proxy sweep once more, this time excluding files listed in a newly-written .semgrepignore (documenting each excluded historical migration file and why -- append-only doctrine means the original vulnerable text of a since-superseded function stays in the tree forever), and found one more file the first pass of .semgrepignore had missed (20260818070000, the get_user_activation_score intermediate fix) before reaching a genuinely clean baseline.",
+      "result": "Post-fix curl: HTTP 400 {\"code\":\"P0001\",\"message\":\"Access denied: Cannot view other users subscriptions\"} -- confirmed closed. Final repo-wide sweep with the corrected .semgrepignore: zero remaining matches for either pattern anywhere in the current tree.",
+      "run_at": "2026-08-23T02:35:00Z",
+      "conclusion": "QNT-DEFECT-015's fix is live and verified. .semgrep/quantis-rules.yml + .semgrepignore + .github/workflows/semgrep.yml are ready to commit with an honestly-established (if not semgrep-tool-verified) clean baseline. The custom rule's first REAL verification will happen when this PR's own CI runs semgrep on ubuntu-latest, where the local hang is not expected to reproduce."
     }
   ],
 

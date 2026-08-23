@@ -1,0 +1,65 @@
+name: semgrep
+
+# ============================================================================
+# SAST gate.
+# ----------------------------------------------------------------------------
+# Two separate jobs, deliberately different severities:
+#
+#   1. quantis-rules (BLOCKING) -- .semgrep/quantis-rules.yml, a small,
+#      carefully-reasoned custom ruleset targeting the exact NULL-collapse
+#      authorization bug class confirmed live-exploitable this session
+#      (QNT-DEFECT-001, QNT-DEFECT-015 -- 4 real anon-key-exploitable RPCs
+#      found and fixed). A grep-proxy baseline against the current tree
+#      (documented in docs/RELEASE_EVIDENCE.json) confirms zero current
+#      occurrences outside .semgrepignore's documented, individually-
+#      justified exclusions.
+#
+#   2. community-rulesets (INFORMATIONAL, never fails the build) -- the
+#      standard p/security-audit + p/typescript + p/javascript registry
+#      packs, for broader coverage. This could NOT be locally triaged before
+#      being wired up: semgrep-core hung indefinitely in this session's
+#      Windows sandbox on every invocation attempted (see
+#      docs/OPEN_DEFECTS.json QNT-DEFECT-015), so there is no established
+#      clean baseline for these broader community rules the way there is
+#      for quantis-rules.yml. Making this job non-blocking avoids either
+#      flooding every future PR with untriaged noise or silently disabling
+#      the check entirely -- findings are visible in the job log for manual
+#      review, and can graduate to blocking once a real baseline exists.
+# ============================================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  quantis-rules:
+    name: Quantis custom rules (blocking)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Scan with quantis-rules.yml
+        run: semgrep scan --config .semgrep/quantis-rules.yml --error --metrics=off
+
+  community-rulesets:
+    name: Community rulesets (informational)
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install semgrep
+        run: pip install semgrep
+      - name: Scan with community registry rulesets
+        run: semgrep scan --config p/security-audit --config p/typescript --config p/javascript --metrics=off

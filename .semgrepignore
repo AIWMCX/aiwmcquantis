@@ -1,0 +1,68 @@
+# Semgrep ignore list. Every entry here is a documented, individually-
+# reviewed decision, not a blanket exclusion -- mirroring the discipline
+# already established in .gitleaks.toml for the same reason: a broad
+# category exclusion is exactly where a real future issue could hide
+# undetected.
+#
+# This repo's migrations are append-only by design (a bug is fixed via a
+# NEW migration that supersedes the old one via CREATE OR REPLACE FUNCTION;
+# the old migration file is never edited -- see docs/MIGRATION_CONTROL_PLANE.md).
+# That means the ORIGINAL, buggy version of a function's text lives in git
+# forever, even after it's fixed. A plain filesystem-wide SAST scan (unlike
+# gitleaks, which we scope to new commits only) naturally scans the current
+# tree's files regardless of git history, so these specific old files would
+# otherwise be flagged by .semgrep/quantis-rules.yml on every single future
+# CI run, forever, for a bug that is already fixed and confirmed dead live.
+#
+# Live-verify before trusting this list: pg_get_functiondef() against the
+# actual production database is the source of truth for what's really
+# running, not this file. Every function named below was independently
+# confirmed live-safe via direct database query as part of QNT-DEFECT-001
+# and QNT-DEFECT-015 (docs/OPEN_DEFECTS.json).
+
+# get_user_engagement_stats -- original vulnerable version. Superseded by
+# 20260818040000, which was itself superseded by 20260822225616 (this
+# session's fix, currently live and confirmed safe).
+supabase/migrations/20260130032834_dd4cb2fc-5f13-4748-bd73-77488429401d.sql
+
+# get_subscription_summary -- original vulnerable version, confirmed live-
+# exploitable and fixed this session. Superseded by 20260823021301.
+supabase/migrations/20260205051029_1dd84c76-302e-4ecc-9ab3-3acad87ad0b7.sql
+
+# get_referral_stats -- original vulnerable version. Superseded by
+# 20260814120000, which was itself superseded by 20260823020929 (this
+# session's fix, currently live and confirmed safe).
+supabase/migrations/20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql
+
+# get_user_activation_score -- original vulnerable version. Superseded by
+# 20260818070000, which was itself superseded by 20260822225616 (this
+# session's fix, currently live and confirmed safe).
+supabase/migrations/20260426174842_b35ca146-b2e0-4d2d-aac7-21393f3d12eb.sql
+
+# get_referral_stats intermediate fix -- fixed the auth.uid() != half via
+# IS DISTINCT FROM, but line 95's `NOT is_service_role()` was still
+# unwrapped (its own docstring comment also quotes the original vulnerable
+# line verbatim for reference). Fully superseded by 20260823020929.
+supabase/migrations/20260814120000_p0_track_a_referral_function_access.sql
+
+# get_user_engagement_stats intermediate state -- superseded by
+# 20260822225616 (this session's fix, currently live and confirmed safe).
+supabase/migrations/20260818040000_restore_engagement_notifications_lifecycle_email.sql
+
+# get_user_activation_score intermediate fix -- added COALESCE around
+# is_service_role() but left the raw `auth.uid() != p_user_id` half
+# unwrapped. Fully superseded by 20260822225616 (this session's fix,
+# currently live and confirmed safe).
+supabase/migrations/20260818070000_restore_activation_events.sql
+
+# This session's own fix migrations for QNT-DEFECT-001/015. Their CODE is
+# safe (IS DISTINCT FROM + COALESCE throughout) -- only their explanatory
+# comments quote the original vulnerable pattern verbatim for documentation.
+# Excluded because Semgrep's generic-mode matcher is not guaranteed to be
+# comment-aware, and these files could not be locally test-fired against
+# the actual rule before being committed (see docs/OPEN_DEFECTS.json
+# QNT-DEFECT-015) -- excluding known comment-only matches removes a
+# predictable source of noise on this rule's first real CI run.
+supabase/migrations/20260822225616_fix_null_collapse_auth_guard_engagement_activation.sql
+supabase/migrations/20260823020929_coalesce_is_service_role_get_referral_stats.sql
+supabase/migrations/20260823021301_fix_null_collapse_get_subscription_summary.sql
