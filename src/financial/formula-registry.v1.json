@@ -7,11 +7,17 @@
       "metricCode": "investment_payback_months",
       "formulaId": "investment_payback.cumulative_fcf.v1",
       "definition": "First fractional month in which cumulative free cash flow, including the month-zero initial investment outflow, reaches zero.",
-      "inputs": ["initial_investment", "monthly_free_cash_flow"],
+      "inputs": [
+        "initial_investment",
+        "monthly_free_cash_flow"
+      ],
       "unit": "months",
       "frequency": "monthly-series",
       "fallbackBehavior": "Return typed NOT_ACHIEVED_WITHIN_HORIZON; never return 999, Infinity, or a fabricated month count.",
-      "testSuites": ["unit", "property"],
+      "testSuites": [
+        "unit",
+        "property"
+      ],
       "sourceFile": "src/financial/payback.ts",
       "edgeFunctionPort": "supabase/functions/analyze-business/payback-contract.ts (cross-check only, non-fatal, logged as warning on drift -- never replaces the ramp-aware integer computation in index.ts)"
     },
@@ -19,11 +25,17 @@
       "metricCode": "cac_payback_months",
       "formulaId": "cac_payback.cumulative_contribution_margin.v1",
       "definition": "First fractional month in which cumulative contribution margin from the acquired customer or cohort recovers eligible acquisition cost.",
-      "inputs": ["eligible_acquisition_spend", "monthly_customer_contribution_margin"],
+      "inputs": [
+        "eligible_acquisition_spend",
+        "monthly_customer_contribution_margin"
+      ],
       "unit": "months",
       "frequency": "cohort-monthly-series",
       "fallbackBehavior": "Return typed unavailable state with reason code when contribution series is absent or payback is outside the horizon.",
-      "testSuites": ["unit", "property"],
+      "testSuites": [
+        "unit",
+        "property"
+      ],
       "sourceFile": "src/financial/cac-payback.ts",
       "note": "This function is not currently ported to the edge-function side (no cac-payback-contract.ts equivalent to payback-contract.ts) -- unlike investment_payback_months, there is no live cross-check for this metric in the analyze-business pipeline today."
     },
@@ -31,143 +43,231 @@
       "metricCode": "contribution_margin_ratio",
       "formulaId": "cvp.contribution_margin_breakeven.v1",
       "definition": "Total contribution (revenue minus variable costs) divided by revenue.",
-      "inputs": ["revenue", "variable_costs"],
+      "inputs": [
+        "revenue",
+        "variable_costs"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
-      "fallbackBehavior": "NOT_MEANINGFUL semantics via a null ratio (never a divide-by-zero or a fabricated 0) when revenue is zero.",
-      "testSuites": ["unit", "property"]
+      "fallbackBehavior": "This field has no status wrapper of its own -- CvpResult.status stays VALUE at zero revenue (reasonCode ZERO_REVENUE_DENOMINATOR), and contributionMarginRatio is simply null rather than a divide-by-zero or a fabricated 0.",
+      "testSuites": [
+        "unit",
+        "property"
+      ],
+      "sourceFile": "src/financial/contribution-margin.ts"
     },
     {
       "metricCode": "break_even_units",
       "formulaId": "cvp.contribution_margin_breakeven.v1",
       "definition": "Fixed costs divided by contribution per unit. Requires unitsSold and pricePerUnit inputs to be provided.",
-      "inputs": ["fixed_costs", "contribution_per_unit"],
+      "inputs": [
+        "fixed_costs",
+        "contribution_per_unit"
+      ],
       "unit": "units",
       "frequency": "period-snapshot",
-      "fallbackBehavior": "Typed NOT_ACHIEVABLE when contribution per unit is non-positive; typed INSUFFICIENT_INPUTS when no per-unit basis was provided.",
-      "testSuites": ["unit", "property"]
+      "fallbackBehavior": "Individually null whenever no per-unit basis (unitsSold + pricePerUnit) was provided, or contribution per unit is non-positive -- independent of the surrounding breakEven block's own status. The block's status is VALUE whenever either a per-unit or ratio-based break-even can be computed at all (breakEvenRevenue may still be populated even when breakEvenUnits is null); NOT_ACHIEVABLE only when a per-unit basis WAS provided and is non-positive AND the ratio is also non-positive; INSUFFICIENT_INPUTS only when neither a per-unit nor ratio basis exists at all (revenue is zero and no per-unit info given).",
+      "testSuites": [
+        "unit",
+        "property"
+      ],
+      "sourceFile": "src/financial/contribution-margin.ts"
     },
     {
       "metricCode": "break_even_revenue",
       "formulaId": "cvp.contribution_margin_breakeven.v1",
       "definition": "Fixed costs divided by contribution margin ratio.",
-      "inputs": ["fixed_costs", "contribution_margin_ratio"],
+      "inputs": [
+        "fixed_costs",
+        "contribution_margin_ratio"
+      ],
       "unit": "USD",
       "frequency": "period-snapshot",
-      "fallbackBehavior": "Typed NOT_ACHIEVABLE when contribution margin ratio is non-positive.",
-      "testSuites": ["unit", "property"]
+      "fallbackBehavior": "Individually null when contribution margin ratio is null (revenue is zero) or non-positive -- independent of the surrounding breakEven block's own status; see break_even_units for the shared block-level status semantics.",
+      "testSuites": [
+        "unit",
+        "property"
+      ],
+      "sourceFile": "src/financial/contribution-margin.ts"
     },
     {
       "metricCode": "margin_of_safety",
       "formulaId": "cvp.contribution_margin_breakeven.v1",
       "definition": "Expected sales minus break-even revenue, both as an absolute amount and as a percentage of expected sales.",
-      "inputs": ["expected_sales", "break_even_revenue"],
+      "inputs": [
+        "expected_sales",
+        "break_even_revenue"
+      ],
       "unit": "USD and ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "Typed NOT_MEANINGFUL when expected sales is zero or negative; typed INSUFFICIENT_INPUTS when break-even revenue is unavailable.",
-      "testSuites": ["unit", "property"]
+      "testSuites": [
+        "unit",
+        "property"
+      ],
+      "sourceFile": "src/financial/contribution-margin.ts"
     },
     {
       "metricCode": "degree_of_operating_leverage",
       "formulaId": "cvp.contribution_margin_breakeven.v1",
       "definition": "Total contribution divided by operating income.",
-      "inputs": ["total_contribution", "operating_income"],
+      "inputs": [
+        "total_contribution",
+        "operating_income"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
-      "fallbackBehavior": "Typed NOT_MEANINGFUL when operating income is within 0.5% of revenue (mathematically unstable near zero), per an explicit numeric guard-band rather than an unflagged near-infinite figure.",
-      "testSuites": ["unit"]
+      "fallbackBehavior": "Typed NOT_MEANINGFUL when the absolute operating income is below 0.5% of revenue (revenue > 0), or below a flat $0.01 floor when revenue is zero or negative -- mathematically unstable near zero, per an explicit numeric guard-band rather than an unflagged near-infinite figure.",
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/contribution-margin.ts"
     },
     {
       "metricCode": "gross_margin",
       "formulaId": "profitability_margins.v1",
       "definition": "Gross profit (revenue minus COGS) divided by revenue.",
-      "inputs": ["revenue", "cogs"],
+      "inputs": [
+        "revenue",
+        "cogs"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "Typed NOT_MEANINGFUL (not a silent 0%) when revenue is zero.",
-      "testSuites": ["unit"],
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/profitability-margins.ts",
       "note": "Additive to, not a replacement for, the engine's existing grossMarginPercent field (financial-calculator.ts), which silently returns 0 on zero revenue -- documented here as a known divergence, not yet reconciled."
     },
     {
       "metricCode": "operating_margin",
       "formulaId": "profitability_margins.v1",
       "definition": "Operating income divided by revenue.",
-      "inputs": ["operating_income", "revenue"],
+      "inputs": [
+        "operating_income",
+        "revenue"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "Typed NOT_MEANINGFUL when revenue is zero.",
-      "testSuites": ["unit"],
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/profitability-margins.ts",
       "note": "operatingIncome and netIncome are currently the same value in the live engine -- no separate D&A/interest/tax layer exists yet. The result's operatingEqualsNetIncome field makes this explicit rather than silently presenting two independently-derived figures."
     },
     {
       "metricCode": "net_margin",
       "formulaId": "profitability_margins.v1",
       "definition": "Net income divided by revenue.",
-      "inputs": ["net_income", "revenue"],
+      "inputs": [
+        "net_income",
+        "revenue"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "Typed NOT_MEANINGFUL when revenue is zero.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/profitability-margins.ts"
     },
     {
       "metricCode": "debt_to_equity",
       "formulaId": "leverage_ratios.v1",
       "definition": "Total debt divided by total equity.",
-      "inputs": ["total_debt", "total_equity"],
+      "inputs": [
+        "total_debt",
+        "total_equity"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- the engine collects no debt schedule, interest expense, or separate equity/asset tracking at all. Per the explicit CTO-verdict rule ('typed unavailable states over fabricated proxies'), this is a reviewed spec awaiting the relevant intake fields, not a bug.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     },
     {
       "metricCode": "debt_to_assets",
       "formulaId": "leverage_ratios.v1",
       "definition": "Total debt divided by total assets.",
-      "inputs": ["total_debt", "total_assets"],
+      "inputs": [
+        "total_debt",
+        "total_assets"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- see debt_to_equity's note; same missing-inputs class.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     },
     {
       "metricCode": "debt_to_capital",
       "formulaId": "leverage_ratios.v1",
       "definition": "Total debt divided by total debt plus total equity.",
-      "inputs": ["total_debt", "total_equity"],
+      "inputs": [
+        "total_debt",
+        "total_equity"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- see debt_to_equity's note.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     },
     {
       "metricCode": "debt_to_ebitda",
       "formulaId": "leverage_ratios.v1",
       "definition": "Total debt divided by EBITDA.",
-      "inputs": ["total_debt", "ebitda"],
+      "inputs": [
+        "total_debt",
+        "ebitda"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- the engine has no EBITDA layer distinct from net income.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     },
     {
       "metricCode": "interest_coverage",
       "formulaId": "leverage_ratios.v1",
       "definition": "EBIT divided by interest expense.",
-      "inputs": ["ebit", "interest_expense"],
+      "inputs": [
+        "ebit",
+        "interest_expense"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- no interest expense is collected.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     },
     {
       "metricCode": "dscr",
       "formulaId": "leverage_ratios.v1",
       "definition": "Debt service coverage ratio: net operating income divided by total debt service.",
-      "inputs": ["net_operating_income", "debt_service"],
+      "inputs": [
+        "net_operating_income",
+        "debt_service"
+      ],
       "unit": "ratio",
       "frequency": "period-snapshot",
       "fallbackBehavior": "ALWAYS returns INSUFFICIENT_INPUTS today -- no debt service schedule is collected.",
-      "testSuites": ["unit"]
+      "testSuites": [
+        "unit"
+      ],
+      "sourceFile": "src/financial/leverage-ratios.ts"
     }
   ],
   "specOnlyNotLive": [
