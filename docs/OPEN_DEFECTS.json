@@ -196,6 +196,22 @@
       "next_action": "Custom rule genuinely verified working on CI (not just proxy-verified): first real run found 0 findings across 213 files; after CodeRabbit correctly flagged 3 own-fix-migration files being excluded only because of their comments (a category-exclusion risk), those files were unexcluded and their comments reworded, and a second real CI run confirmed 0 findings across 216 files with the corrected 7-file ignore list. Remaining, lower-priority: 1) The community-ruleset job (p/security-audit, p/typescript, p/javascript) is deliberately non-blocking (continue-on-error) because it has never been triaged for false-positive noise -- review its output and either fix genuine findings or promote specific rules to the blocking job once a clean baseline is established; do not silently leave it informational forever. 2) Diagnose why semgrep-core hangs in this local sandbox if local verification is ever needed again (not attempted further this session given time already spent -- 7+ failed attempts).",
       "owner": "backend/security",
       "evidence_ids": ["EV-050", "EV-051", "EV-052", "EV-053", "EV-054", "EV-055", "EV-056"]
+    },
+    {
+      "id": "QNT-DEFECT-016",
+      "severity": "P3",
+      "domain": "TEST_COVERAGE",
+      "title": "Property-based (fast-check) invariant tests added for src/financial/* -- mutation-tested to confirm they actually catch regressions, and caught a real flaw in their own tolerance model along the way",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Item 9. Installed fast-check@4.9.0 (pure additive package.json/bun.lock change, confirmed via diff -- no other dependency was bumped as a side effect of the install). Added src/__tests__/financial-invariants-property.test.ts targeting the REAL, production-imported modules (calculateInvestmentPayback, calculateCacPayback, calculateCvp) rather than the mock reimplementation financial-engine.test.ts already uses for convenience. 23 properties across both payback functions (identical cumulative-crossing algorithms, tested with a shared battery: no numeric sentinel ever leaks, negative principal always INVALID_INPUTS, empty series always INSUFFICIENT_INPUTS, horizonMonths always matches series length, VALUE months always bounded within [0,horizonMonths], NOT_ACHIEVED_WITHIN_HORIZON implies cumulative genuinely never recovered, VALUE reconciles against an independently-written reference recomputation, and monotonicity -- increasing any single month's cash flow never increases payback) and calculateCvp (never throws for any finite input combination, always returns a contractually-typed status, negative inputs always INVALID_INPUTS, and 3 algebraic reconciliation checks against its own contract). Did not stop at 'tests pass' -- deliberately mutated the real payback.ts (dropped a .negated() call) and confirmed fast-check caught it immediately, auto-shrinking to a 2-value minimal counterexample, before reverting the mutation (confirmed via git diff showing zero remaining changes to payback.ts). Also caught, via fast-check finding a real counterexample on the FIRST actual failing run (not the mutation test), a genuine flaw in the test's OWN tolerance model: a fixed $1.00 absolute tolerance for the break-even reconciliation check doesn't scale when contributionMarginRatio is near-zero (rounding the ratio to 4dp amplifies into a large absolute error once multiplied back through a large breakEvenRevenue) -- not a bug in calculateCvp itself, fixed by switching to a tolerance proportional to fixedCosts' magnitude. Re-ran the full property suite 5 times with different random seeds after the fix (all pass), then the full existing suite (1414 passed = exactly the 1391 baseline + 23 new tests, zero regressions) and lint (0 errors, 319 warnings, verified by identity that none touch the new file).",
+      "affected_files": [
+        "src/__tests__/financial-invariants-property.test.ts (new)",
+        "package.json (fast-check added to devDependencies)",
+        "bun.lock (purely additive, verified via diff)"
+      ],
+      "next_action": "Genuinely complete for this pass. Lower-priority follow-on: extend the same property-based approach to the remaining src/financial/*.ts modules not yet covered this pass (reconcile.ts, leverage-ratios.ts, profitability-margins.ts) and to the edge-function-side calculateStrictFinancials once a safe way to import/test Deno code from a Vitest/Node context is established -- not attempted this pass to keep scope bounded to the richest, most already-contract-driven modules.",
+      "owner": "financial-core",
+      "evidence_ids": ["EV-057", "EV-058", "EV-059", "EV-060", "EV-061"]
     }
   ],
 
@@ -203,10 +219,10 @@
     "P0": 2,
     "P1": 2,
     "P2": 7,
-    "P3": 4,
-    "total": 15,
+    "P3": 5,
+    "total": 16,
     "blocked_status_count": 1,
-    "verified_complete_count": 2,
+    "verified_complete_count": 3,
     "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
   },
 

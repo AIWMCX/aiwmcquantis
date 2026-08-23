@@ -367,6 +367,40 @@
       "result": "'Ran 2 rules on 216 files: 0 findings.' (216 = 213 + the 3 files no longer excluded.) 'Files matching .semgrepignore patterns: 7' -- exactly the corrected, smaller list.",
       "run_at": "2026-08-23T02:25:09Z",
       "conclusion": "Genuinely confirmed, not assumed: the reworded comments in all 3 previously-excluded files do not trigger a false positive, and those files are now actually covered by the rule against future regressions rather than blindly skipped."
+    },
+    {
+      "id": "EV-057",
+      "command": "bun add -d fast-check && git diff --stat -- package.json bun.lock",
+      "result": "fast-check@4.9.0 installed. package.json: 1 file changed, 1 insertion(+) (fast-check devDependency). bun.lock: 1 file changed, 5 insertions(+) -- no existing dependency version was bumped.",
+      "run_at": "2026-08-23T03:00:00Z"
+    },
+    {
+      "id": "EV-058",
+      "command": "bunx vitest run src/__tests__/financial-invariants-property.test.ts",
+      "result": "23 tests passed on first run (Duration 2.88s).",
+      "run_at": "2026-08-23T03:05:00Z",
+      "conclusion": "A passing property suite alone doesn't prove the properties have teeth -- proceeded to mutation-test (EV-059) rather than treating this as sufficient."
+    },
+    {
+      "id": "EV-059",
+      "command": "Deliberately mutated src/financial/payback.ts (removed the .negated() call on `investment`, a one-line sign-flip bug), re-ran the same property test file, then reverted via Edit and confirmed `git diff --stat src/financial/payback.ts` showed zero remaining changes.",
+      "result": "1 of 23 tests failed immediately: 'VALUE reconciles independently against a from-scratch cumulative recomputation'. fast-check reported Counterexample: [\"0.01\",[\"0.00\"]], shrunk 32 times to that minimal 2-value case. After reverting, git diff confirmed payback.ts is byte-identical to before the mutation.",
+      "run_at": "2026-08-23T03:08:00Z",
+      "conclusion": "Direct proof the property suite catches a real regression in the production code it targets, not just a suite that happens to pass on unchanged code."
+    },
+    {
+      "id": "EV-060",
+      "command": "Re-ran the property test file 5 times (different fast-check random seeds each run, no seed pinned) after reverting the mutation, then ran the full existing suite (`bunx vitest run src/__tests__`) and `bun run lint`, then grepped the lint output for the new file's name to check by identity.",
+      "result": "5/5 property-suite runs: 23 passed, 0 failed, each time. Full suite: 'Test Files 62 passed | 1 skipped (63), Tests 1414 passed | 23 skipped (1437)' -- 1414 = the established 1391 baseline + the 23 new tests, exact match, zero regressions. Lint: 0 errors, 319 warnings -- identical to baseline; grep for 'financial-invariants-property' against the lint output: zero matches.",
+      "run_at": "2026-08-23T03:15:00Z",
+      "conclusion": "The 5 runs counted here all happened AFTER the tolerance fix and all passed clean. A separate, earlier run -- excluded from this count, not one of the 5 -- had failed on a real fast-check-found counterexample in the break-even reconciliation test (revenue=\"1.87\", variableCosts=\"1.86\"), traced to a flaw in the TEST's own fixed $1.00 absolute tolerance, which doesn't scale when contributionMarginRatio is near-zero (a 4-decimal-rounded tiny ratio, multiplied back through a correspondingly large breakEvenRevenue, amplifies into a larger absolute error). That failure is what motivated the tolerance fix (later revised again, per EV-061, to an analytically-derived bound rather than a magnitude heuristic) -- it did not occur during these 5 confirmation runs. This is exactly the kind of edge case property-based testing is meant to surface -- and this time it surfaced a bug in the test itself, which is just as valuable to catch as a bug in the code under test."
+    },
+    {
+      "id": "EV-061",
+      "command": "CodeRabbit review on PR #53 pointed out the magnitude-proportional tolerance (fixedCosts * 1% + $1) was still a heuristic rather than derived from the actual rounding involved. Replaced it with an analytical bound: recomputed = breakEvenRevenue_rounded(2dp) * ratio_rounded(4dp); expanding (r+e_r)(b+e_b) ≈ r*b + r*e_b + b*e_r, the propagated error is bounded by |ratio|*0.005 + |breakEvenRevenue|*0.00005 (half the last-digit rounding step at each precision) plus a small 0.01 floor. Re-ran the property file 5 times (different seeds) and the full existing suite + lint.",
+      "result": "5/5 property-suite runs: 23 passed, 0 failed. Full suite: 1414 passed | 23 skipped (same as before). Lint: 0 errors, 319 warnings, unchanged.",
+      "run_at": "2026-08-23T03:26:00Z",
+      "conclusion": "The analytically-derived tolerance is provably sized to the actual rounding error sources rather than an arbitrary percentage, and still passes consistently across independent random seeds."
     }
   ],
 
