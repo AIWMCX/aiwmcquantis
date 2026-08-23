@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { traced } from '../_shared/otel.ts';
 import {
   calculateStrictFinancials,
   type StrictFinancialResult,
@@ -2725,17 +2726,20 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // Fetch benchmarks from database first, then fall back to hardcoded
     let dbBenchmarks: DatabaseBenchmarkRecord[] = [];
     try {
-      dbBenchmarks = await fetchDatabaseBenchmarks(supabaseService);
+      dbBenchmarks = await traced(
+        'db.fetch_benchmarks',
+        { request_id: requestId, 'db.system': 'postgresql' },
+        () => fetchDatabaseBenchmarks(supabaseService),
+      );
     } catch (err) {
       log.error('Failed to fetch database benchmarks, using hardcoded:', err);
     }
-    
+
     // Detect industry using database-first approach
-    const benchmarkResult = await detectIndustryFromDatabase(
-      idea_clean,
-      location_clean,
-      dbBenchmarks,
-      selected_industry
+    const benchmarkResult = await traced(
+      'industry.detect_from_database',
+      { request_id: requestId, 'industry.manually_selected': !!(selected_industry && selected_industry !== 'auto') },
+      () => detectIndustryFromDatabase(idea_clean, location_clean, dbBenchmarks, selected_industry),
     );
     
     const detectedIndustry = benchmarkResult.benchmark;
