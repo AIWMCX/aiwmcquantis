@@ -79,17 +79,26 @@ jobs:
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
+      # No --scope flag: VERCEL_ORG_ID + VERCEL_PROJECT_ID (env, above) are
+      # sufficient on their own to fully disambiguate the team/project for
+      # every `vercel` CLI call below. A prior attempt added `--scope aiwmc`
+      # here, which caused a SEPARATE failure ("Not able to load user
+      # because of unexpected error: User not found (404)") -- the CLI
+      # apparently resolves --scope via a distinct user/account lookup that
+      # doesn't recognize "aiwmc" as a user, even though it's a valid team
+      # slug. Removed rather than debugged further, since the env vars
+      # alone are the documented, sufficient mechanism for CI use.
       - name: Pull Vercel project settings
-        run: vercel --scope aiwmc pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build with Vercel (deterministic prebuilt)
-        run: vercel --scope aiwmc build --prod --token="$VERCEL_TOKEN"
+        run: vercel build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy to Vercel production
         id: deploy
         run: |
           set -o pipefail
-          URL=$(vercel --scope aiwmc deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr | tail -n1)
+          URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr | tail -n1)
           if [[ ! "$URL" =~ ^https:// ]]; then
             echo "::error title=Vercel deploy failed::CLI did not return a deployment URL"
             exit 1
