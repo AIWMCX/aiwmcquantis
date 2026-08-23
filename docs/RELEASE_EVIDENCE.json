@@ -353,6 +353,20 @@
       "result": "Post-fix curl: HTTP 400 {\"code\":\"P0001\",\"message\":\"Access denied: Cannot view other users subscriptions\"} -- confirmed closed. Final repo-wide sweep with the corrected .semgrepignore: zero remaining matches for either pattern anywhere in the current tree.",
       "run_at": "2026-08-23T02:35:00Z",
       "conclusion": "QNT-DEFECT-015's fix is live and verified. .semgrep/quantis-rules.yml + .semgrepignore + .github/workflows/semgrep.yml are ready to commit with an honestly-established (if not semgrep-tool-verified) clean baseline. The custom rule's first REAL verification will happen when this PR's own CI runs semgrep on ubuntu-latest, where the local hang is not expected to reproduce."
+    },
+    {
+      "id": "EV-055",
+      "command": "First real CI run of the custom Semgrep rule (PR #52, ubuntu-latest -- the local hang from EV-050 did not reproduce there). `gh run view --log` on the 'Quantis custom rules (blocking)' job.",
+      "result": "'Ran 2 rules on 213 files: 0 findings.' Also surfaced a real (non-hypothetical) semgrep deprecation warning about the include-path globs' anchoring semantics changing in a future Semgrepignore v2 spec, and confirmed 'Files matching .semgrepignore patterns: 10' -- exactly matching the 10 files listed at the time.",
+      "run_at": "2026-08-23T02:18:14Z",
+      "conclusion": "The rule genuinely works on CI and the proxy-verified baseline was correct. Fixed the glob-anchoring warning per semgrep's own suggested syntax. CodeRabbit then correctly flagged that 3 of the 10 ignored files were this session's own SAFE fix-migrations, excluded only because of their comments -- a category-exclusion risk that would blind the rule to a real future regression in that file's code."
+    },
+    {
+      "id": "EV-056",
+      "command": "Reworded the 3 safe fix-migrations' comments to avoid the literal token sequences the rules match, removed them from .semgrepignore (7 remain, all genuinely historical/superseded), and re-ran CI on the resulting commit. `gh run view --log` on the same job for the new run.",
+      "result": "'Ran 2 rules on 216 files: 0 findings.' (216 = 213 + the 3 files no longer excluded.) 'Files matching .semgrepignore patterns: 7' -- exactly the corrected, smaller list.",
+      "run_at": "2026-08-23T02:25:09Z",
+      "conclusion": "Genuinely confirmed, not assumed: the reworded comments in all 3 previously-excluded files do not trigger a false positive, and those files are now actually covered by the rule against future regressions rather than blindly skipped."
     }
   ],
 
