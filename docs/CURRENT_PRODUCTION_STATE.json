@@ -168,7 +168,7 @@
   },
 
   "business_volume": {
-    "evidence_source": "live SQL, 2026-08-23T17:55Z capture, joined through the new public.user_cohorts classifier (QNT-DEFECT-005) -- the first capture in this project's history to separate real external usage from founder/staff/test activity, rather than reporting an undifferentiated total",
+    "evidence_source": "live SQL, 2026-08-23T18:00:00Z capture (matches docs/RELEASE_EVIDENCE.json EV-080, the query that actually produced these numbers -- after the classifier itself was created and verified at EV-079, 17:56:00Z), joined through the new public.user_cohorts classifier (QNT-DEFECT-005) -- the first capture in this project's history to separate real external usage from founder/staff/test activity, rather than reporting an undifferentiated total",
     "external_real_cohort_classifier_exists": true,
     "cohort_breakdown": {
       "total_registered_users": 44,
