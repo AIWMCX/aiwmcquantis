@@ -281,17 +281,25 @@ describe("calculateCvp — invariants", () => {
         if (result.breakEven.status !== "VALUE" || result.breakEven.breakEvenRevenue === null) return;
         if (result.contributionMarginRatio === null) return;
         const fixedCosts = new Decimal(input.fixedCosts);
-        const recomputed = new Decimal(result.breakEven.breakEvenRevenue).times(new Decimal(result.contributionMarginRatio));
+        const breakEvenRevenue = new Decimal(result.breakEven.breakEvenRevenue);
+        const ratio = new Decimal(result.contributionMarginRatio);
+        const recomputed = breakEvenRevenue.times(ratio);
         // A fixed absolute tolerance doesn't scale: when contributionMarginRatio
         // is small, breakEvenRevenue = fixedCosts / ratio is large, and the
-        // ratio's 4-decimal-place rounding (a fixed RELATIVE error on the
-        // ratio) turns into a large ABSOLUTE error once multiplied back
-        // through that large breakEvenRevenue. Discovered by fast-check
-        // shrinking to revenue="1.87", variableCosts="1.86" (ratio ≈
-        // 0.0053, breakEvenRevenue ≈ 21000+) — not a bug in calculateCvp,
-        // but a flaw in this test's own tolerance model. Use a tolerance
-        // that scales with fixedCosts' magnitude instead.
-        const tolerance = fixedCosts.abs().times("0.01").plus("1.00");
+        // ratio's 4-decimal-place rounding turns into a large ABSOLUTE error
+        // once multiplied back through that large breakEvenRevenue.
+        // Discovered by fast-check shrinking to revenue="1.87",
+        // variableCosts="1.86" (ratio ≈ 0.0053, breakEvenRevenue ≈ 21000+) —
+        // not a bug in calculateCvp, but a flaw in this test's own tolerance
+        // model. Rather than a heuristic percentage, derive the tolerance
+        // analytically from the two roundings actually involved:
+        // breakEvenRevenue is rounded to 2dp (max error 0.005), ratio is
+        // rounded to 4dp (max error 0.00005). For recomputed = (r + e_r) *
+        // (b + e_b) ≈ r*b + r*e_b + b*e_r (ignoring the negligible e_r*e_b
+        // cross term), the propagated error bound is |ratio|*0.005 +
+        // |breakEvenRevenue|*0.00005, plus a tiny floor for the final
+        // decimal-string round-trip itself.
+        const tolerance = ratio.abs().times("0.005").plus(breakEvenRevenue.abs().times("0.00005")).plus("0.01");
         expect(recomputed.minus(fixedCosts).abs().lessThanOrEqualTo(tolerance)).toBe(true);
       }),
       { numRuns: 500 },

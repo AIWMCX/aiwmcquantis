@@ -211,7 +211,7 @@
       ],
       "next_action": "Genuinely complete for this pass. Lower-priority follow-on: extend the same property-based approach to the remaining src/financial/*.ts modules not yet covered this pass (reconcile.ts, leverage-ratios.ts, profitability-margins.ts) and to the edge-function-side calculateStrictFinancials once a safe way to import/test Deno code from a Vitest/Node context is established -- not attempted this pass to keep scope bounded to the richest, most already-contract-driven modules.",
       "owner": "financial-core",
-      "evidence_ids": ["EV-057", "EV-058", "EV-059", "EV-060"]
+      "evidence_ids": ["EV-057", "EV-058", "EV-059", "EV-060", "EV-061"]
     }
   ],
 
