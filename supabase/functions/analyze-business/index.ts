@@ -1,6 +1,7 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient, SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { traced } from '../_shared/otel.ts';
 import {
   calculateStrictFinancials,
   type StrictFinancialResult,
@@ -592,32 +593,40 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
 async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
   try {
     // Use cached benchmarks - reduces DB load by ~90%
+    // (getCachedBenchmarks has its own internal error handling and
+    // stale-cache fallback -- deliberately not touched here.)
     const cachedBenchmarks = await getCachedBenchmarks(supabase);
-    
+
     if (cachedBenchmarks && cachedBenchmarks.length > 0) {
       const stats = getCacheStats();
       log.info(`Using ${cachedBenchmarks.length} cached benchmarks (expires: ${stats.benchmarkCacheExpiry || 'soon'})`);
       return cachedBenchmarks as DatabaseBenchmarkRecord[];
     }
-    
+
     // Fallback to direct DB query if cache fails
     log.info('[CACHE MISS] Falling back to direct DB query');
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
-    
+
     if (error) {
+      // Propagate rather than swallow: the caller's own try/catch already
+      // falls back to [] for downstream logic (dbBenchmarks stays at its
+      // initial [] value), so behavior is unchanged -- but the traced()
+      // span wrapping this call can now correctly record ERROR instead of
+      // a false OK. Logged here too so the message survives even if the
+      // caller only logs err.message.
       log.error('Failed to fetch benchmarks from database:', error.message);
-      return [];
+      throw new Error(`Failed to fetch benchmarks from database: ${error.message}`);
     }
-    
+
     if (data && data.length > 0) {
       log.info(`Fetched ${data.length} benchmark records from database (cache miss)`);
     }
     return data || [];
   } catch (err) {
     log.error('Database benchmark fetch error:', err);
-    return [];
+    throw err;
   }
 }
 
@@ -2725,17 +2734,20 @@ IMPORTANT: The above documents contain REAL business data (revenue statements, i
     // Fetch benchmarks from database first, then fall back to hardcoded
     let dbBenchmarks: DatabaseBenchmarkRecord[] = [];
     try {
-      dbBenchmarks = await fetchDatabaseBenchmarks(supabaseService);
+      dbBenchmarks = await traced(
+        'db.fetch_benchmarks',
+        { request_id: requestId, 'db.system': 'postgresql' },
+        () => fetchDatabaseBenchmarks(supabaseService),
+      );
     } catch (err) {
       log.error('Failed to fetch database benchmarks, using hardcoded:', err);
     }
-    
+
     // Detect industry using database-first approach
-    const benchmarkResult = await detectIndustryFromDatabase(
-      idea_clean,
-      location_clean,
-      dbBenchmarks,
-      selected_industry
+    const benchmarkResult = await traced(
+      'industry.detect_from_database',
+      { request_id: requestId, 'industry.manually_selected': !!(selected_industry && selected_industry !== 'auto') },
+      () => detectIndustryFromDatabase(idea_clean, location_clean, dbBenchmarks, selected_industry),
     );
     
     const detectedIndustry = benchmarkResult.benchmark;

@@ -161,6 +161,23 @@
       "next_action": "1) Recommend rotating STRIPE_WEBHOOK_SECRET in the Stripe dashboard purely out of caution, since its historical .env.md value cannot be safely confirmed dead or alive without a Stripe connector this session lacks -- see QNT-DEFECT-009. 2) No action needed on ADMIN_UPLOAD_KEY (confirmed dead) or CRON_SECRET (already rotated and confirmed dead in prior session work) beyond what's already done. 3) Do not edit the historical migration files -- they are append-only by design; the dead secret sitting in them is an accepted, non-exploitable artifact. 4) Gitleaks is now wired into CI (.github/workflows/gitleaks.yml, scoped to new commits only via --log-opts, never full history) with .gitleaks.toml documenting every allowlist decision and why -- this closes the 'Gitleaks not yet installed' gap from Workstream C going forward; it does not retroactively clean history.",
       "owner": "security / billing (STRIPE_WEBHOOK_SECRET rotation needs Stripe dashboard access this session lacks)",
       "evidence_ids": ["EV-042", "EV-043", "EV-044", "EV-045"]
+    },
+    {
+      "id": "QNT-DEFECT-014",
+      "severity": "P3",
+      "domain": "OBSERVABILITY",
+      "title": "OpenTelemetry tracing pilot built, verified, and wired into 2 call sites -- but structurally inert everywhere until a tracing vendor/endpoint is chosen",
+      "status": "PARTIALLY_COMPLETE",
+      "detail": "Workstream E previously had zero tracing of any kind. Built supabase/functions/_shared/otel.ts: a hand-rolled OTLP/HTTP JSON span emitter (deliberately not the full @opentelemetry/sdk-trace-* SDK, whose AsyncLocalStorage-based context propagation is a poor fit for short-lived Deno edge isolates), following the exact 'direct HTTP POST, fire-and-forget, never throws' pattern already proven safe by the existing Sentry integration in _shared/logger.ts. Verified with real, committed, re-runnable evidence (supabase/functions/_shared/otel.test.ts, `deno test --allow-net --allow-env`), not just code review or deleted scratch scripts: 4 tests cover spec-correct OTLP JSON shape against a real mock collector, correct ERROR-status + error-propagation on failure, true no-op behavior when OTEL_EXPORTER_OTLP_ENDPOINT is unset (every environment today), and correct OTEL_EXPORTER_OTLP_HEADERS parsing. Two real defects were found and fixed during CodeRabbit review, not just style nits: (1) the first draft cached env vars in module-level `const`s, which is a genuine 'warm isolate keeps stale config' bug for Supabase's isolate-reuse model, not just a test artifact -- fixed by reading env vars fresh on every call; (2) fetchDatabaseBenchmarks (the wrapped function at one of the 2 pilot call sites) caught its own DB errors internally and always returned [], so the span could never report ERROR on a genuine failure -- fixed by re-throwing on the direct-query error path while leaving the cache layer's own resilience (benchmark-cache.ts) untouched, and the caller's pre-existing try/catch still falls back to [] exactly as before. Also added OTEL_EXPORTER_OTLP_HEADERS support (standard OTel env var, 'key1=value1,key2=value2' format) since nearly every commercial OTLP backend requires an auth header. `deno check` passes clean on otel.ts, otel.test.ts, and the full 4512-line analyze-business/index.ts. `bun run lint` shows 0 errors / 319 warnings, verified by identity (grepped the full lint output for the 3 changed/new file names -- zero matches) not just count, that zero new lint debt was introduced. Wired into exactly 2 already-isolated async call sites in analyze-business/index.ts -- no other function touched, no internals of the core financial-calculation logic touched.",
+      "affected_files": [
+        "supabase/functions/_shared/otel.ts (new)",
+        "supabase/functions/_shared/otel.test.ts (new, committed test suite)",
+        "supabase/functions/analyze-business/index.ts (2 call sites wrapped, 1 error-swallow fixed)",
+        ".env.md (documents OTEL_EXPORTER_OTLP_ENDPOINT / OTEL_SERVICE_NAME / OTEL_EXPORTER_OTLP_HEADERS as optional)"
+      ],
+      "next_action": "This is genuinely a pilot, not a rollout -- next steps require a product/business decision this session can't make: 1) Choose a tracing backend/vendor (Honeycomb, Grafana Tempo, Datadog, etc.) and provision OTEL_EXPORTER_OTLP_ENDPOINT as a Supabase Edge Function secret. 2) Once chosen, extend traced() wrapping to more call sites incrementally (the AI narrator call, calculateStrictFinancials, other edge functions) -- deliberately not done broadly yet since there's no backend to view the traces in, and touching more of the core engine without that payoff isn't justified. 3) Separately and NOT yet resolved this pass: it's unknown whether the backend's OWN Sentry integration (_shared/logger.ts's SENTRY_DSN, a server-side secret, distinct from the frontend's VITE_SENTRY_DSN found dark in QNT-DEFECT-012) is actually configured in Supabase Edge Function secrets -- no tool available this session lists edge-function secret names, and no CI secret-sync step references SENTRY_DSN the way CRON_SECRET has one, which is circumstantial evidence it may be unset too, but this is NOT confirmed either way and should not be assumed.",
+      "owner": "backend/observability (vendor choice is a product/budget decision, not an engineering one)",
+      "evidence_ids": ["EV-046", "EV-047", "EV-048", "EV-049"]
     }
   ],
 
@@ -168,8 +185,8 @@
     "P0": 1,
     "P1": 2,
     "P2": 7,
-    "P3": 3,
-    "total": 13,
+    "P3": 4,
+    "total": 14,
     "blocked_status_count": 1,
     "verified_complete_count": 1,
     "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed."
@@ -177,7 +194,6 @@
 
   "not_yet_investigated_this_capture": [
     "Semgrep SAST (Gitleaks now installed and wired into CI as of item 6 — Semgrep still not started)",
-    "OpenTelemetry tracing (does not exist — Workstream E)",
     "Live browser walkthrough of the core visitor journey",
     "Full contract.json object coverage beyond the 20 spot-checked entries"
   ]
