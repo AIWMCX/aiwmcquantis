@@ -759,7 +759,7 @@ export function ReportFirstHero() {
                       <span aria-hidden="true">·</span>
                       <span>Confidence {COVER.confidence}</span>
                       <span aria-hidden="true">·</span>
-                      <span>Multi-model verified</span>
+                      <span>Multi-model cross-checked</span>
                     </div>
                   </div>
                 </section>
