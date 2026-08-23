@@ -1,0 +1,58 @@
+name: gitleaks
+
+# ============================================================================
+# Secret-scanning gate.
+# ----------------------------------------------------------------------------
+# Blocks any PR or push to main that introduces a new hardcoded secret. Scoped
+# to the diff/incoming commits only (not the full repo history on every run) --
+# this repo's git history already contains historical secret-shaped strings
+# from before this gate existed (see docs/OPEN_DEFECTS.json QNT-DEFECT-013);
+# re-flagging those on every single run would train reviewers to ignore this
+# check. .gitleaks.toml documents exactly what's allowlisted and why.
+# ============================================================================
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: Scan for hardcoded secrets
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Install gitleaks
+        run: |
+          curl -sSL https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz \
+            | tar -xz gitleaks
+          sudo mv gitleaks /usr/local/bin/gitleaks
+          gitleaks version
+
+      # Scan only the commits actually being introduced, never the whole
+      # repository history. This repo's history predates this gate (see
+      # docs/OPEN_DEFECTS.json QNT-DEFECT-013) and a full-history scan would
+      # red on every run regardless of what the current change touches.
+      - name: Determine commit range
+        id: range
+        run: |
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            echo "range=origin/${{ github.event.pull_request.base.ref }}..${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+          else
+            BEFORE="${{ github.event.before }}"
+            if [ -z "$BEFORE" ] || [ "$BEFORE" = "0000000000000000000000000000000000000000" ]; then
+              echo "range=${{ github.sha }}~1..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            else
+              echo "range=${BEFORE}..${{ github.sha }}" >> "$GITHUB_OUTPUT"
+            fi
+          fi
+
+      - name: Run gitleaks on the new commits only
+        run: gitleaks detect --source=. --config=.gitleaks.toml --log-opts="${{ steps.range.outputs.range }}" --redact -v
