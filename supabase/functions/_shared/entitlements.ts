@@ -131,6 +131,16 @@ export function resolveTier(sub: SubscriptionRow | null | undefined): TierId {
     if (new Date(sub.trial_ends_at).getTime() < Date.now()) return 'free';
   }
   if (sub.status !== 'active' && sub.status !== 'trialing') return 'free';
+  // An 'active' row whose paid period has already ended (a stale status --
+  // e.g. a missed/delayed cancellation or non-renewal webhook) must not
+  // grant paid access indefinitely. Fails closed the same way the
+  // trial-expiry check above does. current_period_end is only enforced when
+  // present, so legacy/lifetime rows without one are unaffected. Confirmed
+  // live before this fix: 2 real subscriptions (1 pro, 1 plus) remained
+  // 'active' 12+ days and 5+ weeks past their own current_period_end.
+  if (sub.status === 'active' && sub.current_period_end) {
+    if (new Date(sub.current_period_end).getTime() < Date.now()) return 'free';
+  }
   if (sub.plan_id === 'plus' || sub.plan_id === 'pro') return sub.plan_id;
   return 'free';
 }

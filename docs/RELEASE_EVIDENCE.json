@@ -471,6 +471,39 @@
       "result": "10/10 tests pass (was 9, +1 new regression test). `deno check` clean. Full suite 1414 passed, lint 0 errors/319 warnings, both unchanged.",
       "run_at": "2026-08-23T04:15:00Z",
       "conclusion": "A genuinely stronger integrity guarantee: verification now confirms fields are canonical, not merely that a hash matches whatever values happen to be present -- closing a real gap between 'the hash is internally consistent' and 'this payload was actually built through honest canonical rounding'."
+    },
+    {
+      "id": "EV-072",
+      "command": "A status report from a differently-connected session (Zoho/Slack/Gmail/Outlook access this session lacks) claimed: (1) the shared entitlement resolver doesn't test current_period_end for active subscriptions, (2) Document Studio's INSERT RLS policies combine as owner OR paid rather than owner AND paid. Neither claim was accepted on faith. Read supabase/functions/_shared/entitlements.ts's resolveTier() directly: confirmed it checks trial_ends_at for 'trialing' but has zero current_period_end check for 'active'.",
+      "result": "grep -rn resolveTier callers found zero external callers besides getUserTier() within the same file -- the fix is safe to make without risk to unknown callers passing a differently-shaped object.",
+      "run_at": "2026-08-23T17:31:00Z"
+    },
+    {
+      "id": "EV-073",
+      "command": "SELECT user_id, plan_id, status, current_period_end, now() FROM public.subscriptions WHERE status='active' AND current_period_end IS NOT NULL AND current_period_end < now();",
+      "result": "2 rows: (pro, current_period_end=2026-07-16T22:59:19Z, ~38 days stale against server now 2026-08-23T17:30:18Z) and (plus, current_period_end=2026-08-11T07:55:01Z, ~12 days stale). Both would resolve to their paid tier under the pre-fix resolveTier().",
+      "run_at": "2026-08-23T17:32:00Z",
+      "conclusion": "The claim is confirmed true and live, with exact evidence -- not accepted on the reporting session's word alone."
+    },
+    {
+      "id": "EV-074",
+      "command": "Fixed resolveTier() to fail closed when status='active' and current_period_end is present and in the past (mirroring the existing trial-expiry pattern). Wrote and ran a real, committed Deno test suite (entitlements.resolve-tier.test.ts) reproducing the exact 2 live-confirmed cases from EV-073 as literal test fixtures, plus future/past/null/missing current_period_end cases, trial-expiry regression coverage, and an unrecognized-plan_id case.",
+      "result": "deno check: clean. deno test: 7/7 passed, including the 2 exact-reproduction cases now correctly resolving to 'free'.",
+      "run_at": "2026-08-23T17:35:00Z"
+    },
+    {
+      "id": "EV-075",
+      "command": "Investigated the Document Studio RLS claim: SELECT ... FROM pg_policies WHERE tablename ILIKE any of documents/doc_templates/document_versions/document_exports/document_downloads (all cmd types, not just INSERT); a second query for any INSERT policy anywhere referencing plan_id/tier/pro/plus; a third for any public-schema policy anywhere using literal ' OR ' in its qual/with_check.",
+      "result": "documents' actual INSERT policy (documents_owner_insert) is owner-only (user_id = auth.uid()), no paid check in RLS at all. No 'owner OR paid' pattern found anywhere in the live public schema of project dmlxrvfyqsakyjomsvdj across all 3 queries. Every OR-combined policy found (autoposter_* admin/content_admin, content_studio_generations, team_members) uses OR between two legitimate alternative grants, not between an ownership check and a paid check with no ownership requirement on the paid branch.",
+      "run_at": "2026-08-23T17:38:00Z",
+      "conclusion": "Stated as an honest, unresolved discrepancy rather than silently accepted or silently dropped -- either the claim describes a different environment/table, or does not hold against this live database. QNT-DEFECT-019's next_action asks for the exact table/policy name to check precisely."
+    },
+    {
+      "id": "EV-076",
+      "command": "While investigating the RLS claim, found something real and adjacent instead: grep for other files independently checking subscription status==='active' for tier logic outside entitlements.ts. Found supabase/functions/generate-document-content/index.ts (ad-hoc inline plan_id+status check, zero expiry logic, a dead 'enterprise' plan_id branch) and supabase/functions/_shared/tier-gate.ts's resolveCallerTier (used by analyze-plus, analyze-pro-extension, generate-document, invoice-capacity-check -- confirmed via grep). Confirmed zero 'enterprise' rows exist (SELECT plan_id, count(*) FROM subscriptions GROUP BY plan_id -> only plus:22, pro:2). Confirmed subscriptions' SELECT RLS allows an authenticated user to read their own row (needed for generate-document-content's anon-scoped client to call getUserTier successfully). Refactored generate-document-content/index.ts to call the now-fixed getUserTier/resolveTier instead of its own weaker inline check; fixed tier-gate.ts's resolveCallerTier in place with the same fail-closed logic (kept as a separate implementation rather than importing entitlements.ts's, since the two modules use differently-cased Tier types). deno check clean on tier-gate.ts and all 4 real callers. Full suite (1414 passed) and lint (0 errors/319 warnings) unchanged, verified by identity.",
+      "result": "3 independent tier-check implementations found; all 3 now fail closed on both trial-expiry and period-expiry consistently.",
+      "run_at": "2026-08-23T17:45:00Z",
+      "conclusion": "A single confirmed bug report led to finding the same access-control gap duplicated in 2 more places beyond what was reported -- exactly the kind of sweep this session's doctrine calls for after any confirmed live finding."
     }
   ],
 

@@ -243,18 +243,35 @@
       "next_action": "None required for this pass. Lower-priority follow-on: the same LockedNumericPayload pattern could extend to run-scenario/index.ts's canonicalRunKey hashing (currently its own ad-hoc sha256Hex over a raw object, per EV-062's grep) if scenario-run reconciliation is ever found to need the same versioned-immutability guarantee -- not investigated this pass, out of scope for completing the one confirmed gap.",
       "owner": "backend/financial-core",
       "evidence_ids": ["EV-067", "EV-068", "EV-069", "EV-070", "EV-071"]
+    },
+    {
+      "id": "QNT-DEFECT-019",
+      "severity": "P0",
+      "domain": "BILLING",
+      "title": "resolveTier() (and 2 duplicate parallel tier checks) never verified current_period_end for 'active' subscriptions -- 2 real users retained paid-tier access 12+ days and 5+ weeks past their paid period, fixed in all 3 places found",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Surfaced via a status report from a differently-connected session/agent (Zoho/Slack/Gmail access this session does not have) claiming the canonical shared entitlement resolver doesn't test current_period_end for active subscriptions, and that Document Studio's INSERT RLS policies combine as owner OR paid rather than owner AND paid. Neither claim was accepted on faith -- both were independently re-verified against the live database and live source before acting. (1) CONFIRMED: _shared/entitlements.ts's resolveTier() checked trial_ends_at for 'trialing' subscriptions but had zero check on current_period_end for 'active' ones. Live query confirmed exactly 2 real subscriptions (1 pro, 1 plus) with status='active' and current_period_end in the past (2026-07-16 and 2026-08-11 respectively, both would have resolved to their paid tier before this fix). Fixed by adding the same fail-closed pattern already used for trial expiry. (2) COULD NOT CONFIRM the Document Studio RLS claim: queried pg_policies directly for every INSERT policy on documents/doc_templates/document_versions/document_exports/document_downloads, for any INSERT policy referencing plan_id/tier/pro/plus, and for any policy anywhere using literal OR logic -- found no 'owner OR paid' pattern anywhere in the live public schema of project dmlxrvfyqsakyjomsvdj. documents' actual INSERT policy is owner-only with no paid check in RLS at all; paid-gating for document generation happens entirely at the application layer. This is stated as an unresolved discrepancy, not silently accepted -- either it refers to a different project/environment, a table this search didn't find under an unexpected name, or the original claim doesn't hold. (3) INSTEAD found something real and directly related while investigating (2): 2 MORE independent, parallel tier-check implementations exist beyond the shared resolver, both weaker than even the pre-fix entitlements.ts. supabase/functions/generate-document-content/index.ts had its own fully ad-hoc inline check (plan_id + status only, zero trial/period-expiry check, plus a dead 'enterprise' plan_id branch -- confirmed zero enterprise rows exist in production). supabase/functions/_shared/tier-gate.ts's resolveCallerTier (used by 4 real functions: analyze-plus, analyze-pro-extension, generate-document, invoice-capacity-check) had the identical gap. Fixed both in place with the same fail-closed logic, rather than leaving 3 inconsistent implementations of the same access-control decision in the codebase.",
+      "affected_files": [
+        "supabase/functions/_shared/entitlements.ts",
+        "supabase/functions/_shared/entitlements.resolve-tier.test.ts (new, committed Deno test suite)",
+        "supabase/functions/_shared/tier-gate.ts",
+        "supabase/functions/generate-document-content/index.ts"
+      ],
+      "next_action": "The 'owner OR paid' Document Studio RLS claim remains genuinely unresolved -- ask whoever/whatever produced that report for the exact table/policy name so it can be checked precisely, or confirm it was describing a different environment. Separately, tier-gate.ts and entitlements.ts remain 2 independently-maintained implementations of the same fail-closed logic (different Tier type casing prevented a straight consolidation this pass) -- worth a follow-on to unify them so a future fix to one doesn't silently miss the other, exactly as almost happened here.",
+      "owner": "backend/billing",
+      "evidence_ids": ["EV-072", "EV-073", "EV-074", "EV-075", "EV-076"]
     }
   ],
 
   "summary_counts": {
-    "P0": 2,
+    "P0": 3,
     "P1": 2,
     "P2": 7,
     "P3": 7,
-    "total": 18,
+    "total": 19,
     "blocked_status_count": 1,
-    "verified_complete_count": 5,
-    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017, 018) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
+    "verified_complete_count": 6,
+    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017, 018, 019) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
   },
 
   "not_yet_investigated_this_capture": [
