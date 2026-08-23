@@ -44,7 +44,13 @@ jobs:
       VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
       SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
     steps:
+      # persist-credentials: false -- no later step performs an authenticated
+      # git operation (no push/pull), so there's no reason to leave GITHUB_TOKEN
+      # sitting in .git/config on the runner for the rest of the job (zizmor
+      # "artipacked" finding, caught by CodeRabbit).
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
       # ── 1. Preflight ───────────────────────────────────────────────────
       # Scoped to "vercel" (VERCEL_*/VITE_*) deliberately, not "all". This
