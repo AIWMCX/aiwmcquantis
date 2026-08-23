@@ -3,6 +3,8 @@ name: Vercel Production Deploy (one-click)
 # CI-gated production deployment that bypasses Vercel's Hobby-plan Git-author
 # restriction. The Vercel token remains secret; project/team IDs are stable,
 # non-secret identifiers verified against the connected Vercel account.
+# Automatic runs are restricted below to successful pushes on this repository's
+# own main branch before the Production environment can expose any secret.
 #
 # Steps:
 #   1. Secrets preflight
