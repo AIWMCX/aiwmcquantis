@@ -35,8 +35,43 @@
  *   );
  */
 
-const OTEL_ENDPOINT = Deno.env.get('OTEL_EXPORTER_OTLP_ENDPOINT') ?? '';
-const OTEL_SERVICE_NAME = Deno.env.get('OTEL_SERVICE_NAME') ?? 'quantis-edge';
+// Deliberately NOT cached in module-level `const`s: Deno reads a module's
+// top-level scope exactly once per isolate, and Supabase Edge Function
+// isolates can be reused ("warm") across multiple requests. Caching env vars
+// at import time would mean a warm isolate keeps using whatever value was
+// set at its FIRST invocation, forever — reading them fresh on every call is
+// negligible overhead (Deno.env.get is a synchronous local lookup) and
+// removes that entire class of staleness bug. This was caught by actually
+// running otel.test.ts against a real mock collector, not by inspection —
+// a static top-level import evaluates these before any test body can set
+// its own env vars, which is exactly the "warm isolate, stale config"
+// scenario in miniature.
+function otelEndpoint(): string {
+  return Deno.env.get('OTEL_EXPORTER_OTLP_ENDPOINT') ?? '';
+}
+function otelServiceName(): string {
+  return Deno.env.get('OTEL_SERVICE_NAME') ?? 'quantis-edge';
+}
+
+// Standard OTel env var, standard format: "key1=value1,key2=value2". Nearly
+// every commercial OTLP backend (Honeycomb, Grafana Cloud, etc.) requires an
+// auth header over HTTP -- without this, the exporter could never actually
+// authenticate against a real vendor once one is chosen.
+export function parseOtlpHeaders(raw: string): Record<string, string> {
+  const headers: Record<string, string> = {};
+  if (!raw) return headers;
+  for (const pair of raw.split(',')) {
+    const eq = pair.indexOf('=');
+    if (eq <= 0) continue;
+    const key = pair.slice(0, eq).trim();
+    const value = pair.slice(eq + 1).trim();
+    if (key && value) headers[key] = value;
+  }
+  return headers;
+}
+function otelExporterHeaders(): Record<string, string> {
+  return parseOtlpHeaders(Deno.env.get('OTEL_EXPORTER_OTLP_HEADERS') ?? '');
+}
 
 type AttrValue = string | number | boolean;
 
@@ -125,7 +160,7 @@ function toOtlpJson(spans: FinishedSpan[]): unknown {
     resourceSpans: [
       {
         resource: {
-          attributes: [{ key: 'service.name', value: { stringValue: OTEL_SERVICE_NAME } }],
+          attributes: [{ key: 'service.name', value: { stringValue: otelServiceName() } }],
         },
         scopeSpans: [
           {
@@ -155,15 +190,16 @@ function toOtlpJson(spans: FinishedSpan[]): unknown {
 
 /** Send all spans recorded since the last flush. No-op if OTEL_EXPORTER_OTLP_ENDPOINT is unset. Never throws. */
 export async function flushSpans(): Promise<void> {
-  if (!OTEL_ENDPOINT || pendingSpans.length === 0) {
+  const endpoint = otelEndpoint();
+  if (!endpoint || pendingSpans.length === 0) {
     pendingSpans.length = 0;
     return;
   }
   const batch = pendingSpans.splice(0, pendingSpans.length);
   try {
-    await fetch(`${OTEL_ENDPOINT.replace(/\/$/, '')}/v1/traces`, {
+    await fetch(`${endpoint.replace(/\/$/, '')}/v1/traces`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...otelExporterHeaders() },
       body: JSON.stringify(toOtlpJson(batch)),
     });
   } catch {

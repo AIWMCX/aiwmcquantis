@@ -593,32 +593,40 @@ const INDUSTRY_BENCHMARKS: IndustryBenchmarks[] = [
 async function fetchDatabaseBenchmarks(supabase: SupabaseClient): Promise<DatabaseBenchmarkRecord[]> {
   try {
     // Use cached benchmarks - reduces DB load by ~90%
+    // (getCachedBenchmarks has its own internal error handling and
+    // stale-cache fallback -- deliberately not touched here.)
     const cachedBenchmarks = await getCachedBenchmarks(supabase);
-    
+
     if (cachedBenchmarks && cachedBenchmarks.length > 0) {
       const stats = getCacheStats();
       log.info(`Using ${cachedBenchmarks.length} cached benchmarks (expires: ${stats.benchmarkCacheExpiry || 'soon'})`);
       return cachedBenchmarks as DatabaseBenchmarkRecord[];
     }
-    
+
     // Fallback to direct DB query if cache fails
     log.info('[CACHE MISS] Falling back to direct DB query');
     const { data, error } = await supabase
       .from('industry_benchmarks')
       .select('*');
-    
+
     if (error) {
+      // Propagate rather than swallow: the caller's own try/catch already
+      // falls back to [] for downstream logic (dbBenchmarks stays at its
+      // initial [] value), so behavior is unchanged -- but the traced()
+      // span wrapping this call can now correctly record ERROR instead of
+      // a false OK. Logged here too so the message survives even if the
+      // caller only logs err.message.
       log.error('Failed to fetch benchmarks from database:', error.message);
-      return [];
+      throw new Error(`Failed to fetch benchmarks from database: ${error.message}`);
     }
-    
+
     if (data && data.length > 0) {
       log.info(`Fetched ${data.length} benchmark records from database (cache miss)`);
     }
     return data || [];
   } catch (err) {
     log.error('Database benchmark fetch error:', err);
-    return [];
+    throw err;
   }
 }
 

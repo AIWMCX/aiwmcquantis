@@ -297,7 +297,7 @@
     {
       "id": "EV-046",
       "command": "Surveyed existing observability infra before building anything new: read supabase/functions/_shared/logger.ts, request-id.ts, and grepped for any existing opentelemetry/otel references across supabase/ and src/",
-      "result": "No OpenTelemetry tooling exists anywhere (grep hits were false positives -- the substring 'otel' matching inside words like 'hotel' in unrelated business-archetype/industry data). logger.ts already has an independent, direct-HTTP (no SDK) Sentry integration gated on a server-side SENTRY_DSN secret, separate from the frontend's VITE_SENTRY_DSN found dark in QNT-DEFECT-012. No CI secret-sync step references SENTRY_DSN (unlike CRON_SECRET, which has one) and no tool available this session can list Supabase Edge Function secret names, so whether backend SENTRY_DSN is configured is UNKNOWN, not confirmed either way.",
+      "result": "No OpenTelemetry tooling exists in supabase/ or src/ specifically (the only paths searched) -- grep hits were false positives (the substring 'otel' matching inside words like 'hotel' in unrelated business-archetype/industry data). logger.ts already has an independent, direct-HTTP (no SDK) Sentry integration gated on a server-side SENTRY_DSN secret, separate from the frontend's VITE_SENTRY_DSN found dark in QNT-DEFECT-012. No CI secret-sync step references SENTRY_DSN (unlike CRON_SECRET, which has one) and no tool available this session can list Supabase Edge Function secret names, so whether backend SENTRY_DSN is configured is UNKNOWN, not confirmed either way.",
       "run_at": "2026-08-23T01:35:00Z"
     },
     {
@@ -308,17 +308,17 @@
     },
     {
       "id": "EV-048",
-      "command": "Wrote a smoke test that starts a real local Deno.serve() mock OTLP collector, imports otel.ts pointed at it via OTEL_EXPORTER_OTLP_ENDPOINT, and runs traced() for both a success case and a deliberately-throwing failure case, then asserts on the actual JSON the mock collector received.",
-      "result": "2 requests received. Success-case span: 32-hex traceId, 16-hex spanId, correct name, status.code=1 (OK), request_id attribute correct, startTime<endTime. Error-case span: status.code=2 (ERROR) with the exact thrown message. The wrapped function's original error still propagated out of traced() (confirmed via try/catch around the call). All 9 structural assertions passed.",
-      "run_at": "2026-08-23T01:44:00Z",
-      "conclusion": "The OTLP/HTTP JSON emitter is spec-correct and functionally verified end-to-end against a real (mock) collector, not just reviewed by eye."
+      "command": "deno test --allow-net --allow-env supabase/functions/_shared/otel.test.ts (this exact file is committed in the repo -- reproducible by anyone, not a one-off scratch script)",
+      "result": "running 4 tests from ./supabase/functions/_shared/otel.test.ts\ntraced() exports spec-correct OTLP JSON to a real collector, success case ... ok (117ms)\ntraced() records ERROR status and still propagates the original error ... ok (82ms)\ntraced() is a true no-op when OTEL_EXPORTER_OTLP_ENDPOINT is unset (today's real state everywhere) ... ok (31ms)\nparseOtlpHeaders correctly parses the standard OTel 'key1=value1,key2=value2' format ... ok (710us)\n\nok | 4 passed | 0 failed (243ms)",
+      "run_at": "2026-08-23T02:05:00Z",
+      "conclusion": "The OTLP/HTTP JSON emitter is spec-correct and functionally verified end-to-end against a real (mock) collector via a committed, re-runnable test file -- not a narrative summary of a deleted scratch script. Getting here required one real fix: the first draft of otel.ts cached OTEL_EXPORTER_OTLP_ENDPOINT etc. in module-level `const`s, which a static top-level `import` in the test file evaluated before any test body could set its own env vars -- exactly the 'warm isolate keeps stale config' bug this design could also hit in production. Fixed by reading env vars fresh on every call instead of caching them at module load."
     },
     {
       "id": "EV-049",
-      "command": "Ran a second Deno script calling traced() with OTEL_EXPORTER_OTLP_ENDPOINT deliberately left unset (today's actual state in every real environment), asserting no network call is attempted and the wrapped function's return value passes through unchanged. Then wired traced() into 2 already-isolated async call sites in supabase/functions/analyze-business/index.ts (fetchDatabaseBenchmarks, detectIndustryFromDatabase — no other internals touched), ran `deno check` on the full 4512-line file, and ran `bun run lint` on the whole repo.",
-      "result": "No-op test passed (value passed through, no throw). `deno check` on analyze-business/index.ts passed clean, zero errors. `bun run lint`: 0 errors, 319 warnings -- identical count to the established pre-change baseline (docs/CURRENT_PRODUCTION_STATE.json test_and_build_gates), confirming zero new lint debt.",
-      "run_at": "2026-08-23T01:48:00Z",
-      "conclusion": "QNT-DEFECT-014 (OpenTelemetry pilot) is genuinely wired and verified, not speculative code. It remains inert in every real environment until a tracing vendor is chosen and OTEL_EXPORTER_OTLP_ENDPOINT is set -- a product/budget decision outside this session's authority to make."
+      "command": "Wired traced() into 2 already-isolated async call sites in supabase/functions/analyze-business/index.ts (fetchDatabaseBenchmarks, detectIndustryFromDatabase). Separately found and fixed a real gap during CodeRabbit review: fetchDatabaseBenchmarks caught its own DB errors internally and always returned [], so the span could never report ERROR even on a genuine failure -- changed it to re-throw on the direct-query error path (the cache layer's own resilience in benchmark-cache.ts was deliberately left untouched). Ran `deno check` on the full 4512-line file, then `bun run lint` on the whole repo, then specifically grepped the lint output for any line referencing otel.ts/otel.test.ts/analyze-business/index.ts to verify by identity, not just count, that no new warnings were introduced.",
+      "result": "`deno check` on analyze-business/index.ts: clean, zero errors. `bun run lint`: 0 errors, 319 warnings -- same count as the established pre-change baseline (docs/CURRENT_PRODUCTION_STATE.json test_and_build_gates). Grep for the 3 changed/new file names against the full lint output: zero matches -- none of the 319 warnings are anchored to any file this pilot touched.",
+      "run_at": "2026-08-23T02:10:00Z",
+      "conclusion": "QNT-DEFECT-014 (OpenTelemetry pilot) is genuinely wired and verified, not speculative code, and introduces zero new lint debt (confirmed by identity, not inferred from an unchanged count). It remains inert in every real environment until a tracing vendor is chosen and OTEL_EXPORTER_OTLP_ENDPOINT is set -- a product/budget decision outside this session's authority to make."
     }
   ],
 
