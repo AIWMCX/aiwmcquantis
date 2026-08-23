@@ -2,8 +2,8 @@
 -- class (item 8, sql-unwrapped-is-service-role in .semgrep/quantis-rules.yml).
 --
 -- get_referral_stats was fixed earlier this session (migration 20260814120000)
--- for the `auth.uid() != p_user_id` half of the NULL-collapse pattern via
--- IS DISTINCT FROM, but its `NOT is_service_role()` term was never wrapped in
+-- for the raw-inequality-against-auth.uid() half of the NULL-collapse pattern
+-- via IS DISTINCT FROM, but its negated is_service_role() term was never wrapped in
 -- COALESCE, unlike get_user_activation_score and get_user_engagement_stats
 -- (both fixed in migration 20260822225616). is_service_role() itself returns
 -- SQL NULL when neither JWT role claim nor the `role` GUC is set — an edge

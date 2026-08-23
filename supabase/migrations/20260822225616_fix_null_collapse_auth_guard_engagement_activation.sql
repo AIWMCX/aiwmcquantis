@@ -2,7 +2,8 @@
 --
 -- Both get_user_engagement_stats(uuid) and get_user_activation_score(uuid) are
 -- EXECUTE-granted to the `anon` role (confirmed via has_function_privilege) and
--- guarded with a raw `auth.uid() != p_user_id` check. For an anonymous caller
+-- guarded with a raw inequality check comparing auth.uid() against
+-- p_user_id using the standard SQL "not equal" operator. For an anonymous caller
 -- (no JWT `sub` claim), auth.uid() IS NULL, so `NULL != p_user_id` evaluates to
 -- SQL NULL rather than true/false. plpgsql's `IF` treats a NULL condition as
 -- false, so the RAISE EXCEPTION branch never fires -- the guard silently no-ops.
@@ -13,7 +14,7 @@
 -- denied") -- see docs/RELEASE_EVIDENCE.json and docs/OPEN_DEFECTS.json
 -- QNT-DEFECT-001 for the full before/after evidence.
 --
--- Fix: replace `auth.uid() != p_user_id` with `p_user_id IS DISTINCT FROM
+-- Fix: replace the raw inequality check with `p_user_id IS DISTINCT FROM
 -- auth.uid()`, which is NULL-safe (never itself evaluates to NULL), matching
 -- the pattern already used in get_referral_stats() (20260814120000). Also wrap
 -- is_service_role() in COALESCE(...,false) for defense in depth, matching the

@@ -4,9 +4,11 @@
 -- session: get_subscription_summary(p_user_id), originally created in
 -- migration 20260205051029 and never redefined/fixed since.
 --
--- Guard was: `IF auth.uid() != p_user_id AND NOT public.has_role(auth.uid(),
--- 'admin') THEN`. For an anonymous caller, auth.uid() IS NULL, so
--- `NULL != p_user_id` is SQL NULL; `has_role(NULL, 'admin')` returns false
+-- Guard was: an IF combining a raw SQL "not equal" comparison between
+-- auth.uid() and p_user_id with `NOT public.has_role(auth.uid(), 'admin')`,
+-- raising an exception if both were true. For an anonymous caller,
+-- auth.uid() IS NULL, so comparing NULL against p_user_id yields SQL NULL;
+-- `has_role(NULL, 'admin')` returns false
 -- (no matching rows) so `NOT false` = true; `NULL AND true` = NULL, and
 -- PL/pgSQL's IF treats a NULL condition as false -- the guard silently
 -- no-ops. Confirmed EXECUTE is granted to anon and confirmed live-exploitable

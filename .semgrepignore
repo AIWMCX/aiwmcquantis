@@ -55,14 +55,18 @@ supabase/migrations/20260818040000_restore_engagement_notifications_lifecycle_em
 # currently live and confirmed safe).
 supabase/migrations/20260818070000_restore_activation_events.sql
 
-# This session's own fix migrations for QNT-DEFECT-001/015. Their CODE is
-# safe (IS DISTINCT FROM + COALESCE throughout) -- only their explanatory
-# comments quote the original vulnerable pattern verbatim for documentation.
-# Excluded because Semgrep's generic-mode matcher is not guaranteed to be
-# comment-aware, and these files could not be locally test-fired against
-# the actual rule before being committed (see docs/OPEN_DEFECTS.json
-# QNT-DEFECT-015) -- excluding known comment-only matches removes a
-# predictable source of noise on this rule's first real CI run.
-supabase/migrations/20260822225616_fix_null_collapse_auth_guard_engagement_activation.sql
-supabase/migrations/20260823020929_coalesce_is_service_role_get_referral_stats.sql
-supabase/migrations/20260823021301_fix_null_collapse_get_subscription_summary.sql
+# NOTE: this session's own fix migrations for QNT-DEFECT-001/015
+# (20260822225616, 20260823020929, 20260823021301) are deliberately NOT
+# listed here, even though an earlier draft of this file excluded them.
+# Their CODE is safe (IS DISTINCT FROM + COALESCE throughout) -- only their
+# explanatory comments originally quoted the vulnerable pattern verbatim,
+# which has since been reworded to avoid the literal token sequences these
+# rules match. Excluding an entire file because of its comments would also
+# blind Semgrep to any REAL future regression introduced into that same
+# file's code -- a category-exclusion risk, exactly what this file's own
+# header warns against. NOT YET independently confirmed clean by CI at the
+# time this note was written -- the "0 findings" run referenced in
+# docs/RELEASE_EVIDENCE.json happened BEFORE these 3 files were removed
+# from this list, so it does not prove the reworded comments are
+# false-positive-free. Watch the next CI run on this PR for the real
+# answer before treating this as settled.
