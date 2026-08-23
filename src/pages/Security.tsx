@@ -26,9 +26,9 @@ export default function SecurityPage() {
       <div className="space-y-4">
         <Section icon={Lock} glow="cyan" title="Encryption">
           <ul className="space-y-2 text-sm text-muted-foreground">
-            <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>In transit:</strong> TLS 1.3 enforced on all endpoints (HSTS preload).</li>
+            <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>In transit:</strong> HTTPS/TLS enforced on all endpoints.</li>
             <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>At rest:</strong> AES-256 encryption on all database storage and object storage (managed by Supabase / AWS).</li>
-            <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>Sensitive fields:</strong> phone numbers and billing identifiers are stored encrypted at the column level.</li>
+            <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>Sensitive fields:</strong> brand-profile phone numbers are stored encrypted at the column level. Billing identifiers (Stripe customer/subscription IDs) are opaque references protected by Row-Level Security, not column-level encryption; we never store card numbers, CVVs, or full billing addresses ourselves — Stripe handles that directly.</li>
             <li>• <strong style={{ color: 'hsl(var(--foreground))' }}>Documents you upload:</strong> processed in-memory in our edge functions; not retained beyond the analysis lifecycle unless you explicitly save them.</li>
           </ul>
         </Section>
