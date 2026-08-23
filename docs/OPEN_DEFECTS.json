@@ -18,7 +18,7 @@
         "supabase/migrations/20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql",
         "supabase/migrations/20260822225616_fix_null_collapse_auth_guard_engagement_activation.sql"
       ],
-      "next_action": "None required — fix applied to live production DB and verified. The new migration file exists in the working tree but is not yet committed/pushed to git (pending explicit go-ahead to commit, per standing commit discipline). Sweep the rest of the schema for any other raw `auth.uid() != ...` or unwrapped `is_service_role()` guards outside this specific 4-file list, as a lower-priority follow-on — not yet done.",
+      "next_action": "Fix applied to live production DB, verified, and the migration file committed/pushed via PR #49. Only remaining lower-priority follow-on: sweep the rest of the schema for any other raw `auth.uid() != ...` or unwrapped `is_service_role()` guards outside this specific 4-file list — not yet done.",
       "owner": "backend/security",
       "evidence_ids": ["EV-017", "EV-028", "EV-029", "EV-030", "EV-031", "EV-032"]
     },
@@ -29,7 +29,7 @@
       "title": "CONFIRMED: frontend Vercel deploy pipeline has been blocked for 23+ commits — production frontend is running stale, pre-break code",
       "status": "NOT_STARTED",
       "detail": "Reclassified up from P1 after item 4's investigation replaced inference with proof. Root cause is no longer ambiguous: every commit since b7a5068e (23 commits, HEAD=8b7faf11) fails the GitHub 'Vercel' status check with an explicit message -- 'Git author AIWMCX must have access to the project on Vercel to create deployments' (target_url is a live Vercel team-invite link for team jeltovbogdan-7049's projects). The last SUCCESSFUL deploy (741bbbe7) was authored by gpt-engineer-app[bot]; every commit since was authored as AIWMCX, which the invite link itself confirms lacks Vercel team membership -- Vercel's Deployment Protection blocks git-triggered deploys from non-team-member authors by design. Directly proved with the live bundle: fetched https://www.aiwmcquantis.com's current JS asset and grepped it -- 0 matches for claim_content_admin_if_allowlisted/isContentAdmin/requireContentAdmin (the content_admin feature shipped in PR #47, commit 20ff6af2, earlier this same session), but 1 match for the OLD claim_admin_if_allowlisted and 16 matches for OLD requireAdmin. The live frontend is unambiguously the pre-b7a5068e build. Full evidence and required-action detail in docs/VERCEL_DEPLOY_PIPELINE_FINDING.md.",
-      "next_action": "1) Grant GitHub identity AIWMCX access on the Vercel team via the invite link already present in the GitHub status check target_url (requires the Vercel team owner, jeltovbogdan-7049, to act -- outside this session's tool access). 2) Alternative: relax Vercel Project Settings -> Git -> Deployment Protection for git-author requirements. 3) After either fix, force-redeploy main HEAD and re-run the same live-bundle grep to confirm requireContentAdmin/isContentAdmin now appear. 4) Build the frontend build-metadata endpoint (Workstream A) so this stops requiring bundle forensics. Until fixed: PR #47's frontend half (Content Studio/Autoposter access for AIWMCSRM@gmail.com and jjbalaganvasya@gmail.com) is NOT functionally live even though its database grant is -- treat that item as reopened, not done.",
+      "next_action": "3 viable fixes, in order of discovery: 1) Grant GitHub identity AIWMCX access on the Vercel team via the invite link already present in the GitHub status check target_url (requires the Vercel team owner to act in the Vercel dashboard). 2) Relax Vercel Project Settings -> Git -> Deployment Protection for git-author requirements (same dashboard access needed, weaker security posture). 3) NEW, likely lower-friction: .github/workflows/vercel-production-deploy.yml already exists as a manual one-click CLI-based deploy (VERCEL_TOKEN auth, bypasses the git-author check entirely) with a built-in smoke test + fidelity gate + auto-rollback -- but it has never been run and cannot run yet, because its required secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, plus several others) are not configured (gh secret list shows only CRON_SECRET/SUPABASE_ACCESS_TOKEN/SUPABASE_DB_PASSWORD exist). Configuring those 3 Vercel secrets and running this workflow may resolve the whole defect without any Vercel-team-membership change. After any fix: force-redeploy main HEAD and re-run the same live-bundle grep to confirm requireContentAdmin/isContentAdmin now appear, then build the frontend build-metadata endpoint (Workstream A) so this stops requiring bundle forensics. Until fixed: PR #47's frontend half (Content Studio/Autoposter access for the 2 newly-granted accounts) is NOT functionally live even though its database grant is -- treat that item as reopened, not done.",
       "owner": "release engineering (needs Vercel team-owner action -- jeltovbogdan-7049 / jeltovbogdan@gmail.com)",
       "evidence_ids": ["EV-008", "EV-009", "EV-010", "EV-033", "EV-034", "EV-035", "EV-036"]
     },
@@ -72,7 +72,7 @@
       "severity": "P2",
       "domain": "REVENUE",
       "title": "referral_rewards has schema and RLS but no application code path ever writes to it",
-      "status": "IMPLEMENTED_NOT_DEPLOYED",
+      "status": "PARTIALLY_COMPLETE",
       "detail": "Carried forward from the earlier migration-drift recovery work (PR #42) — schema/RPCs are live and correct, but reward issuance was never implemented anywhere in the codebase. REFERRAL_PRODUCT = NOT_LAUNCHED per that work's own explicit correction.",
       "next_action": "Product decision required: implement reward issuance, or formally deprioritize the referral feature. Not re-verified this capture (no code changes to it since PR #42).",
       "owner": "product",
@@ -102,7 +102,7 @@
     },
     {
       "id": "QNT-DEFECT-009",
-      "severity": "BLOCKED",
+      "severity": "P1",
       "domain": "BILLING",
       "title": "Stripe lifecycle matrix cannot be verified — no connector access this session",
       "status": "BLOCKED",
@@ -150,11 +150,11 @@
 
   "summary_counts": {
     "P0": 1,
-    "P1": 1,
+    "P1": 2,
     "P2": 6,
     "P3": 3,
-    "BLOCKED": 1,
     "total": 12,
+    "blocked_status_count": 1,
     "verified_complete_count": 1,
     "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed."
   },

@@ -152,15 +152,17 @@
     },
     "known_security_fix_status": {
       "is_service_role_null_collapse_bug": {
-        "fixed_instance": "get_user_activation_score() -- re-verified this capture: function definition contains COALESCE(public.is_service_role(), false), fix still in place",
-        "unaudited_instances_remaining": 4,
-        "files": [
-          "20260818040000_restore_engagement_notifications_lifecycle_email.sql",
-          "20260814120000_p0_track_a_referral_function_access.sql",
-          "20260426174842_b35ca146-b2e0-4d2d-aac7-21393f3d12eb.sql",
-          "20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql"
-        ],
-        "status": "OPEN — see OPEN_DEFECTS.json"
+        "audit_completed": true,
+        "audit_completed_at": "2026-08-22T23:39:00Z (item 3, this session)",
+        "per_file_outcome": {
+          "20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql (get_referral_stats)": "CLEAN LIVE — migration text vulnerable but superseded by 20260814120000's IS DISTINCT FROM fix; anon has no EXECUTE grant regardless",
+          "20260814120000_p0_track_a_referral_function_access.sql (get_referral_stats)": "This IS the fix migration for the above — confirmed live and correct",
+          "20260426174842_b35ca146-b2e0-4d2d-aac7-21393f3d12eb.sql (get_user_activation_score)": "Was live-exploitable (anon-executable, raw auth.uid() != p_user_id) despite an earlier partial COALESCE fix on the is_service_role() term alone — FIXED by migration 20260822225616",
+          "20260818040000_restore_engagement_notifications_lifecycle_email.sql (get_user_engagement_stats)": "Was live-exploitable (anon-executable, fully unpatched) — FIXED by migration 20260822225616"
+        },
+        "live_exploit_proof": "Direct curl against the anon-key REST RPC endpoint (no session) returned HTTP 200 with real user data for an arbitrary UUID before the fix, and HTTP 400 Access denied immediately after — see EV-028 through EV-032",
+        "status": "VERIFIED_COMPLETE — see OPEN_DEFECTS.json QNT-DEFECT-001",
+        "follow_on_not_yet_done": "A repo-wide sweep for any other raw auth.uid() != ... or unwrapped is_service_role() guards outside this specific 4-file list has not been performed."
       }
     }
   },
@@ -209,12 +211,15 @@
   },
 
   "not_captured_this_pass": [
-    "Full sitemap.xml / structured-data / Open Graph audit (only 6 raw routes checked)",
     "Stripe lifecycle (no Stripe API/CLI access this session)",
     "Live browser walkthrough of visitor->signup->analysis->result",
     "Full contract.json object-by-object re-run (20 of 27 entries spot-checked)",
-    "Sentry Replay configuration audit",
     "OpenTelemetry / distributed tracing (does not exist yet)",
-    "Vercel dashboard direct inspection (no Vercel CLI/dashboard access this session — the deploy-fidelity gap above is a direct consequence of this access gap, not a design choice)"
+    "Vercel dashboard direct inspection (no Vercel CLI/dashboard access this session — the required fix in QNT-DEFECT-002/VERCEL_DEPLOY_PIPELINE_FINDING.md needs a Vercel-team-owner action this session cannot take)"
+  ],
+  "items_completed_since_prior_not_captured_list": [
+    "Full sitemap.xml / structured-data / Open Graph audit — completed item 2 (was '6 raw routes checked', now 8: www/apex/privacy/terms/methodology/pricing/examples/how-it-works/app, plus robots.txt, sitemap.xml, and full homepage metadata/JSON-LD). See EV-020 through EV-027.",
+    "Sentry Replay configuration audit — completed item 5: found and fixed maskAllText/blockAllMedia:false live in source; separately discovered Sentry is not even initializing in production (VITE_SENTRY_DSN unset), tracked as QNT-DEFECT-012. See EV-037 through EV-040.",
+    "Vercel deploy-fidelity gap — upgraded from an inferred, possibly-benign UNVERIFIED status to a CONFIRMED_STALE finding with root cause and live-bundle proof. See frontend_vercel_deploy_fidelity above and docs/VERCEL_DEPLOY_PIPELINE_FINDING.md."
   ]
 }

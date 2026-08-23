@@ -259,6 +259,13 @@
       "result": "[warn] Sentry DSN not configured - error tracking disabled -- fires on page load, confirmed live, right now.",
       "run_at": "2026-08-22T23:53:00Z",
       "conclusion": "Authoritative, direct confirmation (not inference from bundle analysis): Sentry.init() is never reached in production today. No errors, breadcrumbs, or session replay are currently being captured or sent anywhere from the live site. The source-level privacy fix (EV-038) is correct and necessary but currently inert -- it protects against exposure that would begin the moment a DSN is configured and a fresh build deploys, not an exposure happening today. Logged as QNT-DEFECT-012, sharing its root blocker with QNT-DEFECT-002 (frontend deploy pipeline) plus a separate missing Vercel env var (VITE_SENTRY_DSN), both outside this session's access."
+    },
+    {
+      "id": "EV-041",
+      "command": "ls .github/workflows/ | grep -i vercel; cat .github/workflows/vercel-production-deploy.yml; gh run list --workflow=vercel-production-deploy.yml; gh secret list",
+      "result": "A manual workflow_dispatch action 'Vercel Production Deploy (one-click)' already exists (added 2026-06-19), deploying via `vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN` -- CLI/token auth, not git-author identity, so it structurally bypasses the block found in EV-034. It includes a post-deploy smoke test, a deploy-fidelity gate, and auto-rollback. gh run list returns zero runs ever. gh secret list shows only CRON_SECRET, SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD configured -- the workflow's own required secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_SUPABASE_*, STRIPE_*, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY, TAVILY_API_KEY, SLACK_DEPLOY_WEBHOOK_URL) are absent.",
+      "run_at": "2026-08-23T00:35:00Z",
+      "conclusion": "A third, likely lower-friction fix path for QNT-DEFECT-002 exists and requires no Vercel-team-membership change -- only configuring 3 Vercel-specific GitHub secrets and triggering the workflow. Never attempted before this discovery. Added to docs/VERCEL_DEPLOY_PIPELINE_FINDING.md and QNT-DEFECT-002's next_action."
     }
   ],
 
