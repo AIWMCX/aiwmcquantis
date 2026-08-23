@@ -92,8 +92,9 @@ export default function Terms() {
 
           <h3 className="text-xl font-medium text-foreground">4.3 Billing</h3>
           <p className="text-muted-foreground leading-relaxed">
-            Payments are processed securely by Stripe. Subscriptions are billed monthly and automatically
-            renew unless cancelled. You may cancel at any time through your account settings.
+            Payments are processed securely by Stripe. Subscriptions are billed either monthly or annually,
+            depending on the plan you select at checkout, and automatically renew at the end of each billing
+            period unless cancelled. You may cancel at any time through your account settings.
           </p>
 
           <h3 className="text-xl font-medium text-foreground">4.4 Refunds</h3>

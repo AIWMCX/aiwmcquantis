@@ -305,18 +305,75 @@
       "next_action": "Needs its own migration + verification pass: grep for any public.net.* or hardcoded-schema reference to pg_net functions, then ALTER EXTENSION pg_net SET SCHEMA extensions (or a project-appropriate schema), then re-run get_advisors(security) to confirm the finding clears.",
       "owner": "backend/security",
       "evidence_ids": ["EV-081"]
+    },
+    {
+      "id": "QNT-DEFECT-023",
+      "severity": "P0",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Flagship sample report's own P&L table does not reconcile -- revenue minus its own itemized costs is $1,800/mo, not the $11,800/mo displayed everywhere; a second narrative line implies a SECOND OPEX total, and a fragility bullet ('rent = 28% of OPEX') implies a THIRD",
+      "status": "NOT_STARTED",
+      "detail": "Surfaced via a pasted GTM/sales-readiness report from a differently-connected session, cross-checked directly against src/data/sampleReport.ts rather than accepted on faith. Confirmed by direct arithmetic: the Year-2 steady-state P&L table (page 7) lists COGS $8,236 + Rent $9,400 + Staff $6,200 + Utilities $2,764 = $26,600 in costs against $28,400 revenue -- an unambiguous $1,800/mo net profit. The table instead displays 'Monthly net profit: $11,800' (also the headline metric card, meta description, and HEADLINE_METRICS.monthlyProfitY2). A separate summary sentence on the same page claims '$28.4k MRR against $16.6k blended OPEX, leaving $11.8k of monthly net' -- a SECOND, different OPEX figure ($16,600) that is also inconsistent with the itemized table ($26,600) and is itself mathematically impossible given Rent+Staff alone ($15,600) leave only $1,000 of headroom for COGS+Utilities before even reaching $16,600. A THIRD data point ('Largest fragility: location rent at $9.4k/mo (28% of OPEX)', page 2) implies a further different total OPEX of ~$33,571 (9,400/0.28). Three internally-contradictory OPEX totals exist in one document ($26,600 itemized / $16,600 summary sentence / ~$33,571 implied by the 28% figure), and the 18-month payback headline (the report's actual cover metric) is only numerically plausible if the true monthly profit is close to $11,800 (11,800 x 12 months post-breakeven is approximately $141,600, matching the $142,500 investment almost exactly) -- meaning the itemized cost table, not the $11,800 profit figure, is most likely where the fictional business's numbers were never actually run through arithmetic by whoever authored this content. This is NOT a code bug (it is authored example data) and NOT something this pass attempted to silently 'fix' by inventing a new self-consistent cost breakdown -- every combination of the 4 line items tested (keeping the heavily cross-referenced $9,400 rent fixed) requires COGS+Staff+Utilities to total just $7,200 combined, which is not achievable with any individually plausible values for a specialty-coffee-shop COGS/staffing model without further invented assumptions. Flagging precisely rather than guessing.",
+      "affected_files": ["src/data/sampleReport.ts"],
+      "next_action": "Requires a person to rebuild this fictional case's numbers holistically (revenue ramp, COGS%, staffing, rent, and the resulting payback timeline) so all three OPEX references and the payback headline reconcile -- not a mechanical fix. This is the single highest-visibility 'accuracy and trust' item in the entire public product: it is the flagship proof artifact shown on the landing hero to every cold visitor. Until rebuilt, do not send outbound traffic to the homepage funnel that leads with this sample as proof of depth.",
+      "owner": "product/marketing",
+      "evidence_ids": ["EV-084"]
+    },
+    {
+      "id": "QNT-DEFECT-024",
+      "severity": "P1",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Public copy claimed a GPT-5/Gemini multi-model architecture that does not exist -- live engine is DeepSeek (free tier) + Anthropic Claude (Plus/Pro + RVCE); fixed in 4 places",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Cross-checked src/config/models.ts (the canonical, actively-used model-ID registry) against public-facing copy. Confirmed 4 real, live contradictions: (1) src/pages/Status.tsx's public system-status page literally described the 'AI Provider Gateway' as 'GPT-5 + Gemini consensus engine'. (2) src/pages/Privacy.tsx's Privacy Policy (a legal document, not marketing copy) listed 'Google AI (Gemini)' as a third-party data processor and omitted DeepSeek entirely -- meaning the actual free-tier data processor was undisclosed while a processor that is never called was falsely disclosed. (3) src/data/sampleReport.ts's flagship sample report's confidence-methodology page claimed 'cross-model agreement between Gemini 2.5 Pro and GPT-5.1'. (4) The same file separately hardcoded '5,000 runs' for Monte Carlo where the canonical constant (MONTE_CARLO_ITERATIONS in src/config/canonical-facts.ts, which this file's own header comment explicitly warns never to bypass) is 1,000 -- matching this session's prior finding of exactly this drift pattern in other files. Fixed all 4: Status.tsx and sampleReport.ts now describe the real DeepSeek+Claude pipeline; Privacy.tsx now discloses DeepSeek and correctly scopes Claude's role; sampleReport.ts now imports MONTE_CARLO_ITERATIONS_DISPLAY instead of a hardcoded number. NOT touched: src/pages/Changelog.tsx's March 25 2026 'v2.0.0 Multi-Model Consensus' entry claims 'Parallel calls to GPT-5-mini and Gemini 3 Flash with consensus scoring' -- this is a historical changelog record, and this pass follows the same append-only doctrine already established for migration files rather than silently rewriting history. Left as an explicit open question below.",
+      "affected_files": [
+        "src/pages/Status.tsx",
+        "src/pages/Privacy.tsx",
+        "src/data/sampleReport.ts"
+      ],
+      "next_action": "Founder/product decision needed on src/pages/Changelog.tsx's v2.0.0 entry: was there ever a real GPT-5-mini/Gemini-3-Flash phase that was later replaced by DeepSeek+Claude without a changelog entry recording the swap, or was this claim never true? If the latter, the honest fix is a NEW changelog entry documenting the correction (matching this project's own migration append-only precedent), not a silent edit of the old one.",
+      "owner": "product/marketing",
+      "evidence_ids": ["EV-084"]
+    },
+    {
+      "id": "QNT-DEFECT-025",
+      "severity": "P1",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Two live UI surfaces labeled an internally-computed score 'VERIFIED' -- self-certification language for scores that measure input completeness or blended narrative/benchmark confidence, not third-party validation",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Confirmed 2 live, real occurrences (a 3rd, QConfidenceBadge.tsx, has the same label but zero call sites anywhere in the app -- dead code, not fixed since it renders nowhere). (1) src/components/analysis/steps/ConfidenceSidebar.tsx's ConfidenceRing, shown DURING the input wizard before any analysis has run, labels any score >= 80 'VERIFIED' -- confirmed via its own source that this score is a form-completeness checklist (Industry filled? Location filled? etc.), not a validated result. (2) src/components/analysis/ResultsTopBar.tsx labels confidenceScore >= 90 'VERIFIED' on the results page -- CodeRabbit caught that the label variable was computed but never actually rendered (the badge only showed the bare percentage), so this specific instance was never live-visible as first described; corrected the claim here and fixed the underlying omission by rendering the label (percentage + qualitative tier) instead of just the number, which is what the surrounding badge styling (color-coded by the same thresholds) clearly intended. Both tiers renamed: ConfidenceSidebar's to 'MODEL READY', ResultsTopBar's to 'HIGH CONFIDENCE' -- neither implies external/third-party verification. (3) src/data/sampleReport.ts (the flagship sample report, not a live app component) separately used the phrase 'multi-model verified' twice (meta.summary and the page-2 Executive Verdict bullet) describing the same 79% composite confidence score already reworded at the methodology page during the first pass on this file -- missed in that pass, caught by CodeRabbit's review, now reworded to 'cross-model checked'/'multi-model cross-check' for consistency with the rest of the fix. Separately, src/components/analysis/LastAuditedBadge.tsx's 'System audited {date}' / 'System Last Audited' copy (all 3 size variants) was renamed to 'Automated internal checks ran {date}' / 'Automated Internal Checks' for the same reason -- the underlying safety_evaluations data is real and DB-backed (not fabricated), but the original phrasing read as an external audit claim it never was; tense corrected from 'run' to 'ran' per CodeRabbit (freshness.label can render a past-time string like '2 days ago', which read oddly with present-tense 'run').",
+      "affected_files": [
+        "src/components/analysis/steps/ConfidenceSidebar.tsx",
+        "src/components/analysis/ResultsTopBar.tsx",
+        "src/components/analysis/LastAuditedBadge.tsx",
+        "src/data/sampleReport.ts"
+      ],
+      "next_action": "None required for this pass. QConfidenceBadge.tsx (dead code, same 'VERIFIED' label, zero consumers) was left as-is since fixing unreferenced code doesn't change anything visible to a user -- worth deleting entirely in a future cleanup pass if it stays unreferenced. ResultsTopBar.tsx's new rendered label was not live-browser-verified this pass (would require completing a real analysis to reach the results page) -- verified by direct code read + typecheck only.",
+      "owner": "product/frontend",
+      "evidence_ids": ["EV-084"]
+    },
+    {
+      "id": "QNT-DEFECT-026",
+      "severity": "P2",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Terms of Service billing clause said subscriptions are 'billed monthly' with no mention of the annual plan that has existed since the canonical tier spec (Plus $168/yr, Pro $492/yr)",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "src/pages/Terms.tsx section 4.3 stated 'Subscriptions are billed monthly and automatically renew' with no qualification -- factually incomplete once annual billing (TIERS.plus.priceAnnual=168, TIERS.pro.priceAnnual=492 in src/config/tiers.ts) exists as a real, live checkout option. Corrected to describe both cadences generically without hardcoding prices into a legal document (prices already drift-tracked separately in tiers.ts).",
+      "affected_files": ["src/pages/Terms.tsx"],
+      "next_action": "None required for this pass.",
+      "owner": "legal/product",
+      "evidence_ids": ["EV-084"]
     }
   ],
 
   "summary_counts": {
-    "P0": 5,
-    "P1": 2,
-    "P2": 7,
+    "P0": 6,
+    "P1": 4,
+    "P2": 8,
     "P3": 8,
-    "total": 22,
+    "total": 26,
     "blocked_status_count": 1,
-    "verified_complete_count": 9,
-    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 005, 015, 016, 017, 018, 019, 020, 021) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution. QNT-DEFECT-005 was reclassified P2->P0 2026-08-23 after the newly-built cohort classifier revealed 0 of 142 analyses, ever, belong to a real external user -- a business-critical finding, not just a measurement-tooling gap. QNT-DEFECT-020/021/022 (new 2026-08-23) came from a full get_advisors sweep (352 security + 333 performance lints triaged); 020 was another live anon-exploitable exposure in the same class as QNT-DEFECT-001/015, found and fixed same-session. QNT-DEFECT-019's Document Studio RLS discrepancy is now resolved-as-false (EV-083, independent second pass agrees with the first)."
+    "verified_complete_count": 12,
+    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 005, 015, 016, 017, 018, 019, 020, 021, 024, 025, 026) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution. QNT-DEFECT-005 was reclassified P2->P0 2026-08-23 after the newly-built cohort classifier revealed 0 of 142 analyses, ever, belong to a real external user -- a business-critical finding, not just a measurement-tooling gap. QNT-DEFECT-020/021/022 (new 2026-08-23) came from a full get_advisors sweep (352 security + 333 performance lints triaged); 020 was another live anon-exploitable exposure in the same class as QNT-DEFECT-001/015, found and fixed same-session. QNT-DEFECT-019's Document Studio RLS discrepancy is now resolved-as-false (EV-083, independent second pass agrees with the first). QNT-DEFECT-023/024/025/026 (new 2026-08-23) came from independently verifying a pasted GTM/sales-readiness report against the live codebase rather than accepting it on faith -- most claims held up (024/025/026 fixed same-session); QNT-DEFECT-023 (the flagship sample report's P&L not reconciling) is the single highest-visibility open item in the whole registry and needs a person, not a mechanical fix."
   },
 
   "not_yet_investigated_this_capture": [

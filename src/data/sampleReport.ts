@@ -8,6 +8,8 @@
  * to the buyer.
  */
 
+import { MONTE_CARLO_ITERATIONS_DISPLAY } from '@/config/canonical-facts';
+
 export interface SampleMetric {
   id: 'investment' | 'payback' | 'profit' | 'confidence';
   label: string;
@@ -30,7 +32,7 @@ export const SAMPLE_REPORT = {
     confidence: 79,
     verdict: 'Conditional Go — pivot pricing model before launch',
     summary:
-      'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, multi-model verified at 79% confidence.',
+      'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, cross-model checked at 79% confidence.',
   },
   metrics: {
     investment: { value: 142_500, label: '$142,500' },
@@ -52,7 +54,7 @@ export const SAMPLE_REPORT = {
       kicker: 'Executive Verdict',
       title: 'Conditional Go — pivot pricing before launch',
       bullets: [
-        'Confidence: 79% (multi-model verified, 4 of 5 stress tests passed)',
+        'Confidence: 79% (multi-model cross-check, 4 of 5 stress tests passed)',
         'Unit economics workable only above 145 paying members and ≥ $74 ARPU',
         'Largest fragility: location rent at $9.4k/mo (28% of OPEX)',
         'Recommended pivot: per-hour drop-in @ $14/hr + $89/mo unlimited tier',
@@ -133,7 +135,7 @@ export const SAMPLE_REPORT = {
     },
     {
       id: 9,
-      kicker: 'Monte Carlo (12 variables, 5,000 runs)',
+      kicker: `Monte Carlo (12 variables, ${MONTE_CARLO_ITERATIONS_DISPLAY} runs)`,
       title: 'Payback distribution',
       kpis: [
         { label: 'P10 (best case)', value: '11 months' },
@@ -203,7 +205,7 @@ export const SAMPLE_REPORT = {
       kicker: 'Methodology & Confidence',
       title: 'Why 79% and not 95%',
       body: [
-        'Model Confidence Score = weighted blend of benchmark match quality (0.82), assumption fragility (0.71), narrative coherence (0.84), cross-model agreement between Gemini 2.5 Pro and GPT-5.1 (0.79). Final composite = 0.79.',
+        'Model Confidence Score = weighted blend of benchmark match quality (0.82), assumption fragility (0.71), narrative coherence (0.84), cross-model agreement between the DeepSeek primary analysis and the Claude RVCE cross-check (0.79). Final composite = 0.79.',
         'Confidence is capped below 85% on any single-location physical business until ≥ 6 months of real operating data is fed back into the Reality Loop. This report is decision-grade, not investment advice.',
       ],
     },
