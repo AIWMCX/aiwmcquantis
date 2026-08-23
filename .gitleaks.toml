@@ -1,0 +1,49 @@
+title = "AIWMC Quantis gitleaks config"
+
+# Start from gitleaks' maintained default rule set (covers AWS keys, generic
+# high-entropy secrets, provider-specific token formats, JWTs, etc.) and layer
+# project-specific allowlisting on top rather than hand-rolling every rule.
+[extend]
+useDefault = true
+
+[allowlist]
+  description = "Known-safe, by-design-public, or non-secret matches specific to this repo"
+
+  # Deliberately NOT excluding .vercel/, dist/, dist-ssr/, or *.map by path.
+  # .vercel/ and dist/ are gitignored today so they shouldn't normally be
+  # committed -- but a path-based blind spot is exactly where a real secret
+  # would slip through undetected if gitignore were ever bypassed (a build
+  # artifact WAS committed once, in commit 583a80ba, before .gitignore
+  # excluded it — see QNT-DEFECT-013). Only allowlist specific inspected
+  # matches below, never a category of files wholesale.
+
+  regexes = [
+    # Supabase anon/publishable key for THIS project (dmlxrvfyqsakyjomsvdj).
+    # Its JWT payload decodes to {"iss":"supabase","ref":"dmlxrvfyqsakyjomsvdj",
+    # "role":"anon", ...} -- role:anon keys are explicitly designed by Supabase
+    # to be public (RLS enforces access, not secrecy of this key). This matches
+    # the fixed base64 prefix shared by every token with that exact header+claim
+    # prefix; it does NOT match a service_role token, which encodes a different
+    # "role" claim and therefore a different base64 sequence at the same offset.
+    '''eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9\.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRtbHhydmZ5cXNha3lqb21zdmRqIiwicm9sZSI6ImFub24i''',
+
+    # Supabase Vault secret NAMES used as SQL lookup keys (`WHERE name = '...'`)
+    # -- these are identifiers, not the secret values themselves. The real
+    # values live only in vault.decrypted_secrets and are never in source.
+    '''pii_encryption_key_v[0-9](_deprecated)?''',
+    '''quantis_pii_encryption_key_v[0-9]''',
+
+    # Placeholder text in API documentation, not a real credential.
+    '''YOUR_API_KEY''',
+  ]
+
+  # Historical-only: the string values of ADMIN_UPLOAD_KEY, CRON_SECRET, and
+  # STRIPE_WEBHOOK_SECRET that briefly appeared in .env.md (commits ~2026-01
+  # through 583a80ba) are NOT allowlisted here on purpose -- they are real
+  # secret-shaped values that were committed to git history. ADMIN_UPLOAD_KEY's
+  # leaked value was tested live (2026-08-23) and confirmed dead (401). The
+  # others could not be safely tested without simulating an attack and should
+  # be treated as rotate-out-of-caution. See docs/OPEN_DEFECTS.json
+  # QNT-DEFECT-013 for the full writeup. Do not add their literal values here;
+  # if they are ever rotated and confirmed permanently dead, that is the point
+  # at which allowlisting becomes appropriate, not before.

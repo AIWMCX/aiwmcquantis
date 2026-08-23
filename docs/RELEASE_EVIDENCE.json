@@ -266,6 +266,33 @@
       "result": "A manual workflow_dispatch action 'Vercel Production Deploy (one-click)' already exists (added 2026-06-19), deploying via `vercel deploy --prebuilt --prod --token=$VERCEL_TOKEN` -- CLI/token auth, not git-author identity, so it structurally bypasses the block found in EV-034. It includes a post-deploy smoke test, a deploy-fidelity gate, and auto-rollback. gh run list returns zero runs ever. Read scripts/preflight-secrets.sh: it hard-requires 11 secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, DEEPSEEK_API_KEY) plus 5 optional/warn-only ones. gh secret list shows only CRON_SECRET, SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD configured -- 9 of the 11 hard-required secrets are missing, not just the 3 Vercel-specific ones.",
       "run_at": "2026-08-23T00:35:00Z",
       "conclusion": "A third, likely lower-friction fix path for QNT-DEFECT-002 exists and requires no Vercel-team-membership change -- but it requires provisioning 9 missing GitHub secrets (not just the 3 Vercel ones) before the workflow can even attempt a build, per its own preflight script. Never attempted before this discovery. Corrected after CodeRabbit review caught the initial understatement. Added to docs/VERCEL_DEPLOY_PIPELINE_FINDING.md and QNT-DEFECT-002's next_action."
+    },
+    {
+      "id": "EV-042",
+      "command": "Downloaded gitleaks v8.30.1 (Windows x64 binary, no prior install existed) and ran `gitleaks detect --source=. --log-opts=\"--all\" -v --report-format json` against the full repository (2916 commits, ~78.75 MB scanned)",
+      "result": "45 findings: 28 jwt, 15 generic-api-key, 1 curl-auth-header, 1 linkedin-client-id. Full report saved to scratchpad/gitleaks/full-history-report.json.",
+      "run_at": "2026-08-23T00:55:00Z"
+    },
+    {
+      "id": "EV-043",
+      "command": "Decoded every jwt-rule finding's base64 payload (role + ref claims) via a small Node script; inspected every generic-api-key/curl-auth-header/linkedin-client-id finding's actual matched text",
+      "result": "All 28 jwt findings decode to role:anon (0 service_role). 11 of 15 generic-api-key findings are Vault secret NAME lookups (pii_encryption_key_v1_deprecated/v2, quantis_pii_encryption_key_v2) used in SQL WHERE clauses, not secret values. 4 generic-api-key findings across 3 migration files are the same real hex string (the pre-rotation CRON_SECRET). curl-auth-header is the literal placeholder 'YOUR_API_KEY' in API docs. linkedin-client-id matched the JS identifier 'handleCopyLink' inside an old committed .vercel/ build sourcemap.",
+      "run_at": "2026-08-23T00:56:00Z",
+      "conclusion": "43 of 45 findings are false positives by nature (public-by-design anon keys, non-secret name lookups, doc placeholder text, a misfired rule on a JS identifier). 4 findings (the CRON_SECRET hex string) are real but already-rotated/confirmed-dead per this session's earlier work."
+    },
+    {
+      "id": "EV-044",
+      "command": "git show <commit>:.env.md at commit 583a80ba (flagged separately, not caught by the jwt/generic-api-key rules on its own but read manually); compared against git log -p -- .env for the same variable names (VITE_CRON_SECRET, VITE_ADMIN_UPLOAD_KEY, VITE_STRIPE_WEBHOOK_SECRET)",
+      "result": ".env.md (currently tracked, now placeholders-only) held real-looking cleartext values for these 3 vars across commits from ~2025-11 through 583a80ba (2026-01ish). The actual .env file, which Vite loads at build time, never contained these variable names at any point in its history -- confirmed via `git log --all -p -- .env | grep CRON|STRIPE|ADMIN_UPLOAD`, zero matches.",
+      "run_at": "2026-08-23T00:58:00Z",
+      "conclusion": "These values were never baked into the public frontend bundle (.env.md is not read by Vite). Exposure is limited to this PRIVATE repo's collaborators via git history, not the public internet. Still real secret-shaped values sitting in history, not false positives."
+    },
+    {
+      "id": "EV-045",
+      "command": "User-approved live test: curl POST to https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/manage-benchmarks with header x-admin-key: <leaked .env.md value, sha256 fingerprint 4da914c02e2c1b6b..., redacted here per CodeRabbit review -- do not reproduce leaked secret values in evidence docs> and an empty {} body",
+      "result": "HTTP 401 {\"error\":\"Unauthorized. Admin access required.\"}",
+      "run_at": "2026-08-23T01:02:00Z",
+      "conclusion": "The leaked ADMIN_UPLOAD_KEY value is confirmed NOT the current live secret. STRIPE_WEBHOOK_SECRET could not be tested the same way without forging a Stripe-signed payload (itself an attack simulation) and was left unverified -- recommend rotating it out of caution via the Stripe dashboard (blocked on connector access, same as QNT-DEFECT-009). Logged as QNT-DEFECT-013. Wired gitleaks into CI (.github/workflows/gitleaks.yml) scoped to new commits only (never full history, to avoid permanently red-flagging this pre-existing history) with .gitleaks.toml documenting every allowlist decision; verified locally against this session's actual new commit range (8b7faf11..HEAD) with zero findings before committing the workflow."
     }
   ],
 

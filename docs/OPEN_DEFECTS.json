@@ -145,22 +145,38 @@
       "next_action": "Requires Vercel project environment-variable configuration (VITE_SENTRY_DSN) -- outside this session's access, same blocker family as QNT-DEFECT-002. Once set and a deploy actually reaches production (contingent on QNT-DEFECT-002 being fixed first), re-run the identical live-console check to confirm Sentry initializes, then re-fetch the live bundle and grep for maskAllText/blockAllMedia to confirm the hardened config (not the old unmasked one) is what actually goes live.",
       "owner": "release engineering / observability (blocked on Vercel env-var + deploy access)",
       "evidence_ids": ["EV-037", "EV-038", "EV-039", "EV-040"]
+    },
+    {
+      "id": "QNT-DEFECT-013",
+      "severity": "P2",
+      "domain": "SECURITY",
+      "title": "Full-history gitleaks scan (2916 commits) found 45 raw matches; almost all false-positive, but 2 categories are real secret disclosures needing rotation/acceptance decisions",
+      "status": "PARTIALLY_COMPLETE",
+      "detail": "Ran gitleaks v8.30.1 (downloaded fresh, no prior tooling existed) against the full git history. 45 raw findings: 28 jwt (all decoded to role:anon on either the current project dmlxrvfyqsakyjomsvdj or a retired one gafxacjhkqsdzwwzhbor -- Supabase anon keys are public-by-design, false positives), 15 generic-api-key (11 are Vault secret NAME lookups like 'pii_encryption_key_v2' used in SQL WHERE clauses -- not the secret values -- false positives; 4 are the SAME real hex string 'fbfa43cf0894...' embedded in 3 migration files as the pre-rotation CRON_SECRET, confirmed already rotated/dead per this session's own earlier work AND still present verbatim in the CURRENT tracked migration files, not just history -- migrations are append-only by this repo's own doctrine so these will not be edited, but the value is confirmed non-functional against live cron jobs), 1 curl-auth-header ('YOUR_API_KEY' doc placeholder, false positive), 1 linkedin-client-id ('handleCopyLink' matched inside an old committed .vercel/ build sourcemap, false positive, and .vercel/ is gitignored now). SEPARATELY, and NOT a false positive: .env.md (a currently-tracked reference doc, now containing only placeholders) briefly held real-looking cleartext values for VITE_ADMIN_UPLOAD_KEY, VITE_CRON_SECRET, and VITE_STRIPE_WEBHOOK_SECRET across several 2025-11 through 2026-01 commits. Confirmed the real .env (which Vite actually loads) never carried these -- they were never shipped in the public bundle, and repo is PRIVATE, so exposure is limited to repo collaborators, not the public. Live-tested the leaked ADMIN_UPLOAD_KEY value (sha256 fingerprint 4da914c02e2c1b6b..., value not reproduced here -- see docs/RELEASE_EVIDENCE.json EV-045 for the redacted test record) via a harmless empty POST to the manage-benchmarks edge function's x-admin-key header (approved by the user after an auto-mode classifier block) -- returned HTTP 401, CONFIRMED DEAD, not the current live secret. STRIPE_WEBHOOK_SECRET (sha256 fingerprint 13b5994ac379c2b6..., value not reproduced here) could not be safely tested the same way -- doing so would require forging a valid Stripe-signed payload, which is itself simulating an attack and was not attempted.",
+      "affected_files": [
+        ".env.md (current: placeholders only, historical commits had real-looking values)",
+        "supabase/migrations/20260727012329_fix_publish_due_posts_cron_auth.sql (pre-rotation CRON_SECRET, currently tracked, confirmed dead)",
+        "supabase/migrations/20260725195336_schedule_lifecycle_email_crons.sql (same, 2 occurrences)"
+      ],
+      "next_action": "1) Recommend rotating STRIPE_WEBHOOK_SECRET in the Stripe dashboard purely out of caution, since its historical .env.md value cannot be safely confirmed dead or alive without a Stripe connector this session lacks -- see QNT-DEFECT-009. 2) No action needed on ADMIN_UPLOAD_KEY (confirmed dead) or CRON_SECRET (already rotated and confirmed dead in prior session work) beyond what's already done. 3) Do not edit the historical migration files -- they are append-only by design; the dead secret sitting in them is an accepted, non-exploitable artifact. 4) Gitleaks is now wired into CI (.github/workflows/gitleaks.yml, scoped to new commits only via --log-opts, never full history) with .gitleaks.toml documenting every allowlist decision and why -- this closes the 'Gitleaks not yet installed' gap from Workstream C going forward; it does not retroactively clean history.",
+      "owner": "security / billing (STRIPE_WEBHOOK_SECRET rotation needs Stripe dashboard access this session lacks)",
+      "evidence_ids": ["EV-042", "EV-043", "EV-044", "EV-045"]
     }
   ],
 
   "summary_counts": {
     "P0": 1,
     "P1": 2,
-    "P2": 6,
+    "P2": 7,
     "P3": 3,
-    "total": 12,
+    "total": 13,
     "blocked_status_count": 1,
     "verified_complete_count": 1,
     "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed."
   },
 
   "not_yet_investigated_this_capture": [
-    "Dependency/secret scanning (Gitleaks/Semgrep not yet installed — Workstream C)",
+    "Semgrep SAST (Gitleaks now installed and wired into CI as of item 6 — Semgrep still not started)",
     "OpenTelemetry tracing (does not exist — Workstream E)",
     "Live browser walkthrough of the core visitor journey",
     "Full contract.json object coverage beyond the 20 spot-checked entries"
