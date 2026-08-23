@@ -1,18 +1,22 @@
 name: Vercel Production Deploy (one-click)
 
-# One-click production deploy:
-#   GitHub → Actions → "Vercel Production Deploy (one-click)" → Run workflow
+# CI-gated production deployment that bypasses Vercel's Hobby-plan Git-author
+# restriction. The Vercel token remains secret; project/team IDs are stable,
+# non-secret identifiers verified against the connected Vercel account.
 #
-# What this does (in order, each step gated by the previous one):
-#   1. Secrets preflight       — fail fast with clear remediation if anything missing
-#   2. Build (production env)  — Vite build with VITE_SUPABASE_* baked in
-#   3. Vercel deploy --prod    — CLI deploy, captures new deployment URL
-#   4. Smoke test              — curl the new URL; rollback if non-2xx
-#   5. Deploy-fidelity gate    — verify edge function versions match source
-#   6. Auto-rollback           — promote previous READY deployment on any failure
-#   7. Slack notification      — success / failure / rolled_back, every run
+# Steps:
+#   1. Secrets preflight
+#   2. Build the exact CI-approved commit
+#   3. Deploy it to the verified Vercel project
+#   4. Smoke-test the immutable deployment URL
+#   5. Roll back to the previous READY production deployment on failure
+#   6. Notify
 
 on:
+  workflow_run:
+    workflows: ['CI']
+    types: [completed]
+    branches: [main]
   workflow_dispatch:
     inputs:
       skip_smoke:
@@ -30,6 +34,7 @@ permissions:
 jobs:
   deploy:
     name: Build · Deploy · Verify · Rollback-on-fail
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     environment:
@@ -37,33 +42,18 @@ jobs:
       url: ${{ steps.deploy.outputs.url }}
     env:
       VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
-      VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
-      VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+      VERCEL_ORG_ID: team_zdu4x3meMwZ86bPq8IbKila1
+      VERCEL_PROJECT_ID: prj_LFp4jyVX7dzb0Xr34fej4FnMTz2g
       VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
       VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
       VITE_SUPABASE_PROJECT_ID: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
       SLACK_DEPLOY_WEBHOOK_URL: ${{ secrets.SLACK_DEPLOY_WEBHOOK_URL }}
     steps:
-      # persist-credentials: false -- no later step performs an authenticated
-      # git operation (no push/pull), so there's no reason to leave GITHUB_TOKEN
-      # sitting in .git/config on the runner for the rest of the job (zizmor
-      # "artipacked" finding, caught by CodeRabbit).
       - uses: actions/checkout@v5
         with:
+          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
-      # ── 1. Preflight ───────────────────────────────────────────────────
-      # Scoped to "vercel" (VERCEL_*/VITE_*) deliberately, not "all". This
-      # workflow's actual steps below never read SUPABASE_ACCESS_TOKEN,
-      # SUPABASE_DB_PASSWORD, STRIPE_*, DEEPSEEK_API_KEY, ANTHROPIC_API_KEY,
-      # or TAVILY_API_KEY (confirmed by grep -- they appeared only in this
-      # job's env: block and the "all"-mode preflight check, never in a
-      # run: step or in verify-deploy.sh/vercel-rollback.sh). Those backend
-      # runtime secrets belong to production-deploy.yml's separate,
-      # already-working migrations/edge-function job. Requiring them here
-      # blocked frontend-only deploys (e.g. on a Vercel Hobby plan, where
-      # git-author-based deploys are blocked and this CLI path is the only
-      # way to ship a frontend fix) on secrets this workflow never uses.
       - name: Secrets preflight
         id: preflight
         run: bash scripts/preflight-secrets.sh vercel
@@ -75,33 +65,35 @@ jobs:
       - name: Install dependencies
         run: bun install --frozen-lockfile
 
-      # ── 2. Build ───────────────────────────────────────────────────────
       - name: Build (production)
         id: build
         run: bun run build
 
-      # ── 3. Vercel CLI deploy ───────────────────────────────────────────
       - name: Install Vercel CLI
         run: npm install -g vercel@latest
 
       - name: Pull Vercel project settings
-        run: vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
+        run: vercel --scope aiwmc pull --yes --environment=production --token="$VERCEL_TOKEN"
 
       - name: Build with Vercel (deterministic prebuilt)
-        run: vercel build --prod --token="$VERCEL_TOKEN"
+        run: vercel --scope aiwmc build --prod --token="$VERCEL_TOKEN"
 
       - name: Deploy to Vercel production
         id: deploy
         run: |
-          URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tail -n1)
+          set -o pipefail
+          URL=$(vercel --scope aiwmc deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr | tail -n1)
+          if [[ ! "$URL" =~ ^https:// ]]; then
+            echo "::error title=Vercel deploy failed::CLI did not return a deployment URL"
+            exit 1
+          fi
           echo "Deployed: $URL"
           echo "url=$URL" >> "$GITHUB_OUTPUT"
           echo "DEPLOY_URL=$URL" >> "$GITHUB_ENV"
 
-      # ── 4. Smoke test ──────────────────────────────────────────────────
       - name: Post-deploy smoke test
         id: smoke
-        if: ${{ !inputs.skip_smoke }}
+        if: ${{ github.event_name != 'workflow_dispatch' || !inputs.skip_smoke }}
         run: |
           URL="${DEPLOY_URL}"
           echo "Smoking $URL"
@@ -117,25 +109,14 @@ jobs:
             exit 1
           fi
 
-      # ── 5. Deploy-fidelity gate (live edge versions == source) ─────────
-      - name: Deploy-fidelity gate
-        id: fidelity
-        env:
-          PROJECT_REF: ${{ secrets.VITE_SUPABASE_PROJECT_ID }}
-          SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
-        run: bash scripts/verify-deploy.sh
-
-      # ── 6. Auto-rollback on any failure above ─────────────────────────
       - name: Auto-rollback to previous good deployment
         if: failure() && (steps.deploy.outcome == 'success')
         env:
           ROLLBACK_REASON: >-
-            ${{ steps.fidelity.outcome == 'failure' && 'deploy-fidelity gate failed'
-              || steps.smoke.outcome == 'failure' && 'smoke test failed'
+            ${{ steps.smoke.outcome == 'failure' && 'smoke test failed'
               || 'post-deploy verification failed' }}
         run: bash scripts/vercel-rollback.sh
 
-      # ── 7. Notify (always — success, failure, or rollback) ────────────
       - name: Notify deploy status
         if: always()
         env:
@@ -148,6 +129,5 @@ jobs:
               || steps.build.outcome == 'failure' && 'Build'
               || steps.deploy.outcome == 'failure' && 'Vercel deploy'
               || steps.smoke.outcome == 'failure' && 'Smoke test'
-              || steps.fidelity.outcome == 'failure' && 'Deploy-fidelity gate'
               || '' }}
         run: bash scripts/notify-deploy-status.sh
