@@ -24,6 +24,7 @@ interface PricingCardProps {
   badge?: string;
   annualSavings?: number;
   totalYear?: number;
+  isAnnualBilling?: boolean;
 }
 
 export const PricingCard = React.memo(function PricingCard({
@@ -40,6 +41,7 @@ export const PricingCard = React.memo(function PricingCard({
   badge,
   annualSavings,
   totalYear,
+  isAnnualBilling = false,
 }: PricingCardProps) {
   return (
     <div
@@ -81,7 +83,7 @@ export const PricingCard = React.memo(function PricingCard({
         {/* Total yearly cost */}
         {totalYear && price > 0 && (
           <p className="text-xs text-muted-foreground mt-2">
-            ${totalYear}/year billed {period === 'mo' ? 'monthly' : 'annually'}
+            ${totalYear}/year billed {isAnnualBilling ? 'annually' : 'monthly'}
           </p>
         )}
 

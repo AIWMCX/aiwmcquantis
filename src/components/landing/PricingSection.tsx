@@ -274,6 +274,7 @@ export function PricingSection() {
             badge="Most Popular"
             annualSavings={billingPeriod === 'annual' ? PRICING.plus.annual.savings : undefined}
             totalYear={plusPricing.totalYear}
+            isAnnualBilling={billingPeriod === 'annual'}
           />
           <PricingCard
             name="Pro"
@@ -288,6 +289,7 @@ export function PricingSection() {
             badge="For fundraising"
             annualSavings={billingPeriod === 'annual' ? PRICING.pro.annual.savings : undefined}
             totalYear={proPricing.totalYear}
+            isAnnualBilling={billingPeriod === 'annual'}
           />
         </div>
 
