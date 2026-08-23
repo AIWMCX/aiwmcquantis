@@ -98,7 +98,20 @@ jobs:
         id: deploy
         run: |
           set -o pipefail
-          URL=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr | tail -n1)
+          # `tail -n1` used to grab the literal last line of `vercel deploy`'s
+          # output, assuming that was always the URL. Live-confirmed this is
+          # wrong for this CLI version (59.5.0): the actual last lines are
+          # "Completing…" / "▲ Aliased ..." / "✓ Ready in Ns", printed AFTER
+          # the "Production      https://..." line. That false negative
+          # caused a genuinely-successful deploy to be reported as failed,
+          # skipping the smoke test / rollback safety net entirely.
+          # Fix: capture every https:// URL in the output, drop the
+          # "Inspect" line (a vercel.com dashboard link, never the
+          # deployment itself), and take the first remaining match -- the
+          # real "Production" deployment URL always appears before any
+          # later Building/Aliased/Ready chatter.
+          OUTPUT=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr)
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | grep -v '^https://vercel\.com/' | head -n1)
           if [[ ! "$URL" =~ ^https:// ]]; then
             echo "::error title=Vercel deploy failed::CLI did not return a deployment URL"
             exit 1
