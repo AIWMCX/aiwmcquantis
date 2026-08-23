@@ -32,7 +32,7 @@ export const SAMPLE_REPORT = {
     confidence: 79,
     verdict: 'Conditional Go — pivot pricing model before launch',
     summary:
-      'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, multi-model verified at 79% confidence.',
+      'Hybrid daytime coffee + sound-treated writing nooks targeting 180 paying members at $89/mo. Base-case payback in 18 months, Y2 monthly profit ~$11.8k, cross-model checked at 79% confidence.',
   },
   metrics: {
     investment: { value: 142_500, label: '$142,500' },
@@ -54,7 +54,7 @@ export const SAMPLE_REPORT = {
       kicker: 'Executive Verdict',
       title: 'Conditional Go — pivot pricing before launch',
       bullets: [
-        'Confidence: 79% (multi-model verified, 4 of 5 stress tests passed)',
+        'Confidence: 79% (multi-model cross-check, 4 of 5 stress tests passed)',
         'Unit economics workable only above 145 paying members and ≥ $74 ARPU',
         'Largest fragility: location rent at $9.4k/mo (28% of OPEX)',
         'Recommended pivot: per-hour drop-in @ $14/hr + $89/mo unlimited tier',

@@ -58,7 +58,7 @@ export function LastAuditedBadge({ size = 'md' }: LastAuditedBadgeProps) {
       >
         <ShieldCheck className="w-3 h-3" style={{ color: freshness.color }} />
         <span>
-          Automated internal checks run{' '}
+          Automated internal checks ran{' '}
           <span style={{ color: freshness.color }}>{freshness.label}</span>
           {' '}· QSL-{info.safetyLevel} {qslLabel}
         </span>
@@ -80,7 +80,7 @@ export function LastAuditedBadge({ size = 'md' }: LastAuditedBadgeProps) {
         <div className="flex items-center gap-1.5 text-xs text-foreground">
           <ShieldCheck className="w-3.5 h-3.5" style={{ color: freshness.color }} />
           <span>
-            Internal checks run:{' '}
+            Internal checks ran:{' '}
             <span className="font-medium" style={{ color: freshness.color }}>
               {freshness.label}
             </span>

@@ -59,7 +59,7 @@ export function ResultsTopBar({
             confidenceScore >= 70 ? 'q-badge-ai' : 'q-badge-warning'
           )}>
             <Zap className="w-3 h-3" />
-            {confidenceScore}%
+            {confidenceScore}% · {confidenceLabel}
           </span>
 
           <Button onClick={onExportPDF} variant="outline" size="sm" className="gap-1.5 text-xs h-8" disabled={isGeneratingPdf}>
