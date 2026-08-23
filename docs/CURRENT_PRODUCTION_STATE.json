@@ -168,20 +168,32 @@
   },
 
   "business_volume": {
-    "evidence_source": "live SQL, this capture (fresh — not reused from any prior session's numbers)",
-    "analyses_created_7d": 2,
-    "analyses_created_30d": 46,
-    "new_signups_7d": 0,
-    "total_registered_users": 44,
-    "active_or_trialing_subscriptions": 24,
-    "funnel_completion_events_30d": 30,
-    "funnel_analyses_30d_for_comparison": 46,
-    "analytics_parity_ratio_30d": "30/46 = ~65%",
-    "note_on_prior_figure": "A prior session capture (2026-08-18) measured 11 completion events against 27 analyses (~41% coverage / ~59% gap) over its own 30-day window. This capture's numbers (30/46, ~65% coverage / ~35% gap) are NOT the same window and must not be presented as 'the gap closed from 59% to 35%' -- that would be a false trend from two different rolling windows. Both figures are real; neither supersedes the other; the honest statement is 'a material under-reporting gap has existed in every measurement taken so far, magnitude 35-59% depending on window, root cause not yet isolated.'",
-    "assumption_changed_events_30d": 0,
-    "scenario_compared_events_30d": 11,
-    "external_real_cohort_classifier_exists": false,
-    "interpretation_caveat": "No EXTERNAL_REAL/FOUNDER/QA/BOT/SYNTHETIC/DEMO classification exists anywhere in the schema. Every number in this business_volume block is therefore CONTAMINATED-UNKNOWN with respect to real external usage -- it may include founder/QA/test activity in unknown proportion. Do not present these as 'real customer' numbers until the classifier (Workstream Y / GTM Track C item 1) exists."
+    "evidence_source": "live SQL, 2026-08-23T18:00:00Z capture (matches docs/RELEASE_EVIDENCE.json EV-080, the query that actually produced these numbers -- after the classifier itself was created and verified at EV-079, 17:56:00Z), joined through the new public.user_cohorts classifier (QNT-DEFECT-005) -- the first capture in this project's history to separate real external usage from founder/staff/test activity, rather than reporting an undifferentiated total",
+    "external_real_cohort_classifier_exists": true,
+    "cohort_breakdown": {
+      "total_registered_users": 44,
+      "external_real": 4,
+      "founder": 2,
+      "staff": 1,
+      "test": 37,
+      "note": "84% of all registered users (37 of 44) are automated test-fixture accounts, matched against the exact pattern list already established for this in 20260721051509_commercial_clean_views.sql."
+    },
+    "the_headline_number": "Of 142 analyses ever created in this system, 0 belong to an EXTERNAL_REAL user. Not 7-day, not 30-day -- ALL TIME. Extending or narrowing the window makes no difference: 0 external_real_analyses_7d, 0 external_real_analyses_30d, 0 external_real_analyses_all_time.",
+    "external_real_users_detail": {
+      "count": 4,
+      "analyses_ever_by_any_of_them": 0,
+      "combined_funnel_events_ever": 5,
+      "ever_held_a_paid_subscription": 1,
+      "paid_subscriber_detail": "1 of the 4 held a Plus subscription (status=active, current_period_end=2026-08-11, now expired) -- the exact account fixed in QNT-DEFECT-019 for the current_period_end entitlement bug earlier this same session. That paying customer generated 0 analyses and only 1 funnel event before their subscription lapsed."
+    },
+    "all_users_undifferentiated_totals_for_reference_only": {
+      "analyses_created_7d": 3,
+      "analyses_created_30d": 47,
+      "new_signups_7d": 0,
+      "active_or_trialing_subscriptions": 24,
+      "caveat": "These are the raw, unfiltered totals across ALL 44 users (test+founder+staff+real). They are what a naive dashboard query would show. Do not present them as commercial/customer metrics -- see cohort_breakdown and external_real_users_detail above for what's actually real."
+    },
+    "prior_analytics_parity_finding_reframed": "Earlier captures measured a 'funnel completion events vs analyses' parity gap (e.g. 30/46 = ~65% in one window, 11/27 = ~41% in another) and treated it as an instrumentation question. With the classifier in hand, that framing was incomplete: the underlying analyses being compared were themselves ~0% real external usage. The parity gap and the cohort composition are two separate findings -- QNT-DEFECT-004 (parity gap root cause) remains open and should now be re-examined joined through user_cohorts, since a parity ratio computed only over test/founder activity says nothing about real-user instrumentation quality."
   },
 
   "test_and_build_gates": {

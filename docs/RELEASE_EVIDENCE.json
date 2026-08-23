@@ -504,6 +504,32 @@
       "result": "3 independent tier-check implementations found; all 3 now fail closed on both trial-expiry and period-expiry consistently.",
       "run_at": "2026-08-23T17:45:00Z",
       "conclusion": "A single confirmed bug report led to finding the same access-control gap duplicated in 2 more places beyond what was reported -- exactly the kind of sweep this session's doctrine calls for after any confirmed live finding."
+    },
+    {
+      "id": "EV-077",
+      "command": "Before building a cohort classifier (QNT-DEFECT-005), searched for any existing founder/test-account exclusion mechanism to reuse per that defect's own instruction: grep -rn 'is_admin_allowlisted|founder|jeltovbogdan|test-fixture|TEST_ACCOUNT|@aiwmcquantis.com' supabase/migrations/ -l, then read 20260721051509_commercial_clean_views.sql and 20260719183038_create_clean_users_view.sql in full. Then grep -rln 'external_commercial_users|commercial_analyses|commercial_subscriptions' supabase/functions/ scripts/ src/ to check real-world usage.",
+      "result": "Found external_commercial_users/commercial_subscriptions/commercial_analyses (built 2026-07-20, a binary exclude-test-and-admin filter) -- but the consumer grep returned zero matches anywhere in application code. The view exists in the database but is never queried by anything.",
+      "run_at": "2026-08-23T17:50:00Z",
+      "conclusion": "An orphaned mechanism, same pattern as the formula-registry discovery in item 10. Extended it (via classify_user_cohort()) rather than building a parallel one, per QNT-DEFECT-005's own explicit instruction."
+    },
+    {
+      "id": "EV-078",
+      "command": "SELECT ur.role, u.email, u.id FROM public.user_roles ur JOIN auth.users u ON u.id=ur.user_id; then pg_get_functiondef() on is_admin_allowlisted and is_content_admin_allowlisted to get the authoritative founder/staff email lists.",
+      "result": "is_admin_allowlisted: beltovbogdan@gmail.com, jeltovbogdan@gmail.com, legal@aiwmcquantis.com (3 emails -- beltovbogdan is a deliberate additional founder/legal allowlist entry, not a typo, resolved before assuming otherwise). is_content_admin_allowlisted: aiwmcsrm@gmail.com, jjbalaganvasya@gmail.com. Only jjbalaganvasya has actually claimed the content_admin role row so far -- aiwmcsrm has not logged in to claim it, so a user_roles-only check would have missed them; the classifier checks the allowlist function directly, not just claimed roles, specifically to avoid that gap.",
+      "run_at": "2026-08-23T17:52:00Z"
+    },
+    {
+      "id": "EV-079",
+      "command": "Applied 2 migrations (create_user_cohort_enum, create_user_cohort_classifier -- split due to the same same-transaction enum restriction discovered earlier this session). Live-tested classify_user_cohort() directly against all 6 known cases (jeltovbogdan, beltovbogdan, aiwmcsrm, jjbalaganvasya, a *.quantis-e2e.test address, and an arbitrary gmail address), then queried SELECT cohort, count(*) FROM user_cohorts GROUP BY cohort against all 44 real auth.users rows.",
+      "result": "All 6 direct test cases returned the expected classification. Full-table breakdown: EXTERNAL_REAL=4, FOUNDER=2, STAFF=1, TEST=37 (84% of all users).",
+      "run_at": "2026-08-23T17:56:00Z"
+    },
+    {
+      "id": "EV-080",
+      "command": "Joined analyses/subscriptions/funnel_events to user_cohorts filtered to EXTERNAL_REAL, for 7d/30d/all-time windows, to answer GTM top-20 question #1 for the first time with real data. Also confirmed 0 analyses have a NULL user_id (ruling out an undercounted guest/anonymous-usage blind spot in this accounting) and pulled per-user detail (created_at, last_sign_in_at, subscription status, analyses_count, funnel_events_count) for all 4 EXTERNAL_REAL users individually.",
+      "result": "0 of 142 analyses ever belong to an EXTERNAL_REAL user (7d, 30d, and all-time all return 0 -- not a windowing artifact). 1 of the 4 real users ever held a paid subscription (Plus, current_period_end 2026-08-11, already expired -- the exact account fixed in QNT-DEFECT-019 earlier this session) and that user generated 0 analyses and 1 funnel event before their subscription lapsed. Combined funnel_events across all 4 real users: 5, ever.",
+      "run_at": "2026-08-23T18:00:00Z",
+      "conclusion": "The classifier's first real use directly answers GTM top-20 Q1 (0) and reframes the urgency of QNT-DEFECT-004's analytics-parity investigation, which was computed over a user base now shown to be 0% real. Updated docs/CURRENT_PRODUCTION_STATE.json's business_volume block and QNT-DEFECT-004's next_action to reflect this."
     }
   ],
 
