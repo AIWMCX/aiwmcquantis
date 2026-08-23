@@ -12,10 +12,10 @@ import { BENCHMARK_COUNT_DISPLAY, BENCHMARK_SOURCE_DETAILS } from '@/config/cano
 const SOURCES = BENCHMARK_SOURCE_DETAILS;
 
 const METRICS = [
-  { icon: Database,    value: `${BENCHMARK_COUNT_DISPLAY}+`, label: 'verified benchmarks',      glow: 'indigo' as const },
+  { icon: Database,    value: `${BENCHMARK_COUNT_DISPLAY}+`, label: 'benchmark data points',      glow: 'indigo' as const },
   { icon: Cpu,         value: 'Multi-Model', label: 'consensus cross-check',    glow: 'violet' as const },
   { icon: ShieldCheck, value: 'SOC 2',   label: 'security posture in prep', glow: 'cyan'   as const },
-  { icon: Lock,        value: 'GDPR',    label: '& CCPA compliant',         glow: 'brand'  as const },
+  { icon: Lock,        value: 'GDPR',    label: '& CCPA rights supported',  glow: 'brand'  as const },
 ];
 
 export function TrustStrip() {
