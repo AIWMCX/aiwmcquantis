@@ -111,7 +111,11 @@ jobs:
           # real "Production" deployment URL always appears before any
           # later Building/Aliased/Ready chatter.
           OUTPUT=$(vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN" 2>&1 | tee /dev/stderr)
-          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | grep -v '^https://vercel\.com/' | head -n1)
+          # `|| true`: with pipefail + GitHub's default `bash -e`, a pipe that
+          # matches nothing (grep exits 1) would abort the script here,
+          # skipping the missing-URL check below entirely. The `if` block is
+          # what's responsible for reporting that failure, not the pipeline.
+          URL=$(echo "$OUTPUT" | grep -oE 'https://[^[:space:]]+' | grep -v '^https://vercel\.com/' | head -n1 || true)
           if [[ ! "$URL" =~ ^https:// ]]; then
             echo "::error title=Vercel deploy failed::CLI did not return a deployment URL"
             exit 1
