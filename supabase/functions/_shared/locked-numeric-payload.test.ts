@@ -103,6 +103,24 @@ Deno.test("verifyLockedPayloadIntegrity returns true for an untampered payload a
   assertEquals(await verifyLockedPayloadIntegrity(tampered), false);
 });
 
+Deno.test("verifyLockedPayloadIntegrity rejects a sub-cent field value even when paired with its own correctly-recomputed hash", async () => {
+  // A hand-constructed payload (bypassing lockNumericPayload() entirely,
+  // e.g. a malformed deserialization) whose mrr is NOT in canonical 2dp
+  // form (12500.505 has a 3rd decimal). Even a genuinely honest hash over
+  // that exact object -- via a real locked payload built the normal way,
+  // then patched to reintroduce sub-cent precision on both the field AND
+  // an otherwise-untouched hash -- must still be rejected: it's not enough
+  // for the hash to be internally consistent, the fields must already BE
+  // canonical. Confirms the guard fires on field form, not just hash
+  // mismatch (the "tampered" test above already covers hash mismatch).
+  const honestPayload = await lockNumericPayload(SAMPLE_FIELDS, "2.0.0-precision", "1.0.0");
+  const handBuilt = {
+    ...honestPayload,
+    fields: { ...honestPayload.fields, mrr: 12500.505 },
+  };
+  assertEquals(await verifyLockedPayloadIntegrity(handBuilt), false);
+});
+
 Deno.test("field order in the input object does not affect the hash (canonical FIELD_ORDER is enforced)", async () => {
   const reordered: LockedNumericFields = {
     revenueFor45kProfit: SAMPLE_FIELDS.revenueFor45kProfit,

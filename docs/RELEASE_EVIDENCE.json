@@ -464,6 +464,13 @@
       "result": "Lint: 0 errors, 319 warnings -- identical to baseline; grep for locked-numeric-payload/analysis-snapshot/analyze-business/index against the lint output: zero matches. Full suite: 1414 passed | 23 skipped, unchanged.",
       "run_at": "2026-08-23T04:08:00Z",
       "conclusion": "QNT-DEFECT-018 fully verified: the new module type-checks, its own test suite passes for real, the one production call site wiring type-checks after fixing a real pre-existing looseness it surfaced, and neither lint nor the existing test suite regressed."
+    },
+    {
+      "id": "EV-071",
+      "command": "CodeRabbit review on PR #55: verifyLockedPayloadIntegrity only recomputed and compared the hash, without checking the fields were already in canonical 2dp form -- a hand-constructed payload (bypassing lockNumericPayload() entirely) could pair a sub-cent-precision field with a hash honestly computed over that same non-canonical value and still verify as true. Added a pre-hash check that every field is finite AND round(value) === value, rejecting before any hash computation; added a regression test constructing exactly that scenario (an honest lockNumericPayload() output, then patched to reintroduce sub-cent precision on one field only, leaving the rest of the payload -- including its hash -- untouched) and confirmed it's rejected. Also fixed a second, smaller catch: the verified_complete_count note in OPEN_DEFECTS.json still listed only QNT-DEFECT-001/015/016/017, missed adding 018 when it was created in the same edit.",
+      "result": "10/10 tests pass (was 9, +1 new regression test). `deno check` clean. Full suite 1414 passed, lint 0 errors/319 warnings, both unchanged.",
+      "run_at": "2026-08-23T04:15:00Z",
+      "conclusion": "A genuinely stronger integrity guarantee: verification now confirms fields are canonical, not merely that a hash matches whatever values happen to be present -- closing a real gap between 'the hash is internally consistent' and 'this payload was actually built through honest canonical rounding'."
     }
   ],
 

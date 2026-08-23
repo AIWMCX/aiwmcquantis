@@ -242,7 +242,7 @@
       ],
       "next_action": "None required for this pass. Lower-priority follow-on: the same LockedNumericPayload pattern could extend to run-scenario/index.ts's canonicalRunKey hashing (currently its own ad-hoc sha256Hex over a raw object, per EV-062's grep) if scenario-run reconciliation is ever found to need the same versioned-immutability guarantee -- not investigated this pass, out of scope for completing the one confirmed gap.",
       "owner": "backend/financial-core",
-      "evidence_ids": ["EV-067", "EV-068", "EV-069", "EV-070"]
+      "evidence_ids": ["EV-067", "EV-068", "EV-069", "EV-070", "EV-071"]
     }
   ],
 
@@ -254,7 +254,7 @@
     "total": 18,
     "blocked_status_count": 1,
     "verified_complete_count": 5,
-    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
+    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017, 018) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
   },
 
   "not_yet_investigated_this_capture": [

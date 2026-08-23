@@ -133,8 +133,22 @@ export async function lockNumericPayload(
  * after being locked (e.g. round-tripped through storage that doesn't
  * preserve exact field values) -- never throws on a mismatch, mirroring
  * this module's own no-fabricated-status conventions.
+ *
+ * Rejects BEFORE hashing if any field is non-finite or not already in
+ * canonical 2dp form (i.e. round(value) !== value). Without this check, a
+ * payload could be hand-constructed (bypassing lockNumericPayload()
+ * entirely) with a sub-cent-precision field value paired with a hash
+ * recomputed over that same non-canonical value -- verification would
+ * pass even though the payload was never actually built through honest
+ * canonical rounding. This check catches that: it's not enough for the
+ * hash to match the fields, the fields must also already BE canonical.
  */
 export async function verifyLockedPayloadIntegrity(payload: LockedNumericPayload): Promise<boolean> {
+  for (const key of FIELD_ORDER) {
+    const value = payload.fields[key];
+    if (!Number.isFinite(value)) return false;
+    if (round(value) !== value) return false;
+  }
   const recomputedHash = await sha256Hex(
     canonicalize(payload.fields, payload.engineVersion, payload.formulaRegistryVersion),
   );
