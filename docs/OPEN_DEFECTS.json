@@ -277,7 +277,7 @@
         "src/pages/admin/EmailFunnel.tsx",
         "src/integrations/supabase/types.ts"
       ],
-      "next_action": "None -- verified fixed both by direct SQL re-query (role_table_grants/role_routine_grants post-migration) and by the CI/CodeRabbit cycle on PR #58.",
+      "next_action": "Database-side fix verified (role_table_grants/role_routine_grants post-migration). IMPORTANT gap CodeRabbit correctly caught on PR #58: the production grant revocation happened BEFORE the RPC-based frontend (EmailFunnel.tsx calling get_email_funnel_30d()) can actually reach production, because the Vercel deploy pipeline is still blocked (QNT-DEFECT-002). Until that's fixed and a deploy actually ships this branch, the LIVE admin EmailFunnel page is running the OLD bundle that queries the now-locked-down view directly -- it will show a permission error, not the data leak (fails safe, not open), but it IS currently broken for admins until either QNT-DEFECT-002 is resolved or a manual deploy (scripts/preflight-secrets.sh path) ships this fix.",
       "owner": "backend/security",
       "evidence_ids": ["EV-081", "EV-082"]
     },
@@ -312,7 +312,7 @@
     "P0": 5,
     "P1": 2,
     "P2": 7,
-    "P3": 9,
+    "P3": 8,
     "total": 22,
     "blocked_status_count": 1,
     "verified_complete_count": 9,
