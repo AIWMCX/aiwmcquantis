@@ -7,6 +7,7 @@ import {
   type StrictFinancialResult,
 } from './financial-calculator.ts';
 import { emitAnalysisSnapshot, ENGINE_VERSION as SCENARIO_BASE_INPUT_ENGINE_VERSION, FORMULA_REGISTRY_VERSION as SCENARIO_BASE_INPUT_FORMULA_VERSION } from '../_shared/analysis-snapshot.ts';
+import { lockNumericPayload } from '../_shared/locked-numeric-payload.ts';
 import { shapeFinancialAnalysis } from './financial-analysis-shape.ts';
 import { deriveInvestmentVerdict, computeInputCompletenessPct } from './investment-verdict.ts';
 import { detectRevenueShapeMismatch, type ModelApplicabilityWarning } from '../_shared/revenue-shape-detector.ts';
@@ -3209,21 +3210,37 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
       (result as Record<string, unknown>).detected_archetype = detectedArchetype.id;
     }
     if (calc.paybackResult) {
-      await emitAnalysisSnapshot({
-        correlationId: analysisCorrelationId,
-        userId,
-        normalizedInput: { idea: idea_clean, location: location.trim(), financialInputs: mergedFinancialInputs ?? null },
-        numericOutput: {
-          mrr: calc.mrr, totalExpenses: calc.totalExpenses, netProfit: calc.netProfit,
-          netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent,
-          cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths,
-          roiYear1Percent: calc.roiYear1Percent, npv3Years: calc.npv3Years,
-          breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: calc.revenueFor45kProfit,
-        },
-        investmentPayback: calc.paybackResult,
-        validationStatus: calc.corrections.length > 0 ? 'WARN' : 'PASS',
-        validationIssues: calc.corrections,
-      }).catch((snapshotErr) => log.warn(`Analysis snapshot emit failed (non-fatal): ${String(snapshotErr)}`));
+      try {
+        const numericOutput = await lockNumericPayload(
+          {
+            mrr: calc.mrr, totalExpenses: calc.totalExpenses, netProfit: calc.netProfit,
+            netMarginPercent: calc.netMarginPercent, grossProfit: calc.grossProfit, grossMarginPercent: calc.grossMarginPercent,
+            cac: calc.cac, ltv: calc.ltv, ltvCacRatio: calc.ltvCacRatio, paybackMonths: calc.paybackMonths,
+            // npv3Years is typed optional in financial-calculator.ts but is
+            // actually always assigned a concrete number by the one
+            // unconditional return path there -- `?? NaN` rather than a
+            // fabricated `?? 0` so lockNumericPayload's existing
+            // non-finite-value guard throws (caught below, non-fatal) if
+            // that invariant is ever violated, instead of silently
+            // persisting a fake zero NPV.
+            roiYear1Percent: calc.roiYear1Percent, npv3Years: calc.npv3Years ?? NaN,
+            breakEvenRevenue: calc.breakEvenRevenue, revenueFor45kProfit: calc.revenueFor45kProfit,
+          },
+          SCENARIO_BASE_INPUT_ENGINE_VERSION,
+          SCENARIO_BASE_INPUT_FORMULA_VERSION,
+        );
+        await emitAnalysisSnapshot({
+          correlationId: analysisCorrelationId,
+          userId,
+          normalizedInput: { idea: idea_clean, location: location.trim(), financialInputs: mergedFinancialInputs ?? null },
+          numericOutput,
+          investmentPayback: calc.paybackResult,
+          validationStatus: calc.corrections.length > 0 ? 'WARN' : 'PASS',
+          validationIssues: calc.corrections,
+        });
+      } catch (snapshotErr) {
+        log.warn(`Analysis snapshot emit failed (non-fatal): ${String(snapshotErr)}`);
+      }
     }
 
     // ========== QUANTIS 2.0 ENGINE INTEGRATION ==========

@@ -226,6 +226,23 @@
       "next_action": "None required for this pass. Lower-priority follow-on: port cac_payback to an edge-function cross-check (payback-contract.ts has one for investment_payback; cac-payback has none) if that reconciliation pattern is judged worth extending. The 'is src/lib/formula-registry.ts dead code' question raised initially was checked and resolved during this same pass, not left open: it is genuinely live, powering the public landing-page 'mini demo' calculator (mini_annual_roi/mini_payback/mini_net_margin in src/components/landing/mini-demo/calculations.ts) and the admin FormulasDashboard.tsx QA view -- a separate, smaller, publicly-facing quick-estimate feature, legitimately distinct from the full paid analysis engine's src/financial/* modules. Not duplication requiring reconciliation; two real systems for two real products.",
       "owner": "financial-core",
       "evidence_ids": ["EV-062", "EV-063", "EV-064", "EV-065", "EV-066"]
+    },
+    {
+      "id": "QNT-DEFECT-018",
+      "severity": "P3",
+      "domain": "DATA_INTEGRITY",
+      "title": "LockedNumericPayload -- built and wired the missing contract; CanonicalResult confirmed to already exist as BusinessAnalysisResult, not a gap",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Item 11 ('AnalysisSnapshot/CanonicalResult/LockedNumericPayload contracts'). AnalysisSnapshot was already confirmed live in item 10's investigation. Before writing anything for the other two, read src/lib/analysis-contract.ts and src/types/analysis.ts: BusinessAnalysisResult (types/analysis.ts) already IS the canonical result -- a mature, extensively-consumed full-analysis shape (financial_analysis, business_plan, marketing_plan, confidence_score, validation, assumption_graph, etc.) read by hooks, PDF export, the document mapper, and golden-vector tests. No new 'CanonicalResult' type was needed or created. LockedNumericPayload was genuinely missing: analysis-snapshot.ts's numericOutput field was Record<string, unknown> -- any shape, any subset of fields, no embedded process versioning, no canonical rounding -- and its one real call site (analyze-business/index.ts) passed an untyped inline object literal with the exact same 14 fields every time, discovered by reading that call site directly rather than assuming. Built supabase/functions/_shared/locked-numeric-payload.ts: a strict LockedNumericFields type matching those exact 14 fields, a lockNumericPayload() constructor that canonically rounds every field (2dp, matching the .toDecimalPlaces(2) convention already established throughout src/financial/*.ts), embeds engineVersion/formulaRegistryVersion INSIDE the hashed content (a locked payload is tied to the process that produced it, not just its values -- the same numbers hash differently under a different engine version, by design), computes a self-describing SHA-256 hash over a canonical (fixed field order, rounded) serialization, and genuinely deep-freezes the result at runtime (Object.freeze, not just a TypeScript readonly annotation a caller could still mutate through). Added verifyLockedPayloadIntegrity() for later reconciliation use. Wired into analysis-snapshot.ts (numericOutput retyped from Record<string,unknown> to LockedNumericPayload; numeric_output_hash now reads payload.hash directly instead of redundantly re-hashing the whole object) and the one real call site in analyze-business/index.ts, which now builds the payload via lockNumericPayload() before calling emitAnalysisSnapshot -- a genuinely surgical change to that 4500+-line file, touching only the exact object-literal call site, nothing else. Verified with a real, committed, re-runnable Deno test suite (9 tests: hash determinism, hash changes on any field/engineVersion/formulaRegistryVersion change, floating-point noise below the rounding precision does NOT change the hash, throws on non-finite fields rather than silently locking garbage, genuine runtime immutability -- not just compile-time readonly, tamper detection via verifyLockedPayloadIntegrity, and field-order independence). Type-checking the wiring surfaced a real pre-existing looseness: financial-calculator.ts declares npv3Years as optional (number | undefined) even though its one unconditional return path always assigns a concrete number -- rather than silently defaulting to 0 (which would fabricate a real NPV value), used `?? NaN` so the payload's existing non-finite-value guard throws (caught non-fatally, exactly the same fire-and-forget safety guarantee as before) if that invariant is ever actually violated.",
+      "affected_files": [
+        "supabase/functions/_shared/locked-numeric-payload.ts (new)",
+        "supabase/functions/_shared/locked-numeric-payload.test.ts (new, committed Deno test suite)",
+        "supabase/functions/_shared/analysis-snapshot.ts (numericOutput retyped, hash sourced from payload.hash)",
+        "supabase/functions/analyze-business/index.ts (1 call site wired, npv3Years optionality fix)"
+      ],
+      "next_action": "None required for this pass. Lower-priority follow-on: the same LockedNumericPayload pattern could extend to run-scenario/index.ts's canonicalRunKey hashing (currently its own ad-hoc sha256Hex over a raw object, per EV-062's grep) if scenario-run reconciliation is ever found to need the same versioned-immutability guarantee -- not investigated this pass, out of scope for completing the one confirmed gap.",
+      "owner": "backend/financial-core",
+      "evidence_ids": ["EV-067", "EV-068", "EV-069", "EV-070"]
     }
   ],
 
@@ -233,10 +250,10 @@
     "P0": 2,
     "P1": 2,
     "P2": 7,
-    "P3": 6,
-    "total": 17,
+    "P3": 7,
+    "total": 18,
     "blocked_status_count": 1,
-    "verified_complete_count": 4,
+    "verified_complete_count": 5,
     "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
   },
 

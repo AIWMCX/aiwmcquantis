@@ -14,6 +14,7 @@
  */
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import type { MonthsMetricResult } from '../analyze-business/payback-contract.ts';
+import type { LockedNumericPayload } from './locked-numeric-payload.ts';
 
 export const ENGINE_VERSION = '2.0.0-precision';
 export const FORMULA_REGISTRY_VERSION = '1.0.0';
@@ -24,7 +25,13 @@ export interface AnalysisSnapshotInput {
   userId?: string | null;
   datasetVersion?: string | null;
   normalizedInput: Record<string, unknown>;
-  numericOutput: Record<string, unknown>;
+  // Item 11: was Record<string, unknown> -- any shape, any subset of fields,
+  // no embedded process versioning, no canonical rounding. Now a strict,
+  // pre-hashed, runtime-immutable LockedNumericPayload (see
+  // locked-numeric-payload.ts) built once at the call site via
+  // lockNumericPayload(), so numeric_output_hash below is exactly
+  // payload.hash rather than a second, redundant hash of the whole object.
+  numericOutput: LockedNumericPayload;
   investmentPayback: MonthsMetricResult;
   cacPayback?: MonthsMetricResult | null;
   validationStatus: 'PASS' | 'WARN' | 'BLOCK';
@@ -59,10 +66,13 @@ export async function emitAnalysisSnapshot(input: AnalysisSnapshotInput): Promis
       console.warn('[analysis-snapshot] service client unavailable, skipping');
       return;
     }
-    const [inputHash, numericOutputHash] = await Promise.all([
-      sha256Hex(input.normalizedInput),
-      sha256Hex(input.numericOutput),
-    ]);
+    const inputHash = await sha256Hex(input.normalizedInput);
+    // input.numericOutput is a LockedNumericPayload -- already self-hashed by
+    // lockNumericPayload() at the call site, over its own canonicalized
+    // fields + embedded engine/formula-registry versions. Use that hash
+    // directly rather than re-hashing the whole (now-typed, frozen) object,
+    // which would just be a redundant hash-of-a-hash-bearing-object.
+    const numericOutputHash = input.numericOutput.hash;
     const { error } = await client.from('analysis_snapshots').insert({
       correlation_id: input.correlationId,
       analysis_id: input.analysisId ?? null,

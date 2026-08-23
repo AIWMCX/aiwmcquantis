@@ -436,6 +436,34 @@
       "result": "Applied all 4. Re-validated: JSON valid, all 16 entries (2 original + 14 new) have sourceFile, scan:sentinels PASS, full suite 1414 passed unchanged.",
       "run_at": "2026-08-23T03:50:00Z",
       "conclusion": "The CVP field-semantics corrections in particular required re-deriving exact branching logic from contribution-margin.ts rather than trusting the first pass's prose -- breakEvenUnits/breakEvenRevenue can each be individually null even when the surrounding breakEven block's own status is VALUE, a subtlety the first draft's per-field fallbackBehavior text conflated with the block-level status."
+    },
+    {
+      "id": "EV-067",
+      "command": "Before writing anything for item 11 ('AnalysisSnapshot/CanonicalResult/LockedNumericPayload'), read src/lib/analysis-contract.ts and grep for BusinessAnalysisResult's definition in src/types/analysis.ts, then read the one real call site of emitAnalysisSnapshot (grep -rn 'emitAnalysisSnapshot(' supabase/functions/) to see what numericOutput actually contains today.",
+      "result": "BusinessAnalysisResult (types/analysis.ts:349) is a mature, extensively-consumed full-analysis type (financial_analysis, business_plan, marketing_plan, confidence_score, validation, assumption_graph, etc.) already read by hooks, PDF export, the document mapper, and golden-vector tests -- already serving as the canonical result. The one real call site (analyze-business/index.ts:3212) passes an untyped inline object literal with exactly 14 plain-number fields (mrr, totalExpenses, netProfit, netMarginPercent, grossProfit, grossMarginPercent, cac, ltv, ltvCacRatio, paybackMonths, roiYear1Percent, npv3Years, breakEvenRevenue, revenueFor45kProfit) as numericOutput: Record<string, unknown>.",
+      "run_at": "2026-08-23T03:55:00Z",
+      "conclusion": "No new 'CanonicalResult' type needed -- BusinessAnalysisResult already fills that role. The real, confirmed gap is narrower: a strict, versioned, immutable contract for the specific numeric subset that gets snapshotted and hashed, built to match the exact 14 fields already in production use rather than an invented shape."
+    },
+    {
+      "id": "EV-068",
+      "command": "Wrote supabase/functions/_shared/locked-numeric-payload.ts and ran `deno check` against it, then against the modified analysis-snapshot.ts and the full 4500+-line analyze-business/index.ts after wiring the one call site.",
+      "result": "First check attempt on analyze-business/index.ts failed: TS2322, 'roiYear1Percent: calc.roiYear1Percent, npv3Years: calc.npv3Years' -- calc.npv3Years is typed number | undefined in financial-calculator.ts, incompatible with LockedNumericFields.npv3Years: number. Read financial-calculator.ts's npv3Years computation directly (Math.round(npvAccum) on the one unconditional return path, no branch skips it) and confirmed the optional marker doesn't reflect real runtime behavior. Fixed with `calc.npv3Years ?? NaN` (not `?? 0`, which would fabricate a real NPV value) so lockNumericPayload's existing non-finite-value guard throws -- caught non-fatally at the call site -- if that invariant is ever actually violated. Re-ran `deno check` on all 3 files: clean, zero errors.",
+      "run_at": "2026-08-23T04:00:00Z",
+      "conclusion": "Type-checking a supposedly-simple wiring change surfaced a real, previously-unenforced looseness in financial-calculator.ts's own interface. Fixed at the call site without loosening the new strict contract or fabricating a fallback value."
+    },
+    {
+      "id": "EV-069",
+      "command": "deno test --allow-read supabase/functions/_shared/locked-numeric-payload.test.ts (9 tests covering hash determinism, hash sensitivity to any field/engineVersion/formulaRegistryVersion change, floating-point-noise tolerance below the rounding precision, rejection of non-finite fields, genuine runtime immutability via Object.freeze, tamper detection via verifyLockedPayloadIntegrity, and field-order independence)",
+      "result": "running 9 tests from ./supabase/functions/_shared/locked-numeric-payload.test.ts ... ok | 9 passed | 0 failed (18ms)",
+      "run_at": "2026-08-23T04:05:00Z",
+      "conclusion": "All 9 properties verified for real against the actual module, not asserted by inspection -- including the deliberate design property that identical numbers hash differently under a different engineVersion (a locked payload is tied to the process that produced it, not just its values)."
+    },
+    {
+      "id": "EV-070",
+      "command": "bun run lint (full repo) then grep the output for the 4 new/modified file names to check by identity; bunx vitest run src/__tests__ (full existing suite, unaffected by an edge-function-only change but run anyway to confirm)",
+      "result": "Lint: 0 errors, 319 warnings -- identical to baseline; grep for locked-numeric-payload/analysis-snapshot/analyze-business/index against the lint output: zero matches. Full suite: 1414 passed | 23 skipped, unchanged.",
+      "run_at": "2026-08-23T04:08:00Z",
+      "conclusion": "QNT-DEFECT-018 fully verified: the new module type-checks, its own test suite passes for real, the one production call site wiring type-checks after fixing a real pre-existing looseness it surfaced, and neither lint nor the existing test suite regressed."
     }
   ],
 
