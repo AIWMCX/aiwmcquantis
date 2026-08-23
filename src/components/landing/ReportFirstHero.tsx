@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { Loader2, ArrowRight, Lock, Download, Maximize2, Minimize2, X, FileText, ShieldCheck, ChevronDown, DollarSign, Clock, TrendingUp, Gauge, ZoomIn, ZoomOut, Contrast, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useAnalysis } from '@/hooks/useAnalysis';
+import { FreeTierResultCard } from '@/components/analysis/FreeTierResultCard';
 import { recordFunnelEvent, trackCtaClick } from '@/lib/analytics';
 import { SAMPLE_REPORT, HEADLINE_METRICS, validateSampleReportIntegrity } from '@/data/sampleReport';
 import { SampleReportPages, type Density } from './SampleReportPages';
@@ -56,6 +57,7 @@ export function ReportFirstHero() {
     idea, setIdea,
     location, setLocation,
     handleSubmit, isLoading, analysisId, result,
+    freeTierSummary, reset,
   } = useAnalysis();
 
   const [progressStep, setProgressStep] = useState(0);
@@ -798,6 +800,9 @@ export function ReportFirstHero() {
 
           {/* === RIGHT: inputs === */}
           <div className="lg:sticky lg:top-24">
+            {!result && freeTierSummary ? (
+              <FreeTierResultCard summary={freeTierSummary} onReset={reset} />
+            ) : (
             <form
               onSubmit={onSubmit}
               className="rounded-2xl p-5 sm:p-6"
@@ -908,10 +913,11 @@ export function ReportFirstHero() {
                   <span>·</span>
                   <span>97,500 benchmarks</span>
                   <span>·</span>
-                  <span>Multi-model verified</span>
+                  <span>Multi-model cross-checked</span>
                 </div>
               </div>
             </form>
+            )}
           </div>
         </div>
       </div>
