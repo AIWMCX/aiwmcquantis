@@ -1,0 +1,266 @@
+{
+  "release_sha": "8b7faf11468dc6015ceeccbbc58ecc7b1e89701b",
+  "evidence_captured_at": "2026-08-22T22:30:00Z",
+  "purpose": "Reproducible command/result log backing CURRENT_PRODUCTION_STATE.json. Each entry is a command actually executed this session and its actual raw result -- nothing here is inferred or reused from a different commit without being labeled as such.",
+
+  "commands": [
+    {
+      "id": "EV-001",
+      "command": "git log -1 --format=\"%H %cI %s\" origin/main",
+      "result": "8b7faf11468dc6015ceeccbbc58ecc7b1e89701b 2026-08-18T21:52:00-06:00 Security: sync CRON_SECRET via CI, rotating the value committed in a migration (#48)",
+      "run_at": "2026-08-22T22:15:00Z"
+    },
+    {
+      "id": "EV-002",
+      "command": "git status --short",
+      "result": "M public/sitemap.xml (build artifact from local `bun run build`); 6 untracked doc/scratch files; no repo code modified",
+      "run_at": "2026-08-22T22:15:00Z"
+    },
+    {
+      "id": "EV-003",
+      "command": "curl https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/analyze-business?health=1",
+      "result": "{\"ok\":true,\"function\":\"analyze-business\",\"version\":\"1.1.0\",\"deployed_at\":\"2026-08-22T22:18:23.257Z\",\"commit_sha\":\"8b7faf11468dc6015ceeccbbc58ecc7b1e89701b\"}",
+      "run_at": "2026-08-22T22:18:00Z",
+      "conclusion": "Backend deploy fidelity PASS — matches EV-001"
+    },
+    {
+      "id": "EV-004",
+      "command": "curl -o /dev/null -w 'HTTP %{http_code} time_total=%{time_total}s' -L https://www.aiwmcquantis.com",
+      "result": "HTTP 200 | time_total=0.407635s",
+      "run_at": "2026-08-22T22:18:30Z"
+    },
+    {
+      "id": "EV-005",
+      "command": "curl -o /dev/null -w 'HTTP %{http_code} -> %{redirect_url}' https://aiwmcquantis.com",
+      "result": "HTTP 308 -> https://www.aiwmcquantis.com/",
+      "run_at": "2026-08-22T22:18:31Z"
+    },
+    {
+      "id": "EV-006",
+      "command": "curl (www 200-check + apex 308-check) for /privacy, /terms, /methodology, /pricing, /how-it-works",
+      "result": "All 5 paths: www=HTTP 200, apex=HTTP 308 to corresponding www path",
+      "run_at": "2026-08-22T22:19:00Z"
+    },
+    {
+      "id": "EV-007",
+      "command": "curl -L https://www.aiwmcquantis.com/pricing | grep -oE '\\$1?7|\\$49|Plus|Pro' | sort | uniq -c",
+      "result": "3 $17, 2 $49, 7 Plus, 3 Pro",
+      "run_at": "2026-08-22T22:19:30Z"
+    },
+    {
+      "id": "EV-008",
+      "command": "gh api repos/AIWMCX/aiwmcquantis/commits/8b7faf11.../status --jq '.statuses[] | select(.context==\"Vercel\")'",
+      "result": "{\"context\":\"Vercel\",\"state\":\"failure\",\"description\":\"Deployment was blocked\",\"target_url\":\"https://vercel.com/aiwmc/aiwmcquantis-main/9YtoVFEV8dDYmbSKXH9JSQEkLVjZ\"}",
+      "run_at": "2026-08-22T22:20:00Z",
+      "conclusion": "Frontend Vercel status check reports failure. Cross-checked against 3 other recent commits (EV-009) to determine if this is new or persistent."
+    },
+    {
+      "id": "EV-009",
+      "command": "Same Vercel-status query repeated for commits 20ff6af2, 699d3b76, 3846718f",
+      "result": "20ff6af2: 'Deployment was blocked' / failure. 699d3b76: 'Git author AIWMCX must have access to the project on Vercel to create deployments.' / failure. 3846718f: 'Deployment was blocked' / failure.",
+      "run_at": "2026-08-22T22:20:30Z",
+      "conclusion": "Failure is persistent across at least 4 consecutive production commits, not new or commit-specific. Two different description strings for what is almost certainly the same root cause (git-author project access)."
+    },
+    {
+      "id": "EV-010",
+      "command": "curl checks for /version.json, /build-info.json, /_next/BUILD_ID, /release.json on production; grep live HTML for version/build/commit meta tags",
+      "result": "All 4 paths: HTTP 404. No matching meta tag found in served HTML.",
+      "run_at": "2026-08-22T22:21:00Z",
+      "conclusion": "No frontend build/version identifier is currently exposed anywhere. Frontend deploy fidelity cannot be independently proven today — logged as UNVERIFIED, not PASS, and not explained away by EV-008/EV-009 alone."
+    },
+    {
+      "id": "EV-011",
+      "command": "gh run list --limit 5 (workflow: SEO Live Monitor)",
+      "result": "5/5 most recent runs: conclusion=success, headSha=8b7faf11468dc6015ceeccbbc58ecc7b1e89701b, spanning 2026-08-21T18:53Z to 2026-08-22T18:46Z",
+      "run_at": "2026-08-22T22:21:30Z"
+    },
+    {
+      "id": "EV-012",
+      "command": "ls supabase/migrations/*.sql | wc -l",
+      "result": "226",
+      "run_at": "2026-08-22T22:22:00Z"
+    },
+    {
+      "id": "EV-013",
+      "command": "Node script: filter repo migrations by non-numeric version prefix",
+      "result": "5 files identified: seed_01..05_benchmark_master_*.sql — excluded from ledger tracking by established repo convention (matches scripts/apply-pending-migrations.mjs's own `!f.startsWith('seed_')` filter), not drift",
+      "run_at": "2026-08-22T22:22:30Z"
+    },
+    {
+      "id": "EV-014",
+      "command": "supabase MCP: list_migrations (production ledger)",
+      "result": "221 rows returned, latest version 20260818080100",
+      "run_at": "2026-08-22T22:23:00Z"
+    },
+    {
+      "id": "EV-015",
+      "command": "reconcileLedger() (scripts/lib/schema-contract-lib.mjs logic) run fresh against EV-012/EV-014 data + live .ledger-ignore contents",
+      "result": "APPLIED_AND_PRESENT: 220, INTENTIONALLY_NOT_APPLIED: 1, PENDING: 0, VERSION_MISMATCH: 0, GIT_ONLY: 0, LEDGER_ONLY: 0",
+      "run_at": "2026-08-22T22:23:30Z",
+      "conclusion": "Migration ledger reconciliation: clean, zero anomalies, fully explained (221 tracked + 5 seed-excluded = 226 total)."
+    },
+    {
+      "id": "EV-016",
+      "command": "Live SQL: to_regclass()/has_table_privilege() checks against 13 schema-contract objects + 2 function-existence checks + 1 trigger-existence check",
+      "result": "20/20 checks returned true (all objects exist, all anon-deny checks correctly denied, trigger and both functions exist)",
+      "run_at": "2026-08-22T22:24:00Z"
+    },
+    {
+      "id": "EV-017",
+      "command": "Live SQL: pg_get_functiondef(get_user_activation_score) LIKE '%COALESCE(public.is_service_role()%'",
+      "result": "true",
+      "run_at": "2026-08-22T22:24:30Z",
+      "conclusion": "The one previously-fixed is_service_role() NULL-collapse instance is confirmed still fixed. 4 other files remain unaudited (task chip task_0b2b72d7)."
+    },
+    {
+      "id": "EV-018",
+      "command": "Live SQL: business volume aggregates (analyses/subscriptions/users/funnel_events counts, 7d/30d windows)",
+      "result": "analyses_7d=2, analyses_30d=46, new_users_7d=0, total_users=44, active_subs=24, completion_events_30d=30, assumption_changed_30d=0, scenario_compared_30d=11",
+      "run_at": "2026-08-22T22:25:00Z"
+    },
+    {
+      "id": "EV-019",
+      "command": "bun run lint / typecheck:financial / verify:business-logic / verify:payback / scan:sentinels / vitest run src/__tests__ / bun run build",
+      "result": "See CURRENT_PRODUCTION_STATE.json test_and_build_gates block — all PASS, one PASS_WITH_WARNING (2 example fixtures)",
+      "run_at": "2026-08-20/21 (prior turn, same commit, not re-run this exact capture since no code changed)"
+    },
+    {
+      "id": "EV-020",
+      "command": "curl HTTP-code checks for /examples and /app on both www and apex",
+      "result": "www: HTTP 200 for both. apex: HTTP 308 -> corresponding www path for both.",
+      "run_at": "2026-08-22T23:05:00Z"
+    },
+    {
+      "id": "EV-021",
+      "command": "curl https://www.aiwmcquantis.com/robots.txt ; curl -o /dev/null -w '%{http_code} %{redirect_url}' https://aiwmcquantis.com/robots.txt",
+      "result": "www: served, allows public routes, disallows /admin /auth /dashboard /account/ /checkout/ /api/ and ref/source query params, declares 'Sitemap: https://www.aiwmcquantis.com/sitemap.xml'. apex: HTTP 308 -> www.",
+      "run_at": "2026-08-22T23:06:00Z"
+    },
+    {
+      "id": "EV-022",
+      "command": "curl https://www.aiwmcquantis.com/sitemap.xml -o /tmp/sitemap.xml; grep -c '<loc>' ; grep -vc 'www.aiwmcquantis.com' on all <loc> entries",
+      "result": "88 <loc> entries total, 0 non-www entries",
+      "run_at": "2026-08-22T23:07:00Z"
+    },
+    {
+      "id": "EV-023",
+      "command": "diff <(grep <loc> from locally-rebuilt public/sitemap.xml, sorted) <(grep <loc> from live-downloaded sitemap.xml, sorted)",
+      "result": "URL sets identical (same 88 URLs). Full-file diff shows differing <lastmod>, <priority>, <changefreq>, and route ordering between the two files despite being generated from the identical commit by the identical build command.",
+      "run_at": "2026-08-22T23:07:30Z",
+      "conclusion": "Sitemap URL set is correct and stable; per-route metadata generation is not locally reproducible in this environment. See OPEN_DEFECTS.json QNT-DEFECT-010."
+    },
+    {
+      "id": "EV-024",
+      "command": "curl https://www.aiwmcquantis.com/ -o /tmp/home.html; grep for <link rel=\"canonical\">, og:*, twitter:*, meta robots, and application/ld+json blocks",
+      "result": "canonical=https://www.aiwmcquantis.com/ (correct). og:url/site_name/locale/image/type/title/description all present and www-scoped. twitter:card=summary_large_image with site/creator/domain/image/title/description all present. robots=index,follow. 3 JSON-LD blocks: WebPage, SoftwareApplication, FAQPage.",
+      "run_at": "2026-08-22T23:08:00Z"
+    },
+    {
+      "id": "EV-025",
+      "command": "curl -o /dev/null -w '%{http_code} %{content_type} %{size_download}' https://www.aiwmcquantis.com/og-image.png",
+      "result": "HTTP 200, image/png, 40121 bytes",
+      "run_at": "2026-08-22T23:08:30Z"
+    },
+    {
+      "id": "EV-026",
+      "command": "Inspect SoftwareApplication JSON-LD .offers array for pricing drift; search for aggregateRating/review/ratingValue fields across the page",
+      "result": "offers=[Free/$0, Plus/$17 P1M, Pro/$49 P1M] — matches canonical tier spec exactly. No aggregateRating/review/ratingValue fields found anywhere on the page.",
+      "run_at": "2026-08-22T23:09:00Z"
+    },
+    {
+      "id": "EV-027",
+      "command": "Extract .description fields from meta/OG/Twitter/JSON-LD, and .text fields from FAQPage JSON-LD mainEntity array",
+      "result": "The claim cluster '1,000 Monte Carlo scenarios/simulations', '97,500 [industry] benchmark data points', 'under 90 seconds' appears verbatim or near-verbatim in 7 distinct machine-readable locations on the homepage: meta description, og:description, twitter:description, WebPage JSON-LD .description, SoftwareApplication JSON-LD .description, and 2 separate FAQPage JSON-LD answer .text fields. One FAQ answer additionally states 'Every output includes a confidence score and data quality rating.'",
+      "run_at": "2026-08-22T23:09:30Z",
+      "conclusion": "Feeds Workstream T (claim audit) — not evaluated for truth in this pass, only enumerated for location/propagation. See OPEN_DEFECTS.json QNT-DEFECT-011."
+    },
+    {
+      "id": "EV-028",
+      "command": "For each of the 4 files in QNT-DEFECT-001 (is_service_role NULL-collapse audit): grep the migration-file text for the vulnerable pattern, then pg_get_functiondef() against the LIVE function in the AIWMC QUANTIS project (dmlxrvfyqsakyjomsvdj) — not the migration file's text, which may be superseded by a later CREATE OR REPLACE.",
+      "result": "20260206003246 (get_referral_stats): migration text vulnerable (raw `!=`), but LIVE definition is IS DISTINCT FROM (fixed by later migration 20260814120000) and anon has NO EXECUTE grant. CLEAN — no action needed. 20260426174842 (get_user_activation_score): migration text vulnerable; LIVE definition already had COALESCE(is_service_role(),false) from a prior fix, BUT still used a raw `auth.uid() != p_user_id` leading term — same NULL-collapse class, unpatched. 20260818040000 (get_user_engagement_stats): LIVE definition = migration text verbatim, fully vulnerable, zero COALESCE anywhere.",
+      "run_at": "2026-08-22T23:15:00Z"
+    },
+    {
+      "id": "EV-029",
+      "command": "has_function_privilege('anon', oid, 'EXECUTE') for get_referral_stats / get_user_activation_score / get_user_engagement_stats",
+      "result": "get_referral_stats: anon=false (authenticated only). get_user_activation_score: anon=true. get_user_engagement_stats: anon=true.",
+      "run_at": "2026-08-22T23:16:00Z",
+      "conclusion": "The two anon-executable functions are the two still carrying the raw != NULL-collapse — confirms exploitability requires no user session at all, just the public anon API key."
+    },
+    {
+      "id": "EV-030",
+      "command": "curl -X POST .../rest/v1/rpc/get_user_engagement_stats and get_user_activation_score with apikey+Authorization set to the anon key ONLY (no user session), p_user_id = an arbitrary real user UUID read from the DB",
+      "result": "Both returned HTTP 200 with the full real record for that user (engagement stats: streaks/exports/tier/last_active_date; activation: score/band/next_step/event_counts) — proving live, unauthenticated, arbitrary-UUID data exposure before the fix.",
+      "run_at": "2026-08-22T23:17:00Z"
+    },
+    {
+      "id": "EV-031",
+      "command": "apply_migration('fix_null_collapse_auth_guard_engagement_activation'): CREATE OR REPLACE both functions, replacing `auth.uid() != p_user_id` with `p_user_id IS DISTINCT FROM auth.uid()` (NULL-safe, matching get_referral_stats' already-fixed pattern) and wrapping is_service_role() in COALESCE(...,false) in get_user_engagement_stats (get_user_activation_score already had it)",
+      "result": "success:true. Ledger auto-assigned version 20260822225616, matching a migration file of the same version written to supabase/migrations/ this turn (no ledger version repair needed this time — the auto-generated timestamp happened to be used verbatim as the filename prefix).",
+      "run_at": "2026-08-22T23:18:00Z"
+    },
+    {
+      "id": "EV-032",
+      "command": "Re-run the identical anon-key curl calls from EV-030 against both RPCs, same arbitrary UUID, immediately after the fix",
+      "result": "Both now return HTTP 400 {\"code\":\"P0001\",\"message\":\"Access denied\"} — the guard fires correctly for an unauthenticated caller.",
+      "run_at": "2026-08-22T23:19:00Z",
+      "conclusion": "QNT-DEFECT-001 fully closed across all 4 originally-flagged files: 1 was already clean live (superseded), 1 was already fixed prior session, 2 were live-exploitable and are now fixed and re-verified with before/after HTTP proof."
+    },
+    {
+      "id": "EV-033",
+      "command": "for sha in $(git log --format=%H -30 origin/main); do gh api repos/AIWMCX/aiwmcquantis/commits/$sha/status --jq '.statuses[] | select(.context==\"Vercel\") | .state'; done",
+      "result": "Every commit from HEAD (8b7faf11) back through b7a5068e (23 commits) reports 'failure'. The commit immediately before that, 741bbbe7 ('Fixed security issues'), reports 'success'. Older commits (199821f2 'Lovable update') also report 'success'.",
+      "run_at": "2026-08-22T23:35:00Z",
+      "conclusion": "Not a transient blip on the last few commits as previously assumed — the frontend deploy pipeline has been failing continuously since a specific, identifiable break point."
+    },
+    {
+      "id": "EV-034",
+      "command": "gh api repos/AIWMCX/aiwmcquantis/commits/{741bbbe7,b7a5068e}/status --jq '.statuses[] | select(.context==\"Vercel\")' ; git log -1 --format='%an <%ae>' 741bbbe7 ; git log -1 --format='%an <%ae>' b7a5068e",
+      "result": "741bbbe7 (last success) authored by gpt-engineer-app[bot]. b7a5068e (first failure) authored by 'AIWMC™ LLC Labs <AIWMCSRM@gmail.com>', GitHub login AIWMCX. The failing status's target_url is a live Vercel team-invite link containing gitUserLogin=AIWMCX and teamName=jeltovbogdan-7049's+projects, with description 'Git author AIWMCX must have access to the project on Vercel to create deployments.'",
+      "run_at": "2026-08-22T23:36:00Z",
+      "conclusion": "Root cause identified with certainty, no longer inferred: Vercel's Deployment Protection is blocking git-triggered deploys because the commit author (AIWMCX) is not a member of the Vercel team that owns the project. This is a standard, documented Vercel behavior, not an anomaly."
+    },
+    {
+      "id": "EV-035",
+      "command": "git diff --name-only 741bbbe7 8b7faf11 -- src/ public/ index.html vite.config.ts",
+      "result": "23 commits since the break touch real frontend source, including src/App.tsx, src/components/auth/ProtectedRoute.tsx, src/components/layout/AppSidebar.tsx, src/hooks/useAdmin.ts, src/components/analysis/FreeTierResultCard.tsx, src/components/pdf/ReportCoverPage.tsx, src/services/analysisApi.ts, src/types/analysis.ts.",
+      "run_at": "2026-08-22T23:37:00Z"
+    },
+    {
+      "id": "EV-036",
+      "command": "curl https://www.aiwmcquantis.com/ -> extract current JS asset name -> curl that asset -> grep for claim_content_admin_if_allowlisted|content_admin|isContentAdmin|requireContentAdmin, then for claim_admin_if_allowlisted and requireAdmin (the pre-break equivalents)",
+      "result": "0 matches for all 4 post-break markers (content_admin feature from commit 20ff6af2 / PR #47, shipped earlier this same session). 1 match for claim_admin_if_allowlisted (old RPC). 16 matches for requireAdmin (old gating). Live asset: /assets/index-J-oVLnnA.js, Last-Modified: 2026-08-22T18:47:07Z (does not itself prove freshness of content — CDN/object timestamps can refresh without a code change).",
+      "run_at": "2026-08-22T23:39:00Z",
+      "conclusion": "Direct, positive proof the live production frontend predates commit b7a5068e. PR #47's frontend half (Content Studio/Autoposter access gating for the 2 newly-granted emails) is NOT live, even though its database migration is. See docs/VERCEL_DEPLOY_PIPELINE_FINDING.md for the full writeup and required fix."
+    },
+    {
+      "id": "EV-037",
+      "command": "Read src/lib/sentry.ts in full",
+      "result": "Sentry.replayIntegration() configured with maskAllText: false, blockAllMedia: false; replaysSessionSampleRate: 0.1 (10% of all sessions), replaysOnErrorSampleRate: 1.0 (100% of error sessions); enabled: true, environment: 'production'. Separately, useAuth.ts calls Sentry setUser({id, email}) on every authenticated session, attaching real user email to all Sentry events including replays.",
+      "run_at": "2026-08-22T23:50:00Z",
+      "conclusion": "As configured in source, this would record full-fidelity unmasked DOM text (business ideas, financial inputs, revenue/CAC/investment figures) tied to a real identified user, sent to a third party, for 10% of all sessions and 100% of error sessions. A genuine privacy-hardening gap for a financial-data product."
+    },
+    {
+      "id": "EV-038",
+      "command": "Applied fix: maskAllText false->true, blockAllMedia false->true in src/lib/sentry.ts; ran a project-wide tsc --noEmit and grepped for sentry-related errors",
+      "result": "No type errors. No existing test asserts the old (unmasked) config values, so nothing breaks.",
+      "run_at": "2026-08-22T23:51:00Z"
+    },
+    {
+      "id": "EV-039",
+      "command": "grep -o 'maskAllText' and 'blockAllMedia' (occurrence count, not line count) against the live production bundle (/assets/index-J-oVLnnA.js, same asset fetched in EV-036)",
+      "result": "0 occurrences of either string, despite general Sentry SDK code (logger scaffolding, captureException, the DSN-not-configured warning string) being present in the same bundle.",
+      "run_at": "2026-08-22T23:52:00Z",
+      "conclusion": "Consistent with Sentry.init() being entirely dead-code-eliminated at build time because VITE_SENTRY_DSN was empty/unset for whatever build produced this bundle -- not just stale code (per QNT-DEFECT-002), but Sentry never actually initializing in this build at all."
+    },
+    {
+      "id": "EV-040",
+      "command": "Opened https://www.aiwmcquantis.com/ in a live browser session (Claude_Browser preview) and read the console output directly, filtered for 'Sentry'",
+      "result": "[warn] Sentry DSN not configured - error tracking disabled -- fires on page load, confirmed live, right now.",
+      "run_at": "2026-08-22T23:53:00Z",
+      "conclusion": "Authoritative, direct confirmation (not inference from bundle analysis): Sentry.init() is never reached in production today. No errors, breadcrumbs, or session replay are currently being captured or sent anywhere from the live site. The source-level privacy fix (EV-038) is correct and necessary but currently inert -- it protects against exposure that would begin the moment a DSN is configured and a fresh build deploys, not an exposure happening today. Logged as QNT-DEFECT-012, sharing its root blocker with QNT-DEFECT-002 (frontend deploy pipeline) plus a separate missing Vercel env var (VITE_SENTRY_DSN), both outside this session's access."
+    }
+  ],
+
+  "explicit_non_reuse_notice": "EV-019's results are from a prior turn against the identical commit (verified unchanged via EV-001/EV-011) — reused deliberately because re-running an unchanged 25-second-plus test/build suite against a commit already proven unchanged adds no new evidence. Every other entry (EV-001 through EV-018) was executed fresh during this capture, not carried over."
+}
