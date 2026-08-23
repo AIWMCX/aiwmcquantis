@@ -18,7 +18,7 @@
         "supabase/migrations/20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql",
         "supabase/migrations/20260822225616_fix_null_collapse_auth_guard_engagement_activation.sql"
       ],
-      "next_action": "Fix applied to live production DB, verified, and the migration file committed/pushed via PR #49. Only remaining lower-priority follow-on: sweep the rest of the schema for any other raw `auth.uid() != ...` or unwrapped `is_service_role()` guards outside this specific 4-file list — not yet done.",
+      "next_action": "Fix applied to live production DB, verified, and the migration file committed/pushed via PR #49. The repo-wide sweep for other instances of this pattern has now been done (item 8, building the Semgrep rule) -- see QNT-DEFECT-015, which found and fixed 2 more real instances (get_subscription_summary, get_referral_stats) and adds a permanent CI gate so this bug class can't regress silently again.",
       "owner": "backend/security",
       "evidence_ids": ["EV-017", "EV-028", "EV-029", "EV-030", "EV-031", "EV-032"]
     },
@@ -178,22 +178,39 @@
       "next_action": "This is genuinely a pilot, not a rollout -- next steps require a product/business decision this session can't make: 1) Choose a tracing backend/vendor (Honeycomb, Grafana Tempo, Datadog, etc.) and provision OTEL_EXPORTER_OTLP_ENDPOINT as a Supabase Edge Function secret. 2) Once chosen, extend traced() wrapping to more call sites incrementally (the AI narrator call, calculateStrictFinancials, other edge functions) -- deliberately not done broadly yet since there's no backend to view the traces in, and touching more of the core engine without that payoff isn't justified. 3) Separately and NOT yet resolved this pass: it's unknown whether the backend's OWN Sentry integration (_shared/logger.ts's SENTRY_DSN, a server-side secret, distinct from the frontend's VITE_SENTRY_DSN found dark in QNT-DEFECT-012) is actually configured in Supabase Edge Function secrets -- no tool available this session lists edge-function secret names, and no CI secret-sync step references SENTRY_DSN the way CRON_SECRET has one, which is circumstantial evidence it may be unset too, but this is NOT confirmed either way and should not be assumed.",
       "owner": "backend/observability (vendor choice is a product/budget decision, not an engineering one)",
       "evidence_ids": ["EV-046", "EV-047", "EV-048", "EV-049"]
+    },
+    {
+      "id": "QNT-DEFECT-015",
+      "severity": "P0",
+      "domain": "SECURITY",
+      "title": "Building the Semgrep NULL-collapse rule surfaced 2 more real instances of QNT-DEFECT-001's bug class -- 1 was a live, anon-exploitable subscription-data leak, now fixed; local Semgrep execution itself is blocked in this session's environment",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Item 8 (Semgrep, per the reconciled tomorrow list) was scoped to add .semgrep/quantis-rules.yml codifying the QNT-DEFECT-001 bug class as a permanent CI rule. Installing semgrep (pip install semgrep, v1.174.0 -- no prior local tooling existed) succeeded. `semgrep --help` returns instantly (the CLI wrapper loads fine), but every invocation of `--version` or `scan` hangs indefinitely and never returns -- confirmed across 7+ attempts with different flags including --metrics=off, --debug, piped stdin, and a 45s timeout -- in this session's Windows/git-bash sandbox; root cause not fully diagnosed (network reachability to semgrep.dev confirmed fine via curl, so not a simple blocked-egress issue; most likely an OCaml semgrep-core subprocess incompatibility specific to this sandboxed environment). No Docker daemon available as a fallback either. Rule correctness could therefore NOT be verified by actually running semgrep -- instead verified by proxy: wrote grep-based regex approximations of both custom patterns and ran them against known ground truth (the already-confirmed-vulnerable and already-confirmed-fixed function definitions from QNT-DEFECT-001), confirming the patterns match unsafe code and do not match the safe IS DISTINCT FROM / COALESCE forms. Running that same proxy check across the ENTIRE current repo (not just the 4 previously-audited files) surfaced 2 more real instances: (1) get_referral_stats still had an unwrapped is_service_role() despite its auth.uid()!=  half being fixed earlier this session -- a narrow, likely-unreachable-via-normal-HTTP gap (PostgREST always sets a role claim) but fixed anyway for consistency, applied directly without further discussion since it required no live-exploit confirmation. (2) get_subscription_summary(p_user_id) -- a function never audited this session at all, created in migration 20260205051029 and never redefined since -- had the identical raw auth.uid() != p_user_id AND NOT has_role(...) guard, WAS anon-EXECUTE-granted, and was CONFIRMED LIVE EXPLOITABLE via direct curl (HTTP 200, real subscription plan_id/status/period dates for an arbitrary user_id, zero authentication) before being fixed and re-verified closed (HTTP 400). This finding required explicit user approval after an auto-mode classifier blocked the fix-application call, given it was a fresh, previously-undiscussed live exploit rather than a pre-scoped item.",
+      "affected_files": [
+        ".semgrep/quantis-rules.yml (new)",
+        ".semgrepignore (new -- documents every excluded historical migration file and why)",
+        ".github/workflows/semgrep.yml (new -- custom rules blocking, community rulesets informational-only)",
+        "supabase/migrations/20260823020929_coalesce_is_service_role_get_referral_stats.sql (new)",
+        "supabase/migrations/20260823021301_fix_null_collapse_get_subscription_summary.sql (new)"
+      ],
+      "next_action": "Custom rule genuinely verified working on CI (not just proxy-verified): first real run found 0 findings across 213 files; after CodeRabbit correctly flagged 3 own-fix-migration files being excluded only because of their comments (a category-exclusion risk), those files were unexcluded and their comments reworded, and a second real CI run confirmed 0 findings across 216 files with the corrected 7-file ignore list. Remaining, lower-priority: 1) The community-ruleset job (p/security-audit, p/typescript, p/javascript) is deliberately non-blocking (continue-on-error) because it has never been triaged for false-positive noise -- review its output and either fix genuine findings or promote specific rules to the blocking job once a clean baseline is established; do not silently leave it informational forever. 2) Diagnose why semgrep-core hangs in this local sandbox if local verification is ever needed again (not attempted further this session given time already spent -- 7+ failed attempts).",
+      "owner": "backend/security",
+      "evidence_ids": ["EV-050", "EV-051", "EV-052", "EV-053", "EV-054", "EV-055", "EV-056"]
     }
   ],
 
   "summary_counts": {
-    "P0": 1,
+    "P0": 2,
     "P1": 2,
     "P2": 7,
     "P3": 4,
-    "total": 14,
+    "total": 15,
     "blocked_status_count": 1,
-    "verified_complete_count": 1,
-    "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed."
+    "verified_complete_count": 2,
+    "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
   },
 
   "not_yet_investigated_this_capture": [
-    "Semgrep SAST (Gitleaks now installed and wired into CI as of item 6 — Semgrep still not started)",
     "Live browser walkthrough of the core visitor journey",
     "Full contract.json object coverage beyond the 20 spot-checked entries"
   ]
