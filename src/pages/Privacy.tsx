@@ -87,8 +87,8 @@ export default function Privacy() {
           </p>
           <ul className="list-disc pl-6 text-muted-foreground space-y-2">
             <li><strong>Stripe</strong> - Payment processing (PCI-DSS compliant)</li>
-            <li><strong>Google AI (Gemini)</strong> - Document analysis and AI features</li>
-            <li><strong>Anthropic Claude</strong> - Business analysis generation</li>
+            <li><strong>DeepSeek</strong> - Free-tier business analysis generation</li>
+            <li><strong>Anthropic Claude</strong> - Plus/Pro business analysis, narrative generation, and cross-check validation</li>
           </ul>
           <p className="text-muted-foreground leading-relaxed">
             These services have their own privacy policies governing how they handle your data.

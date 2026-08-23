@@ -24,7 +24,7 @@ export function ResultsTopBar({
   isGeneratingPdf,
   isSharing,
 }: ResultsTopBarProps) {
-  const confidenceLabel = confidenceScore >= 90 ? 'VERIFIED' : confidenceScore >= 70 ? 'CONFIDENT' : 'ESTIMATED';
+  const confidenceLabel = confidenceScore >= 90 ? 'HIGH CONFIDENCE' : confidenceScore >= 70 ? 'CONFIDENT' : 'ESTIMATED';
 
   return (
     <div className="sticky top-0 z-[100] h-14 flex items-center border-b border-[var(--q-border-subtle)] px-4"

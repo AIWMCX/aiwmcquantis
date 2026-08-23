@@ -9,7 +9,7 @@ function ConfidenceRing({ score }: { score: number }) {
   const circ = 2 * Math.PI * r;
   const offset = circ * (1 - score / 100);
   const color = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : 'var(--q-status-orange)';
-  const tier = score >= 80 ? 'VERIFIED' : score >= 60 ? 'CONFIRMED' : score >= 40 ? 'ESTIMATED' : 'UNCERTAIN';
+  const tier = score >= 80 ? 'MODEL READY' : score >= 60 ? 'CONFIRMED' : score >= 40 ? 'ESTIMATED' : 'UNCERTAIN';
   const tierColor = score >= 80 ? 'var(--q-status-green)' : score >= 60 ? 'var(--q-accent-primary)' : score >= 40 ? 'var(--q-status-yellow)' : '#F87171';
 
   return (

@@ -19,7 +19,7 @@ const SYSTEMS: Omit<SystemCheck, 'status' | 'latencyMs'>[] = [
   { name: 'Analysis Engine', description: 'Core /analyze-business edge function' },
   { name: 'Authentication', description: 'Sign in, sign up, session validation' },
   { name: 'Database', description: 'Subscriptions, usage tracking, history' },
-  { name: 'AI Provider Gateway', description: 'GPT-5 + Gemini consensus engine' },
+  { name: 'AI Provider Gateway', description: 'DeepSeek + Claude analysis pipeline' },
   { name: 'Stripe Billing', description: 'Checkout, webhooks, subscription sync' },
   { name: 'Document Generation', description: 'PDF export, business plan templates' },
 ];
