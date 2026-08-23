@@ -1,0 +1,168 @@
+{
+  "captured_at": "2026-08-22T22:30:00Z",
+  "release_sha_at_capture": "8b7faf11468dc6015ceeccbbc58ecc7b1e89701b",
+  "status_values": ["VERIFIED_COMPLETE", "IMPLEMENTED_NOT_DEPLOYED", "PARTIALLY_COMPLETE", "BLOCKED", "NOT_STARTED", "NOT_APPLICABLE"],
+
+  "defects": [
+    {
+      "id": "QNT-DEFECT-001",
+      "severity": "P1",
+      "domain": "SECURITY",
+      "title": "is_service_role() / raw != NULL-collapse authorization pattern — 4-file audit, 2 live exploits found and fixed",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "public.is_service_role() returns SQL NULL (not false) when neither JWT claim is set, and a raw `auth.uid() != p_user_id` guard evaluates NULL for any unauthenticated (anon) caller — both collapse a NOT-wrapped AND-chain guard to NULL, which PL/pgSQL's IF treats as false, silently bypassing the RAISE EXCEPTION. Live audit of the LIVE function definitions (not migration-file text) across all 4 originally-flagged files found: (1) get_referral_stats — migration text vulnerable but superseded by a later migration using IS DISTINCT FROM, and anon has no EXECUTE grant anyway — CLEAN, no action. (2) get_user_activation_score — had a prior partial fix (COALESCE around is_service_role) but still carried the raw auth.uid() != p_user_id leading term, and anon DOES have EXECUTE — CONFIRMED LIVE EXPLOITABLE via direct curl (HTTP 200, real data, arbitrary UUID, zero auth) — FIXED. (3) get_user_engagement_stats — fully unpatched, anon-executable — CONFIRMED LIVE EXPLOITABLE the same way — FIXED. Both fixes applied via migration 20260822225616 (IS DISTINCT FROM + COALESCE), re-verified with a second identical curl showing HTTP 400 Access denied post-fix.",
+      "affected_files": [
+        "supabase/migrations/20260818040000_restore_engagement_notifications_lifecycle_email.sql",
+        "supabase/migrations/20260814120000_p0_track_a_referral_function_access.sql",
+        "supabase/migrations/20260426174842_b35ca146-b2e0-4d2d-aac7-21393f3d12eb.sql",
+        "supabase/migrations/20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql",
+        "supabase/migrations/20260822225616_fix_null_collapse_auth_guard_engagement_activation.sql"
+      ],
+      "next_action": "Fix applied to live production DB, verified, and the migration file committed/pushed via PR #49. Only remaining lower-priority follow-on: sweep the rest of the schema for any other raw `auth.uid() != ...` or unwrapped `is_service_role()` guards outside this specific 4-file list — not yet done.",
+      "owner": "backend/security",
+      "evidence_ids": ["EV-017", "EV-028", "EV-029", "EV-030", "EV-031", "EV-032"]
+    },
+    {
+      "id": "QNT-DEFECT-002",
+      "severity": "P0",
+      "domain": "RELEASE_ENGINEERING",
+      "title": "CONFIRMED: frontend Vercel deploy pipeline has been blocked for 23+ commits — production frontend is running stale, pre-break code",
+      "status": "NOT_STARTED",
+      "detail": "Reclassified up from P1 after item 4's investigation replaced inference with proof. Root cause is no longer ambiguous: every commit since b7a5068e (23 commits, HEAD=8b7faf11) fails the GitHub 'Vercel' status check with an explicit message -- 'Git author AIWMCX must have access to the project on Vercel to create deployments' (target_url is a live Vercel team-invite link for team jeltovbogdan-7049's projects). The last SUCCESSFUL deploy (741bbbe7) was authored by gpt-engineer-app[bot]; every commit since was authored as AIWMCX, which the invite link itself confirms lacks Vercel team membership -- Vercel's Deployment Protection blocks git-triggered deploys from non-team-member authors by design. Directly proved with the live bundle: fetched https://www.aiwmcquantis.com's current JS asset and grepped it -- 0 matches for claim_content_admin_if_allowlisted/isContentAdmin/requireContentAdmin (the content_admin feature shipped in PR #47, commit 20ff6af2, earlier this same session), but 1 match for the OLD claim_admin_if_allowlisted and 16 matches for OLD requireAdmin. The live frontend is unambiguously the pre-b7a5068e build. Full evidence and required-action detail in docs/VERCEL_DEPLOY_PIPELINE_FINDING.md.",
+      "next_action": "3 viable fixes, in order of discovery: 1) Grant GitHub identity AIWMCX access on the Vercel team via the invite link already present in the GitHub status check target_url (requires the Vercel team owner to act in the Vercel dashboard). 2) Relax Vercel Project Settings -> Git -> Deployment Protection for git-author requirements (same dashboard access needed, weaker security posture). 3) NEW, likely lower-friction: .github/workflows/vercel-production-deploy.yml already exists as a manual one-click CLI-based deploy (VERCEL_TOKEN auth, bypasses the git-author check entirely) with a built-in smoke test + fidelity gate + auto-rollback -- but it has never been run and cannot run yet. Its own scripts/preflight-secrets.sh hard-requires 11 secrets (VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID, VITE_SUPABASE_URL, VITE_SUPABASE_PUBLISHABLE_KEY, VITE_SUPABASE_PROJECT_ID, SUPABASE_ACCESS_TOKEN, SUPABASE_DB_PASSWORD, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, DEEPSEEK_API_KEY); gh secret list shows only CRON_SECRET/SUPABASE_ACCESS_TOKEN/SUPABASE_DB_PASSWORD exist, so 9 of the 11 are missing. Provisioning those 9 secrets and running this workflow may resolve the whole defect without any Vercel-team-membership change -- but it is a 9-secret provisioning task, not a 3-secret one. After any fix: force-redeploy main HEAD and re-run the same live-bundle grep to confirm requireContentAdmin/isContentAdmin now appear, then build the frontend build-metadata endpoint (Workstream A) so this stops requiring bundle forensics. Until fixed: PR #47's frontend half (Content Studio/Autoposter access for the 2 newly-granted accounts) is NOT functionally live even though its database grant is -- treat that item as reopened, not done.",
+      "owner": "release engineering (needs Vercel team-owner action -- jeltovbogdan-7049 / jeltovbogdan@gmail.com)",
+      "evidence_ids": ["EV-008", "EV-009", "EV-010", "EV-033", "EV-034", "EV-035", "EV-036"]
+    },
+    {
+      "id": "QNT-DEFECT-003",
+      "severity": "P2",
+      "domain": "ACCURACY",
+      "title": "Two public example fixtures have internally inconsistent payback numbers",
+      "status": "NOT_STARTED",
+      "detail": "Repo's own verify-payback-integrity.mjs (PASS overall, non-fatal warning) flags coffee-shop-denver (displayed 12mo vs. computed 8.3mo/1.9mo) and consulting-firm-new-york (displayed 6mo vs. 1.5mo/0.6mo) in src/pages/examples/exampleData.ts. These are visitor-facing 'credible example' surfaces.",
+      "affected_files": ["src/pages/examples/exampleData.ts"],
+      "next_action": "Root-cause the discrepancy (likely the same class of displayed-vs-recomputed drift the verifier was built to catch) and correct the fixture data. Good first candidate for a Formula Registry v0 traceable identity (F-011 vX) once that exists.",
+      "owner": "financial-core",
+      "evidence_ids": ["EV-019"]
+    },
+    {
+      "id": "QNT-DEFECT-004",
+      "severity": "P2",
+      "domain": "ANALYTICS",
+      "title": "Analytics parity gap between persisted analyses and completion funnel events — magnitude confirmed real, not fully explained",
+      "status": "NOT_STARTED",
+      "detail": "Two independent measurements, two different rolling windows, both show a real gap: 2026-08-18 measured 11 completion events / 27 analyses (~59% gap) in its 30-day window; this capture measured 30 completion events / 46 analyses (~35% gap) in its own 30-day window. Neither figure supersedes the other -- do not report this as 'the gap improved from 59% to 35%,' that would be comparing two different windows as if they were a trend. The honest finding is: a material, currently-unexplained under-reporting gap exists in every measurement taken.",
+      "next_action": "Task chip task_46a94f92 already covers the code-path audit (which analysis-creation paths call trackAnalysisCompleted() and which don't) — execute that before drawing further conclusions from either number.",
+      "owner": "growth/eng",
+      "evidence_ids": ["EV-018"]
+    },
+    {
+      "id": "QNT-DEFECT-005",
+      "severity": "P2",
+      "domain": "GTM_MEASUREMENT",
+      "title": "No commercial-clean cohort classifier exists — all funnel/business numbers are contaminated-unknown",
+      "status": "NOT_STARTED",
+      "detail": "No EXTERNAL_REAL/FOUNDER/STAFF/QA/TEST/BOT/SYNTHETIC/DEMO classification exists anywhere in the schema, called for in the standing activation master prompt and never built. Every business_volume figure in CURRENT_PRODUCTION_STATE.json (44 total users, 24 active subs, 46 analyses/30d, etc.) may include unknown proportions of founder/QA/test activity.",
+      "next_action": "First item of the GTM Track C queue (docs/QUANTIS_RD_SCOPE_2026-08-21.md §8.2): build the classifier, reusing any existing founder/test-account exclusion mechanism already in the codebase rather than inventing a second one.",
+      "owner": "growth/eng",
+      "evidence_ids": ["EV-018"]
+    },
+    {
+      "id": "QNT-DEFECT-006",
+      "severity": "P2",
+      "domain": "REVENUE",
+      "title": "referral_rewards has schema and RLS but no application code path ever writes to it",
+      "status": "PARTIALLY_COMPLETE",
+      "detail": "Carried forward from the earlier migration-drift recovery work (PR #42) — schema/RPCs are live and correct, but reward issuance was never implemented anywhere in the codebase. REFERRAL_PRODUCT = NOT_LAUNCHED per that work's own explicit correction.",
+      "next_action": "Product decision required: implement reward issuance, or formally deprioritize the referral feature. Not re-verified this capture (no code changes to it since PR #42).",
+      "owner": "product",
+      "evidence_ids": []
+    },
+    {
+      "id": "QNT-DEFECT-007",
+      "severity": "P3",
+      "domain": "PERFORMANCE",
+      "title": "Two JS chunks exceed the 500KB build-warning threshold",
+      "status": "NOT_STARTED",
+      "detail": "dist/assets/index-*.js (923.82 kB) and dist/assets/pdf-*.js (1,455.68 kB), per the last full production build. No LCP/p95/etc. measurement has been taken beyond this raw size fact — Workstream U calls for measuring before optimizing.",
+      "next_action": "Given current real traffic (0 signups / 2 analyses in the trailing 7 days per this capture), this is not currently traffic-driven — lower priority than P1/P2 items above until real load exists to justify the work. Measure first if picked up.",
+      "owner": "frontend",
+      "evidence_ids": ["EV-019"]
+    },
+    {
+      "id": "QNT-DEFECT-008",
+      "severity": "P3",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Apex/www route-truth claim (Workstream S) checked, not fully reproduced, but not fully cleared either",
+      "status": "PARTIALLY_COMPLETE",
+      "detail": "The specific historical claim (apex /privacy /terms exposing an old product definition) was NOT reproduced on the 6 raw routes checked this capture — apex correctly 308-redirects to www on every path tested, www serves current $17/$49 pricing. This is a narrow finding (6 routes, raw HTTP only) — sitemap.xml, structured data, Open Graph tags, and social-preview rendering were not audited this pass, so full Workstream S closure cannot be claimed.",
+      "next_action": "Extend the route-truth check to sitemap/structured-data/OG/social-preview surfaces before declaring Workstream S (ONE PUBLIC PRODUCT) closed.",
+      "owner": "frontend/SEO",
+      "evidence_ids": ["EV-006", "EV-007"]
+    },
+    {
+      "id": "QNT-DEFECT-009",
+      "severity": "P1",
+      "domain": "BILLING",
+      "title": "Stripe lifecycle matrix cannot be verified — no connector access this session",
+      "status": "BLOCKED",
+      "detail": "Workstream R / §34 item 8 requires proving the full Stripe lifecycle (checkout, webhooks, upgrade/downgrade, failed payment, cancellation, unknown-Price-ID fail-closed, etc.) end-to-end. No Stripe API/CLI/dashboard access exists in this session.",
+      "next_action": "Requires Stripe connector authorization (via claude.ai connector settings or `claude mcp`/`/mcp` in an interactive session) to proceed live. Until then, the achievable fallback is a code-only review of the entitlement resolver and webhook-signature-verification logic, which has not yet been done this capture either — do that as the practical substitute, and record it as a fallback explicitly rather than silently skipping the item.",
+      "owner": "billing/eng (blocked on connector access)",
+      "evidence_ids": []
+    },
+    {
+      "id": "QNT-DEFECT-010",
+      "severity": "P3",
+      "domain": "RELEASE_ENGINEERING",
+      "title": "Local sitemap.xml rebuild is not byte-reproducible with the CI-produced live sitemap",
+      "status": "NOT_STARTED",
+      "detail": "scripts/generate-sitemap.mjs computes <lastmod> per-route from real git history and falls back to 'today' when no match is found. Rebuilding sitemap.xml locally in this working directory and diffing against the live-downloaded https://www.aiwmcquantis.com/sitemap.xml shows an identical 88-URL set (zero drift, zero apex leakage) but divergent <lastmod>, <priority>, <changefreq>, and route ordering. This is not a live defect — the currently-served sitemap is correct and stable — but it means a local rebuild cannot be used as a predictor/diff baseline for the live artifact in its current form.",
+      "affected_files": ["scripts/generate-sitemap.mjs"],
+      "next_action": "Not urgent. If ever picked up: make lastmod computation environment-independent (e.g. read from a committed content-hash/date map instead of live git-log lookups), or explicitly document that local rebuild is diagnostic-only and never diff it against production.",
+      "owner": "release engineering",
+      "evidence_ids": ["EV-023"]
+    },
+    {
+      "id": "QNT-DEFECT-011",
+      "severity": "P2",
+      "domain": "PUBLIC_TRUTH",
+      "title": "Unsupported/unverified quantitative claim cluster propagated across 7 machine-readable homepage locations",
+      "status": "NOT_STARTED",
+      "detail": "The claim cluster '1,000 Monte Carlo scenarios/simulations', '97,500 [industry] benchmark data points', and 'under 90 seconds' appears in: meta description, og:description, twitter:description, WebPage JSON-LD .description, SoftwareApplication JSON-LD .description, and 2 separate FAQPage JSON-LD answers. One of those FAQ answers additionally claims 'every output includes a confidence score and data quality rating.' None of these figures were evaluated for truth this capture — only enumerated for location and propagation breadth. Because they're embedded in structured data (not just visible copy), they also feed search-engine rich snippets and any AI/LLM answer engine that parses JSON-LD directly.",
+      "next_action": "Feeds Workstream T (Claim Audit) once started: verify each number against the actual engine/benchmark dataset (e.g. does the benchmark dataset actually contain 97,500 data points; is 1,000 the actual Monte Carlo iteration count; is a 'confidence score and data quality rating' actually rendered anywhere in the product). Fix or substantiate all 7 locations together — a partial fix would leave the claim inconsistent across surfaces.",
+      "owner": "marketing/product/frontend",
+      "evidence_ids": ["EV-027"]
+    },
+    {
+      "id": "QNT-DEFECT-012",
+      "severity": "P2",
+      "domain": "OBSERVABILITY",
+      "title": "Sentry error tracking (and Replay) is completely dark in the live production build — VITE_SENTRY_DSN unset at build time",
+      "status": "PARTIALLY_COMPLETE",
+      "detail": "src/lib/sentry.ts's initSentry() returns early with console.warn('Sentry DSN not configured - error tracking disabled') whenever import.meta.env.VITE_SENTRY_DSN is falsy. Live-browser console check against https://www.aiwmcquantis.com confirmed this exact warning fires on page load right now -- Sentry.init() is never reached, so NO errors, NO breadcrumbs, and NO session replay are being captured or sent anywhere from production today. Cross-checked against the live JS bundle: it contains general Sentry SDK code (logger, captureException scaffolding) but zero occurrences of maskAllText/blockAllMedia/replayIntegration -- consistent with Rollup dead-code-eliminating the entire Sentry.init(...) block because the DSN constant was empty at build time. This means the privacy-hardening fix applied this pass (maskAllText/blockAllMedia true) is currently inert in production -- there is no active exposure right now, but there was also no error monitoring at all, which is its own gap.",
+      "affected_files": ["src/lib/sentry.ts"],
+      "next_action": "Requires Vercel project environment-variable configuration (VITE_SENTRY_DSN) -- outside this session's access, same blocker family as QNT-DEFECT-002. Once set and a deploy actually reaches production (contingent on QNT-DEFECT-002 being fixed first), re-run the identical live-console check to confirm Sentry initializes, then re-fetch the live bundle and grep for maskAllText/blockAllMedia to confirm the hardened config (not the old unmasked one) is what actually goes live.",
+      "owner": "release engineering / observability (blocked on Vercel env-var + deploy access)",
+      "evidence_ids": ["EV-037", "EV-038", "EV-039", "EV-040"]
+    }
+  ],
+
+  "summary_counts": {
+    "P0": 1,
+    "P1": 2,
+    "P2": 6,
+    "P3": 3,
+    "total": 12,
+    "blocked_status_count": 1,
+    "verified_complete_count": 1,
+    "note": "Severity counts include VERIFIED_COMPLETE entries (QNT-DEFECT-001) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed."
+  },
+
+  "not_yet_investigated_this_capture": [
+    "Dependency/secret scanning (Gitleaks/Semgrep not yet installed — Workstream C)",
+    "OpenTelemetry tracing (does not exist — Workstream E)",
+    "Live browser walkthrough of the core visitor journey",
+    "Full contract.json object coverage beyond the 20 spot-checked entries"
+  ]
+}

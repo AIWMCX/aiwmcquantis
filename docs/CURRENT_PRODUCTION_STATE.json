@@ -1,0 +1,225 @@
+{
+  "captured_at": "2026-08-22T22:30:00Z",
+  "captured_by": "Claude Code, Phase 0 baseline capture (docs/QUANTIS_FINAL_ARCHITECTURE_SCOPE.md item 1)",
+  "invariant_honored": "MERGED != DEPLOYED != PRODUCTION_VERIFIED — every field below is independently evidenced, none inferred from another",
+
+  "release": {
+    "repo_default_branch": "main",
+    "repo_head_sha": "8b7faf11468dc6015ceeccbbc58ecc7b1e89701b",
+    "repo_head_message": "Security: sync CRON_SECRET via CI, rotating the value committed in a migration (#48)",
+    "repo_head_committed_at": "2026-08-18T21:52:00-06:00",
+    "working_tree_status": "clean except: 1 build-artifact diff (public/sitemap.xml, expected byproduct of running `bun run build` locally, not committed), 6 new untracked docs/scratch files from this session, not yet committed",
+
+    "backend_edge_function_deploy_fidelity": {
+      "status": "PASS",
+      "evidence_source": "live GET https://dmlxrvfyqsakyjomsvdj.supabase.co/functions/v1/analyze-business?health=1",
+      "observed_commit_sha": "8b7faf11468dc6015ceeccbbc58ecc7b1e89701b",
+      "matches_repo_head": true,
+      "observed_deployed_at": "2026-08-22T22:18:23.257Z",
+      "note": "deployed_at timestamp is newer than the commit's own commit date -- consistent with the function runtime being recycled/redeployed without a code change (matches this repo's own COMMIT_SHA-sync-on-every-deploy design), not evidence of drift."
+    },
+
+    "frontend_vercel_deploy_fidelity": {
+      "status": "CONFIRMED_STALE",
+      "reason": "Superseded by a direct, positive finding (item 4, docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) -- no longer an inference gap. Every commit since b7a5068e (23 commits, back to HEAD 8b7faf11) fails the Vercel status check with root cause 'Git author AIWMCX must have access to the project on Vercel to create deployments'; the last successful deploy (741bbbe7) was authored by a different, Vercel-team-recognized identity (gpt-engineer-app[bot]). Fetching the live production JS bundle directly and grepping it confirms it contains ZERO instances of the content_admin feature (claim_content_admin_if_allowlisted/isContentAdmin/requireContentAdmin) shipped in commit 20ff6af2 earlier this same session, while still containing the OLD claim_admin_if_allowlisted/requireAdmin markers. The live frontend is proven to predate the break point.",
+      "vercel_github_status_check": {
+        "context": "Vercel",
+        "state": "failure",
+        "description_observed": "\"Deployment was blocked\" and \"Git author AIWMCX must have access to the project on Vercel to create deployments.\" -- same underlying cause, confirmed via the invite-link target_url naming gitUserLogin=AIWMCX and teamName=jeltovbogdan-7049's+projects",
+        "failing_since_commit": "b7a5068e851f01bdfd233bb55f3f8149e963da13",
+        "last_known_good_commit": "741bbbe7a198f88e8ce4b4d1afae29be69032327 (authored by gpt-engineer-app[bot])",
+        "consecutive_failing_commits_checked": 23,
+        "persistent_across_commits": true,
+        "live_bundle_proof": {
+          "asset_checked": "/assets/index-J-oVLnnA.js",
+          "post_break_markers_found": 0,
+          "pre_break_markers_found": "claim_admin_if_allowlisted x1, requireAdmin x16",
+          "conclusion": "Production frontend is running pre-b7a5068e code. PR #47's Content Studio/Autoposter frontend gating for AIWMCSRM@gmail.com and jjbalaganvasya@gmail.com is NOT live, though its database migration is."
+        },
+        "required_fix": "Grant GitHub identity AIWMCX access to Vercel team jeltovbogdan-7049's projects (invite link already present in the GitHub status check), or relax Vercel's git-author Deployment Protection setting, then force-redeploy and re-verify via the same live-bundle grep. See docs/VERCEL_DEPLOY_PIPELINE_FINDING.md for full detail.",
+        "correction_from_prior_capture": "The immediately prior capture (item 1/2, same day) treated this as UNVERIFIED-but-probably-benign, reasoning the site serves correct current content on the surfaces checked (pricing, routes, metadata). That reasoning was not wrong on its own terms but was incomplete: those specific surfaces happen not to have changed across the break window, so a stale build still serves them correctly. This capture (item 4) found a marker that DID change in the window and proved the live bundle lacks it -- do not repeat the 'probably benign' framing going forward."
+      }
+    },
+
+    "recent_ci_runs": {
+      "evidence_source": "gh run list, live query",
+      "workflow": "SEO Live Monitor",
+      "last_5_runs": "all conclusion=success, all headSha=8b7faf11468dc6015ceeccbbc58ecc7b1e89701b, spanning 2026-08-21T18:53Z through 2026-08-22T18:46Z",
+      "note": "confirms no new commits/deploys have landed since 8b7faf11; this baseline is current as of capture time, not stale"
+    }
+  },
+
+  "public_routes": {
+    "evidence_source": "live curl against production, this capture",
+    "checked": [
+      { "path": "/", "www": "HTTP 200 (0.41s)", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/" },
+      { "path": "/privacy", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/privacy" },
+      { "path": "/terms", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/terms" },
+      { "path": "/methodology", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/methodology" },
+      { "path": "/pricing", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/pricing" },
+      { "path": "/how-it-works", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/how-it-works" },
+      { "path": "/examples", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/examples", "checked": "item 2 pass" },
+      { "path": "/app", "www": "HTTP 200", "apex": "HTTP 308 -> https://www.aiwmcquantis.com/app", "checked": "item 2 pass" }
+    ],
+    "pricing_content_check": {
+      "method": "grep live HTML for $17/$49/Plus/Pro",
+      "result": "3x $17, 2x $49, 7x Plus, 3x Pro -- current canonical tier pricing confirmed present"
+    },
+    "robots_txt": {
+      "status": "PASS",
+      "www": "HTTP 200, served, allows crawlers on public routes, explicitly disallows /admin, /auth, /dashboard, /account/, /checkout/, /api/, ref/source query params; declares Sitemap: https://www.aiwmcquantis.com/sitemap.xml (correct canonical host)",
+      "apex": "HTTP 308 -> www (consistent with every other route)",
+      "last_updated_header_in_file": "2026-03-18 (file's own comment) -- stale relative to today but not evidence of a problem; content itself matches current route set observed"
+    },
+    "sitemap_xml": {
+      "status": "PASS with one reproducibility caveat",
+      "url_count": 88,
+      "non_www_urls_found": 0,
+      "conclusion_urls": "All 88 URLs are www-canonical. Matches the 88-route count reported by the last production build's prerender step exactly.",
+      "reproducibility_finding": {
+        "severity": "worth logging, not a live defect",
+        "detail": "Re-running `bun run build` locally (this session, same commit) regenerates public/sitemap.xml with the SAME 88 URLs but DIFFERENT lastmod dates, route ordering, and priority/changefreq values than the live production sitemap.xml. The generator's own documented design computes lastmod from real git history per route, falling back to 'today' when no match is found -- the local checkout in this environment appears to hit that fallback for routes where the CI-produced live sitemap has genuine historical dates (e.g. 2026-08-02, 2026-08-12). This means: (a) the live sitemap is correct and unaffected, (b) local rebuilds in this specific working-directory are not a reliable oracle for 'what the next CI build will produce' for this one artifact specifically.",
+        "see": "OPEN_DEFECTS.json QNT-DEFECT-010"
+      }
+    },
+    "metadata_structured_data": {
+      "status": "PASS (technically) / CLAIM_CONTENT_FLAG (substantively)",
+      "canonical_tag": "PASS -- <link rel=\"canonical\" href=\"https://www.aiwmcquantis.com/\" /> present and correctly www-scoped on homepage",
+      "og_tags": "PASS -- og:url/site_name/locale/image/type/title/description all present, www-scoped, image reachable (HTTP 200, image/png, 40121 bytes)",
+      "twitter_tags": "PASS -- summary_large_image card, site/creator/domain/image/title/description all present",
+      "robots_meta": "PASS -- <meta name=\"robots\" content=\"index, follow\"> (not accidentally noindexed)",
+      "json_ld_blocks_found": 3,
+      "json_ld_types": ["WebPage", "SoftwareApplication", "FAQPage"],
+      "json_ld_pricing_offers": "SoftwareApplication.offers matches canonical tiers exactly: Free/$0, Plus/$17 (P1M), Pro/$49 (P1M) -- no drift from the canonical tier spec",
+      "json_ld_fabricated_ratings_check": "PASS -- no aggregateRating/review/ratingValue fields found; no fake star-rating rich-snippet risk",
+      "claim_propagation_finding": {
+        "severity": "material, cross-references Workstream T (not resolved here -- Workstream T is a separate, later item; this is the discovery that feeds it)",
+        "claim_cluster": "'1,000 Monte Carlo scenarios/simulations', '97,500 [industry] benchmark data points', 'under 90 seconds'",
+        "distinct_machine_readable_locations_found_on_homepage_alone": 7,
+        "locations": [
+          "<meta name=\"description\">",
+          "<meta property=\"og:description\">",
+          "<meta name=\"twitter:description\">",
+          "WebPage JSON-LD .description",
+          "SoftwareApplication JSON-LD .description",
+          "FAQPage JSON-LD answer #1 (what-is-Quantis)",
+          "FAQPage JSON-LD answer #2 (how-accurate)"
+        ],
+        "adjacent_finding_not_in_scope_here": "FAQPage answer #2 also states 'Every output includes a confidence score and data quality rating' -- directly touches Workstream K/Q's 'no customer-visible confidence/accuracy term without an approved semantic source' rule and GTM bank Q68. Logged as a cross-reference for Workstream T, not evaluated for truth here -- item 2's scope is route/metadata *consistency*, not claim *veracity*."
+      }
+    },
+    "conclusion": "The Workstream S baseline concern ('apex privacy/terms exposes an old product definition while www shows current pricing') is NOT reproduced on any of the 8 routes checked across items 1+2 -- apex correctly 308s to www on every path tested, www serves 200 with current pricing, structured data matches canonical tiers, robots.txt and sitemap.xml are both www-canonical with zero apex leakage. Route-level and metadata-level 'ONE PUBLIC PRODUCT' truth is CHECKED_NOT_REPRODUCED (not fully closed -- historical/orphaned URLs outside the 88-route sitemap and non-homepage pages' structured data were not enumerated). The claim-propagation finding above is the most consequential result of this item -- it is a discovery for Workstream T to act on, not a route-truth defect."
+  },
+
+  "database": {
+    "evidence_source": "live SQL, this capture",
+    "migration_ledger": {
+      "status": "PASS",
+      "repo_sql_files_total": 226,
+      "repo_migration_files_tracked": 221,
+      "repo_seed_files_excluded_by_convention": 5,
+      "seed_files": [
+        "seed_01_benchmark_master_core.sql",
+        "seed_02_benchmark_master_unit_econ.sql",
+        "seed_03_benchmark_master_geo.sql",
+        "seed_04_benchmark_master_risk.sql",
+        "seed_05_benchmark_master_invoice.sql"
+      ],
+      "production_ledger_rows": 221,
+      "reconciliation_result": {
+        "APPLIED_AND_PRESENT": 220,
+        "INTENTIONALLY_NOT_APPLIED": 1,
+        "PENDING": 0,
+        "VERSION_MISMATCH": 0,
+        "GIT_ONLY": 0,
+        "LEDGER_ONLY": 0
+      },
+      "intentionally_not_applied_entry": "20260704130000_analyses_bump_plans_metric.sql (self-documented superseded, listed in supabase/migrations/.ledger-ignore)",
+      "method": "scripts/lib/schema-contract-lib.mjs reconcileLedger() logic, re-run fresh this capture against live repo file list + live supabase_migrations.schema_migrations rows + live .ledger-ignore contents -- not cached from a prior session"
+    },
+    "schema_contract": {
+      "status": "PASS",
+      "checks_run": 20,
+      "checks_passed": 20,
+      "objects_verified": [
+        "analyses, profiles, subscriptions (core P0 tables) exist",
+        "referral_conversions, referral_rewards, user_engagement, user_notifications, email_sequences, email_sequence_log, gsc_verification, user_realism_feedback, funnel_events, activation_events all exist",
+        "anon SELECT denied on referral_conversions, user_engagement, email_sequence_log, activation_events",
+        "update_engagement_on_analysis_trigger exists",
+        "get_user_activation_score and get_referral_stats functions exist"
+      ],
+      "note": "full contract.json (27 entries) not re-run object-by-object this capture; the 20 checks above are the P0/P1 subset most likely to regress and were confirmed clean"
+    },
+    "known_security_fix_status": {
+      "is_service_role_null_collapse_bug": {
+        "audit_completed": true,
+        "audit_completed_at": "2026-08-22T23:39:00Z (item 3, this session)",
+        "per_file_outcome": {
+          "20260206003246_8a34fb59-06cd-490e-93c8-35ea86dd87d8.sql (get_referral_stats)": "CLEAN LIVE — migration text vulnerable but superseded by 20260814120000's IS DISTINCT FROM fix; anon has no EXECUTE grant regardless",
+          "20260814120000_p0_track_a_referral_function_access.sql (get_referral_stats)": "This IS the fix migration for the above — confirmed live and correct",
+          "20260426174842_b35ca146-b2e0-4d2d-aac7-21393f3d12eb.sql (get_user_activation_score)": "Was live-exploitable (anon-executable, raw auth.uid() != p_user_id) despite an earlier partial COALESCE fix on the is_service_role() term alone — FIXED by migration 20260822225616",
+          "20260818040000_restore_engagement_notifications_lifecycle_email.sql (get_user_engagement_stats)": "Was live-exploitable (anon-executable, fully unpatched) — FIXED by migration 20260822225616"
+        },
+        "live_exploit_proof": "Direct curl against the anon-key REST RPC endpoint (no session) returned HTTP 200 with real user data for an arbitrary UUID before the fix, and HTTP 400 Access denied immediately after — see EV-028 through EV-032",
+        "status": "VERIFIED_COMPLETE — see OPEN_DEFECTS.json QNT-DEFECT-001",
+        "follow_on_not_yet_done": "A repo-wide sweep for any other raw auth.uid() != ... or unwrapped is_service_role() guards outside this specific 4-file list has not been performed."
+      }
+    }
+  },
+
+  "business_volume": {
+    "evidence_source": "live SQL, this capture (fresh — not reused from any prior session's numbers)",
+    "analyses_created_7d": 2,
+    "analyses_created_30d": 46,
+    "new_signups_7d": 0,
+    "total_registered_users": 44,
+    "active_or_trialing_subscriptions": 24,
+    "funnel_completion_events_30d": 30,
+    "funnel_analyses_30d_for_comparison": 46,
+    "analytics_parity_ratio_30d": "30/46 = ~65%",
+    "note_on_prior_figure": "A prior session capture (2026-08-18) measured 11 completion events against 27 analyses (~41% coverage / ~59% gap) over its own 30-day window. This capture's numbers (30/46, ~65% coverage / ~35% gap) are NOT the same window and must not be presented as 'the gap closed from 59% to 35%' -- that would be a false trend from two different rolling windows. Both figures are real; neither supersedes the other; the honest statement is 'a material under-reporting gap has existed in every measurement taken so far, magnitude 35-59% depending on window, root cause not yet isolated.'",
+    "assumption_changed_events_30d": 0,
+    "scenario_compared_events_30d": 11,
+    "external_real_cohort_classifier_exists": false,
+    "interpretation_caveat": "No EXTERNAL_REAL/FOUNDER/QA/BOT/SYNTHETIC/DEMO classification exists anywhere in the schema. Every number in this business_volume block is therefore CONTAMINATED-UNKNOWN with respect to real external usage -- it may include founder/QA/test activity in unknown proportion. Do not present these as 'real customer' numbers until the classifier (Workstream Y / GTM Track C item 1) exists."
+  },
+
+  "test_and_build_gates": {
+    "evidence_source": "commands actually run this session (2026-08-20/21, same commit, no intervening changes to re-run against)",
+    "lint": { "status": "PASS", "errors": 0, "warnings": 319 },
+    "typecheck_financial": { "status": "PASS", "command": "tsc -p tsconfig.financial.json --noEmit" },
+    "business_logic_hash": { "status": "PASS", "detail": "docs and public/docs copies of QUANTIS_BUSINESS_LOGIC.md both hash 678bcb87d247e05ff83cc407780d7104 (v4.0.0)" },
+    "payback_integrity": {
+      "status": "PASS_WITH_WARNING",
+      "detail": "51 examples scanned, no confirmed revenue-divisor bug signature, but 2 examples flagged as non-reconciling against either simple divisor",
+      "flagged_examples": [
+        "src/pages/examples/exampleData.ts :: coffee-shop-denver -- displayed=12mo, from profit=8.3mo, from revenue=1.9mo",
+        "src/pages/examples/exampleData.ts :: consulting-firm-new-york -- displayed=6mo, from profit=1.5mo, from revenue=0.6mo"
+      ]
+    },
+    "sentinel_scan": { "status": "PASS", "findings": [] },
+    "full_test_suite": { "status": "PASS", "files": "61 passed, 1 skipped (62 total)", "tests": "1391 passed, 23 skipped (1414 total)" },
+    "full_production_build": {
+      "status": "PASS",
+      "detail": "vite build + static-body generation + prerender-seo (88 routes, 23 from ROUTE_META) + sitemap + visibility gate",
+      "visibility_gate_result": "PASSED — Pro $49 present, no homepage-equal or 7-Layer bodies",
+      "chunk_size_warnings": [
+        "dist/assets/index-*.js: 923.82 kB",
+        "dist/assets/pdf-*.js: 1,455.68 kB"
+      ]
+    }
+  },
+
+  "not_captured_this_pass": [
+    "Stripe lifecycle (no Stripe API/CLI access this session)",
+    "Live browser walkthrough of visitor->signup->analysis->result",
+    "Full contract.json object-by-object re-run (20 of 27 entries spot-checked)",
+    "OpenTelemetry / distributed tracing (does not exist yet)",
+    "Vercel dashboard direct inspection (no Vercel CLI/dashboard access this session — the required fix in QNT-DEFECT-002/VERCEL_DEPLOY_PIPELINE_FINDING.md needs a Vercel-team-owner action this session cannot take)"
+  ],
+  "items_completed_since_prior_not_captured_list": [
+    "Full sitemap.xml / structured-data / Open Graph audit — completed item 2 (was '6 raw routes checked', now 8: www/apex/privacy/terms/methodology/pricing/examples/how-it-works/app, plus robots.txt, sitemap.xml, and full homepage metadata/JSON-LD). See EV-020 through EV-027.",
+    "Sentry Replay configuration audit — completed item 5: found and fixed maskAllText/blockAllMedia:false live in source; separately discovered Sentry is not even initializing in production (VITE_SENTRY_DSN unset), tracked as QNT-DEFECT-012. See EV-037 through EV-040.",
+    "Vercel deploy-fidelity gap — upgraded from an inferred, possibly-benign UNVERIFIED status to a CONFIRMED_STALE finding with root cause and live-bundle proof. See frontend_vercel_deploy_fidelity above and docs/VERCEL_DEPLOY_PIPELINE_FINDING.md."
+  ]
+}
