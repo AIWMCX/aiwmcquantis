@@ -133,7 +133,7 @@ export function UpgradePrompt({
             </div>
             <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <TrendingUp className="w-3.5 h-3.5" />
-              GDPR compliant
+              GDPR rights supported
             </div>
           </div>
         </div>

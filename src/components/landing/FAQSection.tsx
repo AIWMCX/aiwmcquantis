@@ -36,7 +36,7 @@ const faqItems = [
   },
   {
     question: 'How is my data protected?',
-    answer: 'We take security seriously. All data is encrypted using AES-256-GCM encryption at rest and in transit. We are GDPR and CCPA compliant, and we never share or sell your business ideas or analysis data to third parties.'
+    answer: 'We take security seriously. Data is encrypted with AES-256 at rest and HTTPS/TLS in transit. We support GDPR and CCPA data-subject rights (export or deletion on request), and we never sell your business ideas or analysis data. Your idea text is sent to our AI processing partners (DeepSeek, Anthropic Claude) solely to generate your analysis — see our Privacy Policy for the full list.'
   },
   {
     question: 'What payment methods are accepted?',
