@@ -189,7 +189,7 @@ export function Footer() {
               © {new Date().getFullYear()} AIWMC™ LLC
             </p>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
-            <p className="text-xs text-muted-foreground">GDPR & CCPA Compliant</p>
+            <p className="text-xs text-muted-foreground">GDPR & CCPA Rights Supported</p>
             <span className="hidden sm:inline text-xs text-muted-foreground">•</span>
             <LastAuditedBadge size="sm" />
           </div>
