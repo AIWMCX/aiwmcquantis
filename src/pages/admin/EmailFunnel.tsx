@@ -41,16 +41,14 @@ export default function EmailFunnel() {
 
   useEffect(() => {
     (async () => {
-      const { data: rows, error } = await supabase
-        .from('email_funnel_30d' as never)
-        .select('*');
+      const { data: row, error } = await supabase.rpc('get_email_funnel_30d' as never);
       if (error) {
-        logger.error('email_funnel_30d read failed', error);
+        logger.error('get_email_funnel_30d read failed', error);
         setError(error.message);
         return;
       }
-      if (rows && (rows as unknown[]).length > 0) {
-        setData((rows as unknown as FunnelData[])[0]);
+      if (row) {
+        setData(row as unknown as FunnelData);
       }
     })();
   }, []);
