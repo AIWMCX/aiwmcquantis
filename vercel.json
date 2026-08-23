@@ -4,6 +4,9 @@
   "buildCommand": "bun run build:vercel",
   "outputDirectory": "dist",
   "framework": "vite",
+  "git": {
+    "deploymentEnabled": false
+  },
   "cleanUrls": false,
   "trailingSlash": false,
 
