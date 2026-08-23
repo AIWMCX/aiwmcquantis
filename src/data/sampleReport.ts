@@ -249,7 +249,7 @@ export const HEADLINE_METRICS: SampleMetric[] = [
     label: 'Confidence',
     value: SAMPLE_REPORT.meta.confidenceLabel,
     raw: SAMPLE_REPORT.meta.confidence,
-    sub: 'Multi-model verified',
+    sub: 'Multi-model cross-checked',
     detail:
       'Model Confidence Score: benchmark match 0.82, fragility 0.71, narrative coherence 0.84, cross-model agreement 0.79. Page 15.',
   },
