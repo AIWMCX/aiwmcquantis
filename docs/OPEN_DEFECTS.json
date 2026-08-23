@@ -52,20 +52,24 @@
       "title": "Analytics parity gap between persisted analyses and completion funnel events — magnitude confirmed real, not fully explained",
       "status": "NOT_STARTED",
       "detail": "Two independent measurements, two different rolling windows, both show a real gap: 2026-08-18 measured 11 completion events / 27 analyses (~59% gap) in its 30-day window; this capture measured 30 completion events / 46 analyses (~35% gap) in its own 30-day window. Neither figure supersedes the other -- do not report this as 'the gap improved from 59% to 35%,' that would be comparing two different windows as if they were a trend. The honest finding is: a material, currently-unexplained under-reporting gap exists in every measurement taken.",
-      "next_action": "Task chip task_46a94f92 already covers the code-path audit (which analysis-creation paths call trackAnalysisCompleted() and which don't) — execute that before drawing further conclusions from either number.",
+      "next_action": "Task chip task_46a94f92 already covers the code-path audit (which analysis-creation paths call trackAnalysisCompleted() and which don't) — execute that before drawing further conclusions from either number. IMPORTANT reframing (2026-08-23, QNT-DEFECT-005): both prior parity measurements were computed over the undifferentiated user base, which is 84% test-fixture accounts and has 0 EXTERNAL_REAL analyses at all. Re-run this parity check joined through the new public.user_cohorts view filtered to EXTERNAL_REAL before drawing any further conclusion -- a parity ratio over test/founder activity says nothing about instrumentation quality for real users, and with 0 real analyses to date there is currently no real-user data to even compute a real-user parity ratio from.",
       "owner": "growth/eng",
       "evidence_ids": ["EV-018"]
     },
     {
       "id": "QNT-DEFECT-005",
-      "severity": "P2",
+      "severity": "P0",
       "domain": "GTM_MEASUREMENT",
-      "title": "No commercial-clean cohort classifier exists — all funnel/business numbers are contaminated-unknown",
-      "status": "NOT_STARTED",
-      "detail": "No EXTERNAL_REAL/FOUNDER/STAFF/QA/TEST/BOT/SYNTHETIC/DEMO classification exists anywhere in the schema, called for in the standing activation master prompt and never built. Every business_volume figure in CURRENT_PRODUCTION_STATE.json (44 total users, 24 active subs, 46 analyses/30d, etc.) may include unknown proportions of founder/QA/test activity.",
-      "next_action": "First item of the GTM Track C queue (docs/QUANTIS_RD_SCOPE_2026-08-21.md §8.2): build the classifier, reusing any existing founder/test-account exclusion mechanism already in the codebase rather than inventing a second one.",
+      "title": "Cohort classifier built and answered GTM top-20 Q1 for the first time: 0 of 142 analyses, ever, belong to a real external user",
+      "status": "VERIFIED_COMPLETE",
+      "detail": "Corrected on investigation: a coarse binary filter already existed (external_commercial_users/commercial_subscriptions/commercial_analyses, 20260721051509_commercial_clean_views.sql, built 2026-07-20) but had zero consumers anywhere in application code (confirmed via repo-wide grep) and could not distinguish WHY a row was excluded. Extended rather than duplicated it per this entry's own next_action: built public.user_cohort (an 8-value enum: EXTERNAL_REAL/FOUNDER/STAFF/QA/TEST/BOT/SYNTHETIC/DEMO), classify_user_cohort(email, user_id) reusing the live is_admin_allowlisted()/is_content_admin_allowlisted() functions and the exact test-email pattern list from the 2026-07-20 view, and a user_cohorts view joining it to auth.users. Live-verified against all 44 real auth.users rows: 4 EXTERNAL_REAL, 2 FOUNDER, 1 STAFF, 37 TEST -- 84% of the entire user base is test/QA fixture accounts. Cross-checked against real usage data, which is the actual point of this classifier: of those 4 EXTERNAL_REAL users, 0 have EVER completed a single analysis (0 of 142 analyses system-wide belong to a real external user, all-time, not just in a recent window), and only 1 has ever held a paid subscription -- Plus, and it already expired (current_period_end 2026-08-11, the exact same account fixed in QNT-DEFECT-019 for the current_period_end entitlement bug earlier this session). Combined funnel_events across all 4 real users: 5, ever. This directly and for the first time answers GTM top-20 question #1 ('how many EXTERNAL_REAL people completed an analysis in the last 7 days') -- the answer is 0, and extending the window to all-time doesn't change it. Reclassified P2->P0: this isn't a measurement-infrastructure gap anymore, it's evidence that zero real product-market validation has occurred to date, which changes the urgency of nearly everything else on the GTM priority list.",
+      "affected_files": [
+        "supabase/migrations/20260823174907_create_user_cohort_enum.sql (new)",
+        "supabase/migrations/20260823174934_create_user_cohort_classifier.sql (new)"
+      ],
+      "next_action": "This number should reframe the GTM priority order, not just extend the technical checklist: before doing more outreach or measuring further down the funnel, understand why the one real paying customer (Plus, now expired) generated zero analyses despite paying -- that is the single most informative real data point available right now. Re-run the existing business_volume capture in docs/CURRENT_PRODUCTION_STATE.json through this classifier (done, see that file) and treat every future GTM/business-volume report as suspect if it doesn't join through user_cohorts. Lower-priority: QA/BOT/SYNTHETIC/DEMO remain unassigned categories with no detection signal -- build one only if a real need for that specific distinction emerges.",
       "owner": "growth/eng",
-      "evidence_ids": ["EV-018"]
+      "evidence_ids": ["EV-018", "EV-077", "EV-078", "EV-079", "EV-080"]
     },
     {
       "id": "QNT-DEFECT-006",
@@ -264,14 +268,14 @@
   ],
 
   "summary_counts": {
-    "P0": 3,
+    "P0": 4,
     "P1": 2,
-    "P2": 7,
+    "P2": 6,
     "P3": 7,
     "total": 19,
     "blocked_status_count": 1,
-    "verified_complete_count": 6,
-    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 015, 016, 017, 018, 019) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution."
+    "verified_complete_count": 7,
+    "note": "Severity counts include VERIFIED_COMPLETE entries (currently QNT-DEFECT-001, 005, 015, 016, 017, 018, 019) for full historical accounting — check each entry's status field for current open/resolved state, not just this histogram. QNT-DEFECT-002 was reclassified P1->P0 2026-08-22 after confirming an active, ongoing frontend deploy failure (see docs/VERCEL_DEPLOY_PIPELINE_FINDING.md) rather than an unverified/possibly-benign check artifact. QNT-DEFECT-012 (new 2026-08-22) shares that same root blocker -- a source-level privacy fix cannot take effect in production until both the deploy pipeline (QNT-DEFECT-002) and the Sentry DSN env var are addressed. QNT-DEFECT-015 (new 2026-08-23, P0) documents a live anon-exploitable exploit (get_subscription_summary) found and fixed the same day it was discovered -- its severity reflects the confirmed exploit's real impact, not the current (already-fixed) state; see its own status/detail for the resolution. QNT-DEFECT-005 was reclassified P2->P0 2026-08-23 after the newly-built cohort classifier revealed 0 of 142 analyses, ever, belong to a real external user -- a business-critical finding, not just a measurement-tooling gap."
   },
 
   "not_yet_investigated_this_capture": [
