@@ -1,0 +1,130 @@
+#!/usr/bin/env -S deno run --allow-net --allow-env
+/**
+ * Dahl JSON-mode capability probe.
+ *
+ * Root-cause tool for the 2026-08-24 canary incident: analyze-business's
+ * main structured-extraction call (response_format: json_object,
+ * max_tokens: 6000) got a real, successful (ok:true) response from Dahl's
+ * MiniMaxAI/MiniMax-M2.7, but the content did not parse as JSON -- the
+ * deterministic-fallback safety net correctly caught it and the analysis
+ * completed with numbers-only output, but the AI narrative was lost for a
+ * real admin user (see docs/OPEN_DEFECTS.json / ai_calls rows around
+ * 2026-08-24T03:38-03:47 UTC).
+ *
+ * Per the integration spec's Phase 3: "Do not assume that OpenAI-compatible
+ * means every OpenAI parameter or feature is supported... Add response-
+ * format fields only after a live contract test proves they work." This
+ * script IS that live contract test, run after the fact to characterize the
+ * failure before re-enabling the canary.
+ *
+ * Never prints raw model output -- only length, a structural shape check,
+ * JSON.parse success/failure, and finish_reason (to distinguish truncation
+ * from a genuinely non-JSON response).
+ *
+ * Run with:
+ *   DAHL_API_KEY=... deno run --allow-net --allow-env scripts/dahl-json-mode-probe.ts
+ */
+import { dahlChatCompletion } from "../supabase/functions/_shared/dahl-adapter.ts";
+
+// A deliberately realistic approximation of analyze-business's actual
+// request shape: asks for a nested JSON object with several sections, at
+// the same max_tokens budget as production, with response_format json_object.
+const SYSTEM_PROMPT =
+  "You are a business analysis assistant. Always respond with a single valid JSON object only -- no markdown fences, no commentary, no text before or after the JSON.";
+
+const USER_PROMPT = `Produce a JSON object with this exact shape (fill in plausible example values):
+{
+  "executive_summary": "2-3 sentence summary",
+  "swot": {"strengths": ["s1","s2","s3"], "weaknesses": ["w1","w2","w3"], "opportunities": ["o1","o2"], "threats": ["t1","t2"]},
+  "competitive_advantages": "3-5 specific advantages",
+  "operations": "operational model description",
+  "launch_steps": [
+    {"step": 1, "title": "Market Validation", "description": "description", "duration": "2-3 weeks", "cost": 1500},
+    {"step": 2, "title": "Legal & Setup", "description": "description", "duration": "2-4 weeks", "cost": 3000},
+    {"step": 3, "title": "Build MVP", "description": "description", "duration": "4-8 weeks", "cost": 10000},
+    {"step": 4, "title": "Beta Launch", "description": "description", "duration": "2-4 weeks", "cost": 2000},
+    {"step": 5, "title": "Marketing Launch", "description": "description", "duration": "4-6 weeks", "cost": 5000},
+    {"step": 6, "title": "Scale Operations", "description": "description", "duration": "ongoing", "cost": 8000}
+  ],
+  "risks": [
+    {"risk": "Market Competition Risk", "probability": "high", "impact": "high", "mitigation": "mitigation"},
+    {"risk": "Customer Acquisition Risk", "probability": "medium", "impact": "high", "mitigation": "mitigation"},
+    {"risk": "Operational Risk", "probability": "medium", "impact": "medium", "mitigation": "mitigation"},
+    {"risk": "Financial Risk", "probability": "medium", "impact": "high", "mitigation": "mitigation"},
+    {"risk": "Regulatory Risk", "probability": "low", "impact": "medium", "mitigation": "mitigation"}
+  ]
+}
+Call this a specialty coffee shop analysis for Austin, TX. Fill every field with realistic, detailed content -- do not truncate or abbreviate any section.`;
+
+function looksLikeJson(text: string): boolean {
+  const trimmed = text.trim();
+  return trimmed.startsWith("{") && trimmed.endsWith("}");
+}
+
+function tryParse(text: string): { ok: true } | { ok: false; error: string } {
+  try {
+    JSON.parse(text);
+    return { ok: true };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "unknown parse error" };
+  }
+}
+
+async function main() {
+  if (!Deno.env.get("DAHL_API_KEY")) {
+    console.error("FAIL: DAHL_API_KEY is not set.");
+    Deno.exit(1);
+  }
+
+  const result = await dahlChatCompletion({
+    alias: "general",
+    messages: [
+      { role: "system", content: SYSTEM_PROMPT },
+      { role: "user", content: USER_PROMPT },
+    ],
+    jsonMode: true,
+    maxTokens: 6000,
+    temperature: 0.2,
+    timeoutMs: 60_000,
+  });
+
+  if (!result.ok) {
+    console.log("RESULT: dahl call failed at the transport level");
+    console.log(`kind: ${result.kind}`);
+    console.log(`message: ${result.message}`);
+    Deno.exit(1);
+  }
+
+  const shapeOk = looksLikeJson(result.content);
+  const parse = tryParse(result.content);
+
+  console.log(`model: ${result.model}`);
+  console.log(`finish_reason: ${result.finishReason ?? "(none)"}`);
+  console.log(`content_length_chars: ${result.content.length}`);
+  console.log(`input_tokens: ${result.inputTokens}`);
+  console.log(`output_tokens: ${result.outputTokens}`);
+  console.log(`starts_and_ends_with_braces: ${shapeOk}`);
+  console.log(`JSON.parse succeeded: ${parse.ok}`);
+  if (!parse.ok) {
+    console.log(`parse error: ${parse.error}`);
+    // Print only the first/last 80 chars as shape diagnostics -- enough to
+    // tell "wrapped in markdown fences" from "truncated mid-object" from
+    // "prose before the JSON", without ever logging the full narrative
+    // content this function is meant to keep private.
+    console.log(`content_head (80 chars): ${JSON.stringify(result.content.slice(0, 80))}`);
+    console.log(`content_tail (80 chars): ${JSON.stringify(result.content.slice(-80))}`);
+  }
+
+  if (result.finishReason === "length") {
+    console.log("DIAGNOSIS: response was truncated by max_tokens (finish_reason=length) -- this is a token-budget problem, not a JSON-mode support problem. Consider raising max_tokens or shortening the requested schema for this model.");
+  }
+  if (parse.ok) {
+    console.log("PROBE PASSED: Dahl/this model returned valid, parseable JSON for this exact request shape.");
+    Deno.exit(0);
+  } else {
+    console.log("PROBE FAILED: Dahl/this model did NOT return valid JSON for this exact request shape (the same shape analyze-business uses in production).");
+    Deno.exit(1);
+  }
+}
+
+main();
