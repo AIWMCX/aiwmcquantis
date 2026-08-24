@@ -21,6 +21,8 @@ import {
   isDahlFallbackEnabled,
   __resetDahlCachesForTests,
   __isAllowedDahlBaseForTests as isAllowedDahlBase,
+  __dahlBaseUrlForTests as dahlBaseUrlForTests,
+  __DAHL_DEFAULT_BASE_FOR_TESTS as DAHL_DEFAULT_BASE,
 } from "./dahl-adapter.ts";
 
 interface MockServerOpts {
@@ -298,24 +300,26 @@ Deno.test("dahl base URL allowlist rejects prefix-lookalike and userinfo-embedde
   assert(!isAllowedDahlBase("https://127.0.0.1:54321/v1"));
 });
 
-Deno.test("dahl base URL allowlist: an end-to-end rejected origin actually falls back to the real Dahl default, proven via a reachable loopback mock as positive control", async () => {
+Deno.test("dahlBaseUrl() resolves a rejected origin to the real Dahl default -- hermetic, no network call", () => {
+  // Uses the same resolution function dahlChatCompletion/resolveDahlModel
+  // call internally, but asserts on its return value directly instead of
+  // going through a real fetch -- a rejected DAHL_BASE_URL would otherwise
+  // fall through to the REAL Dahl API, making this non-hermetic and slow.
+  Deno.env.set("DAHL_BASE_URL", "https://evil.example.com/v1");
+  assertEquals(dahlBaseUrlForTests(), DAHL_DEFAULT_BASE);
+
+  Deno.env.set("DAHL_BASE_URL", "https://inference.dahl.global.evil.example/v1");
+  assertEquals(dahlBaseUrlForTests(), DAHL_DEFAULT_BASE);
+});
+
+Deno.test("dahl base URL allowlist: the loopback exception reaches our own mock server end-to-end", async () => {
   const { server, baseUrl, getTotalRequests } = startMockServer({
     modelsBody: { data: [{ id: "should-not-be-used", object: "model", created: 1, owned_by: "x" }] },
   });
   __resetDahlCachesForTests();
   Deno.env.set("DAHL_API_KEY", "sk-test");
-  Deno.env.set("DAHL_BASE_URL", "https://evil.example.com/v1"); // rejected by the allowlist unit-tested above
-
-  await resolveDahlModel("general").catch(() => undefined);
-  // Our own mock server must never see a request when the configured base
-  // is rejected -- it isn't the target of the (correctly-ignored) fallback.
-  assertEquals(getTotalRequests(), 0);
-
-  // Positive control: same server, reached via the legitimate loopback
-  // exception, DOES get hit -- proving 0 above reflects the allowlist
-  // working, not "the mock never receives anything".
-  __resetDahlCachesForTests();
   Deno.env.set("DAHL_BASE_URL", baseUrl);
+
   const result = await resolveDahlModel("general");
   assertEquals(result, "should-not-be-used");
   assert(getTotalRequests() > 0);
