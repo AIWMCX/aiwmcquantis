@@ -290,10 +290,21 @@ jobs:
           # Dahl rollout/canary config (see _shared/dahl-canary.ts). Even with
           # DAHL_ENABLED=true, isDahlEligible() still gates every individual
           # request -- these are the levers that control the current stage.
-          if [ -n "$DAHL_ENABLED" ]; then npx supabase secrets set DAHL_ENABLED="$DAHL_ENABLED" --project-ref "$PROJECT_REF"; fi
-          if [ -n "$DAHL_CANARY_MODE" ]; then npx supabase secrets set DAHL_CANARY_MODE="$DAHL_CANARY_MODE" --project-ref "$PROJECT_REF"; fi
-          if [ -n "$DAHL_CANARY_ADMIN_USER_IDS" ]; then npx supabase secrets set DAHL_CANARY_ADMIN_USER_IDS="$DAHL_CANARY_ADMIN_USER_IDS" --project-ref "$PROJECT_REF"; fi
-          if [ -n "$DAHL_CANARY_PERCENT" ]; then npx supabase secrets set DAHL_CANARY_PERCENT="$DAHL_CANARY_PERCENT" --project-ref "$PROJECT_REF"; fi
+          #
+          # These three ALWAYS sync to an explicit value, never skip when the
+          # GitHub variable is empty: this is the documented one-variable
+          # kill switch ("delete/clear the variable to roll back"), and a
+          # skip-when-empty guard would leave a stale `true`/prior mode
+          # sitting in Supabase forever -- the kill switch wouldn't actually
+          # kill anything. Empty means the safe default.
+          npx supabase secrets set DAHL_ENABLED="${DAHL_ENABLED:-false}" --project-ref "$PROJECT_REF"
+          npx supabase secrets set DAHL_CANARY_MODE="${DAHL_CANARY_MODE:-off}" --project-ref "$PROJECT_REF"
+          npx supabase secrets set DAHL_CANARY_PERCENT="${DAHL_CANARY_PERCENT:-0}" --project-ref "$PROJECT_REF"
+          if [ -n "$DAHL_CANARY_ADMIN_USER_IDS" ]; then
+            npx supabase secrets set DAHL_CANARY_ADMIN_USER_IDS="$DAHL_CANARY_ADMIN_USER_IDS" --project-ref "$PROJECT_REF"
+          else
+            npx supabase secrets unset DAHL_CANARY_ADMIN_USER_IDS --project-ref "$PROJECT_REF" 2>/dev/null || true
+          fi
           # CRON_SECRET: shared secret pg_cron sends via x-cron-secret to
           # publish-due-posts, check-lifecycle-emails, send-weekly-insights,
           # warm-functions, and 9 other cron-triggered functions (see
