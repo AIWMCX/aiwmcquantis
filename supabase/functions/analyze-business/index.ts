@@ -3055,6 +3055,14 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         requestId,
             userId: userId,
             metadata: { attempt, industry: detectedIndustry.name },
+            // Explicit alias when Dahl is the active provider: a live
+            // multi-model probe (2026-08-24) proved 'general' (MiniMax-M2.7)
+            // times out completely on this exact large structured-JSON
+            // request shape, while 'fast_reasoning' (DeepSeek-V4-Flash via
+            // Dahl -- the same model family already proven reliable via the
+            // direct DeepSeek API) returned valid JSON in ~20s. Ignored
+            // entirely on the legacy DeepSeek/Anthropic path.
+            dahlAlias: 'fast_reasoning',
           },
         );
 
