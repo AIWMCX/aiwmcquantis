@@ -224,6 +224,12 @@ jobs:
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
+          # Not secret values -- rollout/canary config, kept as GitHub
+          # Actions *variables* (repo Settings -> Variables), not secrets.
+          DAHL_ENABLED: ${{ vars.DAHL_ENABLED }}
+          DAHL_CANARY_MODE: ${{ vars.DAHL_CANARY_MODE }}
+          DAHL_CANARY_ADMIN_USER_IDS: ${{ vars.DAHL_CANARY_ADMIN_USER_IDS }}
+          DAHL_CANARY_PERCENT: ${{ vars.DAHL_CANARY_PERCENT }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
@@ -281,6 +287,13 @@ jobs:
             npx supabase secrets set DAHL_API_KEY="$DAHL_API_KEY" --project-ref "$PROJECT_REF"
             echo "✓ DAHL_API_KEY synced to Supabase (inactive until DAHL_ENABLED=true)" >> "$GITHUB_STEP_SUMMARY"
           fi
+          # Dahl rollout/canary config (see _shared/dahl-canary.ts). Even with
+          # DAHL_ENABLED=true, isDahlEligible() still gates every individual
+          # request -- these are the levers that control the current stage.
+          if [ -n "$DAHL_ENABLED" ]; then npx supabase secrets set DAHL_ENABLED="$DAHL_ENABLED" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$DAHL_CANARY_MODE" ]; then npx supabase secrets set DAHL_CANARY_MODE="$DAHL_CANARY_MODE" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$DAHL_CANARY_ADMIN_USER_IDS" ]; then npx supabase secrets set DAHL_CANARY_ADMIN_USER_IDS="$DAHL_CANARY_ADMIN_USER_IDS" --project-ref "$PROJECT_REF"; fi
+          if [ -n "$DAHL_CANARY_PERCENT" ]; then npx supabase secrets set DAHL_CANARY_PERCENT="$DAHL_CANARY_PERCENT" --project-ref "$PROJECT_REF"; fi
           # CRON_SECRET: shared secret pg_cron sends via x-cron-secret to
           # publish-due-posts, check-lifecycle-emails, send-weekly-insights,
           # warm-functions, and 9 other cron-triggered functions (see
