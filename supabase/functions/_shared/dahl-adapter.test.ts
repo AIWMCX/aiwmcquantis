@@ -20,6 +20,7 @@ import {
   isDahlEnabled,
   isDahlFallbackEnabled,
   __resetDahlCachesForTests,
+  __isAllowedDahlBaseForTests as isAllowedDahlBase,
 } from "./dahl-adapter.ts";
 
 interface MockServerOpts {
@@ -30,8 +31,10 @@ interface MockServerOpts {
 
 function startMockServer(opts: MockServerOpts) {
   let chatAttempts = 0;
+  let totalRequests = 0;
   const capturedAuthHeaders: (string | null)[] = [];
   const server = Deno.serve({ port: 0 }, async (req) => {
+    totalRequests++;
     const url = new URL(req.url);
     if (url.pathname === "/v1/models") {
       return Response.json(opts.modelsBody ?? { data: [], object: "list" });
@@ -48,7 +51,13 @@ function startMockServer(opts: MockServerOpts) {
     return new Response("not found", { status: 404 });
   });
   const addr = server.addr as Deno.NetAddr;
-  return { server, baseUrl: `http://127.0.0.1:${addr.port}/v1`, capturedAuthHeaders, getChatAttempts: () => chatAttempts };
+  return {
+    server,
+    baseUrl: `http://127.0.0.1:${addr.port}/v1`,
+    capturedAuthHeaders,
+    getChatAttempts: () => chatAttempts,
+    getTotalRequests: () => totalRequests,
+  };
 }
 
 function setUpEnv(baseUrl: string, apiKey: string | null) {
@@ -264,24 +273,52 @@ Deno.test("isDahlEnabled / isDahlFallbackEnabled read exact string 'true' only",
   assertEquals(isDahlFallbackEnabled(), false);
 });
 
-Deno.test("dahl base URL is hard-allowlisted: a non-Dahl, non-loopback DAHL_BASE_URL is ignored in favor of the real default", async () => {
-  const { server, baseUrl } = startMockServer({ modelsBody: { data: [{ id: "should-not-be-used", object: "model", created: 1, owned_by: "x" }] } });
+Deno.test("dahl base URL allowlist rejects prefix-lookalike and userinfo-embedded hosts, accepts only the real origin or loopback", () => {
+  // The exact bypass vectors a naive `configured.startsWith(DAHL_ORIGIN)`
+  // check would wrongly admit -- all start with the right characters but
+  // resolve (via URL parsing) to a completely different origin.
+  assert(!isAllowedDahlBase("https://inference.dahl.global.evil.example/v1"));
+  assert(!isAllowedDahlBase("https://inference.dahl.global@evil.example/v1"));
+  assert(!isAllowedDahlBase("https://inference.dahl.globalx/v1"));
+  assert(!isAllowedDahlBase("https://evil.example.com/v1"));
+  // Embedded userinfo on an otherwise-correct-looking host must also be
+  // rejected (classic origin-check bypass vector).
+  assert(!isAllowedDahlBase("https://user:pass@inference.dahl.global/v1"));
+  // Wrong protocol on the real host is not the real origin either.
+  assert(!isAllowedDahlBase("http://inference.dahl.global/v1"));
+  // Not a URL at all.
+  assert(!isAllowedDahlBase("not a url"));
+
+  // Positive cases: the real origin, and the test-only loopback exception.
+  assert(isAllowedDahlBase("https://inference.dahl.global/v1"));
+  assert(isAllowedDahlBase("http://127.0.0.1:54321/v1"));
+  assert(isAllowedDahlBase("http://localhost:54321/v1"));
+  // Loopback exception is HTTP-only -- https on loopback is not the
+  // documented exception and must not silently be treated as one.
+  assert(!isAllowedDahlBase("https://127.0.0.1:54321/v1"));
+});
+
+Deno.test("dahl base URL allowlist: an end-to-end rejected origin actually falls back to the real Dahl default, proven via a reachable loopback mock as positive control", async () => {
+  const { server, baseUrl, getTotalRequests } = startMockServer({
+    modelsBody: { data: [{ id: "should-not-be-used", object: "model", created: 1, owned_by: "x" }] },
+  });
   __resetDahlCachesForTests();
   Deno.env.set("DAHL_API_KEY", "sk-test");
-  // A fake external origin (not the real Dahl host, not loopback) must be
-  // rejected by the allowlist. Simulate it by pointing at a made-up host
-  // that isn't our mock server (mock server URLs are always loopback and
-  // would be legitimately allowed by the test-only loopback exception —
-  // this test specifically proves a NON-loopback, non-Dahl origin is
-  // rejected instead of trusted).
-  Deno.env.set("DAHL_BASE_URL", "https://evil.example.com/v1");
+  Deno.env.set("DAHL_BASE_URL", "https://evil.example.com/v1"); // rejected by the allowlist unit-tested above
 
+  await resolveDahlModel("general").catch(() => undefined);
+  // Our own mock server must never see a request when the configured base
+  // is rejected -- it isn't the target of the (correctly-ignored) fallback.
+  assertEquals(getTotalRequests(), 0);
+
+  // Positive control: same server, reached via the legitimate loopback
+  // exception, DOES get hit -- proving 0 above reflects the allowlist
+  // working, not "the mock never receives anything".
+  __resetDahlCachesForTests();
+  Deno.env.set("DAHL_BASE_URL", baseUrl);
   const result = await resolveDahlModel("general");
-  // The adapter must fall back to the real Dahl default base rather than
-  // trust the fake origin's catalog. This environment has live internet
-  // access, so the fallback actually reaches the real Dahl API and returns
-  // one of its real model IDs — the assertion that matters is that it is
-  // NOT the fake "should-not-be-used" model the attacker origin offered.
-  assert(result !== "should-not-be-used");
+  assertEquals(result, "should-not-be-used");
+  assert(getTotalRequests() > 0);
+
   await server.shutdown();
 });
