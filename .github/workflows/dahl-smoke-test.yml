@@ -23,7 +23,10 @@ jobs:
   smoke-test:
     name: Live Dahl chat-completions call
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    # The JSON-mode probe now tests all 3 documented models sequentially at
+    # up to 120s each (see scripts/dahl-json-mode-probe.ts) -- 5 minutes was
+    # only ever enough for the single-alias trivial smoke test.
+    timeout-minutes: 12
     environment:
       name: production
     defaults:
