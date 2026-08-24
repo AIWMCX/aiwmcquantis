@@ -300,6 +300,84 @@ function defaultTimeoutMs(): number {
   return Number.isFinite(n) && n > 0 ? n : 60_000;
 }
 
+/**
+ * "Extract the JSON safely" (integration spec Phase 3): strips a markdown
+ * code fence and any leading/trailing prose, then verifies the remaining
+ * substring actually parses. Returns the cleaned substring on success, or
+ * null if no valid JSON could be recovered locally — costs no extra network
+ * round-trip, so it's always tried before the bounded repair request.
+ */
+function extractJsonSafely(text: string): string | null {
+  let cleaned = text.trim();
+  cleaned = cleaned.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/i, '').trim();
+  const start = cleaned.indexOf('{');
+  const end = cleaned.lastIndexOf('}');
+  if (start < 0 || end <= start) return null;
+  const candidate = cleaned.slice(start, end + 1);
+  try {
+    JSON.parse(candidate);
+    return candidate;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * "At most one bounded repair attempt" (integration spec Phase 3): asks the
+ * SAME model, in a fresh single request, to correct its own malformed
+ * output into valid JSON. Only invoked once local extraction has already
+ * failed, and only when there's still meaningful time left in the caller's
+ * deadline. Returns the corrected content string on success, or null if the
+ * repair attempt itself failed or also didn't produce valid JSON — in
+ * either case the caller falls back to reporting invalid_response.
+ */
+async function repairJsonViaDahl(
+  apiKey: string,
+  url: string,
+  model: string,
+  originalMessages: DahlChatMessage[],
+  badContent: string,
+  remainingMs: number,
+): Promise<string | null> {
+  try {
+    const resp = await fetch(url, {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        model,
+        messages: [
+          ...originalMessages,
+          { role: 'assistant', content: badContent },
+          {
+            role: 'user',
+            content: 'That response was not valid JSON. Reply again with ONLY a single valid JSON object — no markdown fences, no commentary, no text before or after it.',
+          },
+        ],
+        stream: false,
+        response_format: { type: 'json_object' },
+      }),
+      signal: AbortSignal.timeout(remainingMs),
+    });
+    if (!resp.ok) return null;
+    const json = (await resp.json().catch(() => null)) as
+      | { choices?: Array<{ message?: { content?: unknown } }> }
+      | null;
+    const content = json?.choices?.[0]?.message?.content;
+    if (typeof content !== 'string' || content.length === 0) return null;
+    const direct = (() => {
+      try {
+        JSON.parse(content);
+        return content;
+      } catch {
+        return null;
+      }
+    })();
+    return direct ?? extractJsonSafely(content);
+  } catch {
+    return null;
+  }
+}
+
 function parseRetryAfterMs(value: string | null): number | null {
   if (!value) return null;
   const seconds = Number(value);
@@ -463,16 +541,52 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
     const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
     const outputTokens = typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0;
     const finishReason = typeof json.choices?.[0]?.finish_reason === 'string' ? json.choices[0].finish_reason : undefined;
+    const resolvedModel = typeof json.model === 'string' ? json.model : model;
 
-    return {
-      ok: true,
-      content,
-      model: typeof json.model === 'string' ? json.model : model,
-      inputTokens,
-      outputTokens,
-      latencyMs: Date.now() - start,
-      finishReason,
-    };
+    if (!args.jsonMode) {
+      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+    }
+
+    // jsonMode was requested: dahlChatCompletion guarantees the returned
+    // content is genuinely valid JSON, or returns a typed error -- callers
+    // must never have to independently guess whether "ok:true" content is
+    // actually parseable. Root-caused by the 2026-08-24 canary incident,
+    // where a caller had to discover on its own that an "ok:true" Dahl
+    // response wasn't valid JSON.
+    try {
+      JSON.parse(content);
+      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+    } catch {
+      // Not valid as-is. Try safe local extraction first (no network cost).
+      const extracted = extractJsonSafely(content);
+      if (extracted) {
+        return { ok: true, content: extracted, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+      }
+      // Local extraction failed too. One bounded network repair attempt,
+      // only if there's meaningful time left in the caller's deadline.
+      const remainingForRepair = deadline - Date.now();
+      if (remainingForRepair > 5_000) {
+        const repaired = await repairJsonViaDahl(apiKey, url, model, args.messages, content, remainingForRepair);
+        if (repaired) {
+          return {
+            ok: true,
+            content: repaired,
+            model: resolvedModel,
+            inputTokens,
+            outputTokens,
+            latencyMs: Date.now() - start,
+            finishReason: 'repaired',
+          };
+        }
+      }
+      return {
+        ok: false,
+        kind: 'invalid_response',
+        message: 'Dahl did not return valid JSON, and the bounded repair attempt did not recover it.',
+        latencyMs: Date.now() - start,
+        retryable: false,
+      };
+    }
   }
 
   return lastError ?? { ok: false, kind: 'unavailable', message: 'Dahl request failed.', latencyMs: Date.now() - start, retryable: true };

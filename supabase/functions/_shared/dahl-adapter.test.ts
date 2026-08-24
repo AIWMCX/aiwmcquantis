@@ -326,3 +326,82 @@ Deno.test("dahl base URL allowlist: the loopback exception reaches our own mock 
 
   await server.shutdown();
 });
+
+Deno.test("jsonMode: content wrapped in markdown fences is recovered by local extraction, no repair request needed", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: () => Response.json({ choices: [{ message: { content: '```json\n{"ok": true, "n": 1}\n```' } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true });
+  assertEquals(result.ok, true);
+  assertEquals((result as { content: string }).content, '{"ok": true, "n": 1}');
+  assertEquals(getChatAttempts(), 1); // recovered locally -- no second (repair) request
+  await server.shutdown();
+});
+
+Deno.test("jsonMode: when local extraction fails, one bounded repair request is made and its valid JSON is used", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: (_req, attempt) =>
+      attempt === 1
+        ? Response.json({ choices: [{ message: { content: "Sure, here is some analysis prose with no JSON at all." } }] })
+        : Response.json({ choices: [{ message: { content: '{"ok": true, "repaired": true}' } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true });
+  assertEquals(result.ok, true);
+  assertEquals((result as { content: string }).content, '{"ok": true, "repaired": true}');
+  assertEquals((result as { finishReason?: string }).finishReason, "repaired");
+  assertEquals(getChatAttempts(), 2); // original attempt + exactly one repair attempt
+  await server.shutdown();
+});
+
+Deno.test("jsonMode: when both local extraction and the repair attempt fail, returns invalid_response (never fabricates success)", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: () => Response.json({ choices: [{ message: { content: "still not JSON, even on the repair attempt" } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true, timeoutMs: 30_000 });
+  assertEquals(result.ok, false);
+  assertEquals((result as { kind: string }).kind, "invalid_response");
+  assertEquals(getChatAttempts(), 2); // original + one bounded repair, then gives up
+  await server.shutdown();
+});
+
+Deno.test("jsonMode: valid JSON on the first attempt is returned as-is, with no repair request", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: () => Response.json({ choices: [{ message: { content: '{"clean": true}' } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true });
+  assertEquals(result.ok, true);
+  assertEquals((result as { content: string }).content, '{"clean": true}');
+  assertEquals(getChatAttempts(), 1);
+  await server.shutdown();
+});
+
+Deno.test("without jsonMode, non-JSON content is returned as-is -- no validation or repair attempted", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: () => Response.json({ choices: [{ message: { content: "just plain prose, not JSON at all" } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }] }); // jsonMode omitted
+  assertEquals(result.ok, true);
+  assertEquals((result as { content: string }).content, "just plain prose, not JSON at all");
+  assertEquals(getChatAttempts(), 1);
+  await server.shutdown();
+});
