@@ -105,6 +105,12 @@ export function __resetDahlCachesForTests(): void {
  *  of routing a fake external hostname through a real fetch. */
 export const __isAllowedDahlBaseForTests = isAllowedDahlBase;
 
+/** Test-only re-export of the resolved base URL so dahl-adapter.test.ts can
+ *  assert a rejected DAHL_BASE_URL falls back to DAHL_DEFAULT_BASE without
+ *  actually making the live network call that using it would trigger. */
+export const __dahlBaseUrlForTests = dahlBaseUrl;
+export const __DAHL_DEFAULT_BASE_FOR_TESTS = DAHL_DEFAULT_BASE;
+
 export function isDahlEnabled(): boolean {
   return Deno.env.get('DAHL_ENABLED') === 'true';
 }
@@ -301,10 +307,15 @@ function parseRetryAfterMs(value: string | null): number | null {
   return Math.min(seconds * 1000, 10_000);
 }
 
-async function backoff(attempt: number, retryAfterMs: number | null): Promise<void> {
+/** Sleeps for the backoff duration, but never past `deadline` — otherwise a
+ *  retry near the end of the call's timeout budget could sleep up to ~10s
+ *  (the retry-after cap) beyond it before the next loop iteration's
+ *  deadline check ever runs. */
+async function backoff(attempt: number, retryAfterMs: number | null, deadline: number): Promise<void> {
   const base = retryAfterMs ?? Math.min(500 * 2 ** attempt, 4_000);
   const jitter = Math.random() * 250;
-  await new Promise((resolve) => setTimeout(resolve, base + jitter));
+  const capped = Math.max(0, Math.min(base + jitter, deadline - Date.now()));
+  await new Promise((resolve) => setTimeout(resolve, capped));
 }
 
 /**
@@ -377,7 +388,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         retryable: true,
       };
       if (attempt < retries) {
-        await backoff(attempt, null);
+        await backoff(attempt, null, deadline);
         continue;
       }
       return lastError;
@@ -402,7 +413,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
       lastError = { ok: false, kind: 'rate_limit', message: 'Dahl rate-limited the request.', latencyMs: Date.now() - start, retryable: true };
       if (attempt < retries) {
-        await backoff(attempt, retryAfterMs);
+        await backoff(attempt, retryAfterMs, deadline);
         continue;
       }
       return lastError;
@@ -417,7 +428,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         retryable: true,
       };
       if (attempt < retries) {
-        await backoff(attempt, null);
+        await backoff(attempt, null, deadline);
         continue;
       }
       return lastError;
