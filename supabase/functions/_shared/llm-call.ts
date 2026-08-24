@@ -34,6 +34,13 @@ import {
   type PromptModule,
   UNIVERSAL_RULES,
 } from './prompts.ts';
+import {
+  dahlChatCompletion,
+  isDahlEnabled,
+  isDahlFallbackEnabled,
+  type DahlAlias,
+  type DahlChatMessage,
+} from './dahl-adapter.ts';
 
 // Primary AI backend: DeepSeek (self-hosted key, always available).
 // Legacy fallback: Lovable AI gateway (only if LOVABLE_API_KEY is set — kept
@@ -107,6 +114,12 @@ export interface AiCallOptions {
    * Default false — all other callers get the Anthropic safety net.
    */
   disableAnthropicFallback?: boolean;
+  /**
+   * Which internal Dahl task alias to use when Dahl is the active backend
+   * (DAHL_ENABLED=true). Ignored entirely on the legacy DeepSeek/Lovable/
+   * Anthropic path. Defaults to 'general'.
+   */
+  dahlAlias?: DahlAlias;
 }
 
 export type AiCallError =
@@ -129,10 +142,152 @@ export interface AiCallSuccess {
 export type AiCallResult = AiCallSuccess | AiCallError;
 
 /**
- * Generic Lovable AI gateway call. Pass through any request body shape;
- * helper adds UNIVERSAL_RULES, error mapping, timeout and telemetry.
+ * Generic AI gateway call. Pass through any request body shape; helper adds
+ * UNIVERSAL_RULES, error mapping, timeout and telemetry.
+ *
+ * Dispatch: if DAHL_ENABLED=true, tries Dahl first (see dahl-adapter.ts).
+ * On a retryable Dahl failure, falls through to the legacy DeepSeek/Lovable/
+ * Anthropic chain only if DAHL_FALLBACK_ENABLED=true — otherwise returns the
+ * sanitized Dahl error directly. When DAHL_ENABLED is false (the default),
+ * behavior is byte-for-byte identical to before this change.
  */
 export async function aiCall(
+  body: GatewayRequestBody,
+  opts: AiCallOptions,
+): Promise<AiCallResult> {
+  if (isDahlEnabled()) {
+    const dahlResult = await callDahlGateway(body, opts);
+    if (dahlResult.ok || !isDahlFallbackEnabled() || !dahlResult.retryable) {
+      return dahlResult.result;
+    }
+    // Retryable Dahl failure + fallback explicitly enabled: fall through to
+    // the legacy chain below rather than surfacing the Dahl error.
+  }
+  return callLegacyGateway(body, opts);
+}
+
+/**
+ * Routes a request through the Dahl adapter and maps its result into the
+ * exact same AiCallResult shape every existing caller already expects, so
+ * zero call sites need to change to pick up Dahl once it's enabled.
+ */
+async function callDahlGateway(
+  body: GatewayRequestBody,
+  opts: AiCallOptions,
+): Promise<{ ok: true; result: AiCallSuccess } | { ok: false; result: AiCallError; retryable: boolean }> {
+  const messages: DahlChatMessage[] = body.messages
+    .map((m) => {
+      const text = typeof m.content === 'string'
+        ? m.content
+        : m.content.map((p) => (p.type === 'text' ? p.text : '')).join('\n');
+      if (m.role === 'system' || m.role === 'user' || m.role === 'assistant') {
+        return { role: m.role, content: text };
+      }
+      return null;
+    })
+    .filter((m): m is DahlChatMessage => m !== null);
+
+  if (opts.injectUniversalRules !== false) {
+    const firstSystemIdx = messages.findIndex((m) => m.role === 'system');
+    if (firstSystemIdx >= 0) {
+      if (!messages[firstSystemIdx].content.startsWith('=== QUANTIS UNIVERSAL RULES')) {
+        messages[firstSystemIdx] = { ...messages[firstSystemIdx], content: `${UNIVERSAL_RULES}\n\n${messages[firstSystemIdx].content}` };
+      }
+    } else {
+      messages.unshift({ role: 'system', content: UNIVERSAL_RULES });
+    }
+  }
+
+  const dahl = await dahlChatCompletion({
+    alias: opts.dahlAlias ?? 'general',
+    messages,
+    temperature: body.temperature,
+    maxTokens: body.max_tokens,
+    jsonMode: body.response_format?.type === 'json_object',
+    timeoutMs: opts.timeoutMs,
+  });
+
+  if (dahl.ok) {
+    void recordAiCall({
+      ok: true,
+      task: opts.task,
+      model: `dahl:${dahl.model}`,
+      latencyMs: dahl.latencyMs,
+      inputTokens: dahl.inputTokens,
+      outputTokens: dahl.outputTokens,
+      analysisId: opts.analysisId ?? null,
+      userId: opts.userId ?? null,
+      requestId: opts.requestId ?? null,
+      metadata: opts.metadata,
+      skip: opts.skipTelemetry,
+    });
+    return {
+      ok: true,
+      result: {
+        ok: true,
+        status: 200,
+        data: {
+          choices: [{ message: { role: 'assistant', content: dahl.content }, finish_reason: dahl.finishReason ?? null }],
+          usage: { prompt_tokens: dahl.inputTokens, completion_tokens: dahl.outputTokens },
+          model: `dahl:${dahl.model}`,
+        },
+        latencyMs: dahl.latencyMs,
+        inputTokens: dahl.inputTokens,
+        outputTokens: dahl.outputTokens,
+      },
+    };
+  }
+
+  void recordAiCall({
+    ok: false,
+    task: opts.task,
+    model: 'dahl:unresolved',
+    latencyMs: dahl.latencyMs,
+    inputTokens: 0,
+    outputTokens: 0,
+    analysisId: opts.analysisId ?? null,
+    userId: opts.userId ?? null,
+    requestId: opts.requestId ?? null,
+    error: `DAHL_${dahl.kind.toUpperCase()}`,
+    metadata: opts.metadata,
+    skip: opts.skipTelemetry,
+  });
+
+  const statusByKind: Record<typeof dahl.kind, AiCallError['status']> = {
+    config: 500,
+    auth: 500,
+    exhausted: 402,
+    rate_limit: 429,
+    unsupported_model: 502,
+    timeout: 504,
+    unavailable: 502,
+    invalid_response: 502,
+  };
+  const errorByKind: Record<typeof dahl.kind, AiCallError['error']> = {
+    config: 'CONFIG',
+    auth: 'CONFIG',
+    exhausted: 'AI_CREDITS_EXHAUSTED',
+    rate_limit: 'RATE_LIMIT_EXCEEDED',
+    unsupported_model: 'AI_ERROR',
+    timeout: 'AI_TIMEOUT',
+    unavailable: 'AI_ERROR',
+    invalid_response: 'AI_ERROR',
+  };
+
+  const status = statusByKind[dahl.kind];
+  const errorCode = errorByKind[dahl.kind];
+  const base = { message: dahl.message, latencyMs: dahl.latencyMs };
+  const result: AiCallError =
+    status === 402 ? { ok: false, status: 402, error: 'AI_CREDITS_EXHAUSTED', ...base }
+    : status === 429 ? { ok: false, status: 429, error: 'RATE_LIMIT_EXCEEDED', ...base }
+    : status === 504 ? { ok: false, status: 504, error: 'AI_TIMEOUT', ...base }
+    : status === 500 ? { ok: false, status: 500, error: 'CONFIG', ...base }
+    : { ok: false, status: 502, error: errorCode as 'AI_ERROR', ...base };
+
+  return { ok: false, result, retryable: dahl.retryable };
+}
+
+async function callLegacyGateway(
   body: GatewayRequestBody,
   opts: AiCallOptions,
 ): Promise<AiCallResult> {
@@ -377,7 +532,8 @@ interface RecordArgs {
  *  telemetry. Previously this was hardcoded to 'lovable_gateway' regardless
  *  of which backend actually served the request — meaning every DeepSeek
  *  call (the primary path since the Lovable migration) was mislabeled. */
-function providerFromModel(model: string): 'deepseek' | 'anthropic' | 'lovable_gateway' {
+function providerFromModel(model: string): 'deepseek' | 'anthropic' | 'lovable_gateway' | 'dahl' {
+  if (model.startsWith('dahl:')) return 'dahl';
   if (model.startsWith('anthropic:') || model.startsWith('claude-')) return 'anthropic';
   if (model.startsWith('deepseek')) return 'deepseek';
   return 'lovable_gateway';
@@ -404,6 +560,10 @@ const COST_PRICING: Array<{ match: string; in: number; out: number }> = [
 
 function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
   const lower = model.toLowerCase();
+  // Dahl calls (model strings prefixed "dahl:") intentionally have no entry
+  // here and fall through to 0: the owner pre-paid a fixed token pool, so
+  // there's no incremental per-call USD cost to estimate. Pool consumption
+  // is tracked via input_tokens/output_tokens on the same row instead.
   const rate = COST_PRICING.find((p) => lower.includes(p.match));
   if (!rate) return 0;
   const cost = (inputTokens / 1_000_000) * rate.in + (outputTokens / 1_000_000) * rate.out;
