@@ -9,7 +9,7 @@ import { GlassCard, SectionHeader } from '@/components/ui/glass-card';
 import { PricingSection } from '@/components/landing/PricingSection';
 import { recordFunnelEvent } from '@/lib/analytics';
 import { TIERS } from '@/config/tiers';
-import { FREE_ANALYSES_PER_MONTH } from '@/config/canonical-facts';
+import { FREE_ANALYSES_PER_MONTH, PROCESSING_TIME_CLAIM } from '@/config/canonical-facts';
 
 const MONO = { fontFamily: "'JetBrains Mono', ui-monospace, monospace" } as const;
 
@@ -75,7 +75,7 @@ export default function Pricing() {
               <p className="text-3xl md:text-4xl font-bold" style={{ ...MONO, color: 'hsl(var(--foreground))' }}>
                 ${TIERS.plus.priceAnnualMonthlyEquivalent}<span className="text-base font-medium text-muted-foreground"> / mo</span>
               </p>
-              <p className="text-xs text-muted-foreground mt-2">Unlimited analyses · 60-second turnaround</p>
+              <p className="text-xs text-muted-foreground mt-2">Unlimited analyses · {PROCESSING_TIME_CLAIM}</p>
             </div>
           </div>
           <div
