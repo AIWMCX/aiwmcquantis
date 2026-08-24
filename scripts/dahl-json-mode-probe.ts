@@ -24,7 +24,15 @@
  * Run with:
  *   DAHL_API_KEY=... deno run --allow-net --allow-env scripts/dahl-json-mode-probe.ts
  */
-import { dahlChatCompletion } from "../supabase/functions/_shared/dahl-adapter.ts";
+import { dahlChatCompletion, type DahlAlias } from "../supabase/functions/_shared/dahl-adapter.ts";
+
+const ALL_ALIASES: DahlAlias[] = ["general", "long_reasoning", "fast_reasoning"];
+
+function resolveAliasesToTest(): DahlAlias[] {
+  const raw = Deno.env.get("DAHL_PROBE_ALIAS");
+  if (raw === "general" || raw === "long_reasoning" || raw === "fast_reasoning") return [raw];
+  return ALL_ALIASES; // default: test all three so results are directly comparable
+}
 
 // A deliberately realistic approximation of analyze-business's actual
 // request shape: asks for a nested JSON object with several sections, at
@@ -98,14 +106,17 @@ function shapeDiagnostics(text: string) {
   };
 }
 
-async function main() {
-  if (!Deno.env.get("DAHL_API_KEY")) {
-    console.error("FAIL: DAHL_API_KEY is not set.");
-    Deno.exit(1);
-  }
+interface AliasOutcome {
+  alias: DahlAlias;
+  passed: boolean;
+  summary: string;
+}
 
+async function probeOneAlias(alias: DahlAlias): Promise<AliasOutcome> {
+  console.log(`\n=== Probing alias: ${alias} ===`);
+  const start = Date.now();
   const result = await dahlChatCompletion({
-    alias: "general",
+    alias,
     messages: [
       { role: "system", content: SYSTEM_PROMPT },
       { role: "user", content: USER_PROMPT },
@@ -113,14 +124,20 @@ async function main() {
     jsonMode: true,
     maxTokens: 6000,
     temperature: 0.2,
-    timeoutMs: 60_000,
+    // Deliberately longer than analyze-business's production 60s budget --
+    // this probe exists to characterize each model's real latency, not to
+    // simulate the exact production timeout. 120s gives a slow-but-working
+    // model room to finish rather than reporting "timeout" when it might
+    // have succeeded at 65s.
+    timeoutMs: 120_000,
   });
+  const wallMs = Date.now() - start;
 
   if (!result.ok) {
-    console.log("RESULT: dahl call failed at the transport level");
+    console.log(`RESULT: dahl call failed at the transport level (wall: ${wallMs}ms)`);
     console.log(`kind: ${result.kind}`);
     console.log(`message: ${result.message}`);
-    Deno.exit(1);
+    return { alias, passed: false, summary: `transport failure: ${result.kind}` };
   }
 
   const shapeOk = looksLikeJson(result.content);
@@ -131,12 +148,11 @@ async function main() {
   console.log(`content_length_chars: ${result.content.length}`);
   console.log(`input_tokens: ${result.inputTokens}`);
   console.log(`output_tokens: ${result.outputTokens}`);
+  console.log(`latency_ms: ${result.latencyMs} (wall: ${wallMs}ms)`);
   console.log(`starts_and_ends_with_braces: ${shapeOk}`);
   console.log(`JSON.parse succeeded: ${parse.ok}`);
   if (!parse.ok) {
     console.log(`parse error: ${parse.error}`);
-    // Structural-only diagnostics -- character CLASSES, never the actual
-    // characters or any raw model text (see shapeDiagnostics() above).
     const shape = shapeDiagnostics(result.content);
     console.log(`starts_with_markdown_fence: ${shape.startsWithMarkdownFence}`);
     console.log(`ends_with_markdown_fence: ${shape.endsWithMarkdownFence}`);
@@ -147,13 +163,45 @@ async function main() {
   }
 
   if (result.finishReason === "length") {
-    console.log("DIAGNOSIS: response was truncated by max_tokens (finish_reason=length) -- this is a token-budget problem, not a JSON-mode support problem. Consider raising max_tokens or shortening the requested schema for this model.");
+    console.log("DIAGNOSIS: response was truncated by max_tokens (finish_reason=length) -- a token-budget problem, not a JSON-mode support problem.");
   }
+
   if (parse.ok) {
-    console.log("PROBE PASSED: Dahl/this model returned valid, parseable JSON for this exact request shape.");
-    Deno.exit(0);
+    console.log(`PASSED (alias=${alias}): valid, parseable JSON, ${wallMs}ms wall time.`);
+    return { alias, passed: true, summary: `ok, ${wallMs}ms, ${result.model}` };
   } else {
-    console.log("PROBE FAILED: Dahl/this model did NOT return valid JSON for this exact request shape (the same shape analyze-business uses in production).");
+    console.log(`FAILED (alias=${alias}): did NOT return valid JSON.`);
+    return { alias, passed: false, summary: `invalid JSON, ${wallMs}ms, ${result.model}` };
+  }
+}
+
+async function main() {
+  if (!Deno.env.get("DAHL_API_KEY")) {
+    console.error("FAIL: DAHL_API_KEY is not set.");
+    Deno.exit(1);
+  }
+
+  const aliases = resolveAliasesToTest();
+  const outcomes: AliasOutcome[] = [];
+  for (const alias of aliases) {
+    // Sequential, not parallel: keeps token spend and rate-limit exposure
+    // predictable, and makes per-alias log sections easy to read in CI.
+    outcomes.push(await probeOneAlias(alias));
+  }
+
+  console.log("\n=== Summary (same request shape as analyze-business's production call) ===");
+  for (const o of outcomes) {
+    console.log(`${o.passed ? "PASS" : "FAIL"}  ${o.alias.padEnd(15)}  ${o.summary}`);
+  }
+
+  if (outcomes.every((o) => o.passed)) {
+    console.log("\nALL ALIASES PASSED for this request shape.");
+    Deno.exit(0);
+  } else if (outcomes.some((o) => o.passed)) {
+    console.log("\nPARTIAL: at least one alias handles this request shape reliably; others do not. Route this task type to a passing alias only.");
+    Deno.exit(1);
+  } else {
+    console.log("\nALL ALIASES FAILED this request shape. Do not route this task type to Dahl until a fix (retry+repair, longer timeout, or a smaller/simpler schema) is verified.");
     Deno.exit(1);
   }
 }
