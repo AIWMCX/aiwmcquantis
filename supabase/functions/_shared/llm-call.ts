@@ -42,6 +42,7 @@ import {
   type DahlAlias,
   type DahlChatMessage,
 } from './dahl-adapter.ts';
+import { isDahlEligible } from './dahl-canary.ts';
 
 // Primary AI backend: DeepSeek (self-hosted key, always available).
 // Legacy fallback: Lovable AI gateway (only if LOVABLE_API_KEY is set — kept
@@ -146,17 +147,23 @@ export type AiCallResult = AiCallSuccess | AiCallError;
  * Generic AI gateway call. Pass through any request body shape; helper adds
  * UNIVERSAL_RULES, error mapping, timeout and telemetry.
  *
- * Dispatch: if DAHL_ENABLED=true, tries Dahl first (see dahl-adapter.ts).
+ * Dispatch: Dahl is only attempted when BOTH gates pass --
+ *   1. DAHL_ENABLED=true (the master switch), AND
+ *   2. isDahlEligible() (see dahl-canary.ts) says THIS request qualifies
+ *      under the current rollout stage (off / admin_only / a stable
+ *      percentage of users) -- flipping DAHL_ENABLED alone must never route
+ *      100% of production traffic instantly.
  * On a retryable Dahl failure, falls through to the legacy DeepSeek/Lovable/
  * Anthropic chain only if DAHL_FALLBACK_ENABLED=true — otherwise returns the
- * sanitized Dahl error directly. When DAHL_ENABLED is false (the default),
- * behavior is byte-for-byte identical to before this change.
+ * sanitized Dahl error directly. When DAHL_ENABLED is false, or the canary
+ * gate says this request isn't eligible, behavior is byte-for-byte identical
+ * to before this change.
  */
 export async function aiCall(
   body: GatewayRequestBody,
   opts: AiCallOptions,
 ): Promise<AiCallResult> {
-  if (isDahlEnabled()) {
+  if (isDahlEnabled() && (await isDahlEligible({ userId: opts.userId, requestId: opts.requestId }))) {
     const dahlResult = await callDahlGateway(body, opts);
     if (dahlResult.ok) return dahlResult.result;
     if (dahlResult.unsupported) {
