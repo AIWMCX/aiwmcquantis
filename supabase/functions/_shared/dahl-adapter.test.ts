@@ -342,22 +342,75 @@ Deno.test("jsonMode: content wrapped in markdown fences is recovered by local ex
   await server.shutdown();
 });
 
-Deno.test("jsonMode: when local extraction fails, one bounded repair request is made and its valid JSON is used", async () => {
+Deno.test("jsonMode: when local extraction fails, one bounded repair request is made, and ITS OWN model/usage metadata is used (not the failed original request's)", async () => {
   const { server, baseUrl, getChatAttempts } = startMockServer({
     modelsBody: LIVE_MODELS,
     statusBody: LIVE_STATUS_ALL_UP,
     chatHandler: (_req, attempt) =>
       attempt === 1
-        ? Response.json({ choices: [{ message: { content: "Sure, here is some analysis prose with no JSON at all." } }] })
-        : Response.json({ choices: [{ message: { content: '{"ok": true, "repaired": true}' } }] }),
+        ? Response.json({
+            choices: [{ message: { content: "Sure, here is some analysis prose with no JSON at all." } }],
+            usage: { prompt_tokens: 100, completion_tokens: 50 },
+            model: "original-model-should-not-be-reported",
+          })
+        : Response.json({
+            choices: [{ message: { content: '{"ok": true, "repaired": true}' } }],
+            usage: { prompt_tokens: 111, completion_tokens: 22 },
+            model: "repair-model-id",
+          }),
   });
   setUpEnv(baseUrl, "sk-test");
 
-  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true });
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true, maxTokens: 4321 });
   assertEquals(result.ok, true);
   assertEquals((result as { content: string }).content, '{"ok": true, "repaired": true}');
   assertEquals((result as { finishReason?: string }).finishReason, "repaired");
+  // Metadata must come from the repair request, which is the one that
+  // actually produced the content -- not the failed original request.
+  assertEquals((result as { model: string }).model, "repair-model-id");
+  assertEquals((result as { inputTokens: number }).inputTokens, 111);
+  assertEquals((result as { outputTokens: number }).outputTokens, 22);
   assertEquals(getChatAttempts(), 2); // original attempt + exactly one repair attempt
+  await server.shutdown();
+});
+
+Deno.test("jsonMode: the caller's maxTokens is preserved on the repair request, not left to the provider default", async () => {
+  const capturedBodies: Record<string, unknown>[] = [];
+  const { server, baseUrl } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: async (req, attempt) => {
+      capturedBodies.push(await req.clone().json());
+      return attempt === 1
+        ? Response.json({ choices: [{ message: { content: "not json" } }] })
+        : Response.json({ choices: [{ message: { content: '{"ok": true}' } }] });
+    },
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true, maxTokens: 4321 });
+  assertEquals(capturedBodies.length, 2);
+  assertEquals(capturedBodies[0].max_tokens, 4321);
+  assertEquals(capturedBodies[1].max_tokens, 4321); // repair request must carry the same budget
+  await server.shutdown();
+});
+
+Deno.test("jsonMode: a syntactically valid JSON array or scalar is rejected, not accepted as an object", async () => {
+  const { server, baseUrl, getChatAttempts } = startMockServer({
+    modelsBody: LIVE_MODELS,
+    statusBody: LIVE_STATUS_ALL_UP,
+    chatHandler: (_req, attempt) =>
+      // Both the "original" and the "repair" attempt return valid JSON that
+      // is NOT an object -- proves this is rejected consistently, not just
+      // on the first pass.
+      Response.json({ choices: [{ message: { content: attempt === 1 ? "[1, 2, 3]" : '"just a string"' } }] }),
+  });
+  setUpEnv(baseUrl, "sk-test");
+
+  const result = await dahlChatCompletion({ alias: "general", messages: [{ role: "user", content: "hi" }], jsonMode: true, timeoutMs: 30_000 });
+  assertEquals(result.ok, false);
+  assertEquals((result as { kind: string }).kind, "invalid_response");
+  assertEquals(getChatAttempts(), 2); // original + one repair attempt, both rejected as non-objects
   await server.shutdown();
 });
 
