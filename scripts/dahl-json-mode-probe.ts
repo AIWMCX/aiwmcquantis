@@ -106,9 +106,23 @@ function shapeDiagnostics(text: string) {
   };
 }
 
+// Production's actual timeout budget for this task (analyze-business's
+// AI_TIMEOUT_MS). A response that is valid JSON but arrives after this
+// would ALWAYS time out for a real user -- "can produce valid JSON given
+// enough time" and "safe to route real production traffic to" are two
+// different questions, and conflating them would let this probe recommend
+// an alias that reliably fails in production.
+const PRODUCTION_TIMEOUT_MS = 60_000;
+
 interface AliasOutcome {
   alias: DahlAlias;
-  passed: boolean;
+  /** Did the model produce valid, parseable JSON at all (within the
+   *  probe's generous 120s window)? Answers "is this model capable of
+   *  this task shape", independent of speed. */
+  jsonValid: boolean;
+  /** Would this SAME response have arrived in time under production's
+   *  real 60s budget? Only true when jsonValid is also true. */
+  safeForProduction: boolean;
   summary: string;
 }
 
@@ -137,7 +151,7 @@ async function probeOneAlias(alias: DahlAlias): Promise<AliasOutcome> {
     console.log(`RESULT: dahl call failed at the transport level (wall: ${wallMs}ms)`);
     console.log(`kind: ${result.kind}`);
     console.log(`message: ${result.message}`);
-    return { alias, passed: false, summary: `transport failure: ${result.kind}` };
+    return { alias, jsonValid: false, safeForProduction: false, summary: `transport failure: ${result.kind}` };
   }
 
   const shapeOk = looksLikeJson(result.content);
@@ -166,13 +180,23 @@ async function probeOneAlias(alias: DahlAlias): Promise<AliasOutcome> {
     console.log("DIAGNOSIS: response was truncated by max_tokens (finish_reason=length) -- a token-budget problem, not a JSON-mode support problem.");
   }
 
-  if (parse.ok) {
-    console.log(`PASSED (alias=${alias}): valid, parseable JSON, ${wallMs}ms wall time.`);
-    return { alias, passed: true, summary: `ok, ${wallMs}ms, ${result.model}` };
-  } else {
+  if (!parse.ok) {
     console.log(`FAILED (alias=${alias}): did NOT return valid JSON.`);
-    return { alias, passed: false, summary: `invalid JSON, ${wallMs}ms, ${result.model}` };
+    return { alias, jsonValid: false, safeForProduction: false, summary: `invalid JSON, ${wallMs}ms, ${result.model}` };
   }
+
+  const withinProductionBudget = result.latencyMs <= PRODUCTION_TIMEOUT_MS;
+  if (withinProductionBudget) {
+    console.log(`PASSED (alias=${alias}): valid, parseable JSON, ${result.latencyMs}ms -- within production's ${PRODUCTION_TIMEOUT_MS}ms budget.`);
+  } else {
+    console.log(`JSON VALID BUT TOO SLOW (alias=${alias}): ${result.latencyMs}ms exceeds production's ${PRODUCTION_TIMEOUT_MS}ms budget -- this response would have timed out for a real user.`);
+  }
+  return {
+    alias,
+    jsonValid: true,
+    safeForProduction: withinProductionBudget,
+    summary: `${withinProductionBudget ? "ok" : "valid JSON but too slow"}, ${result.latencyMs}ms, ${result.model}`,
+  };
 }
 
 async function main() {
@@ -190,18 +214,24 @@ async function main() {
   }
 
   console.log("\n=== Summary (same request shape as analyze-business's production call) ===");
+  console.log(`Production timeout budget: ${PRODUCTION_TIMEOUT_MS}ms\n`);
   for (const o of outcomes) {
-    console.log(`${o.passed ? "PASS" : "FAIL"}  ${o.alias.padEnd(15)}  ${o.summary}`);
+    const label = o.safeForProduction ? "PROD-SAFE" : o.jsonValid ? "TOO SLOW " : "FAIL     ";
+    console.log(`${label}  ${o.alias.padEnd(15)}  ${o.summary}`);
   }
 
-  if (outcomes.every((o) => o.passed)) {
-    console.log("\nALL ALIASES PASSED for this request shape.");
+  // Production-routing recommendation is based ONLY on safeForProduction --
+  // a model that eventually produces valid JSON but blows past the real
+  // 60s budget is exactly as unusable for a live user as one that never
+  // produces valid JSON at all.
+  if (outcomes.every((o) => o.safeForProduction)) {
+    console.log("\nALL ALIASES are safe to route real production traffic to for this request shape.");
     Deno.exit(0);
-  } else if (outcomes.some((o) => o.passed)) {
-    console.log("\nPARTIAL: at least one alias handles this request shape reliably; others do not. Route this task type to a passing alias only.");
+  } else if (outcomes.some((o) => o.safeForProduction)) {
+    console.log("\nPARTIAL: at least one alias is safe for production traffic with this request shape; others are not (either invalid JSON or too slow). Route this task type to a prod-safe alias only.");
     Deno.exit(1);
   } else {
-    console.log("\nALL ALIASES FAILED this request shape. Do not route this task type to Dahl until a fix (retry+repair, longer timeout, or a smaller/simpler schema) is verified.");
+    console.log("\nNO ALIAS is currently safe for production traffic with this request shape. Do not route this task type to Dahl until a fix (retry+repair, a longer production timeout budget, or a smaller/simpler schema) is verified.");
     Deno.exit(1);
   }
 }
