@@ -38,6 +38,7 @@ import {
   dahlChatCompletion,
   isDahlEnabled,
   isDahlFallbackEnabled,
+  defaultAlias as dahlDefaultAlias,
   type DahlAlias,
   type DahlChatMessage,
 } from './dahl-adapter.ts';
@@ -157,11 +158,19 @@ export async function aiCall(
 ): Promise<AiCallResult> {
   if (isDahlEnabled()) {
     const dahlResult = await callDahlGateway(body, opts);
-    if (dahlResult.ok || !isDahlFallbackEnabled() || !dahlResult.retryable) {
+    if (dahlResult.ok) return dahlResult.result;
+    if (dahlResult.unsupported) {
+      // A known capability gap (tools/tool_choice/non-text content/tool-role
+      // messages), not a live failure -- Dahl's tool-calling and vision
+      // behavior haven't been contract-tested yet (per the integration's
+      // own Phase 3 rule: never assume "OpenAI-compatible" covers every
+      // OpenAI field). Always defer to the legacy chain for these, whether
+      // or not DAHL_FALLBACK_ENABLED is set, rather than risk silently
+      // dropping a tool call or an image and returning a semantically
+      // different response as if it were a normal success.
+    } else if (!isDahlFallbackEnabled() || !dahlResult.retryable) {
       return dahlResult.result;
     }
-    // Retryable Dahl failure + fallback explicitly enabled: fall through to
-    // the legacy chain below rather than surfacing the Dahl error.
   }
   return callLegacyGateway(body, opts);
 }
@@ -174,7 +183,41 @@ export async function aiCall(
 async function callDahlGateway(
   body: GatewayRequestBody,
   opts: AiCallOptions,
-): Promise<{ ok: true; result: AiCallSuccess } | { ok: false; result: AiCallError; retryable: boolean }> {
+): Promise<
+  | { ok: true; result: AiCallSuccess }
+  | { ok: false; result: AiCallError; retryable: boolean; unsupported?: false }
+  | { ok: false; result: AiCallError; retryable: false; unsupported: true }
+> {
+  // Detect request shapes Dahl's live behavior hasn't been contract-tested
+  // against yet: tool/function calling, tool-role messages, and non-text
+  // (e.g. image_url) content parts. Several existing callers (ai-narrator,
+  // generate-idea, template-optimizer, ai-consensus, parse-document) use
+  // one or more of these. Translating them away silently would let Dahl
+  // return a successful-looking response that is semantically wrong (a
+  // dropped tool call, a vision request answered as if it had no image).
+  const usesTools = body.tools !== undefined || body.tool_choice !== undefined;
+  const hasToolMessage = body.messages.some((m) => m.role === 'tool');
+  const hasNonTextContent = body.messages.some(
+    (m) => Array.isArray(m.content) && m.content.some((p) => p.type !== 'text'),
+  );
+  if (usesTools || hasToolMessage || hasNonTextContent) {
+    return {
+      ok: false,
+      unsupported: true,
+      retryable: false,
+      result: {
+        ok: false,
+        status: 502,
+        error: 'AI_ERROR',
+        // This result is never actually returned to a caller -- aiCall()
+        // always falls through to callLegacyGateway() when unsupported is
+        // true. It only exists to satisfy AiCallError's shape.
+        message: 'This request uses a capability Dahl has not been verified for; served by the legacy provider instead.',
+        latencyMs: 0,
+      },
+    };
+  }
+
   const messages: DahlChatMessage[] = body.messages
     .map((m) => {
       const text = typeof m.content === 'string'
@@ -199,7 +242,7 @@ async function callDahlGateway(
   }
 
   const dahl = await dahlChatCompletion({
-    alias: opts.dahlAlias ?? 'general',
+    alias: opts.dahlAlias ?? dahlDefaultAlias(),
     messages,
     temperature: body.temperature,
     maxTokens: body.max_tokens,
@@ -560,10 +603,14 @@ const COST_PRICING: Array<{ match: string; in: number; out: number }> = [
 
 function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {
   const lower = model.toLowerCase();
-  // Dahl calls (model strings prefixed "dahl:") intentionally have no entry
-  // here and fall through to 0: the owner pre-paid a fixed token pool, so
-  // there's no incremental per-call USD cost to estimate. Pool consumption
-  // is tracked via input_tokens/output_tokens on the same row instead.
+  // Dahl calls (model strings prefixed "dahl:") always cost 0: the owner
+  // pre-paid a fixed token pool, so there's no incremental per-call USD cost.
+  // This MUST be an explicit guard, not a fall-through: COST_PRICING matches
+  // on substrings, and Dahl can serve "deepseek-ai/DeepSeek-V4-Flash-0731",
+  // whose lowercased model string contains "deepseek" and would otherwise
+  // silently match DeepSeek's direct-API rate below -- corrupting every
+  // cost/margin dashboard that reads ai_calls.cost_usd for a Dahl call.
+  if (lower.startsWith('dahl:')) return 0;
   const rate = COST_PRICING.find((p) => lower.includes(p.match));
   if (!rate) return 0;
   const cost = (inputTokens / 1_000_000) * rate.in + (outputTokens / 1_000_000) * rate.out;

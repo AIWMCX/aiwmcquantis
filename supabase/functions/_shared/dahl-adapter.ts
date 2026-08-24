@@ -53,22 +53,37 @@ const ALIAS_PREFERENCE: Record<DahlAlias, string[]> = {
   ],
 };
 
-/** Loopback-only exception for dahl-adapter.test.ts's local mock server.
- *  Never a security hole in production: a plain-HTTP loopback address can
- *  only ever reach a process on the SAME machine, so there is nothing an
- *  external attacker or misconfigured value could redirect this to. This is
- *  the only origin, besides the real Dahl host, this adapter will ever
- *  construct a request against. */
-const LOOPBACK_BASE_URL_RE = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//;
+/**
+ * Hard allowlist, checked against the PARSED origin/hostname — never a
+ * string prefix. A prefix check (`configured.startsWith(DAHL_ORIGIN)`) would
+ * wrongly admit lookalike hosts such as
+ * "https://inference.dahl.global.evil.example/v1" or
+ * "https://inference.dahl.global@evil.example/v1", both of which start with
+ * the right characters but are a different, attacker-controlled origin that
+ * would receive the real Bearer key. Also rejects embedded userinfo
+ * (`user:pass@host`), a classic origin-check bypass vector.
+ *
+ * The loopback branch exists solely for dahl-adapter.test.ts's local mock
+ * server. It's not a production security hole: a plain-HTTP loopback address
+ * can only ever reach a process on the SAME machine, so there is nothing an
+ * external attacker or misconfigured value could redirect this to.
+ */
+function isAllowedDahlBase(configured: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(configured);
+  } catch {
+    return false;
+  }
+  if (parsed.username || parsed.password) return false;
+  if (parsed.origin === DAHL_ORIGIN) return true;
+  return parsed.protocol === 'http:' && (parsed.hostname === '127.0.0.1' || parsed.hostname === 'localhost');
+}
 
 function dahlBaseUrl(): string {
   const configured = Deno.env.get('DAHL_BASE_URL')?.trim();
   if (!configured) return DAHL_DEFAULT_BASE;
-  // Hard allowlist: never let config drift (or, in a future refactor, a
-  // client-supplied value) point this adapter at a non-Dahl origin.
-  if (configured.startsWith(DAHL_ORIGIN) || LOOPBACK_BASE_URL_RE.test(configured)) {
-    return configured;
-  }
+  if (isAllowedDahlBase(configured)) return configured;
   return DAHL_DEFAULT_BASE;
 }
 
@@ -84,6 +99,11 @@ export function __resetDahlCachesForTests(): void {
   catalogCache = null;
   statusCache = null;
 }
+
+/** Test-only re-export of the allowlist predicate so dahl-adapter.test.ts
+ *  can assert on it directly and precisely, without the DNS/TLS confounds
+ *  of routing a fake external hostname through a real fetch. */
+export const __isAllowedDahlBaseForTests = isAllowedDahlBase;
 
 export function isDahlEnabled(): boolean {
   return Deno.env.get('DAHL_ENABLED') === 'true';
@@ -243,7 +263,36 @@ export interface DahlChatError {
 export type DahlChatResult = DahlChatSuccess | DahlChatError;
 
 const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
-const MAX_RETRIES = 2; // integration spec: "Maximum two retries"
+const DEFAULT_MAX_RETRIES = 2; // integration spec: "Maximum two retries"
+
+/** DAHL_MAX_RETRIES, capped at the spec's hard maximum of 2. An operator can
+ *  set it lower (e.g. 0 or 1) but never higher — "maximum two retries" is a
+ *  cost/latency ceiling, not merely a suggested default. */
+function maxRetries(): number {
+  const raw = Deno.env.get('DAHL_MAX_RETRIES');
+  if (!raw) return DEFAULT_MAX_RETRIES;
+  const n = Number(raw);
+  if (!Number.isFinite(n) || n < 0) return DEFAULT_MAX_RETRIES;
+  return Math.min(Math.floor(n), DEFAULT_MAX_RETRIES);
+}
+
+/** DAHL_DEFAULT_ALIAS: the alias used when a caller doesn't pass one
+ *  explicitly. Falls back to 'general' for any unrecognized value so a
+ *  typo in config can never select a nonexistent alias. */
+export function defaultAlias(): DahlAlias {
+  const raw = Deno.env.get('DAHL_DEFAULT_ALIAS');
+  if (raw === 'general' || raw === 'long_reasoning' || raw === 'fast_reasoning') return raw;
+  return 'general';
+}
+
+/** DAHL_REQUEST_TIMEOUT_MS: the per-call deadline used when a caller doesn't
+ *  pass its own timeoutMs (most callers do, via a tier's timeout budget). */
+function defaultTimeoutMs(): number {
+  const raw = Deno.env.get('DAHL_REQUEST_TIMEOUT_MS');
+  if (!raw) return 60_000;
+  const n = Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : 60_000;
+}
 
 function parseRetryAfterMs(value: string | null): number | null {
   if (!value) return null;
@@ -281,12 +330,24 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
     };
   }
 
-  const timeoutMs = args.timeoutMs ?? 60_000;
+  const timeoutMs = args.timeoutMs ?? defaultTimeoutMs();
+  const retries = maxRetries();
   const url = `${dahlBaseUrl()}/chat/completions`;
+  // A single deadline for the WHOLE call, not per-attempt: with a fresh
+  // AbortSignal.timeout(timeoutMs) on every retry, 3 attempts could each
+  // take the full timeout, tripling the caller's intended deadline (a real
+  // problem since callTierLlm forwards a tier's timeout_ms budget straight
+  // through here). Each attempt gets whatever time remains, never a fresh
+  // full allowance.
+  const deadline = start + timeoutMs;
 
   let lastError: DahlChatError | null = null;
 
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) {
+      return lastError ?? { ok: false, kind: 'timeout', message: 'Dahl request timed out.', latencyMs: Date.now() - start, retryable: true };
+    }
     let resp: Response;
     try {
       resp = await fetch(url, {
@@ -303,7 +364,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
           ...(args.maxTokens !== undefined ? { max_tokens: args.maxTokens } : {}),
           ...(args.jsonMode ? { response_format: { type: 'json_object' } } : {}),
         }),
-        signal: AbortSignal.timeout(timeoutMs),
+        signal: AbortSignal.timeout(remainingMs),
       });
     } catch (err) {
       const msg = err instanceof Error ? err.message : 'network error';
@@ -315,7 +376,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         latencyMs: Date.now() - start,
         retryable: true,
       };
-      if (attempt < MAX_RETRIES) {
+      if (attempt < retries) {
         await backoff(attempt, null);
         continue;
       }
@@ -340,7 +401,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       await resp.text().catch(() => '');
       const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
       lastError = { ok: false, kind: 'rate_limit', message: 'Dahl rate-limited the request.', latencyMs: Date.now() - start, retryable: true };
-      if (attempt < MAX_RETRIES) {
+      if (attempt < retries) {
         await backoff(attempt, retryAfterMs);
         continue;
       }
@@ -355,7 +416,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         latencyMs: Date.now() - start,
         retryable: true,
       };
-      if (attempt < MAX_RETRIES) {
+      if (attempt < retries) {
         await backoff(attempt, null);
         continue;
       }
