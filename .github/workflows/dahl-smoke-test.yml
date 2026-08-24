@@ -1,0 +1,42 @@
+name: Dahl Smoke Test (manual)
+
+# Manually-triggered, read-only proof that DAHL_API_KEY is a real, funded
+# key that can complete a live chat-completions call. Runs the ACTUAL
+# adapter code (scripts/dahl-smoke-test.ts imports
+# supabase/functions/_shared/dahl-adapter.ts directly), not a
+# reimplementation, so a pass here means the exact code that will run in
+# production works end-to-end. Never routes any real user traffic --
+# DAHL_ENABLED stays whatever it already is; this workflow doesn't touch it.
+#
+# The key never leaves this job: it's read from the "production"
+# environment's secrets (GitHub redacts secret values from all logs by
+# default), the script never prints it, and only a sanitized summary
+# (model id, token counts, latency, pass/fail) reaches the job output.
+
+on:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  smoke-test:
+    name: Live Dahl chat-completions call
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    environment:
+      name: production
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Install Deno
+        uses: denoland/setup-deno@v2
+        with:
+          deno-version: v2.x
+
+      - name: Run smoke test
+        env:
+          DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
+        run: deno run --allow-net --allow-env scripts/dahl-smoke-test.ts | tee -a "$GITHUB_STEP_SUMMARY"

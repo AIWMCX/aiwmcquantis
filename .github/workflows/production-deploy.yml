@@ -223,6 +223,7 @@ jobs:
           STRIPE_PLUS_ANNUAL_PRICE_ID: ${{ secrets.STRIPE_PLUS_ANNUAL_PRICE_ID }}
           TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
         run: |
           if [ -z "$SUPABASE_ACCESS_TOKEN" ]; then
             echo "SUPABASE_ACCESS_TOKEN not set — skipping secret sync" >> "$GITHUB_STEP_SUMMARY"
@@ -273,6 +274,13 @@ jobs:
           fi
           # TAVILY_API_KEY: optional search enhancement for RVCE
           if [ -n "$TAVILY_API_KEY" ]; then npx supabase secrets set TAVILY_API_KEY="$TAVILY_API_KEY" --project-ref "$PROJECT_REF"; fi
+          # DAHL_API_KEY: private inference provider (see _shared/dahl-adapter.ts).
+          # Inert until DAHL_ENABLED=true is ALSO set -- this only makes the key
+          # available to the runtime, it does not route any traffic by itself.
+          if [ -n "$DAHL_API_KEY" ]; then
+            npx supabase secrets set DAHL_API_KEY="$DAHL_API_KEY" --project-ref "$PROJECT_REF"
+            echo "✓ DAHL_API_KEY synced to Supabase (inactive until DAHL_ENABLED=true)" >> "$GITHUB_STEP_SUMMARY"
+          fi
           # CRON_SECRET: shared secret pg_cron sends via x-cron-secret to
           # publish-due-posts, check-lifecycle-emails, send-weekly-insights,
           # warm-functions, and 9 other cron-triggered functions (see
