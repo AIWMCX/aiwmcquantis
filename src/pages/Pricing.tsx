@@ -101,7 +101,7 @@ export default function Pricing() {
             Start free, upgrade when ready
           </h2>
           <p className="text-muted-foreground mb-6">
-            No credit card required. Run your first analysis in about 90 seconds.
+            No credit card required. Run your first analysis in {PROCESSING_TIME_CLAIM}.
           </p>
           <Link to="/app">
             <Button size="lg" className="gap-2 py-6 px-8">
