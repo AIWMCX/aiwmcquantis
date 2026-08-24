@@ -314,12 +314,26 @@ function extractJsonSafely(text: string): string | null {
   const end = cleaned.lastIndexOf('}');
   if (start < 0 || end <= start) return null;
   const candidate = cleaned.slice(start, end + 1);
+  if (!isValidJsonObjectString(candidate)) return null;
+  return candidate;
+}
+
+/**
+ * True only for a JSON string that parses to a plain object -- never an
+ * array, string, number, boolean, or null. `response_format: json_object`
+ * implies an object; `JSON.parse` alone accepts any valid JSON value
+ * (`"[]"`, `"42"`, `"null"` all parse successfully), which would let a
+ * non-object response slip past validation and reach a caller (e.g.
+ * callTierLlm) that assumes a record to index into.
+ */
+function isValidJsonObjectString(text: string): boolean {
+  let parsed: unknown;
   try {
-    JSON.parse(candidate);
-    return candidate;
+    parsed = JSON.parse(text);
   } catch {
-    return null;
+    return false;
   }
+  return typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed);
 }
 
 /**
@@ -331,6 +345,13 @@ function extractJsonSafely(text: string): string | null {
  * repair attempt itself failed or also didn't produce valid JSON — in
  * either case the caller falls back to reporting invalid_response.
  */
+interface RepairSuccess {
+  content: string;
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+}
+
 async function repairJsonViaDahl(
   apiKey: string,
   url: string,
@@ -338,7 +359,8 @@ async function repairJsonViaDahl(
   originalMessages: DahlChatMessage[],
   badContent: string,
   remainingMs: number,
-): Promise<string | null> {
+  maxTokens: number | undefined,
+): Promise<RepairSuccess | null> {
   try {
     const resp = await fetch(url, {
       method: 'POST',
@@ -355,24 +377,31 @@ async function repairJsonViaDahl(
         ],
         stream: false,
         response_format: { type: 'json_object' },
+        // Preserve the caller's own output-length/cost budget on the repair
+        // request too -- without this it would fall through to the
+        // provider's own default, silently exceeding whatever limit the
+        // caller originally asked for.
+        ...(maxTokens !== undefined ? { max_tokens: maxTokens } : {}),
       }),
       signal: AbortSignal.timeout(remainingMs),
     });
     if (!resp.ok) return null;
     const json = (await resp.json().catch(() => null)) as
-      | { choices?: Array<{ message?: { content?: unknown } }> }
+      | { choices?: Array<{ message?: { content?: unknown } }>; usage?: { prompt_tokens?: unknown; completion_tokens?: unknown }; model?: unknown }
       | null;
     const content = json?.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || content.length === 0) return null;
-    const direct = (() => {
-      try {
-        JSON.parse(content);
-        return content;
-      } catch {
-        return null;
-      }
-    })();
-    return direct ?? extractJsonSafely(content);
+
+    const recovered = isValidJsonObjectString(content) ? content : extractJsonSafely(content);
+    if (!recovered) return null;
+
+    const usage = json?.usage ?? {};
+    return {
+      content: recovered,
+      model: typeof json?.model === 'string' ? json.model : model,
+      inputTokens: typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0,
+      outputTokens: typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0,
+    };
   } catch {
     return null;
   }
@@ -553,11 +582,15 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
     // actually parseable. Root-caused by the 2026-08-24 canary incident,
     // where a caller had to discover on its own that an "ok:true" Dahl
     // response wasn't valid JSON.
-    try {
-      JSON.parse(content);
+    if (isValidJsonObjectString(content)) {
       return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
-    } catch {
-      // Not valid as-is. Try safe local extraction first (no network cost).
+    }
+    {
+      // Not a valid JSON object as-is (either malformed, or a valid JSON
+      // value that isn't an object -- an array/string/number/null would
+      // otherwise slip past a bare JSON.parse check even though
+      // response_format: json_object implies an object). Try safe local
+      // extraction first (no network cost).
       const extracted = extractJsonSafely(content);
       if (extracted) {
         return { ok: true, content: extracted, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
@@ -566,14 +599,18 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       // only if there's meaningful time left in the caller's deadline.
       const remainingForRepair = deadline - Date.now();
       if (remainingForRepair > 5_000) {
-        const repaired = await repairJsonViaDahl(apiKey, url, model, args.messages, content, remainingForRepair);
+        const repaired = await repairJsonViaDahl(apiKey, url, model, args.messages, content, remainingForRepair, args.maxTokens);
         if (repaired) {
+          // Use the REPAIR request's own model/usage metadata -- it's the
+          // request that actually produced the returned content, so
+          // reporting the original (failed) request's usage here would
+          // under-count real spend for every repaired completion.
           return {
             ok: true,
-            content: repaired,
-            model: resolvedModel,
-            inputTokens,
-            outputTokens,
+            content: repaired.content,
+            model: repaired.model,
+            inputTokens: repaired.inputTokens,
+            outputTokens: repaired.outputTokens,
             latencyMs: Date.now() - start,
             finishReason: 'repaired',
           };
