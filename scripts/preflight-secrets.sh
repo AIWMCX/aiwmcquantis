@@ -44,6 +44,7 @@ declare -a REQUIRED=(
 declare -a OPTIONAL=(
   "ANTHROPIC_API_KEY|Claude fallback when DeepSeek fails"
   "TAVILY_API_KEY|RVCE web-search enhancement"
+  "DAHL_API_KEY|Dahl inference — inactive until DAHL_ENABLED=true is also set"
   "STRIPE_PRO_MONTHLY_PRICE_ID|Pro monthly checkout price ID"
   "STRIPE_PRO_ANNUAL_PRICE_ID|Pro annual checkout price ID"
   "SLACK_DEPLOY_WEBHOOK_URL|Slack incoming webhook for deploy notifications"

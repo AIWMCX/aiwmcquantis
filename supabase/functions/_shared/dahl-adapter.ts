@@ -1,0 +1,407 @@
+/**
+ * Dahl adapter — private, server-only OpenAI-compatible inference client.
+ * ---------------------------------------------------------------------------
+ * This module is the ONLY place in the codebase allowed to construct a
+ * request to inference.dahl.global. Every other caller (llm-call.ts,
+ * content-studio-generate, rvce-validate, hybrid-validator, ...) must go
+ * through `dahlChatCompletion()` / `isDahlEnabled()` rather than building
+ * its own fetch to Dahl. This keeps the origin allowlist, auth header
+ * construction, retry policy, and error sanitization in exactly one place.
+ *
+ * Contract (verified live against the real endpoints on 2026-08-24, not
+ * assumed from docs alone):
+ *   GET  {base}/models              -> { data: [{ id, object, created, owned_by }], object: "list" }
+ *   GET  {base}/status?window=24h   -> { models: [{ id, operational, uptime }], last_check_at, updated_at, window }
+ *   GET  {origin}/health             -> { status: "ok" }
+ *   POST {base}/chat/completions    -> Authorization: Bearer <key>, OpenAI-compatible body/response
+ *   GET  {origin}/tokens/current    -> authenticated per-key balance (never called from Quantis app code —
+ *                                       see Phase 6/8 of the integration spec: balance checks are an
+ *                                       access-restricted admin/monitoring concern, not a request-path one)
+ * All three documented models (MiniMaxAI/MiniMax-M2.7, moonshotai/Kimi-K2.6,
+ * deepseek-ai/DeepSeek-V4-Flash-0731) were confirmed present via live
+ * GET /v1/models and reported operational via GET /v1/status?window=24h at
+ * verification time. Model IDs can rotate — this module NEVER hardcodes an
+ * ID as safe to call without checking it against the live catalog first.
+ */
+
+const DAHL_ORIGIN = 'https://inference.dahl.global';
+const DAHL_DEFAULT_BASE = `${DAHL_ORIGIN}/v1`;
+
+/** Internal, stable task aliases. Callers never pass a raw Dahl model ID. */
+export type DahlAlias = 'general' | 'long_reasoning' | 'fast_reasoning';
+
+/**
+ * Preference order per alias. This is a PREFERENCE, not a guarantee — at
+ * request time only IDs actually present in the live GET /v1/models catalog
+ * (and not reported non-operational by GET /v1/status) are eligible.
+ */
+const ALIAS_PREFERENCE: Record<DahlAlias, string[]> = {
+  general: [
+    'MiniMaxAI/MiniMax-M2.7',
+    'deepseek-ai/DeepSeek-V4-Flash-0731',
+    'moonshotai/Kimi-K2.6',
+  ],
+  long_reasoning: [
+    'moonshotai/Kimi-K2.6',
+    'MiniMaxAI/MiniMax-M2.7',
+    'deepseek-ai/DeepSeek-V4-Flash-0731',
+  ],
+  fast_reasoning: [
+    'deepseek-ai/DeepSeek-V4-Flash-0731',
+    'MiniMaxAI/MiniMax-M2.7',
+    'moonshotai/Kimi-K2.6',
+  ],
+};
+
+/** Loopback-only exception for dahl-adapter.test.ts's local mock server.
+ *  Never a security hole in production: a plain-HTTP loopback address can
+ *  only ever reach a process on the SAME machine, so there is nothing an
+ *  external attacker or misconfigured value could redirect this to. This is
+ *  the only origin, besides the real Dahl host, this adapter will ever
+ *  construct a request against. */
+const LOOPBACK_BASE_URL_RE = /^http:\/\/(127\.0\.0\.1|localhost)(:\d+)?\//;
+
+function dahlBaseUrl(): string {
+  const configured = Deno.env.get('DAHL_BASE_URL')?.trim();
+  if (!configured) return DAHL_DEFAULT_BASE;
+  // Hard allowlist: never let config drift (or, in a future refactor, a
+  // client-supplied value) point this adapter at a non-Dahl origin.
+  if (configured.startsWith(DAHL_ORIGIN) || LOOPBACK_BASE_URL_RE.test(configured)) {
+    return configured;
+  }
+  return DAHL_DEFAULT_BASE;
+}
+
+/**
+ * Test-only: clears the in-memory catalog/status caches. Production code
+ * never calls this — the caches are meant to persist for their TTL across
+ * requests within one warm function instance. Exported (not module-private)
+ * only so dahl-adapter.test.ts can assert cache-miss/refresh behavior
+ * deterministically between test cases without relying on Deno's dynamic
+ * import cache semantics for isolation.
+ */
+export function __resetDahlCachesForTests(): void {
+  catalogCache = null;
+  statusCache = null;
+}
+
+export function isDahlEnabled(): boolean {
+  return Deno.env.get('DAHL_ENABLED') === 'true';
+}
+
+export function isDahlFallbackEnabled(): boolean {
+  return Deno.env.get('DAHL_FALLBACK_ENABLED') === 'true';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Model catalog — cached live discovery, never a hardcoded "trust me" list
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface CatalogEntry {
+  id: string;
+}
+
+interface CatalogCache {
+  data: CatalogEntry[];
+  fetchedAt: number;
+}
+
+let catalogCache: CatalogCache | null = null;
+let statusCache: { data: Record<string, boolean>; fetchedAt: number } | null = null;
+
+const CATALOG_TTL_MS = 10 * 60 * 1000; // 10 minutes, per integration spec Phase 3
+const STATUS_TTL_MS = 5 * 60 * 1000;
+const DISCOVERY_TIMEOUT_MS = 8_000;
+
+/** GET {base}/models with a short cache. Falls back to the last known-good
+ *  cache on a transient failure; NEVER falls back to a hardcoded model list
+ *  the live service hasn't actually confirmed. */
+async function fetchModelCatalog(): Promise<CatalogEntry[]> {
+  if (catalogCache && Date.now() - catalogCache.fetchedAt < CATALOG_TTL_MS) {
+    return catalogCache.data;
+  }
+  try {
+    const resp = await fetch(`${dahlBaseUrl()}/models`, {
+      signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
+    });
+    if (!resp.ok) throw new Error(`models endpoint returned ${resp.status}`);
+    const json = (await resp.json()) as { data?: Array<{ id?: unknown }> };
+    const data: CatalogEntry[] = Array.isArray(json?.data)
+      ? json.data
+          .map((m) => (typeof m?.id === 'string' ? { id: m.id } : null))
+          .filter((m): m is CatalogEntry => m !== null)
+      : [];
+    if (data.length === 0) throw new Error('model catalog was empty');
+    catalogCache = { data, fetchedAt: Date.now() };
+    return data;
+  } catch {
+    if (catalogCache) return catalogCache.data; // stale-but-known-good
+    return [];
+  }
+}
+
+/** GET {base}/status?window=24h — health-aware selection. Best-effort: an
+ *  empty/failed result means "no operational data available", which callers
+ *  treat as neutral (not proof of failure), never as proof of health. */
+async function fetchModelStatus(): Promise<Record<string, boolean>> {
+  if (statusCache && Date.now() - statusCache.fetchedAt < STATUS_TTL_MS) {
+    return statusCache.data;
+  }
+  try {
+    const resp = await fetch(`${dahlBaseUrl()}/status?window=24h`, {
+      signal: AbortSignal.timeout(DISCOVERY_TIMEOUT_MS),
+    });
+    if (!resp.ok) throw new Error(`status endpoint returned ${resp.status}`);
+    const json = (await resp.json()) as { models?: Array<{ id?: unknown; operational?: unknown }> };
+    const map: Record<string, boolean> = {};
+    for (const m of json?.models ?? []) {
+      if (typeof m?.id === 'string') map[m.id] = m.operational === true;
+    }
+    statusCache = { data: map, fetchedAt: Date.now() };
+    return map;
+  } catch {
+    return statusCache?.data ?? {};
+  }
+}
+
+/**
+ * Resolves an internal alias to a live, catalog-confirmed Dahl model ID.
+ * Returns null only when the live catalog is completely unavailable AND no
+ * cached catalog exists — callers must treat null as "Dahl unusable right
+ * now", never substitute an undocumented model ID of their own.
+ */
+export async function resolveDahlModel(alias: DahlAlias): Promise<string | null> {
+  const catalog = await fetchModelCatalog();
+  if (catalog.length === 0) return null;
+  const known = new Set(catalog.map((c) => c.id));
+  const status = await fetchModelStatus();
+
+  for (const candidate of ALIAS_PREFERENCE[alias]) {
+    if (known.has(candidate) && status[candidate] !== false) return candidate;
+  }
+  // Alias preference exhausted (e.g. all 3 preferred IDs rotated away or are
+  // reported down) — fall back to any other live, operational catalog entry
+  // rather than failing outright, since the catalog itself is real.
+  for (const entry of catalog) {
+    if (status[entry.id] !== false) return entry.id;
+  }
+  // Every known model is reported non-operational; still prefer a real,
+  // catalog-confirmed ID over refusing to attempt the call.
+  return catalog[0].id;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Chat completion
+// ─────────────────────────────────────────────────────────────────────────────
+
+export interface DahlChatMessage {
+  role: 'system' | 'user' | 'assistant';
+  content: string;
+}
+
+export interface DahlChatArgs {
+  alias: DahlAlias;
+  messages: DahlChatMessage[];
+  temperature?: number;
+  maxTokens?: number;
+  jsonMode?: boolean;
+  /** Default 60_000ms per integration spec (small extraction/chat tasks). */
+  timeoutMs?: number;
+}
+
+export interface DahlChatSuccess {
+  ok: true;
+  content: string;
+  /** The exact live model ID that actually served the request. */
+  model: string;
+  inputTokens: number;
+  outputTokens: number;
+  latencyMs: number;
+  finishReason?: string;
+}
+
+export type DahlErrorKind =
+  | 'config'
+  | 'auth'
+  | 'exhausted'
+  | 'rate_limit'
+  | 'unsupported_model'
+  | 'timeout'
+  | 'unavailable'
+  | 'invalid_response';
+
+export interface DahlChatError {
+  ok: false;
+  kind: DahlErrorKind;
+  /** Sanitized, first-party-safe message. Never contains raw upstream body,
+   *  headers, request IDs, or the Dahl hostname. */
+  message: string;
+  latencyMs: number;
+  retryable: boolean;
+}
+
+export type DahlChatResult = DahlChatSuccess | DahlChatError;
+
+const RETRYABLE_STATUS = new Set([408, 429, 500, 502, 503, 504]);
+const MAX_RETRIES = 2; // integration spec: "Maximum two retries"
+
+function parseRetryAfterMs(value: string | null): number | null {
+  if (!value) return null;
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds < 0) return null;
+  return Math.min(seconds * 1000, 10_000);
+}
+
+async function backoff(attempt: number, retryAfterMs: number | null): Promise<void> {
+  const base = retryAfterMs ?? Math.min(500 * 2 ** attempt, 4_000);
+  const jitter = Math.random() * 250;
+  await new Promise((resolve) => setTimeout(resolve, base + jitter));
+}
+
+/**
+ * The only function in the codebase permitted to POST to Dahl's
+ * /chat/completions endpoint. Never throws — always resolves to a typed
+ * success/error result.
+ */
+export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatResult> {
+  const start = Date.now();
+  const apiKey = Deno.env.get('DAHL_API_KEY');
+  if (!apiKey) {
+    return { ok: false, kind: 'config', message: 'Dahl is not configured.', latencyMs: 0, retryable: false };
+  }
+
+  const model = await resolveDahlModel(args.alias);
+  if (!model) {
+    return {
+      ok: false,
+      kind: 'unsupported_model',
+      message: 'No live Dahl model is currently available for this task.',
+      latencyMs: Date.now() - start,
+      retryable: false,
+    };
+  }
+
+  const timeoutMs = args.timeoutMs ?? 60_000;
+  const url = `${dahlBaseUrl()}/chat/completions`;
+
+  let lastError: DahlChatError | null = null;
+
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    let resp: Response;
+    try {
+      resp = await fetch(url, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          model,
+          messages: args.messages,
+          stream: false,
+          ...(args.temperature !== undefined ? { temperature: args.temperature } : {}),
+          ...(args.maxTokens !== undefined ? { max_tokens: args.maxTokens } : {}),
+          ...(args.jsonMode ? { response_format: { type: 'json_object' } } : {}),
+        }),
+        signal: AbortSignal.timeout(timeoutMs),
+      });
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'network error';
+      const isAbort = /abort|timeout|deadline/i.test(msg);
+      lastError = {
+        ok: false,
+        kind: isAbort ? 'timeout' : 'unavailable',
+        message: isAbort ? 'Dahl request timed out.' : 'Dahl is temporarily unreachable.',
+        latencyMs: Date.now() - start,
+        retryable: true,
+      };
+      if (attempt < MAX_RETRIES) {
+        await backoff(attempt, null);
+        continue;
+      }
+      return lastError;
+    }
+
+    if (resp.status === 401) {
+      await resp.text().catch(() => '');
+      return { ok: false, kind: 'auth', message: 'Dahl authentication failed.', latencyMs: Date.now() - start, retryable: false };
+    }
+    if (resp.status === 402) {
+      await resp.text().catch(() => '');
+      return {
+        ok: false,
+        kind: 'exhausted',
+        message: 'Dahl key balance is exhausted.',
+        latencyMs: Date.now() - start,
+        retryable: false,
+      };
+    }
+    if (resp.status === 429) {
+      await resp.text().catch(() => '');
+      const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
+      lastError = { ok: false, kind: 'rate_limit', message: 'Dahl rate-limited the request.', latencyMs: Date.now() - start, retryable: true };
+      if (attempt < MAX_RETRIES) {
+        await backoff(attempt, retryAfterMs);
+        continue;
+      }
+      return lastError;
+    }
+    if (RETRYABLE_STATUS.has(resp.status)) {
+      await resp.text().catch(() => '');
+      lastError = {
+        ok: false,
+        kind: 'unavailable',
+        message: 'Dahl is temporarily unavailable.',
+        latencyMs: Date.now() - start,
+        retryable: true,
+      };
+      if (attempt < MAX_RETRIES) {
+        await backoff(attempt, null);
+        continue;
+      }
+      return lastError;
+    }
+    if (!resp.ok) {
+      await resp.text().catch(() => '');
+      // A non-retryable, non-enumerated status. Never expose the raw status
+      // text or body to the caller — surface a sanitized, generic failure.
+      return {
+        ok: false,
+        kind: 'unsupported_model',
+        message: 'Dahl rejected the request.',
+        latencyMs: Date.now() - start,
+        retryable: false,
+      };
+    }
+
+    const json = (await resp.json().catch(() => null)) as
+      | { choices?: Array<{ message?: { content?: unknown }; finish_reason?: unknown }>; usage?: { prompt_tokens?: unknown; completion_tokens?: unknown }; model?: unknown }
+      | null;
+    if (!json) {
+      return { ok: false, kind: 'invalid_response', message: 'Dahl returned an unreadable response.', latencyMs: Date.now() - start, retryable: false };
+    }
+    const content = json.choices?.[0]?.message?.content;
+    if (typeof content !== 'string' || content.length === 0) {
+      // Missing choices[0].message.content is a failure, not success — per
+      // integration spec: never treat this as a usable completion.
+      return { ok: false, kind: 'invalid_response', message: 'Dahl returned no usable content.', latencyMs: Date.now() - start, retryable: false };
+    }
+
+    const usage = json.usage ?? {};
+    const inputTokens = typeof usage.prompt_tokens === 'number' ? usage.prompt_tokens : 0;
+    const outputTokens = typeof usage.completion_tokens === 'number' ? usage.completion_tokens : 0;
+    const finishReason = typeof json.choices?.[0]?.finish_reason === 'string' ? json.choices[0].finish_reason : undefined;
+
+    return {
+      ok: true,
+      content,
+      model: typeof json.model === 'string' ? json.model : model,
+      inputTokens,
+      outputTokens,
+      latencyMs: Date.now() - start,
+      finishReason,
+    };
+  }
+
+  return lastError ?? { ok: false, kind: 'unavailable', message: 'Dahl request failed.', latencyMs: Date.now() - start, retryable: true };
+}
