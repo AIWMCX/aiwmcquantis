@@ -70,6 +70,34 @@ function tryParse(text: string): { ok: true } | { ok: false; error: string } {
   }
 }
 
+/** Structural-only shape diagnostics -- classifies the first/last characters
+ *  and detects a markdown code fence, WITHOUT ever including the actual
+ *  characters or any other raw model text. This is what distinguishes
+ *  "wrapped in ```json fences" from "truncated mid-object" from "prose
+ *  before the JSON" without violating the no-raw-content-logging rule. */
+function classifyChar(c: string | undefined): string {
+  if (c === undefined) return "(empty)";
+  if (c === "{" || c === "}" || c === "[" || c === "]") return `brace(${c})`;
+  if (c === '"') return "quote";
+  if (/\s/.test(c)) return "whitespace";
+  if (/[a-zA-Z]/.test(c)) return "letter";
+  if (/[0-9]/.test(c)) return "digit";
+  if (c === "`") return "backtick";
+  return "other-punctuation";
+}
+
+function shapeDiagnostics(text: string) {
+  const trimmed = text.trim();
+  return {
+    startsWithMarkdownFence: /^```/.test(trimmed),
+    endsWithMarkdownFence: /```\s*$/.test(trimmed),
+    firstCharClass: classifyChar(trimmed[0]),
+    lastCharClass: classifyChar(trimmed[trimmed.length - 1]),
+    first10CharClasses: Array.from(trimmed.slice(0, 10)).map(classifyChar).join(","),
+    last10CharClasses: Array.from(trimmed.slice(-10)).map(classifyChar).join(","),
+  };
+}
+
 async function main() {
   if (!Deno.env.get("DAHL_API_KEY")) {
     console.error("FAIL: DAHL_API_KEY is not set.");
@@ -107,12 +135,15 @@ async function main() {
   console.log(`JSON.parse succeeded: ${parse.ok}`);
   if (!parse.ok) {
     console.log(`parse error: ${parse.error}`);
-    // Print only the first/last 80 chars as shape diagnostics -- enough to
-    // tell "wrapped in markdown fences" from "truncated mid-object" from
-    // "prose before the JSON", without ever logging the full narrative
-    // content this function is meant to keep private.
-    console.log(`content_head (80 chars): ${JSON.stringify(result.content.slice(0, 80))}`);
-    console.log(`content_tail (80 chars): ${JSON.stringify(result.content.slice(-80))}`);
+    // Structural-only diagnostics -- character CLASSES, never the actual
+    // characters or any raw model text (see shapeDiagnostics() above).
+    const shape = shapeDiagnostics(result.content);
+    console.log(`starts_with_markdown_fence: ${shape.startsWithMarkdownFence}`);
+    console.log(`ends_with_markdown_fence: ${shape.endsWithMarkdownFence}`);
+    console.log(`first_char_class: ${shape.firstCharClass}`);
+    console.log(`last_char_class: ${shape.lastCharClass}`);
+    console.log(`first_10_char_classes: ${shape.first10CharClasses}`);
+    console.log(`last_10_char_classes: ${shape.last10CharClasses}`);
   }
 
   if (result.finishReason === "length") {

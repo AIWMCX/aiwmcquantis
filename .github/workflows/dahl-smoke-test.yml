@@ -26,6 +26,14 @@ jobs:
     timeout-minutes: 5
     environment:
       name: production
+    defaults:
+      run:
+        # Explicit `shell: bash` (not the runner's unspecified default) runs
+        # as `bash --noprofile --norc -eo pipefail {0}` -- without this, a
+        # `deno run ... | tee -a "$GITHUB_STEP_SUMMARY"` pipeline reports the
+        # exit code of `tee` (which always succeeds), so a real probe
+        # failure could be silently masked as a green step.
+        shell: bash
     steps:
       - uses: actions/checkout@v5
         with:
