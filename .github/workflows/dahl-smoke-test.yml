@@ -40,3 +40,16 @@ jobs:
         env:
           DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
         run: deno run --allow-net --allow-env scripts/dahl-smoke-test.ts | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Run JSON-mode capability probe
+        # Root-caused the 2026-08-24 canary incident: a real request
+        # (response_format: json_object, max_tokens: 6000) got a
+        # successful-at-the-transport-level response from Dahl, but the
+        # content didn't parse as JSON, silently degrading a real admin's
+        # analysis to the deterministic-only fallback. This probe uses the
+        # SAME request shape to characterize the failure before the canary
+        # is ever re-enabled. Never prints the model's actual content.
+        if: always()
+        env:
+          DAHL_API_KEY: ${{ secrets.DAHL_API_KEY }}
+        run: deno run --allow-net --allow-env scripts/dahl-json-mode-probe.ts | tee -a "$GITHUB_STEP_SUMMARY"
