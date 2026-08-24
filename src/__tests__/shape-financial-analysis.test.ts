@@ -102,15 +102,14 @@ describe('scenarios.base.net_profit never contradicts calc.netProfit (P0 regress
 
 describe('monthly_expenses reconciles to calc.totalExpenses (P0 regression, CashMatch AI incident 2026-08-24)', () => {
   it('reports a breakdown total that matches the same expense figure net_profit was computed from, even when itemized COGS alone exceeds the user-provided total', () => {
-    // Real production analysis ("CashMatch AI — a subscription", user
-    // c54bdd97-8fdf-4464-be3c-1c432e5c6984, analysis 57351fdd-cba7-4549-
-    // b86f-18e2c6dbc18f, 2026-08-24) that shipped a mathematically
-    // impossible PDF: monthly_expenses.total=$61,943 (unreconciled itemized
-    // sum, including a $51,187 benchmark-derived "Infrastructure And
-    // Hosting" line) next to scenarios.base.net_profit=$71,360 on $82,560
-    // revenue — an 86% operating margin that implied a true cost base of
-    // roughly $11,200, not $61,943. Ground-truthed via a direct query
-    // against the stored analysis row, independent of any AI/Dahl failure.
+    // Real production analysis (SaaS subscription business, 2026-08-24)
+    // that shipped a mathematically impossible PDF: monthly_expenses.total=
+    // $61,943 (unreconciled itemized sum, including a $51,187 benchmark-
+    // derived "Infrastructure And Hosting" line) next to
+    // scenarios.base.net_profit=$71,360 on $82,560 revenue — an 86%
+    // operating margin that implied a true cost base of roughly $11,200,
+    // not $61,943. Ground-truthed via a direct query against the stored
+    // analysis row, independent of any AI/Dahl failure.
     const benchmarks: IndustryBenchmarks = {
       id: 'saas', name: 'SaaS / Software',
       cac_min: 50, cac_max: 500, cac_typical: 110,
