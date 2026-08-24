@@ -49,10 +49,17 @@ function adminAllowlist(): Set<string> {
   );
 }
 
+/** Rejects (returns 0 = no rollout), rather than clamps, anything outside
+ *  the documented 0-100 integer range. Clamping would make a config typo
+ *  like DAHL_CANARY_PERCENT=500 fail OPEN (silently become "100% rollout"),
+ *  which is backwards for a safety gate -- an invalid value must mean "no
+ *  rollout", never "full rollout". */
 function canaryPercent(): number {
-  const raw = Number(Deno.env.get('DAHL_CANARY_PERCENT'));
-  if (!Number.isFinite(raw)) return 0;
-  return Math.max(0, Math.min(100, Math.floor(raw)));
+  const raw = Deno.env.get('DAHL_CANARY_PERCENT');
+  if (!raw) return 0;
+  const n = Number(raw);
+  if (!Number.isInteger(n) || n < 0 || n > 100) return 0;
+  return n;
 }
 
 /** Deterministic 0-99 bucket for a given stable key (SHA-256 of the key,

@@ -94,16 +94,25 @@ Deno.test("mode 'percent': roughly matches the configured percentage across many
   assert(pct > 20 && pct < 40, `expected ~30%, got ${pct}%`);
 });
 
-Deno.test("percent config is clamped to [0, 100] and non-numeric values default to 0", async () => {
+Deno.test("percent config outside [0, 100], non-integer, or non-numeric all fail closed to 0 -- never clamped", async () => {
   resetEnv();
   Deno.env.set("DAHL_CANARY_MODE", "percent");
 
   Deno.env.set("DAHL_CANARY_PERCENT", "-10");
   assertEquals(await isDahlEligible({ userId: "x" }), false);
 
+  // A typo like 500 must NOT silently become "100% rollout" -- that would
+  // fail open on exactly the config mistake a safety gate exists to catch.
   Deno.env.set("DAHL_CANARY_PERCENT", "500");
-  assertEquals(await isDahlEligible({ userId: "x" }), true);
+  assertEquals(await isDahlEligible({ userId: "x" }), false);
+
+  Deno.env.set("DAHL_CANARY_PERCENT", "50.5");
+  assertEquals(await isDahlEligible({ userId: "x" }), false);
 
   Deno.env.set("DAHL_CANARY_PERCENT", "not-a-number");
   assertEquals(await isDahlEligible({ userId: "x" }), false);
+
+  // A genuinely valid boundary value still works normally.
+  Deno.env.set("DAHL_CANARY_PERCENT", "100");
+  assertEquals(await isDahlEligible({ userId: "x" }), true);
 });
