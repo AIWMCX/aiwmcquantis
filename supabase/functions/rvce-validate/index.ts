@@ -15,6 +15,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { getUserTier } from '../_shared/entitlements.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { computeRvceStatus, fmtMetricValue } from './status.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
 const FUNCTION_VERSION = '0.5.0';
@@ -598,29 +599,44 @@ async function validateMetric(
   const values = observations.map(o => o.value).sort((a, b) => a - b);
   const n   = values.length;
   const med = n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
-  const p25 = values[Math.max(0, Math.floor(n * 0.25))];
-  const p75 = values[Math.min(n - 1, Math.floor(n * 0.75))];
+  // Rounded ONCE here (CodeRabbit catch on PR #86) and reused for both
+  // status classification and the response payload -- previously status was
+  // classified against the full-precision p25/p75 while the payload
+  // returned them rounded to 2dp, so a value like 200.002 could classify
+  // OK against a raw p75 of 200.004 while the user-visible range read
+  // "...–200.00", making an in-range classification look wrong at exactly
+  // the rounding boundary. Classifying against the SAME numbers the user
+  // sees closes that gap.
+  const p25 = parseFloat(values[Math.max(0, Math.floor(n * 0.25))].toFixed(2));
+  const p75 = parseFloat(values[Math.min(n - 1, Math.floor(n * 0.75))].toFixed(2));
   const mean = values.reduce((s, v) => s + v, 0) / n;
   const std  = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1));
   const effStd = std > 0 ? std : Math.max(1e-6, Math.abs(med) * 0.1);
   const discrepancy = (originalValue - med) / effStd;
 
-  const status =
-    Math.abs(discrepancy) < 1.0 ? 'OK' :
-    Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
+  // P0 (2026-08-25 RVCE audit): status was previously decided PURELY by the
+  // sigma-based `discrepancy` measure, entirely independent of the p25/p75
+  // band actually displayed to the user. Because `effStd` can be wider than
+  // the p25-p75 interval (e.g. a skewed source distribution), a value could
+  // sit numerically OUTSIDE the displayed range and still register
+  // |discrepancy| < 1.0 -> status 'OK' -> a green "Validated" badge. A real
+  // production report showed exactly this: Customer LTV $391 above a
+  // displayed P75 of $200, and Rent $156 below a displayed P25 of $235,
+  // both marked "Validated". See computeRvceStatus() for the fix.
+  const status = computeRvceStatus(metric, originalValue, p25, p75, discrepancy);
 
   const validation: any = {
     original_value: originalValue,
     external_median: parseFloat(med.toFixed(2)),
-    p25: parseFloat(p25.toFixed(2)),
-    p75: parseFloat(p75.toFixed(2)),
+    p25,
+    p75,
     status,
     discrepancy_score: parseFloat(discrepancy.toFixed(2)),
     notes: status === 'OUTLIER'
-      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median ($${med.toLocaleString()}) from ${n} sources.`
+      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median (${fmtMetricValue(metric, med)}) from ${n} sources.`
       : status === 'WARN'
-      ? `Value sits at the boundary of the typical range ($${p25.toLocaleString()}–$${p75.toLocaleString()}) from ${n} sources.`
-      : `Value aligns with external benchmarks (median $${med.toLocaleString()}) from ${n} sources.`,
+      ? `Value (${fmtMetricValue(metric, originalValue)}) falls outside the typical range (${fmtMetricValue(metric, p25)}–${fmtMetricValue(metric, p75)}) from ${n} sources.`
+      : `Value aligns with external benchmarks (median ${fmtMetricValue(metric, med)}) from ${n} sources.`,
     observation_count: observations.length,
     web_search_fired: diag.web_search_fired,
     sources_used: diag.source_urls.length,
@@ -686,26 +702,51 @@ async function internalBenchmarkFallback(
     if (![p25, p50, p75].every(Number.isFinite)) return null;
 
     const unitScale = metric.includes('pct') && p50 <= 1 ? 100 : 1;
-    const scaledP25 = p25 * unitScale;
     const scaledP50 = p50 * unitScale;
-    const scaledP75 = p75 * unitScale;
+    // Rounded ONCE, same rounding-boundary fix as the web-search path above
+    // (CodeRabbit catch on PR #86): status must classify against the exact
+    // numbers returned in the payload, not full-precision values that then
+    // get rounded away before the user ever sees them.
+    const scaledP25 = parseFloat((p25 * unitScale).toFixed(2));
+    const scaledP75 = parseFloat((p75 * unitScale).toFixed(2));
     const band = Math.max(1e-6, Math.abs(scaledP75 - scaledP25) / 1.35 || Math.abs(scaledP50) * 0.1);
     const discrepancy = (originalValue - scaledP50) / band;
-    const status = Math.abs(discrepancy) < 1.0 ? 'OK' : Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
+    // Same computeRvceStatus() fix as the web-search path -- see its doc
+    // comment. `band` (derived from the IQR / 1.35) could otherwise admit a
+    // borderline-outside value as "within 1 sigma" purely from how the
+    // ratio works out.
+    const status = computeRvceStatus(metric, originalValue, scaledP25, scaledP75, discrepancy);
+    const calibrationSource = `internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size})`;
+
+    const validation: any = {
+      original_value: originalValue,
+      external_median: parseFloat(scaledP50.toFixed(2)),
+      p25: scaledP25,
+      p75: scaledP75,
+      status,
+      discrepancy_score: parseFloat(discrepancy.toFixed(2)),
+      // CodeRabbit catch on PR #86: this used to be a single fixed
+      // "Calibrated against..." string regardless of status. Once the
+      // OUTLIER flag message started reusing `notes` verbatim (see the
+      // double-rounding fix above), a fallback-path OUTLIER lost its
+      // severity/direction/median entirely -- the flag just said
+      // "Calibrated against internal benchmark master (...)" with no
+      // indication anything was actually wrong. Mirror validateMetric()'s
+      // status-branching notes so both paths' OUTLIER/WARN messages carry
+      // the same information, just attributed to a different source.
+      notes: status === 'OUTLIER'
+        ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the calibrated median (${fmtMetricValue(metric, scaledP50)}) -- ${calibrationSource}.`
+        : status === 'WARN'
+        ? `Value (${fmtMetricValue(metric, originalValue)}) falls outside the typical range (${fmtMetricValue(metric, scaledP25)}–${fmtMetricValue(metric, scaledP75)}) -- ${calibrationSource}.`
+        : `Value aligns with ${calibrationSource}.`,
+      observation_count: 3,
+      web_search_fired: false,
+      sources_used: 1,
+    };
+    if (status === 'OUTLIER') validation.recommended_value = parseFloat(scaledP50.toFixed(2));
 
     return {
-      validation: {
-        original_value: originalValue,
-        external_median: parseFloat(scaledP50.toFixed(2)),
-        p25: parseFloat(scaledP25.toFixed(2)),
-        p75: parseFloat(scaledP75.toFixed(2)),
-        status,
-        discrepancy_score: parseFloat(discrepancy.toFixed(2)),
-        notes: `Calibrated against internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size}).`,
-        observation_count: 3,
-        web_search_fired: false,
-        sources_used: 1,
-      },
+      validation,
       evidence: [{
         metric,
         source: data.source || 'AIWMC Quantis Benchmark Master',
@@ -888,7 +929,16 @@ serve(async (req) => {
       .map(([metric, v]) => ({
         severity: 'high' as const,
         metric,
-        message: `${metric.replace(/_/g, ' ')} is ${Math.abs((v as any).discrepancy_score).toFixed(1)}σ ${(v as any).discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${(v as any).notes}`,
+        // P0 (2026-08-25 RVCE audit): this used to recompute its OWN sigma
+        // text from `discrepancy_score` (already rounded to 2dp) and glue it
+        // in front of `notes`, which independently formats sigma from the
+        // raw (unrounded) discrepancy at 1dp -- double-rounding the same
+        // underlying number two different ways in the same message. A real
+        // production warning showed "15.2σ" and "15.1σ" for the same value
+        // as a result. `notes` already states the sigma/direction/median
+        // for an OUTLIER (see validateMetric above) -- reuse it verbatim
+        // instead of re-deriving a second, inconsistent figure.
+        message: `${metric.replace(/_/g, ' ')}: ${(v as any).notes}`,
         impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
       }));
 
