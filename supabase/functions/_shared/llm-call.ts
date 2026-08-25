@@ -248,6 +248,31 @@ async function callDahlGateway(
     }
   }
 
+  // Two-phase telemetry (P0, 2026-08-25): write a 'pending' row BEFORE
+  // calling Dahl, then finalize it once dahlChatCompletion() resolves (it's
+  // documented to never throw, so a plain sequential finalize after the
+  // await is sufficient -- no try/finally needed for that half). Previously
+  // recordAiCall() was only ever invoked once, post-hoc, after
+  // dahlChatCompletion() already returned -- if the edge function's own
+  // process were killed mid-request (platform wall-clock limit, OOM, an
+  // uncaught exception upstream of this line), there would be NO row at all
+  // for that call, silently erasing exactly the catastrophic-failure case
+  // telemetry most needs to catch. A pending row that's never finalized is
+  // now itself diagnostic signal instead of producing silence.
+  const pendingId = await recordAiCallPending({
+    task: opts.task,
+    analysisId: opts.analysisId ?? null,
+    userId: opts.userId ?? null,
+    requestId: opts.requestId ?? null,
+    metadata: opts.metadata,
+    skip: opts.skipTelemetry,
+  });
+
+  // dahlChatCompletion() is documented to never throw (always resolves to a
+  // typed success/error result), so no try/finally is needed here -- the
+  // pending row written above is what covers the one failure mode a
+  // finally block couldn't anyway (the process being killed outright before
+  // this line resumes).
   const dahl = await dahlChatCompletion({
     alias: opts.dahlAlias ?? dahlDefaultAlias(),
     messages,
@@ -258,7 +283,7 @@ async function callDahlGateway(
   });
 
   if (dahl.ok) {
-    void recordAiCall({
+    scheduleBackgroundWork(finalizeAiCallDahl(pendingId, {
       ok: true,
       task: opts.task,
       model: `dahl:${dahl.model}`,
@@ -270,7 +295,9 @@ async function callDahlGateway(
       requestId: opts.requestId ?? null,
       metadata: opts.metadata,
       skip: opts.skipTelemetry,
-    });
+      retryCount: Math.max(0, dahl.attempts - 1),
+      repairAttempted: dahl.repairAttempted,
+    }));
     return {
       ok: true,
       result: {
@@ -288,7 +315,7 @@ async function callDahlGateway(
     };
   }
 
-  void recordAiCall({
+  scheduleBackgroundWork(finalizeAiCallDahl(pendingId, {
     ok: false,
     task: opts.task,
     model: 'dahl:unresolved',
@@ -301,7 +328,9 @@ async function callDahlGateway(
     error: `DAHL_${dahl.kind.toUpperCase()}`,
     metadata: opts.metadata,
     skip: opts.skipTelemetry,
-  });
+    retryCount: Math.max(0, dahl.attempts - 1),
+    repairAttempted: dahl.repairAttempted,
+  }));
 
   const statusByKind: Record<typeof dahl.kind, AiCallError['status']> = {
     config: 500,
@@ -563,6 +592,27 @@ async function callLegacyGateway(
 // Telemetry — best-effort INSERT into public.ai_calls
 // ─────────────────────────────────────────────────────────────────────────────
 
+/**
+ * Registers a fire-and-forget promise with EdgeRuntime.waitUntil (CodeRabbit
+ * catch on PR #85, same pattern already used in queue-export/index.ts and
+ * _shared/otel.ts). A bare `void somePromise` does NOT guarantee the promise
+ * runs to completion on Supabase Edge Functions -- the runtime can tear down
+ * background work once the response has been sent, which would have made
+ * finalizeAiCallDahl() calls silently race the function's own shutdown,
+ * defeating the entire point of this two-phase design (a pending row that's
+ * "never finalized" would then mean nothing -- it could just be normal
+ * post-response teardown, not a real crash signal).
+ */
+function scheduleBackgroundWork(work: Promise<void>): void {
+  // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+  if (typeof EdgeRuntime !== 'undefined' && EdgeRuntime.waitUntil) {
+    // @ts-ignore - EdgeRuntime is available in Supabase Edge Functions
+    EdgeRuntime.waitUntil(work);
+  } else {
+    void work;
+  }
+}
+
 interface RecordArgs {
   ok: boolean;
   task: string;
@@ -637,6 +687,15 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
       cost_usd: estimateCostUsd(args.model, args.inputTokens, args.outputTokens),
       latency_ms: Math.round(args.latencyMs),
       ok: args.ok,
+      // CodeRabbit catch on PR #85: `status` defaults to 'completed' at the
+      // DB level (correct for backfilling pre-existing historical rows,
+      // which were all fully completed by definition -- 'pending' didn't
+      // exist as a concept before this column). But every FUTURE insert
+      // through this legacy (non-Dahl) path must set it explicitly, or a
+      // failed legacy call (ok:false) would silently read status:'completed'
+      // -- the two fields disagreeing for any row this function ever writes
+      // again.
+      status: args.ok ? 'completed' : 'failed',
       error: args.error ?? null,
       analysis_id: args.analysisId,
       user_id: args.userId,
@@ -663,6 +722,161 @@ async function recordAiCall(args: RecordArgs): Promise<void> {
     if (!resp.ok) {
       const detail = await resp.text().catch(() => '');
       console.warn(`[ai_calls] insert failed (${resp.status}): ${detail.slice(0, 300)}`);
+    }
+  } catch {
+    // Telemetry must never block or throw.
+  }
+}
+
+interface PendingArgs {
+  task: string;
+  analysisId: string | null;
+  userId: string | null;
+  requestId: string | null;
+  metadata?: Record<string, unknown>;
+  skip?: boolean;
+}
+
+/**
+ * Writes a 'pending' ai_calls row BEFORE the provider call starts, returning
+ * its id (or null if the write was skipped/failed/telemetry is disabled --
+ * finalizeAiCallDahl() treats a null id as "nothing to update" and falls
+ * back to a plain insert, so a pending-write failure never loses the final
+ * outcome, only the pre-execution safety net for THIS one call).
+ *
+ * Only used for the Dahl path today (dahl-adapter.ts is the only caller with
+ * a real crash-mid-request exposure worth covering this way -- the legacy
+ * gateway chain's own retry/fallback layers are a separate, already-covered
+ * concern). Awaited synchronously (not `void`-fired) precisely because the
+ * whole point is for the row to exist BEFORE the risky call, not racing it
+ * -- which is exactly why it carries its OWN short timeout (CodeRabbit catch
+ * on PR #85): without one, a stalled PostgREST request would block the
+ * user's actual Dahl call from ever starting, turning a telemetry write
+ * into an availability dependency for the feature it's only meant to
+ * observe. A timeout here just means recordAiCallPending() falls back to
+ * null (finalizeAiCallDahl's plain-insert path), not that the call fails.
+ */
+const PENDING_INSERT_TIMEOUT_MS = 3_000;
+
+async function recordAiCallPending(args: PendingArgs): Promise<string | null> {
+  if (args.skip) return null;
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return null;
+  try {
+    const row = {
+      task: args.task,
+      provider: 'dahl',
+      model: 'dahl:pending',
+      status: 'pending',
+      ok: false, // placeholder; overwritten by finalizeAiCallDahl's PATCH
+      analysis_id: args.analysisId,
+      user_id: args.userId,
+      request_id: args.requestId,
+      metadata: args.metadata ?? null,
+    };
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/ai_calls`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=representation',
+      },
+      body: JSON.stringify(row),
+      signal: AbortSignal.timeout(PENDING_INSERT_TIMEOUT_MS),
+    });
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.warn(`[ai_calls] pending insert failed (${resp.status}): ${detail.slice(0, 300)}`);
+      return null;
+    }
+    const inserted = (await resp.json().catch(() => null)) as Array<{ id?: unknown }> | null;
+    const id = inserted?.[0]?.id;
+    return typeof id === 'string' ? id : null;
+  } catch {
+    // Covers both a genuine network error and AbortSignal.timeout() firing
+    // -- either way, proceed without a pending row rather than block the
+    // caller's actual Dahl request on telemetry infrastructure.
+    return null;
+  }
+}
+
+interface DahlFinalizeArgs extends RecordArgs {
+  retryCount: number;
+  repairAttempted: boolean;
+}
+
+/**
+ * Finalizes a Dahl telemetry row: PATCHes the matching pending row (written
+ * by recordAiCallPending) to status='completed'/'failed' with the real
+ * outcome, or falls back to a plain INSERT whenever that PATCH can't be
+ * relied on to have landed -- no pending row id at all (telemetry disabled,
+ * or the pending write itself failed), the PATCH request throwing, OR the
+ * PATCH returning a non-2xx status (CodeRabbit catch on PR #85: the
+ * original version only logged and returned on a failed PATCH, leaving the
+ * row permanently stuck at status='pending' -- a REAL outcome silently
+ * replaced by a FALSE crash signal, exactly the failure mode this whole
+ * two-phase design exists to eliminate). The fallback insert carries
+ * pending_row_id in its metadata so a stuck 'pending' row and its eventual
+ * outcome can still be correlated by hand if the PATCH partially applied.
+ */
+async function finalizeAiCallDahl(pendingId: string | null, args: DahlFinalizeArgs): Promise<void> {
+  if (args.skip) return;
+  if (!SUPABASE_URL || !SERVICE_ROLE_KEY) return;
+  const finalFields = {
+    status: args.ok ? 'completed' : 'failed',
+    provider: providerFromModel(args.model),
+    model: args.model,
+    input_tokens: args.inputTokens,
+    output_tokens: args.outputTokens,
+    cost_usd: estimateCostUsd(args.model, args.inputTokens, args.outputTokens),
+    latency_ms: Math.round(args.latencyMs),
+    ok: args.ok,
+    error: args.error ?? null,
+    retry_count: args.retryCount,
+    repair_attempted: args.repairAttempted,
+    metadata: args.metadata ?? null,
+  };
+  try {
+    if (pendingId) {
+      const resp = await fetch(`${SUPABASE_URL}/rest/v1/ai_calls?id=eq.${encodeURIComponent(pendingId)}`, {
+        method: 'PATCH',
+        headers: {
+          apikey: SERVICE_ROLE_KEY,
+          Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify(finalFields),
+      });
+      if (resp.ok) return;
+      const detail = await resp.text().catch(() => '');
+      console.warn(`[ai_calls] finalize PATCH failed (${resp.status}): ${detail.slice(0, 300)} -- falling back to insert so the outcome isn't lost.`);
+      // Fall through to the insert below rather than returning here.
+    }
+    // No pending row to update, or the PATCH above failed -- insert the
+    // outcome directly so it still lands somewhere.
+    const resp = await fetch(`${SUPABASE_URL}/rest/v1/ai_calls`, {
+      method: 'POST',
+      headers: {
+        apikey: SERVICE_ROLE_KEY,
+        Authorization: `Bearer ${SERVICE_ROLE_KEY}`,
+        'Content-Type': 'application/json',
+        Prefer: 'return=minimal',
+      },
+      body: JSON.stringify({
+        task: args.task,
+        analysis_id: args.analysisId,
+        user_id: args.userId,
+        request_id: args.requestId,
+        ...finalFields,
+        metadata: pendingId
+          ? { ...(args.metadata ?? {}), pending_row_id: pendingId }
+          : (args.metadata ?? null),
+      }),
+    });
+    if (!resp.ok) {
+      const detail = await resp.text().catch(() => '');
+      console.warn(`[ai_calls] fallback insert failed (${resp.status}): ${detail.slice(0, 300)}`);
     }
   } catch {
     // Telemetry must never block or throw.

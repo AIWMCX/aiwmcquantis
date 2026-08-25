@@ -96,6 +96,7 @@ Deno.test("dahlChatCompletion fails closed with a config error when DAHL_API_KEY
   assertEquals((result as { kind: string }).kind, "config");
   assertEquals((result as { retryable: boolean }).retryable, false);
   assertEquals(getChatAttempts(), 0);
+  assertEquals((result as { attempts: number }).attempts, 0); // never reached the network call at all
   await server.shutdown();
 });
 
@@ -197,6 +198,12 @@ Deno.test("dahlChatCompletion retries 429 up to MAX_RETRIES then returns rate_li
   assertEquals((result as { kind: string }).kind, "rate_limit");
   assertEquals((result as { retryable: boolean }).retryable, true);
   assertEquals(getChatAttempts(), 3);
+  // The result's own `attempts` field must match what the mock server
+  // actually observed -- this is the field callers/telemetry use to answer
+  // "was the retry loop exercised", so it must be ground-truth accurate,
+  // not just plausible.
+  assertEquals((result as { attempts: number }).attempts, 3);
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, false);
   await server.shutdown();
 });
 
@@ -215,6 +222,8 @@ Deno.test("dahlChatCompletion recovers on the 2nd attempt after a transient 503"
   assertEquals(result.ok, true);
   assertEquals((result as { content: string }).content, "recovered");
   assertEquals(getChatAttempts(), 2);
+  assertEquals((result as { attempts: number }).attempts, 2);
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, false);
   await server.shutdown();
 });
 
@@ -339,6 +348,9 @@ Deno.test("jsonMode: content wrapped in markdown fences is recovered by local ex
   assertEquals(result.ok, true);
   assertEquals((result as { content: string }).content, '{"ok": true, "n": 1}');
   assertEquals(getChatAttempts(), 1); // recovered locally -- no second (repair) request
+  // Local extraction is NOT a network repair -- repairAttempted must be
+  // false here even though the content needed fixing up.
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, false);
   await server.shutdown();
 });
 
@@ -371,6 +383,11 @@ Deno.test("jsonMode: when local extraction fails, one bounded repair request is 
   assertEquals((result as { inputTokens: number }).inputTokens, 111);
   assertEquals((result as { outputTokens: number }).outputTokens, 22);
   assertEquals(getChatAttempts(), 2); // original attempt + exactly one repair attempt
+  assertEquals((result as { attempts: number }).attempts, 1); // 1 completions-endpoint attempt; repair is a separate request
+  // This is the one case where a caller is entitled to say "repair worked":
+  // ok:true AND repairAttempted:true together, backed by the mock server
+  // having actually received 2 requests.
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, true);
   await server.shutdown();
 });
 
@@ -411,6 +428,10 @@ Deno.test("jsonMode: a syntactically valid JSON array or scalar is rejected, not
   assertEquals(result.ok, false);
   assertEquals((result as { kind: string }).kind, "invalid_response");
   assertEquals(getChatAttempts(), 2); // original + one repair attempt, both rejected as non-objects
+  // Repair WAS reached (2nd request happened) even though it failed to
+  // recover valid JSON -- repairAttempted answers "was it reached", not
+  // "did it succeed", so it must be true here despite ok:false.
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, true);
   await server.shutdown();
 });
 
@@ -426,6 +447,7 @@ Deno.test("jsonMode: when both local extraction and the repair attempt fail, ret
   assertEquals(result.ok, false);
   assertEquals((result as { kind: string }).kind, "invalid_response");
   assertEquals(getChatAttempts(), 2); // original + one bounded repair, then gives up
+  assertEquals((result as { repairAttempted: boolean }).repairAttempted, true);
   await server.shutdown();
 });
 
