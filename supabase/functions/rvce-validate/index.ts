@@ -15,6 +15,7 @@ import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.45.0';
 import { getUserTier } from '../_shared/entitlements.ts';
 import { maybeHealthResponse } from '../_shared/health.ts';
+import { computeRvceStatus, fmtMetricValue } from './status.ts';
 
 const FUNCTION_NAME = 'rvce-validate';
 const FUNCTION_VERSION = '0.5.0';
@@ -605,9 +606,16 @@ async function validateMetric(
   const effStd = std > 0 ? std : Math.max(1e-6, Math.abs(med) * 0.1);
   const discrepancy = (originalValue - med) / effStd;
 
-  const status =
-    Math.abs(discrepancy) < 1.0 ? 'OK' :
-    Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
+  // P0 (2026-08-25 RVCE audit): status was previously decided PURELY by the
+  // sigma-based `discrepancy` measure, entirely independent of the p25/p75
+  // band actually displayed to the user. Because `effStd` can be wider than
+  // the p25-p75 interval (e.g. a skewed source distribution), a value could
+  // sit numerically OUTSIDE the displayed range and still register
+  // |discrepancy| < 1.0 -> status 'OK' -> a green "Validated" badge. A real
+  // production report showed exactly this: Customer LTV $391 above a
+  // displayed P75 of $200, and Rent $156 below a displayed P25 of $235,
+  // both marked "Validated". See computeRvceStatus() for the fix.
+  const status = computeRvceStatus(originalValue, p25, p75, discrepancy);
 
   const validation: any = {
     original_value: originalValue,
@@ -617,10 +625,10 @@ async function validateMetric(
     status,
     discrepancy_score: parseFloat(discrepancy.toFixed(2)),
     notes: status === 'OUTLIER'
-      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median ($${med.toLocaleString()}) from ${n} sources.`
+      ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the external median (${fmtMetricValue(metric, med)}) from ${n} sources.`
       : status === 'WARN'
-      ? `Value sits at the boundary of the typical range ($${p25.toLocaleString()}–$${p75.toLocaleString()}) from ${n} sources.`
-      : `Value aligns with external benchmarks (median $${med.toLocaleString()}) from ${n} sources.`,
+      ? `Value (${fmtMetricValue(metric, originalValue)}) falls outside the typical range (${fmtMetricValue(metric, p25)}–${fmtMetricValue(metric, p75)}) from ${n} sources.`
+      : `Value aligns with external benchmarks (median ${fmtMetricValue(metric, med)}) from ${n} sources.`,
     observation_count: observations.length,
     web_search_fired: diag.web_search_fired,
     sources_used: diag.source_urls.length,
@@ -691,7 +699,11 @@ async function internalBenchmarkFallback(
     const scaledP75 = p75 * unitScale;
     const band = Math.max(1e-6, Math.abs(scaledP75 - scaledP25) / 1.35 || Math.abs(scaledP50) * 0.1);
     const discrepancy = (originalValue - scaledP50) / band;
-    const status = Math.abs(discrepancy) < 1.0 ? 'OK' : Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
+    // Same computeRvceStatus() fix as the web-search path -- see its doc
+    // comment. `band` (derived from the IQR / 1.35) could otherwise admit a
+    // borderline-outside value as "within 1 sigma" purely from how the
+    // ratio works out.
+    const status = computeRvceStatus(originalValue, scaledP25, scaledP75, discrepancy);
 
     return {
       validation: {
@@ -888,7 +900,16 @@ serve(async (req) => {
       .map(([metric, v]) => ({
         severity: 'high' as const,
         metric,
-        message: `${metric.replace(/_/g, ' ')} is ${Math.abs((v as any).discrepancy_score).toFixed(1)}σ ${(v as any).discrepancy_score > 0 ? 'above' : 'below'} external benchmarks. ${(v as any).notes}`,
+        // P0 (2026-08-25 RVCE audit): this used to recompute its OWN sigma
+        // text from `discrepancy_score` (already rounded to 2dp) and glue it
+        // in front of `notes`, which independently formats sigma from the
+        // raw (unrounded) discrepancy at 1dp -- double-rounding the same
+        // underlying number two different ways in the same message. A real
+        // production warning showed "15.2σ" and "15.1σ" for the same value
+        // as a result. `notes` already states the sigma/direction/median
+        // for an OUTLIER (see validateMetric above) -- reuse it verbatim
+        // instead of re-deriving a second, inconsistent figure.
+        message: `${metric.replace(/_/g, ' ')}: ${(v as any).notes}`,
         impacted_sections: ['Financial Analysis', 'Scenario Analysis'],
       }));
 
