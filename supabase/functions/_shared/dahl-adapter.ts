@@ -244,6 +244,17 @@ export interface DahlChatSuccess {
   outputTokens: number;
   latencyMs: number;
   finishReason?: string;
+  /** How many POSTs to /chat/completions this call made (1 = succeeded on
+   *  the first try, no retry). Exists so callers/telemetry can distinguish
+   *  "worked immediately" from "worked after retrying" instead of losing
+   *  that signal the moment the call succeeds. */
+  attempts: number;
+  /** True only when the local JSON-repair network round-trip
+   *  (repairJsonViaDahl) actually ran and its output is what's being
+   *  returned. Never true for a jsonMode:false call or a response that was
+   *  valid JSON on the first try -- callers must never infer "repair
+   *  fixed it" without this flag being true. */
+  repairAttempted: boolean;
 }
 
 export type DahlErrorKind =
@@ -264,6 +275,17 @@ export interface DahlChatError {
   message: string;
   latencyMs: number;
   retryable: boolean;
+  /** How many POSTs to /chat/completions were actually attempted before
+   *  giving up (0 for failures that never reached the network call at all,
+   *  e.g. missing API key or model-resolution failure). Answers "was the
+   *  retry loop actually exercised, or did this fail on the very first
+   *  attempt" without having to guess from latency alone. */
+  attempts: number;
+  /** True only when the bounded JSON-repair round-trip was attempted (it
+   *  may still have failed -- this only means it was REACHED, not that it
+   *  succeeded). Always false for non-jsonMode calls and for any failure
+   *  that occurred before a response body was ever parsed. */
+  repairAttempted: boolean;
 }
 
 export type DahlChatResult = DahlChatSuccess | DahlChatError;
@@ -434,7 +456,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
   const start = Date.now();
   const apiKey = Deno.env.get('DAHL_API_KEY');
   if (!apiKey) {
-    return { ok: false, kind: 'config', message: 'Dahl is not configured.', latencyMs: 0, retryable: false };
+    return { ok: false, kind: 'config', message: 'Dahl is not configured.', latencyMs: 0, retryable: false, attempts: 0, repairAttempted: false };
   }
 
   const model = await resolveDahlModel(args.alias);
@@ -445,6 +467,8 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       message: 'No live Dahl model is currently available for this task.',
       latencyMs: Date.now() - start,
       retryable: false,
+      attempts: 0,
+      repairAttempted: false,
     };
   }
 
@@ -464,7 +488,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
   for (let attempt = 0; attempt <= retries; attempt++) {
     const remainingMs = deadline - Date.now();
     if (remainingMs <= 0) {
-      return lastError ?? { ok: false, kind: 'timeout', message: 'Dahl request timed out.', latencyMs: Date.now() - start, retryable: true };
+      return lastError ?? { ok: false, kind: 'timeout', message: 'Dahl request timed out.', latencyMs: Date.now() - start, retryable: true, attempts: attempt, repairAttempted: false };
     }
     let resp: Response;
     try {
@@ -493,6 +517,8 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         message: isAbort ? 'Dahl request timed out.' : 'Dahl is temporarily unreachable.',
         latencyMs: Date.now() - start,
         retryable: true,
+        attempts: attempt + 1,
+        repairAttempted: false,
       };
       if (attempt < retries) {
         await backoff(attempt, null, deadline);
@@ -503,7 +529,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
 
     if (resp.status === 401) {
       await resp.text().catch(() => '');
-      return { ok: false, kind: 'auth', message: 'Dahl authentication failed.', latencyMs: Date.now() - start, retryable: false };
+      return { ok: false, kind: 'auth', message: 'Dahl authentication failed.', latencyMs: Date.now() - start, retryable: false, attempts: attempt + 1, repairAttempted: false };
     }
     if (resp.status === 402) {
       await resp.text().catch(() => '');
@@ -513,12 +539,14 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         message: 'Dahl key balance is exhausted.',
         latencyMs: Date.now() - start,
         retryable: false,
+        attempts: attempt + 1,
+        repairAttempted: false,
       };
     }
     if (resp.status === 429) {
       await resp.text().catch(() => '');
       const retryAfterMs = parseRetryAfterMs(resp.headers.get('retry-after'));
-      lastError = { ok: false, kind: 'rate_limit', message: 'Dahl rate-limited the request.', latencyMs: Date.now() - start, retryable: true };
+      lastError = { ok: false, kind: 'rate_limit', message: 'Dahl rate-limited the request.', latencyMs: Date.now() - start, retryable: true, attempts: attempt + 1, repairAttempted: false };
       if (attempt < retries) {
         await backoff(attempt, retryAfterMs, deadline);
         continue;
@@ -533,6 +561,8 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         message: 'Dahl is temporarily unavailable.',
         latencyMs: Date.now() - start,
         retryable: true,
+        attempts: attempt + 1,
+        repairAttempted: false,
       };
       if (attempt < retries) {
         await backoff(attempt, null, deadline);
@@ -550,6 +580,8 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         message: 'Dahl rejected the request.',
         latencyMs: Date.now() - start,
         retryable: false,
+        attempts: attempt + 1,
+        repairAttempted: false,
       };
     }
 
@@ -557,13 +589,13 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       | { choices?: Array<{ message?: { content?: unknown }; finish_reason?: unknown }>; usage?: { prompt_tokens?: unknown; completion_tokens?: unknown }; model?: unknown }
       | null;
     if (!json) {
-      return { ok: false, kind: 'invalid_response', message: 'Dahl returned an unreadable response.', latencyMs: Date.now() - start, retryable: false };
+      return { ok: false, kind: 'invalid_response', message: 'Dahl returned an unreadable response.', latencyMs: Date.now() - start, retryable: false, attempts: attempt + 1, repairAttempted: false };
     }
     const content = json.choices?.[0]?.message?.content;
     if (typeof content !== 'string' || content.length === 0) {
       // Missing choices[0].message.content is a failure, not success — per
       // integration spec: never treat this as a usable completion.
-      return { ok: false, kind: 'invalid_response', message: 'Dahl returned no usable content.', latencyMs: Date.now() - start, retryable: false };
+      return { ok: false, kind: 'invalid_response', message: 'Dahl returned no usable content.', latencyMs: Date.now() - start, retryable: false, attempts: attempt + 1, repairAttempted: false };
     }
 
     const usage = json.usage ?? {};
@@ -573,7 +605,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
     const resolvedModel = typeof json.model === 'string' ? json.model : model;
 
     if (!args.jsonMode) {
-      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason, attempts: attempt + 1, repairAttempted: false };
     }
 
     // jsonMode was requested: dahlChatCompletion guarantees the returned
@@ -583,7 +615,7 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
     // where a caller had to discover on its own that an "ok:true" Dahl
     // response wasn't valid JSON.
     if (isValidJsonObjectString(content)) {
-      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+      return { ok: true, content, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason, attempts: attempt + 1, repairAttempted: false };
     }
     {
       // Not a valid JSON object as-is (either malformed, or a valid JSON
@@ -593,12 +625,13 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
       // extraction first (no network cost).
       const extracted = extractJsonSafely(content);
       if (extracted) {
-        return { ok: true, content: extracted, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason };
+        return { ok: true, content: extracted, model: resolvedModel, inputTokens, outputTokens, latencyMs: Date.now() - start, finishReason, attempts: attempt + 1, repairAttempted: false };
       }
       // Local extraction failed too. One bounded network repair attempt,
       // only if there's meaningful time left in the caller's deadline.
       const remainingForRepair = deadline - Date.now();
-      if (remainingForRepair > 5_000) {
+      const repairEligible = remainingForRepair > 5_000;
+      if (repairEligible) {
         const repaired = await repairJsonViaDahl(apiKey, url, model, args.messages, content, remainingForRepair, args.maxTokens);
         if (repaired) {
           // Use the REPAIR request's own model/usage metadata -- it's the
@@ -613,6 +646,8 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
             outputTokens: repaired.outputTokens,
             latencyMs: Date.now() - start,
             finishReason: 'repaired',
+            attempts: attempt + 1,
+            repairAttempted: true,
           };
         }
       }
@@ -622,9 +657,16 @@ export async function dahlChatCompletion(args: DahlChatArgs): Promise<DahlChatRe
         message: 'Dahl did not return valid JSON, and the bounded repair attempt did not recover it.',
         latencyMs: Date.now() - start,
         retryable: false,
+        attempts: attempt + 1,
+        // True whenever repair was reachable and invoked, even if it then
+        // failed to recover valid JSON -- "repair was reached" and "repair
+        // succeeded" are different claims, and this field only answers the
+        // former (repairAttempted alone, without ok:true, means it was
+        // tried and did NOT work).
+        repairAttempted: repairEligible,
       };
     }
   }
 
-  return lastError ?? { ok: false, kind: 'unavailable', message: 'Dahl request failed.', latencyMs: Date.now() - start, retryable: true };
+  return lastError ?? { ok: false, kind: 'unavailable', message: 'Dahl request failed.', latencyMs: Date.now() - start, retryable: true, attempts: retries + 1, repairAttempted: false };
 }
