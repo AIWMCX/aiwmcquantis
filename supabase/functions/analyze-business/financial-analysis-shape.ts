@@ -303,7 +303,7 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
     })(),
     monthly_expenses: (() => {
       const cogsLabel = INDUSTRY_COGS_LABELS[benchmarks.id] || INDUSTRY_COGS_LABELS.general;
-      const breakdown: Record<string, number> = {
+      const rawBreakdown: Record<string, number> = {
         rent: calc.expenses.rent,
         utilities: calc.expenses.utilities,
         salaries: calc.expenses.salaries,
@@ -312,16 +312,37 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         other: calc.expenses.other
       };
 
-      const breakdownSum = Object.values(breakdown).reduce((a, b) => a + b, 0);
+      const breakdownSum = Object.values(rawBreakdown).reduce((a, b) => a + b, 0);
+      const isReconciled = Math.abs(breakdownSum - calc.totalExpenses) > 1;
 
-      if (Math.abs(breakdownSum - calc.totalExpenses) > 1) {
-        log.warn(`⚠️ Expense mismatch detected: breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses}. Using sum.`);
+      // RECONCILIATION FIX (P0, 2026-08-24): when calc.totalExpenses came
+      // from a user-provided monthly-cost override (calc.expenseSource ===
+      // 'user') smaller than the itemized/benchmark-derived breakdown --
+      // most commonly because the user's figure didn't account for a large
+      // COGS-equivalent category like SaaS infrastructure/hosting -- this
+      // table previously displayed the UNRECONCILED itemized sum while
+      // scenarios.base.net_profit (and every profit/margin figure in the
+      // report) correctly used the smaller, authoritative calc.totalExpenses.
+      // A real production report showed "Infrastructure And Hosting
+      // $51,187 / Total Monthly $61,943" next to "Operating Profit $71,360"
+      // (86% margin) on $82,560 revenue -- mathematically impossible unless
+      // the true deducted cost base was actually ~$11,200, not $61,943.
+      // Apply the SAME proportional reconciliation already used for the
+      // pessimistic/optimistic scenarios above, so every cost figure in the
+      // report is consistent with the profit figure it implies.
+      const reconciliationScale = breakdownSum > 0 ? calc.totalExpenses / breakdownSum : 1;
+      const breakdown: Record<string, number> = isReconciled
+        ? Object.fromEntries(Object.entries(rawBreakdown).map(([k, v]) => [k, Math.round(v * reconciliationScale)]))
+        : rawBreakdown;
+
+      if (isReconciled) {
+        log.warn(`⚠️ Expense mismatch detected: itemized breakdown sum=$${breakdownSum}, calc.totalExpenses=$${calc.totalExpenses} (source: ${calc.expenseSource}). Reconciled breakdown proportionally to match the authoritative total that profit figures use.`);
       }
 
       return {
-        total: breakdownSum,
-        variable_costs: calc.expenses.cogs + calc.expenses.marketing,
-        fixed_costs: calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other,
+        total: calc.totalExpenses,
+        variable_costs: Math.round((calc.expenses.cogs + calc.expenses.marketing) * reconciliationScale),
+        fixed_costs: Math.round((calc.expenses.salaries + calc.expenses.rent + calc.expenses.utilities + calc.expenses.other) * reconciliationScale),
         breakdown
       };
     })(),

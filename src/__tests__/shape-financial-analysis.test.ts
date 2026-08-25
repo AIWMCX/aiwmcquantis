@@ -99,3 +99,51 @@ describe('scenarios.base.net_profit never contradicts calc.netProfit (P0 regress
     expect(calc.netProfit).toBe(-3798);
   });
 });
+
+describe('monthly_expenses reconciles to calc.totalExpenses (P0 regression, CashMatch AI incident 2026-08-24)', () => {
+  it('reports a breakdown total that matches the same expense figure net_profit was computed from, even when itemized COGS alone exceeds the user-provided total', () => {
+    // Real production analysis (SaaS subscription business, 2026-08-24)
+    // that shipped a mathematically impossible PDF: monthly_expenses.total=
+    // $61,943 (unreconciled itemized sum, including a $51,187 benchmark-
+    // derived "Infrastructure And Hosting" line) next to
+    // scenarios.base.net_profit=$71,360 on $82,560 revenue — an 86%
+    // operating margin that implied a true cost base of roughly $11,200,
+    // not $61,943. Ground-truthed via a direct query against the stored
+    // analysis row, independent of any AI/Dahl failure.
+    const benchmarks: IndustryBenchmarks = {
+      id: 'saas', name: 'SaaS / Software',
+      cac_min: 50, cac_max: 500, cac_typical: 110,
+      average_check_min: 20, average_check_max: 500,
+      orders_per_client: 1, client_lifetime_months: 24,
+      ltv_cac_min: 3, ltv_cac_max: 8,
+      net_margin_min: 15, net_margin_max: 40,
+      cogs_percent: 62, salaries_fixed: 9200, rent_fixed: 156, utilities_fixed: 200, other_fixed: 1200,
+      keywords: [],
+    };
+    // A user-provided monthly cost total far below what the benchmark's
+    // cogs_percent (62%) would itemize against $82,560 MRR, reproducing the
+    // real incident's divergence between calc.totalExpenses and the raw
+    // itemized breakdown sum.
+    const calc = calculateStrictFinancials(82560, 68000, 110, 391, 189, benchmarks, LOCATION, null, 11200);
+    const { financialAnalysis } = shapeFinancialAnalysis(calc, benchmarks);
+
+    expect(calc.expenseSource).toBe('user');
+
+    const breakdownSum = Object.values(financialAnalysis.monthly_expenses.breakdown as Record<string, number>)
+      .reduce((a, b) => a + b, 0);
+
+    // The displayed total, and the sum of its own breakdown line items,
+    // must both equal the authoritative figure that actually drove
+    // net_profit -- never the raw, unreconciled itemized sum.
+    expect(financialAnalysis.monthly_expenses.total).toBe(calc.totalExpenses);
+    // Line items are rounded independently, so the reconciled breakdown may
+    // land within a few dollars of calc.totalExpenses even though `total`
+    // itself is exact -- this bounds that rounding drift, not correctness.
+    expect(Math.abs(breakdownSum - calc.totalExpenses)).toBeLessThanOrEqual(5);
+
+    // Cross-field invariant the incident violated: operating profit must
+    // equal revenue minus the SAME expense total shown in the table.
+    expect(financialAnalysis.scenarios.base.net_profit)
+      .toBe(financialAnalysis.mrr - financialAnalysis.monthly_expenses.total);
+  });
+});
