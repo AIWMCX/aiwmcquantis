@@ -27,13 +27,41 @@ UPDATE public.ai_calls
   SET status = CASE WHEN ok THEN 'completed' ELSE 'failed' END
   WHERE status IS NULL;
 
+-- Zero-downtime NOT NULL (CodeRabbit + Squawk catch on PR #85): a plain
+-- `ALTER COLUMN status SET NOT NULL` takes an ACCESS EXCLUSIVE lock AND
+-- does a full-table scan to verify no NULLs remain -- on `ai_calls`, a
+-- table under continuous write load from every LLM call, that would block
+-- telemetry inserts for however long the scan takes. Adding the same
+-- guarantee as a NOT VALID CHECK constraint first, then VALIDATE-ing it
+-- separately, does the scan under a SHARE UPDATE EXCLUSIVE lock instead
+-- (allows concurrent reads/writes) -- and lets the subsequent SET NOT NULL
+-- skip its own scan entirely, because Postgres can prove non-null from the
+-- already-validated constraint. The temporary constraint is dropped once
+-- the real NOT NULL is in place.
+ALTER TABLE public.ai_calls
+  ADD CONSTRAINT ai_calls_status_not_null_check
+  CHECK (status IS NOT NULL) NOT VALID;
+
+ALTER TABLE public.ai_calls
+  VALIDATE CONSTRAINT ai_calls_status_not_null_check;
+
 ALTER TABLE public.ai_calls
   ALTER COLUMN status SET NOT NULL,
   ALTER COLUMN status SET DEFAULT 'completed';
 
 ALTER TABLE public.ai_calls
+  DROP CONSTRAINT ai_calls_status_not_null_check;
+
+-- Same NOT VALID + VALIDATE pattern for the enum check, for the same
+-- reason: a plain ADD CONSTRAINT ... CHECK validates immediately under an
+-- ACCESS EXCLUSIVE lock.
+ALTER TABLE public.ai_calls
   ADD CONSTRAINT ai_calls_status_check
-  CHECK (status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text]));
+  CHECK (status = ANY (ARRAY['pending'::text, 'completed'::text, 'failed'::text]))
+  NOT VALID;
+
+ALTER TABLE public.ai_calls
+  VALIDATE CONSTRAINT ai_calls_status_check;
 
 -- Retry/repair counters, populated only for Dahl calls (dahl-adapter.ts is
 -- the only caller with internal retry/repair logic). Nullable: legacy
