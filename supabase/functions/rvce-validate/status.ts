@@ -6,6 +6,24 @@
  */
 
 /**
+ * Rounds a value to the SAME precision fmtMetricValue() displays it at
+ * (whole dollars for $, 1dp for %/months, 2dp for ratio). CodeRabbit catch
+ * on PR #86: the first rounding-boundary fix rounded p25/p75 to a fixed 2dp
+ * for classification, but fmtMetricValue() displays currency as whole
+ * dollars and percent/months to 1dp -- so a dollar value could still
+ * classify as outside the range while displaying identically to its bound
+ * (e.g. $200.49 classifies > a $200.49 p75, but both show as "$200").
+ * Rounding to the FORMATTER's own precision before classification closes
+ * that gap for every unit, not just the specific case already fixed.
+ */
+function roundToDisplayPrecision(metric: string, value: number): number {
+  if (metric.includes('pct')) return Math.round(value * 10) / 10;
+  if (metric.includes('ratio')) return Math.round(value * 100) / 100;
+  if (metric.includes('months')) return Math.round(value * 10) / 10;
+  return Math.round(value);
+}
+
+/**
  * The single source of truth for OK/WARN/OUTLIER, used by both the
  * web-search path (validateMetric) and the internal-benchmark-fallback path
  * (internalBenchmarkFallback) in index.ts so this decision can never drift
@@ -25,15 +43,22 @@
  * 'OK' now requires the value to sit within [p25, p75] -- full stop. The
  * sigma-based `discrepancy` is used ONLY to grade severity once a value is
  * already known to be outside that range (WARN vs OUTLIER), never to
- * overrule range membership itself.
+ * overrule range membership itself. `metric` is required so classification
+ * always happens at the SAME precision the value is displayed at (see
+ * roundToDisplayPrecision), not an arbitrary fixed precision that can
+ * itself drift from what index.ts's payload/notes format.
  */
 export function computeRvceStatus(
+  metric: string,
   value: number,
   p25: number,
   p75: number,
   discrepancy: number,
 ): 'OK' | 'WARN' | 'OUTLIER' {
-  if (value >= p25 && value <= p75) return 'OK';
+  const v = roundToDisplayPrecision(metric, value);
+  const lo = roundToDisplayPrecision(metric, p25);
+  const hi = roundToDisplayPrecision(metric, p75);
+  if (v >= lo && v <= hi) return 'OK';
   return Math.abs(discrepancy) < 2.0 ? 'WARN' : 'OUTLIER';
 }
 
@@ -46,7 +71,9 @@ export function computeRvceStatus(
  * this ("Gross-margin warning formats a percentage median as $71"). Mirrors
  * the client-side `fmt()`/`fmtMetric()` dispatch in ValidationSection.tsx /
  * ValidationStatusBadge.tsx so server text and UI text never disagree about
- * units for the same metric.
+ * units for the same metric. Uses the SAME precision as
+ * roundToDisplayPrecision() so formatted text and classification can never
+ * disagree about what a value "rounds to".
  */
 export function fmtMetricValue(metric: string, value: number): string {
   if (!Number.isFinite(value)) return '—';

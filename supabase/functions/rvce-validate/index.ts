@@ -623,7 +623,7 @@ async function validateMetric(
   // production report showed exactly this: Customer LTV $391 above a
   // displayed P75 of $200, and Rent $156 below a displayed P25 of $235,
   // both marked "Validated". See computeRvceStatus() for the fix.
-  const status = computeRvceStatus(originalValue, p25, p75, discrepancy);
+  const status = computeRvceStatus(metric, originalValue, p25, p75, discrepancy);
 
   const validation: any = {
     original_value: originalValue,
@@ -715,21 +715,38 @@ async function internalBenchmarkFallback(
     // comment. `band` (derived from the IQR / 1.35) could otherwise admit a
     // borderline-outside value as "within 1 sigma" purely from how the
     // ratio works out.
-    const status = computeRvceStatus(originalValue, scaledP25, scaledP75, discrepancy);
+    const status = computeRvceStatus(metric, originalValue, scaledP25, scaledP75, discrepancy);
+    const calibrationSource = `internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size})`;
+
+    const validation: any = {
+      original_value: originalValue,
+      external_median: parseFloat(scaledP50.toFixed(2)),
+      p25: scaledP25,
+      p75: scaledP75,
+      status,
+      discrepancy_score: parseFloat(discrepancy.toFixed(2)),
+      // CodeRabbit catch on PR #86: this used to be a single fixed
+      // "Calibrated against..." string regardless of status. Once the
+      // OUTLIER flag message started reusing `notes` verbatim (see the
+      // double-rounding fix above), a fallback-path OUTLIER lost its
+      // severity/direction/median entirely -- the flag just said
+      // "Calibrated against internal benchmark master (...)" with no
+      // indication anything was actually wrong. Mirror validateMetric()'s
+      // status-branching notes so both paths' OUTLIER/WARN messages carry
+      // the same information, just attributed to a different source.
+      notes: status === 'OUTLIER'
+        ? `Value is ${Math.abs(discrepancy).toFixed(1)}σ ${discrepancy > 0 ? 'above' : 'below'} the calibrated median (${fmtMetricValue(metric, scaledP50)}) -- ${calibrationSource}.`
+        : status === 'WARN'
+        ? `Value (${fmtMetricValue(metric, originalValue)}) falls outside the typical range (${fmtMetricValue(metric, scaledP25)}–${fmtMetricValue(metric, scaledP75)}) -- ${calibrationSource}.`
+        : `Value aligns with ${calibrationSource}.`,
+      observation_count: 3,
+      web_search_fired: false,
+      sources_used: 1,
+    };
+    if (status === 'OUTLIER') validation.recommended_value = parseFloat(scaledP50.toFixed(2));
 
     return {
-      validation: {
-        original_value: originalValue,
-        external_median: parseFloat(scaledP50.toFixed(2)),
-        p25: scaledP25,
-        p75: scaledP75,
-        status,
-        discrepancy_score: parseFloat(discrepancy.toFixed(2)),
-        notes: `Calibrated against internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size}).`,
-        observation_count: 3,
-        web_search_fired: false,
-        sources_used: 1,
-      },
+      validation,
       evidence: [{
         metric,
         source: data.source || 'AIWMC Quantis Benchmark Master',
