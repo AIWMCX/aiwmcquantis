@@ -15,8 +15,21 @@
 -- block. A 'pending' row that's never finalized (the crash case) is itself
 -- diagnostic signal -- previously that case produced silence.
 
+-- Nullable-then-backfill-then-lock, not a blanket DEFAULT 'completed': every
+-- pre-existing row already has an accurate `ok` value, so backfilling status
+-- from it (CodeRabbit catch on PR #85) keeps status/ok consistent for EVERY
+-- row, past and future -- a blanket default would have mislabeled every
+-- historical failed call (ok=false) as status='completed'.
 ALTER TABLE public.ai_calls
-  ADD COLUMN status text NOT NULL DEFAULT 'completed';
+  ADD COLUMN status text;
+
+UPDATE public.ai_calls
+  SET status = CASE WHEN ok THEN 'completed' ELSE 'failed' END
+  WHERE status IS NULL;
+
+ALTER TABLE public.ai_calls
+  ALTER COLUMN status SET NOT NULL,
+  ALTER COLUMN status SET DEFAULT 'completed';
 
 ALTER TABLE public.ai_calls
   ADD CONSTRAINT ai_calls_status_check
