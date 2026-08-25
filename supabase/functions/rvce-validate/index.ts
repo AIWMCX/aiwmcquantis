@@ -599,8 +599,16 @@ async function validateMetric(
   const values = observations.map(o => o.value).sort((a, b) => a - b);
   const n   = values.length;
   const med = n % 2 === 0 ? (values[n / 2 - 1] + values[n / 2]) / 2 : values[Math.floor(n / 2)];
-  const p25 = values[Math.max(0, Math.floor(n * 0.25))];
-  const p75 = values[Math.min(n - 1, Math.floor(n * 0.75))];
+  // Rounded ONCE here (CodeRabbit catch on PR #86) and reused for both
+  // status classification and the response payload -- previously status was
+  // classified against the full-precision p25/p75 while the payload
+  // returned them rounded to 2dp, so a value like 200.002 could classify
+  // OK against a raw p75 of 200.004 while the user-visible range read
+  // "...–200.00", making an in-range classification look wrong at exactly
+  // the rounding boundary. Classifying against the SAME numbers the user
+  // sees closes that gap.
+  const p25 = parseFloat(values[Math.max(0, Math.floor(n * 0.25))].toFixed(2));
+  const p75 = parseFloat(values[Math.min(n - 1, Math.floor(n * 0.75))].toFixed(2));
   const mean = values.reduce((s, v) => s + v, 0) / n;
   const std  = Math.sqrt(values.reduce((s, v) => s + (v - mean) ** 2, 0) / Math.max(1, n - 1));
   const effStd = std > 0 ? std : Math.max(1e-6, Math.abs(med) * 0.1);
@@ -620,8 +628,8 @@ async function validateMetric(
   const validation: any = {
     original_value: originalValue,
     external_median: parseFloat(med.toFixed(2)),
-    p25: parseFloat(p25.toFixed(2)),
-    p75: parseFloat(p75.toFixed(2)),
+    p25,
+    p75,
     status,
     discrepancy_score: parseFloat(discrepancy.toFixed(2)),
     notes: status === 'OUTLIER'
@@ -694,9 +702,13 @@ async function internalBenchmarkFallback(
     if (![p25, p50, p75].every(Number.isFinite)) return null;
 
     const unitScale = metric.includes('pct') && p50 <= 1 ? 100 : 1;
-    const scaledP25 = p25 * unitScale;
     const scaledP50 = p50 * unitScale;
-    const scaledP75 = p75 * unitScale;
+    // Rounded ONCE, same rounding-boundary fix as the web-search path above
+    // (CodeRabbit catch on PR #86): status must classify against the exact
+    // numbers returned in the payload, not full-precision values that then
+    // get rounded away before the user ever sees them.
+    const scaledP25 = parseFloat((p25 * unitScale).toFixed(2));
+    const scaledP75 = parseFloat((p75 * unitScale).toFixed(2));
     const band = Math.max(1e-6, Math.abs(scaledP75 - scaledP25) / 1.35 || Math.abs(scaledP50) * 0.1);
     const discrepancy = (originalValue - scaledP50) / band;
     // Same computeRvceStatus() fix as the web-search path -- see its doc
@@ -709,8 +721,8 @@ async function internalBenchmarkFallback(
       validation: {
         original_value: originalValue,
         external_median: parseFloat(scaledP50.toFixed(2)),
-        p25: parseFloat(scaledP25.toFixed(2)),
-        p75: parseFloat(scaledP75.toFixed(2)),
+        p25: scaledP25,
+        p75: scaledP75,
         status,
         discrepancy_score: parseFloat(discrepancy.toFixed(2)),
         notes: `Calibrated against internal benchmark master (${data.normalized_sector}, ${data.match_level}, sample ${data.sample_size?.toLocaleString?.() ?? data.sample_size}).`,
