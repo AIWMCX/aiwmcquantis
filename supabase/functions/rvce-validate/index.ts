@@ -739,9 +739,16 @@ async function internalBenchmarkFallback(
         : status === 'WARN'
         ? `Value (${fmtMetricValue(metric, originalValue)}) falls outside the typical range (${fmtMetricValue(metric, scaledP25)}–${fmtMetricValue(metric, scaledP75)}) -- ${calibrationSource}.`
         : `Value aligns with ${calibrationSource}.`,
-      observation_count: 3,
+      // GTM-audit item #12 (2026-08-26, Q16): this used to hardcode
+      // observation_count: 3 regardless of the real (zero) web-observation
+      // count, and the frontend badge rendered a normal green "Validated"
+      // exactly as if 3 real external sources had been checked. This path
+      // has zero web observations by construction (it only runs when the
+      // web-search path returned <2) -- report that honestly so the badge
+      // can distinguish "externally validated" from "internally estimated".
+      observation_count: 0,
       web_search_fired: false,
-      sources_used: 1,
+      sources_used: 0,
     };
     if (status === 'OUTLIER') validation.recommended_value = parseFloat(scaledP50.toFixed(2));
 
