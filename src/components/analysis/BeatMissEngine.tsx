@@ -82,16 +82,31 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       const p50 = bm?.p50 ?? 0;
       const p75 = bm?.p75 ?? 0;
 
-      // For LTV:CAC, derive the band from ltv/cac benchmarks
+      // For LTV:CAC, derive the band from ltv/cac benchmarks.
+      //
+      // CodeRabbit catch (PR #94): the original code divided MISMATCHED
+      // percentiles (ltvBm.p75 / cacBm.p25) to build the "good" edge and
+      // (ltvBm.p25 / cacBm.p75) for the "bad" edge. That isn't the p75/p25
+      // of the ratio's actual distribution -- LTV and CAC are independent
+      // marginals here (no paired-observation dataset exists to compute a
+      // true joint percentile), and dividing each side's own extreme
+      // percentile against the OTHER metric's opposite extreme
+      // artificially widens the "good" tail and narrows the "bad" tail,
+      // producing a false verdict band. Using SAME-INDEX percentiles
+      // (p25/p25, p50/p50, p75/p75) is the standard, defensible
+      // approximation for combining independent marginals absent joint
+      // data -- still an approximation (it assumes LTV and CAC don't move
+      // together within a percentile band), but it no longer manufactures
+      // a band wider or narrower than either marginal actually supports.
       let effectiveP25 = p25;
       let effectiveP50 = p50;
       let effectiveP75 = p75;
       if (item.param === 'ltv') {
         const ltvBm = findBenchmark(industry, 'ltv');
         const cacBm = findBenchmark(industry, 'cac');
-        effectiveP25 = ltvBm && cacBm ? Math.round((ltvBm.p25 / Math.max(cacBm.p75, 1)) * 10) / 10 : 1;
+        effectiveP25 = ltvBm && cacBm ? Math.round((ltvBm.p25 / Math.max(cacBm.p25, 1)) * 10) / 10 : 1;
         effectiveP50 = ltvBm && cacBm ? Math.round((ltvBm.p50 / Math.max(cacBm.p50, 1)) * 10) / 10 : 3;
-        effectiveP75 = ltvBm && cacBm ? Math.round((ltvBm.p75 / Math.max(cacBm.p25, 1)) * 10) / 10 : 8;
+        effectiveP75 = ltvBm && cacBm ? Math.round((ltvBm.p75 / Math.max(cacBm.p75, 1)) * 10) / 10 : 8;
       }
 
       const { verdict, deltaPct } = classify(item.value, effectiveP25, effectiveP50, effectiveP75, item.higherBetter);
@@ -124,7 +139,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
           Beat / Miss Engine
         </h4>
         <span className="text-[10px] font-medium text-[var(--q-text-tertiary)] uppercase tracking-wider">
-          {beatCount}/{rows.length} metrics beat median
+          {beatCount}/{rows.length} metrics BEAT
         </span>
       </div>
 
