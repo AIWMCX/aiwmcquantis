@@ -17,6 +17,30 @@ interface BeatMissRow {
   verdict: Verdict;
   deltaPct: number;
   source: string;
+  isEstimatedBand: boolean;
+}
+
+/**
+ * CodeRabbit catch (PR #94, second pass): same-index percentile division
+ * (p25/p25, p50/p50, p75/p75) is STILL not the true joint distribution of
+ * LTV:CAC -- it assumes LTV and CAC move together within a percentile band,
+ * which is an unverified assumption, not real paired-observation data.
+ * CodeRabbit's own recommendation: "if that data is unavailable, label
+ * these values as estimates and do not use them as percentile-band
+ * thresholds." So the LTV:CAC row no longer derives its BEAT/MISS verdict
+ * from any percentile arithmetic at all -- it uses this widely-cited SaaS
+ * industry heuristic instead (David Skok / Bessemer "SaaS Metrics 2.0":
+ * 3:1 is the minimum healthy ratio, 5:1+ is considered excellent). The
+ * p25/p50/p75 figures are still shown for context but are marked as
+ * estimates (isEstimatedBand) and play no role in the verdict.
+ */
+const LTV_CAC_HEURISTIC = { healthyMin: 3, excellent: 5 } as const;
+
+export function classifyLtvCacRatio(ratio: number): { verdict: Verdict; deltaPct: number } {
+  const verdict: Verdict =
+    ratio >= LTV_CAC_HEURISTIC.excellent ? 'BEAT' : ratio < LTV_CAC_HEURISTIC.healthyMin ? 'MISS' : 'IN-LINE';
+  const deltaPct = Math.abs(((ratio - LTV_CAC_HEURISTIC.healthyMin) / LTV_CAC_HEURISTIC.healthyMin) * 100);
+  return { verdict, deltaPct };
 }
 
 /**
@@ -82,22 +106,10 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       const p50 = bm?.p50 ?? 0;
       const p75 = bm?.p75 ?? 0;
 
-      // For LTV:CAC, derive the band from ltv/cac benchmarks.
-      //
-      // CodeRabbit catch (PR #94): the original code divided MISMATCHED
-      // percentiles (ltvBm.p75 / cacBm.p25) to build the "good" edge and
-      // (ltvBm.p25 / cacBm.p75) for the "bad" edge. That isn't the p75/p25
-      // of the ratio's actual distribution -- LTV and CAC are independent
-      // marginals here (no paired-observation dataset exists to compute a
-      // true joint percentile), and dividing each side's own extreme
-      // percentile against the OTHER metric's opposite extreme
-      // artificially widens the "good" tail and narrows the "bad" tail,
-      // producing a false verdict band. Using SAME-INDEX percentiles
-      // (p25/p25, p50/p50, p75/p75) is the standard, defensible
-      // approximation for combining independent marginals absent joint
-      // data -- still an approximation (it assumes LTV and CAC don't move
-      // together within a percentile band), but it no longer manufactures
-      // a band wider or narrower than either marginal actually supports.
+      // LTV:CAC has no paired-observation dataset, so there's no true joint
+      // p25/p50/p75 to display or classify against -- shown here as a
+      // same-index-percentile ESTIMATE (informational only; see
+      // classifyLtvCacRatio() above for why the verdict never uses it).
       let effectiveP25 = p25;
       let effectiveP50 = p50;
       let effectiveP75 = p75;
@@ -109,7 +121,10 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         effectiveP75 = ltvBm && cacBm ? Math.round((ltvBm.p75 / Math.max(cacBm.p75, 1)) * 10) / 10 : 8;
       }
 
-      const { verdict, deltaPct } = classify(item.value, effectiveP25, effectiveP50, effectiveP75, item.higherBetter);
+      const { verdict, deltaPct } =
+        item.param === 'ltv'
+          ? classifyLtvCacRatio(item.value)
+          : classify(item.value, effectiveP25, effectiveP50, effectiveP75, item.higherBetter);
       const citation = bm ? buildCitation(bm) : null;
       const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
       const sourceText = citation
@@ -126,6 +141,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         verdict,
         deltaPct,
         source: sourceText,
+        isEstimatedBand: item.param === 'ltv',
       };
     });
   }, [result]);
@@ -169,25 +185,25 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
 
             {/* p25 */}
             <div className="text-right">
-              <p className="text-[10px] text-[var(--q-text-tertiary)]">p25</p>
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">p25{row.isEstimatedBand ? ' (est.)' : ''}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.p25.toLocaleString()}` : `${row.p25}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p25.toLocaleString()}` : `${row.p25}${row.unit}`}
               </p>
             </div>
 
             {/* p50 */}
             <div className="text-right">
-              <p className="text-[10px] text-[var(--q-text-tertiary)]">Median</p>
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">{row.isEstimatedBand ? 'Median (est.)' : 'Median'}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.p50.toLocaleString()}` : `${row.p50}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p50.toLocaleString()}` : `${row.p50}${row.unit}`}
               </p>
             </div>
 
             {/* p75 */}
             <div className="text-right">
-              <p className="text-[10px] text-[var(--q-text-tertiary)]">p75</p>
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">p75{row.isEstimatedBand ? ' (est.)' : ''}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.p75.toLocaleString()}` : `${row.p75}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p75.toLocaleString()}` : `${row.p75}${row.unit}`}
               </p>
             </div>
 
@@ -206,6 +222,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
 
       <p className="text-[10px] text-[var(--q-text-disabled)] italic">
         ▲ BEAT = outside the favorable side of the shown p25–p75 band · ▼ MISS = outside the unfavorable side · ● IN-LINE = inside the band
+        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no paired dataset; band shown for context only, not used for the verdict'}
       </p>
     </div>
   );
