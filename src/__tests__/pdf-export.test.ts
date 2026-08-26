@@ -112,4 +112,16 @@ describe('usePdfExport — canonical PDF pipeline', () => {
     expect(HOOK).not.toMatch(/'97,500 benchmarks'/);
     expect(HOOK).toMatch(/from ['"]\.\/pdf-benchmark-summary['"]/);
   });
+
+  // GTM-audit item #7 (2026-08-25): the cover previously showed only a
+  // single blended "Confidence Score". See pdf-quality-dimensions.test.ts
+  // for the real runtime assertions on the extracted status maps/color
+  // functions this wiring depends on.
+  it('wires the quality-dimensions breakdown into the cover page, with an honest legacy fallback', () => {
+    expect(HOOK).toMatch(/from ['"]\.\/pdf-quality-dimensions['"]/);
+    expect(HOOK).toMatch(/const qd = result\.validation\?\.quality_dimensions/);
+    expect(HOOK).toMatch(/Analysis Quality Index \(legacy\)/);
+    expect(HOOK).toMatch(/Input Completeness/);
+    expect(HOOK).toMatch(/Source Coverage/);
+  });
 });
