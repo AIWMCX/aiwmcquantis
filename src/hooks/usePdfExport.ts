@@ -774,12 +774,56 @@ function detectPdfContradictions(financial: any): string[] {
   return flags;
 }
 
+// GTM-audit item #3 (2026-08-25): react-pdf auto-paginates content that
+// overflows a single <Page> element into additional physical PDF pages.
+// This report previously hardcoded a literal 'Page N of 10' string per
+// <Page> element -- wrong on two counts at once: it never accounted for
+// overflow (a "page" whose content wraps becomes 2+ physical pages, all
+// showing the SAME hardcoded label), and the hardcoded numbers themselves
+// were already wrong before any overflow happened (they jumped straight
+// from "Page 8 of 10" to "Page 10 of 10", never printing a "9" at all,
+// while the literal "10" total didn't match the 8 actual <Page> elements
+// either). `render` + `fixed` is react-pdf's built-in mechanism for a
+// footer that's recomputed per ACTUAL physical page and repeated across
+// a single element's overflow -- the only way to make this number true.
+const pageNumFooter = () =>
+  React.createElement(Text, {
+    render: ({ pageNumber, totalPages }: { pageNumber: number; totalPages: number }) =>
+      `Page ${pageNumber} of ${totalPages}`,
+    fixed: true,
+  });
+
 const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
 
+  // GTM-audit item #2 (2026-08-25): a failed AI narrator step previously
+  // produced a normal-looking report -- deterministic fallback text is
+  // full prose (see generateDeterministicFallbackResult in index.ts), so
+  // nothing in this PDF distinguished it from a real AI-written analysis,
+  // even though the UI's own results screen was already showing "AI
+  // narrative unavailable". `used_fallback`/`report_integrity` aren't on
+  // BusinessAnalysisResult's type (same reason AccuracyTransparentResults
+  // .tsx already reads them via `as any`) but do exist on the raw server
+  // response and survive prepareSafeResult's spread.
+  const isDegraded = Boolean((rawResult as any)?.used_fallback);
+  const integrityBlocked = (rawResult as any)?.report_integrity === 'BLOCK';
+
   // Cross-section reconciliation check (handbook §19 item 4) — read-only, surfaces contradictions in Accuracy Notice
   const reconciliationFlags = detectPdfContradictions(result.financial_analysis);
+  if (isDegraded) {
+    reconciliationFlags.push(
+      'AI narrative generation failed for this analysis — the executive summary, market analysis, risk assessment, and action plan below were produced by the deterministic engine\'s standard template, not written by an AI model for this specific business. Financial figures are unaffected and remain fully calculated.'
+    );
+  }
+  if (integrityBlocked) {
+    const blockIssues = (((rawResult as any)?.report_integrity_issues ?? []) as Array<{ message?: string }>)
+      .map((i) => i.message)
+      .filter((m): m is string => Boolean(m));
+    reconciliationFlags.push(
+      `This report failed a critical financial-accounting check and should be reviewed before use.${blockIssues.length ? ' ' + blockIssues.join(' ') : ''}`
+    );
+  }
 
   // Create branded colors
   const brandedColors = createColors(branding);
@@ -790,10 +834,18 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
   const monthlyRevenue = financial.mrr ?? financial.monthly_revenue?.realistic ?? 0;
 
   const getVerdict = () => {
+    // A report that failed its own accounting-integrity check can never
+    // present a clean verdict, regardless of confidence/profit/payback --
+    // this is the direct fix for the CashMatch AI incident: a report whose
+    // scenarios were mathematically impossible must never show a plain
+    // "VIABLE" the way that one did.
+    if (integrityBlocked) {
+      return { text: 'REVIEW REQUIRED', color: brandedColors.danger };
+    }
     if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths <= 18) {
-      return { text: 'VIABLE', color: brandedColors.success };
+      return { text: isDegraded ? 'VIABLE (DETERMINISTIC ONLY)' : 'VIABLE', color: brandedColors.success };
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
-      return { text: 'NEEDS REFINEMENT', color: brandedColors.warning };
+      return { text: isDegraded ? 'NEEDS REFINEMENT (DETERMINISTIC ONLY)' : 'NEEDS REFINEMENT', color: brandedColors.warning };
     } else {
       return { text: 'HIGH RISK', color: brandedColors.danger };
     }
@@ -1005,7 +1057,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 2 of 10')
+        pageNumFooter()
       )
     ),
     // Financial Analysis Page
@@ -1092,7 +1144,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 3 of 10')
+        pageNumFooter()
       )
     ),
     // Scenario Analysis Page
@@ -1215,7 +1267,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 4 of 10')
+        pageNumFooter()
       )
     ),
     // Market Analysis Page
@@ -1313,7 +1365,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 5 of 10')
+        pageNumFooter()
       )
     ),
     // Risk Assessment Page
@@ -1377,7 +1429,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 6 of 10')
+        pageNumFooter()
       )
     ),
     // Action Plan Page
@@ -1451,10 +1503,10 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 7 of 10')
+        pageNumFooter()
       )
     ),
-    // Benchmark Citations Page (Page 8 of 10)
+    // Benchmark Citations Page
     React.createElement(
       Page,
       { size: 'A4', style: styles.page },
@@ -1516,10 +1568,10 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, null, ''),
-        React.createElement(Text, null, 'Page 8 of 10')
+        pageNumFooter()
       )
     ),
-    // Appendix Page (Page 10 of 10)
+    // Appendix Page
     React.createElement(
       Page,
       { size: 'A4', style: styles.page },
@@ -1604,7 +1656,7 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         { style: styles.pageFooter },
         React.createElement(Text, null, `CONFIDENTIAL | ${displayBrandName} | ${currentDate}`),
         React.createElement(Text, { style: { fontStyle: 'italic' } }, `${currentYear} ${footerText}. All Rights Reserved.`),
-        React.createElement(Text, null, 'Page 10 of 10')
+        pageNumFooter()
       )
     )
   );

@@ -58,4 +58,38 @@ describe('usePdfExport — canonical PDF pipeline', () => {
   it('still ships @react-pdf/renderer as the single PDF stack', () => {
     expect(PKG.dependencies?.['@react-pdf/renderer']).toBeTruthy();
   });
+
+  // GTM-audit item #3 (2026-08-25): real production PDF ("15 physical
+  // pages but footers describe 10") had hardcoded 'Page N of 10' strings
+  // that never accounted for react-pdf's own content-overflow pagination,
+  // and were already internally wrong before any overflow (jumped 8 -> 10,
+  // never printing "9"). Fixed via react-pdf's render+fixed contract, the
+  // only mechanism that reflects the ACTUAL physical page count.
+  it('never hardcodes a literal page-count string in a page footer', () => {
+    expect(HOOK).not.toMatch(/'Page \d+ of \d+'/);
+  });
+
+  it('uses react-pdf\'s render+fixed contract for a truly dynamic page footer', () => {
+    expect(HOOK).toMatch(/render:\s*\(\{\s*pageNumber,\s*totalPages\s*\}/);
+    expect(HOOK).toMatch(/`Page \$\{pageNumber\} of \$\{totalPages\}`/);
+    expect(HOOK).toMatch(/fixed:\s*true/);
+  });
+
+  // GTM-audit item #2 (2026-08-25): real production incident where the UI
+  // showed "AI narrative unavailable" yet the exported PDF carried a full
+  // narrative and a plain "VIABLE" verdict with no indication anything had
+  // failed. Fixed by reading used_fallback/report_integrity (already set
+  // server-side in analyze-business/index.ts) and refusing to present a
+  // clean verdict when either is tripped.
+  it('never lets a report_integrity BLOCK produce a clean verdict', () => {
+    expect(HOOK).toMatch(/integrityBlocked/);
+    expect(HOOK).toMatch(/report_integrity['"]?\)?\s*===\s*['"]BLOCK['"]/);
+    expect(HOOK).toMatch(/REVIEW REQUIRED/);
+  });
+
+  it('labels a degraded (AI-fallback) analysis distinctly from a full one', () => {
+    expect(HOOK).toMatch(/isDegraded/);
+    expect(HOOK).toMatch(/used_fallback/);
+    expect(HOOK).toMatch(/DETERMINISTIC ONLY/);
+  });
 });
