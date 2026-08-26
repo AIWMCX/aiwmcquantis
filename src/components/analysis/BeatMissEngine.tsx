@@ -10,21 +10,59 @@ type Verdict = 'BEAT' | 'IN-LINE' | 'MISS';
 interface BeatMissRow {
   label: string;
   userValue: number;
+  p25: number;
   p50: number;
   p75: number;
   unit: string;
   verdict: Verdict;
   deltaPct: number;
   source: string;
+  isEstimatedBand: boolean;
 }
 
-function classify(user: number, p50: number, higherIsBetter: boolean): { verdict: Verdict; deltaPct: number } {
-  const delta = ((user - p50) / Math.max(p50, 0.01)) * 100;
-  const effective = higherIsBetter ? delta : -delta;
-  return {
-    verdict: effective > 8 ? 'BEAT' : effective < -8 ? 'MISS' : 'IN-LINE',
-    deltaPct: Math.abs(delta),
-  };
+/**
+ * CodeRabbit catch (PR #94, second pass): same-index percentile division
+ * (p25/p25, p50/p50, p75/p75) is STILL not the true joint distribution of
+ * LTV:CAC -- it assumes LTV and CAC move together within a percentile band,
+ * which is an unverified assumption, not real paired-observation data.
+ * CodeRabbit's own recommendation: "if that data is unavailable, label
+ * these values as estimates and do not use them as percentile-band
+ * thresholds." So the LTV:CAC row no longer derives its BEAT/MISS verdict
+ * from any percentile arithmetic at all -- it uses this widely-cited SaaS
+ * industry heuristic instead (David Skok / Bessemer "SaaS Metrics 2.0":
+ * 3:1 is the minimum healthy ratio, 5:1+ is considered excellent). The
+ * p25/p50/p75 figures are still shown for context but are marked as
+ * estimates (isEstimatedBand) and play no role in the verdict.
+ */
+const LTV_CAC_HEURISTIC = { healthyMin: 3, excellent: 5 } as const;
+
+export function classifyLtvCacRatio(ratio: number): { verdict: Verdict; deltaPct: number } {
+  const verdict: Verdict =
+    ratio >= LTV_CAC_HEURISTIC.excellent ? 'BEAT' : ratio < LTV_CAC_HEURISTIC.healthyMin ? 'MISS' : 'IN-LINE';
+  const deltaPct = Math.abs(((ratio - LTV_CAC_HEURISTIC.healthyMin) / LTV_CAC_HEURISTIC.healthyMin) * 100);
+  return { verdict, deltaPct };
+}
+
+/**
+ * Verdict is derived from where `user` actually sits relative to the p25/p75
+ * band this row displays -- not an arbitrary +/-8% offset from p50. A prior
+ * version used only the p50 delta, so a value already outside the p75/p25
+ * column shown right next to the badge could still render "IN-LINE" (the
+ * same class of bug RVCE's status computation had: a badge computed
+ * independently of the range it's displayed alongside).
+ */
+export function classify(
+  user: number,
+  p25: number,
+  p50: number,
+  p75: number,
+  higherIsBetter: boolean
+): { verdict: Verdict; deltaPct: number } {
+  const delta = ((user - p50) / Math.max(Math.abs(p50), 0.01)) * 100;
+  const verdict: Verdict = higherIsBetter
+    ? user > p75 ? 'BEAT' : user < p25 ? 'MISS' : 'IN-LINE'
+    : user < p25 ? 'BEAT' : user > p75 ? 'MISS' : 'IN-LINE';
+  return { verdict, deltaPct: Math.abs(delta) };
 }
 
 function findBenchmark(industry: string, param: string) {
@@ -64,20 +102,29 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
 
     return items.map(item => {
       const bm = findBenchmark(industry, item.param);
+      const p25 = bm?.p25 ?? 0;
       const p50 = bm?.p50 ?? 0;
       const p75 = bm?.p75 ?? 0;
 
-      // For LTV:CAC, derive p50 from ltv/cac benchmarks
+      // LTV:CAC has no paired-observation dataset, so there's no true joint
+      // p25/p50/p75 to display or classify against -- shown here as a
+      // same-index-percentile ESTIMATE (informational only; see
+      // classifyLtvCacRatio() above for why the verdict never uses it).
+      let effectiveP25 = p25;
       let effectiveP50 = p50;
       let effectiveP75 = p75;
       if (item.param === 'ltv') {
         const ltvBm = findBenchmark(industry, 'ltv');
         const cacBm = findBenchmark(industry, 'cac');
+        effectiveP25 = ltvBm && cacBm ? Math.round((ltvBm.p25 / Math.max(cacBm.p25, 1)) * 10) / 10 : 1;
         effectiveP50 = ltvBm && cacBm ? Math.round((ltvBm.p50 / Math.max(cacBm.p50, 1)) * 10) / 10 : 3;
-        effectiveP75 = ltvBm && cacBm ? Math.round((ltvBm.p75 / Math.max(cacBm.p25, 1)) * 10) / 10 : 8;
+        effectiveP75 = ltvBm && cacBm ? Math.round((ltvBm.p75 / Math.max(cacBm.p75, 1)) * 10) / 10 : 8;
       }
 
-      const { verdict, deltaPct } = classify(item.value, effectiveP50, item.higherBetter);
+      const { verdict, deltaPct } =
+        item.param === 'ltv'
+          ? classifyLtvCacRatio(item.value)
+          : classify(item.value, effectiveP25, effectiveP50, effectiveP75, item.higherBetter);
       const citation = bm ? buildCitation(bm) : null;
       const freshness = bm ? checkFreshness(bm.lastUpdated) : null;
       const sourceText = citation
@@ -87,12 +134,14 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       return {
         label: item.label,
         userValue: item.value,
+        p25: effectiveP25,
         p50: effectiveP50,
         p75: effectiveP75,
         unit: item.unit,
         verdict,
         deltaPct,
         source: sourceText,
+        isEstimatedBand: item.param === 'ltv',
       };
     });
   }, [result]);
@@ -106,7 +155,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
           Beat / Miss Engine
         </h4>
         <span className="text-[10px] font-medium text-[var(--q-text-tertiary)] uppercase tracking-wider">
-          {beatCount}/{rows.length} metrics beat median
+          {beatCount}/{rows.length} metrics BEAT
         </span>
       </div>
 
@@ -114,7 +163,7 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
         {rows.map((row, i) => (
           <div
             key={row.label}
-            className="grid grid-cols-[1fr_auto_auto_auto_auto] gap-3 items-center p-2.5 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-subtle)]"
+            className="grid grid-cols-[1fr_auto_auto_auto_auto_auto] gap-3 items-center p-2.5 rounded-lg bg-[var(--q-bg-elevated)] border border-[var(--q-border-subtle)]"
           >
             {/* Label */}
             <div className="min-w-0">
@@ -134,19 +183,27 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
               </p>
             </div>
 
+            {/* p25 */}
+            <div className="text-right">
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">p25{row.isEstimatedBand ? ' (est.)' : ''}</p>
+              <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p25.toLocaleString()}` : `${row.p25}${row.unit}`}
+              </p>
+            </div>
+
             {/* p50 */}
             <div className="text-right">
-              <p className="text-[10px] text-[var(--q-text-tertiary)]">Median</p>
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">{row.isEstimatedBand ? 'Median (est.)' : 'Median'}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.p50.toLocaleString()}` : `${row.p50}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p50.toLocaleString()}` : `${row.p50}${row.unit}`}
               </p>
             </div>
 
             {/* p75 */}
             <div className="text-right">
-              <p className="text-[10px] text-[var(--q-text-tertiary)]">p75</p>
+              <p className="text-[10px] text-[var(--q-text-tertiary)]">p75{row.isEstimatedBand ? ' (est.)' : ''}</p>
               <p className="text-xs tabular-nums text-[var(--q-text-secondary)]" style={{ fontFamily: 'var(--q-font-mono, monospace)' }}>
-                {row.unit === '$' ? `$${row.p75.toLocaleString()}` : `${row.p75}${row.unit}`}
+                {row.isEstimatedBand ? '≈' : ''}{row.unit === '$' ? `$${row.p75.toLocaleString()}` : `${row.p75}${row.unit}`}
               </p>
             </div>
 
@@ -164,7 +221,8 @@ export function BeatMissEngine({ result }: BeatMissEngineProps) {
       </div>
 
       <p className="text-[10px] text-[var(--q-text-disabled)] italic">
-        ▲ BEAT = above industry p50 on favorable metric · ▼ MISS = below · Threshold: ±8%
+        ▲ BEAT = outside the favorable side of the shown p25–p75 band · ▼ MISS = outside the unfavorable side · ● IN-LINE = inside the band
+        {rows.some(r => r.isEstimatedBand) && ' · (est.) = no paired dataset; band shown for context only, not used for the verdict'}
       </p>
     </div>
   );
