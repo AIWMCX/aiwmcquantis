@@ -58,14 +58,48 @@ async function runSql(query: string): Promise<unknown[]> {
   return JSON.parse(text) as unknown[];
 }
 
+interface ScenarioTriple {
+  revenue: number;
+  gross_profit: number;
+  net_profit: number;
+}
+
+/**
+ * CodeRabbit catch: the SQL below only requires scenarios.base to be
+ * non-null -- pessimistic/optimistic could still be absent or null on a
+ * malformed/partial row (e.g. an older or free-tier analysis that never
+ * computed all three). checkFinancialInvariants() unconditionally reads
+ * .revenue/.gross_profit/.net_profit off all three, so an unvalidated
+ * TypeScript cast here would let one malformed row throw a TypeError and
+ * silently stop the ENTIRE sweep partway through -- exactly the kind of
+ * failure a scheduled health check must never have. `scenarios` is typed
+ * loosely and validated per-row below instead of asserted as the full
+ * contract.
+ */
 interface CandidateRow {
   id: string;
-  scenarios: {
-    pessimistic: { revenue: number; gross_profit: number; net_profit: number };
-    base: { revenue: number; gross_profit: number; net_profit: number };
-    optimistic: { revenue: number; gross_profit: number; net_profit: number };
-  };
+  scenarios: unknown;
   already_blocked: boolean;
+}
+
+function isScenarioTriple(v: unknown): v is ScenarioTriple {
+  return (
+    typeof v === "object" &&
+    v !== null &&
+    typeof (v as Record<string, unknown>).revenue === "number" &&
+    typeof (v as Record<string, unknown>).gross_profit === "number" &&
+    typeof (v as Record<string, unknown>).net_profit === "number"
+  );
+}
+
+function isValidScenarioSet(scenarios: unknown): scenarios is {
+  pessimistic: ScenarioTriple;
+  base: ScenarioTriple;
+  optimistic: ScenarioTriple;
+} {
+  if (typeof scenarios !== "object" || scenarios === null) return false;
+  const s = scenarios as Record<string, unknown>;
+  return isScenarioTriple(s.pessimistic) && isScenarioTriple(s.base) && isScenarioTriple(s.optimistic);
 }
 
 async function main() {
@@ -82,9 +116,28 @@ async function main() {
   console.log(`Scanned ${rows.length} analyses with scenario data.`);
 
   const violations: Array<{ id: string; issues: ReturnType<typeof checkFinancialInvariants> }> = [];
+  const malformed: string[] = [];
   for (const row of rows) {
-    const issues = checkFinancialInvariants(row.scenarios);
-    if (issues.length > 0) violations.push({ id: row.id, issues });
+    if (!isValidScenarioSet(row.scenarios)) {
+      // Report and move on -- never let one bad row stop the sweep from
+      // covering every other row.
+      malformed.push(row.id);
+      continue;
+    }
+    try {
+      const issues = checkFinancialInvariants(row.scenarios);
+      if (issues.length > 0) violations.push({ id: row.id, issues });
+    } catch (err) {
+      // Defense-in-depth: checkFinancialInvariants() shouldn't throw for a
+      // validated triple, but a sweep meant to run unattended must never
+      // let a single row's unexpected error abort the whole scan.
+      malformed.push(`${row.id} (checkFinancialInvariants threw: ${String(err)})`);
+    }
+  }
+
+  if (malformed.length > 0) {
+    console.log(`\n${malformed.length} row(s) had missing/malformed scenario data and were skipped (not counted as pass or fail):`);
+    for (const id of malformed) console.log(`  - ${id}`);
   }
 
   console.log(`\nFound ${violations.length} analyses violating operating_profit <= gross_profit <= revenue:`);
@@ -93,7 +146,9 @@ async function main() {
   }
 
   if (violations.length === 0) {
-    console.log("\nPASS: no financial-invariant violations found.");
+    console.log(malformed.length > 0
+      ? "\nPASS (with skipped rows): no financial-invariant violations found among the analyses that could be checked."
+      : "\nPASS: no financial-invariant violations found.");
     Deno.exit(0);
   }
 
