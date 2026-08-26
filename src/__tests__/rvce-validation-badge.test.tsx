@@ -13,6 +13,7 @@
  */
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { ValidationStatusBadge } from '../components/rvce/ValidationStatusBadge';
 import type { MetricValidation } from '../engine/rvce/types';
 
@@ -57,5 +58,37 @@ describe('ValidationStatusBadge', () => {
       />
     );
     expect(screen.getByText('Outlier')).toBeInTheDocument();
+  });
+
+  it('CodeRabbit catch: treats observation_count 0 as internal-only even when web_search_fired is omitted', () => {
+    // A payload can have observation_count: 0 without explicitly setting
+    // web_search_fired: false (the field is optional) -- `undefined !== false`
+    // would have missed this case and still shown "Validated".
+    const { web_search_fired, ...withoutFlag } = baseValidation({ observation_count: 0 });
+    render(<ValidationStatusBadge metric="cac" validation={withoutFlag as MetricValidation} />);
+    expect(screen.getByText('Estimated')).toBeInTheDocument();
+    expect(screen.queryByText('Validated')).not.toBeInTheDocument();
+  });
+
+  it('labels the tooltip median "Internal benchmark median" (not "External median") for internal-only estimates', async () => {
+    const user = userEvent.setup();
+    render(
+      <ValidationStatusBadge
+        metric="cac"
+        validation={baseValidation({ web_search_fired: false, observation_count: 0 })}
+      />
+    );
+    await user.hover(screen.getByText('Estimated'));
+    const tooltips = await screen.findAllByRole('tooltip', {}, { timeout: 3000 });
+    expect(tooltips.some(t => t.textContent?.includes('Internal benchmark median:'))).toBe(true);
+    expect(tooltips.every(t => !t.textContent?.includes('External median:'))).toBe(true);
+  });
+
+  it('keeps "External median" for a real web-search-backed OK status', async () => {
+    const user = userEvent.setup();
+    render(<ValidationStatusBadge metric="cac" validation={baseValidation({})} />);
+    await user.hover(screen.getByText('Validated'));
+    const tooltips = await screen.findAllByRole('tooltip', {}, { timeout: 3000 });
+    expect(tooltips.some(t => t.textContent?.includes('External median:'))).toBe(true);
   });
 });

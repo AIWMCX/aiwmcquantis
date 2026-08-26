@@ -36,7 +36,18 @@ export function ValidationStatusBadge({
   // said "Validated" identically either way, implying external confirmation
   // that never happened. Distinguish the internal-only case in the visible
   // label, not just a tooltip footnote nobody may open.
-  const isInternalOnly = validation.web_search_fired === false && validation.status !== 'NO_DATA';
+  //
+  // CodeRabbit catch: checking only `web_search_fired === false` misses a
+  // payload that has observation_count: 0 but OMITS the optional
+  // web_search_fired field entirely (undefined !== false) -- that would
+  // still render "Validated". Treat observation_count === 0 as internal-only
+  // too, since a real web-search path can never legitimately reach OK/WARN/
+  // OUTLIER with zero observations (see validateMetric() in
+  // rvce-validate/index.ts -- <2 observations always routes to fallback or
+  // NO_DATA, never straight to a classified status).
+  const isInternalOnly =
+    (validation.web_search_fired === false || validation.observation_count === 0) &&
+    validation.status !== 'NO_DATA';
   const displayLabel = isInternalOnly && validation.status === 'OK' ? 'Estimated' : config.label;
 
   return (
@@ -63,7 +74,9 @@ export function ValidationStatusBadge({
             </div>
             {validation.external_median !== null && (
               <div>
-                <span className="text-muted-foreground">External median: </span>
+                <span className="text-muted-foreground">
+                  {isInternalOnly ? 'Internal benchmark median: ' : 'External median: '}
+                </span>
                 {fmtMetric(metric, validation.external_median)}
                 {validation.p25 !== null && validation.p75 !== null && (
                   <span className="text-muted-foreground">
