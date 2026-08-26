@@ -847,7 +847,11 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
     } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
       return { text: isDegraded ? 'NEEDS REFINEMENT (DETERMINISTIC ONLY)' : 'NEEDS REFINEMENT', color: brandedColors.warning };
     } else {
-      return { text: 'HIGH RISK', color: brandedColors.danger };
+      // CodeRabbit catch on PR #88: this branch was missing the same
+      // isDegraded qualifier the other two branches got, so a degraded
+      // HIGH RISK report would silently look no different from a fully
+      // AI-narrated one -- the exact inconsistency this fix exists to close.
+      return { text: isDegraded ? 'HIGH RISK (DETERMINISTIC ONLY)' : 'HIGH RISK', color: brandedColors.danger };
     }
   };
 

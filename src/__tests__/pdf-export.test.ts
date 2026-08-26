@@ -92,4 +92,23 @@ describe('usePdfExport — canonical PDF pipeline', () => {
     expect(HOOK).toMatch(/used_fallback/);
     expect(HOOK).toMatch(/DETERMINISTIC ONLY/);
   });
+
+  // CodeRabbit catch on PR #88: the HIGH RISK branch of getVerdict()
+  // originally lacked the same isDegraded qualifier the VIABLE and NEEDS
+  // REFINEMENT branches got, so a degraded HIGH RISK report would look no
+  // different from a fully AI-narrated one.
+  it('qualifies the HIGH RISK verdict too, not just VIABLE/NEEDS REFINEMENT', () => {
+    expect(HOOK).toMatch(/HIGH RISK \(DETERMINISTIC ONLY\)/);
+  });
+
+  // CodeRabbit catch on PR #88: analysisApi.ts's emergencyFallbackAnalysis()
+  // is a SEPARATE client-side fallback (used when the analysis service call
+  // fails entirely at the network level), distinct from the server-side
+  // generateDeterministicFallbackResult() path -- it must also set
+  // used_fallback so a PDF exported from it gets the same labeling.
+  it('the client-side emergency fallback also sets used_fallback', () => {
+    const API = readFileSync(resolve(__dirname, '../services/analysisApi.ts'), 'utf8');
+    expect(API).toMatch(/function emergencyFallbackAnalysis/);
+    expect(API).toMatch(/used_fallback:\s*true/);
+  });
 });

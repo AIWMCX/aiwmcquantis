@@ -376,6 +376,15 @@ export interface BusinessAnalysisResult {
   confidence_score: number;
   data_sources: string[];
   limitations: string[];
+  // CodeRabbit catch on PR #88: usePdfExport.ts's degraded-mode labeling
+  // (GTM-audit item #2) reads this to know whether the AI narrator ran.
+  // Set server-side in analyze-business/index.ts's response AND
+  // client-side in analysisApi.ts's emergencyFallbackAnalysis() (the
+  // separate fallback used when the analysis service call fails entirely
+  // at the network level, not just when the AI step within it fails) --
+  // both paths must set it so a PDF exported from either kind of fallback
+  // gets the same "(DETERMINISTIC ONLY)" labeling, not just the server one.
+  used_fallback?: boolean;
   validation?: ValidationResult;
   // Document tracking
   documents_used?: DocumentUsage[];
