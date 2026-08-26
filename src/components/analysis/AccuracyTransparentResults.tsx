@@ -31,6 +31,8 @@ import { SectionErrorBoundary } from './SectionErrorBoundary';
 import { formatPaybackDisplay } from '@/lib/formatPayback';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useIntegrityGatedExport } from '@/hooks/useIntegrityGatedExport';
+import { ExportIntegrityConfirmDialog } from './ExportIntegrityConfirmDialog';
 import { useShareReport } from '@/hooks/useShareReport';
 import { trackVerdictViewed, recordFunnelEvent } from '@/lib/analytics';
 import { toast } from 'sonner';
@@ -207,7 +209,7 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
     return Math.max(1, Math.floor(investment / Math.abs(scenarioMetrics.profit)));
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
-  const handleExportPDF = async () => {
+  const performExportPDF = useCallback(async () => {
     const loadingId = toast.loading('Generating PDF...');
     try {
       await generatePdf(result);
@@ -222,7 +224,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
       // eslint-disable-next-line no-console
       console.error('[PDF export]', error);
     }
-  };
+  }, [generatePdf, result]);
+
+  const { confirmOpen, setConfirmOpen, requestExport: handleExportPDF, confirmAndExport } = useIntegrityGatedExport(
+    (result as any)?.report_integrity,
+    performExportPDF
+  );
 
   const handleShare = useCallback(() => {
     if (analysisId) shareReport(analysisId);
@@ -1085,6 +1092,12 @@ export function AccuracyTransparentResults({ result, analysisId, onReset }: Accu
           </Button>
         </div>
       </div>
+
+      <ExportIntegrityConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmAndExport}
+      />
     </div>
   );
 }
