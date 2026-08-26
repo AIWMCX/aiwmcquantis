@@ -28,6 +28,8 @@ import {
   type ServerBenchmarkRecord,
 } from '@/components/analysis/BenchmarkCitations';
 import { deriveReportVerdict } from './pdf-verdict';
+import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
+import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
 
 interface PdfBenchmarkRow {
   label: string;
@@ -1531,8 +1533,23 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
         ),
         React.createElement(Text, { style: brandedHeaderLogo }, showQuantisBranding ? 'Quantis' : brandName.substring(0, 15))
       ),
-      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks · 97,500 benchmarks'),
-      React.createElement(Text, { style: styles.paragraph }, 'Every numeric metric in this report is matched against the AIWMC Quantis Benchmark Master library. When a direct row matches your sector, geography, and stage we cite P25–P75 ranges, source, sample size, and dataset date. When no direct match exists the value is marked "Estimated · No direct benchmark" and carries a wider uncertainty band.'),
+      // GTM-audit item #6 (2026-08-25): this header used to read "Verified
+      // Benchmarks · 97,500 benchmarks" -- conflating the TOTAL LIBRARY size
+      // (97,500 rows across all 5 benchmark tables, a real but aggregate,
+      // library-wide figure) with how many benchmarks were actually matched
+      // for THIS report, right above a table whose own "Source · n · date"
+      // column already shows the honest per-metric sample size (n=230,
+      // n=180, etc.). A reader could easily read the header as "this report
+      // was validated against 97,500 data points," which it never was.
+      // Also hardcoded '97,500' directly, bypassing canonical-facts.ts's own
+      // single-source-of-truth rule ("Never hardcode... import from here") --
+      // exactly the drift class that file exists to prevent. Now imports
+      // BENCHMARK_COUNT_DISPLAY and states the library size and this
+      // report's actual matched count as two separate, clearly labeled facts.
+      React.createElement(Text, { style: { ...styles.sectionTitle, borderBottomColor: brandedColors.primary } }, 'Verified Benchmarks'),
+      React.createElement(Text, { style: styles.paragraph },
+        buildBenchmarkCitationsSummary(benchmarkRows, BENCHMARK_COUNT_DISPLAY)
+      ),
       React.createElement(
         View,
         { style: styles.table },

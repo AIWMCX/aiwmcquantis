@@ -100,4 +100,16 @@ describe('usePdfExport — canonical PDF pipeline', () => {
     expect(HOOK).toMatch(/integrityBlocked/);
     expect(HOOK).toMatch(/isDegraded/);
   });
+
+  // GTM-audit item #6 (2026-08-25): the Benchmark Citations page header
+  // used to hardcode '97,500' directly, bypassing canonical-facts.ts's own
+  // single-source-of-truth rule for this exact number. See
+  // pdf-benchmark-summary.test.ts for the real runtime assertions on the
+  // extracted summary-text function's actual output.
+  it('imports the benchmark count from canonical-facts.ts rather than hardcoding it', () => {
+    expect(HOOK).toMatch(/from ['"]@\/config\/canonical-facts['"]/);
+    expect(HOOK).toMatch(/BENCHMARK_COUNT_DISPLAY/);
+    expect(HOOK).not.toMatch(/'97,500 benchmarks'/);
+    expect(HOOK).toMatch(/from ['"]\.\/pdf-benchmark-summary['"]/);
+  });
 });
