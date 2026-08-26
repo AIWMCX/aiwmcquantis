@@ -44,6 +44,8 @@ import { LtvCacIndicator } from './LtvCacIndicator';
 import { ConsultantComparison } from './ConsultantComparison';
 import type { BusinessAnalysisResult } from '@/types/analysis';
 import { usePdfExport } from '@/hooks/usePdfExport';
+import { useIntegrityGatedExport } from '@/hooks/useIntegrityGatedExport';
+import { ExportIntegrityConfirmDialog } from './ExportIntegrityConfirmDialog';
 import { useShareReport } from '@/hooks/useShareReport';
 import { useExportQueue } from '@/hooks/useExportQueue';
 import { toast } from 'sonner';
@@ -108,7 +110,7 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
     return Math.max(1, Math.floor(investment / Math.abs(monthlyProfit)));
   }, [result.financial_analysis, scenarioMetrics.profit]);
 
-  const handleExportPDF = async () => {
+  const performExportPDF = useCallback(async () => {
     const toastId = 'pdf-generation';
     try {
       toast.loading('Generating your Executive Report...', { id: toastId, description: 'This may take up to 30 seconds.' });
@@ -121,7 +123,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
       else if (errorMessage.includes('VALIDATION')) toast.error('Analysis data incomplete', { id: toastId, description: 'Please run a new analysis.' });
       else toast.error('Failed to generate PDF', { id: toastId, description: 'Please try again.' });
     }
-  };
+  }, [generatePdf, result]);
+
+  const { confirmOpen, setConfirmOpen, requestExport: handleExportPDF, confirmAndExport } = useIntegrityGatedExport(
+    (result as any)?.report_integrity,
+    performExportPDF
+  );
 
   const handleExportSCORE = useCallback(() => {
     try {
@@ -600,6 +607,12 @@ export function AnalysisResults({ result, analysisId, onReset }: AnalysisResults
         profit={scenarioMetrics.profit}
         margin={scenarioMetrics.margin}
         paybackMonths={result.financial_analysis?.payback_period_months ?? undefined}
+      />
+
+      <ExportIntegrityConfirmDialog
+        open={confirmOpen}
+        onOpenChange={setConfirmOpen}
+        onConfirm={confirmAndExport}
       />
     </div>
   );
