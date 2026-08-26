@@ -51,7 +51,6 @@ async function runSql(query: string): Promise<unknown[]> {
 
 interface StuckRow {
   id: string;
-  user_id: string | null;
   analysis_id: string | null;
   task: string;
   provider: string;
@@ -62,12 +61,23 @@ interface StuckRow {
 
 async function main() {
   const rows = (await runSql(`
-    SELECT id, user_id, analysis_id, task, provider, model, created_at,
-      EXTRACT(EPOCH FROM (now() - created_at)) / 60 AS age_minutes
-    FROM public.ai_calls
-    WHERE status = 'pending'
-      AND created_at < now() - interval '${STUCK_THRESHOLD_MINUTES} minutes'
-    ORDER BY created_at ASC
+    SELECT pending.id, pending.analysis_id, pending.task, pending.provider, pending.model, pending.created_at,
+      EXTRACT(EPOCH FROM (now() - pending.created_at)) / 60 AS age_minutes
+    FROM public.ai_calls AS pending
+    WHERE pending.status = 'pending'
+      AND pending.created_at < now() - interval '${STUCK_THRESHOLD_MINUTES} minutes'
+      -- CodeRabbit catch: finalizeAiCallDahl() (llm-call.ts) falls back to a
+      -- plain INSERT carrying metadata.pending_row_id whenever the PATCH to
+      -- the original pending row fails -- the outcome IS recorded, just in
+      -- a different row, leaving the original pending row untouched
+      -- forever. Without this exclusion, every one of those (an outcome
+      -- that was successfully captured) would false-positive as "stuck."
+      AND NOT EXISTS (
+        SELECT 1 FROM public.ai_calls AS finalized
+        WHERE finalized.status IN ('completed', 'failed')
+          AND finalized.metadata->>'pending_row_id' = pending.id::text
+      )
+    ORDER BY pending.created_at ASC
     LIMIT 200;
   `)) as StuckRow[];
 
@@ -78,9 +88,13 @@ async function main() {
 
   console.log(`Found ${rows.length} ai_calls row(s) stuck in 'pending' for longer than ${STUCK_THRESHOLD_MINUTES} minutes:`);
   for (const r of rows) {
+    // CodeRabbit catch: stdout here is piped into $GITHUB_STEP_SUMMARY,
+    // which GitHub displays on the (broadly visible) workflow run page --
+    // never print user_id there. The ai_calls row id is sufficient for a
+    // human to look up the rest via an authenticated query if needed.
     console.log(
       `  - ${r.id} | task=${r.task} provider=${r.provider} model=${r.model} ` +
-      `age=${Math.round(r.age_minutes)}m analysis_id=${r.analysis_id ?? '(none)'} user_id=${r.user_id ?? '(none)'}`
+      `age=${Math.round(r.age_minutes)}m analysis_id=${r.analysis_id ?? '(none)'}`
     );
   }
   console.log(
