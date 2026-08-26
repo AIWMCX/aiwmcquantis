@@ -58,4 +58,46 @@ describe('usePdfExport — canonical PDF pipeline', () => {
   it('still ships @react-pdf/renderer as the single PDF stack', () => {
     expect(PKG.dependencies?.['@react-pdf/renderer']).toBeTruthy();
   });
+
+  // GTM-audit item #3 (2026-08-25): real production PDF ("15 physical
+  // pages but footers describe 10") had hardcoded 'Page N of 10' strings
+  // that never accounted for react-pdf's own content-overflow pagination,
+  // and were already internally wrong before any overflow (jumped 8 -> 10,
+  // never printing "9"). Fixed via react-pdf's render+fixed contract, the
+  // only mechanism that reflects the ACTUAL physical page count.
+  it('never hardcodes a literal page-count string in a page footer', () => {
+    expect(HOOK).not.toMatch(/'Page \d+ of \d+'/);
+  });
+
+  it('uses react-pdf\'s render+fixed contract for a truly dynamic page footer', () => {
+    expect(HOOK).toMatch(/render:\s*\(\{\s*pageNumber,\s*totalPages\s*\}/);
+    expect(HOOK).toMatch(/`Page \$\{pageNumber\} of \$\{totalPages\}`/);
+    expect(HOOK).toMatch(/fixed:\s*true/);
+  });
+
+  // GTM-audit item #2 (2026-08-25): real production incident where the UI
+  // showed "AI narrative unavailable" yet the exported PDF carried a full
+  // narrative and a plain "VIABLE" verdict with no indication anything had
+  // failed.
+  //
+  // CodeRabbit catch (second round): the original version of these tests
+  // only regex-matched this file's source text for tokens like
+  // "integrityBlocked" or "DETERMINISTIC ONLY" -- "a source token can
+  // remain after the runtime behavior regresses, so the tests can pass
+  // while PDF output is incorrect." The verdict logic and the emergency
+  // fallback are now real, directly-callable functions
+  // (deriveReportVerdict in pdf-verdict.ts, emergencyFallbackAnalysis
+  // exported from analysisApi.ts) -- see pdf-verdict.test.ts and
+  // emergency-fallback.test.ts for the actual runtime assertions on their
+  // return values. This file still uses source-pattern matching for the
+  // page-footer JSX above (react-pdf's own render output isn't practically
+  // testable in Vitest/jsdom, per this file's header comment) and for
+  // confirming usePdfExport.ts actually wires the extracted verdict logic
+  // in, rather than silently reverting to an inline copy.
+  it('wires the extracted verdict/fallback logic in, rather than reverting to an inline copy', () => {
+    expect(HOOK).toMatch(/from ['"]\.\/pdf-verdict['"]/);
+    expect(HOOK).toMatch(/deriveReportVerdict\(/);
+    expect(HOOK).toMatch(/integrityBlocked/);
+    expect(HOOK).toMatch(/isDegraded/);
+  });
 });
