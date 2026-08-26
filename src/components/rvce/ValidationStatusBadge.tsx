@@ -29,6 +29,15 @@ export function ValidationStatusBadge({
 }) {
   const config = STATUS_CONFIG[validation.status];
   const label = METRIC_LABELS[metric] ?? metric;
+  // GTM-audit item #12 (2026-08-26, Q16): OK/WARN/OUTLIER can come from two
+  // very different sources -- real web observations, or the internal
+  // benchmark-master fallback when web search found <2 usable results
+  // (web_search_fired: false, observation_count: 0). The badge previously
+  // said "Validated" identically either way, implying external confirmation
+  // that never happened. Distinguish the internal-only case in the visible
+  // label, not just a tooltip footnote nobody may open.
+  const isInternalOnly = validation.web_search_fired === false && validation.status !== 'NO_DATA';
+  const displayLabel = isInternalOnly && validation.status === 'OK' ? 'Estimated' : config.label;
 
   return (
     <TooltipProvider delayDuration={200}>
@@ -42,7 +51,7 @@ export function ValidationStatusBadge({
             )}
           >
             <span aria-hidden>{config.icon}</span>
-            <span>{config.label}</span>
+            <span>{displayLabel}</span>
           </span>
         </TooltipTrigger>
         <TooltipContent side="top" className="max-w-xs">
@@ -71,7 +80,9 @@ export function ValidationStatusBadge({
             )}
             <div className="text-muted-foreground">{validation.notes}</div>
             <div className="text-[10px] text-muted-foreground/70">
-              Based on {validation.observation_count} external observations
+              {isInternalOnly
+                ? 'Estimated from internal benchmark calibration — no external web observations found'
+                : `Based on ${validation.observation_count} external observations`}
             </div>
           </div>
         </TooltipContent>
