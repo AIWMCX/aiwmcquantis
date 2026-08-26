@@ -7,7 +7,7 @@
  * analysis without duplicating this logic — the two paths can never drift in
  * field naming. No behavior change versus the inline version it replaced.
  */
-import { checkScenarioMonotonicity } from './payback-contract.ts';
+import { checkScenarioMonotonicity, checkFinancialInvariants } from './payback-contract.ts';
 import { QMath } from './quantis-math-server.ts';
 import type { StrictFinancialResult } from './financial-calculator.ts';
 import type { IndustryBenchmarks } from './index.ts';
@@ -218,6 +218,23 @@ ${calc.audit.map(a => `- ${a.formula}: ${a.notes}`).join('\n')}
         }
       } catch (monotonicityErr) {
         log.warn(`Scenario monotonicity check failed (non-fatal): ${String(monotonicityErr)}`);
+      }
+
+      // GTM-audit item #1 (2026-08-25): unlike monotonicity above, these are
+      // unconditional mathematical impossibilities (operating_profit can
+      // never exceed gross_profit, gross_profit can never exceed revenue) --
+      // the exact class of contradiction that shipped live in the CashMatch
+      // AI incident. index.ts escalates any of these to report_integrity =
+      // 'BLOCK' unconditionally (see the CRITICAL_RECONCILIATION_RULES
+      // escalation), unlike monotonicity issues which stay informational.
+      try {
+        const invariantIssues = checkFinancialInvariants(builtScenarios);
+        scenarioContradictions = [...scenarioContradictions, ...invariantIssues];
+        for (const issue of invariantIssues) {
+          log.error(`🛑 Financial invariant violated [${issue.code}]: ${issue.message}`);
+        }
+      } catch (invariantErr) {
+        log.warn(`Financial invariant check failed (non-fatal): ${String(invariantErr)}`);
       }
 
       return builtScenarios;

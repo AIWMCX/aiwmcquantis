@@ -3834,6 +3834,31 @@ Provide comprehensive, actionable analysis suitable for a professional investor 
         ];
         log.info(`Reconciliation: ${criticalFailures.length} critical check(s) escalated report_integrity to BLOCK (${criticalFailures.map((c) => c.rule).join(', ')})`);
       }
+
+      // GTM-audit item #1 (2026-08-25): checkFinancialInvariants()
+      // (payback-contract.ts) runs per-scenario inside
+      // shapeFinancialAnalysis() and, on a violation, appends
+      // GROSS_PROFIT_EXCEEDS_REVENUE / OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT
+      // into the same report_integrity_issues array scenario monotonicity
+      // uses. Unlike monotonicity (informational-only, per the comment
+      // above -- a real business CAN legitimately see profit move opposite
+      // revenue), these two are unconditional mathematical impossibilities
+      // with no legitimate exception, so they escalate to BLOCK exactly
+      // like R-001..R-005 -- this is the runtime gate that makes the
+      // CashMatch AI incident's contradiction (operating profit exceeding
+      // gross profit in all three scenarios) structurally impossible to
+      // ship again, rather than merely fixed for the one reported case.
+      const FINANCIAL_INVARIANT_CODES = new Set([
+        'GROSS_PROFIT_EXCEEDS_REVENUE',
+        'OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT',
+      ]);
+      const invariantFailures = (
+        ((result as Record<string, unknown>).report_integrity_issues as Array<{ code: string; message: string }> | undefined) ?? []
+      ).filter((issue) => FINANCIAL_INVARIANT_CODES.has(issue.code));
+      if (invariantFailures.length > 0) {
+        (result as Record<string, unknown>).report_integrity = 'BLOCK';
+        log.error(`Financial invariant violation: ${invariantFailures.length} scenario(s) escalated report_integrity to BLOCK (${invariantFailures.map((f) => f.code).join(', ')})`);
+      }
     } catch (rcErr) {
       log.error('Reconciliation check failed:', rcErr);
     }
