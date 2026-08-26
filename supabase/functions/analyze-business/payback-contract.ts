@@ -152,3 +152,75 @@ export function checkScenarioMonotonicity(scenarios: {
 
   return issues;
 }
+
+/**
+ * Financial invariants (2026-08-25 GTM-audit item #1): unlike scenario
+ * monotonicity above -- which the module header explains CAN legitimately
+ * flip direction for a marketing-heavy business -- these are unconditional
+ * mathematical facts with zero legitimate exception:
+ *   gross_profit  <= revenue           (gross_profit = revenue - COGS)
+ *   operating_profit <= gross_profit   (operating_profit = gross_profit - non-COGS opex, opex >= 0)
+ * and therefore operating_profit <= revenue transitively.
+ *
+ * Root-caused from a real production report (CashMatch AI, 2026-08-24) whose
+ * scenario table showed Pessimistic/Base/Optimistic operating profit
+ * ($56,005/$71,360/$90,157) all exceeding their own gross profit
+ * ($21,796/$31,373/$41,280) -- a structurally impossible relationship that
+ * shipped in all three scenarios simultaneously, undetected, because nothing
+ * in the pipeline ever checked this directly. checkScenarioMonotonicity()
+ * only compares scenarios against EACH OTHER (direction of change); it does
+ * not check that any single scenario is internally coherent. This does.
+ *
+ * Non-blocking here, by the same design precedent as
+ * checkScenarioMonotonicity() (see its docstring): this function only
+ * detects and reports. The caller (index.ts) is what decides these are
+ * severe enough to escalate report_integrity to BLOCK, since -- unlike
+ * monotonicity -- there is no legitimate business shape that violates
+ * these two inequalities.
+ */
+export interface FinancialInvariantViolation {
+  code:
+    | "GROSS_PROFIT_EXCEEDS_REVENUE"
+    | "OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT";
+  scope: "pessimistic" | "base" | "optimistic";
+  message: string;
+}
+
+/** Whole-dollar rounding accumulates across a few adds -- same $2 tolerance
+ *  reconciliation-check.ts uses elsewhere in this pipeline, so a rounding
+ *  artifact never gets reported as a structural violation. */
+const INVARIANT_TOLERANCE = 2;
+
+function checkOneScenarioInvariants(
+  scope: "pessimistic" | "base" | "optimistic",
+  scenario: { revenue: number; gross_profit: number; net_profit: number },
+): FinancialInvariantViolation[] {
+  const issues: FinancialInvariantViolation[] = [];
+  if (scenario.gross_profit > scenario.revenue + INVARIANT_TOLERANCE) {
+    issues.push({
+      code: "GROSS_PROFIT_EXCEEDS_REVENUE",
+      scope,
+      message: `[${scope}] Gross profit ($${scenario.gross_profit}) exceeds revenue ($${scenario.revenue}). gross_profit = revenue - COGS can never exceed revenue.`,
+    });
+  }
+  if (scenario.net_profit > scenario.gross_profit + INVARIANT_TOLERANCE) {
+    issues.push({
+      code: "OPERATING_PROFIT_EXCEEDS_GROSS_PROFIT",
+      scope,
+      message: `[${scope}] Operating profit ($${scenario.net_profit}) exceeds gross profit ($${scenario.gross_profit}). operating_profit = gross_profit - non-COGS operating expenses can never exceed gross_profit when those expenses are non-negative.`,
+    });
+  }
+  return issues;
+}
+
+export function checkFinancialInvariants(scenarios: {
+  pessimistic: { revenue: number; gross_profit: number; net_profit: number };
+  base: { revenue: number; gross_profit: number; net_profit: number };
+  optimistic: { revenue: number; gross_profit: number; net_profit: number };
+}): FinancialInvariantViolation[] {
+  return [
+    ...checkOneScenarioInvariants("pessimistic", scenarios.pessimistic),
+    ...checkOneScenarioInvariants("base", scenarios.base),
+    ...checkOneScenarioInvariants("optimistic", scenarios.optimistic),
+  ];
+}
