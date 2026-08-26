@@ -113,6 +113,23 @@ export class QMath {
 
   /**
    * LTV = avgCheck × grossMarginFraction × ordersPerMonth × lifetimeMonths
+   *
+   * GTM-audit item #9 (2026-08-25) DIVERGENCE WARNING: this method's 2nd
+   * argument is `cogsPercent` on a 0-100 PERCENT scale (converted
+   * internally to a fraction). The client's `QuantisMath.ltv()` in
+   * src/lib/quantis-math.ts has the IDENTICAL name, argument count, and
+   * argument order, but its 2nd argument is `grossMarginFraction` on a
+   * 0-1 FRACTION scale directly -- passing one function's convention to
+   * the other silently produces a wildly wrong LTV (e.g. passing a 0.65
+   * fraction here would compute grossMarginFraction = 1 - 0.65/100 =
+   * 0.9935, nearly the opposite of intended). Confirmed via real call-
+   * site tracing (2026-08-25) that this method's only caller
+   * (financial-engine.ts's generate12MonthProjections) is never actually
+   * invoked in production, and the client's only caller
+   * (formula-registry.ts) is reference-only, not the live engine -- this
+   * is a dormant unit-mismatch, not a live bug -- but never copy an
+   * `ltv(...)` call between the two files without checking which
+   * convention the destination expects.
    */
   static ltv(avgCheck: unknown, cogsPercent: unknown, ordersPerMonth: unknown, lifetimeMonths: unknown): Decimal {
     const check = QMath.sanitize(avgCheck);
@@ -205,6 +222,21 @@ export class QMath {
 
   /**
    * ROI = (profit × months / investment) × 100
+   *
+   * GTM-audit item #9 (2026-08-25) DIVERGENCE WARNING: the client's
+   * `QuantisMath.roi(gain, cost)` in src/lib/quantis-math.ts is a
+   * DIFFERENT formula under the same name -- `((gain - cost) / cost) *
+   * 100`, a 2-argument gain-over-cost ratio, not this 3-argument
+   * period return on investment over the supplied `months` window (it does
+   * NOT annualize -- CodeRabbit catch: the original wording here was
+   * inaccurate). Confirmed via real call-site
+   * tracing (2026-08-25) that neither this method nor the client's
+   * roi() is actually reached by the live analyze-business engine today
+   * (financial-calculator.ts computes roiYear1Percent/roiYear3Percent
+   * inline, not through either QMath.roi() variant), so this is a
+   * dormant naming collision, not a live bug -- but do NOT assume
+   * `roi()` means the same thing in both files, and do not "fix" this by
+   * unifying the two without re-auditing every caller of both first.
    */
   static roi(monthlyProfit: unknown, investment: unknown, months: number): Decimal {
     const profit = QMath.sanitize(monthlyProfit);
