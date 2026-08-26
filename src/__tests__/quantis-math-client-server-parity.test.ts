@@ -79,12 +79,24 @@ describe('QuantisMath (client) vs QMath (server) parity', () => {
     }
   });
 
-  it('ltvCacRatio agrees', () => {
-    const cases: Array<[number, number]> = [[900, 150], [0, 150], [900, 0]];
+  it('ltvCacRatio agrees, once each side\'s own precision contract is applied', () => {
+    // CodeRabbit catch: QuantisMath.ltvCacRatio() (client) returns the raw,
+    // unrounded division; QMath.ltvCacRatio() (server) explicitly rounds
+    // to 1dp -- a real, documented contract difference, not a bug. The
+    // original cases here were all exact integers with no fractional part
+    // (900/150=6, 0/150=0, 900/0=0), so toBeCloseTo(server, 1)'s ~0.05
+    // tolerance passed trivially without ever exercising a case where
+    // rounding actually differs -- and since a 1dp rounding error can
+    // never exceed 0.05 by definition, that assertion style could NEVER
+    // have failed on this precision difference, for any input. Added a
+    // non-integral case (1000/300 = 3.333...) and now round the client
+    // side to the server's own 1dp contract before an EXACT comparison,
+    // so the test can actually fail if the two sides ever disagree.
+    const cases: Array<[number, number]> = [[900, 150], [0, 150], [900, 0], [1000, 300]];
     for (const [ltv, cac] of cases) {
-      const client = n(QuantisMath.ltvCacRatio(ltv, cac));
+      const clientRounded = Math.round(n(QuantisMath.ltvCacRatio(ltv, cac)) * 10) / 10;
       const server = QMath.ltvCacRatio(ltv, cac); // server returns a plain number, 1dp-rounded
-      expect(client).toBeCloseTo(server, 1);
+      expect(clientRounded).toBe(server);
     }
   });
 

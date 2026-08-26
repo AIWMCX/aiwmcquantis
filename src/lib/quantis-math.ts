@@ -163,9 +163,11 @@ export class QuantisMath {
    * GTM-audit item #9 (2026-08-25) DIVERGENCE WARNING: the server's
    * `QMath.roi(monthlyProfit, investment, months)` in
    * supabase/functions/analyze-business/quantis-math-server.ts is a
-   * DIFFERENT formula under the same name -- a 3-argument, period-
-   * annualized return on investment, not this 2-argument gain-over-cost
-   * ratio. Confirmed via real call-site tracing (2026-08-25) that neither
+   * DIFFERENT formula under the same name -- a 3-argument return on
+   * investment over the supplied `months` window (it does NOT annualize;
+   * CodeRabbit catch: earlier wording here said "annualized," which was
+   * inaccurate), not this 2-argument gain-over-cost ratio. Confirmed via
+   * real call-site tracing (2026-08-25) that neither
    * this method nor the server's roi() is actually reached by the live
    * analyze-business engine today, so this is a dormant naming collision,
    * not a live bug -- but do NOT assume `roi()` means the same thing in

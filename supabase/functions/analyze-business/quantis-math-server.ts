@@ -227,7 +227,9 @@ export class QMath {
    * `QuantisMath.roi(gain, cost)` in src/lib/quantis-math.ts is a
    * DIFFERENT formula under the same name -- `((gain - cost) / cost) *
    * 100`, a 2-argument gain-over-cost ratio, not this 3-argument
-   * period-annualized return on investment. Confirmed via real call-site
+   * period return on investment over the supplied `months` window (it does
+   * NOT annualize -- CodeRabbit catch: the original wording here was
+   * inaccurate). Confirmed via real call-site
    * tracing (2026-08-25) that neither this method nor the client's
    * roi() is actually reached by the live analyze-business engine today
    * (financial-calculator.ts computes roiYear1Percent/roiYear3Percent
