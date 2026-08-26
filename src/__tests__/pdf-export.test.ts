@@ -78,37 +78,26 @@ describe('usePdfExport — canonical PDF pipeline', () => {
   // GTM-audit item #2 (2026-08-25): real production incident where the UI
   // showed "AI narrative unavailable" yet the exported PDF carried a full
   // narrative and a plain "VIABLE" verdict with no indication anything had
-  // failed. Fixed by reading used_fallback/report_integrity (already set
-  // server-side in analyze-business/index.ts) and refusing to present a
-  // clean verdict when either is tripped.
-  it('never lets a report_integrity BLOCK produce a clean verdict', () => {
+  // failed.
+  //
+  // CodeRabbit catch (second round): the original version of these tests
+  // only regex-matched this file's source text for tokens like
+  // "integrityBlocked" or "DETERMINISTIC ONLY" -- "a source token can
+  // remain after the runtime behavior regresses, so the tests can pass
+  // while PDF output is incorrect." The verdict logic and the emergency
+  // fallback are now real, directly-callable functions
+  // (deriveReportVerdict in pdf-verdict.ts, emergencyFallbackAnalysis
+  // exported from analysisApi.ts) -- see pdf-verdict.test.ts and
+  // emergency-fallback.test.ts for the actual runtime assertions on their
+  // return values. This file still uses source-pattern matching for the
+  // page-footer JSX above (react-pdf's own render output isn't practically
+  // testable in Vitest/jsdom, per this file's header comment) and for
+  // confirming usePdfExport.ts actually wires the extracted verdict logic
+  // in, rather than silently reverting to an inline copy.
+  it('wires the extracted verdict/fallback logic in, rather than reverting to an inline copy', () => {
+    expect(HOOK).toMatch(/from ['"]\.\/pdf-verdict['"]/);
+    expect(HOOK).toMatch(/deriveReportVerdict\(/);
     expect(HOOK).toMatch(/integrityBlocked/);
-    expect(HOOK).toMatch(/report_integrity['"]?\)?\s*===\s*['"]BLOCK['"]/);
-    expect(HOOK).toMatch(/REVIEW REQUIRED/);
-  });
-
-  it('labels a degraded (AI-fallback) analysis distinctly from a full one', () => {
     expect(HOOK).toMatch(/isDegraded/);
-    expect(HOOK).toMatch(/used_fallback/);
-    expect(HOOK).toMatch(/DETERMINISTIC ONLY/);
-  });
-
-  // CodeRabbit catch on PR #88: the HIGH RISK branch of getVerdict()
-  // originally lacked the same isDegraded qualifier the VIABLE and NEEDS
-  // REFINEMENT branches got, so a degraded HIGH RISK report would look no
-  // different from a fully AI-narrated one.
-  it('qualifies the HIGH RISK verdict too, not just VIABLE/NEEDS REFINEMENT', () => {
-    expect(HOOK).toMatch(/HIGH RISK \(DETERMINISTIC ONLY\)/);
-  });
-
-  // CodeRabbit catch on PR #88: analysisApi.ts's emergencyFallbackAnalysis()
-  // is a SEPARATE client-side fallback (used when the analysis service call
-  // fails entirely at the network level), distinct from the server-side
-  // generateDeterministicFallbackResult() path -- it must also set
-  // used_fallback so a PDF exported from it gets the same labeling.
-  it('the client-side emergency fallback also sets used_fallback', () => {
-    const API = readFileSync(resolve(__dirname, '../services/analysisApi.ts'), 'utf8');
-    expect(API).toMatch(/function emergencyFallbackAnalysis/);
-    expect(API).toMatch(/used_fallback:\s*true/);
   });
 });

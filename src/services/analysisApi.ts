@@ -42,7 +42,11 @@ function isFreeTierResponse(data: AnalysisAPIResponse): boolean {
   );
 }
 
-function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): BusinessAnalysisResult {
+// Exported (CodeRabbit catch on PR #88) so a real test can call this
+// directly and assert on its actual return value -- e.g. that
+// used_fallback is genuinely set -- instead of only regex-matching this
+// file's source text.
+export function emergencyFallbackAnalysis(request: AnalysisRequest, reason: string): BusinessAnalysisResult {
   const f = request.financial_inputs ?? {};
   // Match the idea against the top-20 industry priors. If matched, we lift
   // confidence to 70–78 and bias unit-economics toward industry medians

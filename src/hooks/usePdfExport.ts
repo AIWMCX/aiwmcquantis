@@ -27,6 +27,7 @@ import {
   serverRecordToResult,
   type ServerBenchmarkRecord,
 } from '@/components/analysis/BenchmarkCitations';
+import { deriveReportVerdict } from './pdf-verdict';
 
 interface PdfBenchmarkRow {
   label: string;
@@ -833,26 +834,26 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
   const paybackMonths = financial.returns?.payback_period_months ?? financial.payback_period_months ?? 0;
   const monthlyRevenue = financial.mrr ?? financial.monthly_revenue?.realistic ?? 0;
 
+  // CodeRabbit catch on PR #88: the verdict logic previously lived only as
+  // an inline closure here, testable only by regex-matching this file's
+  // source text (a source token can survive after the runtime behavior
+  // regresses). Extracted to pdf-verdict.ts's deriveReportVerdict(), which
+  // has zero @react-pdf/renderer dependency and can be called directly in
+  // a real test, asserting on its actual return value.
+  const toneToColor: Record<ReturnType<typeof deriveReportVerdict>['tone'], string> = {
+    success: brandedColors.success,
+    warning: brandedColors.warning,
+    danger: brandedColors.danger,
+  };
   const getVerdict = () => {
-    // A report that failed its own accounting-integrity check can never
-    // present a clean verdict, regardless of confidence/profit/payback --
-    // this is the direct fix for the CashMatch AI incident: a report whose
-    // scenarios were mathematically impossible must never show a plain
-    // "VIABLE" the way that one did.
-    if (integrityBlocked) {
-      return { text: 'REVIEW REQUIRED', color: brandedColors.danger };
-    }
-    if (result.confidence_score >= 75 && monthlyProfit > 0 && paybackMonths <= 18) {
-      return { text: isDegraded ? 'VIABLE (DETERMINISTIC ONLY)' : 'VIABLE', color: brandedColors.success };
-    } else if (result.confidence_score >= 50 && monthlyProfit > 0) {
-      return { text: isDegraded ? 'NEEDS REFINEMENT (DETERMINISTIC ONLY)' : 'NEEDS REFINEMENT', color: brandedColors.warning };
-    } else {
-      // CodeRabbit catch on PR #88: this branch was missing the same
-      // isDegraded qualifier the other two branches got, so a degraded
-      // HIGH RISK report would silently look no different from a fully
-      // AI-narrated one -- the exact inconsistency this fix exists to close.
-      return { text: isDegraded ? 'HIGH RISK (DETERMINISTIC ONLY)' : 'HIGH RISK', color: brandedColors.danger };
-    }
+    const v = deriveReportVerdict({
+      confidenceScore: result.confidence_score,
+      monthlyProfit,
+      paybackMonths,
+      isDegraded,
+      integrityBlocked,
+    });
+    return { text: v.text, color: toneToColor[v.tone] };
   };
 
   const verdict = getVerdict();
