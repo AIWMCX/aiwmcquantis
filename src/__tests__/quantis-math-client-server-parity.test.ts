@@ -92,9 +92,21 @@ describe('QuantisMath (client) vs QMath (server) parity', () => {
     // non-integral case (1000/300 = 3.333...) and now round the client
     // side to the server's own 1dp contract before an EXACT comparison,
     // so the test can actually fail if the two sides ever disagree.
-    const cases: Array<[number, number]> = [[900, 150], [0, 150], [900, 0], [1000, 300]];
+    //
+    // CodeRabbit catch (2nd round): using plain `Math.round(x * 10) / 10`
+    // to emulate that rounding is itself wrong for negative half-way
+    // values -- JS's Math.round rounds -3.35 to -3.3 (toward +Infinity),
+    // while Decimal.js's ROUND_HALF_UP (which BOTH quantis-math.ts and
+    // quantis-math-server.ts configure at module load) rounds -3.35 to
+    // -3.4 (away from zero). Using QuantisMath.roundTo() -- which goes
+    // through the same Decimal/ROUND_HALF_UP machinery the client module
+    // already configures, rather than a plain-JS approximation of it --
+    // guarantees this test uses the SAME rounding contract as the
+    // server's toDecimalPlaces(1, Decimal.ROUND_HALF_UP), including for
+    // negative inputs.
+    const cases: Array<[number, number]> = [[900, 150], [0, 150], [900, 0], [1000, 300], [-1005, 300]];
     for (const [ltv, cac] of cases) {
-      const clientRounded = Math.round(n(QuantisMath.ltvCacRatio(ltv, cac)) * 10) / 10;
+      const clientRounded = QuantisMath.roundTo(QuantisMath.ltvCacRatio(ltv, cac), 1);
       const server = QMath.ltvCacRatio(ltv, cac); // server returns a plain number, 1dp-rounded
       expect(clientRounded).toBe(server);
     }
