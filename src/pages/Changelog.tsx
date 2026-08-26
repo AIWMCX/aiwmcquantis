@@ -16,6 +16,18 @@ interface ChangeEntry {
 
 const CHANGELOG: ChangeEntry[] = [
   {
+    date: 'August 25, 2026',
+    version: '2.5.0',
+    title: 'Financial-integrity gate + validation badge fix',
+    type: 'fix',
+    changes: [
+      'Added a runtime check that operating profit can never exceed gross profit, or gross profit exceed revenue, in any scenario. A report that violates this is now flagged for review instead of shipping a clean verdict — this closes a real gap where a report could show a confident "Viable" verdict alongside internally-contradictory numbers.',
+      'Fixed a bug in external validation (RVCE): a value outside the displayed benchmark range could still show a green "Validated" badge, because the pass/fail decision was based on a separate statistical score rather than the range shown to the user. Validation now requires the value to genuinely fall within the displayed range.',
+      'PDF exports now show the true page count (previously the printed "Page X of Y" could be wrong when a section ran long), and a report generated without full AI narration is now clearly labeled as such rather than looking identical to a fully narrated one.',
+      '5 historical analyses generated before this fix were found to violate the new financial-integrity check and have been flagged for review.',
+    ],
+  },
+  {
     date: 'April 20, 2026',
     version: '2.4.0',
     title: 'Tier-Gating & Compute Leakage Hardening',
