@@ -11,6 +11,7 @@ import { checkScenarioMonotonicity, checkFinancialInvariants } from './payback-c
 import { QMath } from './quantis-math-server.ts';
 import type { StrictFinancialResult } from './financial-calculator.ts';
 import type { IndustryBenchmarks } from './index.ts';
+import type { EdgeLogger } from '../_shared/logger.ts';
 
 // Maps industry IDs to the appropriate label for COGS in reports.
 // Software companies don't have "inventory" — they have infrastructure/hosting costs.
@@ -46,7 +47,12 @@ export interface ShapeFinancialAnalysisResult {
 export function shapeFinancialAnalysis(
   calc: StrictFinancialResult,
   benchmarks: IndustryBenchmarks,
-  log: { warn: (msg: string) => void } = console,
+  // CodeRabbit catch on PR #87: this was `{ warn: ... }` only, but the new
+  // financial-invariant violations log via log.error (a genuine
+  // impossibility, not just a warning) -- widened to also require `error`,
+  // via Pick rather than the full EdgeLogger so `console` (missing
+  // EdgeLogger's `child()`) still satisfies the default value.
+  log: Pick<EdgeLogger, 'warn' | 'error'> = console,
 ): ShapeFinancialAnalysisResult {
   let scenarioContradictions: Array<{ code: string; message: string }> = [];
 
