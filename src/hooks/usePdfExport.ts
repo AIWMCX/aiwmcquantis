@@ -30,6 +30,12 @@ import {
 import { deriveReportVerdict } from './pdf-verdict';
 import { BENCHMARK_COUNT_DISPLAY } from '@/config/canonical-facts';
 import { buildBenchmarkCitationsSummary } from './pdf-benchmark-summary';
+import {
+  QUALITY_STATUS_LABEL,
+  QUALITY_STATUS_COLOR,
+  QUALITY_STATUS_IS_EVALUATED,
+  sourceCoverageColor,
+} from './pdf-quality-dimensions';
 
 interface PdfBenchmarkRow {
   label: string;
@@ -199,6 +205,39 @@ const styles = StyleSheet.create({
     fontFamily: 'Helvetica-Bold',
     color: colors.textPrimary,
     lineHeight: 1.1,
+  },
+  // GTM-audit item #7 (2026-08-25): quality-dimensions breakdown, ported
+  // from the orphaned (never-imported) ReportCoverPage.tsx into this
+  // file's actual react-pdf primitives.
+  qualityDimensionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 10,
+    marginTop: 16,
+  },
+  qualityDimensionChip: {
+    alignItems: 'center',
+    paddingVertical: 8,
+    paddingHorizontal: 10,
+    backgroundColor: colors.cardBg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 5,
+    minWidth: 90,
+  },
+  qualityDimensionLabel: {
+    fontSize: 7.5,
+    color: colors.textSecondary,
+    marginBottom: 4,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    textAlign: 'center',
+  },
+  qualityDimensionValue: {
+    fontSize: 9,
+    fontFamily: 'Helvetica-Bold',
+    textAlign: 'center',
   },
   coverFooter: {
     alignItems: 'center',
@@ -796,7 +835,13 @@ const pageNumFooter = () =>
     fixed: true,
   });
 
-const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
+// Exported (2026-08-25) specifically so pdf-render-smoke.test.ts can call
+// @react-pdf/renderer's pdf().toBuffer() against real output -- this is
+// the only kind of test that can catch a react-pdf-specific runtime error
+// (e.g. an unregistered font-family/style combination), which it already
+// has once. Not part of the hook's intended public API otherwise; callers
+// should use usePdfExport()'s generatePdf().
+export const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: BrandingConfig = defaultBranding, benchmarkRows: PdfBenchmarkRow[] = []) => {
   // Sanitize data to ensure all fields have safe defaults
   const result = prepareSafeResult(rawResult);
 
@@ -811,6 +856,19 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
   // response and survive prepareSafeResult's spread.
   const isDegraded = Boolean((rawResult as any)?.used_fallback);
   const integrityBlocked = (rawResult as any)?.report_integrity === 'BLOCK';
+
+  // GTM-audit item #7 (2026-08-25): the cover previously showed a single
+  // "Confidence Score" -- a 40/30/20/10 blend of input completeness, data
+  // quality, validation-rule score, and industry relevance -- under a
+  // label a reader reasonably (and incorrectly) reads as forecast
+  // accuracy. quality_dimensions decomposes that blend into separately-
+  // labeled, honestly-derived signals; it's already computed server-side
+  // for every analysis (supabase/functions/_shared/quality-dimensions.ts)
+  // but was never wired into the PDF that actually ships. Older stored
+  // reports generated before this field existed won't have it -- qd stays
+  // undefined and the cover falls back to the legacy blended number under
+  // an unambiguous label that doesn't claim forecast accuracy either.
+  const qd = result.validation?.quality_dimensions;
 
   // Cross-section reconciliation check (handbook §19 item 4) — read-only, surfaces contradictions in Accuracy Notice
   const reconciliationFlags = detectPdfContradictions(result.financial_analysis);
@@ -930,14 +988,74 @@ const createExecutiveReport = (rawResult: BusinessAnalysisResult, branding: Bran
           React.createElement(
             View,
             { style: styles.coverMetricBox },
-            React.createElement(Text, { style: styles.coverMetricLabel }, 'Confidence Score'),
-            React.createElement(Text, { style: { ...styles.coverMetricValue, color: getScoreColor(result.confidence_score) } }, `${result.confidence_score}%`)
+            React.createElement(Text, { style: styles.coverMetricLabel }, qd ? 'Input Completeness' : 'Analysis Quality Index (legacy)'),
+            React.createElement(Text, {
+              style: { ...styles.coverMetricValue, color: getScoreColor(qd ? qd.input_completeness : result.confidence_score) },
+            }, `${qd ? qd.input_completeness : result.confidence_score}%`)
+          ),
+          qd && React.createElement(
+            View,
+            { style: styles.coverMetricBox },
+            React.createElement(Text, { style: styles.coverMetricLabel }, 'Source Coverage'),
+            React.createElement(Text, {
+              style: { ...styles.coverMetricValue, color: sourceCoverageColor(qd.source_coverage) },
+            }, `${qd.source_coverage}%`)
           ),
           React.createElement(
             View,
             { style: styles.coverMetricBox },
             React.createElement(Text, { style: styles.coverMetricLabel }, 'Analysis Date'),
             React.createElement(Text, { style: styles.coverMetricValue }, generatedDate)
+          )
+        ),
+        // Quality dimensions -- replaces the single blended score with
+        // separately-labeled reconciliation checks. Only rendered when the
+        // engine populated them (older stored reports won't have this).
+        qd && React.createElement(
+          View,
+          { style: styles.qualityDimensionsRow },
+          [
+            ['Benchmark Match', qd.benchmark_match_quality],
+            ['Scenario Check', qd.scenario_reconciliation],
+            ['Narrative Check', qd.narrative_reconciliation],
+            ['Formula Check', qd.formula_reconciliation],
+            ['Outcome Calibration', qd.outcome_calibration],
+          ].map(([label, status]) =>
+            React.createElement(
+              View,
+              {
+                key: label,
+                style: {
+                  ...styles.qualityDimensionChip,
+                  borderStyle: QUALITY_STATUS_IS_EVALUATED[status as keyof typeof QUALITY_STATUS_IS_EVALUATED] ? 'solid' : 'dashed',
+                },
+              },
+              React.createElement(Text, { style: styles.qualityDimensionLabel }, label),
+              (() => {
+                // Real bug caught by a render smoke test (2026-08-25):
+                // qualityDimensionValue's base font is Helvetica-Bold.
+                // Combining that with fontStyle:'italic' asks react-pdf
+                // for a "Helvetica-Bold + italic" variant that isn't a
+                // registered standard-14 font, and it throws
+                // "Could not resolve font" -- which would have crashed
+                // EVERY PDF export, since outcome_calibration is
+                // unconditionally NOT_AVAILABLE today (no outcome-
+                // ingestion system exists yet), so this code path runs on
+                // every single analysis. Switching the font FAMILY (not
+                // just style) for the not-evaluated case keeps each
+                // combination a real standard font: Helvetica-Bold+normal,
+                // or plain Helvetica+italic (= Helvetica-Oblique).
+                const evaluated = QUALITY_STATUS_IS_EVALUATED[status as keyof typeof QUALITY_STATUS_IS_EVALUATED];
+                return React.createElement(Text, {
+                  style: {
+                    ...styles.qualityDimensionValue,
+                    color: QUALITY_STATUS_COLOR[status as keyof typeof QUALITY_STATUS_COLOR],
+                    fontFamily: evaluated ? 'Helvetica-Bold' : 'Helvetica',
+                    fontStyle: evaluated ? 'normal' : 'italic',
+                  },
+                }, QUALITY_STATUS_LABEL[status as keyof typeof QUALITY_STATUS_LABEL]);
+              })()
+            )
           )
         )
       ),
