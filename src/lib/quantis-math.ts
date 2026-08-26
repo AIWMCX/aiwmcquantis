@@ -157,7 +157,20 @@ export class QuantisMath {
     return sum;
   }
 
-  /** ROI: ((gain - cost) / cost) × 100 */
+  /**
+   * ROI: ((gain - cost) / cost) × 100
+   *
+   * GTM-audit item #9 (2026-08-25) DIVERGENCE WARNING: the server's
+   * `QMath.roi(monthlyProfit, investment, months)` in
+   * supabase/functions/analyze-business/quantis-math-server.ts is a
+   * DIFFERENT formula under the same name -- a 3-argument, period-
+   * annualized return on investment, not this 2-argument gain-over-cost
+   * ratio. Confirmed via real call-site tracing (2026-08-25) that neither
+   * this method nor the server's roi() is actually reached by the live
+   * analyze-business engine today, so this is a dormant naming collision,
+   * not a live bug -- but do NOT assume `roi()` means the same thing in
+   * both files.
+   */
   static roi(gain: DecimalInput, cost: DecimalInput): Decimal {
     const c = sanitize(cost);
     if (c.isZero()) return new Decimal(0);
@@ -243,7 +256,19 @@ export class QuantisMath {
     return invD.dividedBy(profitD);
   }
 
-  /** LTV: avgCheck × grossMarginFraction × ordersPerMonth × lifetimeMonths */
+  /**
+   * LTV: avgCheck × grossMarginFraction × ordersPerMonth × lifetimeMonths
+   *
+   * GTM-audit item #9 (2026-08-25) DIVERGENCE WARNING: this method's 2nd
+   * argument is `grossMarginFraction` on a 0-1 FRACTION scale directly.
+   * The server's `QMath.ltv()` in quantis-math-server.ts has the
+   * IDENTICAL name, argument count, and argument order, but its 2nd
+   * argument is `cogsPercent` on a 0-100 PERCENT scale instead -- never
+   * copy an `ltv(...)` call between the two files without checking which
+   * convention the destination expects. See that file's own docstring
+   * for the full explanation and confirmation this is currently dormant
+   * (neither side's only caller is on a live, executed code path).
+   */
   static ltv(
     avgCheck: DecimalInput,
     grossMarginFraction: DecimalInput,
