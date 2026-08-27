@@ -1,0 +1,74 @@
+# AIWMC Quantis — Canonical Execution Register
+
+Source charter: "AIWMC Quantis — Ordered Execution Checklist" (2026-08-27).
+This register is Phase 0.1's deliverable. Every task below has an ID,
+owner, status, evidence link, and next action. Status values match the
+charter exactly: Not started / In progress / Blocked / Preview passed /
+Production verified / Done.
+
+## Phase 0 baseline (0.2) — captured 2026-08-27, live-verified, not inferred
+
+| Fact | Value | Verified via |
+|---|---|---|
+| `main` HEAD | `e4de1c2439755a70f49d4f59268c26d7edc877d3` | `git rev-parse HEAD` |
+| Vercel production SHA | `e4de1c24...` deploy pending at time of writing; last confirmed `READY` was `889b9150391f4ab9fe8b64c25940eed5df72bbf7` | Vercel API `list_deployments`, `state: READY`, correct author |
+| Supabase migration head | `20260827100000_create_financial_invariant_sweep_runs` | `list_migrations` (Supabase MCP) |
+| `DAHL_ENABLED` | `true` | GitHub production environment variable, live `gh api` read |
+| `DAHL_CANARY_MODE` | `off` (updated 2026-08-24T15:38:18Z) | same |
+| `DAHL_CANARY_PERCENT` | `0` | same |
+| `DAHL_CANARY_ADMIN_USER_IDS` | 2 UUIDs configured, inert while mode=off | same |
+| `DAHL_CLEARED_ALIASES` (new, this session) | unset → falls back to `{fast_reasoning}` default in code | `dahl-canary.ts` |
+| Known-issues carried forward | pg_net schema-move question unanswered (Phase 4.6-4.9); HaveIBeenPwned toggle blocked pending dashboard action (Phase 4.1-4.5); `increment_quote_gen_usage`/`decrement_quote_gen_usage` anon-EXECUTE grant flagged by `get_advisors`, not yet fixed (Phase 2 scope) | this register |
+
+0.3 (Dahl canary OFF, verified directly): **CONFIRMED**, see table above — not inferred from source or a deployment log.
+0.4 (CashMatch regression fixture): **carried over from prior session, not re-verified this pass** — flagged as an open item under Phase 5/regression coverage, not fabricated as done here.
+0.5 (freeze unrelated migrations until Phase 1 closes): Phase 1 is closed as of this register (see below) — freeze lifted.
+
+## Phase 1 — Ten-table security incident
+
+| ID | Task | Status | Evidence | Next action |
+|---|---|---|---|---|
+| 1.1-1.3 | Read/classify PR #26's 67 files | Done | `gh pr comment 26` reconciliation comment, this session | none |
+| 1.4 | Exact remediation provenance | Done | `docs/security/2026-08-27-p0-10table-closure.md` §1-2 | none |
+| 1.5 | Fresh branch, port unique value only | Done | PR #101 (`security/p0-10table-regression-gate`), merged `889b9150` | none |
+| 1.6 | Ten-object effective-access matrix | Done | closure doc §2 (grants, policies, fixing migration, timestamp per table) | none |
+| 1.7-1.10 | Synthetic identities, SELECT/INSERT/UPDATE/DELETE, ownership-transfer, views/RPC bypass | **Partial** | closure doc §3: anon SELECT+DELETE live-tested on all 10 tables (`SET LOCAL ROLE anon`, `42501` on all); owner-vs-non-owner tested live for `invoices` only (pgTAP Part 4). Team-member/invalid-team-member identities, bulk/filter/upsert mutation paths, and views/RPC bypass **not yet tested** for the other 9 tables. | Extend `p0_10table_exposure_regression.test.sql` to the remaining 9 tables' owner/non-owner cases; add bulk-operation and view/RPC-bypass coverage |
+| 1.11 | Confirm no service_role key in client bundles | **Not verified this session** | — | Grep built client bundle + `src/` for `service_role`/`SERVICE_ROLE` literal leakage |
+| 1.12 | Sanitized evidence saved | Done | closure doc §3 (status codes only, zero row contents) | none |
+| 1.13 | Exposure window | Done | closure doc §1, §4: earliest confirmed 2026-08-03, fixed 2026-08-16T23:02:01Z, true origin unknown (drift-only) | none |
+| 1.14 | Data classes reachable | Done | closure doc §4 | none |
+| 1.15 | Log review + retention limitation stated | Done, negative result | closure doc §4: `query_logs` errored on every attempt; retention limitation stated explicitly, "no exploitation occurred" NOT claimed | Retry `query_logs` or escalate to Supabase support if forensic access is ever needed |
+| 1.16 | Record-integrity reconciliation (invoices/leads/usage_counters) | **Not done** | — | Run a row-count/checksum sweep against a known-good baseline if one exists; none currently exists as a baseline to compare against |
+| 1.17 | Rotation/legal/notification decision | **Open, correctly not resolved by the coding agent** | closure doc §4 | Founder decision required |
+| 1.18-1.20 | Replacement PR, clean-replay/pgTAP/typecheck/CI, black-box repeat in Production | Done | PR #101: CI green (`889b9150`), gate SQL live-verified pre-merge (zero findings), Vercel `READY` confirmed post-merge | none |
+| 1.21 | Close PR #26 as superseded | Done | PR #26 closed, reconciliation comment posted linking #32 and #101 | none |
+| 1.22 | Internal incident-closure record | Done | `docs/security/2026-08-27-p0-10table-closure.md` | none |
+
+**Phase 1 exit gate status: substantially met, with two honest gaps** — the full six-identity matrix (1.7-1.10) is not complete for 9 of 10 tables, and 1.11/1.16 were not checked this session. Not claiming full exit-gate closure; flagging exactly what's left.
+
+## Phase 2 — 88-table audit
+
+Status: **Not started** as a formal register (a broader RLS-policy-correctness pass ran earlier this session — described in conversation, not in this register's format — but did not produce the 2.1-2.15 deliverables: canonical inventory export, per-table access classification, pgTAP allow/deny suite by category, exceptions register). Treat prior narrative claims of "88 tables audited, clean" as **not yet meeting this charter's evidence bar** until redone against 2.1-2.15.
+
+One concrete carry-forward finding to fold in: `increment_quote_gen_usage()` / `decrement_quote_gen_usage()` hold a live anon/authenticated EXECUTE grant per `get_advisors` (found 2026-08-27, not fixed). Prioritize this under 2.4's function/RPC scope.
+
+## Phase 3 — Eight policy-less RLS tables
+
+Status: **Not started** in this register's format (prior session narrative claims "confirmed intentional," but 3.1-3.7's call-site search, client-denial proof, and server-job proof were not each independently re-verified and logged here).
+
+## Phase 4 — Minor Supabase hardening
+
+- 4.1-4.5 (leaked-password protection): **Blocked** — requires manual Supabase Dashboard action, no tool access this session.
+- 4.6-4.9 (pg_net namespace): **Blocked on a founder decision** — question posed in a prior session ("do it anyway, or leave it?"), not yet answered. Per 4.9's own rule ("otherwise document the accepted exception; do not change production for cosmetic hygiene"), defaulting to **documented exception, deferred** until answered.
+
+## Phase 5 — Product Accuracy (Q19/Q6-Q8/Q20)
+
+Status: **Reported Done in a prior session** (dashboard, policy doc, support runbook section all shipped and deploy-verified). Per this charter's evidence bar, re-validate against 5.1-5.20's specific sub-items (alerting on failed/missing sweep — 5.6; conflict fixtures for wrong totals/units/currency/period/verdict/cohort — 5.13) before counting this phase Done. **Not re-audited in this register yet.**
+
+## Phase 6-9
+
+Status: **Not started.** Phase 8 (Dahl) has one piece of forward-compatible groundwork laid this session (the `isDahlAliasCleared()` gate, `e4de1c24`) but remains explicitly blocked on Phases 1 and 5 per the charter — Phase 1 has open gaps (above), so Phase 8 is not unblocked yet.
+
+## Daily commercial lane
+
+Status: not tracked by the coding agent — owner is the founder per the charter.
