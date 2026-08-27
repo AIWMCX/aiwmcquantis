@@ -1,0 +1,8 @@
+# Legacy location for scanners that don't check /.well-known/security.txt
+# (RFC 9116 section 3) -- see that file for the canonical, kept-in-sync copy.
+
+Contact: mailto:security@aiwmcquantis.com
+Policy: https://www.aiwmcquantis.com/security
+Canonical: https://www.aiwmcquantis.com/.well-known/security.txt
+Preferred-Languages: en
+Expires: 2027-08-26T00:00:00.000Z

@@ -1,0 +1,14 @@
+# AIWMC Quantis -- Security Policy (RFC 9116)
+# GTM-audit item #16 (2026-08-26, Q159): "Is there a security.txt /
+# responsible-disclosure path for outside researchers?" A human-readable
+# vulnerability-disclosure contact already existed at /security
+# (security@aiwmcquantis.com), but nothing machine-readable at the
+# standard location automated security scanners and researchers check
+# first. This file points to that existing contact and policy rather
+# than introducing a new one.
+
+Contact: mailto:security@aiwmcquantis.com
+Policy: https://www.aiwmcquantis.com/security
+Canonical: https://www.aiwmcquantis.com/.well-known/security.txt
+Preferred-Languages: en
+Expires: 2027-08-26T00:00:00.000Z
