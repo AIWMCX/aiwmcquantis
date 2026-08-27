@@ -223,11 +223,80 @@ Pre-computed metrics are provided as markdown tables that the LLM must reference
 After LLM response, the system:
 
 1. **Parses** the structured JSON output
-2. **Validates** all dollar amounts against computed metrics set
+2. **Validates** dollar amounts cited in `executive_summary` against the computed metrics set (see "Engine vs. Narrator Conflict Resolution" below for the exact scope — this check does not cover every narrative field)
 3. **Flags** any number within 10% tolerance as acceptable
-4. **Blocks** invented numbers >$100 not in computed set
+4. **Blocks** invented numbers >$100 not in the computed set, for that one field
 5. **Sanitizes** output if injection patterns detected
-6. **Falls back** to deterministic narrator if validation fails
+6. **Replaces** `executive_summary` with a template built purely from the computed metrics if step 4 fails (a per-field replacement, not a fallback of the entire AI response — see below)
+
+## Engine vs. Narrator Conflict Resolution
+
+GTM-audit item #20 (2026-08-27, Q6/Q8): "When the deterministic engine and
+the AI narrator disagree, which one does the customer actually see — and
+is that choice ever wrong?" Written up here for engineers touching this
+code later, based on a direct read of the current implementation
+(`supabase/functions/analyze-business/index.ts`,
+`supabase/functions/_shared/ai-safety-guardrails.ts`).
+
+**The two sources are independent, then merged — the narrator never sees
+the final numbers.** The LLM generates its narrative prose in the same
+one-shot call that also produces its own (unused-for-display) numeric
+estimates. `calculateStrictFinancials()` then computes the real,
+authoritative `calc` object afterward, from user inputs — the AI's own
+number guesses are used only as a low-priority fallback *input* when the
+user provided nothing, never displayed as a separate "AI's numbers." The
+narrator is not re-run or corrected against `calc` after the fact; only
+specific fields are checked/patched, per the rules below.
+
+**For every numeric field the frontend renders as structured data
+(`financial_analysis.*`), the deterministic engine always wins, by
+construction.** There is no code path where an AI-generated number is
+displayed as a report figure — `calc` is the only source `AnalysisResults`
+and the PDF ever read. This is correct and requires no further
+documentation.
+
+**For narrative prose, only one field is checked, and only for one kind of
+error.** `enforceNarrativeIntegrity()` extracts every `$#,###`-style
+dollar figure from `business_plan.executive_summary` and checks each
+against an anchor set (MRR, net profit, CAC, LTV, startup investment,
+break-even revenue, 3-year NPV, expense line items) within 10% tolerance.
+If any unanchored figure over $100 appears, the **entire
+`executive_summary` is discarded and replaced** with a template built
+purely from `calc` — not edited in place, not flagged, replaced wholesale.
+This is the one and only automated "when these disagree, the engine wins"
+enforcement point in the codebase.
+
+**Everywhere else in the narrative, there is no consistency check at
+all.** `risks`, `competitive_advantages`, `product_description`,
+`launch_steps` descriptions (except their `cost` field, which is silently
+overwritten from `calc` after generation), and `market_plan` text can all
+contain a citation that doesn't match `calc`, or a qualitative claim that
+contradicts the numbers (e.g. prose calling the business "highly
+profitable" while `net_margin_percent` is negative), and none of it is
+caught. This is a real, currently-open gap, not a hypothetical — if this
+class of contradiction is reported by a customer or found in an audit,
+extending `enforceNarrativeIntegrity()`'s anchor-set check to these fields
+(or adding a lighter-weight sentiment/number-mention check) is the
+natural fix, following the exact pattern already proven for
+`executive_summary`.
+
+**AI-narration failure does not by itself trigger `report_integrity =
+'BLOCK'`.** When all AI retries fail or the response doesn't parse,
+`generateDeterministicFallbackResult()` builds a fully template-generated
+narrative from `calc`/benchmarks (so it trivially passes the
+`executive_summary` check above), and the report is marked via separate
+fields — `used_fallback: true`, a human-readable `fallback_reason`,
+`model: "deterministic-engine"` — rather than `report_integrity`.
+`report_integrity` is escalated to `BLOCK` only by the financial-invariant
+gate and reconciliation critical-check failures (see
+`payback-contract.ts`'s `checkFinancialInvariants()` and
+`reconciliation-check.ts`), which are orthogonal to whether the narrator
+succeeded. The investment verdict itself (`deriveInvestmentVerdict()`)
+always derives from `calc` on both the AI-narrated and fallback paths —
+degraded narration never changes the verdict, only its labeling (see
+`AccuracyTransparentResults.tsx`'s Accuracy Notice banner and
+`usePdfExport.ts`'s degraded-mode PDF labeling, both from the August 25
+session).
 
 ## Security Audit Logging
 

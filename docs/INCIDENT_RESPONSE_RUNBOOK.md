@@ -220,6 +220,85 @@ SELECT count(*) FROM pg_stat_activity;
 
 ---
 
+## 🧮 Customer-Reported Math/Data Discrepancy
+
+GTM-audit item #19 (2026-08-27, Q20): "If a customer catches a math
+contradiction and emails support, is there a fast, honest response path,
+or blind escalation?" This section is that path — it did not exist
+before this entry. This is the ONE scenario in this runbook that starts
+from a support inbox, not a monitoring alert, so triage looks different:
+you're verifying a specific claim about a specific analysis, not scanning
+for a system-wide symptom.
+
+### Symptoms
+- A customer replies to a report, or emails support, saying two numbers
+  in their analysis (or a number and the narrative text describing it)
+  don't agree with each other.
+- This is distinct from "I disagree with the assumptions" — the claim
+  here is an internal contradiction, not a modeling disagreement.
+
+### Immediate Actions (target: acknowledge within 4 hours)
+
+1. **Acknowledge the report immediately**, before investigating. A
+   customer who caught a real bug should never wait in silence — see
+   the August 25 and August 27 changelog entries
+   (`src/pages/Changelog.tsx`) for the tone/precedent: direct,
+   specific, no defensiveness.
+
+2. **Pull the specific analysis and check `report_integrity`:**
+   ```sql
+   SELECT id, created_at, result->>'report_integrity' AS integrity,
+     result->'report_integrity_issues' AS issues
+   FROM public.analyses
+   WHERE id = '<analysis_id>';
+   ```
+   - If `report_integrity = 'BLOCK'` already: the system caught this
+     before the customer did. Apologize, explain what it means (see the
+     Accuracy Notice banner text in `AccuracyTransparentResults.tsx`),
+     and offer a free re-run. This is a UX/communication gap, not a
+     math bug — the export-confirmation gate should have surfaced this
+     at download time; check whether it did.
+   - If `report_integrity = 'PASS'` but the contradiction is real: this
+     is a genuine gap in what `checkFinancialInvariants()`
+     (`payback-contract.ts`) currently checks. Continue to step 3.
+
+3. **Reproduce the specific claim.** Manually verify the two figures the
+   customer pointed at actually disagree (not a legitimate reason they
+   differ, e.g. one is pre-tax and the other post-tax). Check
+   `/admin/invariant-sweeps` for whether this analysis already appears
+   in a recent sweep's violation list.
+
+4. **If confirmed as a real, new-class bug:**
+   - Escalate to engineering the same day — this is not a queue item.
+   - Flag the specific row the same way the original 5 historical rows
+     were flagged (additive `jsonb_set`, `report_integrity='BLOCK'`,
+     numbers untouched) so it can't silently ship to anyone else who
+     views it.
+   - Query for how many OTHER analyses share the same root cause before
+     responding to the customer with a final answer — "just this one"
+     vs. "this affects N reports" changes what you're able to promise.
+   - Fix the root cause, add it to `checkFinancialInvariants()` or the
+     relevant reconciliation rule so the sweep catches it retroactively
+     going forward, and add a regression test reproducing the exact
+     customer-reported figures (see
+     `src/__tests__/financial-invariants.test.ts` for the precedent —
+     it reproduces the original CashMatch AI incident's exact numbers).
+
+5. **Close the loop with the customer**, not just internally: confirm
+   what was found, what was fixed, and offer to re-run their analysis.
+   Silence after the initial acknowledgment is worse than a slow first
+   response.
+
+### Escalation
+
+Any confirmed math-integrity bug (not a modeling-assumption disagreement)
+is at minimum a SEV-3 by the table above, and SEV-2 if it's plausible
+other live analyses share the same root cause — treat "how many other
+reports does this affect" as the severity-deciding question, not the
+customer's own perceived urgency.
+
+---
+
 ## 📞 Escalation Contacts
 
 | Role | Responsibility | Contact |
