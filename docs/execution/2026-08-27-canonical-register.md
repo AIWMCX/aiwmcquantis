@@ -48,7 +48,9 @@ Production verified / Done.
 
 ## Phase 2 — 88-table audit
 
-Status: **Not started** as a formal register (a broader RLS-policy-correctness pass ran earlier this session — described in conversation, not in this register's format — but did not produce the 2.1-2.15 deliverables: canonical inventory export, per-table access classification, pgTAP allow/deny suite by category, exceptions register). Treat prior narrative claims of "88 tables audited, clean" as **not yet meeting this charter's evidence bar** until redone against 2.1-2.15.
+Status: **In progress.** Canonical inventory (2.1) built and live-exported to `docs/execution/2026-08-27-phase2-88table-inventory.md` — 78 tables matched the GRANT-scoped query (not 88; discrepancy noted, not resolved). Static review (2.5-2.9) found: **zero recurrence** of the 10-table incident's wide-open-policy pattern anywhere else in the schema; the one `qual='true'` policy found (`plan_entitlements`) individually checked and confirmed benign (public pricing-tier read, correctly paired with a `service_role`-only write policy); the 8 policy-less tables (Phase 3's exact list) reconfirmed live rather than assumed.
+
+**Not yet done**: per-table classification for the full 78-row set, dynamic pgTAP suite beyond the 10 incident tables, CI gate for new-migration classification, exceptions register as a standalone artifact, and individual deep-review of the priority list (`api_keys`, `subscriptions`, `analyses`, `profiles` not yet re-audited in depth this session — see inventory doc's priority-order section).
 
 One concrete carry-forward finding to fold in: `increment_quote_gen_usage()` / `decrement_quote_gen_usage()` hold a live anon/authenticated EXECUTE grant per `get_advisors` (found 2026-08-27, not fixed). Prioritize this under 2.4's function/RPC scope.
 
