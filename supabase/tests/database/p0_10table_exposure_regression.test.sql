@@ -16,7 +16,12 @@
 BEGIN;
 CREATE EXTENSION IF NOT EXISTS pgtap WITH SCHEMA extensions;
 
-SELECT plan(16);
+-- Plan count: pgTAP counts one test per ROW a test predicate returns, not
+-- one per SELECT statement -- `SELECT ok(...) FROM unnest(array_of_N)`
+-- contributes N to the plan, not 1. Part 1 (10 tables) + Part 2 (3) +
+-- Part 3 (2) + Part 4 (2) + Part 5 (10) + Part 6 (5) + Part 7 (2) +
+-- Part 8 (1) = 35.
+SELECT plan(35);
 
 -- ============================================================
 -- Part 1 — anon must have zero privilege on all 10 tables (the exact
@@ -105,17 +110,23 @@ SELECT lives_ok(
   'owner querying their own invoices succeeds (owner-scoped SELECT policy intact)'
 );
 
+-- NOTE: the JWT claim alone does not enforce RLS -- the connection's actual
+-- Postgres ROLE does. Earlier draft of this test set the claim but never
+-- switched role, so it silently ran as the (RLS-exempt) invoking role and
+-- would have passed even if RLS were completely broken. Verified live
+-- against production before this fix: the unswitched version returned 1
+-- (leak) for every cross-user check; SET LOCAL ROLE authenticated first
+-- correctly returns 0. Every cross-user check below brackets with
+-- SET LOCAL ROLE / RESET ROLE for this reason.
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  format('{"sub":"%s","role":"authenticated"}', current_setting('p0_test.other_id')), true);
 SELECT is(
-  (
-    WITH r AS (
-      SELECT set_config('request.jwt.claims',
-        format('{"sub":"%s","role":"authenticated"}', current_setting('p0_test.other_id')), true)
-    )
-    SELECT count(*)::int FROM r, public.invoices WHERE user_id = current_setting('p0_test.owner_id')::uuid
-  ),
+  (SELECT count(*)::int FROM public.invoices WHERE user_id = current_setting('p0_test.owner_id')::uuid),
   0,
   'a different authenticated user querying the owner''s invoices sees zero rows'
 );
+RESET ROLE;
 
 -- ============================================================
 -- Part 5 — service_role must retain full access (server-side paths --
@@ -133,6 +144,122 @@ FROM unnest(ARRAY[
   'quote_gen_usage','export_jobs','invoices','shared_reports',
   'referral_codes','funnel_events'
 ]) AS t;
+
+-- ============================================================
+-- Part 6 — extend owner/non-owner isolation from invoices-only to the
+-- remaining owner-scoped tables (charter item 1.7-1.10: the original pass
+-- only covered invoices). referral_codes and quote_gen_usage need no FK;
+-- export_jobs/shared_reports need a real analyses row (their user_id/
+-- analysis_id are NOT NULL); usage_counters keys on identity_key, not
+-- user_id directly.
+-- ============================================================
+DO $$
+DECLARE
+  v_analysis_id uuid;
+BEGIN
+  INSERT INTO public.analyses (user_id, idea, location, result)
+  VALUES (current_setting('p0_test.owner_id')::uuid, 'P0 test idea', 'P0 test location', '{}'::jsonb)
+  RETURNING id INTO v_analysis_id;
+  PERFORM set_config('p0_test.analysis_id', v_analysis_id::text, true);
+END $$;
+
+INSERT INTO public.referral_codes (user_id, code)
+SELECT current_setting('p0_test.owner_id')::uuid, 'P0TESTCODE';
+
+INSERT INTO public.quote_gen_usage (user_id, month_key)
+SELECT current_setting('p0_test.owner_id')::uuid, to_char(now(), 'YYYY-MM');
+
+INSERT INTO public.usage_counters (identity_key)
+SELECT 'user:' || current_setting('p0_test.owner_id');
+
+INSERT INTO public.export_jobs (user_id, analysis_id)
+SELECT current_setting('p0_test.owner_id')::uuid, current_setting('p0_test.analysis_id')::uuid;
+
+INSERT INTO public.shared_reports (user_id, analysis_id)
+SELECT current_setting('p0_test.owner_id')::uuid, current_setting('p0_test.analysis_id')::uuid;
+
+SET LOCAL ROLE authenticated;
+SELECT set_config('request.jwt.claims',
+  format('{"sub":"%s","role":"authenticated"}', current_setting('p0_test.other_id')), true);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.referral_codes WHERE user_id = current_setting('p0_test.owner_id')::uuid),
+  0,
+  'different authenticated user sees zero rows of owner''s referral_codes'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.quote_gen_usage WHERE user_id = current_setting('p0_test.owner_id')::uuid),
+  0,
+  'different authenticated user sees zero rows of owner''s quote_gen_usage'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.usage_counters WHERE identity_key = 'user:' || current_setting('p0_test.owner_id')),
+  0,
+  'different authenticated user sees zero rows of owner''s usage_counters'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.export_jobs WHERE user_id = current_setting('p0_test.owner_id')::uuid),
+  0,
+  'different authenticated user sees zero rows of owner''s export_jobs'
+);
+
+SELECT is(
+  (SELECT count(*)::int FROM public.shared_reports WHERE user_id = current_setting('p0_test.owner_id')::uuid),
+  0,
+  'different authenticated user sees zero rows of owner''s shared_reports'
+);
+RESET ROLE;
+
+-- ============================================================
+-- Part 7 — ownership-reassignment attack (charter item 1.9): a different
+-- authenticated user tries to INSERT a row claiming the OWNER's user_id
+-- (impersonation via WITH CHECK), and the owner tries to UPDATE their own
+-- row to reassign it to someone else. Both must be denied by WITH CHECK,
+-- not merely hidden by SELECT-side RLS.
+-- ============================================================
+-- 4-arg form (sql, errcode, expected_message, description) -- the 3-arg
+-- form ambiguously overloads its 3rd positional argument as an expected
+-- error MESSAGE, not a description, so a 3-arg call here would silently
+-- fail even when the real security behavior (42501) is correct. Verified
+-- live against production: matches Part 3's already-correct 4-arg pattern.
+SELECT throws_ok(
+  format(
+    $q$SET LOCAL ROLE authenticated;
+       SET LOCAL "request.jwt.claims" = '{"sub":"%s","role":"authenticated"}';
+       INSERT INTO public.referral_codes (user_id, code) VALUES ('%s'::uuid, 'IMPERSONATE');$q$,
+    current_setting('p0_test.other_id'), current_setting('p0_test.owner_id')
+  ),
+  '42501',
+  NULL,
+  'a different authenticated user cannot INSERT a referral_codes row claiming the owner''s user_id (WITH CHECK denies impersonation)'
+);
+
+SELECT throws_ok(
+  format(
+    $q$SET LOCAL ROLE authenticated;
+       SET LOCAL "request.jwt.claims" = '{"sub":"%s","role":"authenticated"}';
+       UPDATE public.invoices SET user_id = '%s'::uuid WHERE user_id = '%s'::uuid;$q$,
+    current_setting('p0_test.owner_id'), current_setting('p0_test.other_id'), current_setting('p0_test.owner_id')
+  ),
+  '42501',
+  NULL,
+  'the owner cannot reassign their own invoice''s user_id to another user (WITH CHECK denies ownership transfer)'
+);
+
+-- ============================================================
+-- Part 8 — view-bypass check (charter item 1.10): analysis_health is
+-- built on analysis_attempts (service-role-only); confirm the view itself
+-- carries no anon/authenticated grant that would let it re-expose the
+-- underlying table's data.
+-- ============================================================
+SELECT ok(
+  NOT has_table_privilege('anon', 'public.analysis_health', 'SELECT')
+  AND NOT has_table_privilege('authenticated', 'public.analysis_health', 'SELECT'),
+  'analysis_health view (built on analysis_attempts) grants no SELECT to anon/authenticated -- no view-bypass path'
+);
 
 SELECT * FROM finish();
 ROLLBACK;
